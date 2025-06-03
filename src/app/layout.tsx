@@ -13,8 +13,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TravelCircle",
-  description: "Connect with like-minded solo travelers.",
+  title: "KOVARI",
+  description: "Connect with like-minded travelers.",
 };
 
 export default function RootLayout({

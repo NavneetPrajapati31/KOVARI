@@ -1,8 +1,8 @@
-export default function TravelCirclePage() {
+export default function GroupPage() {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-semibold mb-4">
-        Create or Join a Travel Circle
+        Create or Join a Travel Group
       </h2>
       <form className="grid gap-4 max-w-md">
         <input
