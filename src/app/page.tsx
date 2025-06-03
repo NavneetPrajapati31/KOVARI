@@ -1,17 +1,22 @@
+import Navbar from "@/components/Navbar";
+
 export default function HomePage() {
   return (
-    <div className="h-screen flex flex-col items-center justify-center text-center p-6">
-      <h1 className="text-4xl font-bold mb-4">Welcome to TravelCircle 🌍</h1>
-      <p className="text-lg text-gray-600 mb-6">
-        Find your ideal travel companions, co-create trips, and explore
-        together.
-      </p>
-      <a
-        href="/profile"
-        className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-      >
-        Get Started
-      </a>
-    </div>
+    <>
+      <Navbar />
+      <div className="h-screen flex flex-col items-center justify-center text-center p-6">
+        <h1 className="text-4xl font-bold mb-4">Welcome to TravelCircle 🌍</h1>
+        <p className="text-lg text-gray-600 mb-6">
+          Find your ideal travel companions, co-create trips, and explore
+          together.
+        </p>
+        <a
+          href="/profile"
+          className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+        >
+          Get Started
+        </a>
+      </div>
+    </>
   );
 }
