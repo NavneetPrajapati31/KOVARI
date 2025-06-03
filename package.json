@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.20.2",
+    "@hookform/resolvers": "^5.0.1",
+    "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.9",
@@ -18,10 +20,12 @@
     "framer-motion": "^12.16.0",
     "lucide-react": "^0.511.0",
     "motion": "^12.15.0",
-    "next": "^14.2.25",
+    "next": "^15.3.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwind-merge": "^3.3.0"
+    "react-hook-form": "^7.57.0",
+    "tailwind-merge": "^3.3.0",
+    "zod": "^3.25.49"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -4,7 +4,7 @@ import { UserButton, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 export default function Navbar() {
   return (
     <div className="flex justify-between items-center p-4 border-b">
-      <h1 className="text-xl font-bold">TravelCircle</h1>
+      <h1 className="text-xl font-bold">KOVARI</h1>
       <div>
         <SignedIn>
           <UserButton />
