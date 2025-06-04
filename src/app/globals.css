@@ -131,7 +131,7 @@
     outline-opacity: 0.5;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white text-foreground;
   }
 }
 

@@ -8,8 +8,8 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import "./globals.css";
-
 import { Poppins, Inter } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -38,6 +38,7 @@ export default function RootLayout({
       <html lang="en">
         <body className={`${inter.variable} ${poppins.variable} font-body`}>
           {children}
+          <Toaster position="top-right" />
         </body>
       </html>
     </ClerkProvider>
