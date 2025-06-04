@@ -7,10 +7,21 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+import { Poppins, Inter } from "next/font/google";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  weight: ["400", "500", "600", "700"],
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["400", "500", "600"],
+});
 
 export const metadata: Metadata = {
   title: "KOVARI",
@@ -25,7 +36,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${inter.className} bg-white text-black`}>
+        <body className={`${inter.variable} ${poppins.variable} font-body`}>
           {children}
         </body>
       </html>

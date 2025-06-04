@@ -10,31 +10,49 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // CSS variable bindings for theming
         background: "var(--background)",
         foreground: "var(--foreground)",
         card: "var(--card)",
         "card-foreground": "var(--card-foreground)",
         popover: "var(--popover)",
         "popover-foreground": "var(--popover-foreground)",
-        primary: "var(--primary)",
+        primary: "var(--primary)", // Use in your root: --primary: #004831
         "primary-foreground": "var(--primary-foreground)",
-        secondary: "var(--secondary)",
+        secondary: "var(--secondary)", // Use in your root: --secondary: #E7EBD0
         "secondary-foreground": "var(--secondary-foreground)",
-        muted: "var(--muted)",
+        muted: "var(--muted)", // --muted: #586F7C
         "muted-foreground": "var(--muted-foreground)",
-        accent: "var(--accent)",
+        accent: "var(--accent)", // --accent: #B8DDD9
         "accent-foreground": "var(--accent-foreground)",
         destructive: "var(--destructive)",
-        border: "var(--border)",
+        border: "var(--border)", // --border: #F4F4F9
         input: "var(--input)",
         ring: "var(--ring)",
+
+        // Optional raw HEX colors if you want direct access too
+        brand: {
+          green: "#004831",
+          alabaster: "#E7EBD0",
+          slate: "#586F7C",
+          mint: "#B8DDD9",
+          light: "#F4F4F9",
+          black: "#000000",
+          teal: "#04724D",
+        },
       },
+
       borderRadius: {
         DEFAULT: "var(--radius)",
         sm: "var(--radius-sm)",
         md: "var(--radius-md)",
         lg: "var(--radius-lg)",
         xl: "var(--radius-xl)",
+      },
+
+      fontFamily: {
+        heading: ["Poppins", "sans-serif"],
+        body: ["Inter", "sans-serif"],
       },
     },
   },
