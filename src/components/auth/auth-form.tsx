@@ -106,7 +106,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
   return (
     <div className="w-full max-w-md space-y-4 py-2">
       {/* Logo */}
-      <div className="flex items-center space-x-2">
+      {/* <div className="flex items-center space-x-2">
         <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
           <div className="w-6 h-6 text-white">
             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -115,7 +115,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           </div>
         </div>
         <span className="text-lg font-semibold text-black"> KOVARI</span>
-      </div>
+      </div> */}
 
       {/* Header */}
       <div className="space-y-0.5">
