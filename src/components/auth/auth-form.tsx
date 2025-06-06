@@ -140,7 +140,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       <div className="space-y-1.5">
         <Button
           variant="outline"
-          className="w-full h-12 bg-black text-white border-gray-300 hover:bg-gray-50"
+          className="w-full h-12 bg-primary text-brand-alabaster border-gray-300 hover:bg-primary-hover hover:text-brand-alabaster"
           onClick={() => handleSocialAuth("oauth_google")}
           disabled={isLoading}
         >
@@ -171,7 +171,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         <Button
           variant="outline"
-          className="w-full h-12 bg-black text-white border-gray-300 hover:bg-gray-50"
+          className="w-full h-12 bg-primary text-brand-alabaster border-gray-300 hover:bg-primary-hover hover:text-brand-alabaster"
           onClick={() => handleSocialAuth("oauth_facebook")}
           disabled={isLoading}
         >
@@ -187,7 +187,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         <Button
           variant="outline"
-          className="w-full h-12 bg-black text-white border-gray-300 hover:bg-gray-50"
+          className="w-full h-12 bg-primary text-brand-alabaster border-gray-300 hover:bg-primary-hover hover:text-brand-alabaster"
           onClick={() => handleSocialAuth("oauth_apple")}
           disabled={isLoading}
         >
@@ -209,10 +209,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
       {/* Divider */}
       <div className="relative my-1.5">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300" />
+          <div className="w-full border-t border-gray-600" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white text-gray-500">or</span>
+          <span className="px-2 bg-brand-alabaster text-gray-600">or</span>
         </div>
       </div>
 
@@ -232,7 +232,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               placeholder="example@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 placeholder:text-gray-500"
+              className="mt-1 h-11 border-gray-600 focus:ring-transparent placeholder:text-gray-600"
               required
               disabled={isLoading}
             />
@@ -251,7 +251,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 placeholder:text-gray-500"
+              className="mt-1 h-11 border-gray-600 focus:ring-transparent  placeholder:text-gray-600"
               required
               disabled={isLoading}
             />
@@ -271,7 +271,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 placeholder="Confirm password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 placeholder:text-gray-500"
+                className="mt-1 h-11 border-gray-600 focus:ring-transparent  placeholder:text-gray-600"
                 required
                 disabled={isLoading}
               />
@@ -287,6 +287,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 checked={rememberMe}
                 onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                 disabled={isLoading}
+                className="border-gray-600"
               />
               <Label htmlFor="remember" className="text-sm text-gray-600">
                 Remember me
@@ -305,7 +306,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         <Button
           type="submit"
-          className="w-full h-11 bg-black hover:bg-gray-800 text-white font-medium"
+          className="w-full h-11 bg-primary hover:bg-primary-hover text-brand-alabaster font-medium"
           disabled={isLoading}
         >
           {isLoading ? (

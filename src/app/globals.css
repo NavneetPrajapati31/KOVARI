@@ -135,6 +135,13 @@
   }
 }
 
+@layer utilities {
+  input:-webkit-autofill {
+    @apply bg-yellow-50 text-gray-800;
+    box-shadow: 0 0 0px 1000px #e7ebd0 inset !important;
+  }
+}
+
 /* Override root variables with hardcoded colors for fallback / specific overrides */
 /* Note: Avoid redefining radius multiple times, keep consistent */
 
@@ -143,6 +150,7 @@
   --foreground: #000000;
 
   --primary: #004831;
+  --primary-hover: #003021;
   --primary-foreground: #ffffff;
 
   --secondary: #b8ddd9;
