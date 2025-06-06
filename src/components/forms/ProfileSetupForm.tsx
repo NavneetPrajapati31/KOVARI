@@ -62,30 +62,50 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 
 // Define schemas for each step
-const step1Schema = z.object({
-  firstName: z
-    .string()
-    .min(2, { message: "First name must be at least 2 characters" })
-    .max(50, { message: "First name must be less than 50 characters" }),
-  lastName: z
-    .string()
-    .min(2, { message: "Last name must be at least 2 characters" })
-    .max(50, { message: "Last name must be less than 50 characters" }),
-  phoneNumber: z
-    .string()
-    .min(1, { message: "Please enter your phone number" })
-    .regex(/^\+?[0-9]{8,15}$/, {
-      message: "Please enter a valid phone number",
+const step1Schema = z
+  .object({
+    firstName: z
+      .string()
+      .min(2, { message: "First name must be at least 2 characters" })
+      .max(50, { message: "First name must be less than 50 characters" }),
+    lastName: z
+      .string()
+      .min(2, { message: "Last name must be at least 2 characters" })
+      .max(50, { message: "Last name must be less than 50 characters" }),
+    phoneNumber: z
+      .string()
+      .min(1, { message: "Please enter your phone number" })
+      .regex(/^\+?[0-9]{8,15}$/, {
+        message: "Please enter a valid phone number",
+      }),
+    age: z.coerce
+      .number()
+      .min(18, { message: "You must be at least 18 years old" })
+      .max(120),
+    gender: z.string().min(1, { message: "Please select your gender" }),
+    birthday: z.date({
+      required_error: "Your date of birth is required.",
     }),
-  age: z.coerce
-    .number()
-    .min(18, { message: "You must be at least 18 years old" })
-    .max(120),
-  gender: z.string().min(1, { message: "Please select your gender" }),
-  birthday: z.date({
-    required_error: "Your date of birth is required.",
-  }),
-});
+  })
+  .refine(
+    (data) => {
+      const today = new Date();
+      const age = today.getFullYear() - data.birthday.getFullYear();
+      const monthDiff = today.getMonth() - data.birthday.getMonth();
+      const dayDiff = today.getDate() - data.birthday.getDate();
+
+      // Calculate exact age considering month and day
+      const exactAge =
+        monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+
+      // Allow a small margin of error (±1 year) to account for exact birth dates
+      return Math.abs(exactAge - data.age) <= 1;
+    },
+    {
+      message: "Birthday must match the entered age",
+      path: ["birthday"], // This will show the error on the birthday field
+    }
+  );
 
 const step2Schema = z.object({
   bio: z
@@ -465,7 +485,7 @@ export default function ProfileSetupForm() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.4 }}
-        className="space-y-6"
+        className="space-y-8 pt-64 pb-8"
       >
         {/* Progress Indicator */}
         <div className="space-y-3">
@@ -497,16 +517,16 @@ export default function ProfileSetupForm() {
         <Form {...step2Form}>
           <form
             onSubmit={step2Form.handleSubmit(onStep2Submit)}
-            className="space-y-5"
+            className="space-y-6"
           >
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Profile Picture Upload */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
                   Profile Picture
                 </label>
-                <div className="flex items-center space-x-4">
-                  <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+                <div className="flex items-center space-x-6">
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
                     {profileImage ? (
                       <Image
                         src={profileImage || "/placeholder.svg"}
@@ -515,12 +535,10 @@ export default function ProfileSetupForm() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <User className="w-8 h-8 text-gray-400" />
-                      </div>
+                      <User className="w-10 h-10 text-gray-400" />
                     )}
                   </div>
-                  <div>
+                  <div className="space-y-1">
                     <input
                       type="file"
                       id="profile-pic"
@@ -530,12 +548,12 @@ export default function ProfileSetupForm() {
                     />
                     <label
                       htmlFor="profile-pic"
-                      className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      className="inline-flex items-center px-5 py-2.5 bg-white border border-gray-300 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-50 cursor-pointer shadow-sm transition-colors duration-200"
                     >
                       <Upload className="w-4 h-4 mr-2" />
                       Upload Photo
                     </label>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500">
                       JPG, PNG or GIF. Max 2MB.
                     </p>
                   </div>
@@ -543,8 +561,8 @@ export default function ProfileSetupForm() {
               </div>
 
               {/* Bio */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
                   Bio
                 </label>
                 <FormField
@@ -557,7 +575,7 @@ export default function ProfileSetupForm() {
                         <FormControl>
                           <Textarea
                             placeholder="Tell us about yourself..."
-                            className="pl-10 min-h-[100px] border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-500"
+                            className="pl-10 min-h-[120px] border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-500 shadow-sm"
                           />
                         </FormControl>
                       </div>
@@ -568,24 +586,24 @@ export default function ProfileSetupForm() {
               </div>
 
               {/* Nationality and Job Type Row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
                     Nationality
                   </label>
                   <FormField
                     control={step2Form.control}
                     name="nationality"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex-1 w-full">
                         <div className="relative">
-                          <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                          <Globe className="absolute left-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                           <FormControl>
                             <Select
                               onValueChange={field.onChange}
                               defaultValue={field.value}
                             >
-                              <SelectTrigger className="pl-10 h-12 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-500">
+                              <SelectTrigger className="pl-10 h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-700 shadow-sm w-full">
                                 <SelectValue placeholder="Select nationality" />
                               </SelectTrigger>
                               <SelectContent>
@@ -607,23 +625,23 @@ export default function ProfileSetupForm() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
                     Job Type
                   </label>
                   <FormField
                     control={step2Form.control}
                     name="jobType"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex-1 w-full">
                         <div className="relative">
-                          <Briefcase className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                          <Briefcase className="absolute left-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                           <FormControl>
                             <Select
                               onValueChange={field.onChange}
                               defaultValue={field.value}
                             >
-                              <SelectTrigger className="pl-10 h-12 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-500">
+                              <SelectTrigger className="pl-10 h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-700 shadow-sm w-full">
                                 <SelectValue placeholder="Select job type" />
                               </SelectTrigger>
                               <SelectContent>
@@ -644,17 +662,17 @@ export default function ProfileSetupForm() {
               </div>
 
               {/* Languages */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
                   Languages
                 </label>
                 <FormField
                   control={step2Form.control}
                   name="languages"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="w-full">
                       <div className="relative">
-                        <Languages className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Languages className="absolute left-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
                         <FormControl>
                           <Popover open={open} onOpenChange={setOpen}>
                             <PopoverTrigger asChild>
@@ -663,10 +681,10 @@ export default function ProfileSetupForm() {
                                 role="combobox"
                                 aria-expanded={open}
                                 className={cn(
-                                  "w-full justify-between pl-10 h-12 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-500",
+                                  "w-full justify-between pl-10 h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-700 shadow-sm",
                                   !Array.isArray(field.value) ||
                                     (field.value.length === 0 &&
-                                      "text-muted-foreground")
+                                      "text-gray-500")
                                 )}
                               >
                                 {Array.isArray(field.value) &&
@@ -687,23 +705,27 @@ export default function ProfileSetupForm() {
                                       <CommandItem
                                         key={language}
                                         onSelect={() => {
-                                          const newValue = field.value.includes(
-                                            language
-                                          )
-                                            ? field.value.filter(
-                                                (l) => l !== language
-                                              )
-                                            : [...field.value, language];
+                                          const newValue =
+                                            Array.isArray(field.value) &&
+                                            field.value.includes(language)
+                                              ? field.value.filter(
+                                                  (l) => l !== language
+                                                )
+                                              : Array.isArray(field.value)
+                                              ? [...field.value, language]
+                                              : [language];
                                           step2Form.setValue(
                                             "languages",
                                             newValue
                                           );
                                         }}
+                                        value={language}
                                       >
                                         <Checkbox
-                                          checked={field.value.includes(
-                                            language
-                                          )}
+                                          checked={
+                                            Array.isArray(field.value) &&
+                                            field.value.includes(language)
+                                          }
                                           className="mr-2"
                                         />
                                         {language}
@@ -717,17 +739,17 @@ export default function ProfileSetupForm() {
                         </FormControl>
                       </div>
                       {Array.isArray(field.value) && field.value.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
+                        <div className="flex flex-wrap gap-1 mt-2 pt-1">
                           {field.value.map((language: string) => (
                             <Badge
                               key={language}
                               variant="secondary"
-                              className="text-xs"
+                              className="text-xs font-medium bg-gray-200 text-gray-700"
                             >
                               {language}
                               <button
                                 type="button"
-                                className="ml-1 hover:text-destructive"
+                                className="ml-1 text-gray-500 hover:text-gray-700"
                                 onClick={() => {
                                   step2Form.setValue(
                                     "languages",
@@ -752,60 +774,120 @@ export default function ProfileSetupForm() {
               </div>
 
               {/* Interests */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
                   Interests
                 </label>
                 <FormField
                   control={step2Form.control}
                   name="interests"
-                  render={() => (
-                    <FormItem>
-                      <div className="grid grid-cols-2 gap-2">
-                        {interestOptions.map((interest) => (
-                          <FormField
-                            key={interest.id}
-                            control={step2Form.control}
-                            name="interests"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={interest.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(
-                                        interest.id
-                                      )}
-                                      onCheckedChange={(checked) => {
-                                        const currentValue = Array.isArray(
-                                          field.value
-                                        )
-                                          ? field.value
-                                          : [];
-                                        return checked
-                                          ? field.onChange([
-                                              ...currentValue,
-                                              interest.id,
-                                            ])
-                                          : field.onChange(
-                                              currentValue.filter(
-                                                (value) => value !== interest.id
-                                              )
-                                            );
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="text-sm font-normal">
-                                    {interest.label}
-                                  </FormLabel>
-                                </FormItem>
-                              );
-                            }}
-                          />
-                        ))}
+                  render={({ field }) => (
+                    <FormItem className="w-full">
+                      <div className="relative">
+                        <FormControl>
+                          <Popover open={open} onOpenChange={setOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={open}
+                                className={cn(
+                                  "w-full justify-between pl-3 h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-700 shadow-sm",
+                                  !Array.isArray(field.value) ||
+                                    (field.value.length === 0 &&
+                                      "text-gray-500")
+                                )}
+                              >
+                                {Array.isArray(field.value) &&
+                                field.value.length > 0
+                                  ? `${field.value.length} selected`
+                                  : "Select interests"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                              <Command>
+                                <CommandInput placeholder="Search interests..." />
+                                <CommandList>
+                                  <CommandEmpty>
+                                    No interest found.
+                                  </CommandEmpty>
+                                  <CommandGroup className="max-h-64 overflow-auto">
+                                    {interestOptions.map((interest) => (
+                                      <CommandItem
+                                        key={interest.id}
+                                        onSelect={() => {
+                                          const currentValue = Array.isArray(
+                                            field.value
+                                          )
+                                            ? field.value
+                                            : [];
+                                          const newValue =
+                                            currentValue.includes(interest.id)
+                                              ? currentValue.filter(
+                                                  (value) =>
+                                                    value !== interest.id
+                                                )
+                                              : [...currentValue, interest.id];
+                                          step2Form.setValue(
+                                            "interests",
+                                            newValue
+                                          );
+                                        }}
+                                        value={interest.label}
+                                      >
+                                        <div className="flex items-center space-x-2">
+                                          <Checkbox
+                                            checked={
+                                              Array.isArray(field.value) &&
+                                              field.value.includes(interest.id)
+                                            }
+                                            className="pointer-events-none"
+                                          />
+                                          <span>{interest.label}</span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </FormControl>
                       </div>
+                      {Array.isArray(field.value) && field.value.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2 pt-1">
+                          {field.value.map((interestId: string) => {
+                            const selectedInterest = interestOptions.find(
+                              (opt) => opt.id === interestId
+                            );
+                            return selectedInterest ? (
+                              <Badge
+                                key={selectedInterest.id}
+                                variant="secondary"
+                                className="text-xs font-medium bg-gray-200 text-gray-700"
+                              >
+                                {selectedInterest.label}
+                                <button
+                                  type="button"
+                                  className="ml-1 text-gray-500 hover:text-gray-700"
+                                  onClick={() => {
+                                    step2Form.setValue(
+                                      "interests",
+                                      Array.isArray(field.value)
+                                        ? field.value.filter(
+                                            (value) => value !== interestId
+                                          )
+                                        : []
+                                    );
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
                       <FormMessage className="text-xs mt-1" />
                     </FormItem>
                   )}
@@ -814,18 +896,18 @@ export default function ProfileSetupForm() {
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex space-x-4 mt-6">
+            <div className="flex space-x-4 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={goBack}
-                className="flex-1 h-12 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                className="flex-1 h-10 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors duration-200 shadow-sm"
               >
                 Back
               </Button>
               <Button
                 type="submit"
-                className="flex-1 h-12 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-colors duration-200"
+                className="flex-1 h-10 bg-primary hover:bg-primary-hover text-white font-medium rounded-md transition-colors duration-200 shadow-sm"
               >
                 Complete
               </Button>
