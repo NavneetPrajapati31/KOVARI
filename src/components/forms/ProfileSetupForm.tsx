@@ -1,27 +1,26 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
-  User,
-  Phone,
-  Calendar as CalendarIconLucide,
-  Briefcase,
-  Globe,
-  Languages,
-  Upload,
-  Info,
-  CalendarIcon,
+  UserRound,
+  Smartphone,
+  Building2,
+  Earth,
+  MessageSquareText,
+  CloudUpload,
+  Lightbulb,
+  CircleCheckBig,
+  ChevronLeft,
+  ChevronRight,
+  ScanFace,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import Image from "next/image";
-import { format } from "date-fns";
-import { DatePicker } from "@/components/ui/date-picker";
 
 // Import UI components
 import {
@@ -58,8 +57,9 @@ import {
   CommandEmpty,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
 
 // Define schemas for each step
 const step1Schema = z
@@ -94,16 +94,14 @@ const step1Schema = z
       const monthDiff = today.getMonth() - data.birthday.getMonth();
       const dayDiff = today.getDate() - data.birthday.getDate();
 
-      // Calculate exact age considering month and day
       const exactAge =
         monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
 
-      // Allow a small margin of error (±1 year) to account for exact birth dates
       return Math.abs(exactAge - data.age) <= 1;
     },
     {
       message: "Birthday must match the entered age",
-      path: ["birthday"], // This will show the error on the birthday field
+      path: ["birthday"],
     }
   );
 
@@ -123,7 +121,6 @@ const step2Schema = z.object({
     .min(1, { message: "Please select at least one interest" }),
 });
 
-// Define form data types
 type Step1Data = z.infer<typeof step1Schema>;
 type Step2Data = z.infer<typeof step2Schema>;
 
@@ -178,7 +175,8 @@ export default function ProfileSetupForm() {
   const [step, setStep] = useState(1);
   const totalSteps = 2;
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [interestOpen, setInterestOpen] = useState(false);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
 
   // Initialize forms for each step
@@ -217,8 +215,7 @@ export default function ProfileSetupForm() {
   const onStep2Submit = (data: Step2Data) => {
     console.log("Step 2 data:", data);
     console.log("Complete form data:", { ...step1Data, ...data });
-    // Here you would typically submit to your backend
-    setStep(3); // Move to success step or next flow
+    setStep(3);
   };
 
   // Handle profile image upload
@@ -243,699 +240,615 @@ export default function ProfileSetupForm() {
     }
   };
 
+  // Progress indicator component
+  const ProgressIndicator = () => (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-slate-600">
+          {step > totalSteps ? "Complete" : `Step ${step} of ${totalSteps}`}
+        </span>
+      </div>
+      <div className="flex space-x-1">
+        {[1, 2].map((stepNum) => (
+          <div key={stepNum} className="flex-1">
+            <div
+              className={`h-1.5 rounded-full ${
+                stepNum <= step ? "bg-[#1877F2]" : "bg-slate-200"
+              }`}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   // Render step 1 form - Basic Info
-  const renderStep1 = () => {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.4 }}
-        className="space-y-6"
-      >
-        {/* Progress Indicator */}
-        <div className="space-y-3">
-          <div className="text-sm font-medium text-gray-600">
-            Step {step} of {totalSteps}
-          </div>
-          <div className="flex space-x-2">
-            {[1, 2].map((stepNum) => (
-              <div key={stepNum} className="flex-1">
-                <div
-                  className={`h-1 rounded-full ${
-                    stepNum <= step ? "bg-primary" : "bg-gray-200"
-                  }`}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+  const renderStep1 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 mb-1">
+          Let&apos;s get started
+        </h1>
+        <p className="text-sm text-slate-600">
+          Tell us about yourself to create your profile
+        </p>
+      </div>
 
-        {/* Form Title */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Basic Information
-          </h1>
-          <p className="text-sm text-gray-500">
-            Let&apos;s start with your basic details
-          </p>
-        </div>
-
-        {/* Form Fields */}
-        <Form {...step1Form}>
-          <form
-            onSubmit={step1Form.handleSubmit(onStep1Submit)}
-            className="space-y-5"
-          >
-            <div className="space-y-4">
-              {/* First Name and Last Name Row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+      <Form {...step1Form}>
+        <form
+          onSubmit={step1Form.handleSubmit(onStep1Submit)}
+          className="space-y-4"
+        >
+          {/* Name Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField
+              control={step1Form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-slate-700">
                     First Name
-                  </label>
-                  <FormField
-                    control={step1Form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-600" />
-                          <FormControl>
-                            <Input
-                              placeholder="John"
-                              className="pl-10 h-9 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-600"
-                              {...field}
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage className="text-xs mt-1" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
+                      <Input
+                        placeholder="John"
+                        className="pl-8 h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+            <FormField
+              control={step1Form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-slate-700">
                     Last Name
-                  </label>
-                  <FormField
-                    control={step1Form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-600" />
-                          <FormControl>
-                            <Input
-                              placeholder="Smith"
-                              className="pl-10 h-9 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-600"
-                              {...field}
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage className="text-xs mt-1" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
+                      <Input
+                        placeholder="Doe"
+                        className="pl-8 h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
 
-              {/* Phone Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Phone Number */}
+          <FormField
+            control={step1Form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-slate-700">
                   Phone Number
-                </label>
-                <FormField
-                  control={step1Form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-600" />
-                        <FormControl>
-                          <Input
-                            placeholder="+91 - xxx - xxx - xxxx"
-                            className="pl-10 h-9 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-600"
-                            {...field}
-                          />
-                        </FormControl>
-                      </div>
-                      <FormMessage className="text-xs mt-1" />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Smartphone className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
+                    <Input
+                      placeholder="+91 999-999-9999"
+                      className="pl-8 h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
 
-              {/* Age and Gender Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Age and Gender */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField
+              control={step1Form.control}
+              name="age"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-gray-600">
                     Age
-                  </label>
-                  <FormField
-                    control={step1Form.control}
-                    name="age"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="25"
-                            className="w-full h-9 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-600"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-xs mt-1" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="18"
+                      className="h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
 
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+            <FormField
+              control={step1Form.control}
+              name="gender"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-gray-600">
                     Gender
-                  </label>
-                  <FormField
-                    control={step1Form.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {genderOptions.map((gender) => (
+                        <SelectItem
+                          key={gender}
+                          value={gender}
+                          className="text-sm"
                         >
-                          <FormControl>
-                            <SelectTrigger className="w-full h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary">
-                              <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {genderOptions.map((gender) => (
-                              <SelectItem key={gender} value={gender}>
-                                {gender}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-xs mt-1" />
-                      </FormItem>
-                    )}
+                          {gender}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Birthday */}
+          <FormField
+            control={step1Form.control}
+            name="birthday"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="text-xs font-medium text-gray-600">
+                  Date of Birth
+                </FormLabel>
+                <FormControl>
+                  <DatePicker
+                    startYear={2000}
+                    endYear={new Date().getFullYear()}
+                    date={field.value}
+                    onDateChange={field.onChange}
                   />
-                </div>
-              </div>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
 
-              {/* Birthday */}
-              <div>
-                <FormField
-                  control={step1Form.control}
-                  name="birthday"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="block text-sm font-medium text-gray-700 mb-2">
-                        Birthday
-                      </FormLabel>
-                      <FormControl>
-                        <DatePicker
-                          startYear={2000}
-                          endYear={new Date().getFullYear()}
-                          date={field.value}
-                          onDateChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormDescription className="text-xs text-gray-500 mt-1">
-                        Your date of birth is used to calculate your age.
-                      </FormDescription>
-                      <FormMessage className="text-xs mt-1" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Next Button */}
-            <Button
-              type="submit"
-              className="w-full h-9 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-colors duration-200 mt-6"
-            >
-              Next
-            </Button>
-          </form>
-        </Form>
-
-        {/* Login Link */}
-        {/* <div className="text-center text-sm">
-          <span className="text-gray-600">Already have an account? </span>
-          <Link
-            href="/sign-in"
-            className="text-indigo-600 hover:text-indigo-700 font-medium"
+          <Button
+            type="submit"
+            className="!mt-6 w-full h-9 text-sm bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium rounded-lg transition-all duration-200"
           >
-            Login
-          </Link>
-        </div> */}
-      </motion.div>
-    );
-  };
+            Continue
+            <ChevronRight className=" h-3.5 w-3.5" />
+          </Button>
+        </form>
+      </Form>
+    </motion.div>
+  );
 
   // Render step 2 form - Profile Details
-  const renderStep2 = () => {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.4 }}
-        className="space-y-8 pt-64 pb-8"
-      >
-        {/* Progress Indicator */}
-        <div className="space-y-3">
-          <div className="text-sm font-medium text-gray-600">
-            Step {step} of {totalSteps}
-          </div>
-          <div className="flex space-x-2">
-            {[1, 2].map((stepNum) => (
-              <div key={stepNum} className="flex-1">
-                <div
-                  className={`h-1 rounded-full ${
-                    stepNum <= step ? "bg-primary" : "bg-gray-200"
-                  }`}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+  const renderStep2 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 mb-1">
+          Complete your profile
+        </h1>
+        <p className="text-sm text-slate-600">
+          Add details to personalize your experience
+        </p>
+      </div>
 
-        {/* Form Title */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Profile Details
-          </h1>
-          <p className="text-sm text-gray-500">Tell us more about yourself</p>
-        </div>
-
-        {/* Form Fields */}
-        <Form {...step2Form}>
-          <form
-            onSubmit={step2Form.handleSubmit(onStep2Submit)}
-            className="space-y-6"
-          >
-            <div className="space-y-5">
-              {/* Profile Picture Upload */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Profile Picture
-                </label>
-                <div className="flex items-center space-x-6">
-                  <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
-                    {profileImage ? (
-                      <Image
-                        src={profileImage || "/placeholder.svg"}
-                        alt="Profile"
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <User className="w-10 h-10 text-gray-400" />
-                    )}
+      <Form {...step2Form}>
+        <form
+          onSubmit={step2Form.handleSubmit(onStep2Submit)}
+          className="space-y-4"
+        >
+          {/* Profile Picture */}
+          <div className="flex flex-col items-center space-y-3">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 border-white">
+                {profileImage ? (
+                  <Image
+                    src={profileImage || "/placeholder.svg"}
+                    alt="Profile"
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ScanFace className="w-6 h-6 text-slate-400" />
                   </div>
-                  <div className="space-y-1">
-                    <input
-                      type="file"
-                      id="profile-pic"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageUpload}
+                )}
+              </div>
+              <input
+                type="file"
+                id="profile-pic"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+                title="Upload profile picture"
+              />
+              <label
+                htmlFor="profile-pic"
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200"
+              >
+                <CloudUpload className="w-3 h-3" />
+              </label>
+            </div>
+            <p className="text-xs text-slate-500">Upload profile picture</p>
+          </div>
+
+          {/* Bio */}
+          <FormField
+            control={step2Form.control}
+            name="bio"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-slate-700">
+                  Bio (Optional)
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Lightbulb className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-600" />
+                    <Textarea
+                      placeholder="Tell us about yourself..."
+                      className="pl-8 min-h-[80px] text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg resize-none placeholder:text-gray-600"
+                      {...field}
                     />
-                    <label
-                      htmlFor="profile-pic"
-                      className="inline-flex items-center px-5 py-2.5 bg-white border border-gray-300 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-50 cursor-pointer shadow-sm transition-colors duration-200"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Photo
-                    </label>
-                    <p className="text-xs text-gray-500">
-                      JPG, PNG or GIF. Max 2MB.
-                    </p>
                   </div>
-                </div>
-              </div>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
 
-              {/* Bio */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Bio
-                </label>
-                <FormField
-                  control={step2Form.control}
-                  name="bio"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="relative">
-                        <Info className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <FormControl>
-                          <Textarea
-                            placeholder="Tell us about yourself..."
-                            className="pl-10 min-h-[120px] border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-500 shadow-sm"
-                          />
-                        </FormControl>
-                      </div>
-                      <FormMessage className="text-xs mt-1" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Nationality and Job Type Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
+          {/* Nationality and Job Type */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField
+              control={step2Form.control}
+              name="nationality"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-gray-600">
                     Nationality
-                  </label>
-                  <FormField
-                    control={step2Form.control}
-                    name="nationality"
-                    render={({ field }) => (
-                      <FormItem className="flex-1 w-full">
-                        <div className="relative">
-                          <Globe className="absolute left-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
-                          <FormControl>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <SelectTrigger className="pl-10 h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-700 shadow-sm w-full">
-                                <SelectValue placeholder="Select nationality" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {nationalityOptions.map((nationality) => (
-                                  <SelectItem
-                                    key={nationality}
-                                    value={nationality}
-                                  >
-                                    {nationality}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                        </div>
-                        <FormMessage className="text-xs mt-1" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg">
+                        <Earth className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                        <SelectValue placeholder="Select nationality" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {nationalityOptions.map((nationality) => (
+                        <SelectItem
+                          key={nationality}
+                          value={nationality}
+                          className="text-sm"
+                        >
+                          {nationality}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
+            <FormField
+              control={step2Form.control}
+              name="jobType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-gray-600">
                     Job Type
-                  </label>
-                  <FormField
-                    control={step2Form.control}
-                    name="jobType"
-                    render={({ field }) => (
-                      <FormItem className="flex-1 w-full">
-                        <div className="relative">
-                          <Briefcase className="absolute left-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
-                          <FormControl>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <SelectTrigger className="pl-10 h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-700 shadow-sm w-full">
-                                <SelectValue placeholder="Select job type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {jobTypeOptions.map((jobType) => (
-                                  <SelectItem key={jobType} value={jobType}>
-                                    {jobType}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                        </div>
-                        <FormMessage className="text-xs mt-1" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg">
+                        <Building2 className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                        <SelectValue placeholder="Select job type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {jobTypeOptions.map((jobType) => (
+                        <SelectItem
+                          key={jobType}
+                          value={jobType}
+                          className="text-sm"
+                        >
+                          {jobType}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
 
-              {/* Languages */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+          {/* Languages */}
+          <FormField
+            control={step2Form.control}
+            name="languages"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-slate-700">
                   Languages
-                </label>
-                <FormField
-                  control={step2Form.control}
-                  name="languages"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <div className="relative">
-                        <Languages className="absolute left-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
-                        <FormControl>
-                          <Popover open={open} onOpenChange={setOpen}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={open}
-                                className={cn(
-                                  "w-full justify-between pl-10 h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-700 shadow-sm",
-                                  !Array.isArray(field.value) ||
-                                    (field.value.length === 0 &&
-                                      "text-gray-500")
-                                )}
-                              >
-                                {Array.isArray(field.value) &&
-                                field.value.length > 0
-                                  ? `${field.value.length} selected`
-                                  : "Select languages"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
-                              <Command>
-                                <CommandInput placeholder="Search languages..." />
-                                <CommandList>
-                                  <CommandEmpty>
-                                    No language found.
-                                  </CommandEmpty>
-                                  <CommandGroup className="max-h-64 overflow-auto">
-                                    {languageOptions.map((language) => (
-                                      <CommandItem
-                                        key={language}
-                                        onSelect={() => {
-                                          const newValue =
-                                            Array.isArray(field.value) &&
-                                            field.value.includes(language)
-                                              ? field.value.filter(
-                                                  (l) => l !== language
-                                                )
-                                              : Array.isArray(field.value)
-                                              ? [...field.value, language]
-                                              : [language];
-                                          step2Form.setValue(
-                                            "languages",
-                                            newValue
-                                          );
-                                        }}
-                                        value={language}
-                                      >
-                                        <Checkbox
-                                          checked={
-                                            Array.isArray(field.value) &&
-                                            field.value.includes(language)
-                                          }
-                                          className="mr-2"
-                                        />
-                                        {language}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </FormControl>
-                      </div>
-                      {Array.isArray(field.value) && field.value.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2 pt-1">
-                          {field.value.map((language: string) => (
-                            <Badge
+                </FormLabel>
+                <Popover open={languageOpen} onOpenChange={setLanguageOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "bg-white w-full h-9 text-sm font-thin justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                          !field.value?.length &&
+                            "text-gray-600 hover:bg-transparent hover:text-gray-600"
+                        )}
+                      >
+                        <div className="flex items-center">
+                          <MessageSquareText className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                          {field.value?.length
+                            ? `${field.value.length} language${
+                                field.value.length > 1 ? "s" : ""
+                              }`
+                            : "Select languages"}
+                        </div>
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search languages..."
+                        className="text-sm placeholder:text-gray-600"
+                      />
+                      <CommandList>
+                        <CommandEmpty className="text-sm text-gray-600">
+                          No language found.
+                        </CommandEmpty>
+                        <CommandGroup className="max-h-48 overflow-auto">
+                          {languageOptions.map((language) => (
+                            <CommandItem
                               key={language}
-                              variant="secondary"
-                              className="text-xs font-medium bg-gray-200 text-gray-700"
+                              className="text-sm !text-gray-600"
+                              onSelect={() => {
+                                const newValue = field.value?.includes(language)
+                                  ? field.value.filter((l) => l !== language)
+                                  : [...(field.value || []), language];
+                                step2Form.setValue("languages", newValue);
+                              }}
                             >
+                              <Checkbox
+                                checked={field.value?.includes(language)}
+                                className="mr-2 h-3.5 w-3.5"
+                              />
                               {language}
-                              <button
-                                type="button"
-                                className="ml-1 text-gray-500 hover:text-gray-700"
-                                onClick={() => {
-                                  step2Form.setValue(
-                                    "languages",
-                                    Array.isArray(field.value)
-                                      ? field.value.filter(
-                                          (l: string) => l !== language
-                                        )
-                                      : []
-                                  );
-                                }}
-                              >
-                                ×
-                              </button>
-                            </Badge>
+                            </CommandItem>
                           ))}
-                        </div>
-                      )}
-                      <FormMessage className="text-xs mt-1" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Interests */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Interests
-                </label>
-                <FormField
-                  control={step2Form.control}
-                  name="interests"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <div className="relative">
-                        <FormControl>
-                          <Popover open={open} onOpenChange={setOpen}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={open}
-                                className={cn(
-                                  "w-full justify-between pl-3 h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-700 shadow-sm",
-                                  !Array.isArray(field.value) ||
-                                    (field.value.length === 0 &&
-                                      "text-gray-500")
-                                )}
-                              >
-                                {Array.isArray(field.value) &&
-                                field.value.length > 0
-                                  ? `${field.value.length} selected`
-                                  : "Select interests"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
-                              <Command>
-                                <CommandInput placeholder="Search interests..." />
-                                <CommandList>
-                                  <CommandEmpty>
-                                    No interest found.
-                                  </CommandEmpty>
-                                  <CommandGroup className="max-h-64 overflow-auto">
-                                    {interestOptions.map((interest) => (
-                                      <CommandItem
-                                        key={interest.id}
-                                        onSelect={() => {
-                                          const currentValue = Array.isArray(
-                                            field.value
-                                          )
-                                            ? field.value
-                                            : [];
-                                          const newValue =
-                                            currentValue.includes(interest.id)
-                                              ? currentValue.filter(
-                                                  (value) =>
-                                                    value !== interest.id
-                                                )
-                                              : [...currentValue, interest.id];
-                                          step2Form.setValue(
-                                            "interests",
-                                            newValue
-                                          );
-                                        }}
-                                        value={interest.label}
-                                      >
-                                        <div className="flex items-center space-x-2">
-                                          <Checkbox
-                                            checked={
-                                              Array.isArray(field.value) &&
-                                              field.value.includes(interest.id)
-                                            }
-                                            className="pointer-events-none"
-                                          />
-                                          <span>{interest.label}</span>
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </FormControl>
-                      </div>
-                      {Array.isArray(field.value) && field.value.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2 pt-1">
-                          {field.value.map((interestId: string) => {
-                            const selectedInterest = interestOptions.find(
-                              (opt) => opt.id === interestId
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {field.value?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {field.value.map((language) => (
+                      <Badge
+                        key={language}
+                        variant="secondary"
+                        className="text-xs bg-[#E7F3FF] text-[#1877F2] hover:bg-[#DBE7F2]"
+                      >
+                        {language}
+                        <button
+                          type="button"
+                          className="ml-1 text-[#1877F2] hover:text-[#166FE5]"
+                          onClick={() => {
+                            step2Form.setValue(
+                              "languages",
+                              field.value?.filter((l) => l !== language) || []
                             );
-                            return selectedInterest ? (
-                              <Badge
-                                key={selectedInterest.id}
-                                variant="secondary"
-                                className="text-xs font-medium bg-gray-200 text-gray-700"
-                              >
-                                {selectedInterest.label}
-                                <button
-                                  type="button"
-                                  className="ml-1 text-gray-500 hover:text-gray-700"
-                                  onClick={() => {
-                                    step2Form.setValue(
-                                      "interests",
-                                      Array.isArray(field.value)
-                                        ? field.value.filter(
-                                            (value) => value !== interestId
-                                          )
-                                        : []
-                                    );
-                                  }}
-                                >
-                                  ×
-                                </button>
-                              </Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-                      <FormMessage className="text-xs mt-1" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+                          }}
+                          title={`Remove ${language}`}
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
 
-            {/* Navigation Buttons */}
-            <div className="flex space-x-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={goBack}
-                className="flex-1 h-10 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors duration-200 shadow-sm"
-              >
-                Back
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 h-10 bg-primary hover:bg-primary-hover text-white font-medium rounded-md transition-colors duration-200 shadow-sm"
-              >
-                Complete
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </motion.div>
-    );
-  };
+          {/* Interests */}
+          <FormField
+            control={step2Form.control}
+            name="interests"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-slate-700">
+                  Interests
+                </FormLabel>
+                <Popover open={interestOpen} onOpenChange={setInterestOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "bg-white w-full h-9 text-sm font-thin justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                          !field.value?.length &&
+                            "text-gray-600  hover:bg-transparent hover:text-gray-600"
+                        )}
+                      >
+                        {field.value?.length
+                          ? `${field.value.length} interest${
+                              field.value.length > 1 ? "s" : ""
+                            }`
+                          : "Select interests"}
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search interests..."
+                        className="text-sm  placeholder:text-gray-600"
+                      />
+                      <CommandList>
+                        <CommandEmpty className="text-sm text-gray-600">
+                          No interest found.
+                        </CommandEmpty>
+                        <CommandGroup className="max-h-48 overflow-auto">
+                          {interestOptions.map((interest) => (
+                            <CommandItem
+                              key={interest.id}
+                              className="text-sm  !text-gray-600"
+                              onSelect={() => {
+                                const newValue = field.value?.includes(
+                                  interest.id
+                                )
+                                  ? field.value.filter((i) => i !== interest.id)
+                                  : [...(field.value || []), interest.id];
+                                step2Form.setValue("interests", newValue);
+                              }}
+                            >
+                              <Checkbox
+                                checked={field.value?.includes(interest.id)}
+                                className="mr-2 h-3.5 w-3.5"
+                              />
+                              {interest.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {field.value?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {field.value.map((interestId) => {
+                      const interest = interestOptions.find(
+                        (opt) => opt.id === interestId
+                      );
+                      return interest ? (
+                        <Badge
+                          key={interest.id}
+                          variant="secondary"
+                          className="text-xs bg-[#E7F3FF] text-[#1877F2] hover:bg-[#DBE7F2]"
+                        >
+                          {interest.label}
+                          <button
+                            type="button"
+                            className="ml-1 text-[#1877F2] hover:text-[#166FE5]"
+                            onClick={() => {
+                              step2Form.setValue(
+                                "interests",
+                                field.value?.filter((i) => i !== interestId) ||
+                                  []
+                              );
+                            }}
+                            title={`Remove ${interest.label}`}
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Navigation Buttons */}
+          <div className="flex space-x-3 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              className="bg-white flex-1 h-9 text-sm border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white rounded-lg"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 h-9 text-sm bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium rounded-lg transition-all duration-200"
+            >
+              Complete
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </motion.div>
+  );
 
   // Success step
   const renderStep3 = () => (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.4 }}
-      className="py-12 text-center"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+      className="text-center py-8"
     >
-      <h3 className="text-2xl font-bold text-gray-900 mb-4">
-        Welcome to KOVARI! 🎉
-      </h3>
-      <p className="text-gray-600 mb-6">
-        Your profile has been successfully created.
+      <div className="w-16 h-16 bg-[#1877F2] rounded-full flex items-center justify-center mx-auto mb-4">
+        <CircleCheckBig className="w-8 h-8 text-white" />
+      </div>
+      <h2 className="text-2xl font-bold text-slate-900 mb-2">
+        Welcome aboard! 🎉
+      </h2>
+      <p className="text-sm text-slate-600 mb-6 max-w-sm mx-auto">
+        Your profile has been successfully created. You&apos;re all set to get
+        started!
       </p>
       <Button
         onClick={() => (window.location.href = "/dashboard")}
-        className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg"
+        className="h-9 px-6 text-sm bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium rounded-lg transition-all duration-200"
       >
         Get Started
       </Button>
@@ -943,29 +856,21 @@ export default function ProfileSetupForm() {
   );
 
   return (
-    <div className="min-h-screen flex w-full">
-      {/* Left Side - Form */}
-      {/* Form Container - Full Width */}
-      <div className="w-full bg-white flex items-center justify-center p-8 overflow-y-auto max-h-screen">
-        <div className="w-full max-w-md py-8">
-          <AnimatePresence mode="wait">
-            {step === 1 && renderStep1()}
-            {step === 2 && renderStep2()}
-            {step === 3 && renderStep3()}
-          </AnimatePresence>
-        </div>
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 md:p-6">
+      <div className="w-full max-w-md mx-auto">
+        <Card className="border-transparent bg-white shadow-none gap-3">
+          <CardHeader>
+            <ProgressIndicator />
+          </CardHeader>
+          <CardContent className="px-4 md:px-6 pb-6">
+            <AnimatePresence mode="wait">
+              {step === 1 && <div key="step1">{renderStep1()}</div>}
+              {step === 2 && <div key="step2">{renderStep2()}</div>}
+              {step === 3 && <div key="step3">{renderStep3()}</div>}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Right Side - Blue Gradient Card */}
-      {/* This is where you can add your image */}
-      {/* Placeholder for future image */}
-      {/* <div className="w-1/2 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 flex items-center justify-center">
-        <div className="text-center text-white/20">
-          <div className="w-64 h-64 border-2 border-dashed border-white/30 rounded-lg flex items-center justify-center">
-            <span className="text-sm">Image placeholder</span>
-          </div>
-        </div>
-      </div> */}
     </div>
   );
 }
