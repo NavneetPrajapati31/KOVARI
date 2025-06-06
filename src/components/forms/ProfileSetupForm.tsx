@@ -9,16 +9,19 @@ import * as z from "zod";
 import {
   User,
   Phone,
-  Calendar,
+  Calendar as CalendarIconLucide,
   Briefcase,
   Globe,
   Languages,
   Upload,
   Info,
+  CalendarIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import { format } from "date-fns";
+import { DatePicker } from "@/components/ui/date-picker";
 
 // Import UI components
 import {
@@ -28,6 +31,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -55,6 +59,7 @@ import {
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
 
 // Define schemas for each step
 const step1Schema = z.object({
@@ -77,7 +82,9 @@ const step1Schema = z.object({
     .min(18, { message: "You must be at least 18 years old" })
     .max(120),
   gender: z.string().min(1, { message: "Please select your gender" }),
-  birthday: z.string().min(1, { message: "Please enter your birthday" }),
+  birthday: z.date({
+    required_error: "Your date of birth is required.",
+  }),
 });
 
 const step2Schema = z.object({
@@ -163,7 +170,7 @@ export default function ProfileSetupForm() {
       phoneNumber: "",
       age: 18,
       gender: "",
-      birthday: "",
+      birthday: undefined,
     },
   });
 
@@ -236,7 +243,7 @@ export default function ProfileSetupForm() {
               <div key={stepNum} className="flex-1">
                 <div
                   className={`h-1 rounded-full ${
-                    stepNum <= step ? "bg-indigo-600" : "bg-gray-200"
+                    stepNum <= step ? "bg-primary" : "bg-gray-200"
                   }`}
                 />
               </div>
@@ -273,11 +280,11 @@ export default function ProfileSetupForm() {
                     render={({ field }) => (
                       <FormItem>
                         <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-600" />
                           <FormControl>
                             <Input
                               placeholder="John"
-                              className="pl-10 h-9 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                              className="pl-10 h-9 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-600"
                               {...field}
                             />
                           </FormControl>
@@ -298,11 +305,11 @@ export default function ProfileSetupForm() {
                     render={({ field }) => (
                       <FormItem>
                         <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-600" />
                           <FormControl>
                             <Input
                               placeholder="Smith"
-                              className="pl-10 h-9 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                              className="pl-10 h-9 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-600"
                               {...field}
                             />
                           </FormControl>
@@ -325,11 +332,11 @@ export default function ProfileSetupForm() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-600" />
                         <FormControl>
                           <Input
-                            placeholder="+82 - (xxx) - xxx - xxxx"
-                            className="pl-10 h-9 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            placeholder="+91 - xxx - xxx - xxxx"
+                            className="pl-10 h-9 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-600"
                             {...field}
                           />
                         </FormControl>
@@ -341,8 +348,8 @@ export default function ProfileSetupForm() {
               </div>
 
               {/* Age and Gender Row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="w-full">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Age
                   </label>
@@ -355,7 +362,7 @@ export default function ProfileSetupForm() {
                           <Input
                             type="number"
                             placeholder="25"
-                            className="h-9 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            className="w-full h-9 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-600"
                             {...field}
                           />
                         </FormControl>
@@ -365,7 +372,7 @@ export default function ProfileSetupForm() {
                   />
                 </div>
 
-                <div>
+                <div className="w-full">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Gender
                   </label>
@@ -379,7 +386,7 @@ export default function ProfileSetupForm() {
                           defaultValue={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger className="h-9 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 py-4">
+                            <SelectTrigger className="w-full h-10 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary">
                               <SelectValue placeholder="Select gender" />
                             </SelectTrigger>
                           </FormControl>
@@ -400,24 +407,25 @@ export default function ProfileSetupForm() {
 
               {/* Birthday */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Birthday
-                </label>
                 <FormField
                   control={step1Form.control}
                   name="birthday"
                   render={({ field }) => (
-                    <FormItem>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <FormControl>
-                          <Input
-                            type="date"
-                            className="pl-10 h-9 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                            {...field}
-                          />
-                        </FormControl>
-                      </div>
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="block text-sm font-medium text-gray-700 mb-2">
+                        Birthday
+                      </FormLabel>
+                      <FormControl>
+                        <DatePicker
+                          startYear={2000}
+                          endYear={new Date().getFullYear()}
+                          date={field.value}
+                          onDateChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs text-gray-500 mt-1">
+                        Your date of birth is used to calculate your age.
+                      </FormDescription>
                       <FormMessage className="text-xs mt-1" />
                     </FormItem>
                   )}
@@ -428,7 +436,7 @@ export default function ProfileSetupForm() {
             {/* Next Button */}
             <Button
               type="submit"
-              className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 mt-6"
+              className="w-full h-9 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-colors duration-200 mt-6"
             >
               Next
             </Button>
@@ -469,7 +477,7 @@ export default function ProfileSetupForm() {
               <div key={stepNum} className="flex-1">
                 <div
                   className={`h-1 rounded-full ${
-                    stepNum <= step ? "bg-indigo-600" : "bg-gray-200"
+                    stepNum <= step ? "bg-primary" : "bg-gray-200"
                   }`}
                 />
               </div>
@@ -549,8 +557,7 @@ export default function ProfileSetupForm() {
                         <FormControl>
                           <Textarea
                             placeholder="Tell us about yourself..."
-                            className="pl-10 min-h-[100px] border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                            {...field}
+                            className="pl-10 min-h-[100px] border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-500"
                           />
                         </FormControl>
                       </div>
@@ -578,7 +585,7 @@ export default function ProfileSetupForm() {
                               onValueChange={field.onChange}
                               defaultValue={field.value}
                             >
-                              <SelectTrigger className="pl-10 h-12 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                              <SelectTrigger className="pl-10 h-12 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-500">
                                 <SelectValue placeholder="Select nationality" />
                               </SelectTrigger>
                               <SelectContent>
@@ -616,7 +623,7 @@ export default function ProfileSetupForm() {
                               onValueChange={field.onChange}
                               defaultValue={field.value}
                             >
-                              <SelectTrigger className="pl-10 h-12 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                              <SelectTrigger className="pl-10 h-12 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-500">
                                 <SelectValue placeholder="Select job type" />
                               </SelectTrigger>
                               <SelectContent>
@@ -656,7 +663,7 @@ export default function ProfileSetupForm() {
                                 role="combobox"
                                 aria-expanded={open}
                                 className={cn(
-                                  "w-full justify-between pl-10 h-12 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500",
+                                  "w-full justify-between pl-10 h-12 border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-gray-500",
                                   !Array.isArray(field.value) ||
                                     (field.value.length === 0 &&
                                       "text-muted-foreground")
@@ -818,7 +825,7 @@ export default function ProfileSetupForm() {
               </Button>
               <Button
                 type="submit"
-                className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200"
+                className="flex-1 h-12 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-colors duration-200"
               >
                 Complete
               </Button>
@@ -846,7 +853,7 @@ export default function ProfileSetupForm() {
       </p>
       <Button
         onClick={() => (window.location.href = "/dashboard")}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg"
+        className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-lg"
       >
         Get Started
       </Button>
@@ -856,7 +863,8 @@ export default function ProfileSetupForm() {
   return (
     <div className="min-h-screen flex w-full">
       {/* Left Side - Form */}
-      <div className="w-1/2 bg-white flex items-center justify-center p-8 overflow-y-auto max-h-screen">
+      {/* Form Container - Full Width */}
+      <div className="w-full bg-white flex items-center justify-center p-8 overflow-y-auto max-h-screen">
         <div className="w-full max-w-md py-8">
           <AnimatePresence mode="wait">
             {step === 1 && renderStep1()}
@@ -867,15 +875,15 @@ export default function ProfileSetupForm() {
       </div>
 
       {/* Right Side - Blue Gradient Card */}
-      <div className="w-1/2 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 flex items-center justify-center">
-        {/* This is where you can add your image */}
+      {/* This is where you can add your image */}
+      {/* Placeholder for future image */}
+      {/* <div className="w-1/2 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 flex items-center justify-center">
         <div className="text-center text-white/20">
-          {/* Placeholder for future image */}
           <div className="w-64 h-64 border-2 border-dashed border-white/30 rounded-lg flex items-center justify-center">
             <span className="text-sm">Image placeholder</span>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
