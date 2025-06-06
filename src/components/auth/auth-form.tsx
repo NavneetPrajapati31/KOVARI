@@ -104,7 +104,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="w-full max-w-md space-y-4 py-2">
+    <div className="w-full px-4 mx-auto max-w-md space-y-4 py-2 sm:px-6 md:max-w-lg">
       {/* Logo */}
       {/* <div className="flex items-center space-x-2">
         <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
@@ -125,7 +125,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         <p className="text-gray-600">
           {isSignUp
             ? "Create your account to get started"
-            : "Log in to access your mission control"}
+            : "Log in back to your account"}
         </p>
       </div>
 
@@ -232,7 +232,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               placeholder="example@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 h-11 border-gray-600 focus:ring-transparent placeholder:text-gray-600"
+              className="mt-1 h-11 border-gray-600 focus:ring-transparent placeholder:text-gray-600 placeholder:text-sm"
               required
               disabled={isLoading}
             />
@@ -251,7 +251,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 h-11 border-gray-600 focus:ring-transparent  placeholder:text-gray-600"
+              className="mt-1 h-11 border-gray-600 focus:ring-transparent  placeholder:text-gray-600 placeholder:text-sm"
               required
               disabled={isLoading}
             />
@@ -271,7 +271,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 placeholder="Confirm password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 h-11 border-gray-600 focus:ring-transparent  placeholder:text-gray-600"
+                className="mt-1 h-11 border-gray-600 focus:ring-transparent  placeholder:text-gray-600 placeholder:text-sm"
                 required
                 disabled={isLoading}
               />
