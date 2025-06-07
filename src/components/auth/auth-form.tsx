@@ -48,7 +48,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         if (result?.status === "complete" && setActiveSignUp) {
           await setActiveSignUp({ session: result.createdSessionId });
-          router.push("/");
+          router.push("/onboarding/step1");
         } else if (result?.status === "missing_requirements") {
           /* `KOVARI` seems to be a branding or
         company name in this code snippet. It
@@ -88,7 +88,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         await signUp?.authenticateWithRedirect({
           strategy: provider,
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/",
+          redirectUrlComplete: "/onboarding/step1",
         });
       } else {
         await signIn?.authenticateWithRedirect({

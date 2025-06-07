@@ -1,10 +1,11 @@
 "use client";
 
-import type React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   UserRound,
   Smartphone,
@@ -21,6 +22,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
+import { useSyncUserToSupabase } from "@/lib/syncUserToSupabase";
 
 // Import UI components
 import {
@@ -60,6 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
+import ProfileImageUpload from "@/components/UploadButton";
 
 // Define schemas for each step
 const step1Schema = z
@@ -172,12 +176,22 @@ const interestOptions = [
 ];
 
 export default function ProfileSetupForm() {
+  const { user } = useUser();
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const totalSteps = 2;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { syncUser } = useSyncUserToSupabase();
+
+  // Sync user to Supabase when component mounts
+  useEffect(() => {
+    syncUser();
+  }, [syncUser]);
 
   // Initialize forms for each step
   const step1Form = useForm<Step1Data>({
@@ -212,24 +226,79 @@ export default function ProfileSetupForm() {
   };
 
   // Handle step 2 submission
-  const onStep2Submit = (data: Step2Data) => {
-    console.log("Step 2 data:", data);
-    console.log("Complete form data:", { ...step1Data, ...data });
-    setStep(3);
-  };
+  const onStep2Submit = async (data: Step2Data) => {
+    try {
+      setIsSubmitting(true);
+      console.log("Step 2 data:", data);
+      const completeData = { ...step1Data, ...data };
+      console.log("Complete form data:", completeData);
 
-  // Handle profile image upload
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setProfileImage(e.target.result as string);
-          step2Form.setValue("profilePic", file);
-        }
+      // Transform data to match API schema
+      const apiData = {
+        name: `${completeData.firstName} ${completeData.lastName}`,
+        age: completeData.age,
+        gender: completeData.gender,
+        birthday: completeData.birthday?.toISOString(),
+        bio: completeData.bio || "",
+        profile_photo: completeData.profilePic || undefined,
+        languages: completeData.languages,
+        nationality: completeData.nationality,
+        job: completeData.jobType,
       };
-      reader.readAsDataURL(file);
+
+      // Update Clerk user profile
+      if (user) {
+        // First update the metadata
+        await user.update({
+          unsafeMetadata: {
+            imageUrl: completeData.profilePic || undefined,
+            phoneNumber: completeData.phoneNumber,
+            age: completeData.age,
+            gender: completeData.gender,
+            birthday: completeData.birthday?.toISOString(),
+            bio: completeData.bio,
+            nationality: completeData.nationality,
+            jobType: completeData.jobType,
+            languages: completeData.languages,
+            interests: completeData.interests,
+          },
+        });
+
+        // Then update the name
+        await user.update({
+          unsafeMetadata: {
+            firstName: completeData.firstName,
+            lastName: completeData.lastName,
+          },
+        });
+
+        // Ensure user is synced to Supabase before submitting profile
+        const syncSuccess = await syncUser();
+        if (!syncSuccess) {
+          toast.error("Failed to sync user data. Please try again.");
+          return;
+        }
+
+        // Submit to our API
+        const res = await fetch("/api/profile", {
+          method: "POST",
+          body: JSON.stringify(apiData),
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || "Failed to save profile");
+        }
+
+        toast.success("Profile saved successfully!");
+        setStep(3);
+      }
+    } catch (error: any) {
+      console.error("Error saving profile:", error);
+      toast.error(error.message || "Failed to save profile");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -241,26 +310,27 @@ export default function ProfileSetupForm() {
   };
 
   // Progress indicator component
-  const ProgressIndicator = () => (
-    <div className="mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-slate-600">
-          {step > totalSteps ? "Complete" : `Step ${step} of ${totalSteps}`}
-        </span>
+  const ProgressIndicator = () =>
+    step <= totalSteps ? (
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-slate-600">
+            Step {step} of {totalSteps}
+          </span>
+        </div>
+        <div className="flex space-x-1">
+          {[1, 2].map((stepNum) => (
+            <div key={stepNum} className="flex-1">
+              <div
+                className={`h-1.5 rounded-full ${
+                  stepNum <= step ? "bg-[#1877F2]" : "bg-slate-200"
+                }`}
+              />
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="flex space-x-1">
-        {[1, 2].map((stepNum) => (
-          <div key={stepNum} className="flex-1">
-            <div
-              className={`h-1.5 rounded-full ${
-                stepNum <= step ? "bg-[#1877F2]" : "bg-slate-200"
-              }`}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+    ) : null;
 
   // Render step 1 form - Basic Info
   const renderStep1 = () => (
@@ -479,11 +549,12 @@ export default function ProfileSetupForm() {
               <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 border-white">
                 {profileImage ? (
                   <Image
-                    src={profileImage || "/placeholder.svg"}
+                    src={profileImage}
                     alt="Profile"
                     width={64}
                     height={64}
                     className="w-full h-full object-cover"
+                    priority
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -491,20 +562,16 @@ export default function ProfileSetupForm() {
                   </div>
                 )}
               </div>
-              <input
-                type="file"
-                id="profile-pic"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageUpload}
-                title="Upload profile picture"
-              />
-              <label
-                htmlFor="profile-pic"
-                className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200"
-              >
-                <CloudUpload className="w-3 h-3" />
-              </label>
+              <div className="absolute -bottom-1 -right-1">
+                <ProfileImageUpload
+                  onUpload={(url) => {
+                    console.log("Received image URL:", url);
+                    setProfileImage(url);
+                    step2Form.setValue("profilePic", url);
+                    console.log("Profile image state updated:", url);
+                  }}
+                />
+              </div>
             </div>
             <p className="text-xs text-slate-500">Upload profile picture</p>
           </div>
@@ -657,7 +724,7 @@ export default function ProfileSetupForm() {
                                 const newValue = field.value?.includes(language)
                                   ? field.value.filter((l) => l !== language)
                                   : [...(field.value || []), language];
-                                step2Form.setValue("languages", newValue);
+                                field.onChange(newValue);
                               }}
                             >
                               <Checkbox
@@ -685,9 +752,8 @@ export default function ProfileSetupForm() {
                           type="button"
                           className="ml-1 text-[#1877F2] hover:text-[#166FE5]"
                           onClick={() => {
-                            step2Form.setValue(
-                              "languages",
-                              field.value?.filter((l) => l !== language) || []
+                            field.onChange(
+                              field.value.filter((l) => l !== language)
                             );
                           }}
                           title={`Remove ${language}`}
@@ -753,7 +819,7 @@ export default function ProfileSetupForm() {
                                 )
                                   ? field.value.filter((i) => i !== interest.id)
                                   : [...(field.value || []), interest.id];
-                                step2Form.setValue("interests", newValue);
+                                field.onChange(newValue);
                               }}
                             >
                               <Checkbox
@@ -785,10 +851,8 @@ export default function ProfileSetupForm() {
                             type="button"
                             className="ml-1 text-[#1877F2] hover:text-[#166FE5]"
                             onClick={() => {
-                              step2Form.setValue(
-                                "interests",
-                                field.value?.filter((i) => i !== interestId) ||
-                                  []
+                              field.onChange(
+                                field.value.filter((i) => i !== interestId)
                               );
                             }}
                             title={`Remove ${interest.label}`}
@@ -821,6 +885,7 @@ export default function ProfileSetupForm() {
               className="flex-1 h-9 text-sm bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium rounded-lg transition-all duration-200"
             >
               Complete
+              <ChevronRight className=" h-3.5 w-3.5" />
             </Button>
           </div>
         </form>
