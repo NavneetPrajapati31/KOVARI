@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -12,7 +12,6 @@ import {
   Building2,
   Earth,
   MessageSquareText,
-  CloudUpload,
   Lightbulb,
   CircleCheckBig,
   ChevronLeft,
@@ -33,7 +32,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,7 +43,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Popover,
   PopoverContent,
@@ -55,7 +52,6 @@ import {
   Command,
   CommandList,
   CommandInput,
-  CommandItem,
   CommandGroup,
   CommandEmpty,
 } from "@/components/ui/command";
@@ -549,7 +545,7 @@ export default function ProfileSetupForm() {
               <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 border-white">
                 {profileImage ? (
                   <Image
-                    src={profileImage}
+                    src={profileImage || "/placeholder.svg"}
                     alt="Profile"
                     width={64}
                     height={64}
@@ -606,32 +602,67 @@ export default function ProfileSetupForm() {
               control={step2Form.control}
               name="nationality"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel className="text-xs font-medium text-gray-600">
                     Nationality
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg">
-                        <Earth className="mr-2 h-3.5 w-3.5 text-gray-600" />
-                        <SelectValue placeholder="Select nationality" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {nationalityOptions.map((nationality) => (
-                        <SelectItem
-                          key={nationality}
-                          value={nationality}
-                          className="text-sm"
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "bg-white w-full h-9 text-sm font-normal justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                            !field.value &&
+                              "text-gray-600 hover:bg-transparent hover:text-gray-600"
+                          )}
                         >
-                          {nationality}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                          <div className="flex items-center">
+                            <Earth className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                            {field.value
+                              ? nationalityOptions.find(
+                                  (nationality) => nationality === field.value
+                                )
+                              : "Select nationality"}
+                          </div>
+                          <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search nationality..."
+                          className="text-sm placeholder:text-gray-600"
+                        />
+                        <CommandList>
+                          {/* <CommandEmpty className="text-sm text-gray-600">
+                            No nationality found.
+                          </CommandEmpty> */}
+                          <CommandGroup className="max-h-64 overflow-auto">
+                            {nationalityOptions.map((nationality) => (
+                              <div
+                                key={nationality}
+                                className="px-2 py-1.5 text-sm text-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                onClick={() => {
+                                  field.onChange(nationality);
+                                }}
+                              >
+                                {nationality === field.value && (
+                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-[#1877F2] flex-shrink-0" />
+                                )}
+                                {nationality !== field.value && (
+                                  <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
+                                )}
+                                {nationality}
+                              </div>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage className="text-xs" />
                 </FormItem>
               )}
@@ -641,32 +672,67 @@ export default function ProfileSetupForm() {
               control={step2Form.control}
               name="jobType"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel className="text-xs font-medium text-gray-600">
                     Job Type
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg">
-                        <Building2 className="mr-2 h-3.5 w-3.5 text-gray-600" />
-                        <SelectValue placeholder="Select job type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {jobTypeOptions.map((jobType) => (
-                        <SelectItem
-                          key={jobType}
-                          value={jobType}
-                          className="text-sm"
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "bg-white w-full h-9 text-sm font-normal justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                            !field.value &&
+                              "text-gray-600 hover:bg-transparent hover:text-gray-600"
+                          )}
                         >
-                          {jobType}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                          <div className="flex items-center">
+                            <Building2 className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                            {field.value
+                              ? jobTypeOptions.find(
+                                  (jobType) => jobType === field.value
+                                )
+                              : "Select job type"}
+                          </div>
+                          <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search job type..."
+                          className="text-sm placeholder:text-gray-600"
+                        />
+                        <CommandList>
+                          {/* <CommandEmpty className="text-sm text-gray-600">
+                            No job type found.
+                          </CommandEmpty> */}
+                          <CommandGroup className="max-h-64 overflow-auto">
+                            {jobTypeOptions.map((jobType) => (
+                              <div
+                                key={jobType}
+                                className="px-2 py-1.5 text-sm text-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                onClick={() => {
+                                  field.onChange(jobType);
+                                }}
+                              >
+                                {jobType === field.value && (
+                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-[#1877F2] flex-shrink-0" />
+                                )}
+                                {jobType !== field.value && (
+                                  <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
+                                )}
+                                {jobType}
+                              </div>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage className="text-xs" />
                 </FormItem>
               )}
@@ -689,7 +755,7 @@ export default function ProfileSetupForm() {
                         variant="outline"
                         role="combobox"
                         className={cn(
-                          "bg-white w-full h-9 text-sm font-thin justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                          "bg-white w-full h-9 text-sm font-normal justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
                           !field.value?.length &&
                             "text-gray-600 hover:bg-transparent hover:text-gray-600"
                         )}
@@ -699,43 +765,87 @@ export default function ProfileSetupForm() {
                           {field.value?.length
                             ? `${field.value.length} language${
                                 field.value.length > 1 ? "s" : ""
-                              }`
+                              } selected`
                             : "Select languages"}
                         </div>
+                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
+                  <PopoverContent className="w-full p-0" align="start">
                     <Command>
                       <CommandInput
                         placeholder="Search languages..."
                         className="text-sm placeholder:text-gray-600"
                       />
                       <CommandList>
-                        <CommandEmpty className="text-sm text-gray-600">
+                        {/* <CommandEmpty className="text-sm text-gray-600">
                           No language found.
-                        </CommandEmpty>
-                        <CommandGroup className="max-h-48 overflow-auto">
+                        </CommandEmpty> */}
+                        <CommandGroup className="max-h-64 overflow-auto">
                           {languageOptions.map((language) => (
-                            <CommandItem
+                            <div
                               key={language}
-                              className="text-sm !text-gray-600"
-                              onSelect={() => {
+                              className="px-2 py-1.5 text-sm text-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                              onClick={() => {
                                 const newValue = field.value?.includes(language)
                                   ? field.value.filter((l) => l !== language)
                                   : [...(field.value || []), language];
                                 field.onChange(newValue);
+                                // Keep popover open for multiple selections
+                                setLanguageOpen(true);
                               }}
                             >
-                              <Checkbox
-                                checked={field.value?.includes(language)}
-                                className="mr-2 h-3.5 w-3.5"
-                              />
-                              {language}
-                            </CommandItem>
+                              {field.value?.includes(language) && (
+                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-[#1877F2] flex-shrink-0" />
+                              )}
+                              {!field.value?.includes(language) && (
+                                <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
+                              )}
+                              <span>{language}</span>
+                            </div>
                           ))}
                         </CommandGroup>
                       </CommandList>
+                      {field.value?.length > 0 && (
+                        <div className="border-t p-2">
+                          <div className="flex flex-wrap gap-1">
+                            {field.value.map((language) => (
+                              <Badge
+                                key={language}
+                                variant="secondary"
+                                className="text-xs bg-[#E7F3FF] text-[#1877F2] hover:bg-[#DBE7F2] px-2 py-1"
+                              >
+                                {language}
+                                <button
+                                  type="button"
+                                  className="ml-1 text-[#1877F2] hover:text-[#166FE5] rounded-full"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    field.onChange(
+                                      field.value.filter((l) => l !== language)
+                                    );
+                                  }}
+                                  title={`Remove ${language}`}
+                                >
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="border-t p-2 flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs bg-white border-gray-300 hover:bg-gray-50"
+                          onClick={() => setLanguageOpen(false)}
+                        >
+                          Done
+                        </Button>
+                      </div>
                     </Command>
                   </PopoverContent>
                 </Popover>
@@ -785,52 +895,106 @@ export default function ProfileSetupForm() {
                         variant="outline"
                         role="combobox"
                         className={cn(
-                          "bg-white w-full h-9 text-sm font-thin justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                          "bg-white w-full h-9 text-sm font-normal justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
                           !field.value?.length &&
-                            "text-gray-600  hover:bg-transparent hover:text-gray-600"
+                            "text-gray-600 hover:bg-transparent hover:text-gray-600"
                         )}
                       >
-                        {field.value?.length
-                          ? `${field.value.length} interest${
-                              field.value.length > 1 ? "s" : ""
-                            }`
-                          : "Select interests"}
+                        <div className="flex items-center">
+                          <Lightbulb className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                          {field.value?.length
+                            ? `${field.value.length} interest${
+                                field.value.length > 1 ? "s" : ""
+                              } selected`
+                            : "Select interests"}
+                        </div>
+                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
+                  <PopoverContent className="w-full p-0" align="start">
                     <Command>
                       <CommandInput
                         placeholder="Search interests..."
-                        className="text-sm  placeholder:text-gray-600"
+                        className="text-sm placeholder:text-gray-600"
                       />
                       <CommandList>
-                        <CommandEmpty className="text-sm text-gray-600">
+                        {/* <CommandEmpty className="text-sm text-gray-600">
                           No interest found.
-                        </CommandEmpty>
-                        <CommandGroup className="max-h-48 overflow-auto">
+                        </CommandEmpty> */}
+                        <CommandGroup className="max-h-64 overflow-auto">
                           {interestOptions.map((interest) => (
-                            <CommandItem
+                            <div
                               key={interest.id}
-                              className="text-sm  !text-gray-600"
-                              onSelect={() => {
+                              className="px-2 py-1.5 text-sm text-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                              onClick={() => {
                                 const newValue = field.value?.includes(
                                   interest.id
                                 )
                                   ? field.value.filter((i) => i !== interest.id)
                                   : [...(field.value || []), interest.id];
                                 field.onChange(newValue);
+                                // Keep popover open for multiple selections
+                                setInterestOpen(true);
                               }}
                             >
-                              <Checkbox
-                                checked={field.value?.includes(interest.id)}
-                                className="mr-2 h-3.5 w-3.5"
-                              />
-                              {interest.label}
-                            </CommandItem>
+                              {field.value?.includes(interest.id) && (
+                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-[#1877F2] flex-shrink-0" />
+                              )}
+                              {!field.value?.includes(interest.id) && (
+                                <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
+                              )}
+                              <span>{interest.label}</span>
+                            </div>
                           ))}
                         </CommandGroup>
                       </CommandList>
+                      {field.value?.length > 0 && (
+                        <div className="border-t p-2">
+                          <div className="flex flex-wrap gap-1">
+                            {field.value.map((interestId) => {
+                              const interest = interestOptions.find(
+                                (opt) => opt.id === interestId
+                              );
+                              return interest ? (
+                                <Badge
+                                  key={interest.id}
+                                  variant="secondary"
+                                  className="text-xs bg-[#E7F3FF] text-[#1877F2] hover:bg-[#DBE7F2] px-2 py-1"
+                                >
+                                  {interest.label}
+                                  <button
+                                    type="button"
+                                    className="ml-1 text-[#1877F2] hover:text-[#166FE5] rounded-full"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      field.onChange(
+                                        field.value.filter(
+                                          (i) => i !== interestId
+                                        )
+                                      );
+                                    }}
+                                    title={`Remove ${interest.label}`}
+                                  >
+                                    <X className="h-2.5 w-2.5" />
+                                  </button>
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      <div className="border-t p-2 flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs bg-white border-gray-300 hover:bg-gray-50"
+                          onClick={() => setInterestOpen(false)}
+                        >
+                          Done
+                        </Button>
+                      </div>
                     </Command>
                   </PopoverContent>
                 </Popover>
