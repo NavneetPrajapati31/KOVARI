@@ -40,8 +40,7 @@
     "saas": "file:",
     "tailwind-merge": "^3.3.0",
     "uploadthing": "^7.7.2",
-    "zod": "^3.25.51"
-    "zod": "^3.25.49",
+    "zod": "^3.25.51",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
