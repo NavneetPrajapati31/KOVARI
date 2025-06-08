@@ -127,41 +127,48 @@
 @layer base {
   * {
     @apply border-border;
-    outline-color: var(--ring);
+    outline-color: #004831; /* primary color */
     outline-opacity: 0.5;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-[#f6ecd9] text-[#2b2b1f] font-body;
+  }
+}
+
+@layer utilities {
+  input:-webkit-autofill {
+    @apply text-[#2b2b1f];
+    box-shadow: 0 0 0px 1000px #e1dbca inset !important; /* Bone fallback */
   }
 }
 
 /* Override root variables with hardcoded colors for fallback / specific overrides */
 /* Note: Avoid redefining radius multiple times, keep consistent */
-
 :root {
-  --background: #e7ebd0;
-  --foreground: #000000;
+  --background: #f6ecd9; /* Parchment */
+  --foreground: #2b2b1f; /* Dark text */
 
-  --primary: #004831;
+  --primary: #004831; /* British Racing Green */
+  --primary-hover: #003923;
   --primary-foreground: #ffffff;
 
-  --secondary: #b8ddd9;
-  --secondary-foreground: #000000;
+  --secondary: #9ba186; /* Sage */
+  --secondary-foreground: #2b2b1f;
 
-  --muted: #586f7c;
-  --muted-foreground: #ffffff;
+  --accent: #003527; /* Coach Green */
+  --accent-foreground: #f6ecd9;
 
-  --accent: #b8ddd9;
-  --accent-foreground: #004831;
+  --muted: #c5bea9; /* Sand - fallback muted tone */
+  --muted-foreground: #2b2b1f;
 
-  --border: #f4f4f9;
-  --input: #f4f4f9;
-  --ring: #04724d;
+  --border: #e1dbca; /* Bone */
+  --input: #e1dbca;
+  --ring: #004831;
 
   --card: #ffffff;
-  --card-foreground: #000000;
+  --card-foreground: #2b2b1f;
   --popover: #ffffff;
-  --popover-foreground: #000000;
+  --popover-foreground: #2b2b1f;
 
   --destructive: #dc2626;
 
