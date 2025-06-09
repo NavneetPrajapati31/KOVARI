@@ -104,7 +104,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="w-full px-4 mx-auto max-w-md space-y-4 py-2 sm:px-6 md:max-w-lg">
+    <div className="w-full px-8 mx-auto max-w-md space-y-4 py-2 sm:px-6 md:max-w-lg">
       {/* Logo */}
       {/* <div className="flex items-center space-x-2">
         <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
@@ -119,10 +119,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
       {/* Header */}
       <div className="space-y-0.5">
-        <h1 className="text-xl font-bold text-gray-900">
+        <h1 className="text-xl font-bold text-foreground">
           {isSignUp ? "Join KOVARI" : "Welcome back to KOVARI"}
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           {isSignUp
             ? "Create your account to get started"
             : "Log in back to your account"}
@@ -131,7 +131,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+        <div className="p-3 text-sm text-destructive bg-[#dc2626]/15 border border-[#dc2626] rounded-md">
           {error}
         </div>
       )}
@@ -140,7 +140,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       <div className="space-y-1.5">
         <Button
           variant="outline"
-          className="w-full h-12 bg-primary text-brand-alabaster border-gray-300 hover:bg-primary-hover hover:text-brand-alabaster"
+          className="w-full h-11 bg-primary text-primary-foreground border-border hover:bg-primary-hover hover:text-primary-foreground"
           onClick={() => handleSocialAuth("oauth_google")}
           disabled={isLoading}
         >
@@ -171,7 +171,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         <Button
           variant="outline"
-          className="w-full h-12 bg-primary text-brand-alabaster border-gray-300 hover:bg-primary-hover hover:text-brand-alabaster"
+          className="w-full h-11 bg-primary text-primary-foreground border-border hover:bg-primary-hover hover:text-primary-foreground"
           onClick={() => handleSocialAuth("oauth_facebook")}
           disabled={isLoading}
         >
@@ -187,7 +187,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         <Button
           variant="outline"
-          className="w-full h-12 bg-primary text-brand-alabaster border-gray-300 hover:bg-primary-hover hover:text-brand-alabaster"
+          className="w-full h-11 bg-primary text-primary-foreground border-border hover:bg-primary-hover hover:text-primary-foreground"
           onClick={() => handleSocialAuth("oauth_apple")}
           disabled={isLoading}
         >
@@ -209,10 +209,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
       {/* Divider */}
       <div className="relative my-1.5">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-600" />
+          <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-brand-alabaster text-gray-600">or</span>
+          <span className="px-2 bg-background text-muted-foreground">or</span>
         </div>
       </div>
 
@@ -222,7 +222,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           <div>
             <Label
               htmlFor="email"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-foreground"
             >
               Email
             </Label>
@@ -232,7 +232,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               placeholder="example@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 h-11 border-gray-600 focus:ring-transparent placeholder:text-gray-600 placeholder:text-sm"
+              className="mt-1 h-11 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
               required
               disabled={isLoading}
             />
@@ -241,7 +241,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           <div>
             <Label
               htmlFor="password"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-foreground"
             >
               Password
             </Label>
@@ -251,7 +251,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 h-11 border-gray-600 focus:ring-transparent  placeholder:text-gray-600 placeholder:text-sm"
+              className="mt-1 h-11 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
               required
               disabled={isLoading}
             />
@@ -261,7 +261,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
             <div>
               <Label
                 htmlFor="confirmPassword"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-foreground"
               >
                 Confirm Password
               </Label>
@@ -271,7 +271,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 placeholder="Confirm password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 h-11 border-gray-600 focus:ring-transparent  placeholder:text-gray-600 placeholder:text-sm"
+                className="mt-1 h-11 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
                 required
                 disabled={isLoading}
               />
@@ -287,15 +287,18 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 checked={rememberMe}
                 onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                 disabled={isLoading}
-                className="border-gray-600"
+                className="border-border"
               />
-              <Label htmlFor="remember" className="text-sm text-gray-600">
+              <Label
+                htmlFor="remember"
+                className="text-sm text-muted-foreground"
+              >
                 Remember me
               </Label>
             </div>
             <button
               type="button"
-              className="text-sm text-gray-600 hover:text-gray-900 underline"
+              className="text-sm text-muted-foreground hover:text-foreground underline"
               onClick={() => router.push("/forgot-password")}
               disabled={isLoading}
             >
@@ -306,7 +309,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         <Button
           type="submit"
-          className="w-full h-11 bg-primary hover:bg-primary-hover text-brand-alabaster font-medium"
+          className="w-full h-11 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
           disabled={isLoading}
         >
           {isLoading ? (
@@ -321,11 +324,11 @@ export default function AuthForm({ mode }: AuthFormProps) {
       </form>
 
       {/* Toggle Auth Mode */}
-      <div className="text-center text-sm text-gray-600 pt-2">
+      <div className="text-center text-sm text-muted-foreground pt-2">
         {isSignUp ? "Already have an account? " : "Don't have an account? "}
         <button
           onClick={() => router.push(isSignUp ? "/sign-in" : "/sign-up")}
-          className="text-black hover:underline font-medium"
+          className="text-foreground hover:underline font-medium"
           disabled={isLoading}
         >
           {isSignUp ? "Log in" : "Create one for free"}

@@ -39,7 +39,7 @@ export default function VerifyEmail() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-4">
+      <div className="max-w-md w-full space-y-8">
         <div>
           {/* <div className="flex items-center justify-center space-x-2 mb-6">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
@@ -61,7 +61,7 @@ export default function VerifyEmail() {
         </div>
 
         {error && (
-          <div className="p-3 text-sm text-destructive bg-[#dc2626]/15 border border-[#dc2626] rounded-md">
+          <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
             {error}
           </div>
         )}
