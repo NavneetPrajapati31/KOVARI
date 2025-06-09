@@ -105,7 +105,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="w-full px-8 mx-auto max-w-md space-y-4 py-2 sm:px-6 md:max-w-lg">
+    <div className="w-full px-8 mx-auto max-w-md space-y-4 py-2 sm:px-6 md:max-w-lg custom-autofill">
       {/* Logo */}
       {/* <div className="flex items-center space-x-2">
         <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
