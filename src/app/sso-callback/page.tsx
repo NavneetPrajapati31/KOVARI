@@ -14,7 +14,7 @@ export default function SSOCallback() {
       try {
         await handleRedirectCallback({
           afterSignInUrl: "/",
-          afterSignUpUrl: "/",
+          afterSignUpUrl: "/onboarding/step1",
         });
         router.push("/");
       } catch (error) {
