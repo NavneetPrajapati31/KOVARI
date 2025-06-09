@@ -16,7 +16,7 @@ export default function SSOCallback() {
           afterSignInUrl: "/",
           afterSignUpUrl: "/onboarding/step1",
         });
-        router.push("/");
+        // router.push("/");
       } catch (error) {
         console.error("SSO callback error:", error);
         router.push("/sign-in?error=sso_failed");
@@ -29,8 +29,8 @@ export default function SSOCallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
-        <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
-        <p className="text-muted-foreground">Completing sign in...</p>
+        <Loader2 className="w-10 h-10 animate-spin mx-auto text-muted-foreground" />
+        {/* <p className="text-muted-foreground">Completing sign in...</p> */}
       </div>
     </div>
   );
