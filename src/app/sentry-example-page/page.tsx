@@ -49,6 +49,7 @@ export default function Page() {
           Click the button below, and view the sample error on the Sentry{" "}
           <a
             target="_blank"
+            rel="noopener"
             href="https://kovari.sentry.io/issues/?project=4509470514741248"
           >
             Issues Page
@@ -56,6 +57,7 @@ export default function Page() {
           . For more details about setting up Sentry,{" "}
           <a
             target="_blank"
+            rel="noopener"
             href="https://docs.sentry.io/platforms/javascript/guides/nextjs/"
           >
             read our docs
@@ -95,6 +97,7 @@ export default function Page() {
               due to an adblocker. For more information, see{" "}
               <a
                 target="_blank"
+                rel="noopener"
                 href="https://docs.sentry.io/platforms/javascript/guides/nextjs/troubleshooting/#the-sdk-is-not-sending-any-data"
               >
                 the troubleshooting guide
