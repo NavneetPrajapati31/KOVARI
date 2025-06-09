@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -16,29 +16,63 @@ export default function VerifyEmail() {
   const { signUp, setActive } = useSignUp();
   const router = useRouter();
 
+  // Check if we have an active sign-up
+  useEffect(() => {
+    if (!signUp) {
+      router.push("/sign-up");
+    }
+  }, [signUp, router]);
+
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
     try {
-      const result = await signUp?.attemptEmailAddressVerification({
+      if (!signUp) {
+        throw new Error("No active sign-up found");
+      }
+
+      const result = await signUp.attemptEmailAddressVerification({
         code,
       });
 
       if (result?.status === "complete" && setActive) {
         await setActive({ session: result.createdSessionId });
         router.push("/");
+      } else {
+        setError("Verification failed. Please try again.");
       }
     } catch (err: any) {
+      console.error("Verification error:", err);
       setError(err.errors?.[0]?.message || "Invalid verification code");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleResendCode = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      if (!signUp) {
+        throw new Error("No active sign-up found");
+      }
+
+      await signUp.prepareEmailAddressVerification();
+      setError("Verification code resent. Please check your email.");
+    } catch (err: any) {
+      setError(
+        err.errors?.[0]?.message || "Failed to resend verification code"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-8 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-4">
         <div>
           {/* <div className="flex items-center justify-center space-x-2 mb-6">
@@ -66,7 +100,7 @@ export default function VerifyEmail() {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleVerify}>
+        <form className="mt-8 space-y-4" onSubmit={handleVerify}>
           <div>
             <Label
               htmlFor="code"
@@ -101,6 +135,17 @@ export default function VerifyEmail() {
               "Verify Email"
             )}
           </Button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={handleResendCode}
+              className="text-sm text-foreground hover:underline font-medium"
+              disabled={isLoading}
+            >
+              Didn&apos;t receive the code? Resend
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -41,21 +41,19 @@ export default function AuthForm({ mode }: AuthFormProps) {
           return;
         }
 
+        // First, prepare the sign-up
         const result = await signUp?.create({
           emailAddress: email,
           password,
         });
 
+        // Handle the sign-up result
         if (result?.status === "complete" && setActiveSignUp) {
           await setActiveSignUp({ session: result.createdSessionId });
           router.push("/onboarding/step1");
         } else if (result?.status === "missing_requirements") {
-          /* `KOVARI` seems to be a branding or
-        company name in this code snippet. It
-        is displayed as a part of the UI,
-        likely as a logo or title for the
-        verification page. */
-
+          // Prepare email verification
+          await signUp?.prepareEmailAddressVerification();
           router.push("/verify-email");
         }
       } else {
@@ -63,10 +61,13 @@ export default function AuthForm({ mode }: AuthFormProps) {
         const result = await signIn?.create({
           identifier: email,
           password,
+          strategy: "password",
         });
 
         if (result?.status === "complete" && setActive) {
-          await setActive({ session: result.createdSessionId });
+          await setActive({
+            session: result.createdSessionId,
+          });
           router.push("/");
         }
       }
@@ -139,8 +140,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       {/* Social Auth Buttons */}
       <div className="space-y-1.5">
         <Button
-          variant="outline"
-          className="w-full h-11 bg-primary text-primary-foreground border-border hover:bg-primary-hover hover:text-primary-foreground"
+          className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
           onClick={() => handleSocialAuth("oauth_google")}
           disabled={isLoading}
         >
@@ -170,8 +170,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         </Button>
 
         <Button
-          variant="outline"
-          className="w-full h-11 bg-primary text-primary-foreground border-border hover:bg-primary-hover hover:text-primary-foreground"
+          className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
           onClick={() => handleSocialAuth("oauth_facebook")}
           disabled={isLoading}
         >
@@ -186,8 +185,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         </Button>
 
         <Button
-          variant="outline"
-          className="w-full h-11 bg-primary text-primary-foreground border-border hover:bg-primary-hover hover:text-primary-foreground"
+          className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
           onClick={() => handleSocialAuth("oauth_apple")}
           disabled={isLoading}
         >
@@ -289,16 +287,13 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 disabled={isLoading}
                 className="border-border"
               />
-              <Label
-                htmlFor="remember"
-                className="text-sm text-muted-foreground"
-              >
+              <Label htmlFor="remember" className="text-sm text-foreground">
                 Remember me
               </Label>
             </div>
             <button
               type="button"
-              className="text-sm text-muted-foreground hover:text-foreground underline"
+              className="text-sm text-foreground hover:underline font-medium"
               onClick={() => router.push("/forgot-password")}
               disabled={isLoading}
             >
@@ -321,6 +316,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
             <>{isSignUp ? "Create account" : "Log in"}</>
           )}
         </Button>
+        {/* Add CAPTCHA element */}
+        <div id="clerk-captcha" className="mb-4" />
       </form>
 
       {/* Toggle Auth Mode */}
