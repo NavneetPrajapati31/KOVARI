@@ -82,9 +82,9 @@ export function DatePicker({
         <Button
           variant={"outline"}
           className={cn(
-            "w-full pl-3 text-left font-normal h-9 border-gray-600 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary bg-white",
-            !date && "text-gray-700",
-            "hover:bg-transparent hover:text-gray-700"
+            "w-full pl-3 text-left text-muted-foreground hover:text-muted-foreground font-normal h-9 border-border rounded-lg  focus:ring-1 focus:ring-transparent bg-white",
+            !date && "text-foreground",
+            "hover:bg-transparent"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />

@@ -11,7 +11,7 @@ export default function ProfileImageUpload({
   onUpload: (url: string) => void;
 }) {
   return (
-    <div className="relative w-4 h-4 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200">
+    <div className="relative w-3 h-3 bg-primary hover:bg-primary-hover text-white rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200">
       <CloudUpload className="w-2.5 h-2.5" />
       <UploadThingButton<UploadRouter, "profileImageUploader">
         endpoint="profileImageUploader"
