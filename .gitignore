@@ -43,3 +43,9 @@ next-env.d.ts
 .cursor
 
 /.vscode/
+# clerk configuration (can include secrets)
+/.clerk/
+
+.vscode
+# Sentry Config File
+.env.sentry-build-plugin

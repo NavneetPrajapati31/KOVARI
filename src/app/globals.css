@@ -136,9 +136,13 @@
 }
 
 @layer utilities {
-  input:-webkit-autofill {
+  .custom-autofill input:-webkit-autofill {
     @apply text-brand-primary;
     box-shadow: 0 0 0px 1000px #f6ecd9 inset !important;
+  }
+  .custom-autofill-white input:-webkit-autofill {
+    @apply text-brand-primary;
+    box-shadow: 0 0 0px 1000px white inset !important;
   }
 }
 
@@ -162,7 +166,7 @@
   --muted-foreground: #2b2b1f;
 
   --border: #2b2b1f;
-  --input: #e1dbca;
+  --input: #2b2b1f;
   --ring: #004831;
 
   --card: #ffffff;
