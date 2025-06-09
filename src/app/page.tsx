@@ -1,9 +1,11 @@
 import Navbar from "@/components/Navbar";
+import Selector from "@/components/Selector";
 
 export default function HomePage() {
   return (
     <>
       <Navbar />
+      <Selector />
       <div className="h-screen flex flex-col items-center justify-center text-center p-6">
         <h1 className="text-4xl font-heading font-bold mb-4">
           Welcome to KOVARI
