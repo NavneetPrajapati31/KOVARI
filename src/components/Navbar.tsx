@@ -14,8 +14,8 @@ export default function Navbar() {
   const { signOut } = useClerk();
 
   return (
-    <div className="flex justify-between items-center p-4 border-b bg-black">
-      <h1 className="text-xl font-heading font-semibold text-white">KOVARI</h1>
+    <div className="flex justify-between items-center p-4 border-b bg-primary">
+      <h1 className="text-xl font-heading font-bold text-white">KOVARI</h1>
       <div className="flex items-center gap-4">
         <SignedIn>
           <UserButton />
