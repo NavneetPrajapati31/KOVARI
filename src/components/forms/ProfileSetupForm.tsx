@@ -310,7 +310,7 @@ export default function ProfileSetupForm() {
     step <= totalSteps ? (
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-slate-600">
+          <span className="text-xs font-medium text-muted-foreground">
             Step {step} of {totalSteps}
           </span>
         </div>
@@ -319,7 +319,7 @@ export default function ProfileSetupForm() {
             <div key={stepNum} className="flex-1">
               <div
                 className={`h-1.5 rounded-full ${
-                  stepNum <= step ? "bg-[#1877F2]" : "bg-slate-200"
+                  stepNum <= step ? "bg-primary" : "bg-muted"
                 }`}
               />
             </div>
@@ -338,10 +338,10 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
           Let&apos;s get started
         </h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Tell us about yourself to create your profile
         </p>
       </div>
@@ -358,15 +358,15 @@ export default function ProfileSetupForm() {
               name="firstName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-medium text-slate-700">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
                     First Name
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
+                      <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
                         placeholder="John"
-                        className="pl-8 h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600"
+                        className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground "
                         {...field}
                       />
                     </div>
@@ -381,15 +381,15 @@ export default function ProfileSetupForm() {
               name="lastName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-medium text-slate-700">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
                     Last Name
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
+                      <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
                         placeholder="Doe"
-                        className="pl-8 h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600"
+                        className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
                         {...field}
                       />
                     </div>
@@ -406,15 +406,15 @@ export default function ProfileSetupForm() {
             name="phoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-medium text-slate-700">
+                <FormLabel className="text-xs font-medium text-muted-foreground">
                   Phone Number
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Smartphone className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
+                    <Smartphone className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       placeholder="+91 999-999-9999"
-                      className="pl-8 h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600"
+                      className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
                       {...field}
                     />
                   </div>
@@ -431,14 +431,14 @@ export default function ProfileSetupForm() {
               name="age"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-medium text-gray-600">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
                     Age
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
-                      placeholder="18"
-                      className="h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600"
+                      placeholder="Enter your age"
+                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg !placeholder:text-muted-foreground"
                       {...field}
                     />
                   </FormControl>
@@ -452,7 +452,7 @@ export default function ProfileSetupForm() {
               name="gender"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-medium text-gray-600">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
                     Gender
                   </FormLabel>
                   <Select
@@ -460,7 +460,7 @@ export default function ProfileSetupForm() {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg placeholder:text-gray-600">
+                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground">
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                     </FormControl>
@@ -488,12 +488,12 @@ export default function ProfileSetupForm() {
             name="birthday"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="text-xs font-medium text-gray-600">
+                <FormLabel className="text-xs font-medium text-muted-foreground">
                   Date of Birth
                 </FormLabel>
                 <FormControl>
                   <DatePicker
-                    startYear={2000}
+                    startYear={1950}
                     endYear={new Date().getFullYear()}
                     date={field.value}
                     onDateChange={field.onChange}
@@ -506,10 +506,10 @@ export default function ProfileSetupForm() {
 
           <Button
             type="submit"
-            className="!mt-6 w-full h-9 text-sm bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium rounded-lg transition-all duration-200"
+            className="!mt-5 w-full h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
           >
             Continue
-            <ChevronRight className=" h-3.5 w-3.5" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </form>
       </Form>
@@ -526,10 +526,10 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
           Complete your profile
         </h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Add details to personalize your experience
         </p>
       </div>
@@ -542,7 +542,7 @@ export default function ProfileSetupForm() {
           {/* Profile Picture */}
           <div className="flex flex-col items-center space-y-3">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 border-white">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-white border-[1px] !border-muted-foreground/10">
                 {profileImage ? (
                   <Image
                     src={profileImage || "/placeholder.svg"}
@@ -554,7 +554,7 @@ export default function ProfileSetupForm() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <ScanFace className="w-6 h-6 text-slate-400" />
+                    <ScanFace className="w-6 h-6 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -569,7 +569,9 @@ export default function ProfileSetupForm() {
                 />
               </div>
             </div>
-            <p className="text-xs text-slate-500">Upload profile picture</p>
+            <p className="text-xs text-muted-foreground">
+              Upload profile picture
+            </p>
           </div>
 
           {/* Bio */}
@@ -578,15 +580,15 @@ export default function ProfileSetupForm() {
             name="bio"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-medium text-slate-700">
+                <FormLabel className="text-xs font-medium text-muted-foreground">
                   Bio (Optional)
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Lightbulb className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-600" />
+                    <Lightbulb className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                     <Textarea
                       placeholder="Tell us about yourself..."
-                      className="pl-8 min-h-[80px] text-sm border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg resize-none placeholder:text-gray-600"
+                      className="pl-8 min-h-[80px] text-sm border-input focus:border-primary focus:ring-primary rounded-lg resize-none placeholder:text-muted-foreground"
                       {...field}
                     />
                   </div>
@@ -603,7 +605,7 @@ export default function ProfileSetupForm() {
               name="nationality"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="text-xs font-medium text-gray-600">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
                     Nationality
                   </FormLabel>
                   <Popover>
@@ -613,20 +615,20 @@ export default function ProfileSetupForm() {
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "bg-white w-full h-9 text-sm font-normal justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                            "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
                             !field.value &&
-                              "text-gray-600 hover:bg-transparent hover:text-gray-600"
+                              "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
                           )}
                         >
-                          <div className="flex items-center">
-                            <Earth className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                          <div className="flex items-center text-muted-foreground">
+                            <Earth className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                             {field.value
                               ? nationalityOptions.find(
                                   (nationality) => nationality === field.value
                                 )
                               : "Select nationality"}
                           </div>
-                          <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                          <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -634,23 +636,23 @@ export default function ProfileSetupForm() {
                       <Command>
                         <CommandInput
                           placeholder="Search nationality..."
-                          className="text-sm placeholder:text-gray-600"
+                          className="text-sm placeholder:text-muted-foreground"
                         />
                         <CommandList>
-                          {/* <CommandEmpty className="text-sm text-gray-600">
+                          {/* <CommandEmpty className="text-sm text-muted-foreground">
                             No nationality found.
                           </CommandEmpty> */}
                           <CommandGroup className="max-h-64 overflow-auto">
                             {nationalityOptions.map((nationality) => (
                               <div
                                 key={nationality}
-                                className="px-2 py-1.5 text-sm text-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
                                 onClick={() => {
                                   field.onChange(nationality);
                                 }}
                               >
                                 {nationality === field.value && (
-                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-[#1877F2] flex-shrink-0" />
+                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                                 )}
                                 {nationality !== field.value && (
                                   <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -673,7 +675,7 @@ export default function ProfileSetupForm() {
               name="jobType"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="text-xs font-medium text-gray-600">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
                     Job Type
                   </FormLabel>
                   <Popover>
@@ -683,20 +685,20 @@ export default function ProfileSetupForm() {
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "bg-white w-full h-9 text-sm font-normal justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                            "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
                             !field.value &&
-                              "text-gray-600 hover:bg-transparent hover:text-gray-600"
+                              "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
                           )}
                         >
-                          <div className="flex items-center">
-                            <Building2 className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                          <div className="flex items-center text-muted-foreground">
+                            <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                             {field.value
                               ? jobTypeOptions.find(
                                   (jobType) => jobType === field.value
                                 )
                               : "Select job type"}
                           </div>
-                          <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                          <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -704,23 +706,23 @@ export default function ProfileSetupForm() {
                       <Command>
                         <CommandInput
                           placeholder="Search job type..."
-                          className="text-sm placeholder:text-gray-600"
+                          className="text-sm placeholder:text-muted-foreground"
                         />
                         <CommandList>
-                          {/* <CommandEmpty className="text-sm text-gray-600">
+                          {/* <CommandEmpty className="text-sm text-muted-foreground">
                             No job type found.
                           </CommandEmpty> */}
                           <CommandGroup className="max-h-64 overflow-auto">
                             {jobTypeOptions.map((jobType) => (
                               <div
                                 key={jobType}
-                                className="px-2 py-1.5 text-sm text-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
                                 onClick={() => {
                                   field.onChange(jobType);
                                 }}
                               >
                                 {jobType === field.value && (
-                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-[#1877F2] flex-shrink-0" />
+                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                                 )}
                                 {jobType !== field.value && (
                                   <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -745,7 +747,7 @@ export default function ProfileSetupForm() {
             name="languages"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-medium text-slate-700">
+                <FormLabel className="text-xs font-medium text-muted-foreground">
                   Languages
                 </FormLabel>
                 <Popover open={languageOpen} onOpenChange={setLanguageOpen}>
@@ -755,20 +757,20 @@ export default function ProfileSetupForm() {
                         variant="outline"
                         role="combobox"
                         className={cn(
-                          "bg-white w-full h-9 text-sm font-normal justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                          "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
                           !field.value?.length &&
-                            "text-gray-600 hover:bg-transparent hover:text-gray-600"
+                            "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
                         )}
                       >
-                        <div className="flex items-center">
-                          <MessageSquareText className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                        <div className="flex items-center text-muted-foreground">
+                          <MessageSquareText className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                           {field.value?.length
                             ? `${field.value.length} language${
                                 field.value.length > 1 ? "s" : ""
                               } selected`
                             : "Select languages"}
                         </div>
-                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -776,17 +778,17 @@ export default function ProfileSetupForm() {
                     <Command>
                       <CommandInput
                         placeholder="Search languages..."
-                        className="text-sm placeholder:text-gray-600"
+                        className="text-sm placeholder:text-muted-foreground"
                       />
                       <CommandList>
-                        {/* <CommandEmpty className="text-sm text-gray-600">
+                        {/* <CommandEmpty className="text-sm text-muted-foreground">
                           No language found.
                         </CommandEmpty> */}
                         <CommandGroup className="max-h-64 overflow-auto">
                           {languageOptions.map((language) => (
                             <div
                               key={language}
-                              className="px-2 py-1.5 text-sm text-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                              className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
                               onClick={() => {
                                 const newValue = field.value?.includes(language)
                                   ? field.value.filter((l) => l !== language)
@@ -797,7 +799,7 @@ export default function ProfileSetupForm() {
                               }}
                             >
                               {field.value?.includes(language) && (
-                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-[#1877F2] flex-shrink-0" />
+                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                               )}
                               {!field.value?.includes(language) && (
                                 <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -814,12 +816,12 @@ export default function ProfileSetupForm() {
                               <Badge
                                 key={language}
                                 variant="secondary"
-                                className="text-xs bg-[#E7F3FF] text-[#1877F2] hover:bg-[#DBE7F2] px-2 py-1"
+                                className="text-xs bg-primary text-white px-2 py-1"
                               >
                                 {language}
                                 <button
                                   type="button"
-                                  className="ml-1 text-[#1877F2] hover:text-[#166FE5] rounded-full"
+                                  className="ml-1 text-white rounded-full"
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -840,7 +842,7 @@ export default function ProfileSetupForm() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-xs bg-white border-gray-300 hover:bg-gray-50"
+                          className="text-xs bg-white border-input hover:text-foreground"
                           onClick={() => setLanguageOpen(false)}
                         >
                           Done
@@ -855,12 +857,12 @@ export default function ProfileSetupForm() {
                       <Badge
                         key={language}
                         variant="secondary"
-                        className="text-xs bg-[#E7F3FF] text-[#1877F2] hover:bg-[#DBE7F2]"
+                        className="text-xs bg-primary text-white"
                       >
                         {language}
                         <button
                           type="button"
-                          className="ml-1 text-[#1877F2] hover:text-[#166FE5]"
+                          className="ml-1 text-white"
                           onClick={() => {
                             field.onChange(
                               field.value.filter((l) => l !== language)
@@ -885,7 +887,7 @@ export default function ProfileSetupForm() {
             name="interests"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-medium text-slate-700">
+                <FormLabel className="text-xs font-medium text-muted-foreground">
                   Interests
                 </FormLabel>
                 <Popover open={interestOpen} onOpenChange={setInterestOpen}>
@@ -895,20 +897,20 @@ export default function ProfileSetupForm() {
                         variant="outline"
                         role="combobox"
                         className={cn(
-                          "bg-white w-full h-9 text-sm font-normal justify-between border-gray-600 focus:border-[#1877F2] focus:ring-[#1877F2] rounded-lg",
+                          "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
                           !field.value?.length &&
-                            "text-gray-600 hover:bg-transparent hover:text-gray-600"
+                            "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
                         )}
                       >
-                        <div className="flex items-center">
-                          <Lightbulb className="mr-2 h-3.5 w-3.5 text-gray-600" />
+                        <div className="flex items-center text-muted-foreground">
+                          <Lightbulb className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                           {field.value?.length
                             ? `${field.value.length} interest${
                                 field.value.length > 1 ? "s" : ""
                               } selected`
                             : "Select interests"}
                         </div>
-                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -916,17 +918,17 @@ export default function ProfileSetupForm() {
                     <Command>
                       <CommandInput
                         placeholder="Search interests..."
-                        className="text-sm placeholder:text-gray-600"
+                        className="text-sm placeholder:text-muted-foreground"
                       />
                       <CommandList>
-                        {/* <CommandEmpty className="text-sm text-gray-600">
+                        {/* <CommandEmpty className="text-sm text-muted-foreground">
                           No interest found.
                         </CommandEmpty> */}
                         <CommandGroup className="max-h-64 overflow-auto">
                           {interestOptions.map((interest) => (
                             <div
                               key={interest.id}
-                              className="px-2 py-1.5 text-sm text-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                              className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
                               onClick={() => {
                                 const newValue = field.value?.includes(
                                   interest.id
@@ -939,7 +941,7 @@ export default function ProfileSetupForm() {
                               }}
                             >
                               {field.value?.includes(interest.id) && (
-                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-[#1877F2] flex-shrink-0" />
+                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                               )}
                               {!field.value?.includes(interest.id) && (
                                 <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -960,12 +962,12 @@ export default function ProfileSetupForm() {
                                 <Badge
                                   key={interest.id}
                                   variant="secondary"
-                                  className="text-xs bg-[#E7F3FF] text-[#1877F2] hover:bg-[#DBE7F2] px-2 py-1"
+                                  className="text-xs bg-primary text-white px-2 py-1"
                                 >
                                   {interest.label}
                                   <button
                                     type="button"
-                                    className="ml-1 text-[#1877F2] hover:text-[#166FE5] rounded-full"
+                                    className="ml-1 text-white rounded-full"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
@@ -989,7 +991,7 @@ export default function ProfileSetupForm() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-xs bg-white border-gray-300 hover:bg-gray-50"
+                          className="text-xs bg-white border-input hover:text-foreground"
                           onClick={() => setInterestOpen(false)}
                         >
                           Done
@@ -1008,12 +1010,12 @@ export default function ProfileSetupForm() {
                         <Badge
                           key={interest.id}
                           variant="secondary"
-                          className="text-xs bg-[#E7F3FF] text-[#1877F2] hover:bg-[#DBE7F2]"
+                          className="text-xs bg-primary text-white"
                         >
                           {interest.label}
                           <button
                             type="button"
-                            className="ml-1 text-[#1877F2] hover:text-[#166FE5]"
+                            className="ml-1 text-white"
                             onClick={() => {
                               field.onChange(
                                 field.value.filter((i) => i !== interestId)
@@ -1039,17 +1041,17 @@ export default function ProfileSetupForm() {
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white rounded-lg"
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted-foreground hover:text-white rounded-lg"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
             </Button>
             <Button
               type="submit"
-              className="flex-1 h-9 text-sm bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium rounded-lg transition-all duration-200"
+              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
             >
               Complete
-              <ChevronRight className=" h-3.5 w-3.5" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </form>
@@ -1065,19 +1067,19 @@ export default function ProfileSetupForm() {
       transition={{ duration: 0.5 }}
       className="text-center py-8"
     >
-      <div className="w-16 h-16 bg-[#1877F2] rounded-full flex items-center justify-center mx-auto mb-4">
-        <CircleCheckBig className="w-8 h-8 text-white" />
+      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+        <CircleCheckBig className="w-8 h-8 text-primary-foreground" />
       </div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2">
+      <h2 className="text-2xl font-bold text-foreground mb-2">
         Welcome aboard! 🎉
       </h2>
-      <p className="text-sm text-slate-600 mb-6 max-w-sm mx-auto">
+      <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
         Your profile has been successfully created. You&apos;re all set to get
         started!
       </p>
       <Button
-        onClick={() => (window.location.href = "/dashboard")}
-        className="h-9 px-6 text-sm bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium rounded-lg transition-all duration-200"
+        onClick={() => (window.location.href = "/")}
+        className="h-9 px-6 text-sm bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-all duration-200"
       >
         Get Started
       </Button>
@@ -1085,9 +1087,9 @@ export default function ProfileSetupForm() {
   );
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 md:p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-md mx-auto">
-        <Card className="border-transparent bg-white shadow-none gap-3">
+        <Card className="border-border bg-card shadow-none gap-3 custom-autofill-white px-2">
           <CardHeader>
             <ProgressIndicator />
           </CardHeader>
