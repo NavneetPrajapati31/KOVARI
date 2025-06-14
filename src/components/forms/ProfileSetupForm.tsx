@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ScanFace,
   X,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -121,8 +122,19 @@ const step2Schema = z.object({
     .min(1, { message: "Please select at least one interest" }),
 });
 
+const step3Schema = z.object({
+  destinations: z.string().min(1, "Please enter at least one destination"),
+  from: z.string().min(1, "Start date is required"),
+  to: z.string().min(1, "End date is required"),
+  mode: z.enum(["solo", "group"]).optional(),
+  hobbies: z.array(z.string()).min(1, "Please select at least one interest"),
+  activityDescription: z.string().optional(),
+  frequency: z.string().optional(),
+});
+
 type Step1Data = z.infer<typeof step1Schema>;
 type Step2Data = z.infer<typeof step2Schema>;
+type Step3Data = z.infer<typeof step3Schema>;
 
 // Sample data for dropdowns
 const genderOptions = ["Male", "Female", "Prefer not to say"];
@@ -171,15 +183,36 @@ const interestOptions = [
   { id: "10", label: "Fitness" },
 ];
 
+const interestsList = [
+  "Hiking",
+  "Photography",
+  "Culture",
+  "Food",
+  "Music",
+  "History",
+  "Adventure",
+  "Nightlife",
+  "Local Tours",
+];
+
+const tripFrequencies = [
+  "Once a year",
+  "Every 6 months",
+  "Monthly",
+  "Digital nomad",
+];
+
 export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 2;
+  const totalSteps = 4;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
+  const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
+  const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { syncUser } = useSyncUserToSupabase();
@@ -214,6 +247,19 @@ export default function ProfileSetupForm() {
     },
   });
 
+  const step3Form = useForm<Step3Data>({
+    resolver: zodResolver(step3Schema),
+    defaultValues: {
+      destinations: "",
+      from: "",
+      to: "",
+      mode: undefined,
+      hobbies: [],
+      activityDescription: "",
+      frequency: "",
+    },
+  });
+
   // Handle step 1 submission
   const onStep1Submit = (data: Step1Data) => {
     console.log("Step 1 data:", data);
@@ -222,15 +268,22 @@ export default function ProfileSetupForm() {
   };
 
   // Handle step 2 submission
-  const onStep2Submit = async (data: Step2Data) => {
+  const onStep2Submit = (data: Step2Data) => {
+    console.log("Step 2 data:", data);
+    setStep2Data(data);
+    setStep(3);
+  };
+
+  // Handle step 3 submission
+  const onStep3Submit = async (data: Step3Data) => {
     try {
       setIsSubmitting(true);
-      console.log("Step 2 data:", data);
-      const completeData = { ...step1Data, ...data };
+      console.log("Step 3 data:", data);
+      const completeData = { ...step1Data, ...step2Data, ...data };
       console.log("Complete form data:", completeData);
 
       // Transform data to match API schema
-      const apiData = {
+      const profileData = {
         name: `${completeData.firstName} ${completeData.lastName}`,
         age: completeData.age,
         gender: completeData.gender,
@@ -240,6 +293,15 @@ export default function ProfileSetupForm() {
         languages: completeData.languages,
         nationality: completeData.nationality,
         job: completeData.jobType,
+      };
+
+      const travelPreferencesData = {
+        destinations: completeData.destinations
+          ? completeData.destinations.split(",").map((dest) => dest.trim())
+          : [],
+        start_date: completeData.from,
+        end_date: completeData.to,
+        hobbies: completeData.hobbies,
       };
 
       // Update Clerk user profile
@@ -257,6 +319,7 @@ export default function ProfileSetupForm() {
             jobType: completeData.jobType,
             languages: completeData.languages,
             interests: completeData.interests,
+            travel_preferences: travelPreferencesData,
           },
         });
 
@@ -275,20 +338,32 @@ export default function ProfileSetupForm() {
           return;
         }
 
-        // Submit to our API
-        const res = await fetch("/api/profile", {
+        // Submit profile data to API
+        const profileRes = await fetch("/api/profile", {
           method: "POST",
-          body: JSON.stringify(apiData),
+          body: JSON.stringify(profileData),
           headers: { "Content-Type": "application/json" },
         });
 
-        if (!res.ok) {
-          const error = await res.json();
+        if (!profileRes.ok) {
+          const error = await profileRes.json();
           throw new Error(error.error || "Failed to save profile");
         }
 
-        toast.success("Profile saved successfully!");
-        setStep(3);
+        // Submit travel preferences data to API
+        const preferencesRes = await fetch("/api/travel-preferences", {
+          method: "POST",
+          body: JSON.stringify(travelPreferencesData),
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!preferencesRes.ok) {
+          const error = await preferencesRes.json();
+          throw new Error(error.error || "Failed to save travel preferences");
+        }
+
+        toast.success("Profile and preferences saved successfully!");
+        setStep(4);
       }
     } catch (error: any) {
       console.error("Error saving profile:", error);
@@ -315,7 +390,7 @@ export default function ProfileSetupForm() {
           </span>
         </div>
         <div className="flex space-x-1">
-          {[1, 2].map((stepNum) => (
+          {[1, 2, 3, 4].map((stepNum) => (
             <div key={stepNum} className="flex-1">
               <div
                 className={`h-1.5 rounded-full ${
@@ -497,6 +572,10 @@ export default function ProfileSetupForm() {
                     endYear={new Date().getFullYear()}
                     date={field.value}
                     onDateChange={field.onChange}
+                    disabled={{
+                      before: new Date(1900, 0, 1),
+                      after: new Date(),
+                    }}
                   />
                 </FormControl>
                 <FormMessage className="text-xs" />
@@ -1050,6 +1129,249 @@ export default function ProfileSetupForm() {
               type="submit"
               className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
             >
+              Next
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </motion.div>
+  );
+
+  // Render step 3 form - Travel Preferences
+  const renderStep3 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Travel Preferences
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Customize your upcoming travel experience
+        </p>
+      </div>
+
+      <Form {...step3Form}>
+        <form
+          onSubmit={step3Form.handleSubmit(onStep3Submit)}
+          className="space-y-4"
+        >
+          {/* Preferred Destinations */}
+          <FormField
+            control={step3Form.control}
+            name="destinations"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Preferred Destinations
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Earth className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Dream destinations on your bucket list"
+                      className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Travel Dates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField
+              control={step3Form.control}
+              name="from"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
+                    Start Date
+                  </FormLabel>
+                  <FormControl>
+                    <DatePicker
+                      startYear={new Date().getFullYear()}
+                      endYear={new Date().getFullYear() + 5}
+                      date={field.value ? new Date(field.value) : undefined}
+                      onDateChange={(date) =>
+                        field.onChange(date?.toISOString())
+                      }
+                      disabled={{
+                        before: new Date(),
+                        after: new Date(new Date().getFullYear() + 5, 11, 31),
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={step3Form.control}
+              name="to"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
+                    End Date
+                  </FormLabel>
+                  <FormControl>
+                    <DatePicker
+                      startYear={new Date().getFullYear()}
+                      endYear={new Date().getFullYear() + 5}
+                      date={field.value ? new Date(field.value) : undefined}
+                      onDateChange={(date) =>
+                        field.onChange(date?.toISOString())
+                      }
+                      disabled={{
+                        before: new Date(),
+                        after: new Date(new Date().getFullYear() + 5, 11, 31),
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Travel Mode */}
+          {/* <FormField
+            control={step3Form.control}
+            name="mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Travel Style
+                </FormLabel>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={field.value === "solo" ? "default" : "outline"}
+                    className="h-9 text-sm"
+                    onClick={() => field.onChange("solo")}
+                  >
+                    Solo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={field.value === "group" ? "default" : "outline"}
+                    className="h-9 text-sm"
+                    onClick={() => field.onChange("group")}
+                  >
+                    Group
+                  </Button>
+                </div>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          /> */}
+
+          {/* Trip Focus / Activities */}
+          <FormField
+            control={step3Form.control}
+            name="hobbies"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Trip Focus / Activities
+                </FormLabel>
+                <div className="flex flex-wrap gap-2">
+                  {interestsList.map((interest) => (
+                    <Badge
+                      key={interest}
+                      variant={
+                        field.value?.includes(interest) ? "default" : "outline"
+                      }
+                      className="cursor-pointer px-4 py-2 text-xs hover:bg-primary hover:text-white transition-colors"
+                      onClick={() => {
+                        const newValue = field.value?.includes(interest)
+                          ? field.value.filter((h) => h !== interest)
+                          : [...(field.value || []), interest];
+                        field.onChange(newValue);
+                      }}
+                    >
+                      {interest}
+                    </Badge>
+                  ))}
+                </div>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Activities Description */}
+          <FormField
+            control={step3Form.control}
+            name="activityDescription"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Describe what kind of activities you are looking for
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Lightbulb className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Textarea
+                      placeholder="Tell us about your ideal trip activities (optional)"
+                      className="pl-8 min-h-[80px] text-sm border-input focus:border-primary focus:ring-primary rounded-lg resize-none placeholder:text-muted-foreground"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Trip Frequency */}
+          <FormField
+            control={step3Form.control}
+            name="frequency"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  How often do you travel?
+                </FormLabel>
+                <div className="flex flex-wrap gap-2">
+                  {tripFrequencies.map((freq) => (
+                    <Badge
+                      key={freq}
+                      variant={field.value === freq ? "default" : "outline"}
+                      className="cursor-pointer px-4 py-2 text-xs hover:bg-primary hover:text-white transition-colors"
+                      onClick={() => field.onChange(freq)}
+                    >
+                      {freq}
+                    </Badge>
+                  ))}
+                </div>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Navigation Buttons */}
+          <div className="flex space-x-3 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted-foreground hover:text-white rounded-lg"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+            >
               Complete
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
@@ -1059,27 +1381,31 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Success step
-  const renderStep3 = () => (
+  // Render step 4 - Success
+  const renderStep4 = () => (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className="text-center py-8"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
     >
-      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-        <CircleCheckBig className="w-8 h-8 text-primary-foreground" />
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+          <CircleCheckBig className="w-8 h-8 text-primary-foreground" />
+        </div>
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Welcome aboard! 🎉
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Your profile has been successfully created. You&apos;re all set to get
+          started!
+        </p>
       </div>
-      <h2 className="text-2xl font-bold text-foreground mb-2">
-        Welcome aboard! 🎉
-      </h2>
-      <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-        Your profile has been successfully created. You&apos;re all set to get
-        started!
-      </p>
+
       <Button
         onClick={() => (window.location.href = "/")}
-        className="h-9 px-6 text-sm bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-all duration-200"
+        className="w-full h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
       >
         Get Started
       </Button>
@@ -1087,9 +1413,9 @@ export default function ProfileSetupForm() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6">
-      <div className="w-full max-w-md mx-auto">
-        <Card className="border-border bg-card shadow-none gap-3 custom-autofill-white px-2">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6 custom-autofill-white">
+      <div className="w-full max-w-xl mx-auto relative">
+        <Card className="border-border bg-card shadow-none gap-3 px-2">
           <CardHeader>
             <ProgressIndicator />
           </CardHeader>
@@ -1098,9 +1424,20 @@ export default function ProfileSetupForm() {
               {step === 1 && <div key="step1">{renderStep1()}</div>}
               {step === 2 && <div key="step2">{renderStep2()}</div>}
               {step === 3 && <div key="step3">{renderStep3()}</div>}
+              {step === 4 && <div key="step4">{renderStep4()}</div>}
             </AnimatePresence>
           </CardContent>
         </Card>
+
+        {/* Loading Overlay */}
+        {isSubmitting && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-transparent rounded-lg p-6 flex flex-col items-center space-y-4">
+              <Loader2 className="h-11 w-11 animate-spin text-white" />
+              {/* <p className="text-sm text-white">Saving your profile...</p> */}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
