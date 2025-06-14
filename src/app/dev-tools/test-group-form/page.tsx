@@ -24,7 +24,7 @@ export default function TestGroupForm() {
     });
 
     if (res.ok) {
-      toast.success("✅ Test travel circle created!");
+      toast.success("✅ Test group created!");
       router.refresh();
     } else {
       const error = await res.text();
@@ -34,7 +34,7 @@ export default function TestGroupForm() {
 
   return (
     <div className="max-w-lg mx-auto mt-10 p-6 border shadow-md rounded-md">
-      <h1 className="text-xl font-bold mb-4">🧪 Test Travel Circle Creation</h1>
+      <h1 className="text-xl font-bold mb-4">🧪 Test Group Creation</h1>
       <button
         onClick={handleTest}
         className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"

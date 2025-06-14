@@ -44,7 +44,7 @@ export default function TestModeSelection() {
           onClick={() => handleSubmit("group")}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded"
         >
-          Create a Travel Circle
+          Create a Group
         </button>
       </div>
     </div>

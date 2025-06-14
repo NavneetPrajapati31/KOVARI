@@ -61,6 +61,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import ProfileImageUpload from "@/components/UploadButton";
+import CheckIcon from "@mui/icons-material/Check";
+import CelebrationIcon from "@mui/icons-material/Celebration";
 
 // Define schemas for each step
 const step1Schema = z
@@ -205,8 +207,8 @@ const tripFrequencies = [
 export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const totalSteps = 4;
+  const [step, setStep] = useState(4);
+  const totalSteps = 5;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
@@ -214,6 +216,9 @@ export default function ProfileSetupForm() {
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
   const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<"solo" | "group" | null>(
+    null
+  );
 
   const { syncUser } = useSyncUserToSupabase();
 
@@ -275,10 +280,28 @@ export default function ProfileSetupForm() {
   };
 
   // Handle step 3 submission
-  const onStep3Submit = async (data: Step3Data) => {
+  const onStep3Submit = (data: Step3Data) => {
+    console.log("Step 3 data:", data);
+    setStep3Data(data);
+    setStep(4);
+  };
+
+  const onStep4Submit = async () => {
+    if (!selectedMode) {
+      toast.error("Please select a travel style");
+      return;
+    }
+    if (step3Data) {
+      await submitProfileAndPreferences(step3Data);
+    } else {
+      setStep(5);
+    }
+  };
+
+  // Original step 3 submission logic moved to a separate function
+  const submitProfileAndPreferences = async (data: Step3Data) => {
     try {
       setIsSubmitting(true);
-      console.log("Step 3 data:", data);
       const completeData = { ...step1Data, ...step2Data, ...data };
       console.log("Complete form data:", completeData);
 
@@ -304,67 +327,80 @@ export default function ProfileSetupForm() {
         hobbies: completeData.hobbies,
       };
 
-      // Update Clerk user profile
-      if (user) {
-        // First update the metadata
-        await user.update({
-          unsafeMetadata: {
-            imageUrl: completeData.profilePic || undefined,
-            phoneNumber: completeData.phoneNumber,
-            age: completeData.age,
-            gender: completeData.gender,
-            birthday: completeData.birthday?.toISOString(),
-            bio: completeData.bio,
-            nationality: completeData.nationality,
-            jobType: completeData.jobType,
-            languages: completeData.languages,
-            interests: completeData.interests,
-            travel_preferences: travelPreferencesData,
-          },
-        });
-
-        // Then update the name
-        await user.update({
-          unsafeMetadata: {
-            firstName: completeData.firstName,
-            lastName: completeData.lastName,
-          },
-        });
-
-        // Ensure user is synced to Supabase before submitting profile
-        const syncSuccess = await syncUser();
-        if (!syncSuccess) {
-          toast.error("Failed to sync user data. Please try again.");
-          return;
-        }
-
-        // Submit profile data to API
-        const profileRes = await fetch("/api/profile", {
-          method: "POST",
-          body: JSON.stringify(profileData),
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!profileRes.ok) {
-          const error = await profileRes.json();
-          throw new Error(error.error || "Failed to save profile");
-        }
-
-        // Submit travel preferences data to API
-        const preferencesRes = await fetch("/api/travel-preferences", {
-          method: "POST",
-          body: JSON.stringify(travelPreferencesData),
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!preferencesRes.ok) {
-          const error = await preferencesRes.json();
-          throw new Error(error.error || "Failed to save travel preferences");
-        }
-
-        toast.success("Profile and preferences saved successfully!");
-        setStep(4);
+      if (!user) {
+        throw new Error("User not found");
       }
+
+      // Step 1: Update Clerk user profile metadata
+      await user.update({
+        unsafeMetadata: {
+          imageUrl: completeData.profilePic || undefined,
+          phoneNumber: completeData.phoneNumber,
+          age: completeData.age,
+          gender: completeData.gender,
+          birthday: completeData.birthday?.toISOString(),
+          bio: completeData.bio,
+          nationality: completeData.nationality,
+          jobType: completeData.jobType,
+          languages: completeData.languages,
+          interests: completeData.interests,
+          travel_preferences: travelPreferencesData,
+        },
+      });
+
+      // Step 2: Update Clerk user name
+      await user.update({
+        unsafeMetadata: {
+          firstName: completeData.firstName,
+          lastName: completeData.lastName,
+        },
+      });
+
+      // Step 3: Sync user to Supabase
+      const syncSuccess = await syncUser();
+      if (!syncSuccess) {
+        throw new Error("Failed to sync user data");
+      }
+
+      // Step 4: Save travel mode
+      const travelModeRes = await fetch("/api/travel-mode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mode: selectedMode }),
+      });
+
+      if (!travelModeRes.ok) {
+        throw new Error("Failed to save travel mode");
+      }
+
+      // Step 5: Submit profile data to API
+      const profileRes = await fetch("/api/profile", {
+        method: "POST",
+        body: JSON.stringify(profileData),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!profileRes.ok) {
+        const error = await profileRes.json();
+        throw new Error(error.error || "Failed to save profile");
+      }
+
+      // Step 6: Submit travel preferences data to API
+      const preferencesRes = await fetch("/api/travel-preferences", {
+        method: "POST",
+        body: JSON.stringify(travelPreferencesData),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!preferencesRes.ok) {
+        const error = await preferencesRes.json();
+        throw new Error(error.error || "Failed to save travel preferences");
+      }
+
+      toast.success("Profile saved successfully!");
+      setStep(5);
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast.error(error.message || "Failed to save profile");
@@ -390,11 +426,11 @@ export default function ProfileSetupForm() {
           </span>
         </div>
         <div className="flex space-x-1">
-          {[1, 2, 3, 4].map((stepNum) => (
+          {[1, 2, 3, 4, 5].map((stepNum) => (
             <div key={stepNum} className="flex-1">
               <div
                 className={`h-1.5 rounded-full ${
-                  stepNum <= step ? "bg-primary" : "bg-muted"
+                  stepNum <= step ? "bg-primary" : "bg-gray-300"
                 }`}
               />
             </div>
@@ -731,7 +767,10 @@ export default function ProfileSetupForm() {
                                 }}
                               >
                                 {nationality === field.value && (
-                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <CheckIcon
+                                    fontSize="inherit"
+                                    className="mr-2 text-muted-foreground flex-shrink-0"
+                                  />
                                 )}
                                 {nationality !== field.value && (
                                   <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -801,7 +840,10 @@ export default function ProfileSetupForm() {
                                 }}
                               >
                                 {jobType === field.value && (
-                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <CheckIcon
+                                    fontSize="inherit"
+                                    className="mr-2 text-muted-foreground flex-shrink-0"
+                                  />
                                 )}
                                 {jobType !== field.value && (
                                   <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -878,7 +920,10 @@ export default function ProfileSetupForm() {
                               }}
                             >
                               {field.value?.includes(language) && (
-                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <CheckIcon
+                                  fontSize="inherit"
+                                  className="mr-2 text-muted-foreground flex-shrink-0"
+                                />
                               )}
                               {!field.value?.includes(language) && (
                                 <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -1020,7 +1065,10 @@ export default function ProfileSetupForm() {
                               }}
                             >
                               {field.value?.includes(interest.id) && (
-                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <CheckIcon
+                                  fontSize="inherit"
+                                  className="mr-2 text-muted-foreground flex-shrink-0"
+                                />
                               )}
                               {!field.value?.includes(interest.id) && (
                                 <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -1115,12 +1163,12 @@ export default function ProfileSetupForm() {
           />
 
           {/* Navigation Buttons */}
-          <div className="flex space-x-3 pt-3">
+          <div className="flex space-x-4 pt-3">
             <Button
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted-foreground hover:text-white rounded-lg"
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -1129,7 +1177,7 @@ export default function ProfileSetupForm() {
               type="submit"
               className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
             >
-              Next
+              Continue
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -1358,12 +1406,12 @@ export default function ProfileSetupForm() {
           />
 
           {/* Navigation Buttons */}
-          <div className="flex space-x-3 pt-3">
+          <div className="flex space-x-4 pt-3">
             <Button
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted-foreground hover:text-white rounded-lg"
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -1372,7 +1420,7 @@ export default function ProfileSetupForm() {
               type="submit"
               className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
             >
-              Complete
+              Continue
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -1381,7 +1429,7 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Render step 4 - Success
+  // Render step 4 - Travel Mode Selection
   const renderStep4 = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -1391,8 +1439,104 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Choose Your Travel Style
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Select how you prefer to travel and connect with others
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
+        {/* Solo Traveler Card */}
+        <div
+          className={cn(
+            "relative h-[16rem] bg-card rounded-xl overflow-hidden group transition-colors cursor-pointer",
+            selectedMode === "solo" && "ring-4 ring-gray-800"
+          )}
+          onClick={() => setSelectedMode("solo")}
+        >
+          <div className="absolute inset-0 bg-primary hover:bg-primary-hover transition-all">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <h2 className="text-md font-semibold text-white mb-2">
+              Solo Traveler
+            </h2>
+            <p className="text-xs text-white/90 leading-relaxed mb-4">
+              Perfect for independent explorers who love the freedom to discover
+              at their own pace.
+            </p>
+          </div>
+        </div>
+
+        {/* Group Travel Card */}
+        <div
+          className={cn(
+            "relative h-[16rem] bg-card rounded-xl overflow-hidden group transition-colors cursor-pointer",
+            selectedMode === "group" && "ring-4 ring-gray-800"
+          )}
+          onClick={() => setSelectedMode("group")}
+        >
+          <div className="absolute inset-0 bg-primary hover:bg-primary-hover transition-all">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <h2 className="text-md font-semibold text-white mb-2">
+              Group Traveler
+            </h2>
+            <p className="text-xs text-white/90 leading-relaxed mb-4">
+              For groups who want to plan, coordinate, and share amazing
+              experiences together.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center pt-3">
+        <p className="text-muted-foreground text-xs font-medium">
+          Don&apos;t worry, you can always switch between modes or create
+          different travel plans later
+        </p>
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex space-x-4 pt-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={goBack}
+          className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Back
+        </Button>
+        <Button
+          type="button"
+          onClick={onStep4Submit}
+          className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+        >
+          Continue
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </motion.div>
+  );
+
+  // Render step 5 - Success
+  const renderStep5 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
         <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-          <CircleCheckBig className="w-8 h-8 text-primary-foreground" />
+          <CheckIcon className="w-8 h-8 text-primary-foreground" />
+          {/* <CelebrationIcon className="w-8 h-8 text-primary-foreground" /> */}
+          {/* <CircleCheckBig /> */}
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-1">
           Welcome aboard! 🎉
@@ -1425,6 +1569,7 @@ export default function ProfileSetupForm() {
               {step === 2 && <div key="step2">{renderStep2()}</div>}
               {step === 3 && <div key="step3">{renderStep3()}</div>}
               {step === 4 && <div key="step4">{renderStep4()}</div>}
+              {step === 5 && <div key="step5">{renderStep5()}</div>}
             </AnimatePresence>
           </CardContent>
         </Card>
