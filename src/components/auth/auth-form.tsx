@@ -50,7 +50,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         // Handle the sign-up result
         if (result?.status === "complete" && setActiveSignUp) {
           await setActiveSignUp({ session: result.createdSessionId });
-          router.push("/onboarding/step1");
+          router.push("/onboarding");
         } else if (result?.status === "missing_requirements") {
           // Prepare email verification
           await signUp?.prepareEmailAddressVerification();
@@ -89,7 +89,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         await signUp?.authenticateWithRedirect({
           strategy: provider,
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/onboarding/step1",
+          redirectUrlComplete: "/onboarding",
         });
       } else {
         await signIn?.authenticateWithRedirect({

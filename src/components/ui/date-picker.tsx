@@ -12,6 +12,7 @@ import {
 } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import * as React from "react";
+import { DateInterval } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -35,6 +36,7 @@ interface DatePickerProps {
   endYear?: number;
   date?: Date;
   onDateChange?: (date: Date | undefined) => void;
+  disabled?: DateInterval;
 }
 
 export function DatePicker({
@@ -42,6 +44,7 @@ export function DatePicker({
   endYear = new Date().getFullYear(),
   date: controlledDate,
   onDateChange,
+  disabled,
 }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(controlledDate);
 
@@ -137,6 +140,7 @@ export function DatePicker({
           onMonthChange={handleDateChange}
           fromYear={startYear}
           toYear={endYear}
+          disabled={disabled}
         />
       </PopoverContent>
     </Popover>
