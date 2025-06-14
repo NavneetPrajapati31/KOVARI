@@ -207,7 +207,7 @@ const tripFrequencies = [
 export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
-  const [step, setStep] = useState(4);
+  const [step, setStep] = useState(1);
   const totalSteps = 5;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
