@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
@@ -28,14 +28,23 @@ export async function POST(req: Request) {
       });
     }
 
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient(
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        cookies: () => cookieStore,
-      },
-      {
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        cookies: {
+          get: (name) => {
+            const cookie = cookieStore.get(name);
+            return cookie?.value;
+          },
+          set: (name, value, options) => {
+            cookieStore.set(name, value, options);
+          },
+          remove: (name, options) => {
+            cookieStore.delete(name);
+          },
+        },
       }
     );
 

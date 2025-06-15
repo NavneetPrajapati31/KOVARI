@@ -38,7 +38,17 @@ export default function RootLayout({
       <html lang="en">
         <body className={`${inter.variable} ${poppins.variable} font-body`}>
           {children}
-          <Toaster position="top-right" />
+          <Toaster
+            position="bottom-right"
+            duration={2500}
+            toastOptions={{
+              style: {
+                background: "black",
+                color: "white",
+                border: "none",
+              },
+            }}
+          />
         </body>
       </html>
     </ClerkProvider>

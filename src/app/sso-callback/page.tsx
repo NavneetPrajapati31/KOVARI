@@ -29,7 +29,7 @@ export default function SSOCallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
-        <Loader2 className="w-10 h-10 animate-spin mx-auto text-muted-foreground" />
+        <Loader2 className="w-11 h-11 animate-spin mx-auto text-black" />
         {/* <p className="text-muted-foreground">Completing sign in...</p> */}
       </div>
     </div>

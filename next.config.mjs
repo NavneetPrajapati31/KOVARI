@@ -13,7 +13,16 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ["uploadthing.com", "utfs.io"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "uploadthing.com",
+      },
+      {
+        protocol: "https",
+        hostname: "utfs.io",
+      },
+    ],
   },
   // Add webpack optimization settings
   webpack: (config, { dev, isServer }) => {
@@ -49,6 +58,17 @@ const nextConfig = {
             },
           },
         };
+
+    // Handle Supabase realtime-js dependency
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      ws: false,
+      net: false,
+      tls: false,
+      fs: false,
+      dns: false,
+      child_process: false,
+    };
 
     // Optimize chunk size and string handling
     config.optimization = {
