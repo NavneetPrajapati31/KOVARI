@@ -19,6 +19,7 @@
     "@radix-ui/react-popover": "^1.1.14",
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-toggle-group": "^1.1.10",
     "@sentry/nextjs": "^9.27.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.6.1",
@@ -38,11 +39,11 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.57.0",
     "react-loading-skeleton": "^3.5.0",
-    "zustand": "^5.0.5",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.0",
     "uploadthing": "^7.7.2",
-    "zod": "^3.25.56"
+    "zod": "^3.25.63",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@types/node": "^20",
