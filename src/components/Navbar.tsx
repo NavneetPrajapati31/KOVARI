@@ -20,6 +20,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { Compass, MessageCircle, Users } from "lucide-react";
 
 export const AcmeLogo = () => {
   return (
@@ -62,9 +63,9 @@ export default function App() {
   };
 
   const navigationItems = [
-    { name: "Explore", href: "/explore" },
-    { name: "Chat", href: "/chat" },
-    { name: "Create Group", href: "/create-group" },
+    { name: "Explore", href: "/explore", icon: Compass },
+    { name: "Chats", href: "/chat", icon: MessageCircle },
+    { name: "Groups", href: "/create-group", icon: Users },
   ];
 
   const menuItems = [
@@ -118,26 +119,35 @@ export default function App() {
   ];
 
   return (
-    <Navbar shouldHideOnScroll isBordered onMenuOpenChange={setIsMenuOpen}>
+    <Navbar
+      shouldHideOnScroll
+      isBordered
+      onMenuOpenChange={setIsMenuOpen}
+      className="backdrop-blur-md"
+      classNames={{ wrapper: "max-w-full" }}
+    >
       <NavbarBrand>
-        <AcmeLogo />
-        <p className="font-bold text-xl text-inherit">KOVARI</p>
+        <Link href="/" className="text-foreground !opacity-100">
+          <AcmeLogo />
+          <p className="font-bold text-xl text-inherit">KOVARI</p>
+        </Link>
       </NavbarBrand>
 
-      <NavbarContent className="hidden sm:flex gap-8" justify="center">
+      <NavbarContent className="hidden sm:flex gap-10" justify="center">
         {navigationItems.map((item) => (
           <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
             <Link
               color={activeItem === item.href ? "primary" : "foreground"}
               href={item.href}
               onClick={() => handleItemClick(item.href)}
-              className={`font-medium transition-all duration-300 ease-in-out ${
+              className={`font-medium transition-all duration-300 ease-in-out flex items-center gap-2 ${
                 activeItem === item.href
                   ? "text-primary font-semibold"
                   : "hover:text-primary"
               }`}
               aria-current={activeItem === item.href ? "page" : undefined}
             >
+              <item.icon className="w-4 h-4" />
               {item.name}
             </Link>
           </NavbarItem>
@@ -188,11 +198,12 @@ export default function App() {
         {navigationItems.map((item, index) => (
           <NavbarMenuItem key={`${item}-${index}`}>
             <Link
-              className="w-full"
+              className="w-full flex items-center gap-2"
               color={"foreground"}
               href={item.href}
               size="lg"
             >
+              <item.icon className="w-5 h-5" />
               {item.name}
             </Link>
           </NavbarMenuItem>
