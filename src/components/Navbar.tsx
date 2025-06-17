@@ -1,61 +1,237 @@
 "use client";
 
 import {
-  UserButton,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  useClerk,
-} from "@clerk/nextjs";
-import Link from "next/link";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Link,
+  DropdownItem,
+  DropdownTrigger,
+  Dropdown,
+  DropdownMenu,
+  Avatar,
+  NavbarMenuToggle,
+  NavbarMenuItem,
+  NavbarMenu,
+  Skeleton,
+} from "@heroui/react";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
 
-export default function Navbar() {
+export const AcmeLogo = () => {
+  return (
+    <svg fill="none" height="36" viewBox="0 0 32 32" width="36">
+      <path
+        clipRule="evenodd"
+        d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
+        fill="currentColor"
+        fillRule="evenodd"
+      />
+    </svg>
+  );
+};
+
+export default function App() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState<string | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const handleSignInClick = () => {
-    setIsRedirecting(true);
-    // toast.info("Redirecting to sign-in");
+  const handleItemClick = (href: string) => {
+    setActiveItem(href);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  const isActiveRoute = (href: string) => {
+    if (href === "#") {
+      return pathname === "/";
+    }
+    return pathname === href;
+  };
+
+  const navigationItems = [
+    { name: "Explore", href: "/explore" },
+    { name: "Chat", href: "/chat" },
+    { name: "Create Group", href: "/create-group" },
+  ];
+
+  const menuItems = [
+    {
+      key: "profile",
+      label: (
+        <div className="h-14 gap-2">
+          <p className="font-semibold">Signed in as</p>
+          <p className="font-semibold">
+            {user?.primaryEmailAddress?.emailAddress}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "settings",
+      label: "My Settings",
+      onClick: () => router.push("/settings"),
+    },
+    {
+      key: "team_settings",
+      label: "Team Settings",
+      onClick: () => router.push("/team-settings"),
+    },
+    {
+      key: "analytics",
+      label: "Analytics",
+      onClick: () => router.push("/analytics"),
+    },
+    {
+      key: "system",
+      label: "System",
+      onClick: () => router.push("/system"),
+    },
+    {
+      key: "configurations",
+      label: "Configurations",
+      onClick: () => router.push("/configurations"),
+    },
+    {
+      key: "help_and_feedback",
+      label: "Help & Feedback",
+      onClick: () => router.push("/help"),
+    },
+    {
+      key: "logout",
+      label: "Log Out",
+      className: "text-danger",
+      onClick: handleSignOut,
+    },
+  ];
+
   return (
-    <>
-      <div className="flex justify-between items-center p-4 border-b bg-primary">
-        <h1 className="text-xl font-heading font-bold text-white">KOVARI</h1>
-        <div className="flex items-center gap-4">
-          <SignedIn>
-            <UserButton />
-            <button
-              onClick={() => {
-                signOut();
-                toast.success("Signed out successfully");
-              }}
-              className="px-4 py-2 bg-black text-white rounded border-gray-500"
+    <Navbar shouldHideOnScroll isBordered onMenuOpenChange={setIsMenuOpen}>
+      <NavbarMenuToggle
+        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+        className="sm:hidden"
+      />
+      <NavbarBrand>
+        <AcmeLogo />
+        <p className="font-bold text-inherit">KOVARI</p>
+      </NavbarBrand>
+
+      <NavbarContent className="hidden sm:flex gap-8" justify="center">
+        {navigationItems.map((item) => (
+          <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
+            <Link
+              color={activeItem === item.href ? "primary" : "foreground"}
+              href={item.href}
+              onClick={() => handleItemClick(item.href)}
+              className={`font-medium transition-all duration-300 ease-in-out ${
+                activeItem === item.href
+                  ? "text-primary font-semibold"
+                  : "hover:text-primary"
+              }`}
+              aria-current={activeItem === item.href ? "page" : undefined}
             >
-              Sign Out
-            </button>
-          </SignedIn>
-
-          <SignedOut>
-            <Link href="/sign-in" onClick={handleSignInClick}>
-              <button className="px-4 py-2 bg-black text-white rounded">
-                Sign In
-              </button>
+              {item.name}
             </Link>
-          </SignedOut>
-        </div>
-      </div>
+          </NavbarItem>
+        ))}
+      </NavbarContent>
 
-      {isRedirecting && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-transparent rounded-lg p-6 flex flex-col items-center space-y-4">
-            <Loader2 className="h-11 w-11 animate-spin text-white" />
-          </div>
-        </div>
-      )}
-    </>
+      <NavbarContent as="div" justify="end">
+        {!isLoaded ? (
+          <Skeleton className="w-8 h-8 rounded-full" />
+        ) : isSignedIn ? (
+          <Dropdown placement="bottom-end">
+            <DropdownTrigger>
+              <Avatar
+                isBordered
+                as="button"
+                className="transition-transform"
+                color="secondary"
+                name={user?.fullName || user?.username || "User"}
+                size="sm"
+                src={user?.imageUrl}
+              />
+            </DropdownTrigger>
+            <DropdownMenu aria-label="Profile Actions" variant="flat">
+              {menuItems.map((item) => (
+                <DropdownItem
+                  key={item.key}
+                  className={item.className}
+                  onClick={item.onClick}
+                >
+                  {item.label}
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
+        ) : (
+          <Button
+            variant="outline"
+            size="default"
+            className="rounded-full px-6 hover:bg-primary hover:text-primary-foreground"
+            onClick={() => router.push("/sign-up")}
+          >
+            Sign Up
+          </Button>
+        )}
+      </NavbarContent>
+
+      <NavbarMenu>
+        {navigationItems.map((item, index) => (
+          <NavbarMenuItem key={`${item}-${index}`}>
+            <Link
+              className="w-full"
+              color={
+                index === 2
+                  ? "primary"
+                  : index === menuItems.length - 1
+                  ? "danger"
+                  : "foreground"
+              }
+              href={item.href}
+              size="lg"
+            >
+              {item.name}
+            </Link>
+          </NavbarMenuItem>
+        ))}
+        {!isSignedIn && (
+          <>
+            <NavbarMenuItem>
+              <Link
+                className="w-full"
+                color="primary"
+                href="/sign-in"
+                size="lg"
+              >
+                Sign In
+              </Link>
+            </NavbarMenuItem>
+            <NavbarMenuItem>
+              <Link
+                className="w-full"
+                color="primary"
+                href="/sign-up"
+                size="lg"
+              >
+                Sign Up
+              </Link>
+            </NavbarMenuItem>
+          </>
+        )}
+      </NavbarMenu>
+    </Navbar>
   );
 }
