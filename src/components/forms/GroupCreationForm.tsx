@@ -75,12 +75,17 @@ const formSchema = z
   .refine(
     (data) => {
       if (data.startDate && data.endDate) {
-        return data.endDate >= data.startDate;
+        // Compare dates by setting time to midnight to ignore time differences
+        const start = new Date(data.startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(data.endDate);
+        end.setHours(0, 0, 0, 0);
+        return end > start;
       }
       return true;
     },
     {
-      message: "End date cannot be before start date",
+      message: "End date must be after start date",
       path: ["endDate"],
     }
   );
@@ -106,6 +111,7 @@ export function GroupCreationForm() {
     watch,
     setValue,
     trigger,
+    setError: setFormError,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
@@ -119,14 +125,64 @@ export function GroupCreationForm() {
   const watchedValues = watch();
   const descriptionLength = watchedValues.description?.length || 0;
 
+  const validateDates = async (startDate: Date, endDate: Date) => {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+
+    if (end <= start) {
+      setFormError("endDate", {
+        type: "manual",
+        message: "End date must be after start date",
+      });
+      return false;
+    } else {
+      // Clear the error if dates are valid
+      setFormError("endDate", {
+        type: "manual",
+        message: undefined,
+      });
+      // Clear any existing errors
+      if (errors.endDate) {
+        delete errors.endDate;
+      }
+      return true;
+    }
+  };
+
   const isFormValid = () => {
-    return (
+    const hasRequiredFields = Boolean(
       watchedValues.groupName &&
-      watchedValues.destination &&
-      watchedValues.startDate &&
-      watchedValues.endDate &&
-      Object.keys(errors).length === 0
+        watchedValues.destination &&
+        watchedValues.startDate &&
+        watchedValues.endDate
     );
+
+    const hasNoErrors = Object.keys(errors).length === 0;
+
+    // Additional check for date validation
+    const datesAreValid = Boolean(
+      watchedValues.startDate &&
+        watchedValues.endDate &&
+        new Date(watchedValues.endDate).getTime() >
+          new Date(watchedValues.startDate).getTime()
+    );
+
+    console.log("Form Validation State:", {
+      hasRequiredFields,
+      hasNoErrors,
+      datesAreValid,
+      errors: Object.keys(errors),
+      values: {
+        groupName: watchedValues.groupName,
+        destination: watchedValues.destination,
+        startDate: watchedValues.startDate,
+        endDate: watchedValues.endDate,
+      },
+    });
+
+    return hasRequiredFields && hasNoErrors && datesAreValid;
   };
 
   const onSubmit = async (data: FormData) => {
@@ -264,10 +320,27 @@ export function GroupCreationForm() {
                   defaultValue={today(getLocalTimeZone())}
                   label="Date"
                   minValue={today(getLocalTimeZone())}
-                  onChange={(date: any) => {
+                  onChange={async (date: any) => {
                     if (date) {
-                      setValue("startDate", date.toDate());
-                      trigger(["startDate", "endDate"]);
+                      const newStartDate = date.toDate();
+                      setValue("startDate", newStartDate);
+
+                      if (watchedValues.endDate) {
+                        await validateDates(
+                          newStartDate,
+                          watchedValues.endDate
+                        );
+                      }
+
+                      // If end date is before new start date, update it
+                      if (
+                        watchedValues.endDate &&
+                        newStartDate > watchedValues.endDate
+                      ) {
+                        const newEndDate = new Date(newStartDate);
+                        newEndDate.setDate(newEndDate.getDate() + 1);
+                        setValue("endDate", newEndDate);
+                      }
                     }
                   }}
                   classNames={{
@@ -295,13 +368,20 @@ export function GroupCreationForm() {
                   label="Date"
                   minValue={
                     watchedValues.startDate
-                      ? today(getLocalTimeZone())
+                      ? today(getLocalTimeZone()).add({ days: 1 })
                       : undefined
                   }
-                  onChange={(date: any) => {
+                  onChange={async (date: any) => {
                     if (date) {
-                      setValue("endDate", date.toDate());
-                      trigger(["startDate", "endDate"]);
+                      const newEndDate = date.toDate();
+                      setValue("endDate", newEndDate);
+
+                      if (watchedValues.startDate) {
+                        await validateDates(
+                          watchedValues.startDate,
+                          newEndDate
+                        );
+                      }
                     }
                   }}
                   classNames={{
