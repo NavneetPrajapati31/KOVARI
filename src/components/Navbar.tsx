@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 
 export const AcmeLogo = () => {
   return (
-    <svg fill="none" height="36" viewBox="0 0 32 32" width="36">
+    <svg fill="none" height="40" viewBox="0 0 32 32" width="40">
       <path
         clipRule="evenodd"
         d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
@@ -119,13 +119,9 @@ export default function App() {
 
   return (
     <Navbar shouldHideOnScroll isBordered onMenuOpenChange={setIsMenuOpen}>
-      <NavbarMenuToggle
-        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-        className="sm:hidden"
-      />
       <NavbarBrand>
         <AcmeLogo />
-        <p className="font-bold text-inherit">KOVARI</p>
+        <p className="font-bold text-xl text-inherit">KOVARI</p>
       </NavbarBrand>
 
       <NavbarContent className="hidden sm:flex gap-8" justify="center">
@@ -180,7 +176,7 @@ export default function App() {
           <Button
             variant="outline"
             size="default"
-            className="rounded-full px-6 hover:bg-primary hover:text-primary-foreground"
+            className="rounded-full px-6 hover:bg-muted"
             onClick={() => router.push("/sign-up")}
           >
             Sign Up
@@ -193,13 +189,7 @@ export default function App() {
           <NavbarMenuItem key={`${item}-${index}`}>
             <Link
               className="w-full"
-              color={
-                index === 2
-                  ? "primary"
-                  : index === menuItems.length - 1
-                  ? "danger"
-                  : "foreground"
-              }
+              color={"foreground"}
               href={item.href}
               size="lg"
             >
@@ -212,7 +202,7 @@ export default function App() {
             <NavbarMenuItem>
               <Link
                 className="w-full"
-                color="primary"
+                color={"primary"}
                 href="/sign-in"
                 size="lg"
               >
@@ -222,7 +212,7 @@ export default function App() {
             <NavbarMenuItem>
               <Link
                 className="w-full"
-                color="primary"
+                color={"primary"}
                 href="/sign-up"
                 size="lg"
               >
@@ -232,6 +222,10 @@ export default function App() {
           </>
         )}
       </NavbarMenu>
+      <NavbarMenuToggle
+        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+        className="sm:hidden"
+      />
     </Navbar>
   );
 }

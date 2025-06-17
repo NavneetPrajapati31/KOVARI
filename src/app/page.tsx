@@ -14,7 +14,7 @@ export default function HomePage() {
         </p>
         <a
           href="/profile"
-          className="px-6 py-2 border-1 border-border bg-transparent text-foreground rounded-full transition"
+          className="px-6 py-2 border-1 border-border bg-transparent hover:bg-muted text-foreground rounded-full transition"
         >
           Get Started
         </a>
