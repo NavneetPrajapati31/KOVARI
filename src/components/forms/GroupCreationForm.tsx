@@ -5,28 +5,20 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+// import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectItem } from "@heroui/react";
+import { DatePicker } from "@heroui/react";
+import { getLocalTimeZone, today } from "@internationalized/date";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { Switch } from "@heroui/switch";
 
 const destinations = [
   { value: "paris", label: "Paris, France" },
@@ -39,6 +31,26 @@ const destinations = [
   { value: "bali", label: "Bali, Indonesia" },
   { value: "dubai", label: "Dubai, UAE" },
   { value: "singapore", label: "Singapore" },
+  { value: "amsterdam", label: "Amsterdam, Netherlands" },
+  { value: "berlin", label: "Berlin, Germany" },
+  { value: "bangkok", label: "Bangkok, Thailand" },
+  { value: "hong-kong", label: "Hong Kong" },
+  { value: "seoul", label: "Seoul, South Korea" },
+  { value: "mumbai", label: "Mumbai, India" },
+  { value: "cairo", label: "Cairo, Egypt" },
+  { value: "rio-de-janeiro", label: "Rio de Janeiro, Brazil" },
+  { value: "vancouver", label: "Vancouver, Canada" },
+  { value: "copenhagen", label: "Copenhagen, Denmark" },
+  { value: "athens", label: "Athens, Greece" },
+  { value: "budapest", label: "Budapest, Hungary" },
+  { value: "dublin", label: "Dublin, Ireland" },
+  { value: "lisbon", label: "Lisbon, Portugal" },
+  { value: "prague", label: "Prague, Czech Republic" },
+  { value: "vienna", label: "Vienna, Austria" },
+  { value: "stockholm", label: "Stockholm, Sweden" },
+  { value: "oslo", label: "Oslo, Norway" },
+  { value: "helsinki", label: "Helsinki, Finland" },
+  { value: "warsaw", label: "Warsaw, Poland" },
 ];
 
 const formSchema = z
@@ -76,14 +88,21 @@ const formSchema = z
 type FormData = z.infer<typeof formSchema>;
 
 export function GroupCreationForm() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [destinationOpen, setDestinationOpen] = useState(false);
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
 
+  const todayJs = new Date();
+  const tomorrowJs = new Date(todayJs);
+  tomorrowJs.setDate(tomorrowJs.getDate() + 1);
+
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors, isValid, isDirty },
     watch,
     setValue,
     trigger,
@@ -92,21 +111,65 @@ export function GroupCreationForm() {
     mode: "onChange",
     defaultValues: {
       isPublic: true,
+      startDate: todayJs,
+      endDate: tomorrowJs,
     },
   });
 
   const watchedValues = watch();
   const descriptionLength = watchedValues.description?.length || 0;
 
-  const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
-    // Handle form submission here
+  const isFormValid = () => {
+    return (
+      watchedValues.groupName &&
+      watchedValues.destination &&
+      watchedValues.startDate &&
+      watchedValues.endDate &&
+      Object.keys(errors).length === 0
+    );
+  };
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const payload = {
+        name: data.groupName,
+        destination: data.destination,
+        start_date: format(data.startDate, "yyyy-MM-dd"),
+        end_date: format(data.endDate, "yyyy-MM-dd"),
+        is_public: data.isPublic,
+        description: data.description || undefined,
+      };
+
+      const response = await fetch("/api/create-group", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create group");
+      }
+
+      toast.success("Group created successfully");
+      router.push("/group");
+    } catch (err) {
+      console.error("Error creating group:", err);
+      setError(err instanceof Error ? err.message : "Failed to create group");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6 custom-autofill-white">
-      <Card className="w-full max-w-2xl bg-card shadow-none border-border">
-        <CardContent className="p-8">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 md:p-6 custom-autofill-white">
+      <Card className="w-full max-w-xl bg-card shadow-none border-border py-2">
+        <CardContent className="p-7">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-2">
               Create a new group
@@ -116,11 +179,16 @@ export function GroupCreationForm() {
             </p>
           </div>
 
+          {error && (
+            <div className="mb-4 px-3 py-2 bg-[#F13260]/25 border border-[#F13260] rounded-md">
+              <p className="text-sm text-[#F13260]">{error}</p>
+            </div>
+          )}
+
           <form
             onSubmit={handleSubmit((data) => onSubmit(data))}
             className="space-y-6"
           >
-            {/* Group Name */}
             <div className="space-y-2">
               <Label
                 htmlFor="groupName"
@@ -133,220 +201,125 @@ export function GroupCreationForm() {
                 {...register("groupName")}
                 placeholder="Enter group name"
                 className={cn(
-                  "h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground",
+                  "h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-md placeholder:text-muted-foreground",
                   errors.groupName &&
-                    "border-red-500 focus:border-red-500 focus:ring-red-500"
+                    "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260] placeholder:text-[#F31260]"
                 )}
               />
               {errors.groupName && (
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-[#F31260]">
                   {errors.groupName.message}
                 </p>
               )}
             </div>
 
-            {/* Destination */}
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground">
                 Destination
               </Label>
-              <Popover open={destinationOpen} onOpenChange={setDestinationOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={destinationOpen}
-                    className={cn(
-                      "w-full h-9 justify-between px-4 font-normal text-sm border-input focus:border-primary focus:ring-primary rounded-lg",
-                      !watchedValues.destination && "text-muted-foreground",
-                      errors.destination && "border-red-500"
-                    )}
-                  >
-                    {watchedValues.destination
-                      ? destinations.find(
-                          (destination) =>
-                            destination.value === watchedValues.destination
-                        )?.label
-                      : "Select destination"}
-                    <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search destinations..."
-                      className="text-sm placeholder:text-muted-foreground"
-                    />
-                    <CommandList>
-                      <CommandEmpty className="text-sm text-muted-foreground">
-                        No destination found.
-                      </CommandEmpty>
-                      <CommandGroup className="max-h-64 overflow-auto">
-                        {destinations.map((destination) => (
-                          <CommandItem
-                            key={destination.value}
-                            value={destination.value}
-                            onSelect={(currentValue) => {
-                              setValue("destination", currentValue);
-                              trigger("destination");
-                              setDestinationOpen(false);
-                            }}
-                            className="text-sm text-muted-foreground"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-3.5 w-3.5",
-                                watchedValues.destination === destination.value
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {destination.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {errors.destination && (
-                <p className="text-xs text-red-600">
-                  {errors.destination.message}
-                </p>
-              )}
+              <Select
+                isRequired
+                variant="faded"
+                size="sm"
+                selectedKeys={
+                  watchedValues.destination
+                    ? new Set([watchedValues.destination])
+                    : new Set()
+                }
+                onSelectionChange={(keys: Set<React.Key> | "all") => {
+                  if (keys !== "all" && keys.size > 0) {
+                    const selectedValue = Array.from(keys)[0] as string;
+                    setValue("destination", selectedValue);
+                  } else if (keys !== "all" && keys.size === 0) {
+                    setValue("destination", "");
+                  }
+                  trigger("destination");
+                }}
+                items={destinations}
+                placeholder="Select destination"
+                classNames={{
+                  trigger: cn(
+                    "w-full h-9 text-sm border border-input hover:border-input bg-transparent focus:border-primary focus:ring-primary rounded-md",
+                    errors.destination &&
+                      "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
+                  ),
+                  value: cn("text-muted-foreground"),
+                }}
+              >
+                {(destination) => (
+                  <SelectItem key={destination.value}>
+                    {destination.label}
+                  </SelectItem>
+                )}
+              </Select>
             </div>
 
-            {/* Date Range */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Start Date */}
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-3">
+              <div className="w-full flex flex-col gap-1 space-y-2">
                 <Label className="text-xs font-medium text-muted-foreground">
                   Start date
                 </Label>
-                <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full h-9 justify-start px-4 font-normal text-sm border-input focus:border-primary focus:ring-primary rounded-lg",
-                        !watchedValues.startDate && "text-muted-foreground",
-                        errors.startDate && "border-red-500"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {watchedValues.startDate
-                        ? format(watchedValues.startDate, "MMM dd, yyyy")
-                        : "Select date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={watchedValues.startDate}
-                      onSelect={(date) => {
-                        setValue("startDate", date!);
-                        trigger(["startDate", "endDate"]);
-                        setStartDateOpen(false);
-                      }}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePicker
+                  variant="bordered"
+                  defaultValue={today(getLocalTimeZone())}
+                  label="Date"
+                  minValue={today(getLocalTimeZone())}
+                  onChange={(date: any) => {
+                    if (date) {
+                      setValue("startDate", date.toDate());
+                      trigger(["startDate", "endDate"]);
+                    }
+                  }}
+                  classNames={{
+                    inputWrapper: cn(
+                      "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
+                      errors.startDate &&
+                        "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
+                    ),
+                  }}
+                />
                 {errors.startDate && (
-                  <p className="text-xs text-red-600">
+                  <p className="text-xs text-[#F31260]">
                     {errors.startDate.message}
                   </p>
                 )}
               </div>
 
-              {/* End Date */}
-              <div className="space-y-2">
+              <div className="w-full flex flex-col gap-1 space-y-2">
                 <Label className="text-xs font-medium text-muted-foreground">
                   End date
                 </Label>
-                <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full h-9 justify-start px-4 font-normal text-sm border-input focus:border-primary focus:ring-primary rounded-lg",
-                        !watchedValues.endDate && "text-muted-foreground",
-                        errors.endDate && "border-red-500"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {watchedValues.endDate
-                        ? format(watchedValues.endDate, "MMM dd, yyyy")
-                        : "Select date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={watchedValues.endDate}
-                      onSelect={(date) => {
-                        setValue("endDate", date!);
-                        trigger(["startDate", "endDate"]);
-                        setEndDateOpen(false);
-                      }}
-                      disabled={(date) => {
-                        const today = new Date();
-                        const startDate = watchedValues.startDate;
-                        return date < today || (startDate && date < startDate);
-                      }}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePicker
+                  variant="bordered"
+                  defaultValue={today(getLocalTimeZone()).add({ days: 1 })}
+                  label="Date"
+                  minValue={
+                    watchedValues.startDate
+                      ? today(getLocalTimeZone())
+                      : undefined
+                  }
+                  onChange={(date: any) => {
+                    if (date) {
+                      setValue("endDate", date.toDate());
+                      trigger(["startDate", "endDate"]);
+                    }
+                  }}
+                  classNames={{
+                    inputWrapper: cn(
+                      "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
+                      errors.endDate &&
+                        "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
+                    ),
+                  }}
+                />
                 {errors.endDate && (
-                  <p className="text-xs text-red-600">
+                  <p className="text-xs text-[#F31260]">
                     {errors.endDate.message}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Visibility Toggle */}
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                Visibility
-              </Label>
-              <div className="flex items-center space-x-3">
-                <span
-                  className={cn(
-                    "text-xs whitespace-nowrap",
-                    !watchedValues.isPublic
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  Private
-                </span>
-                <Switch
-                  checked={watchedValues.isPublic}
-                  onCheckedChange={(checked) => {
-                    setValue("isPublic", checked);
-                    trigger("isPublic");
-                  }}
-                  className="data-[state=checked]:bg-primary"
-                />
-                <span
-                  className={cn(
-                    "text-xs whitespace-nowrap",
-                    watchedValues.isPublic
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  Public
-                </span>
-              </div>
-            </div>
-
-            {/* Description */}
             <div className="space-y-2">
               <Label
                 htmlFor="description"
@@ -360,9 +333,9 @@ export function GroupCreationForm() {
                   {...register("description")}
                   placeholder="Tell people what your group is about..."
                   className={cn(
-                    "min-h-[120px] px-4 py-3 text-sm border-input focus:border-primary focus:ring-primary rounded-lg resize-none placeholder:text-muted-foreground",
+                    "min-h-[120px] px-4 py-3 text-sm border-input focus:border-primary focus:ring-primary rounded-md resize-none placeholder:text-muted-foreground",
                     errors.description &&
-                      "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      "border-[#F13260] focus:border-[#F13260] focus:ring-[#F13260]"
                   )}
                   maxLength={500}
                 />
@@ -371,19 +344,44 @@ export function GroupCreationForm() {
                 </div>
               </div>
               {errors.description && (
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-[#F13260]">
                   {errors.description.message}
                 </p>
               )}
             </div>
 
-            {/* Submit Button */}
+            <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
+              <Label className="text-sm text-foreground">
+                Make group public
+              </Label>
+              <Switch
+                size="sm"
+                checked={watchedValues.isPublic}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setValue("isPublic", e.target.checked);
+                  trigger("isPublic");
+                }}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+            {/* <p className="text-xs text-muted-foreground">
+              Public groups can be discovered and joined by anyone. Private
+              groups are only visible to invited members.
+            </p> */}
+
             <Button
               type="submit"
-              disabled={!isValid}
-              className="w-full h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+              disabled={!isFormValid() || isSubmitting}
+              className="w-full h-10 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-md transition-all duration-200"
             >
-              Create Group
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Group"
+              )}
             </Button>
           </form>
         </CardContent>
