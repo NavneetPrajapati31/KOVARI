@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
-const HIDE_LAYOUT_ROUTES = ["/sign-in", "/sign-up", "/onboarding"];
+const HIDE_LAYOUT_ROUTES = ["/sign-in", "/sign-up"];
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
