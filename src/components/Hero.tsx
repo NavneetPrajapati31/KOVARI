@@ -1,17 +1,40 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+const BUTTON_WIDTH = "w-[163px]";
+const BUTTON_HEIGHT = "h-10";
+const BUTTON_TEXT_SIZE = "text-small";
+
+const HERO_TITLE_GRADIENT =
+  "bg-hero-section-title bg-clip-text text-foreground";
+const HERO_SUBTITLE_GRADIENT =
+  "bg-gradient-to-b from-primary from-50% to-transparent to-100% bg-clip-text text-transparent";
+
+const HERO_DESCRIPTION =
+  "KOVARI helps you find travel companions, plan itineraries together, and discover local events. Join travel groups of people heading to the same destination.";
+
+const HERO_SECTION_CLASSES =
+  "z-20 flex flex-col items-center justify-center gap-[18px] sm:gap-6";
 
 export default function Hero() {
   const router = useRouter();
+
+  const handleStartPlanning = useCallback(() => {
+    router.push("/sign-up");
+  }, [router]);
+
+  const handleFindTravelers = useCallback(() => {
+    router.push("/explore");
+  }, [router]);
+
   return (
     <div className="relative flex h-[110vh] sm:h-[90vh] w-full flex-col overflow-hidden bg-background">
       <main className="container mx-auto flex flex-1 flex-col items-center justify-center overflow-hidden px-8">
-        <section className="z-20 flex flex-col items-center justify-center gap-[18px] sm:gap-6">
+        <section className={HERO_SECTION_CLASSES}>
           <Button
             className="h-9 overflow-hidden border-1 border-border shadow-sm px-[18px] py-2 text-small font-normal leading-5 text-default-500"
             endContent={
@@ -19,10 +42,12 @@ export default function Hero() {
                 className="flex-none outline-none [&>path]:stroke-[2]"
                 icon="solar:arrow-right-linear"
                 width={20}
+                aria-label="Arrow right"
               />
             }
             radius="full"
             variant="bordered"
+            aria-label="Travel Together, Better"
           >
             Travel Together, Better
           </Button>
@@ -36,45 +61,39 @@ export default function Hero() {
           },
           ```
         */}
-            <div className="bg-hero-section-title bg-clip-text text-foreground">
+            <div className={HERO_TITLE_GRADIENT}>
               Connect & Travel <br /> With{" "}
-              <span className="bg-gradient-to-b from-primary from-50% to-transparent to-100% bg-clip-text text-transparent">
-                Like-Minded
-              </span>{" "}
-              People
+              <span className={HERO_SUBTITLE_GRADIENT}>Like-Minded</span> People
             </div>
           </div>
           <p className="text-center font-normal leading-7 text-default-500 sm:w-[466px] sm:text-[16px]">
-            KOVARI helps you find travel companions, plan itineraries together,
-            and discover local events. Join travel groups of people heading to
-            the same destination.
+            {HERO_DESCRIPTION}
           </p>
           <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
             <Button
-              className="h-10 w-[163px] bg-primary px-[16px] py-[10px] text-small font-medium leading-5 text-background"
+              className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} bg-primary px-[16px] py-[10px] ${BUTTON_TEXT_SIZE} font-medium leading-5 text-background`}
               radius="full"
-              onPress={() => {
-                router.push("/sign-up");
-              }}
+              onPress={handleStartPlanning}
+              aria-label="Start Planning"
             >
               Start Planning
             </Button>
             <Button
-              className="h-10 w-[163px] border-1 border-border shadow-sm px-[16px] py-[10px] text-small font-medium leading-5"
+              className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} border-1 border-border shadow-sm px-[16px] py-[10px] ${BUTTON_TEXT_SIZE} font-medium leading-5`}
               endContent={
                 <span className="pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full">
                   <Icon
                     className="text-default-500 [&>path]:stroke-[1.5]"
                     icon="solar:arrow-right-linear"
                     width={16}
+                    aria-label="Arrow right"
                   />
                 </span>
               }
               radius="full"
               variant="bordered"
-              onPress={() => {
-                router.push("/explore");
-              }}
+              onPress={handleFindTravelers}
+              aria-label="Find Travelers"
             >
               Find Travelers
             </Button>
