@@ -19,7 +19,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { Button } from "@heroui/react";
+import { Button } from "@/components/ui/button";
 import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
 import Spinner from "./Spinner";
 
@@ -199,9 +199,8 @@ export default function App() {
             </Dropdown>
           ) : (
             <Button
-              radius="full"
-              className="px-8 h-9 bg-primary text-background"
-              onPress={() => handleNavigation("/sign-up")}
+              className="px-6 h-9 bg-primary hover:bg-primary-hover text-background rounded-lg"
+              onClick={() => handleNavigation("/sign-up")}
             >
               Sign Up
             </Button>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  Avatar,
   Divider,
   Card,
   CardHeader,
@@ -9,136 +10,108 @@ import {
   CardFooter,
   Image,
   Badge,
-  Button,
   Skeleton,
 } from "@heroui/react";
-import {
-  Check,
-  Heart,
-  X,
-  Calendar as CalendarIcon,
-  MapPin,
-  User,
-} from "lucide-react";
+import { Check, Heart, X, Calendar, MapPin, User, Loader2 } from "lucide-react";
+import { Button } from "../ui/button";
 
 interface TravelerCardProps {
   traveler: {
     id: string;
     name: string;
+    username: string;
     age: number;
-    destination: string;
-    travelDates: string;
     bio: string;
     profilePhoto: string;
+    destination: string;
+    travelDates: string;
     matchStrength: "high" | "medium" | "low";
   };
-  onConnect?: (travelerId: string) => void;
-  onViewProfile?: (travelerId: string) => void;
 }
 
-const MATCH_COLORS: Record<
-  "high" | "medium" | "low",
-  "success" | "warning" | "danger"
-> = {
-  high: "success",
-  medium: "warning",
-  low: "danger",
-};
-
-const MATCH_LABELS = {
+const MATCH_STRENGTH_LABELS: Record<string, string> = {
   high: "High Match",
   medium: "Medium Match",
   low: "Low Match",
 };
 
-export default function TravelerCard({
-  traveler,
-  onConnect,
-  onViewProfile,
-}: TravelerCardProps) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+const MATCH_STRENGTH_COLORS: Record<string, string> = {
+  high: "bg-success text-primary-foreground",
+  medium: "bg-warning text-primary-foreground",
+  low: "bg-destructive text-primary-foreground",
+};
 
-  const handleConnect = () => {
-    onConnect?.(traveler.id);
-  };
-
-  const handleViewProfile = () => {
-    onViewProfile?.(traveler.id);
-  };
-
+export default function TravelerCard({ traveler }: TravelerCardProps) {
+  const [actionLoading, setActionLoading] = useState(false);
   return (
-    <Card className="w-full max-w-[300px] rounded-2xl bg-card shadow-lg overflow-hidden flex flex-col">
-      {/* Top image section */}
-      <div className="relative w-full aspect-[4/2] bg-gray-100">
-        {!imageError ? (
-          <>
-            {!imageLoaded && (
-              <Skeleton className="absolute inset-0 w-full h-full rounded-t-2xl" />
-            )}
-            <Image
-              src={
-                "https://images.pexels.com/photos/158063/bellingrath-gardens-alabama-landscape-scenic-158063.jpeg"
-              }
-              alt={`${traveler.name}'s profile photo`}
-              width={340}
-              height={170}
-              className={`w-full h-full object-cover rounded-t-2xl rounded-b-none transition-all duration-500 ${
-                imageLoaded ? "opacity-100" : "opacity-0"
-              }`}
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
-              aria-label={`${traveler.name}'s profile photo`}
-            />
-          </>
-        ) : (
-          <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-2xl">
-            <User className="w-16 h-16 text-default-400" />
-          </div>
-        )}
-        {/* Action buttons */}
-        <div className="absolute left-0 -bottom-5 z-10 flex gap-4 pl-5">
-          <button
-            className="w-9 h-9 rounded-full bg-white border-2 border-green-200 shadow flex items-center justify-center text-green-600 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-400"
-            aria-label="Accept"
-            tabIndex={0}
-          >
-            <Check className="w-5 h-5" />
-          </button>
-          <button
-            className="w-9 h-9 rounded-full bg-white border-2 border-red-300 shadow flex items-center justify-center text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400"
-            aria-label="Favorite"
-            tabIndex={0}
-          >
-            <Heart className="w-5 h-5" />
-          </button>
-          <button
-            className="w-9 h-9 rounded-full bg-white border-2 border-orange-200 shadow flex items-center justify-center text-orange-500 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-            aria-label="Reject"
-            tabIndex={0}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-      {/* Content section */}
-      <div className="flex flex-col gap-2 px-5 pt-9 pb-6">
-        {/* Date/time */}
+    <Card className="w-full max-w-[320px] max-h-[400px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+      <CardBody className="px-5 py-4 relative">
+        {/* Profile Section with Avatar and User Info */}
+        <div className="flex items-center gap-4 mb-2">
+          {/* Profile Image */}
+          <Avatar
+            src={traveler.profilePhoto || "/placeholder.svg?height=80&width=80"}
+            alt={`${traveler.name}'s profile`}
+            size="lg"
+          />
 
-        {/* Title */}
-        <div className="text-lg font-bold text-gray-900 leading-tight">
-          {traveler.name}
+          {/* User Info - Right of Avatar */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <h2 className="text-lg font-bold text-foreground truncate">
+              {traveler.name}
+            </h2>
+            <p className="text-muted-foreground text-sm truncate">
+              @{traveler.username}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-purple-700 text-sm font-medium">
-          <CalendarIcon className="w-5 h-5" />
-          <span>{traveler.travelDates}</span>
+
+        <div className="text-left mb-4">
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {traveler.bio}
+          </p>
         </div>
-        {/* Attendance/location */}
-        <div className="text-gray-600 text-sm font-medium flex items-center gap-2">
-          <span>256 attending</span>
-          <Divider orientation="vertical" className="h-4" />
-          <MapPin className="w-4 h-4 inline-block text-gray-400" />
-          <span>{traveler.destination}</span>
+
+        {/* Travel Details */}
+        <div className="text-left">
+          <div className="flex items-center gap-2 text-primary text-sm font-medium mb-2">
+            <Calendar className="w-5 h-5" />
+            <span className="text-sm">{traveler.travelDates}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin
+              className="w-4 h-4 text-muted-foreground"
+              aria-label="Destination"
+            />
+            <span className="text-sm text-foreground">
+              {traveler.destination}
+            </span>
+          </div>
+        </div>
+      </CardBody>
+      <div className="px-5 pb-5 mt-auto">
+        <div className="flex gap-2">
+          <Button
+            color="primary"
+            className="w-1/2 gap-2 font-semibold rounded-lg"
+            aria-label="Connect"
+            tabIndex={0}
+            disabled={actionLoading}
+          >
+            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            Connect
+          </Button>
+          <Button
+            color="primary"
+            variant="outline"
+            className="border-1 w-1/2 gap-2 font-semibold rounded-lg"
+            aria-label="View Profile"
+            tabIndex={0}
+            disabled={actionLoading}
+          >
+            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            View Profile
+          </Button>
         </div>
       </div>
     </Card>

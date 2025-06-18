@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { MapPin, Calendar, Users, Loader2 } from "lucide-react";
 import type { GroupCardProps } from "@/types/group";
 import SkeletonCard from "./SkeletonCard";
+import { Button } from "../ui/button";
 
 export function GroupCard({
   group,
@@ -133,58 +134,50 @@ export function GroupCard({
       {/* Action button(s) at the bottom */}
       <div className="px-5 pb-5 mt-auto">
         {group.userStatus === "member" ? (
-          <button
-            type="button"
-            className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-semibold text-base transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary-hover"
+          <Button
+            color="primary"
+            className="w-full gap-2 font-semibold rounded-lg"
             aria-label="View Group"
             tabIndex={0}
-            onClick={() => onAction(group.id, "view" as "view")}
             disabled={actionLoading}
           >
             {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
             View Group
-          </button>
+          </Button>
         ) : group.userStatus === "pending" || group.userStatus === "blocked" ? (
-          <button
-            type="button"
-            className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-semibold text-base transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-muted disabled:opacity-60 disabled:cursor-not-allowed bg-muted text-muted-foreground"
-            aria-label={buttonConfig.text}
+          <Button
+            color="primary"
+            className="w-full gap-2 font-semibold rounded-lg"
+            aria-label="status pending"
             tabIndex={0}
-            disabled
+            disabled={actionLoading}
           >
+            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
             {buttonConfig.text}
-          </button>
+          </Button>
         ) : (
           <div className="flex gap-2">
-            <button
-              type="button"
-              className="w-1/2 flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary bg-primary text-primary-foreground hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed"
+            <Button
+              color="primary"
+              className="w-1/2 gap-2 font-semibold rounded-lg"
               aria-label="View Group"
               tabIndex={0}
-              onClick={() => onAction(group.id, "view" as "view")}
               disabled={actionLoading}
             >
               {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
               View Group
-            </button>
-            <button
-              type="button"
-              className="w-1/2 flex items-center justify-center gap-2 rounded-lg px-3 py-1 font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary border border-primary text-primary bg-white hover:bg-primary-hover/10 disabled:opacity-60 disabled:cursor-not-allowed"
+            </Button>
+            <Button
+              color="primary"
+              variant="outline"
+              className="border-1 w-1/2 gap-2 font-semibold rounded-lg"
               aria-label="Request to Join"
               tabIndex={0}
-              onClick={() =>
-                onAction(
-                  group.id,
-                  (group.privacy === "public" ? "join" : "request") as
-                    | "join"
-                    | "request"
-                )
-              }
               disabled={actionLoading}
             >
               {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
               Request to Join
-            </button>
+            </Button>
           </div>
         )}
       </div>
