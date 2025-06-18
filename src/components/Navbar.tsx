@@ -37,15 +37,10 @@ export const AcmeLogo = () => {
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
-
-  const handleItemClick = (href: string) => {
-    setActiveItem(href);
-  };
 
   const handleSignOut = async () => {
     try {
@@ -138,13 +133,12 @@ export default function App() {
         {navigationItems.map((item) => (
           <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
             <Link
-              color={activeItem === item.href ? "primary" : "foreground"}
+              color={isActiveRoute(item.href) ? "primary" : "foreground"}
               href={item.href}
-              onClick={() => handleItemClick(item.href)}
               className={`text-sm font-semibold transition-all duration-300 ease-in-out flex items-center gap-2 ${
-                activeItem === item.href ? "text-primary" : "hover:text-primary"
+                isActiveRoute(item.href) ? "text-primary" : "hover:text-primary"
               }`}
-              aria-current={activeItem === item.href ? "page" : undefined}
+              aria-current={isActiveRoute(item.href) ? "page" : undefined}
             >
               <item.icon className="w-4 h-4" />
               {item.name}
