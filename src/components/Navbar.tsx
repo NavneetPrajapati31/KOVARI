@@ -20,7 +20,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Compass, MessageCircle, Users } from "lucide-react";
+import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
 
 export const AcmeLogo = () => {
   return (
@@ -66,6 +66,7 @@ export default function App() {
     { name: "Explore", href: "/explore", icon: Compass },
     { name: "Chats", href: "/chat", icon: MessageCircle },
     { name: "Groups", href: "/create-group", icon: Users },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   ];
 
   const menuItems = [
@@ -133,17 +134,15 @@ export default function App() {
         </Link>
       </NavbarBrand>
 
-      <NavbarContent className="hidden sm:flex gap-10" justify="center">
+      <NavbarContent className="hidden md:flex gap-8" justify="center">
         {navigationItems.map((item) => (
           <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
             <Link
               color={activeItem === item.href ? "primary" : "foreground"}
               href={item.href}
               onClick={() => handleItemClick(item.href)}
-              className={`font-medium transition-all duration-300 ease-in-out flex items-center gap-2 ${
-                activeItem === item.href
-                  ? "text-primary font-semibold"
-                  : "hover:text-primary"
+              className={`text-sm font-semibold transition-all duration-300 ease-in-out flex items-center gap-2 ${
+                activeItem === item.href ? "text-primary" : "hover:text-primary"
               }`}
               aria-current={activeItem === item.href ? "page" : undefined}
             >
@@ -186,7 +185,7 @@ export default function App() {
           <Button
             variant="outline"
             size="default"
-            className="rounded-full px-6 hover:bg-muted"
+            className="rounded-full px-7 hover:bg-muted"
             onClick={() => router.push("/sign-up")}
           >
             Sign Up
@@ -194,48 +193,48 @@ export default function App() {
         )}
       </NavbarContent>
 
-      <NavbarMenu>
+      <NavbarMenu className="md:hidden">
         {navigationItems.map((item, index) => (
           <NavbarMenuItem key={`${item}-${index}`}>
             <Link
-              className="w-full flex items-center gap-2"
+              className="w-full flex items-center gap-3"
               color={"foreground"}
               href={item.href}
-              size="lg"
+              size="md"
             >
               <item.icon className="w-5 h-5" />
               {item.name}
             </Link>
           </NavbarMenuItem>
         ))}
-        {!isSignedIn && (
+        {/* {!isSignedIn && (
           <>
             <NavbarMenuItem>
               <Link
-                className="w-full"
+                className="w-full flex items-center gap-3"
                 color={"primary"}
                 href="/sign-in"
-                size="lg"
+                size="md"
               >
                 Sign In
               </Link>
             </NavbarMenuItem>
             <NavbarMenuItem>
               <Link
-                className="w-full"
+                className="w-full flex items-center gap-3"
                 color={"primary"}
                 href="/sign-up"
-                size="lg"
+                size="md"
               >
                 Sign Up
               </Link>
             </NavbarMenuItem>
           </>
-        )}
+        )} */}
       </NavbarMenu>
       <NavbarMenuToggle
         aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-        className="sm:hidden"
+        className="block md:hidden"
       />
     </Navbar>
   );

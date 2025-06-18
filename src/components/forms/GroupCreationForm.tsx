@@ -224,7 +224,7 @@ export function GroupCreationForm() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6 md:p-6 custom-autofill-white">
-      <Card className="w-full max-w-xl bg-card shadow-none border-border py-2">
+      <Card className="w-full max-w-3xl bg-card shadow-none border-border py-2">
         <CardContent className="p-7">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-2">

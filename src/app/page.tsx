@@ -3,7 +3,6 @@ import Navbar from "@/components/Navbar";
 export default function HomePage() {
   return (
     <>
-      <Navbar />
       <div className="h-screen flex flex-col items-center justify-center text-center p-6">
         <h1 className="text-3xl font-heading font-medium mb-4">
           Welcome to KOVARI
