@@ -431,7 +431,7 @@ export function GroupCreationForm() {
             </div>
 
             <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
-              <Label className="text-sm text-foreground">
+              <Label className="text-sm text-muted-foreground">
                 Make group public
               </Label>
               <Switch
