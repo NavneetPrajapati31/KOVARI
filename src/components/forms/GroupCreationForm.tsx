@@ -248,7 +248,7 @@ export function GroupCreationForm() {
             <div className="space-y-2">
               <Label
                 htmlFor="groupName"
-                className="text-xs font-medium text-muted-foreground"
+                className="text-sm font-medium text-muted-foreground"
               >
                 Group name
               </Label>
@@ -263,14 +263,14 @@ export function GroupCreationForm() {
                 )}
               />
               {errors.groupName && (
-                <p className="text-xs text-[#F31260]">
+                <p className="text-sm text-[#F31260]">
                   {errors.groupName.message}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">
+              <Label className="text-sm font-medium text-muted-foreground">
                 Destination
               </Label>
               <Select
@@ -312,7 +312,7 @@ export function GroupCreationForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-3">
               <div className="w-full flex flex-col gap-1 space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">
+                <Label className="text-sm font-medium text-muted-foreground">
                   Start date
                 </Label>
                 <DatePicker
@@ -353,14 +353,14 @@ export function GroupCreationForm() {
                   }}
                 />
                 {errors.startDate && (
-                  <p className="text-xs text-[#F31260]">
+                  <p className="text-sm text-[#F31260]">
                     {errors.startDate.message}
                   </p>
                 )}
               </div>
 
               <div className="w-full flex flex-col gap-1 space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">
+                <Label className="text-sm font-medium text-muted-foreground">
                   End date
                 </Label>
                 <DatePicker
@@ -395,7 +395,7 @@ export function GroupCreationForm() {
                   }}
                 />
                 {errors.endDate && (
-                  <p className="text-xs text-[#F31260]">
+                  <p className="text-sm text-[#F31260]">
                     {errors.endDate.message}
                   </p>
                 )}
@@ -405,7 +405,7 @@ export function GroupCreationForm() {
             <div className="space-y-2">
               <Label
                 htmlFor="description"
-                className="text-xs font-medium text-muted-foreground"
+                className="text-sm font-medium text-muted-foreground"
               >
                 Description (optional)
               </Label>
@@ -421,19 +421,19 @@ export function GroupCreationForm() {
                   )}
                   maxLength={500}
                 />
-                <div className="absolute bottom-3 right-3 text-xs text-muted-foreground">
+                <div className="absolute bottom-3 right-3 text-sm text-muted-foreground">
                   {descriptionLength}/500
                 </div>
               </div>
               {errors.description && (
-                <p className="text-xs text-[#F13260]">
+                <p className="text-sm text-[#F13260]">
                   {errors.description.message}
                 </p>
               )}
             </div>
 
             <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
-              <Label className="text-sm text-muted-foreground">
+              <Label className="text-sm font-medium text-muted-foreground">
                 Make group public
               </Label>
               <Switch
