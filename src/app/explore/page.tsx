@@ -1,14 +1,28 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 export default function ExplorePage() {
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-4">
-        Explore Travelers & Groups
-      </h2>
-      {/* TODO: Add filters + card grid here */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="border p-4 rounded shadow">Traveler Card 1</div>
-        <div className="border p-4 rounded shadow">Group Card 2</div>
-      </div>
+    <div className="flex-1 space-y-4 p-8 pt-6 h-screen">
+      <Card>
+        <CardHeader>
+          <CardTitle>Coming Soon</CardTitle>
+          <CardDescription>
+            We're working on something exciting for you!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Our team is working hard to bring you an explore page. Stay tuned
+            for updates!
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
