@@ -1,148 +1,146 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, User } from "lucide-react"
-import Image from "next/image"
+import { useState } from "react";
+import {
+  Divider,
+  Card,
+  CardHeader,
+  CardBody,
+  CardFooter,
+  Image,
+  Badge,
+  Button,
+  Skeleton,
+} from "@heroui/react";
+import {
+  Check,
+  Heart,
+  X,
+  Calendar as CalendarIcon,
+  MapPin,
+  User,
+} from "lucide-react";
 
 interface TravelerCardProps {
   traveler: {
-    id: string
-    name: string
-    age: number
-    destination: string
-    travelDates: string
-    bio: string
-    profilePhoto: string
-    matchStrength: "high" | "medium" | "low"
-  }
-  onConnect?: (travelerId: string) => void
-  onViewProfile?: (travelerId: string) => void
+    id: string;
+    name: string;
+    age: number;
+    destination: string;
+    travelDates: string;
+    bio: string;
+    profilePhoto: string;
+    matchStrength: "high" | "medium" | "low";
+  };
+  onConnect?: (travelerId: string) => void;
+  onViewProfile?: (travelerId: string) => void;
 }
 
-export default function TravelerCard({ traveler, onConnect, onViewProfile }: TravelerCardProps) {
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const [imageError, setImageError] = useState(false)
+const MATCH_COLORS: Record<
+  "high" | "medium" | "low",
+  "success" | "warning" | "danger"
+> = {
+  high: "success",
+  medium: "warning",
+  low: "danger",
+};
 
-  const getMatchBadgeColor = (strength: string) => {
-    switch (strength) {
-      case "high":
-        return "bg-emerald-500 border-white shadow-sm"
-      case "medium":
-        return "bg-amber-500 border-white shadow-sm"
-      case "low":
-        return "bg-red-500 border-white shadow-sm"
-      default:
-        return "bg-gray-400 border-white shadow-sm"
-    }
-  }
+const MATCH_LABELS = {
+  high: "High Match",
+  medium: "Medium Match",
+  low: "Low Match",
+};
 
-  const getMatchBadgeText = (strength: string) => {
-    switch (strength) {
-      case "high":
-        return "High Match"
-      case "medium":
-        return "Medium Match"
-      case "low":
-        return "Low Match"
-      default:
-        return "Match"
-    }
-  }
+export default function TravelerCard({
+  traveler,
+  onConnect,
+  onViewProfile,
+}: TravelerCardProps) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handleConnect = () => {
-    onConnect?.(traveler.id)
-  }
+    onConnect?.(traveler.id);
+  };
 
   const handleViewProfile = () => {
-    onViewProfile?.(traveler.id)
-  }
+    onViewProfile?.(traveler.id);
+  };
 
   return (
-    <Card className="w-80 h-[420px] bg-white border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ease-in-out overflow-hidden group cursor-pointer">
-      {/* Profile Photo Section */}
-      <div className="relative w-full h-44 bg-gray-100 overflow-hidden">
+    <Card className="w-full max-w-[300px] rounded-2xl bg-card shadow-lg overflow-hidden flex flex-col">
+      {/* Top image section */}
+      <div className="relative w-full aspect-[4/2] bg-gray-100">
         {!imageError ? (
           <>
-            {/* Loading skeleton */}
             {!imageLoaded && (
-              <div className="absolute inset-0 bg-gray-200 animate-pulse">
-                <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-              </div>
+              <Skeleton className="absolute inset-0 w-full h-full rounded-t-2xl" />
             )}
             <Image
-              src={traveler.profilePhoto || "/placeholder.svg"}
+              src={
+                "https://images.pexels.com/photos/158063/bellingrath-gardens-alabama-landscape-scenic-158063.jpeg"
+              }
               alt={`${traveler.name}'s profile photo`}
-              fill
-              className={`object-cover transition-all duration-500 group-hover:scale-105 ${
+              width={340}
+              height={170}
+              className={`w-full h-full object-cover rounded-t-2xl rounded-b-none transition-all duration-500 ${
                 imageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageError(true)}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              aria-label={`${traveler.name}'s profile photo`}
             />
           </>
         ) : (
-          /* Fallback placeholder */
-          <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-100 to-gray-200">
-            <User className="w-16 h-16 text-gray-400" />
+          <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-2xl">
+            <User className="w-16 h-16 text-default-400" />
           </div>
         )}
-
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-
-        {/* Match Strength Badge */}
-        <div className="absolute top-3 right-3 z-10">
-          <Badge
-            className={`w-6 h-6 p-0 rounded-full border-2 ${getMatchBadgeColor(traveler.matchStrength)} text-transparent hover:scale-110 transition-transform duration-200`}
-            aria-label={getMatchBadgeText(traveler.matchStrength)}
-            title={getMatchBadgeText(traveler.matchStrength)}
+        {/* Action buttons */}
+        <div className="absolute left-0 -bottom-5 z-10 flex gap-4 pl-5">
+          <button
+            className="w-9 h-9 rounded-full bg-white border-2 border-green-200 shadow flex items-center justify-center text-green-600 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-400"
+            aria-label="Accept"
+            tabIndex={0}
           >
-            <span className="sr-only">{getMatchBadgeText(traveler.matchStrength)}</span>
-          </Badge>
+            <Check className="w-5 h-5" />
+          </button>
+          <button
+            className="w-9 h-9 rounded-full bg-white border-2 border-red-300 shadow flex items-center justify-center text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400"
+            aria-label="Favorite"
+            tabIndex={0}
+          >
+            <Heart className="w-5 h-5" />
+          </button>
+          <button
+            className="w-9 h-9 rounded-full bg-white border-2 border-orange-200 shadow flex items-center justify-center text-orange-500 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            aria-label="Reject"
+            tabIndex={0}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
       </div>
+      {/* Content section */}
+      <div className="flex flex-col gap-2 px-5 pt-9 pb-6">
+        {/* Date/time */}
 
-      {/* Content Section */}
-      <div className="p-5 flex flex-col h-60">
-        {/* Name & Age */}
-        <div className="mb-3">
-          <h3 className="text-lg font-semibold text-gray-900 leading-tight">
-            {traveler.name}, <span className="font-normal text-gray-600">{traveler.age}</span>
-          </h3>
+        {/* Title */}
+        <div className="text-lg font-bold text-gray-900 leading-tight">
+          {traveler.name}
         </div>
-
-        {/* Destination */}
-        <div className="flex items-center mb-2 text-gray-700">
-          <MapPin className="w-4 h-4 mr-2 text-blue-600 flex-shrink-0" aria-hidden="true" />
-          <span className="text-base font-medium truncate">{traveler.destination}</span>
+        <div className="flex items-center gap-2 text-purple-700 text-sm font-medium">
+          <CalendarIcon className="w-5 h-5" />
+          <span>{traveler.travelDates}</span>
         </div>
-
-        {/* Travel Dates */}
-        <div className="flex items-center mb-3 text-gray-600">
-          <Calendar className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0" aria-hidden="true" />
-          <span className="text-sm truncate">{traveler.travelDates}</span>
+        {/* Attendance/location */}
+        <div className="text-gray-600 text-sm font-medium flex items-center gap-2">
+          <span>256 attending</span>
+          <Divider orientation="vertical" className="h-4" />
+          <MapPin className="w-4 h-4 inline-block text-gray-400" />
+          <span>{traveler.destination}</span>
         </div>
-
-        {/* Bio */}
-        <div className="flex-1 mb-4">
-          <p className="text-sm text-gray-600 leading-relaxed line-clamp-3" title={traveler.bio}>
-            {traveler.bio}
-          </p>
-        </div>
-
-        {/* CTA Button */}
-        <Button
-          onClick={traveler.matchStrength === "high" ? handleConnect : handleViewProfile}
-          className="w-full h-11 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-95 text-white font-semibold rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          aria-label={`${traveler.matchStrength === "high" ? "Connect with" : "View profile of"} ${traveler.name}`}
-        >
-          {traveler.matchStrength === "high" ? "Connect" : "View Profile"}
-        </Button>
       </div>
     </Card>
-  )
+  );
 }
