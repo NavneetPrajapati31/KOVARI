@@ -13,7 +13,7 @@ export default function ExplorePage() {
         <CardHeader>
           <CardTitle>Coming Soon</CardTitle>
           <CardDescription>
-            We're working on something exciting for you!
+            We&apos;re working on something exciting for you!
           </CardDescription>
         </CardHeader>
         <CardContent>
