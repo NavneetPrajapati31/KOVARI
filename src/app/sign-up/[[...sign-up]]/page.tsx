@@ -1,5 +1,5 @@
-import AuthForm from "@/components/auth/auth-form";
-import HeroSection from "@/components/auth/hero-section";
+import AuthForm from "@/components/forms/auth-form";
+import HeroSection from "@/components/hero-section";
 
 export default function SignUpPage() {
   return (

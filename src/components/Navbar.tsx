@@ -218,7 +218,7 @@ export default function App() {
                 onClick={() => handleNavigation(item.href)}
                 size="md"
               >
-                <item.icon className="w-5 h-5" />
+                {/* <item.icon className="w-4 h-4" /> */}
                 {item.name}
               </Link>
             </NavbarMenuItem>

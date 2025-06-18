@@ -349,6 +349,7 @@ export function GroupCreationForm() {
                       errors.startDate &&
                         "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
                     ),
+                    calendarContent: cn("!bg-white !opacity-1"),
                   }}
                 />
                 {errors.startDate && (
@@ -390,6 +391,7 @@ export function GroupCreationForm() {
                       errors.endDate &&
                         "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
                     ),
+                    calendarContent: cn("!bg-white !opacity-1"),
                   }}
                 />
                 {errors.endDate && (

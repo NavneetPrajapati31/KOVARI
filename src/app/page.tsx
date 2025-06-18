@@ -40,7 +40,10 @@ export default function HomePage() {
             */}
               <div className="bg-hero-section-title bg-clip-text text-foreground">
                 Connect & Travel <br /> With{" "}
-                <span className="text-primary">Like-Minded</span> People
+                <span className="bg-gradient-to-b from-primary from-50% to-transparent to-100% bg-clip-text text-transparent">
+                  Like-Minded
+                </span>{" "}
+                People
               </div>
             </div>
             <p className="text-center font-normal leading-7 text-default-500 sm:w-[466px] sm:text-[16px]">
