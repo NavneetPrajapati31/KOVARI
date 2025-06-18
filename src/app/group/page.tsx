@@ -1,26 +1,28 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 export default function GroupPage() {
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-4">
-        Create or Join a Travel Group
-      </h2>
-      <form className="grid gap-4 max-w-md">
-        <input
-          type="text"
-          placeholder="Group Name"
-          className="border p-2 rounded bg-transparent"
-        />
-        <select
-          className="border p-2 rounded bg-transparent"
-          aria-label="Group Privacy Setting"
-        >
-          <option>Public</option>
-          <option>Private</option>
-        </select>
-        <button className="bg-primary text-white px-4 py-2 rounded">
-          Create
-        </button>
-      </form>
+    <div className="flex-1 space-y-4 p-8 pt-6 h-screen">
+      <Card>
+        <CardHeader>
+          <CardTitle>Coming Soon</CardTitle>
+          <CardDescription>
+            We're working on something exciting for you!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Our team is working hard to bring you an group interface. Stay tuned
+            for updates!
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

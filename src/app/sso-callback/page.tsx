@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import Spinner from "@/components/Spinner";
 
 export default function SSOCallback() {
   const { handleRedirectCallback } = useClerk();
@@ -14,7 +14,7 @@ export default function SSOCallback() {
       try {
         await handleRedirectCallback({
           afterSignInUrl: "/",
-          afterSignUpUrl: "/onboarding/step1",
+          afterSignUpUrl: "/onboarding",
         });
         // router.push("/");
       } catch (error) {
@@ -26,12 +26,5 @@ export default function SSOCallback() {
     handleCallback();
   }, [handleRedirectCallback, router]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-4">
-        <Loader2 className="w-10 h-10 animate-spin mx-auto text-muted-foreground" />
-        {/* <p className="text-muted-foreground">Completing sign in...</p> */}
-      </div>
-    </div>
-  );
+  return <Spinner />;
 }

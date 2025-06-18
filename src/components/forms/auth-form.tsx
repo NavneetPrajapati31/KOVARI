@@ -50,7 +50,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         // Handle the sign-up result
         if (result?.status === "complete" && setActiveSignUp) {
           await setActiveSignUp({ session: result.createdSessionId });
-          router.push("/onboarding/step1");
+          router.push("/onboarding");
         } else if (result?.status === "missing_requirements") {
           // Prepare email verification
           await signUp?.prepareEmailAddressVerification();
@@ -89,7 +89,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         await signUp?.authenticateWithRedirect({
           strategy: provider,
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/onboarding/step1",
+          redirectUrlComplete: "/onboarding",
         });
       } else {
         await signIn?.authenticateWithRedirect({
@@ -105,7 +105,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="w-full px-8 mx-auto max-w-md space-y-4 py-2 sm:px-6 md:max-w-lg custom-autofill">
+    <div className="w-full px-7 mx-auto max-w-md space-y-4 py-7 sm:px-7 sm:max-w-md md:max-w-lg lg:max-w-xl custom-autofill border-1 border-border rounded-lg bg-card shadow-none">
       {/* Logo */}
       {/* <div className="flex items-center space-x-2">
         <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
@@ -132,7 +132,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="p-3 text-sm text-destructive bg-[#dc2626]/15 border border-[#dc2626] rounded-md">
+        <div className="p-2.5 text-sm text-[#F13260] bg-[#F13260]/15 border border-[#F13260] rounded-md">
           {error}
         </div>
       )}
@@ -140,7 +140,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
       {/* Social Auth Buttons */}
       <div className="space-y-1.5">
         <Button
-          className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
+          variant={"outline"}
+          className="w-full h-10 text-foreground hover:bg-background"
           onClick={() => handleSocialAuth("oauth_google")}
           disabled={isLoading}
         >
@@ -170,7 +171,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
         </Button>
 
         <Button
-          className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
+          variant={"outline"}
+          className="w-full h-10 text-foreground hover:bg-background"
           onClick={() => handleSocialAuth("oauth_facebook")}
           disabled={isLoading}
         >
@@ -185,7 +187,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
         </Button>
 
         <Button
-          className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
+          variant={"outline"}
+          className="w-full h-10 text-foreground hover:bg-background"
           onClick={() => handleSocialAuth("oauth_apple")}
           disabled={isLoading}
         >
@@ -210,7 +213,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-background text-muted-foreground">or</span>
+          <span className="px-2 bg-card text-muted-foreground">or</span>
         </div>
       </div>
 
@@ -230,7 +233,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               placeholder="example@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 h-11 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
+              className="mt-1 h-10 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
               required
               disabled={isLoading}
             />
@@ -249,7 +252,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 h-11 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
+              className="mt-1 h-10 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
               required
               disabled={isLoading}
             />
@@ -269,7 +272,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 placeholder="Confirm password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 h-11 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
+                className="mt-1 h-10 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
                 required
                 disabled={isLoading}
               />
@@ -304,7 +307,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         <Button
           type="submit"
-          className="w-full h-11 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
+          className="w-full h-10 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
           disabled={isLoading}
         >
           {isLoading ? (

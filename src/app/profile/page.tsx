@@ -10,7 +10,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from "@/components/form/form";
+} from "@/components/forms/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 

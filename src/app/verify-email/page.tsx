@@ -73,7 +73,7 @@ export default function VerifyEmail() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-8 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-4">
+      <div className="max-w-md w-full space-y-4 p-7 border-1 border-border rounded-lg bg-card">
         <div>
           {/* <div className="flex items-center justify-center space-x-2 mb-6">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
@@ -140,7 +140,7 @@ export default function VerifyEmail() {
             <button
               type="button"
               onClick={handleResendCode}
-              className="text-sm text-foreground hover:underline font-medium"
+              className="text-sm text-muted-foreground hover:underline font-medium"
               disabled={isLoading}
             >
               Didn&apos;t receive the code? Resend

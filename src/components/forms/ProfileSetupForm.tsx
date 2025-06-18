@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ScanFace,
   X,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -60,6 +61,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import ProfileImageUpload from "@/components/UploadButton";
+import CheckIcon from "@mui/icons-material/Check";
+import CelebrationIcon from "@mui/icons-material/Celebration";
 
 // Define schemas for each step
 const step1Schema = z
@@ -121,8 +124,19 @@ const step2Schema = z.object({
     .min(1, { message: "Please select at least one interest" }),
 });
 
+const step3Schema = z.object({
+  destinations: z.string().min(1, "Please enter at least one destination"),
+  from: z.string().min(1, "Start date is required"),
+  to: z.string().min(1, "End date is required"),
+  mode: z.enum(["solo", "group"]).optional(),
+  hobbies: z.array(z.string()).min(1, "Please select at least one interest"),
+  activityDescription: z.string().optional(),
+  frequency: z.string().optional(),
+});
+
 type Step1Data = z.infer<typeof step1Schema>;
 type Step2Data = z.infer<typeof step2Schema>;
+type Step3Data = z.infer<typeof step3Schema>;
 
 // Sample data for dropdowns
 const genderOptions = ["Male", "Female", "Prefer not to say"];
@@ -171,16 +185,40 @@ const interestOptions = [
   { id: "10", label: "Fitness" },
 ];
 
+const interestsList = [
+  "Hiking",
+  "Photography",
+  "Culture",
+  "Food",
+  "Music",
+  "History",
+  "Adventure",
+  "Nightlife",
+  "Local Tours",
+];
+
+const tripFrequencies = [
+  "Once a year",
+  "Every 6 months",
+  "Monthly",
+  "Digital nomad",
+];
+
 export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 2;
+  const totalSteps = 5;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
+  const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
+  const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<"solo" | "group" | null>(
+    null
+  );
 
   const { syncUser } = useSyncUserToSupabase();
 
@@ -214,6 +252,19 @@ export default function ProfileSetupForm() {
     },
   });
 
+  const step3Form = useForm<Step3Data>({
+    resolver: zodResolver(step3Schema),
+    defaultValues: {
+      destinations: "",
+      from: "",
+      to: "",
+      mode: undefined,
+      hobbies: [],
+      activityDescription: "",
+      frequency: "",
+    },
+  });
+
   // Handle step 1 submission
   const onStep1Submit = (data: Step1Data) => {
     console.log("Step 1 data:", data);
@@ -222,15 +273,40 @@ export default function ProfileSetupForm() {
   };
 
   // Handle step 2 submission
-  const onStep2Submit = async (data: Step2Data) => {
+  const onStep2Submit = (data: Step2Data) => {
+    console.log("Step 2 data:", data);
+    setStep2Data(data);
+    setStep(3);
+  };
+
+  // Handle step 3 submission
+  const onStep3Submit = (data: Step3Data) => {
+    console.log("Step 3 data:", data);
+    setStep3Data(data);
+    setStep(4);
+  };
+
+  const onStep4Submit = async () => {
+    if (!selectedMode) {
+      toast.error("Please select a travel style");
+      return;
+    }
+    if (step3Data) {
+      await submitProfileAndPreferences(step3Data);
+    } else {
+      setStep(5);
+    }
+  };
+
+  // Original step 3 submission logic moved to a separate function
+  const submitProfileAndPreferences = async (data: Step3Data) => {
     try {
       setIsSubmitting(true);
-      console.log("Step 2 data:", data);
-      const completeData = { ...step1Data, ...data };
+      const completeData = { ...step1Data, ...step2Data, ...data };
       console.log("Complete form data:", completeData);
 
       // Transform data to match API schema
-      const apiData = {
+      const profileData = {
         name: `${completeData.firstName} ${completeData.lastName}`,
         age: completeData.age,
         gender: completeData.gender,
@@ -242,54 +318,89 @@ export default function ProfileSetupForm() {
         job: completeData.jobType,
       };
 
-      // Update Clerk user profile
-      if (user) {
-        // First update the metadata
-        await user.update({
-          unsafeMetadata: {
-            imageUrl: completeData.profilePic || undefined,
-            phoneNumber: completeData.phoneNumber,
-            age: completeData.age,
-            gender: completeData.gender,
-            birthday: completeData.birthday?.toISOString(),
-            bio: completeData.bio,
-            nationality: completeData.nationality,
-            jobType: completeData.jobType,
-            languages: completeData.languages,
-            interests: completeData.interests,
-          },
-        });
+      const travelPreferencesData = {
+        destinations: completeData.destinations
+          ? completeData.destinations.split(",").map((dest) => dest.trim())
+          : [],
+        start_date: completeData.from,
+        end_date: completeData.to,
+        hobbies: completeData.hobbies,
+      };
 
-        // Then update the name
-        await user.update({
-          unsafeMetadata: {
-            firstName: completeData.firstName,
-            lastName: completeData.lastName,
-          },
-        });
-
-        // Ensure user is synced to Supabase before submitting profile
-        const syncSuccess = await syncUser();
-        if (!syncSuccess) {
-          toast.error("Failed to sync user data. Please try again.");
-          return;
-        }
-
-        // Submit to our API
-        const res = await fetch("/api/profile", {
-          method: "POST",
-          body: JSON.stringify(apiData),
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Failed to save profile");
-        }
-
-        toast.success("Profile saved successfully!");
-        setStep(3);
+      if (!user) {
+        throw new Error("User not found");
       }
+
+      // Step 1: Update Clerk user profile metadata
+      await user.update({
+        unsafeMetadata: {
+          imageUrl: completeData.profilePic || undefined,
+          phoneNumber: completeData.phoneNumber,
+          age: completeData.age,
+          gender: completeData.gender,
+          birthday: completeData.birthday?.toISOString(),
+          bio: completeData.bio,
+          nationality: completeData.nationality,
+          jobType: completeData.jobType,
+          languages: completeData.languages,
+          interests: completeData.interests,
+          travel_preferences: travelPreferencesData,
+        },
+      });
+
+      // Step 2: Update Clerk user name
+      await user.update({
+        unsafeMetadata: {
+          firstName: completeData.firstName,
+          lastName: completeData.lastName,
+        },
+      });
+
+      // Step 3: Sync user to Supabase
+      const syncSuccess = await syncUser();
+      if (!syncSuccess) {
+        throw new Error("Failed to sync user data");
+      }
+
+      // Step 4: Save travel mode
+      const travelModeRes = await fetch("/api/travel-mode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mode: selectedMode }),
+      });
+
+      if (!travelModeRes.ok) {
+        throw new Error("Failed to save travel mode");
+      }
+
+      // Step 5: Submit profile data to API
+      const profileRes = await fetch("/api/profile", {
+        method: "POST",
+        body: JSON.stringify(profileData),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!profileRes.ok) {
+        const error = await profileRes.json();
+        throw new Error(error.error || "Failed to save profile");
+      }
+
+      // Step 6: Submit travel preferences data to API
+      const preferencesRes = await fetch("/api/travel-preferences", {
+        method: "POST",
+        body: JSON.stringify(travelPreferencesData),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!preferencesRes.ok) {
+        const error = await preferencesRes.json();
+        throw new Error(error.error || "Failed to save travel preferences");
+      }
+
+      toast.success("Profile saved successfully!");
+      setStep(5);
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast.error(error.message || "Failed to save profile");
@@ -315,11 +426,11 @@ export default function ProfileSetupForm() {
           </span>
         </div>
         <div className="flex space-x-1">
-          {[1, 2].map((stepNum) => (
+          {[1, 2, 3, 4, 5].map((stepNum) => (
             <div key={stepNum} className="flex-1">
               <div
                 className={`h-1.5 rounded-full ${
-                  stepNum <= step ? "bg-primary" : "bg-muted"
+                  stepNum <= step ? "bg-primary" : "bg-gray-300"
                 }`}
               />
             </div>
@@ -497,6 +608,10 @@ export default function ProfileSetupForm() {
                     endYear={new Date().getFullYear()}
                     date={field.value}
                     onDateChange={field.onChange}
+                    disabled={{
+                      before: new Date(1900, 0, 1),
+                      after: new Date(),
+                    }}
                   />
                 </FormControl>
                 <FormMessage className="text-xs" />
@@ -652,7 +767,10 @@ export default function ProfileSetupForm() {
                                 }}
                               >
                                 {nationality === field.value && (
-                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <CheckIcon
+                                    fontSize="inherit"
+                                    className="mr-2 text-muted-foreground flex-shrink-0"
+                                  />
                                 )}
                                 {nationality !== field.value && (
                                   <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -722,7 +840,10 @@ export default function ProfileSetupForm() {
                                 }}
                               >
                                 {jobType === field.value && (
-                                  <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <CheckIcon
+                                    fontSize="inherit"
+                                    className="mr-2 text-muted-foreground flex-shrink-0"
+                                  />
                                 )}
                                 {jobType !== field.value && (
                                   <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -799,7 +920,10 @@ export default function ProfileSetupForm() {
                               }}
                             >
                               {field.value?.includes(language) && (
-                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <CheckIcon
+                                  fontSize="inherit"
+                                  className="mr-2 text-muted-foreground flex-shrink-0"
+                                />
                               )}
                               {!field.value?.includes(language) && (
                                 <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -941,7 +1065,10 @@ export default function ProfileSetupForm() {
                               }}
                             >
                               {field.value?.includes(interest.id) && (
-                                <CircleCheckBig className="mr-2 h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <CheckIcon
+                                  fontSize="inherit"
+                                  className="mr-2 text-muted-foreground flex-shrink-0"
+                                />
                               )}
                               {!field.value?.includes(interest.id) && (
                                 <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
@@ -1036,12 +1163,12 @@ export default function ProfileSetupForm() {
           />
 
           {/* Navigation Buttons */}
-          <div className="flex space-x-3 pt-3">
+          <div className="flex space-x-4 pt-3">
             <Button
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted-foreground hover:text-white rounded-lg"
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -1050,7 +1177,7 @@ export default function ProfileSetupForm() {
               type="submit"
               className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
             >
-              Complete
+              Continue
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -1059,27 +1186,370 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Success step
+  // Render step 3 form - Travel Preferences
   const renderStep3 = () => (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className="text-center py-8"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
     >
-      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-        <CircleCheckBig className="w-8 h-8 text-primary-foreground" />
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Travel Preferences
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Customize your upcoming travel experience
+        </p>
       </div>
-      <h2 className="text-2xl font-bold text-foreground mb-2">
-        Welcome aboard! 🎉
-      </h2>
-      <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-        Your profile has been successfully created. You&apos;re all set to get
-        started!
-      </p>
+
+      <Form {...step3Form}>
+        <form
+          onSubmit={step3Form.handleSubmit(onStep3Submit)}
+          className="space-y-4"
+        >
+          {/* Preferred Destinations */}
+          <FormField
+            control={step3Form.control}
+            name="destinations"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Preferred Destinations
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Earth className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Dream destinations on your bucket list"
+                      className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Travel Dates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField
+              control={step3Form.control}
+              name="from"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
+                    Start Date
+                  </FormLabel>
+                  <FormControl>
+                    <DatePicker
+                      startYear={new Date().getFullYear()}
+                      endYear={new Date().getFullYear() + 5}
+                      date={field.value ? new Date(field.value) : undefined}
+                      onDateChange={(date) =>
+                        field.onChange(date?.toISOString())
+                      }
+                      disabled={{
+                        before: new Date(),
+                        after: new Date(new Date().getFullYear() + 5, 11, 31),
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={step3Form.control}
+              name="to"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
+                    End Date
+                  </FormLabel>
+                  <FormControl>
+                    <DatePicker
+                      startYear={new Date().getFullYear()}
+                      endYear={new Date().getFullYear() + 5}
+                      date={field.value ? new Date(field.value) : undefined}
+                      onDateChange={(date) =>
+                        field.onChange(date?.toISOString())
+                      }
+                      disabled={{
+                        before: new Date(),
+                        after: new Date(new Date().getFullYear() + 5, 11, 31),
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Travel Mode */}
+          {/* <FormField
+            control={step3Form.control}
+            name="mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Travel Style
+                </FormLabel>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={field.value === "solo" ? "default" : "outline"}
+                    className="h-9 text-sm"
+                    onClick={() => field.onChange("solo")}
+                  >
+                    Solo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={field.value === "group" ? "default" : "outline"}
+                    className="h-9 text-sm"
+                    onClick={() => field.onChange("group")}
+                  >
+                    Group
+                  </Button>
+                </div>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          /> */}
+
+          {/* Trip Focus / Activities */}
+          <FormField
+            control={step3Form.control}
+            name="hobbies"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Trip Focus / Activities
+                </FormLabel>
+                <div className="flex flex-wrap gap-2">
+                  {interestsList.map((interest) => (
+                    <Badge
+                      key={interest}
+                      variant={
+                        field.value?.includes(interest) ? "default" : "outline"
+                      }
+                      className="cursor-pointer px-4 py-2 text-xs hover:bg-primary hover:text-white transition-colors"
+                      onClick={() => {
+                        const newValue = field.value?.includes(interest)
+                          ? field.value.filter((h) => h !== interest)
+                          : [...(field.value || []), interest];
+                        field.onChange(newValue);
+                      }}
+                    >
+                      {interest}
+                    </Badge>
+                  ))}
+                </div>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Activities Description */}
+          <FormField
+            control={step3Form.control}
+            name="activityDescription"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Describe what kind of activities you are looking for
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Lightbulb className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Textarea
+                      placeholder="Tell us about your ideal trip activities (optional)"
+                      className="pl-8 min-h-[80px] text-sm border-input focus:border-primary focus:ring-primary rounded-lg resize-none placeholder:text-muted-foreground"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Trip Frequency */}
+          <FormField
+            control={step3Form.control}
+            name="frequency"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  How often do you travel?
+                </FormLabel>
+                <div className="flex flex-wrap gap-2">
+                  {tripFrequencies.map((freq) => (
+                    <Badge
+                      key={freq}
+                      variant={field.value === freq ? "default" : "outline"}
+                      className="cursor-pointer px-4 py-2 text-xs hover:bg-primary hover:text-white transition-colors"
+                      onClick={() => field.onChange(freq)}
+                    >
+                      {freq}
+                    </Badge>
+                  ))}
+                </div>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Navigation Buttons */}
+          <div className="flex space-x-4 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+            >
+              Continue
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </motion.div>
+  );
+
+  // Render step 4 - Travel Mode Selection
+  const renderStep4 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Choose Your Travel Style
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Select how you prefer to travel and connect with others
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
+        {/* Solo Traveler Card */}
+        <div
+          className={cn(
+            "relative h-[16rem] bg-card rounded-xl overflow-hidden group transition-colors cursor-pointer",
+            selectedMode === "solo" && "ring-4 ring-primary"
+          )}
+          onClick={() => setSelectedMode("solo")}
+        >
+          <div className="absolute inset-0 bg-primary hover:bg-primary-hover transition-all">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <h2 className="text-md font-semibold text-white mb-2">
+              Solo Traveler
+            </h2>
+            <p className="text-xs text-white/90 leading-relaxed mb-4">
+              Perfect for independent explorers who love the freedom to discover
+              at their own pace.
+            </p>
+          </div>
+        </div>
+
+        {/* Group Travel Card */}
+        <div
+          className={cn(
+            "relative h-[16rem] bg-card rounded-xl overflow-hidden group transition-colors cursor-pointer",
+            selectedMode === "group" && "ring-4 ring-primary"
+          )}
+          onClick={() => setSelectedMode("group")}
+        >
+          <div className="absolute inset-0 bg-primary hover:bg-primary-hover transition-all">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <h2 className="text-md font-semibold text-white mb-2">
+              Group Traveler
+            </h2>
+            <p className="text-xs text-white/90 leading-relaxed mb-4">
+              For groups who want to plan, coordinate, and share amazing
+              experiences together.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center pt-3">
+        <p className="text-muted-foreground text-xs font-medium">
+          Don&apos;t worry, you can always switch between modes or create
+          different travel plans later
+        </p>
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex space-x-4 pt-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={goBack}
+          className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Back
+        </Button>
+        <Button
+          type="button"
+          onClick={onStep4Submit}
+          className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+        >
+          Continue
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </motion.div>
+  );
+
+  // Render step 5 - Success
+  const renderStep5 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckIcon className="w-8 h-8 text-primary-foreground" />
+          {/* <CelebrationIcon className="w-8 h-8 text-primary-foreground" /> */}
+          {/* <CircleCheckBig /> */}
+        </div>
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Welcome aboard! 🎉
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Your profile has been successfully created. You&apos;re all set to get
+          started!
+        </p>
+      </div>
+
       <Button
         onClick={() => (window.location.href = "/")}
-        className="h-9 px-6 text-sm bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-all duration-200"
+        className="w-full h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
       >
         Get Started
       </Button>
@@ -1087,21 +1557,31 @@ export default function ProfileSetupForm() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6">
-      <div className="w-full max-w-md mx-auto">
-        <Card className="border-border bg-card shadow-none gap-3 custom-autofill-white px-2">
-          <CardHeader>
-            <ProgressIndicator />
-          </CardHeader>
-          <CardContent className="px-4 md:px-6 pb-6">
-            <AnimatePresence mode="wait">
-              {step === 1 && <div key="step1">{renderStep1()}</div>}
-              {step === 2 && <div key="step2">{renderStep2()}</div>}
-              {step === 3 && <div key="step3">{renderStep3()}</div>}
-            </AnimatePresence>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6 custom-autofill-white">
+      <Card className="w-full max-w-xl border-border bg-card shadow-none gap-3 px-2">
+        <CardHeader>
+          <ProgressIndicator />
+        </CardHeader>
+        <CardContent className="px-4 md:px-6 pb-6">
+          <AnimatePresence mode="wait">
+            {step === 1 && <div key="step1">{renderStep1()}</div>}
+            {step === 2 && <div key="step2">{renderStep2()}</div>}
+            {step === 3 && <div key="step3">{renderStep3()}</div>}
+            {step === 4 && <div key="step4">{renderStep4()}</div>}
+            {step === 5 && <div key="step5">{renderStep5()}</div>}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
+
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-transparent rounded-lg p-6 flex flex-col items-center space-y-4">
+            <Loader2 className="h-11 w-11 animate-spin text-white" />
+            {/* <p className="text-sm text-white">Saving your profile...</p> */}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
