@@ -19,7 +19,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
+import { Button } from "@heroui/react";
 import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
 import Spinner from "./Spinner";
 
@@ -70,10 +70,10 @@ export default function App() {
   };
 
   const navigationItems = [
-    { name: "Explore", href: "/explore", icon: Compass },
-    { name: "Chats", href: "/chat", icon: MessageCircle },
-    { name: "Groups", href: "/create-group", icon: Users },
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Features", href: "#features", icon: Compass },
+    { name: "How It Works", href: "#working", icon: MessageCircle },
+    { name: "Pricing", href: "/pricing", icon: Users },
+    { name: "About Us", href: "/about-us", icon: LayoutDashboard },
   ];
 
   const menuItems = [
@@ -128,7 +128,7 @@ export default function App() {
 
   return (
     <>
-      {isNavigating && <Spinner />}
+      {/* {isNavigating && <Spinner />} */}
       <Navbar
         shouldHideOnScroll
         isBordered
@@ -151,7 +151,8 @@ export default function App() {
           {navigationItems.map((item) => (
             <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
               <Link
-                color={isActiveRoute(item.href) ? "primary" : "foreground"}
+                // color={isActiveRoute(item.href) ? "primary" : "foreground"}
+                color={"foreground"}
                 href={item.href}
                 onClick={() => handleNavigation(item.href)}
                 className={`text-sm font-semibold transition-all duration-300 ease-in-out flex items-center gap-2 ${
@@ -161,7 +162,7 @@ export default function App() {
                 }`}
                 aria-current={isActiveRoute(item.href) ? "page" : undefined}
               >
-                <item.icon className="w-4 h-4" />
+                {/* <item.icon className="w-4 h-4" /> */}
                 {item.name}
               </Link>
             </NavbarItem>
@@ -198,10 +199,9 @@ export default function App() {
             </Dropdown>
           ) : (
             <Button
-              variant="outline"
-              size="default"
-              className="rounded-full px-7 hover:bg-muted"
-              onClick={() => handleNavigation("/sign-up")}
+              radius="full"
+              className="px-8 h-9 bg-primary text-background"
+              onPress={() => handleNavigation("/sign-up")}
             >
               Sign Up
             </Button>

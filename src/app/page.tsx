@@ -39,17 +39,18 @@ export default function HomePage() {
               ```
             */}
               <div className="bg-hero-section-title bg-clip-text text-foreground">
-                Connect & Travel <br /> With Like-Minded People
+                Connect & Travel <br /> With{" "}
+                <span className="text-primary">Like-Minded</span> People
               </div>
             </div>
-            <p className="text-center font-normal leading-7 text-default-500 sm:w-[466px] sm:text-[18px]">
+            <p className="text-center font-normal leading-7 text-default-500 sm:w-[466px] sm:text-[16px]">
               KOVARI helps you find travel companions, plan itineraries
-              together, and discover local events. Join verified travel circles
-              of 2-6 people heading to the same destination.
+              together, and discover local events. Join travel groups of people
+              heading to the same destination.
             </p>
             <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
               <Button
-                className="h-10 w-[163px] bg-default-foreground px-[16px] py-[10px] text-small font-medium leading-5 text-background"
+                className="h-10 w-[163px] bg-primary px-[16px] py-[10px] text-small font-medium leading-5 text-background"
                 radius="full"
                 onPress={() => {
                   router.push("/sign-up");
