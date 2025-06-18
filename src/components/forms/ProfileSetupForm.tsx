@@ -1558,32 +1558,30 @@ export default function ProfileSetupForm() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6 custom-autofill-white">
-      <div className="w-full max-w-xl mx-auto relative">
-        <Card className="border-border bg-card shadow-none gap-3 px-2">
-          <CardHeader>
-            <ProgressIndicator />
-          </CardHeader>
-          <CardContent className="px-4 md:px-6 pb-6">
-            <AnimatePresence mode="wait">
-              {step === 1 && <div key="step1">{renderStep1()}</div>}
-              {step === 2 && <div key="step2">{renderStep2()}</div>}
-              {step === 3 && <div key="step3">{renderStep3()}</div>}
-              {step === 4 && <div key="step4">{renderStep4()}</div>}
-              {step === 5 && <div key="step5">{renderStep5()}</div>}
-            </AnimatePresence>
-          </CardContent>
-        </Card>
+      <Card className="w-full max-w-xl border-border bg-card shadow-none gap-3 px-2">
+        <CardHeader>
+          <ProgressIndicator />
+        </CardHeader>
+        <CardContent className="px-4 md:px-6 pb-6">
+          <AnimatePresence mode="wait">
+            {step === 1 && <div key="step1">{renderStep1()}</div>}
+            {step === 2 && <div key="step2">{renderStep2()}</div>}
+            {step === 3 && <div key="step3">{renderStep3()}</div>}
+            {step === 4 && <div key="step4">{renderStep4()}</div>}
+            {step === 5 && <div key="step5">{renderStep5()}</div>}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
 
-        {/* Loading Overlay */}
-        {isSubmitting && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="bg-transparent rounded-lg p-6 flex flex-col items-center space-y-4">
-              <Loader2 className="h-11 w-11 animate-spin text-white" />
-              {/* <p className="text-sm text-white">Saving your profile...</p> */}
-            </div>
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-transparent rounded-lg p-6 flex flex-col items-center space-y-4">
+            <Loader2 className="h-11 w-11 animate-spin text-white" />
+            {/* <p className="text-sm text-white">Saving your profile...</p> */}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
