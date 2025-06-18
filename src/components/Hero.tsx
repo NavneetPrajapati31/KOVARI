@@ -13,7 +13,7 @@ export default function Hero() {
       <main className="container mx-auto flex flex-1 flex-col items-center justify-center overflow-hidden px-8">
         <section className="z-20 flex flex-col items-center justify-center gap-[18px] sm:gap-6">
           <Button
-            className="h-9 overflow-hidden border-1 border-border bg-primary-foreground shadow-sm px-[18px] py-2 text-small font-normal leading-5 text-default-500"
+            className="h-9 overflow-hidden border-1 border-border shadow-sm px-[18px] py-2 text-small font-normal leading-5 text-default-500"
             endContent={
               <Icon
                 className="flex-none outline-none [&>path]:stroke-[2]"
