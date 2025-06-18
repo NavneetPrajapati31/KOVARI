@@ -1452,7 +1452,7 @@ export default function ProfileSetupForm() {
         <div
           className={cn(
             "relative h-[16rem] bg-card rounded-xl overflow-hidden group transition-colors cursor-pointer",
-            selectedMode === "solo" && "ring-4 ring-gray-800"
+            selectedMode === "solo" && "ring-4 ring-primary"
           )}
           onClick={() => setSelectedMode("solo")}
         >
@@ -1474,7 +1474,7 @@ export default function ProfileSetupForm() {
         <div
           className={cn(
             "relative h-[16rem] bg-card rounded-xl overflow-hidden group transition-colors cursor-pointer",
-            selectedMode === "group" && "ring-4 ring-gray-800"
+            selectedMode === "group" && "ring-4 ring-primary"
           )}
           onClick={() => setSelectedMode("group")}
         >
