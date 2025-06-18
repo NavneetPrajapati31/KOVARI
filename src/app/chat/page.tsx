@@ -1,9 +1,28 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 export default function ChatPage() {
   return (
-    <div className="p-6 w-screen h-screen">
-      <h2 className="text-2xl font-bold mb-4">Chat</h2>
-      {/* Placeholder for chat UI */}
-      <div className="">Chat interface coming soon...</div>
+    <div className="flex-1 space-y-4 p-8 pt-6 h-screen">
+      <Card>
+        <CardHeader>
+          <CardTitle>Coming Soon</CardTitle>
+          <CardDescription>
+            We're working on something exciting for you!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Our team is working hard to bring you an amazing chat interface.
+            Stay tuned for updates!
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

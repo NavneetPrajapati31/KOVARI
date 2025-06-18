@@ -4,19 +4,13 @@
 import { useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { Skeleton } from "@/components/ui/skeleton";
-
-function SkeletonDemo() {
-  return (
-    <div className="flex items-center space-x-4">
-      <Skeleton className="h-12 w-12 rounded-full bg-[#04724d]" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-[250px] bg-[#04724d]" />
-        <Skeleton className="h-4 w-[200px] bg-[#04724d]" />
-      </div>
-    </div>
-  );
-}
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function Dashboard() {
   const { user, isSignedIn } = useUser();
@@ -29,14 +23,21 @@ export default function Dashboard() {
   }, [isSignedIn, user, setUser]);
 
   return (
-    <div className="p-6 flex items-center justify-center min-h-screen">
-      {isSignedIn ? (
-        <h1 className="text-2xl font-bold">Welcome, {user.firstName} 👋</h1>
-      ) : (
-        <div>
-          <SkeletonDemo />
-        </div>
-      )}
+    <div className="flex-1 space-y-4 p-8 pt-6 h-screen">
+      <Card>
+        <CardHeader>
+          <CardTitle>Coming Soon</CardTitle>
+          <CardDescription>
+            We're working on something exciting for you!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Our team is working hard to bring you an amazing dashboard
+            experience. Stay tuned for updates!
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
