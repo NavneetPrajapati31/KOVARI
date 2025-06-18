@@ -1,15 +1,9 @@
-"use client";
 import Navbar from "@/components/Navbar";
-import { useState } from "react";
 
 export default function HomePage() {
-  const [travelMode, setTravelMode] = useState("Solo Traveler");
-
   return (
     <>
       <Navbar />
-      
-      
       <div className="h-screen flex flex-col items-center justify-center text-center p-6">
         <h1 className="text-4xl font-heading font-bold mb-4">
           Welcome to KOVARI
