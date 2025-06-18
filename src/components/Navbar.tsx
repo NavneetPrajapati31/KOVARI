@@ -17,10 +17,11 @@ import {
   Skeleton,
 } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
+import Spinner from "./Spinner";
 
 export const AcmeLogo = () => {
   return (
@@ -37,10 +38,21 @@ export const AcmeLogo = () => {
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
+
+  useEffect(() => {
+    // Hide spinner when route changes
+    setIsNavigating(false);
+  }, [pathname]);
+
+  const handleNavigation = (href: string) => {
+    setIsNavigating(true);
+    router.push(href);
+  };
 
   const handleSignOut = async () => {
     try {
@@ -76,36 +88,36 @@ export default function App() {
         </div>
       ),
     },
-    {
-      key: "settings",
-      label: "My Settings",
-      onClick: () => router.push("/settings"),
-    },
-    {
-      key: "team_settings",
-      label: "Team Settings",
-      onClick: () => router.push("/team-settings"),
-    },
-    {
-      key: "analytics",
-      label: "Analytics",
-      onClick: () => router.push("/analytics"),
-    },
-    {
-      key: "system",
-      label: "System",
-      onClick: () => router.push("/system"),
-    },
-    {
-      key: "configurations",
-      label: "Configurations",
-      onClick: () => router.push("/configurations"),
-    },
-    {
-      key: "help_and_feedback",
-      label: "Help & Feedback",
-      onClick: () => router.push("/help"),
-    },
+    // {
+    //   key: "settings",
+    //   label: "My Settings",
+    //   onClick: () => handleNavigation("/settings"),
+    // },
+    // {
+    //   key: "team_settings",
+    //   label: "Team Settings",
+    //   onClick: () => handleNavigation("/team-settings"),
+    // },
+    // {
+    //   key: "analytics",
+    //   label: "Analytics",
+    //   onClick: () => handleNavigation("/analytics"),
+    // },
+    // {
+    //   key: "system",
+    //   label: "System",
+    //   onClick: () => handleNavigation("/system"),
+    // },
+    // {
+    //   key: "configurations",
+    //   label: "Configurations",
+    //   onClick: () => handleNavigation("/configurations"),
+    // },
+    // {
+    //   key: "help_and_feedback",
+    //   label: "Help & Feedback",
+    //   onClick: () => handleNavigation("/help"),
+    // },
     {
       key: "logout",
       label: "Log Out",
@@ -115,121 +127,108 @@ export default function App() {
   ];
 
   return (
-    <Navbar
-      shouldHideOnScroll
-      isBordered
-      onMenuOpenChange={setIsMenuOpen}
-      className="backdrop-blur-md"
-      classNames={{ wrapper: "max-w-full" }}
-    >
-      <NavbarBrand>
-        <Link href="/" className="text-foreground !opacity-100">
-          <AcmeLogo />
-          <p className="font-bold text-xl text-inherit">KOVARI</p>
-        </Link>
-      </NavbarBrand>
-
-      <NavbarContent className="hidden md:flex gap-8" justify="center">
-        {navigationItems.map((item) => (
-          <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
-            <Link
-              color={isActiveRoute(item.href) ? "primary" : "foreground"}
-              href={item.href}
-              className={`text-sm font-semibold transition-all duration-300 ease-in-out flex items-center gap-2 ${
-                isActiveRoute(item.href) ? "text-primary" : "hover:text-primary"
-              }`}
-              aria-current={isActiveRoute(item.href) ? "page" : undefined}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.name}
-            </Link>
-          </NavbarItem>
-        ))}
-      </NavbarContent>
-
-      <NavbarContent as="div" justify="end">
-        {!isLoaded ? (
-          <Skeleton className="w-8 h-8 rounded-full" />
-        ) : isSignedIn ? (
-          <Dropdown placement="bottom-end">
-            <DropdownTrigger>
-              <Avatar
-                isBordered
-                as="button"
-                className="transition-transform"
-                color="secondary"
-                name={user?.fullName || user?.username || "User"}
-                size="sm"
-                src={user?.imageUrl}
-              />
-            </DropdownTrigger>
-            <DropdownMenu aria-label="Profile Actions" variant="flat">
-              {menuItems.map((item) => (
-                <DropdownItem
-                  key={item.key}
-                  className={item.className}
-                  onClick={item.onClick}
-                >
-                  {item.label}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
-        ) : (
-          <Button
-            variant="outline"
-            size="default"
-            className="rounded-full px-7 hover:bg-muted"
-            onClick={() => router.push("/sign-up")}
+    <>
+      {isNavigating && <Spinner />}
+      <Navbar
+        shouldHideOnScroll
+        isBordered
+        onMenuOpenChange={setIsMenuOpen}
+        className="backdrop-blur-md"
+        classNames={{ wrapper: "max-w-full" }}
+      >
+        <NavbarBrand>
+          <Link
+            href="/"
+            className="text-foreground !opacity-100"
+            onClick={() => handleNavigation("/")}
           >
-            Sign Up
-          </Button>
-        )}
-      </NavbarContent>
+            <AcmeLogo />
+            <p className="font-bold text-xl text-inherit">KOVARI</p>
+          </Link>
+        </NavbarBrand>
 
-      <NavbarMenu className="md:hidden">
-        {navigationItems.map((item, index) => (
-          <NavbarMenuItem key={`${item}-${index}`}>
-            <Link
-              className="w-full flex items-center gap-3"
-              color={"foreground"}
-              href={item.href}
-              size="md"
+        <NavbarContent className="hidden md:flex gap-8" justify="center">
+          {navigationItems.map((item) => (
+            <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
+              <Link
+                color={isActiveRoute(item.href) ? "primary" : "foreground"}
+                href={item.href}
+                onClick={() => handleNavigation(item.href)}
+                className={`text-sm font-semibold transition-all duration-300 ease-in-out flex items-center gap-2 ${
+                  isActiveRoute(item.href)
+                    ? "text-primary"
+                    : "hover:text-primary"
+                }`}
+                aria-current={isActiveRoute(item.href) ? "page" : undefined}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.name}
+              </Link>
+            </NavbarItem>
+          ))}
+        </NavbarContent>
+
+        <NavbarContent as="div" justify="end">
+          {!isLoaded ? (
+            <Skeleton className="w-8 h-8 rounded-full" />
+          ) : isSignedIn ? (
+            <Dropdown placement="bottom-end">
+              <DropdownTrigger>
+                <Avatar
+                  isBordered
+                  as="button"
+                  className="transition-transform"
+                  color="secondary"
+                  name={user?.fullName || user?.username || "User"}
+                  size="sm"
+                  src={user?.imageUrl}
+                />
+              </DropdownTrigger>
+              <DropdownMenu aria-label="Profile Actions" variant="flat">
+                {menuItems.map((item) => (
+                  <DropdownItem
+                    key={item.key}
+                    className={item.className}
+                    onClick={item.onClick}
+                  >
+                    {item.label}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          ) : (
+            <Button
+              variant="outline"
+              size="default"
+              className="rounded-full px-7 hover:bg-muted"
+              onClick={() => handleNavigation("/sign-up")}
             >
-              <item.icon className="w-5 h-5" />
-              {item.name}
-            </Link>
-          </NavbarMenuItem>
-        ))}
-        {/* {!isSignedIn && (
-          <>
-            <NavbarMenuItem>
+              Sign Up
+            </Button>
+          )}
+        </NavbarContent>
+
+        <NavbarMenu className="md:hidden">
+          {navigationItems.map((item, index) => (
+            <NavbarMenuItem key={`${item}-${index}`}>
               <Link
                 className="w-full flex items-center gap-3"
-                color={"primary"}
-                href="/sign-in"
+                color={"foreground"}
+                href={item.href}
+                onClick={() => handleNavigation(item.href)}
                 size="md"
               >
-                Sign In
+                <item.icon className="w-5 h-5" />
+                {item.name}
               </Link>
             </NavbarMenuItem>
-            <NavbarMenuItem>
-              <Link
-                className="w-full flex items-center gap-3"
-                color={"primary"}
-                href="/sign-up"
-                size="md"
-              >
-                Sign Up
-              </Link>
-            </NavbarMenuItem>
-          </>
-        )} */}
-      </NavbarMenu>
-      <NavbarMenuToggle
-        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-        className="block md:hidden"
-      />
-    </Navbar>
+          ))}
+        </NavbarMenu>
+        <NavbarMenuToggle
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          className="block md:hidden"
+        />
+      </Navbar>
+    </>
   );
 }

@@ -16,6 +16,7 @@
     "@heroicons/react": "^2.2.0",
     "@heroui/react": "^2.7.10",
     "@hookform/resolvers": "^5.1.1",
+    "@iconify/react": "^6.0.0",
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
     "@radix-ui/react-avatar": "^1.1.10",

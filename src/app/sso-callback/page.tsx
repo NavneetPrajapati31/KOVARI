@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import Spinner from "@/components/Spinner";
 
 export default function SSOCallback() {
   const { handleRedirectCallback } = useClerk();
@@ -26,12 +26,5 @@ export default function SSOCallback() {
     handleCallback();
   }, [handleRedirectCallback, router]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-4">
-        <Loader2 className="w-11 h-11 animate-spin mx-auto text-black" />
-        {/* <p className="text-muted-foreground">Completing sign in...</p> */}
-      </div>
-    </div>
-  );
+  return <Spinner />;
 }
