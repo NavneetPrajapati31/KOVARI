@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useUser } from "@clerk/nextjs";
 import TravelerCard from "../cards/TravelerCard";
 import { GroupCard } from "../cards/GroupCard";
+import {
+  fetchSoloTravelers,
+  fetchPublicGroups,
+  Traveler,
+  Group,
+} from "@/lib/fetchExploreData";
+import { FiltersState } from "@/app/explore/page";
 
 type UserStatus = "member" | "pending" | "blocked" | null;
 
@@ -238,25 +246,161 @@ const dummyGroups = [
   },
 ];
 
+const PAGE_SIZE = 20;
+
+// TODO: Move FiltersState to a shared types file and import here
+// For now, define it locally to fix linter error
+export interface FiltersState {
+  destination: string;
+  dateStart: Date | undefined;
+  dateEnd: Date | undefined;
+  ageMin: number;
+  ageMax: number;
+  gender: string;
+  interests: string[];
+}
+
+// Patch Traveler type for filtering (gender, interests optional)
+type TravelerWithFilters = Traveler & {
+  gender?: string;
+  interests?: string[];
+};
+
 interface ExploreResultsProps {
   activeTab: number;
-  filters: unknown; // Accept filters prop, type can be improved if needed
+  filters: FiltersState;
 }
 
 export default function ExploreResults({
   activeTab,
   filters,
 }: ExploreResultsProps) {
+  const { user, isLoaded } = useUser();
   const [isLoading, setIsLoading] = useState(true);
+  const [travelers, setTravelers] = useState<Traveler[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [travelerCursor, setTravelerCursor] = useState<string | null>(null);
+  const [groupCursor, setGroupCursor] = useState<string | null>(null);
+  const [hasMoreTravelers, setHasMoreTravelers] = useState(true);
+  const [hasMoreGroups, setHasMoreGroups] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+  // Reset state on tab/filter/user change
   useEffect(() => {
+    setTravelers([]);
+    setGroups([]);
+    setTravelerCursor(null);
+    setGroupCursor(null);
+    setHasMoreTravelers(true);
+    setHasMoreGroups(true);
+    setError(null);
     setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000); // Simulate 1 second loading time
+  }, [activeTab, filters, user, isLoaded]);
 
-    return () => clearTimeout(timer);
-  }, [activeTab, filters]);
+  // Initial fetch
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!user) {
+      setError("You must be signed in to view explore results.");
+      setIsLoading(false);
+      return;
+    }
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        if (activeTab === 0) {
+          const { data, nextCursor } = await fetchSoloTravelers(
+            user.id,
+            filters,
+            null,
+            20
+          );
+          setTravelers(data);
+          setTravelerCursor(nextCursor);
+          setHasMoreTravelers(!!nextCursor);
+        } else {
+          const { data, nextCursor } = await fetchPublicGroups(
+            user.id,
+            filters,
+            null,
+            20
+          );
+          setGroups(data);
+          setGroupCursor(nextCursor);
+          setHasMoreGroups(!!nextCursor);
+        }
+      } catch (err) {
+        setError("Failed to load explore results.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [activeTab, filters, user, isLoaded]);
+
+  // Infinite scroll handler
+  const handleLoadMore = useCallback(async () => {
+    if (isFetchingMore || isLoading) return;
+    if (!user) return;
+    setIsFetchingMore(true);
+    try {
+      if (activeTab === 0 && hasMoreTravelers && travelerCursor) {
+        const { data, nextCursor } = await fetchSoloTravelers(
+          user.id,
+          filters,
+          travelerCursor,
+          20
+        );
+        setTravelers((prev) => [...prev, ...data]);
+        setTravelerCursor(nextCursor);
+        setHasMoreTravelers(!!nextCursor);
+      } else if (activeTab === 1 && hasMoreGroups && groupCursor) {
+        const { data, nextCursor } = await fetchPublicGroups(
+          user.id,
+          filters,
+          groupCursor,
+          20
+        );
+        setGroups((prev) => [...prev, ...data]);
+        setGroupCursor(nextCursor);
+        setHasMoreGroups(!!nextCursor);
+      }
+    } catch (err) {
+      setError("Failed to load more results.");
+    } finally {
+      setIsFetchingMore(false);
+    }
+  }, [
+    activeTab,
+    user,
+    travelerCursor,
+    groupCursor,
+    hasMoreTravelers,
+    hasMoreGroups,
+    isFetchingMore,
+    isLoading,
+    filters,
+  ]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(loadMoreRef.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, [handleLoadMore, loadMoreRef, activeTab, travelers, groups]);
 
   const handleGroupAction = async (
     groupId: string,
@@ -266,28 +410,79 @@ export default function ExploreResults({
     // Implement actual group action logic here
   };
 
+  if (!isLoaded || isLoading) {
+    const skeletonCount =
+      PAGE_SIZE - (activeTab === 0 ? travelers.length : groups.length);
+    return (
+      <div className="w-full px-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 justify-items-start">
+          {Array.from({
+            length: skeletonCount > 0 ? skeletonCount : PAGE_SIZE,
+          }).map((_, i) =>
+            activeTab === 0 ? (
+              <TravelerCard
+                key={i}
+                traveler={{} as Traveler}
+                isLoading={true}
+              />
+            ) : (
+              <GroupCard
+                key={i}
+                group={{} as Group}
+                onAction={handleGroupAction}
+                isLoading={true}
+              />
+            )
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-red-500 text-center py-8">{error}</div>;
+  }
+
   return (
-    <div className="w-full px-5">
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
-        {activeTab === 0
-          ? // Travelers Tab
-            dummyTravelers.map((traveler) => (
+    <div className="w-full px-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 justify-items-start">
+        {activeTab === 0 ? (
+          travelers.length > 0 ? (
+            travelers.map((traveler) => (
               <TravelerCard
                 key={traveler.id}
                 traveler={traveler}
-                isLoading={isLoading}
+                isLoading={false}
               />
             ))
-          : // Groups Tab
-            dummyGroups.map((group) => (
-              <GroupCard
-                key={group.id}
-                group={group}
-                onAction={handleGroupAction}
-                isLoading={isLoading}
-              />
-            ))}
+          ) : (
+            <div className="col-span-full text-center text-muted-foreground py-8">
+              No travelers found.
+            </div>
+          )
+        ) : groups.length > 0 ? (
+          groups.map((group) => (
+            <GroupCard
+              key={group.id}
+              group={group}
+              onAction={handleGroupAction}
+              isLoading={false}
+            />
+          ))
+        ) : (
+          <div className="col-span-full text-center text-muted-foreground py-8">
+            No groups found.
+          </div>
+        )}
       </div>
+      {/* Infinite scroll sentinel */}
+      {(activeTab === 0 ? hasMoreTravelers : hasMoreGroups) && (
+        <div ref={loadMoreRef} className="w-full flex justify-center py-8">
+          {isFetchingMore && (
+            <span className="text-muted-foreground">Loading more...</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

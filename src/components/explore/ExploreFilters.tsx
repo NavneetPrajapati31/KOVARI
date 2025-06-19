@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { Input } from "../ui/input";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Select,
   SelectTrigger,
@@ -7,7 +6,7 @@ import {
   SelectItem,
   SelectValue,
 } from "../ui/select";
-import { DatePicker, NumberInput, Slider } from "@heroui/react";
+import { DatePicker, NumberInput, Slider, Input } from "@heroui/react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import {
@@ -50,6 +49,7 @@ const DESTINATION_OPTIONS = [
 interface ExploreFiltersProps {
   filters: FiltersState;
   onFilterChange: (filters: FiltersState) => void;
+  mode: "group" | "traveler";
 }
 
 interface FiltersState {
@@ -95,10 +95,87 @@ function dateToCalendarDate(date?: Date): CalendarDate | undefined {
 const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   filters,
   onFilterChange,
+  mode,
 }) => {
   const safeFilters = filters ?? DEFAULT_FILTERS;
   // Track which dropdown is open
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  // Local state for age range slider
+  const [ageRange, setAgeRange] = useState<[number, number]>([
+    safeFilters.ageMin,
+    safeFilters.ageMax,
+  ]);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [destinationInput, setDestinationInput] = useState(
+    safeFilters.destination || ""
+  );
+  const [filteredDestinations, setFilteredDestinations] =
+    useState<string[]>(DESTINATION_OPTIONS);
+  const destinationDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync local ageRange with filters from parent
+  useEffect(() => {
+    setAgeRange([safeFilters.ageMin, safeFilters.ageMax]);
+  }, [safeFilters.ageMin, safeFilters.ageMax]);
+
+  // Debounced filter update for age range
+  useEffect(() => {
+    if (
+      ageRange[0] !== safeFilters.ageMin ||
+      ageRange[1] !== safeFilters.ageMax
+    ) {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      debounceTimeout.current = setTimeout(() => {
+        onFilterChange({
+          ...safeFilters,
+          ageMin: ageRange[0],
+          ageMax: ageRange[1],
+        });
+      }, DEBOUNCE_MS);
+    }
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ageRange]);
+
+  // Sync local input with parent filter
+  useEffect(() => {
+    setDestinationInput(safeFilters.destination || "");
+  }, [safeFilters.destination]);
+
+  // Filter options as user types
+  useEffect(() => {
+    const input = destinationInput.trim().toLowerCase();
+    if (!input) {
+      setFilteredDestinations(DESTINATION_OPTIONS);
+    } else {
+      setFilteredDestinations(
+        DESTINATION_OPTIONS.filter((opt) => opt.toLowerCase().includes(input))
+      );
+    }
+  }, [destinationInput]);
+
+  // Debounce custom value
+  useEffect(() => {
+    if (
+      destinationInput !== safeFilters.destination &&
+      !DESTINATION_OPTIONS.some(
+        (opt) => opt.toLowerCase() === destinationInput.trim().toLowerCase()
+      )
+    ) {
+      if (destinationDebounceTimeout.current)
+        clearTimeout(destinationDebounceTimeout.current);
+      destinationDebounceTimeout.current = setTimeout(() => {
+        onFilterChange({ ...safeFilters, destination: destinationInput });
+      }, DEBOUNCE_MS);
+    }
+    return () => {
+      if (destinationDebounceTimeout.current)
+        clearTimeout(destinationDebounceTimeout.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinationInput]);
 
   // Handlers
   const handleDestinationSelect = (destination: string) => {
@@ -120,9 +197,9 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
     });
   };
 
-  // Age Range Handler
+  // Age Range Handler (no longer calls onFilterChange directly)
   const handleAgeRangeChange = ([min, max]: [number, number]) => {
-    onFilterChange({ ...safeFilters, ageMin: min, ageMax: max });
+    setAgeRange([min, max]);
   };
 
   const handleGenderChange = (value: string) => {
@@ -206,38 +283,118 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             className="bg-card rounded-full min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
             aria-label="Destination filter"
           >
-            {getDestinationLabel()}
+            {safeFilters.destination && safeFilters.destination !== "Any"
+              ? safeFilters.destination
+              : "Destination"}
             <ChevronDown className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent
-          className="p-3 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none
-        "
-        >
-          {DESTINATION_OPTIONS.map((destination) => (
-            <DropdownMenuItem
-              key={destination}
-              className={
-                "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+        <DropdownMenuContent className="p-3 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+          <style>
+            {`
+              [data-slot="input-wrapper"] {
+                border: none !important;
               }
-              aria-pressed={safeFilters.destination === destination}
-              tabIndex={0}
-              aria-label={destination}
-              onClick={() => handleDestinationSelect(destination)}
+              [data-slot="input-wrapper"]::after {
+                display: none !important;
+              }
+            `}
+          </style>
+          <div
+            style={
+              {
+                outline: "none",
+                boxShadow: "none",
+                "--tw-ring-shadow": "none",
+                "--tw-ring-color": "transparent",
+                "--tw-ring-offset-shadow": "none",
+              } as React.CSSProperties
+            }
+          >
+            <Input
+              variant="underlined"
+              id="destination-input"
+              type="text"
+              placeholder="Type city or country..."
+              value={destinationInput}
+              onChange={(e) => setDestinationInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ")
-                  handleDestinationSelect(destination);
+                if (
+                  e.key === "Enter" &&
+                  !filteredDestinations.some(
+                    (opt) =>
+                      opt.toLowerCase() ===
+                      destinationInput.trim().toLowerCase()
+                  )
+                ) {
+                  onFilterChange({
+                    ...safeFilters,
+                    destination: destinationInput,
+                  });
+                  setOpenDropdown(null);
+                }
               }}
-            >
-              {destination}
-              {safeFilters.destination === destination && (
-                <Check
-                  className="w-4 h-4 ml-auto text-primary"
-                  aria-hidden="true"
-                />
-              )}
-            </DropdownMenuItem>
-          ))}
+              style={
+                {
+                  outline: "none",
+                  boxShadow: "none",
+                  "--tw-ring-shadow": "none",
+                  "--tw-ring-color": "transparent",
+                  "--tw-ring-offset-shadow": "none",
+                  background: "transparent",
+                  backgroundColor: "transparent",
+                  height: "32px",
+                  paddingTop: "4px",
+                  paddingBottom: "4px",
+                } as React.CSSProperties
+              }
+              className="mb-2"
+              aria-label="Destination filter"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-[500px] overflow-y-auto">
+            {filteredDestinations.filter((dest) => dest !== "Any").length >
+            0 ? (
+              filteredDestinations
+                .filter((destination) => destination !== "Any")
+                .map((destination) => (
+                  <DropdownMenuItem
+                    key={destination}
+                    className={
+                      "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                    }
+                    aria-pressed={safeFilters.destination === destination}
+                    tabIndex={0}
+                    aria-label={destination}
+                    onClick={() => {
+                      setDestinationInput(destination);
+                      onFilterChange({ ...safeFilters, destination });
+                      setOpenDropdown(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        setDestinationInput(destination);
+                        onFilterChange({ ...safeFilters, destination });
+                        setOpenDropdown(null);
+                      }
+                    }}
+                  >
+                    {destination}
+                    {safeFilters.destination === destination && (
+                      <Check
+                        className="w-4 h-4 ml-auto text-primary"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </DropdownMenuItem>
+                ))
+            ) : (
+              <div className="px-4 py-2 text-sm text-muted-foreground">
+                No matches
+              </div>
+            )}
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -283,130 +440,132 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Age Range Dropdown */}
-      <DropdownMenu
-        open={openDropdown === "age"}
-        onOpenChange={(open) => setOpenDropdown(open ? "age" : null)}
-      >
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-            aria-label="Age range filter"
+      {/* Only show these filters in traveler mode */}
+      {mode === "traveler" && (
+        <>
+          {/* Age Range Dropdown */}
+          <DropdownMenu
+            open={openDropdown === "age"}
+            onOpenChange={(open) => setOpenDropdown(open ? "age" : null)}
           >
-            Age Range
-            <ChevronDown className="ml-2 w-4 h-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="p-4 min-w-[250px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
-          <Slider
-            className="max-w-lg"
-            value={[safeFilters.ageMin, safeFilters.ageMax]}
-            onChange={(value: number | number[]) => {
-              if (Array.isArray(value) && value.length === 2) {
-                onFilterChange({
-                  ...safeFilters,
-                  ageMin: value[0],
-                  ageMax: value[1],
-                });
-              }
-            }}
-            formatOptions={{ style: "decimal" }}
-            label="Age Range"
-            maxValue={100}
-            minValue={18}
-            step={1}
-            size="sm"
-          />
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                aria-label="Age range filter"
+              >
+                Age Range
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-4 min-w-[350px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+              <Slider
+                value={ageRange}
+                onChange={(value: number | number[]) => {
+                  if (Array.isArray(value) && value.length === 2) {
+                    handleAgeRangeChange([value[0], value[1]]);
+                  }
+                }}
+                formatOptions={{ style: "decimal" }}
+                label="Age Range"
+                maxValue={100}
+                minValue={18}
+                step={1}
+                size="sm"
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-      {/* Gender Dropdown */}
-      <DropdownMenu
-        open={openDropdown === "gender"}
-        onOpenChange={(open) => setOpenDropdown(open ? "gender" : null)}
-      >
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-            aria-label="Gender filter"
+          {/* Gender Dropdown */}
+          <DropdownMenu
+            open={openDropdown === "gender"}
+            onOpenChange={(open) => setOpenDropdown(open ? "gender" : null)}
           >
-            {getGenderLabel()}
-            <ChevronDown className="ml-2 w-4 h-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
-          {GENDER_OPTIONS.map((option) => (
-            <DropdownMenuItem
-              key={option}
-              className={
-                "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
-              }
-              aria-pressed={safeFilters.gender === option}
-              tabIndex={0}
-              aria-label={option}
-              onClick={() => handleGenderChange(option)}
-            >
-              {option}
-              {safeFilters.gender === option && (
-                <Check
-                  className="w-4 h-4 ml-auto text-primary"
-                  aria-hidden="true"
-                />
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                aria-label="Gender filter"
+              >
+                {getGenderLabel()}
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+              {GENDER_OPTIONS.filter((option) => option !== "Any").map(
+                (option) => (
+                  <DropdownMenuItem
+                    key={option}
+                    className={
+                      "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                    }
+                    aria-pressed={safeFilters.gender === option}
+                    tabIndex={0}
+                    aria-label={option}
+                    onClick={() => handleGenderChange(option)}
+                  >
+                    {option}
+                    {safeFilters.gender === option && (
+                      <Check
+                        className="w-4 h-4 ml-auto text-primary"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </DropdownMenuItem>
+                )
               )}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-      {/* Interests Dropdown */}
-      <DropdownMenu
-        open={openDropdown === "interests"}
-        onOpenChange={(open) => setOpenDropdown(open ? "interests" : null)}
-      >
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-            aria-label="Interests filter"
+          {/* Interests Dropdown */}
+          <DropdownMenu
+            open={openDropdown === "interests"}
+            onOpenChange={(open) => setOpenDropdown(open ? "interests" : null)}
           >
-            Interests
-            <ChevronDown className="ml-2 w-4 h-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="p-4 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none ">
-          {INTEREST_OPTIONS.map((interest) => (
-            <DropdownMenuItem
-              key={interest}
-              className={
-                "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
-              }
-              aria-pressed={safeFilters.interests.includes(interest)}
-              tabIndex={0}
-              aria-label={interest}
-              onClick={(e) => {
-                e.preventDefault();
-                handleInterestToggle(interest);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleInterestToggle(interest);
-                }
-              }}
-            >
-              {interest}
-              {safeFilters.interests.includes(interest) && (
-                <Check
-                  className="w-4 h-4 ml-auto text-primary"
-                  aria-hidden="true"
-                />
-              )}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                aria-label="Interests filter"
+              >
+                Interests
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-4 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none ">
+              {INTEREST_OPTIONS.map((interest) => (
+                <DropdownMenuItem
+                  key={interest}
+                  className={
+                    "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                  }
+                  aria-pressed={safeFilters.interests.includes(interest)}
+                  tabIndex={0}
+                  aria-label={interest}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleInterestToggle(interest);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleInterestToggle(interest);
+                    }
+                  }}
+                >
+                  {interest}
+                  {safeFilters.interests.includes(interest) && (
+                    <Check
+                      className="w-4 h-4 ml-auto text-primary"
+                      aria-hidden="true"
+                    />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      )}
     </section>
   );
 };

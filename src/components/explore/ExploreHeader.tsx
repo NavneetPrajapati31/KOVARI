@@ -67,7 +67,11 @@ export default function ExploreHeader({
       </div>
       {/* Filters */}
       <div className="flex flex-wrap gap-1 items-center flex-1 justify-end min-w-0 overflow-x-auto">
-        <ExploreFilters filters={filters} onFilterChange={onFilterChange} />
+        <ExploreFilters
+          filters={filters}
+          onFilterChange={onFilterChange}
+          mode={activeTab === 1 ? "group" : "traveler"}
+        />
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ interface TravelerCardProps {
   traveler: {
     id: string;
     name: string;
-    username: string;
+    username?: string;
     age: number;
     bio: string;
     profilePhoto: string;
@@ -71,7 +71,7 @@ export default function TravelerCard({
               {traveler.name}
             </h2>
             <p className="text-muted-foreground text-sm truncate">
-              @{traveler.username}
+              {traveler.username ? `@${traveler.username}` : ""}
             </p>
           </div>
         </div>
