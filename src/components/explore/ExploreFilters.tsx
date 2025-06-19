@@ -121,7 +121,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   onDropdownOpenChange,
 }) => {
   const safeFilters = filters ?? DEFAULT_FILTERS;
-  const [isMobile, setIsMobile] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const [isSmallMobile, setIsSmallMobile] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -154,7 +154,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   // Check screen size
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsDesktop(window.innerWidth >= 1024); // true if width >= 1024px (show DesktopFilters)
       setIsSmallMobile(window.innerWidth <= 425);
     };
 
@@ -176,9 +176,9 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   //   }
   // }, [safeFilters.ageMin, safeFilters.ageMax]);
 
-  // Debounced filter update for age range (MOBILE ONLY)
+  // Debounced filter update for age range (DESKTOP FILTERS ONLY)
   useEffect(() => {
-    if (isMobile) {
+    if (isDesktop) {
       if (
         ageRange[0] !== safeFilters.ageMin ||
         ageRange[1] !== safeFilters.ageMax
@@ -197,7 +197,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ageRange, isMobile]);
+  }, [ageRange, isDesktop]);
 
   // Sync local input with parent filter
   useEffect(() => {
@@ -239,11 +239,11 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
 
   // Notify parent when desktop dropdown open state changes
   useEffect(() => {
-    if (!isMobile && onDropdownOpenChange) {
+    if (isDesktop && onDropdownOpenChange) {
       onDropdownOpenChange(openDropdown !== null);
     }
-    // Only run when openDropdown or isMobile changes
-  }, [openDropdown, isMobile, onDropdownOpenChange]);
+    // Only run when openDropdown or isDesktop changes
+  }, [openDropdown, isDesktop, onDropdownOpenChange]);
 
   // Handlers
   const handleDestinationSelect = (destination: string) => {
@@ -619,7 +619,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   filteredDestinations
                     .filter((destination) => destination !== "Any")
                     .map((destination) => (
-                      <ListboxItem key="new">
+                      <ListboxItem key={destination}>
                         {destination}
                         {safeFilters.destination === destination && (
                           <Check
@@ -678,7 +678,33 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     Age Range
                   </h3>
                   <div className="px-2">
-                    <DropdownMenu
+                    <Slider
+                      value={ageRange}
+                      onChange={(value) => {
+                        if (Array.isArray(value) && value.length === 2)
+                          setAgeRange(value as [number, number]);
+                      }}
+                      onChangeEnd={(value) => {
+                        if (
+                          Array.isArray(value) &&
+                          value.length === 2 &&
+                          (value[0] !== safeFilters.ageMin ||
+                            value[1] !== safeFilters.ageMax)
+                        ) {
+                          onFilterChange({
+                            ...safeFilters,
+                            ageMin: value[0],
+                            ageMax: value[1],
+                          });
+                        }
+                      }}
+                      minValue={18}
+                      maxValue={100}
+                      step={1}
+                      size="sm"
+                      label="Age Range"
+                    />
+                    {/* <DropdownMenu
                       open={openDropdown === "age"}
                       onOpenChange={(open) =>
                         setOpenDropdown(open ? "age" : null)
@@ -695,34 +721,9 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="p-4 min-w-[350px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
-                        <Slider
-                          value={ageRange}
-                          onChange={(value) => {
-                            if (Array.isArray(value) && value.length === 2)
-                              setAgeRange(value as [number, number]);
-                          }}
-                          onChangeEnd={(value) => {
-                            if (
-                              Array.isArray(value) &&
-                              value.length === 2 &&
-                              (value[0] !== safeFilters.ageMin ||
-                                value[1] !== safeFilters.ageMax)
-                            ) {
-                              onFilterChange({
-                                ...safeFilters,
-                                ageMin: value[0],
-                                ageMax: value[1],
-                              });
-                            }
-                          }}
-                          minValue={18}
-                          maxValue={100}
-                          step={1}
-                          size="sm"
-                          label="Age Range"
-                        />
+                        
                       </DropdownMenuContent>
-                    </DropdownMenu>
+                    </DropdownMenu> */}
                   </div>
                 </div>
 
@@ -835,10 +836,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     >
                       {filteredDestinations.filter((dest) => dest !== "Any")
                         .length > 0 ? (
-                        INTEREST_OPTIONS.map((destination) => (
-                          <ListboxItem key="new">
-                            {destination}
-                            {safeFilters.destination === destination && (
+                        INTEREST_OPTIONS.map((interest) => (
+                          <ListboxItem key={interest}>
+                            {interest}
+                            {safeFilters.destination === interest && (
                               <Check
                                 className="w-4 h-4 ml-auto text-primary"
                                 aria-hidden="true"
@@ -1193,8 +1194,11 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
 
   return (
     <>
-      {isMobile ? (
-        // Mobile: Show filter button that opens modal
+      {isDesktop ? (
+        // Desktop: Show original horizontal filters for screens >=1024px
+        <DesktopFilters />
+      ) : (
+        // Mobile: Show filter button that opens modal for screens <1024px
         <div className="flex items-center gap-2">
           <HeroButton
             variant="bordered"
@@ -1211,9 +1215,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
           </HeroButton>
           <MobileFiltersModal />
         </div>
-      ) : (
-        // Desktop: Show original horizontal filters
-        <DesktopFilters />
       )}
     </>
   );
