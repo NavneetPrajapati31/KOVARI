@@ -133,7 +133,7 @@ export default function App() {
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}
-        className="backdrop-blur-md"
+        className="backdrop-blur-3xl"
         classNames={{ wrapper: "max-w-full" }}
       >
         <NavbarBrand>
