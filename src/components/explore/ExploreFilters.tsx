@@ -16,7 +16,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "../ui/dropdown-menu";
-import { CalendarDate } from "@internationalized/date";
+import { CalendarDate, DateValue } from "@internationalized/date";
 import { RangeCalendar } from "@heroui/react";
 import { today, getLocalTimeZone } from "@internationalized/date";
 import { ChevronDown, Check } from "lucide-react";
@@ -48,7 +48,8 @@ const DESTINATION_OPTIONS = [
 ];
 
 interface ExploreFiltersProps {
-  onFilterChange?: (filters: FiltersState) => void;
+  filters: FiltersState;
+  onFilterChange: (filters: FiltersState) => void;
 }
 
 interface FiltersState {
@@ -74,104 +75,123 @@ const DEFAULT_FILTERS: FiltersState = {
 const DEBOUNCE_MS = 300;
 
 // Helper to convert CalendarDate to JS Date (UTC)
-function calendarDateToDate(cd: CalendarDate | null): Date | undefined {
+function calendarDateToDate(
+  cd: CalendarDate | null | undefined
+): Date | undefined {
   if (!cd) return undefined;
   return new Date(Date.UTC(cd.year, cd.month - 1, cd.day));
 }
 
-const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
-  // Use CalendarDate for HeroUI DatePicker
-  const [dateStart, setDateStart] = useState<CalendarDate | null>(null);
-  const [dateEnd, setDateEnd] = useState<CalendarDate | null>(null);
-  const [filters, setFilters] = useState<FiltersState>(DEFAULT_FILTERS);
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(
-    null
+// Helper to convert JS Date to CalendarDate
+function dateToCalendarDate(date?: Date): CalendarDate | undefined {
+  if (!date) return undefined;
+  return new CalendarDate(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    date.getUTCDate()
   );
+}
+
+const ExploreFilters: React.FC<ExploreFiltersProps> = ({
+  filters,
+  onFilterChange,
+}) => {
+  const safeFilters = filters ?? DEFAULT_FILTERS;
   // Track which dropdown is open
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  // Sync CalendarDate to Date in filters
-  useEffect(() => {
-    setFilters((prev) => ({
-      ...prev,
-      dateStart: calendarDateToDate(dateStart),
-      dateEnd: calendarDateToDate(dateEnd),
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateStart, dateEnd]);
-
-  // Debounced filter callback
-  useEffect(() => {
-    if (debounceTimeout) clearTimeout(debounceTimeout);
-    const timeout = setTimeout(() => {
-      if (onFilterChange) onFilterChange(filters);
-      // For mock: log filters
-      if (!onFilterChange) console.log("Filters:", filters);
-    }, DEBOUNCE_MS);
-    setDebounceTimeout(timeout);
-    return () => clearTimeout(timeout);
-  }, [filters, debounceTimeout, onFilterChange]);
-
   // Handlers
   const handleDestinationSelect = (destination: string) => {
-    setFilters((prev) => ({ ...prev, destination }));
+    onFilterChange({ ...safeFilters, destination });
   };
 
-  const handleDateStartChange = (date: CalendarDate | null) => {
-    setDateStart(date);
-  };
-  const handleDateEndChange = (date: CalendarDate | null) => {
-    setDateEnd(date);
+  // Date Range Handler
+  const handleDateRangeChange = ({
+    start,
+    end,
+  }: {
+    start: CalendarDate | null;
+    end: CalendarDate | null;
+  }) => {
+    onFilterChange({
+      ...safeFilters,
+      dateStart: calendarDateToDate(start),
+      dateEnd: calendarDateToDate(end),
+    });
   };
 
-  const handleAgeMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(0, Math.min(Number(e.target.value), filters.ageMax));
-    setFilters((prev) => ({ ...prev, ageMin: value }));
-  };
-  const handleAgeMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(filters.ageMin, Number(e.target.value));
-    setFilters((prev) => ({ ...prev, ageMax: value }));
+  // Age Range Handler
+  const handleAgeRangeChange = ([min, max]: [number, number]) => {
+    onFilterChange({ ...safeFilters, ageMin: min, ageMax: max });
   };
 
   const handleGenderChange = (value: string) => {
-    setFilters((prev) => ({ ...prev, gender: value }));
+    onFilterChange({ ...safeFilters, gender: value });
   };
 
   const handleInterestToggle = (interest: string) => {
-    setFilters((prev) =>
-      prev.interests.includes(interest)
-        ? { ...prev, interests: prev.interests.filter((i) => i !== interest) }
-        : { ...prev, interests: [...prev.interests, interest] }
+    onFilterChange(
+      safeFilters.interests.includes(interest)
+        ? {
+            ...safeFilters,
+            interests: safeFilters.interests.filter((i) => i !== interest),
+          }
+        : { ...safeFilters, interests: [...safeFilters.interests, interest] }
     );
   };
 
   // Filter summary helpers
-  const getDateRangeLabel = () => {
-    const format = (cd: CalendarDate | null) => {
-      if (!cd) return "";
-      const d = calendarDateToDate(cd);
-      return d ? d.toLocaleDateString() : "";
-    };
-    if (!dateStart && !dateEnd) return "Date Range";
-    if (dateStart && dateEnd) {
-      return `${format(dateStart)} - ${format(dateEnd)}`;
-    }
-    if (dateStart) return `From ${format(dateStart)}`;
-    if (dateEnd) return `Until ${format(dateEnd)}`;
-    return "Date Range";
-  };
+  // const getDateRangeLabel = () => {
+  //   const format = (cd: CalendarDate | null) => {
+  //     if (!cd) return "";
+  //     const d = calendarDateToDate(cd);
+  //     return d ? d.toLocaleDateString() : "";
+  //   };
+  //   if (!safeFilters.dateStart && !safeFilters.dateEnd) return "Date Range";
+  //   if (safeFilters.dateStart && safeFilters.dateEnd) {
+  //     return `${format(safeFilters.dateStart)} - ${format(
+  //       safeFilters.dateEnd
+  //     )}`;
+  //   }
+  //   if (safeFilters.dateStart) return `From ${format(safeFilters.dateStart)}`;
+  //   if (safeFilters.dateEnd) return `Until ${format(safeFilters.dateEnd)}`;
+  //   return "Date Range";
+  // };
+
   const getAgeRangeLabel = () => {
-    if (filters.ageMin === 18 && filters.ageMax === 99) return "Age Range";
-    return `${filters.ageMin} - ${filters.ageMax}`;
+    if (safeFilters.ageMin === 18 && safeFilters.ageMax === 99)
+      return "Age Range";
+    return `${safeFilters.ageMin} - ${safeFilters.ageMax}`;
   };
+
   const getGenderLabel = () =>
-    !filters.gender || filters.gender === "Any" ? "Gender" : filters.gender;
+    !safeFilters.gender || safeFilters.gender === "Any"
+      ? "Gender"
+      : safeFilters.gender;
+
   const getInterestsLabel = () =>
-    filters.interests.length === 0 ? "Interests" : filters.interests.join(", ");
+    safeFilters.interests.length === 0
+      ? "Interests"
+      : safeFilters.interests.join(", ");
+
   const getDestinationLabel = () =>
-    !filters.destination || filters.destination === "Any"
+    !safeFilters.destination || safeFilters.destination === "Any"
       ? "Destination"
-      : filters.destination;
+      : safeFilters.destination;
+
+  // Build RangeCalendar value object conditionally
+  const startCal = dateToCalendarDate(safeFilters.dateStart);
+  const endCal = dateToCalendarDate(safeFilters.dateEnd);
+  let calendarValue: { start?: CalendarDate; end?: CalendarDate } | null = null;
+  if (startCal && endCal) {
+    calendarValue = { start: startCal, end: endCal };
+  } else if (startCal) {
+    calendarValue = { start: startCal };
+  } else if (endCal) {
+    calendarValue = { end: endCal };
+  } else {
+    calendarValue = null;
+  }
 
   return (
     <section className="flex flex-wrap gap-2 items-center min-w-0">
@@ -200,7 +220,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
               className={
                 "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
               }
-              aria-pressed={filters.destination === destination}
+              aria-pressed={safeFilters.destination === destination}
               tabIndex={0}
               aria-label={destination}
               onClick={() => handleDestinationSelect(destination)}
@@ -210,7 +230,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
               }}
             >
               {destination}
-              {filters.destination === destination && (
+              {safeFilters.destination === destination && (
                 <Check
                   className="w-4 h-4 ml-auto text-primary"
                   aria-hidden="true"
@@ -232,17 +252,25 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
             className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
             aria-label="Date range filter"
           >
-            {getDateRangeLabel()}
+            {/* {getDateRangeLabel()} */}
+            Date Range
             <ChevronDown className="ml-2 w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="min-w-[250px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
           <div>
             <RangeCalendar
-              aria-label="Date (Uncontrolled)"
-              defaultValue={{
-                start: today(getLocalTimeZone()),
-                end: today(getLocalTimeZone()).add({ weeks: 1 }),
+              value={calendarValue as any}
+              onChange={(range: { start?: DateValue; end?: DateValue }) => {
+                const start =
+                  range.start instanceof CalendarDate ? range.start : undefined;
+                const end =
+                  range.end instanceof CalendarDate ? range.end : undefined;
+                onFilterChange({
+                  ...safeFilters,
+                  dateStart: start ? calendarDateToDate(start) : undefined,
+                  dateEnd: end ? calendarDateToDate(end) : undefined,
+                });
               }}
               minValue={today(getLocalTimeZone())}
               classNames={{
@@ -251,24 +279,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
                 gridHeader: cn("bg-transparent"),
               }}
             />
-
-            {/* <label className="text-xs font-medium text-foreground mb-1 block">
-              Date Range
-            </label> */}
-
-            {/* <div className="flex flex-col gap-2">
-              <DatePicker
-                value={dateStart}
-                onChange={handleDateStartChange}
-                variant="underlined"
-              />
-              <span className="text-xs text-foreground self-center">to</span>
-              <DatePicker
-                value={dateEnd}
-                onChange={handleDateEndChange}
-                variant="underlined"
-              />
-            </div> */}
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -284,14 +294,23 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
             className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
             aria-label="Age range filter"
           >
-            {getAgeRangeLabel()}
+            Age Range
             <ChevronDown className="ml-2 w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="p-4 min-w-[250px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
           <Slider
             className="max-w-lg"
-            defaultValue={[18, 30]}
+            value={[safeFilters.ageMin, safeFilters.ageMax]}
+            onChange={(value: number | number[]) => {
+              if (Array.isArray(value) && value.length === 2) {
+                onFilterChange({
+                  ...safeFilters,
+                  ageMin: value[0],
+                  ageMax: value[1],
+                });
+              }
+            }}
             formatOptions={{ style: "decimal" }}
             label="Age Range"
             maxValue={100}
@@ -299,38 +318,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
             step={1}
             size="sm"
           />
-          {/* <div className="flex flex-col gap-4">
-            <div className="flex w-full flex-col md:flex-nowrap mb-6 md:mb-0 gap-4">
-              <NumberInput placeholder="18" variant="underlined" hideStepper />
-              <NumberInput placeholder="25" variant="underlined" hideStepper />
-            </div>
-          </div> */}
-          {/*  <div>
-             <label className="text-xs font-medium text-primary mb-1 block">
-              Age Range
-            </label>
-            <div className="flex gap-2 items-center">
-              <Input
-                type="number"
-                min={0}
-                max={filters.ageMax}
-                value={filters.ageMin}
-                onChange={handleAgeMinChange}
-                className="w-14 bg-card border border-primary/30 rounded-full px-2 py-1 text-center focus:border-primary"
-                aria-label="Minimum age"
-              />
-              <span className="text-xs text-primary">-</span>
-              <Input
-                type="number"
-                min={filters.ageMin}
-                max={99}
-                value={filters.ageMax}
-                onChange={handleAgeMaxChange}
-                className="w-14 bg-card border border-primary/30 rounded-full px-2 py-1 text-center focus:border-primary"
-                aria-label="Maximum age"
-              />
-            </div> 
-          </div>*/}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -356,13 +343,13 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
               className={
                 "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
               }
-              aria-pressed={filters.gender === option}
+              aria-pressed={safeFilters.gender === option}
               tabIndex={0}
               aria-label={option}
               onClick={() => handleGenderChange(option)}
             >
               {option}
-              {filters.gender === option && (
+              {safeFilters.gender === option && (
                 <Check
                   className="w-4 h-4 ml-auto text-primary"
                   aria-hidden="true"
@@ -395,7 +382,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
               className={
                 "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
               }
-              aria-pressed={filters.interests.includes(interest)}
+              aria-pressed={safeFilters.interests.includes(interest)}
               tabIndex={0}
               aria-label={interest}
               onClick={(e) => {
@@ -410,7 +397,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({ onFilterChange }) => {
               }}
             >
               {interest}
-              {filters.interests.includes(interest) && (
+              {safeFilters.interests.includes(interest) && (
                 <Check
                   className="w-4 h-4 ml-auto text-primary"
                   aria-hidden="true"

@@ -240,20 +240,23 @@ const dummyGroups = [
 
 interface ExploreResultsProps {
   activeTab: number;
+  filters: unknown; // Accept filters prop, type can be improved if needed
 }
 
-export default function ExploreResults({ activeTab }: ExploreResultsProps) {
+export default function ExploreResults({
+  activeTab,
+  filters,
+}: ExploreResultsProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading state when tab changes
     setIsLoading(true);
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000); // Simulate 1 second loading time
 
     return () => clearTimeout(timer);
-  }, [activeTab]);
+  }, [activeTab, filters]);
 
   const handleGroupAction = async (
     groupId: string,
@@ -265,7 +268,7 @@ export default function ExploreResults({ activeTab }: ExploreResultsProps) {
 
   return (
     <div className="w-full px-5">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
         {activeTab === 0
           ? // Travelers Tab
             dummyTravelers.map((traveler) => (

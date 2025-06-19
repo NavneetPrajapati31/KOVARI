@@ -5,14 +5,28 @@ import ExploreFilters from "./ExploreFilters";
 
 const TABS = [{ label: "Travelers" }, { label: "Groups" }];
 
+interface FiltersState {
+  destination: string;
+  dateStart: Date | undefined;
+  dateEnd: Date | undefined;
+  ageMin: number;
+  ageMax: number;
+  gender: string;
+  interests: string[];
+}
+
 interface ExploreHeaderProps {
   activeTab: number;
   onTabChange: (index: number) => void;
+  filters: FiltersState;
+  onFilterChange: (filters: FiltersState) => void;
 }
 
 export default function ExploreHeader({
   activeTab,
   onTabChange,
+  filters,
+  onFilterChange,
 }: ExploreHeaderProps) {
   const handleTabClick = (index: number) => {
     onTabChange(index);
@@ -53,7 +67,7 @@ export default function ExploreHeader({
       </div>
       {/* Filters */}
       <div className="flex flex-wrap gap-1 items-center flex-1 justify-end min-w-0 overflow-x-auto">
-        <ExploreFilters />
+        <ExploreFilters filters={filters} onFilterChange={onFilterChange} />
       </div>
     </div>
   );
