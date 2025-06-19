@@ -108,7 +108,7 @@ export function GroupCard({
   }
 
   return (
-    <Card className="w-full max-w-[360px] max-h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[360px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Top image section */}
       <div className="relative w-full h-[140px] overflow-hidden bg-muted">
         <Image

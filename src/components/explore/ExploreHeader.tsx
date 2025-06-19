@@ -20,6 +20,7 @@ interface ExploreHeaderProps {
   onTabChange: (index: number) => void;
   filters: FiltersState;
   onFilterChange: (filters: FiltersState) => void;
+  onDropdownOpenChange?: (isOpen: boolean) => void;
 }
 
 export default function ExploreHeader({
@@ -27,6 +28,7 @@ export default function ExploreHeader({
   onTabChange,
   filters,
   onFilterChange,
+  onDropdownOpenChange,
 }: ExploreHeaderProps) {
   const handleTabClick = (index: number) => {
     onTabChange(index);
@@ -71,6 +73,7 @@ export default function ExploreHeader({
           filters={filters}
           onFilterChange={onFilterChange}
           mode={activeTab === 1 ? "group" : "traveler"}
+          onDropdownOpenChange={onDropdownOpenChange}
         />
       </div>
     </div>

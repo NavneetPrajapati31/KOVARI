@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { useState } from "react";
 
 const HIDE_LAYOUT_ROUTES = [
   "/sign-in",
@@ -12,6 +13,13 @@ const HIDE_LAYOUT_ROUTES = [
   "/sso-callback",
 ];
 
+// Pages where blur should NOT be applied even if avatar menu is open
+const EXCEPTION_BLUR_ROUTES = [
+  "/",
+  "/profile",
+  // Add more routes as needed
+];
+
 interface LayoutWrapperProps {
   children: React.ReactNode;
 }
@@ -19,11 +27,21 @@ interface LayoutWrapperProps {
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
   const hideLayout = HIDE_LAYOUT_ROUTES.includes(pathname);
+  const isBlurException = EXCEPTION_BLUR_ROUTES.includes(pathname);
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
 
   return (
     <>
-      {!hideLayout && <Navbar />}
-      {children}
+      {!hideLayout && <Navbar onAvatarMenuOpenChange={setIsAvatarMenuOpen} />}
+      <div
+        className={`transition-[filter,opacity] duration-500 ease-in-out ${
+          isAvatarMenuOpen && !isBlurException
+            ? "blur-md opacity-80 pointer-events-none select-none"
+            : "blur-0 opacity-100"
+        }`}
+      >
+        {children}
+      </div>
     </>
   );
 }

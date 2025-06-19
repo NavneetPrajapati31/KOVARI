@@ -72,6 +72,7 @@ export default function ExplorePage() {
   const getTabIndex = () => (searchParams.get("tab") === "groups" ? 1 : 0);
 
   const [activeTab, setActiveTab] = useState(getTabIndex);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
   // Always derive filters from query params
   const filters = useMemo(
@@ -115,8 +116,15 @@ export default function ExplorePage() {
         onTabChange={handleTabChange}
         filters={filters}
         onFilterChange={handleFilterChange}
+        onDropdownOpenChange={setIsFilterDropdownOpen}
       />
-      <div className="w-full flex-1 px-4">
+      <div
+        className={`w-full flex-1 px-4 transition-[filter,opacity] duration-500 ease-in-out ${
+          isFilterDropdownOpen
+            ? "blur-md opacity-80 pointer-events-none select-none"
+            : "blur-0 opacity-100"
+        }`}
+      >
         <ExploreResults activeTab={activeTab} filters={filters} />
       </div>
     </div>
