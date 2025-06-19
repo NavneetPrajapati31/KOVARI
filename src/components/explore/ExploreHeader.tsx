@@ -1,6 +1,7 @@
 "use client";
 import { useState, KeyboardEvent } from "react";
 import { Button } from "../ui/button";
+import ExploreFilters from "./ExploreFilters";
 
 const TABS = [{ label: "Travelers" }, { label: "Groups" }];
 
@@ -31,8 +32,9 @@ export default function ExploreHeader({
   };
 
   return (
-    <div className="w-full flex flex-col">
-      <div className="flex gap-3 mt-8 mb-6 ml-8">
+    <div className="w-full flex flex-row flex-wrap items-center gap-2 px-9 py-6">
+      {/* Tabs */}
+      <div className="flex gap-2 flex-shrink-0">
         {TABS.map((tab, idx) => (
           <Button
             key={tab.label}
@@ -48,6 +50,10 @@ export default function ExploreHeader({
             {tab.label}
           </Button>
         ))}
+      </div>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-1 items-center flex-1 justify-end min-w-0 overflow-x-auto">
+        <ExploreFilters />
       </div>
     </div>
   );

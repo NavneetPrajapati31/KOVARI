@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, Image, Skeleton, Divider } from "@heroui/react";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
 import { MapPin, Calendar, Users, Loader2 } from "lucide-react";
 import SkeletonCard from "./SkeletonCard";
 import { Button } from "../ui/button";
@@ -109,7 +108,7 @@ export function GroupCard({
   }
 
   return (
-    <Card className="w-full max-w-[320px] max-h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[360px] max-h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Top image section */}
       <div className="relative w-full h-[140px] overflow-hidden bg-muted">
         <Image
@@ -149,7 +148,13 @@ export function GroupCard({
           <span>{group.destination}</span>
         </div>
         {/* Creator avatar and name */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          <Avatar
+            src={group.creator.avatar}
+            alt={group.creator.name}
+            className="w-6 h-6"
+            aria-label={`Avatar of ${group.creator.name}`}
+          />
           <span className="text-muted-foreground font-medium text-sm truncate">
             Created by {group.creator.name || "Unknown Creator"}
           </span>
