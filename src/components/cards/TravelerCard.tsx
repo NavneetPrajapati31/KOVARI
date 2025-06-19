@@ -14,6 +14,7 @@ import {
 } from "@heroui/react";
 import { Check, Heart, X, Calendar, MapPin, User, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
+import SkeletonCard from "./SkeletonCard";
 
 interface TravelerCardProps {
   traveler: {
@@ -27,6 +28,7 @@ interface TravelerCardProps {
     travelDates: string;
     matchStrength: "high" | "medium" | "low";
   };
+  isLoading?: boolean;
 }
 
 const MATCH_STRENGTH_LABELS: Record<string, string> = {
@@ -41,10 +43,18 @@ const MATCH_STRENGTH_COLORS: Record<string, string> = {
   low: "bg-destructive text-primary-foreground",
 };
 
-export default function TravelerCard({ traveler }: TravelerCardProps) {
+export default function TravelerCard({
+  traveler,
+  isLoading = false,
+}: TravelerCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
+
+  if (isLoading) {
+    return <SkeletonCard card="traveler" />;
+  }
+
   return (
-    <Card className="w-full max-w-[320px] max-h-[400px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[320px] max-h-[300px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       <CardBody className="px-5 py-4 relative">
         {/* Profile Section with Avatar and User Info */}
         <div className="flex items-center gap-4 mb-2">
@@ -90,7 +100,7 @@ export default function TravelerCard({ traveler }: TravelerCardProps) {
         </div>
       </CardBody>
       <div className="px-5 pb-5 mt-auto">
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-center items-center">
           <Button
             color="primary"
             className="w-1/2 gap-2 font-semibold rounded-lg"
