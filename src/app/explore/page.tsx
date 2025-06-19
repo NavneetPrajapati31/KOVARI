@@ -74,11 +74,27 @@ export default function ExplorePage() {
   const [activeTab, setActiveTab] = useState(getTabIndex);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
-  // Always derive filters from query params
-  const filters = useMemo(
-    () => parseFiltersFromSearchParams(searchParams),
-    [searchParams]
+  // Store filters in state for stability
+  const [filters, setFilters] = useState<FiltersState>(() =>
+    parseFiltersFromSearchParams(searchParams)
   );
+
+  // Sync filters state with URL changes (e.g., browser navigation)
+  useEffect(() => {
+    const parsed = parseFiltersFromSearchParams(searchParams);
+    // Only update if different to avoid unnecessary resets
+    if (
+      filters.destination !== parsed.destination ||
+      filters.dateStart?.toISOString() !== parsed.dateStart?.toISOString() ||
+      filters.dateEnd?.toISOString() !== parsed.dateEnd?.toISOString() ||
+      filters.ageMin !== parsed.ageMin ||
+      filters.ageMax !== parsed.ageMax ||
+      filters.gender !== parsed.gender ||
+      filters.interests.join() !== parsed.interests.join()
+    ) {
+      setFilters(parsed);
+    }
+  }, [searchParams]);
 
   // Sync activeTab with URL changes
   useEffect(() => {
@@ -98,6 +114,7 @@ export default function ExplorePage() {
   };
 
   const handleFilterChange = (newFilters: FiltersState) => {
+    setFilters(newFilters);
     // Merge with current tab param
     const query: Record<string, string> = {
       ...serializeFiltersToQuery(newFilters),
@@ -130,3 +147,5 @@ export default function ExplorePage() {
     </div>
   );
 }
+
+// TODO - Fix Age Range Slider

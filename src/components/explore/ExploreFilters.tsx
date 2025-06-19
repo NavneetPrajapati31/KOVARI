@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Slider,
   Input,
@@ -14,9 +14,13 @@ import {
   Button as HeroButton,
   ButtonGroup,
   Checkbox,
+  Listbox,
+  ListboxSection,
+  ListboxItem,
 } from "@heroui/react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -82,6 +86,7 @@ const DEFAULT_FILTERS: FiltersState = {
 };
 
 const DEBOUNCE_MS = 300;
+const DESKTOP_AGE_DEBOUNCE_MS = 600;
 
 // Helper to convert CalendarDate to JS Date (UTC)
 function calendarDateToDate(
@@ -101,6 +106,14 @@ function dateToCalendarDate(date?: Date): CalendarDate | undefined {
   );
 }
 
+export const ListboxWrapper: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => (
+  <div className="w-full border-small px-1 py-2 rounded-small border-default-200 dark:border-default-100">
+    {children}
+  </div>
+);
+
 const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   filters,
   onFilterChange,
@@ -114,18 +127,29 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
 
   // Track which dropdown is open
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  // Local state for age range slider
+  // Local state for age range slider (desktop only)
   const [ageRange, setAgeRange] = useState<[number, number]>([
     safeFilters.ageMin,
     safeFilters.ageMax,
   ]);
+  const isDragging = useRef(false);
+  const dragTimeout = useRef<NodeJS.Timeout | null>(null);
+  const prevOpenDropdown = useRef<string | null>(null);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const desktopAgeDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [destinationInput, setDestinationInput] = useState(
     safeFilters.destination || ""
   );
   const [filteredDestinations, setFilteredDestinations] =
     useState<string[]>(DESTINATION_OPTIONS);
   const destinationDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const [selectedKeys, setSelectedKeys] = useState(new Set(["text"]));
+
+  const selectedValue = useMemo(
+    () => Array.from(selectedKeys).join(", "),
+    [selectedKeys]
+  );
 
   // Check screen size
   useEffect(() => {
@@ -140,31 +164,40 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  // Sync local ageRange with filters from parent
-  useEffect(() => {
-    setAgeRange([safeFilters.ageMin, safeFilters.ageMax]);
-  }, [safeFilters.ageMin, safeFilters.ageMax]);
+  // Sync local ageRange with filter when filter changes (for external updates)
+  // useEffect(() => {
+  //   if (!isDragging.current) {
+  //     if (
+  //       ageRange[0] !== safeFilters.ageMin ||
+  //       ageRange[1] !== safeFilters.ageMax
+  //     ) {
+  //       setAgeRange([safeFilters.ageMin, safeFilters.ageMax]);
+  //     }
+  //   }
+  // }, [safeFilters.ageMin, safeFilters.ageMax]);
 
-  // Debounced filter update for age range
+  // Debounced filter update for age range (MOBILE ONLY)
   useEffect(() => {
-    if (
-      ageRange[0] !== safeFilters.ageMin ||
-      ageRange[1] !== safeFilters.ageMax
-    ) {
-      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-      debounceTimeout.current = setTimeout(() => {
-        onFilterChange({
-          ...safeFilters,
-          ageMin: ageRange[0],
-          ageMax: ageRange[1],
-        });
-      }, DEBOUNCE_MS);
+    if (isMobile) {
+      if (
+        ageRange[0] !== safeFilters.ageMin ||
+        ageRange[1] !== safeFilters.ageMax
+      ) {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = setTimeout(() => {
+          onFilterChange({
+            ...safeFilters,
+            ageMin: ageRange[0],
+            ageMax: ageRange[1],
+          });
+        }, DEBOUNCE_MS);
+      }
+      return () => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
     }
-    return () => {
-      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ageRange]);
+  }, [ageRange, isMobile]);
 
   // Sync local input with parent filter
   useEffect(() => {
@@ -316,23 +349,27 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
       <ModalContent
         className={`rounded-t-3xl${isSmallMobile ? " rounded-b-none" : ""}`}
       >
-        <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
-          <div className="flex items-center justify-between w-full">
-            <h2 className="text-xl font-semibold text-foreground">Filters</h2>
+        {/* Hide absolutely positioned close button with aria-label="Close" */}
+        <style>{`
+          button[aria-label="Close"].absolute { display: none !important; }
+        `}</style>
+        <ModalHeader className="flex flex-col gap-1 px-6 pt-4 pb-4">
+          <div className="flex items-center w-full relative">
+            <h2 className="text-lg font-semibold text-foreground">Filters</h2>
             <HeroButton
               isIconOnly
               variant="light"
               onPress={onClose}
-              className="text-muted-foreground"
+              className="text-muted-foreground ml-auto"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </HeroButton>
           </div>
         </ModalHeader>
-        <ModalBody className="px-6 py-0 max-h-[60vh] overflow-y-auto">
-          <div className="space-y-6">
+        <ModalBody className="px-6 py-2 overflow-y-auto">
+          <div className="space-y-6 w-full">
             {/* Destination */}
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <h3 className="text-lg font-medium text-foreground">
                 Destination
               </h3>
@@ -375,15 +412,239 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     </HeroButton>
                   ))}
               </div>
-            </div>
+            </div> */}
+            {/* <DropdownMenu
+              open={openDropdown === "destination"}
+              onOpenChange={(open) =>
+                setOpenDropdown(open ? "destination" : null)
+              }
+            >
+              <DropdownMenuTrigger asChild className="">
+                <Button
+                  variant={"outline"}
+                  className="bg-card rounded-full px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                  aria-label="Destination filter"
+                >
+                  {safeFilters.destination && safeFilters.destination !== "Any"
+                    ? safeFilters.destination
+                    : "Destination"}
+                  <ChevronDown className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="p-3 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+                <style>
+                  {`
+              [data-slot="input-wrapper"] {
+                border: none !important;
+              }
+              [data-slot="input-wrapper"]::after {
+                display: none !important;
+              }
+            `}
+                </style>
+                <div
+                  style={
+                    {
+                      outline: "none",
+                      boxShadow: "none",
+                      "--tw-ring-shadow": "none",
+                      "--tw-ring-color": "transparent",
+                      "--tw-ring-offset-shadow": "none",
+                    } as React.CSSProperties
+                  }
+                >
+                  <Input
+                    variant="underlined"
+                    id="destination-input"
+                    type="text"
+                    placeholder="Type city or country..."
+                    value={destinationInput}
+                    onChange={(e) => setDestinationInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        !filteredDestinations.some(
+                          (opt) =>
+                            opt.toLowerCase() ===
+                            destinationInput.trim().toLowerCase()
+                        )
+                      ) {
+                        onFilterChange({
+                          ...safeFilters,
+                          destination: destinationInput,
+                        });
+                        setOpenDropdown(null);
+                      }
+                    }}
+                    style={
+                      {
+                        outline: "none",
+                        boxShadow: "none",
+                        "--tw-ring-shadow": "none",
+                        "--tw-ring-color": "transparent",
+                        "--tw-ring-offset-shadow": "none",
+                        background: "transparent",
+                        backgroundColor: "transparent",
+                        height: "32px",
+                        paddingTop: "4px",
+                        paddingBottom: "4px",
+                      } as React.CSSProperties
+                    }
+                    className="mb-2"
+                    aria-label="Destination filter"
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-[500px] overflow-y-auto">
+                  {filteredDestinations.filter((dest) => dest !== "Any")
+                    .length > 0 ? (
+                    filteredDestinations
+                      .filter((destination) => destination !== "Any")
+                      .map((destination) => (
+                        <DropdownMenuItem
+                          key={destination}
+                          className={
+                            "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                          }
+                          aria-pressed={safeFilters.destination === destination}
+                          tabIndex={0}
+                          aria-label={destination}
+                          onClick={() => {
+                            setDestinationInput(destination);
+                            onFilterChange({ ...safeFilters, destination });
+                            setOpenDropdown(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              setDestinationInput(destination);
+                              onFilterChange({ ...safeFilters, destination });
+                              setOpenDropdown(null);
+                            }
+                          }}
+                        >
+                          {destination}
+                          {safeFilters.destination === destination && (
+                            <Check
+                              className="w-4 h-4 ml-auto text-primary"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </DropdownMenuItem>
+                      ))
+                  ) : (
+                    <div className="px-4 py-2 text-sm text-muted-foreground">
+                      No matches
+                    </div>
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu> */}
+
+            <ListboxWrapper>
+              <style>
+                {`
+              [data-slot="input-wrapper"] {
+                border: none !important;
+              }
+              [data-slot="input-wrapper"]::after {
+                display: none !important;
+              }
+            `}
+              </style>
+              <div
+                style={
+                  {
+                    outline: "none",
+                    boxShadow: "none",
+                    "--tw-ring-shadow": "none",
+                    "--tw-ring-color": "transparent",
+                    "--tw-ring-offset-shadow": "none",
+                  } as React.CSSProperties
+                }
+              >
+                <Input
+                  variant="underlined"
+                  id="destination-input"
+                  type="text"
+                  placeholder="Type city or country..."
+                  value={destinationInput}
+                  onChange={(e) => setDestinationInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      !filteredDestinations.some(
+                        (opt) =>
+                          opt.toLowerCase() ===
+                          destinationInput.trim().toLowerCase()
+                      )
+                    ) {
+                      onFilterChange({
+                        ...safeFilters,
+                        destination: destinationInput,
+                      });
+                      setOpenDropdown(null);
+                    }
+                  }}
+                  style={
+                    {
+                      outline: "none",
+                      boxShadow: "none",
+                      "--tw-ring-shadow": "none",
+                      "--tw-ring-color": "transparent",
+                      "--tw-ring-offset-shadow": "none",
+                      background: "transparent",
+                      backgroundColor: "transparent",
+                      height: "32px",
+                      paddingTop: "4px",
+                      paddingBottom: "4px",
+                    } as React.CSSProperties
+                  }
+                  className="mb-2"
+                  aria-label="Destination filter"
+                  autoFocus
+                />
+              </div>
+              <Listbox
+                disallowEmptySelection
+                aria-label="Single selection example"
+                selectedKeys={selectedKeys}
+                selectionMode="single"
+                variant="flat"
+                onSelectionChange={(keys) =>
+                  setSelectedKeys(keys as Set<string>)
+                }
+              >
+                {filteredDestinations.filter((dest) => dest !== "Any").length >
+                0 ? (
+                  filteredDestinations
+                    .filter((destination) => destination !== "Any")
+                    .map((destination) => (
+                      <ListboxItem key="new">
+                        {destination}
+                        {safeFilters.destination === destination && (
+                          <Check
+                            className="w-4 h-4 ml-auto text-primary"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </ListboxItem>
+                    ))
+                ) : (
+                  <div className="px-4 py-2 text-sm text-muted-foreground">
+                    No matches
+                  </div>
+                )}
+              </Listbox>
+            </ListboxWrapper>
 
             {/* Date Range */}
             <div className="space-y-3">
               <h3 className="text-lg font-medium text-foreground">
                 Date Range
               </h3>
-              <div className="flex justify-center">
+              <div className="flex justify-center w-full">
                 <RangeCalendar
+                  calendarWidth={"full"}
                   value={calendarValue as any}
                   onChange={(range: { start?: DateValue; end?: DateValue }) => {
                     const start =
@@ -417,26 +678,51 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     Age Range
                   </h3>
                   <div className="px-2">
-                    <Slider
-                      value={ageRange}
-                      onChange={(value: number | number[]) => {
-                        if (Array.isArray(value) && value.length === 2) {
-                          handleAgeRangeChange([value[0], value[1]]);
-                        }
-                      }}
-                      formatOptions={{ style: "decimal" }}
-                      label={`${ageRange[0]} - ${ageRange[1]} years`}
-                      maxValue={100}
-                      minValue={18}
-                      step={1}
-                      size="md"
-                      color="primary"
-                      classNames={{
-                        base: "w-full",
-                        label: "text-foreground font-medium",
-                        value: "text-primary font-semibold",
-                      }}
-                    />
+                    <DropdownMenu
+                      open={openDropdown === "age"}
+                      onOpenChange={(open) =>
+                        setOpenDropdown(open ? "age" : null)
+                      }
+                    >
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                          aria-label="Age range filter"
+                        >
+                          Age Range
+                          <ChevronDown className="ml-2 w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="p-4 min-w-[350px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+                        <Slider
+                          value={ageRange}
+                          onChange={(value) => {
+                            if (Array.isArray(value) && value.length === 2)
+                              setAgeRange(value as [number, number]);
+                          }}
+                          onChangeEnd={(value) => {
+                            if (
+                              Array.isArray(value) &&
+                              value.length === 2 &&
+                              (value[0] !== safeFilters.ageMin ||
+                                value[1] !== safeFilters.ageMax)
+                            ) {
+                              onFilterChange({
+                                ...safeFilters,
+                                ageMin: value[0],
+                                ageMax: value[1],
+                              });
+                            }
+                          }}
+                          minValue={18}
+                          maxValue={100}
+                          step={1}
+                          size="sm"
+                          label="Age Range"
+                        />
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
@@ -473,25 +759,100 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   <h3 className="text-lg font-medium text-foreground">
                     Interests
                   </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {INTEREST_OPTIONS.map((interest) => (
-                      <div
-                        key={interest}
-                        className="flex items-center space-x-2"
-                      >
-                        <Checkbox
-                          isSelected={safeFilters.interests.includes(interest)}
-                          onValueChange={() => handleInterestToggle(interest)}
-                          color="primary"
-                          size="md"
-                        >
-                          <span className="text-sm text-foreground">
-                            {interest}
-                          </span>
-                        </Checkbox>
-                      </div>
-                    ))}
-                  </div>
+                  <ListboxWrapper>
+                    <style>
+                      {`
+              [data-slot="input-wrapper"] {
+                border: none !important;
+              }
+              [data-slot="input-wrapper"]::after {
+                display: none !important;
+              }
+            `}
+                    </style>
+                    <div
+                      style={
+                        {
+                          outline: "none",
+                          boxShadow: "none",
+                          "--tw-ring-shadow": "none",
+                          "--tw-ring-color": "transparent",
+                          "--tw-ring-offset-shadow": "none",
+                        } as React.CSSProperties
+                      }
+                    >
+                      {/* <Input
+                      variant="underlined"
+                      id="destination-input"
+                      type="text"
+                      placeholder="Type city or country..."
+                      value={destinationInput}
+                      onChange={(e) => setDestinationInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          !filteredDestinations.some(
+                            (opt) =>
+                              opt.toLowerCase() ===
+                              destinationInput.trim().toLowerCase()
+                          )
+                        ) {
+                          onFilterChange({
+                            ...safeFilters,
+                            destination: destinationInput,
+                          });
+                          setOpenDropdown(null);
+                        }
+                      }}
+                      style={
+                        {
+                          outline: "none",
+                          boxShadow: "none",
+                          "--tw-ring-shadow": "none",
+                          "--tw-ring-color": "transparent",
+                          "--tw-ring-offset-shadow": "none",
+                          background: "transparent",
+                          backgroundColor: "transparent",
+                          height: "32px",
+                          paddingTop: "4px",
+                          paddingBottom: "4px",
+                        } as React.CSSProperties
+                      }
+                      className="mb-2"
+                      aria-label="Destination filter"
+                      autoFocus
+                    /> */}
+                    </div>
+                    <Listbox
+                      disallowEmptySelection
+                      aria-label="Single selection example"
+                      selectedKeys={selectedKeys}
+                      selectionMode="multiple"
+                      variant="flat"
+                      onSelectionChange={(keys) =>
+                        setSelectedKeys(keys as Set<string>)
+                      }
+                    >
+                      {filteredDestinations.filter((dest) => dest !== "Any")
+                        .length > 0 ? (
+                        INTEREST_OPTIONS.map((destination) => (
+                          <ListboxItem key="new">
+                            {destination}
+                            {safeFilters.destination === destination && (
+                              <Check
+                                className="w-4 h-4 ml-auto text-primary"
+                                aria-hidden="true"
+                              />
+                            )}
+                          </ListboxItem>
+                        ))
+                      ) : (
+                        <div className="px-4 text-sm text-muted-foreground">
+                          No matches
+                        </div>
+                      )}
+                    </Listbox>
+                  </ListboxWrapper>
                 </div>
               </>
             )}
@@ -710,22 +1071,34 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <DropdownMenuContent className="p-4 min-w-[350px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
               <Slider
                 value={ageRange}
-                onChange={(value: number | number[]) => {
-                  if (Array.isArray(value) && value.length === 2) {
-                    handleAgeRangeChange([value[0], value[1]]);
+                onChange={(value) => {
+                  if (Array.isArray(value) && value.length === 2)
+                    setAgeRange(value as [number, number]);
+                }}
+                onChangeEnd={(value) => {
+                  if (
+                    Array.isArray(value) &&
+                    value.length === 2 &&
+                    (value[0] !== safeFilters.ageMin ||
+                      value[1] !== safeFilters.ageMax)
+                  ) {
+                    onFilterChange({
+                      ...safeFilters,
+                      ageMin: value[0],
+                      ageMax: value[1],
+                    });
                   }
                 }}
-                formatOptions={{ style: "decimal" }}
-                label="Age Range"
-                maxValue={100}
                 minValue={18}
+                maxValue={100}
                 step={1}
                 size="sm"
+                label="Age Range"
               />
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Gender Dropdown */}
+          {/* Gender */}
           <DropdownMenu
             open={openDropdown === "gender"}
             onOpenChange={(open) => setOpenDropdown(open ? "gender" : null)}
@@ -766,7 +1139,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Interests Dropdown */}
+          {/* Interests */}
           <DropdownMenu
             open={openDropdown === "interests"}
             onOpenChange={(open) => setOpenDropdown(open ? "interests" : null)}
