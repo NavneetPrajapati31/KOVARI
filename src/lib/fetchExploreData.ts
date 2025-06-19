@@ -63,6 +63,7 @@ export const fetchSoloTravelers = async (
         `
         id,
         name,
+        username,
         age,
         bio,
         profile_photo,
@@ -177,7 +178,7 @@ export const fetchSoloTravelers = async (
         return {
           id: profile.id || "",
           name: profile.name || "",
-          username: "",
+          username: profile.username || "",
           age: profile.age || 0,
           bio: profile.bio || "",
           profilePhoto: profile.profile_photo || "",
