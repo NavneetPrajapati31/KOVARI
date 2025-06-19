@@ -36,7 +36,7 @@ export default function SkeletonCard({ card }: SkeletonCardProps) {
 
   if (card === "traveler") {
     return (
-      <Card className="w-full max-w-[360px] h-[290px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
+      <Card className="w-full max-w-[360px] h-[280px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
         <div className="px-5 py-4 flex items-center gap-4 mb-7">
           {/* Avatar skeleton */}
           <Skeleton className="w-14 h-14 rounded-full" />
