@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
 import { MapPin, Calendar, Users, Loader2 } from "lucide-react";
-import SkeletonCard from "./SkeletonCard";
 import { Button } from "../ui/button";
+import GroupCardSkeleton from "../skeleton/GroupCardSkeleton";
 
 interface GroupCardProps {
   group: {
@@ -104,7 +104,7 @@ export function GroupCard({
   const buttonConfig = getActionButton();
 
   if (isLoading) {
-    return <SkeletonCard card="group" />;
+    return <GroupCardSkeleton />;
   }
 
   return (
