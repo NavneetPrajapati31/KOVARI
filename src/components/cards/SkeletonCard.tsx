@@ -13,7 +13,7 @@ export default function SkeletonCard({ card }: SkeletonCardProps) {
 
   if (card === "group") {
     return (
-      <Card className="w-full max-w-[320px] h-[350px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
+      <Card className="w-full max-w-[360px] h-[350px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
         {/* Image skeleton */}
         <div className="relative w-full aspect-[4/2] mb-8">
           <Skeleton className="absolute inset-0 w-full h-full rounded-t-2xl" />
@@ -22,7 +22,6 @@ export default function SkeletonCard({ card }: SkeletonCardProps) {
         <div className="px-5 flex flex-col gap-2 mb-2">
           <Skeleton className="h-4 w-2/3 rounded" />
         </div>
-        {/* Travel details skeleton */}
         <div className="px-5 flex flex-col gap-2">
           <Skeleton className="h-4 w-2/2 rounded" />
           <Skeleton className="h-4 w-3/3 rounded" />
@@ -37,8 +36,8 @@ export default function SkeletonCard({ card }: SkeletonCardProps) {
 
   if (card === "traveler") {
     return (
-      <Card className="w-full max-w-[320px] h-[300px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
-        <div className="px-5 py-4 flex items-center gap-4 mb-2">
+      <Card className="w-full max-w-[360px] h-[290px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
+        <div className="px-5 py-4 flex items-center gap-4 mb-7">
           {/* Avatar skeleton */}
           <Skeleton className="w-14 h-14 rounded-full" />
           {/* Name and username skeletons */}
@@ -47,13 +46,11 @@ export default function SkeletonCard({ card }: SkeletonCardProps) {
             <Skeleton className="h-4 w-1/2 rounded" />
           </div>
         </div>
-        {/* Bio skeleton */}
-        <div className="px-5 flex flex-col gap-2 mb-4">
-          <Skeleton className="h-4 w-full rounded" />
+        {/* Content skeleton */}
+        <div className="px-5 flex flex-col gap-2 mb-2">
           <Skeleton className="h-4 w-2/3 rounded" />
         </div>
-        {/* Travel details skeleton */}
-        <div className="px-5 flex flex-col gap-2 mb-4">
+        <div className="px-5 flex flex-col gap-2">
           <Skeleton className="h-4 w-2/2 rounded" />
           <Skeleton className="h-4 w-3/3 rounded" />
         </div>
