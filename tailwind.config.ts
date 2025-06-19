@@ -22,6 +22,7 @@ const config: Config = {
         primary: "var(--primary)", // Use in your root: --primary: #004831
         "primary-foreground": "var(--primary-foreground)",
         "primary-hover": "var(--primary-hover)",
+        "primary-light": "var(--primary-light)",
         secondary: "var(--secondary)", // Use in your root: --secondary: #E7EBD0
         "secondary-foreground": "var(--secondary-foreground)",
         muted: "var(--muted)", // --muted: #586F7C

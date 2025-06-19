@@ -34,6 +34,7 @@
   --foreground: #1c1c1e; /* iOS Label - near black */
 
   --primary: #007aff; /* iOS System Blue */
+  --primary-light: #dcecff;
   --primary-hover: #0063cc; /* Darker Blue */
   --primary-foreground: #ffffff;
 
