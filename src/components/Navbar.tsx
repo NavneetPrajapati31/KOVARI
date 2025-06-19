@@ -42,7 +42,11 @@ export const AcmeLogo = () => {
   );
 };
 
-export default function App() {
+export default function App({
+  onAvatarMenuOpenChange,
+}: {
+  onAvatarMenuOpenChange?: (isOpen: boolean) => void;
+}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
@@ -140,7 +144,7 @@ export default function App() {
         onMenuOpenChange={setIsMenuOpen}
         className="backdrop-blur-3xl"
         classNames={{
-          wrapper: "max-w-full",
+          wrapper: "max-w-full px-9",
         }}
       >
         <NavbarBrand>
@@ -180,12 +184,12 @@ export default function App() {
           {!isLoaded ? (
             <Skeleton className="w-8 h-8 rounded-full" />
           ) : isSignedIn ? (
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
               <DropdownMenuTrigger asChild>
                 <Avatar
                   isBordered
                   as="button"
-                  className="transition-transform"
+                  className={"transition-transform"}
                   color="secondary"
                   name={user?.fullName || user?.username || "User"}
                   size="sm"
@@ -205,30 +209,6 @@ export default function App() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            // <Dropdown placement="bottom-end">
-            //   <DropdownTrigger>
-            //     <Avatar
-            //       isBordered
-            //       as="button"
-            //       className="transition-transform"
-            //       color="secondary"
-            //       name={user?.fullName || user?.username || "User"}
-            //       size="sm"
-            //       src={user?.imageUrl}
-            //     />
-            //   </DropdownTrigger>
-            //   <DropdownMenu aria-label="Profile Actions" variant="flat">
-            //     {menuItems.map((item) => (
-            //       <DropdownItem
-            //         key={item.key}
-            //         className={item.className}
-            //         onClick={item.onClick}
-            //       >
-            //         {item.label}
-            //       </DropdownItem>
-            //     ))}
-            //   </DropdownMenu>
-            // </Dropdown>
             <Button
               className="px-6 h-9 bg-primary hover:bg-primary-hover text-background rounded-lg"
               onClick={() => handleNavigation("/sign-up")}

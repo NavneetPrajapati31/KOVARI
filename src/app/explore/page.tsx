@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExploreHeader from "@/components/explore/ExploreHeader";
 import ExploreResults from "@/components/explore/ExploreResults";
@@ -72,12 +72,31 @@ export default function ExplorePage() {
   const getTabIndex = () => (searchParams.get("tab") === "groups" ? 1 : 0);
 
   const [activeTab, setActiveTab] = useState(getTabIndex);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
-  // Always derive filters from query params
-  const filters = useMemo(
+  // Memoize parsed filters from searchParams
+  const parsedFilters = useMemo(
     () => parseFiltersFromSearchParams(searchParams),
     [searchParams]
   );
+  const [filters, setFilters] = useState<FiltersState>(parsedFilters);
+
+  // Sync filters state with URL changes (e.g., browser navigation)
+  useEffect(() => {
+    // Only update if different to avoid unnecessary resets
+    if (
+      filters.destination !== parsedFilters.destination ||
+      filters.dateStart?.toISOString() !==
+        parsedFilters.dateStart?.toISOString() ||
+      filters.dateEnd?.toISOString() !== parsedFilters.dateEnd?.toISOString() ||
+      filters.ageMin !== parsedFilters.ageMin ||
+      filters.ageMax !== parsedFilters.ageMax ||
+      filters.gender !== parsedFilters.gender ||
+      filters.interests.join() !== parsedFilters.interests.join()
+    ) {
+      setFilters(parsedFilters);
+    }
+  }, [parsedFilters]);
 
   // Sync activeTab with URL changes
   useEffect(() => {
@@ -97,6 +116,7 @@ export default function ExplorePage() {
   };
 
   const handleFilterChange = (newFilters: FiltersState) => {
+    setFilters(newFilters);
     // Merge with current tab param
     const query: Record<string, string> = {
       ...serializeFiltersToQuery(newFilters),
@@ -108,17 +128,34 @@ export default function ExplorePage() {
     router.push(`/explore?${queryString}`, { scroll: false });
   };
 
+  const memoizedFilters = useMemo(() => filters, [filters]);
+  const memoizedOnFilterChange = useCallback(handleFilterChange, [
+    filters,
+    activeTab,
+    router,
+  ]);
+  const memoizedOnDropdownOpenChange = useCallback(setIsFilterDropdownOpen, []);
+
   return (
     <div className="flex flex-col w-full min-h-screen">
       <ExploreHeader
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        filters={filters}
-        onFilterChange={handleFilterChange}
+        filters={memoizedFilters}
+        onFilterChange={memoizedOnFilterChange}
+        onDropdownOpenChange={memoizedOnDropdownOpenChange}
       />
-      <div className="w-full flex-1 px-4">
+      <div
+        className={`w-full flex-1 px-4 transition-[filter,opacity] duration-500 ease-in-out ${
+          isFilterDropdownOpen
+            ? "blur-md opacity-80 pointer-events-none select-none"
+            : "blur-0 opacity-100"
+        }`}
+      >
         <ExploreResults activeTab={activeTab} filters={filters} />
       </div>
     </div>
   );
 }
+
+// TODO - Fix Age Range Slider

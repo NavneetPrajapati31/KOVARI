@@ -1,24 +1,36 @@
-import React, { useState, useEffect, useRef } from "react";
+"use client";
+
+import React from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "../ui/select";
-import { DatePicker, NumberInput, Slider, Input } from "@heroui/react";
+  Slider,
+  Input,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  Button as HeroButton,
+  ButtonGroup,
+  Checkbox,
+  Listbox,
+  ListboxSection,
+  ListboxItem,
+} from "@heroui/react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "../ui/dropdown-menu";
-import { CalendarDate, DateValue } from "@internationalized/date";
+import { CalendarDate, type DateValue } from "@internationalized/date";
 import { RangeCalendar } from "@heroui/react";
 import { today, getLocalTimeZone } from "@internationalized/date";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const GENDER_OPTIONS = ["Any", "Male", "Female", "Other"];
@@ -50,6 +62,7 @@ interface ExploreFiltersProps {
   filters: FiltersState;
   onFilterChange: (filters: FiltersState) => void;
   mode: "group" | "traveler";
+  onDropdownOpenChange?: (isOpen: boolean) => void;
 }
 
 interface FiltersState {
@@ -73,6 +86,7 @@ const DEFAULT_FILTERS: FiltersState = {
 };
 
 const DEBOUNCE_MS = 300;
+const DESKTOP_AGE_DEBOUNCE_MS = 600;
 
 // Helper to convert CalendarDate to JS Date (UTC)
 function calendarDateToDate(
@@ -92,20 +106,38 @@ function dateToCalendarDate(date?: Date): CalendarDate | undefined {
   );
 }
 
+export const ListboxWrapper: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => (
+  <div className="w-full border-small px-1 py-2 rounded-small border-default-200 dark:border-default-100">
+    {children}
+  </div>
+);
+
 const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   filters,
   onFilterChange,
   mode,
+  onDropdownOpenChange,
 }) => {
+  console.log("ExploreFilters mounted");
   const safeFilters = filters ?? DEFAULT_FILTERS;
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [isSmallMobile, setIsSmallMobile] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   // Track which dropdown is open
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  // Local state for age range slider
+  // Local state for age range slider (desktop only)
   const [ageRange, setAgeRange] = useState<[number, number]>([
     safeFilters.ageMin,
     safeFilters.ageMax,
   ]);
+  const isDragging = useRef(false);
+  const dragTimeout = useRef<NodeJS.Timeout | null>(null);
+  const prevOpenDropdown = useRef<string | null>(null);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const desktopAgeDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [destinationInput, setDestinationInput] = useState(
     safeFilters.destination || ""
   );
@@ -113,31 +145,89 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
     useState<string[]>(DESTINATION_OPTIONS);
   const destinationDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync local ageRange with filters from parent
-  useEffect(() => {
-    setAgeRange([safeFilters.ageMin, safeFilters.ageMax]);
-  }, [safeFilters.ageMin, safeFilters.ageMax]);
+  const ANY_DESTINATION = "Any";
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(
+    new Set([
+      safeFilters.destination && safeFilters.destination !== ANY_DESTINATION
+        ? safeFilters.destination
+        : ANY_DESTINATION,
+    ])
+  );
 
-  // Debounced filter update for age range
+  const selectedValue = useMemo(
+    () => Array.from(selectedKeys).join(", "),
+    [selectedKeys]
+  );
+
+  // Add local state for mobile filters
+  const [mobileFilters, setMobileFilters] = useState<FiltersState>(safeFilters);
+
+  // Sync mobileFilters with parent filters only when modal is opened (not on every prop change)
+  const prevIsOpen = useRef(isOpen);
   useEffect(() => {
-    if (
-      ageRange[0] !== safeFilters.ageMin ||
-      ageRange[1] !== safeFilters.ageMax
-    ) {
-      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-      debounceTimeout.current = setTimeout(() => {
-        onFilterChange({
-          ...safeFilters,
-          ageMin: ageRange[0],
-          ageMax: ageRange[1],
-        });
-      }, DEBOUNCE_MS);
+    if (!prevIsOpen.current && isOpen) {
+      setMobileFilters(safeFilters);
+      setAgeRange([safeFilters.ageMin, safeFilters.ageMax]);
+      setDestinationInput(safeFilters.destination || "");
+      setSelectedKeys(
+        new Set([
+          safeFilters.destination && safeFilters.destination !== ANY_DESTINATION
+            ? safeFilters.destination
+            : ANY_DESTINATION,
+        ])
+      );
     }
-    return () => {
-      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-    };
+    prevIsOpen.current = isOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ageRange]);
+  }, [isOpen]);
+
+  // Check screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsDesktop(window.innerWidth >= 1024); // true if width >= 1024px (show DesktopFilters)
+      setIsSmallMobile(window.innerWidth <= 425);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  // Sync local ageRange with filter when filter changes (for external updates)
+  // useEffect(() => {
+  //   if (!isDragging.current) {
+  //     if (
+  //       ageRange[0] !== safeFilters.ageMin ||
+  //       ageRange[1] !== safeFilters.ageMax
+  //     ) {
+  //       setAgeRange([safeFilters.ageMin, safeFilters.ageMax]);
+  //     }
+  //   }
+  // }, [safeFilters.ageMin, safeFilters.ageMax]);
+
+  // Debounced filter update for age range (DESKTOP FILTERS ONLY)
+  useEffect(() => {
+    if (isDesktop) {
+      if (
+        ageRange[0] !== safeFilters.ageMin ||
+        ageRange[1] !== safeFilters.ageMax
+      ) {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = setTimeout(() => {
+          onFilterChange({
+            ...safeFilters,
+            ageMin: ageRange[0],
+            ageMax: ageRange[1],
+          });
+        }, DEBOUNCE_MS);
+      }
+      return () => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ageRange, isDesktop]);
 
   // Sync local input with parent filter
   useEffect(() => {
@@ -158,24 +248,34 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
 
   // Debounce custom value
   useEffect(() => {
-    if (
-      destinationInput !== safeFilters.destination &&
-      !DESTINATION_OPTIONS.some(
-        (opt) => opt.toLowerCase() === destinationInput.trim().toLowerCase()
-      )
-    ) {
-      if (destinationDebounceTimeout.current)
-        clearTimeout(destinationDebounceTimeout.current);
-      destinationDebounceTimeout.current = setTimeout(() => {
-        onFilterChange({ ...safeFilters, destination: destinationInput });
-      }, DEBOUNCE_MS);
+    if (isDesktop) {
+      if (
+        destinationInput !== safeFilters.destination &&
+        !DESTINATION_OPTIONS.some(
+          (opt) => opt.toLowerCase() === destinationInput.trim().toLowerCase()
+        )
+      ) {
+        if (destinationDebounceTimeout.current)
+          clearTimeout(destinationDebounceTimeout.current);
+        destinationDebounceTimeout.current = setTimeout(() => {
+          onFilterChange({ ...safeFilters, destination: destinationInput });
+        }, DEBOUNCE_MS);
+      }
+      return () => {
+        if (destinationDebounceTimeout.current)
+          clearTimeout(destinationDebounceTimeout.current);
+      };
     }
-    return () => {
-      if (destinationDebounceTimeout.current)
-        clearTimeout(destinationDebounceTimeout.current);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destinationInput]);
+  }, [destinationInput, isDesktop]);
+
+  // Notify parent when desktop dropdown open state changes
+  useEffect(() => {
+    if (isDesktop && onDropdownOpenChange) {
+      onDropdownOpenChange(openDropdown !== null);
+    }
+    // Only run when openDropdown or isDesktop changes
+  }, [openDropdown, isDesktop, onDropdownOpenChange]);
 
   // Handlers
   const handleDestinationSelect = (destination: string) => {
@@ -218,23 +318,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   };
 
   // Filter summary helpers
-  // const getDateRangeLabel = () => {
-  //   const format = (cd: CalendarDate | null) => {
-  //     if (!cd) return "";
-  //     const d = calendarDateToDate(cd);
-  //     return d ? d.toLocaleDateString() : "";
-  //   };
-  //   if (!safeFilters.dateStart && !safeFilters.dateEnd) return "Date Range";
-  //   if (safeFilters.dateStart && safeFilters.dateEnd) {
-  //     return `${format(safeFilters.dateStart)} - ${format(
-  //       safeFilters.dateEnd
-  //     )}`;
-  //   }
-  //   if (safeFilters.dateStart) return `From ${format(safeFilters.dateStart)}`;
-  //   if (safeFilters.dateEnd) return `Until ${format(safeFilters.dateEnd)}`;
-  //   return "Date Range";
-  // };
-
   const getAgeRangeLabel = () => {
     if (safeFilters.ageMin === 18 && safeFilters.ageMax === 99)
       return "Age Range";
@@ -270,7 +353,326 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
     calendarValue = null;
   }
 
-  return (
+  // Count active filters for mobile button
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (safeFilters.destination && safeFilters.destination !== "Any") count++;
+    if (safeFilters.dateStart || safeFilters.dateEnd) count++;
+    if (safeFilters.ageMin !== 18 || safeFilters.ageMax !== 99) count++;
+    if (safeFilters.gender && safeFilters.gender !== "Any") count++;
+    if (safeFilters.interests.length > 0) count++;
+    return count;
+  };
+
+  // Mobile Modal Content
+  const MobileFiltersModal = () => (
+    <Modal
+      backdrop="blur"
+      isOpen={isOpen}
+      onClose={onClose}
+      placement="bottom"
+      className="m-0"
+      classNames={{
+        base: "max-h-[90vh]",
+        wrapper: "items-end",
+        backdrop: "bg-black/50",
+      }}
+    >
+      <ModalContent
+        className={`rounded-t-3xl${isSmallMobile ? " rounded-b-none" : ""}`}
+      >
+        {/* Hide absolutely positioned close button with aria-label="Close" */}
+        <style>{`
+          button[aria-label="Close"].absolute { display: none !important; }
+        `}</style>
+        <ModalHeader className="flex flex-col gap-1 px-6 pt-4 pb-4">
+          <div className="flex items-center w-full relative">
+            <h2 className="text-lg font-semibold text-foreground">Filters</h2>
+            <HeroButton
+              isIconOnly
+              variant="light"
+              onPress={onClose}
+              className="text-muted-foreground ml-auto"
+            >
+              <X className="h-5 w-5" />
+            </HeroButton>
+          </div>
+        </ModalHeader>
+        <ModalBody className="px-6 py-2 overflow-y-auto">
+          <div className="space-y-6 w-full">
+            {/* Destination */}
+            <ListboxWrapper>
+              <style>
+                {`
+              [data-slot="input-wrapper"] {
+                border: none !important;
+              }
+              [data-slot="input-wrapper"]::after {
+                display: none !important;
+              }
+            `}
+              </style>
+              <div
+                style={
+                  {
+                    outline: "none",
+                    boxShadow: "none",
+                    "--tw-ring-shadow": "none",
+                    "--tw-ring-color": "transparent",
+                    "--tw-ring-offset-shadow": "none",
+                  } as React.CSSProperties
+                }
+              >
+                <Input
+                  variant="underlined"
+                  id="destination-input"
+                  type="text"
+                  placeholder="Type city or country..."
+                  value={destinationInput}
+                  onChange={(e) => {
+                    setDestinationInput(e.target.value);
+                    setMobileFilters((prev) => ({
+                      ...prev,
+                      destination: e.target.value,
+                    }));
+                  }}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      !filteredDestinations.some(
+                        (opt) =>
+                          opt.toLowerCase() ===
+                          destinationInput.trim().toLowerCase()
+                      )
+                    ) {
+                      setMobileFilters((prev) => ({
+                        ...prev,
+                        destination: destinationInput,
+                      }));
+                    }
+                  }}
+                  style={
+                    {
+                      outline: "none",
+                      boxShadow: "none",
+                      "--tw-ring-shadow": "none",
+                      "--tw-ring-color": "transparent",
+                      "--tw-ring-offset-shadow": "none",
+                      background: "transparent",
+                      backgroundColor: "transparent",
+                      height: "32px",
+                      paddingTop: "4px",
+                      paddingBottom: "4px",
+                    } as React.CSSProperties
+                  }
+                  className="mb-2"
+                  aria-label="Destination filter"
+                  autoFocus
+                />
+              </div>
+              <Listbox
+                disallowEmptySelection
+                aria-label="Single selection example"
+                selectedKeys={selectedKeys}
+                selectionMode="single"
+                variant="flat"
+                onSelectionChange={(keys) => {
+                  setSelectedKeys(keys as Set<string>);
+                  const selected = Array.from(keys)[0];
+                  if (typeof selected === "string") {
+                    if (selected === ANY_DESTINATION) {
+                      setMobileFilters((prev) => ({
+                        ...prev,
+                        destination: ANY_DESTINATION,
+                      }));
+                      setDestinationInput("");
+                    } else {
+                      setMobileFilters((prev) => ({
+                        ...prev,
+                        destination: selected,
+                      }));
+                      setDestinationInput(selected);
+                    }
+                  }
+                }}
+              >
+                {filteredDestinations
+                  .filter((destination) => destination !== ANY_DESTINATION)
+                  .map((destination) => (
+                    <ListboxItem key={destination}>{destination}</ListboxItem>
+                  ))}
+              </Listbox>
+            </ListboxWrapper>
+
+            {/* Date Range */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-medium text-foreground">
+                Date Range
+              </h3>
+              <div className="flex justify-center w-full">
+                <RangeCalendar
+                  calendarWidth={"full"}
+                  value={
+                    (() => {
+                      const start = dateToCalendarDate(mobileFilters.dateStart);
+                      const end = dateToCalendarDate(mobileFilters.dateEnd);
+                      if (start && end) return { start, end };
+                      if (start) return { start };
+                      if (end) return { end };
+                      return null;
+                    })() as any
+                  }
+                  onChange={(range: { start?: DateValue; end?: DateValue }) => {
+                    const start =
+                      range.start instanceof CalendarDate
+                        ? range.start
+                        : undefined;
+                    const end =
+                      range.end instanceof CalendarDate ? range.end : undefined;
+                    setMobileFilters((prev) => ({
+                      ...prev,
+                      dateStart: start ? calendarDateToDate(start) : undefined,
+                      dateEnd: end ? calendarDateToDate(end) : undefined,
+                    }));
+                  }}
+                  minValue={today(getLocalTimeZone())}
+                  classNames={{
+                    base: "bg-transparent w-full",
+                    headerWrapper: "bg-transparent",
+                    gridHeader: "bg-transparent",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Traveler-specific filters */}
+            {mode === "traveler" && (
+              <>
+                {/* Age Range */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Age Range
+                  </h3>
+                  <div className="px-2">
+                    <Slider
+                      value={[mobileFilters.ageMin, mobileFilters.ageMax]}
+                      onChange={(value) => {
+                        if (Array.isArray(value) && value.length === 2) {
+                          setMobileFilters((prev) => ({
+                            ...prev,
+                            ageMin: value[0],
+                            ageMax: value[1],
+                          }));
+                          setAgeRange(value as [number, number]);
+                        }
+                      }}
+                      minValue={18}
+                      maxValue={100}
+                      step={1}
+                      size="sm"
+                      label="Age Range"
+                    />
+                  </div>
+                </div>
+
+                {/* Gender */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Gender
+                  </h3>
+                  <ButtonGroup className="w-full">
+                    {GENDER_OPTIONS.filter((option) => option !== "Any").map(
+                      (option) => (
+                        <HeroButton
+                          key={option}
+                          variant={
+                            mobileFilters.gender === option
+                              ? "solid"
+                              : "bordered"
+                          }
+                          color={
+                            mobileFilters.gender === option
+                              ? "primary"
+                              : "default"
+                          }
+                          onPress={() =>
+                            setMobileFilters((prev) => ({
+                              ...prev,
+                              gender: option,
+                            }))
+                          }
+                          className="flex-1"
+                        >
+                          {option}
+                        </HeroButton>
+                      )
+                    )}
+                  </ButtonGroup>
+                </div>
+
+                {/* Interests */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Interests
+                  </h3>
+                  <ListboxWrapper>
+                    <Listbox
+                      disallowEmptySelection
+                      aria-label="Single selection example"
+                      selectedKeys={new Set(mobileFilters.interests)}
+                      selectionMode="multiple"
+                      variant="flat"
+                      onSelectionChange={(keys) => {
+                        setMobileFilters((prev) => ({
+                          ...prev,
+                          interests: Array.from(keys) as string[],
+                        }));
+                      }}
+                    >
+                      {INTEREST_OPTIONS.map((interest) => (
+                        <ListboxItem key={interest}>{interest}</ListboxItem>
+                      ))}
+                    </Listbox>
+                  </ListboxWrapper>
+                </div>
+              </>
+            )}
+          </div>
+        </ModalBody>
+        <ModalFooter className="px-6 py-6">
+          <div className="flex gap-3 w-full">
+            <HeroButton
+              variant="bordered"
+              onPress={() => {
+                setMobileFilters(DEFAULT_FILTERS);
+                setAgeRange([18, 99]);
+                setDestinationInput("");
+                setSelectedKeys(new Set([ANY_DESTINATION]));
+                onFilterChange(DEFAULT_FILTERS);
+                onClose();
+              }}
+              className="flex-1"
+            >
+              Clear All
+            </HeroButton>
+            <HeroButton
+              color="primary"
+              onPress={() => {
+                onFilterChange(mobileFilters);
+                onClose();
+              }}
+              className="flex-1"
+            >
+              Apply Filters
+            </HeroButton>
+          </div>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+
+  // Desktop Filters (Original Code)
+  const DesktopFilters = () => (
     <section className="flex flex-wrap gap-2 items-center min-w-0">
       {/* Destination Dropdown */}
       <DropdownMenu
@@ -409,7 +811,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             className="rounded-full border-primary/30 bg-card  px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
             aria-label="Date range filter"
           >
-            {/* {getDateRangeLabel()} */}
             Date Range
             <ChevronDown className="ml-2 w-4 h-4" />
           </Button>
@@ -461,22 +862,34 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <DropdownMenuContent className="p-4 min-w-[350px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
               <Slider
                 value={ageRange}
-                onChange={(value: number | number[]) => {
-                  if (Array.isArray(value) && value.length === 2) {
-                    handleAgeRangeChange([value[0], value[1]]);
+                onChange={(value) => {
+                  if (Array.isArray(value) && value.length === 2)
+                    setAgeRange(value as [number, number]);
+                }}
+                onChangeEnd={(value) => {
+                  if (
+                    Array.isArray(value) &&
+                    value.length === 2 &&
+                    (value[0] !== safeFilters.ageMin ||
+                      value[1] !== safeFilters.ageMax)
+                  ) {
+                    onFilterChange({
+                      ...safeFilters,
+                      ageMin: value[0],
+                      ageMax: value[1],
+                    });
                   }
                 }}
-                formatOptions={{ style: "decimal" }}
-                label="Age Range"
-                maxValue={100}
                 minValue={18}
+                maxValue={100}
                 step={1}
                 size="sm"
+                label="Age Range"
               />
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Gender Dropdown */}
+          {/* Gender */}
           <DropdownMenu
             open={openDropdown === "gender"}
             onOpenChange={(open) => setOpenDropdown(open ? "gender" : null)}
@@ -517,7 +930,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Interests Dropdown */}
+          {/* Interests */}
           <DropdownMenu
             open={openDropdown === "interests"}
             onOpenChange={(open) => setOpenDropdown(open ? "interests" : null)}
@@ -554,12 +967,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   }}
                 >
                   {interest}
-                  {safeFilters.interests.includes(interest) && (
-                    <Check
-                      className="w-4 h-4 ml-auto text-primary"
-                      aria-hidden="true"
-                    />
-                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -568,6 +975,33 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
       )}
     </section>
   );
+
+  return (
+    <>
+      {isDesktop ? (
+        // Desktop: Show original horizontal filters for screens >=1024px
+        <DesktopFilters />
+      ) : (
+        // Mobile: Show filter button that opens modal for screens <1024px
+        <div className="flex items-center gap-2">
+          <HeroButton
+            variant="bordered"
+            startContent={<Filter className="w-4 h-4" />}
+            onPress={onOpen}
+            className="rounded-full border-primary/30 bg-card text-primary font-medium"
+          >
+            Filters
+            {getActiveFiltersCount() > 0 && (
+              <Badge className="ml-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
+                {getActiveFiltersCount()}
+              </Badge>
+            )}
+          </HeroButton>
+          <MobileFiltersModal />
+        </div>
+      )}
+    </>
+  );
 };
 
-export default ExploreFilters;
+export default React.memo(ExploreFilters);

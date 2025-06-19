@@ -54,7 +54,7 @@ export default function TravelerCard({
   }
 
   return (
-    <Card className="w-full max-w-[360px] max-h-[290px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[360px] h-[265px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       <CardBody className="px-5 py-4 relative">
         {/* Profile Section with Avatar and User Info */}
         <div className="flex items-center gap-4 mb-2">
@@ -77,7 +77,7 @@ export default function TravelerCard({
         </div>
 
         <div className="text-left mb-4">
-          <p className="text-muted-foreground text-sm leading-relaxed">
+          <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2">
             {traveler.bio}
           </p>
         </div>
