@@ -32,7 +32,7 @@ const preferencesSchema = z.object({
   mode: z.enum(["solo", "group"], {
     required_error: "Please select a travel style",
   }),
-  hobbies: z.array(z.string()).min(1, "Please select at least one interest"),
+  interests: z.array(z.string()).min(1, "Please select at least one interest"),
   activityDescription: z.string().optional(),
   frequency: z.string().optional(),
 });
@@ -40,7 +40,7 @@ const preferencesSchema = z.object({
 type PreferencesForm = z.infer<typeof preferencesSchema>;
 
 export default function TravelPreferencesPage() {
-  const [selectedHobbies, setSelectedHobbies] = useState<string[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   const {
     register,
@@ -55,7 +55,7 @@ export default function TravelPreferencesPage() {
       from: "",
       to: "",
       mode: undefined,
-      hobbies: [],
+      interests: [],
       activityDescription: "",
       frequency: "",
     },
@@ -66,12 +66,12 @@ export default function TravelPreferencesPage() {
   };
 
   const handleHobbyToggle = (hobby: string) => {
-    const current = watch("hobbies");
+    const current = watch("interests");
     const updated = current.includes(hobby)
       ? current.filter((h) => h !== hobby)
       : [...current, hobby];
-    setValue("hobbies", updated);
-    setSelectedHobbies(updated);
+    setValue("interests", updated);
+    setSelectedInterests(updated);
   };
 
   return (
@@ -164,7 +164,7 @@ export default function TravelPreferencesPage() {
                 type="button"
                 onClick={() => handleHobbyToggle(label)}
                 className={`px-3 py-1 rounded-full text-sm border transition ${
-                  selectedHobbies.includes(label)
+                  selectedInterests.includes(label)
                     ? "bg-[#9BA186] text-white border-[#9BA186]"
                     : "text-[#3D3C2C] border-[#004831] hover:bg-[#D6D1BC]"
                 }`}
@@ -173,9 +173,9 @@ export default function TravelPreferencesPage() {
               </button>
             ))}
           </div>
-          {errors.hobbies && (
+          {errors.interests && (
             <p className="text-sm text-red-600 mb-4">
-              {errors.hobbies.message}
+              {errors.interests.message}
             </p>
           )}
 

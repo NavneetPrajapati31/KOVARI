@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -75,6 +75,13 @@ const step1Schema = z
       .string()
       .min(2, { message: "Last name must be at least 2 characters" })
       .max(50, { message: "Last name must be less than 50 characters" }),
+    username: z
+      .string()
+      .min(3, { message: "Username must be at least 3 characters" })
+      .max(32, { message: "Username must be less than 32 characters" })
+      .regex(/^[a-zA-Z0-9_]+$/, {
+        message: "Username can only contain letters, numbers, and underscores",
+      }),
     phoneNumber: z
       .string()
       .min(1, { message: "Please enter your phone number" })
@@ -111,7 +118,7 @@ const step1Schema = z
 const step2Schema = z.object({
   bio: z
     .string()
-    .max(500, { message: "Bio must be less than 500 characters" })
+    .max(300, { message: "Bio must be less than 300 characters" })
     .optional(),
   profilePic: z.any().optional(),
   nationality: z.string().min(1, { message: "Please select your nationality" }),
@@ -129,7 +136,7 @@ const step3Schema = z.object({
   from: z.string().min(1, "Start date is required"),
   to: z.string().min(1, "End date is required"),
   mode: z.enum(["solo", "group"]).optional(),
-  hobbies: z.array(z.string()).min(1, "Please select at least one interest"),
+  interests: z.array(z.string()).min(1, "Please select at least one interest"),
   activityDescription: z.string().optional(),
   frequency: z.string().optional(),
 });
@@ -139,7 +146,7 @@ type Step2Data = z.infer<typeof step2Schema>;
 type Step3Data = z.infer<typeof step3Schema>;
 
 // Sample data for dropdowns
-const genderOptions = ["Male", "Female", "Prefer not to say"];
+const genderOptions = ["Male", "Female", "Other"];
 const languageOptions = [
   "English",
   "Spanish",
@@ -219,6 +226,11 @@ export default function ProfileSetupForm() {
   const [selectedMode, setSelectedMode] = useState<"solo" | "group" | null>(
     null
   );
+  const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
+  const [usernameCheckError, setUsernameCheckError] = useState<string | null>(
+    null
+  );
+  const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const { syncUser } = useSyncUserToSupabase();
 
@@ -233,6 +245,7 @@ export default function ProfileSetupForm() {
     defaultValues: {
       firstName: "",
       lastName: "",
+      username: "",
       phoneNumber: "",
       age: 18,
       gender: "",
@@ -259,15 +272,46 @@ export default function ProfileSetupForm() {
       from: "",
       to: "",
       mode: undefined,
-      hobbies: [],
+      interests: [],
       activityDescription: "",
       frequency: "",
     },
   });
 
-  // Handle step 1 submission
-  const onStep1Submit = (data: Step1Data) => {
-    console.log("Step 1 data:", data);
+  // Async username uniqueness check
+  const checkUsernameUnique = async (username: string) => {
+    setUsernameCheckError(null);
+    if (!username || username.length < 3) return true;
+    setUsernameCheckLoading(true);
+    try {
+      const res = await fetch("/api/check-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const data = await res.json();
+      if (!data.available) {
+        setUsernameCheckError("Username is already taken");
+        return false;
+      }
+      setUsernameCheckError(null);
+      return true;
+    } catch (e) {
+      setUsernameCheckError("Could not check username");
+      return false;
+    } finally {
+      setUsernameCheckLoading(false);
+    }
+  };
+
+  // Handle step 1 submission with async username check
+  const onStep1Submit = async (data: Step1Data) => {
+    setUsernameCheckError(null);
+    const isUnique = await checkUsernameUnique(data.username);
+    if (!isUnique) {
+      toast.error("Username is already taken");
+      return;
+    }
     setStep1Data(data);
     setStep(2);
   };
@@ -308,6 +352,7 @@ export default function ProfileSetupForm() {
       // Transform data to match API schema
       const profileData = {
         name: `${completeData.firstName} ${completeData.lastName}`,
+        username: completeData.username,
         age: completeData.age,
         gender: completeData.gender,
         birthday: completeData.birthday?.toISOString(),
@@ -324,7 +369,7 @@ export default function ProfileSetupForm() {
           : [],
         start_date: completeData.from,
         end_date: completeData.to,
-        hobbies: completeData.hobbies,
+        interests: completeData.interests,
       };
 
       if (!user) {
@@ -348,15 +393,7 @@ export default function ProfileSetupForm() {
         },
       });
 
-      // Step 2: Update Clerk user name
-      await user.update({
-        unsafeMetadata: {
-          firstName: completeData.firstName,
-          lastName: completeData.lastName,
-        },
-      });
-
-      // Step 3: Sync user to Supabase
+      // Step 2: Sync user to Supabase
       const syncSuccess = await syncUser();
       if (!syncSuccess) {
         throw new Error("Failed to sync user data");
@@ -383,8 +420,15 @@ export default function ProfileSetupForm() {
       });
 
       if (!profileRes.ok) {
-        const error = await profileRes.json();
-        throw new Error(error.error || "Failed to save profile");
+        let errorMsg = "Failed to save profile";
+        const contentType = profileRes.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const error = await profileRes.json();
+          errorMsg = error.error || errorMsg;
+        } else {
+          errorMsg = await profileRes.text();
+        }
+        throw new Error(errorMsg);
       }
 
       // Step 6: Submit travel preferences data to API
@@ -395,8 +439,15 @@ export default function ProfileSetupForm() {
       });
 
       if (!preferencesRes.ok) {
-        const error = await preferencesRes.json();
-        throw new Error(error.error || "Failed to save travel preferences");
+        let errorMsg = "Failed to save travel preferences";
+        const contentType = preferencesRes.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const error = await preferencesRes.json();
+          errorMsg = error.error || errorMsg;
+        } else {
+          errorMsg = await preferencesRes.text();
+        }
+        throw new Error(errorMsg);
       }
 
       toast.success("Profile saved successfully!");
@@ -510,6 +561,47 @@ export default function ProfileSetupForm() {
               )}
             />
           </div>
+
+          {/* Username Field */}
+          <FormField
+            control={step1Form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Username
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="your_username"
+                      className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground w-full"
+                      autoComplete="username"
+                      {...field}
+                      onBlur={async (e) => {
+                        field.onBlur?.();
+                        if (field.value) await checkUsernameUnique(field.value);
+                      }}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (field.value)
+                            await checkUsernameUnique(field.value);
+                        }
+                      }}
+                    />
+                    {usernameCheckLoading && (
+                      <Loader2 className="absolute right-2.5 top-2 h-5 w-5 animate-spin text-muted-foreground/5" />
+                    )}
+                  </div>
+                </FormControl>
+                <FormMessage className="text-xs">
+                  {usernameCheckError}
+                </FormMessage>
+              </FormItem>
+            )}
+          />
 
           {/* Phone Number */}
           <FormField
@@ -1325,7 +1417,7 @@ export default function ProfileSetupForm() {
           {/* Trip Focus / Activities */}
           <FormField
             control={step3Form.control}
-            name="hobbies"
+            name="interests"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs font-medium text-muted-foreground">

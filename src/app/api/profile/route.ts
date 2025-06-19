@@ -5,6 +5,11 @@ import { z } from "zod";
 
 const schema = z.object({
   name: z.string().min(2),
+  username: z
+    .string()
+    .min(3)
+    .max(32)
+    .regex(/^[a-zA-Z0-9_]+$/),
   age: z.number().min(13).max(100),
   gender: z.enum(["Male", "Female", "Other"]),
   birthday: z.string().datetime(),
