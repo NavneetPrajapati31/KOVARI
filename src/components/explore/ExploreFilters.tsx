@@ -280,7 +280,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
         <DropdownMenuTrigger asChild className="">
           <Button
             variant={"outline"}
-            className="bg-card rounded-full min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+            className="bg-card rounded-full px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
             aria-label="Destination filter"
           >
             {safeFilters.destination && safeFilters.destination !== "Any"
@@ -406,7 +406,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+            className="rounded-full border-primary/30 bg-card  px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
             aria-label="Date range filter"
           >
             {/* {getDateRangeLabel()} */}
@@ -484,14 +484,14 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                className="rounded-full border-primary/30 bg-card px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
                 aria-label="Gender filter"
               >
                 {getGenderLabel()}
                 <ChevronDown className="ml-2 w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+            <DropdownMenuContent className="p-3 min-w-[140px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
               {GENDER_OPTIONS.filter((option) => option !== "Any").map(
                 (option) => (
                   <DropdownMenuItem
@@ -525,14 +525,14 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                className="rounded-full border-primary/30 bg-card px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
                 aria-label="Interests filter"
               >
                 Interests
                 <ChevronDown className="ml-2 w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="p-4 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none ">
+            <DropdownMenuContent className="p-3 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none ">
               {INTEREST_OPTIONS.map((interest) => (
                 <DropdownMenuItem
                   key={interest}

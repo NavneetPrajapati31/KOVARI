@@ -9,13 +9,19 @@ import {
   DropdownItem,
   DropdownTrigger,
   Dropdown,
-  DropdownMenu,
+  // DropdownMenu,
   Avatar,
   NavbarMenuToggle,
   NavbarMenuItem,
   NavbarMenu,
   Skeleton,
 } from "@heroui/react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "../components/ui/dropdown-menu";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
@@ -120,8 +126,7 @@ export default function App() {
     // },
     {
       key: "logout",
-      label: "Log Out",
-      className: "text-danger",
+      label: <p className="text-danger">Log Out</p>,
       onClick: handleSignOut,
     },
   ];
@@ -134,7 +139,9 @@ export default function App() {
         isBordered
         onMenuOpenChange={setIsMenuOpen}
         className="backdrop-blur-3xl"
-        classNames={{ wrapper: "max-w-full" }}
+        classNames={{
+          wrapper: "max-w-full",
+        }}
       >
         <NavbarBrand>
           <Link
@@ -173,8 +180,8 @@ export default function App() {
           {!isLoaded ? (
             <Skeleton className="w-8 h-8 rounded-full" />
           ) : isSignedIn ? (
-            <Dropdown placement="bottom-end">
-              <DropdownTrigger>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Avatar
                   isBordered
                   as="button"
@@ -184,20 +191,44 @@ export default function App() {
                   size="sm"
                   src={user?.imageUrl}
                 />
-              </DropdownTrigger>
-              <DropdownMenu aria-label="Profile Actions" variant="flat">
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
                 {menuItems.map((item) => (
-                  <DropdownItem
+                  <DropdownMenuItem
                     key={item.key}
-                    className={item.className}
                     onClick={item.onClick}
+                    className={` w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
                   >
                     {item.label}
-                  </DropdownItem>
+                  </DropdownMenuItem>
                 ))}
-              </DropdownMenu>
-            </Dropdown>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
+            // <Dropdown placement="bottom-end">
+            //   <DropdownTrigger>
+            //     <Avatar
+            //       isBordered
+            //       as="button"
+            //       className="transition-transform"
+            //       color="secondary"
+            //       name={user?.fullName || user?.username || "User"}
+            //       size="sm"
+            //       src={user?.imageUrl}
+            //     />
+            //   </DropdownTrigger>
+            //   <DropdownMenu aria-label="Profile Actions" variant="flat">
+            //     {menuItems.map((item) => (
+            //       <DropdownItem
+            //         key={item.key}
+            //         className={item.className}
+            //         onClick={item.onClick}
+            //       >
+            //         {item.label}
+            //       </DropdownItem>
+            //     ))}
+            //   </DropdownMenu>
+            // </Dropdown>
             <Button
               className="px-6 h-9 bg-primary hover:bg-primary-hover text-background rounded-lg"
               onClick={() => handleNavigation("/sign-up")}
