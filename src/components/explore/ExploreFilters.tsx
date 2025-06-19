@@ -144,12 +144,39 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
     useState<string[]>(DESTINATION_OPTIONS);
   const destinationDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const [selectedKeys, setSelectedKeys] = useState(new Set(["text"]));
+  const ANY_DESTINATION = "Any";
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(
+    new Set([
+      safeFilters.destination && safeFilters.destination !== ANY_DESTINATION
+        ? safeFilters.destination
+        : ANY_DESTINATION,
+    ])
+  );
 
   const selectedValue = useMemo(
     () => Array.from(selectedKeys).join(", "),
     [selectedKeys]
   );
+
+  // Add local state for mobile filters
+  const [mobileFilters, setMobileFilters] = useState<FiltersState>(safeFilters);
+
+  // Sync mobileFilters with parent filters when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setMobileFilters(safeFilters);
+      setAgeRange([safeFilters.ageMin, safeFilters.ageMax]);
+      setDestinationInput(safeFilters.destination || "");
+      setSelectedKeys(
+        new Set([
+          safeFilters.destination && safeFilters.destination !== ANY_DESTINATION
+            ? safeFilters.destination
+            : ANY_DESTINATION,
+        ])
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Check screen size
   useEffect(() => {
@@ -218,24 +245,26 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
 
   // Debounce custom value
   useEffect(() => {
-    if (
-      destinationInput !== safeFilters.destination &&
-      !DESTINATION_OPTIONS.some(
-        (opt) => opt.toLowerCase() === destinationInput.trim().toLowerCase()
-      )
-    ) {
-      if (destinationDebounceTimeout.current)
-        clearTimeout(destinationDebounceTimeout.current);
-      destinationDebounceTimeout.current = setTimeout(() => {
-        onFilterChange({ ...safeFilters, destination: destinationInput });
-      }, DEBOUNCE_MS);
+    if (isDesktop) {
+      if (
+        destinationInput !== safeFilters.destination &&
+        !DESTINATION_OPTIONS.some(
+          (opt) => opt.toLowerCase() === destinationInput.trim().toLowerCase()
+        )
+      ) {
+        if (destinationDebounceTimeout.current)
+          clearTimeout(destinationDebounceTimeout.current);
+        destinationDebounceTimeout.current = setTimeout(() => {
+          onFilterChange({ ...safeFilters, destination: destinationInput });
+        }, DEBOUNCE_MS);
+      }
+      return () => {
+        if (destinationDebounceTimeout.current)
+          clearTimeout(destinationDebounceTimeout.current);
+      };
     }
-    return () => {
-      if (destinationDebounceTimeout.current)
-        clearTimeout(destinationDebounceTimeout.current);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destinationInput]);
+  }, [destinationInput, isDesktop]);
 
   // Notify parent when desktop dropdown open state changes
   useEffect(() => {
@@ -369,177 +398,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
         <ModalBody className="px-6 py-2 overflow-y-auto">
           <div className="space-y-6 w-full">
             {/* Destination */}
-            {/* <div className="space-y-3">
-              <h3 className="text-lg font-medium text-foreground">
-                Destination
-              </h3>
-              <Input
-                variant="bordered"
-                placeholder="Type city or country..."
-                value={destinationInput}
-                onChange={(e) => setDestinationInput(e.target.value)}
-                className="w-full"
-                classNames={{
-                  input: "text-foreground",
-                  inputWrapper:
-                    "border-border hover:border-primary focus-within:border-primary",
-                }}
-              />
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                {filteredDestinations
-                  .filter((dest) => dest !== "Any")
-                  .map((destination) => (
-                    <HeroButton
-                      key={destination}
-                      size="sm"
-                      variant={
-                        safeFilters.destination === destination
-                          ? "solid"
-                          : "bordered"
-                      }
-                      color={
-                        safeFilters.destination === destination
-                          ? "primary"
-                          : "default"
-                      }
-                      onPress={() => {
-                        setDestinationInput(destination);
-                        handleDestinationSelect(destination);
-                      }}
-                      className="text-sm"
-                    >
-                      {destination}
-                    </HeroButton>
-                  ))}
-              </div>
-            </div> */}
-            {/* <DropdownMenu
-              open={openDropdown === "destination"}
-              onOpenChange={(open) =>
-                setOpenDropdown(open ? "destination" : null)
-              }
-            >
-              <DropdownMenuTrigger asChild className="">
-                <Button
-                  variant={"outline"}
-                  className="bg-card rounded-full px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-                  aria-label="Destination filter"
-                >
-                  {safeFilters.destination && safeFilters.destination !== "Any"
-                    ? safeFilters.destination
-                    : "Destination"}
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="p-3 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
-                <style>
-                  {`
-              [data-slot="input-wrapper"] {
-                border: none !important;
-              }
-              [data-slot="input-wrapper"]::after {
-                display: none !important;
-              }
-            `}
-                </style>
-                <div
-                  style={
-                    {
-                      outline: "none",
-                      boxShadow: "none",
-                      "--tw-ring-shadow": "none",
-                      "--tw-ring-color": "transparent",
-                      "--tw-ring-offset-shadow": "none",
-                    } as React.CSSProperties
-                  }
-                >
-                  <Input
-                    variant="underlined"
-                    id="destination-input"
-                    type="text"
-                    placeholder="Type city or country..."
-                    value={destinationInput}
-                    onChange={(e) => setDestinationInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (
-                        e.key === "Enter" &&
-                        !filteredDestinations.some(
-                          (opt) =>
-                            opt.toLowerCase() ===
-                            destinationInput.trim().toLowerCase()
-                        )
-                      ) {
-                        onFilterChange({
-                          ...safeFilters,
-                          destination: destinationInput,
-                        });
-                        setOpenDropdown(null);
-                      }
-                    }}
-                    style={
-                      {
-                        outline: "none",
-                        boxShadow: "none",
-                        "--tw-ring-shadow": "none",
-                        "--tw-ring-color": "transparent",
-                        "--tw-ring-offset-shadow": "none",
-                        background: "transparent",
-                        backgroundColor: "transparent",
-                        height: "32px",
-                        paddingTop: "4px",
-                        paddingBottom: "4px",
-                      } as React.CSSProperties
-                    }
-                    className="mb-2"
-                    aria-label="Destination filter"
-                    autoFocus
-                  />
-                </div>
-                <div className="max-h-[500px] overflow-y-auto">
-                  {filteredDestinations.filter((dest) => dest !== "Any")
-                    .length > 0 ? (
-                    filteredDestinations
-                      .filter((destination) => destination !== "Any")
-                      .map((destination) => (
-                        <DropdownMenuItem
-                          key={destination}
-                          className={
-                            "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
-                          }
-                          aria-pressed={safeFilters.destination === destination}
-                          tabIndex={0}
-                          aria-label={destination}
-                          onClick={() => {
-                            setDestinationInput(destination);
-                            onFilterChange({ ...safeFilters, destination });
-                            setOpenDropdown(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              setDestinationInput(destination);
-                              onFilterChange({ ...safeFilters, destination });
-                              setOpenDropdown(null);
-                            }
-                          }}
-                        >
-                          {destination}
-                          {safeFilters.destination === destination && (
-                            <Check
-                              className="w-4 h-4 ml-auto text-primary"
-                              aria-hidden="true"
-                            />
-                          )}
-                        </DropdownMenuItem>
-                      ))
-                  ) : (
-                    <div className="px-4 py-2 text-sm text-muted-foreground">
-                      No matches
-                    </div>
-                  )}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu> */}
-
             <ListboxWrapper>
               <style>
                 {`
@@ -568,7 +426,13 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   type="text"
                   placeholder="Type city or country..."
                   value={destinationInput}
-                  onChange={(e) => setDestinationInput(e.target.value)}
+                  onChange={(e) => {
+                    setDestinationInput(e.target.value);
+                    setMobileFilters((prev) => ({
+                      ...prev,
+                      destination: e.target.value,
+                    }));
+                  }}
                   onKeyDown={(e) => {
                     if (
                       e.key === "Enter" &&
@@ -578,11 +442,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                           destinationInput.trim().toLowerCase()
                       )
                     ) {
-                      onFilterChange({
-                        ...safeFilters,
+                      setMobileFilters((prev) => ({
+                        ...prev,
                         destination: destinationInput,
-                      });
-                      setOpenDropdown(null);
+                      }));
                     }
                   }}
                   style={
@@ -610,30 +473,31 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                 selectedKeys={selectedKeys}
                 selectionMode="single"
                 variant="flat"
-                onSelectionChange={(keys) =>
-                  setSelectedKeys(keys as Set<string>)
-                }
+                onSelectionChange={(keys) => {
+                  setSelectedKeys(keys as Set<string>);
+                  const selected = Array.from(keys)[0];
+                  if (typeof selected === "string") {
+                    if (selected === ANY_DESTINATION) {
+                      setMobileFilters((prev) => ({
+                        ...prev,
+                        destination: ANY_DESTINATION,
+                      }));
+                      setDestinationInput("");
+                    } else {
+                      setMobileFilters((prev) => ({
+                        ...prev,
+                        destination: selected,
+                      }));
+                      setDestinationInput(selected);
+                    }
+                  }
+                }}
               >
-                {filteredDestinations.filter((dest) => dest !== "Any").length >
-                0 ? (
-                  filteredDestinations
-                    .filter((destination) => destination !== "Any")
-                    .map((destination) => (
-                      <ListboxItem key={destination}>
-                        {destination}
-                        {safeFilters.destination === destination && (
-                          <Check
-                            className="w-4 h-4 ml-auto text-primary"
-                            aria-hidden="true"
-                          />
-                        )}
-                      </ListboxItem>
-                    ))
-                ) : (
-                  <div className="px-4 py-2 text-sm text-muted-foreground">
-                    No matches
-                  </div>
-                )}
+                {filteredDestinations
+                  .filter((destination) => destination !== ANY_DESTINATION)
+                  .map((destination) => (
+                    <ListboxItem key={destination}>{destination}</ListboxItem>
+                  ))}
               </Listbox>
             </ListboxWrapper>
 
@@ -645,7 +509,16 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
               <div className="flex justify-center w-full">
                 <RangeCalendar
                   calendarWidth={"full"}
-                  value={calendarValue as any}
+                  value={
+                    (() => {
+                      const start = dateToCalendarDate(mobileFilters.dateStart);
+                      const end = dateToCalendarDate(mobileFilters.dateEnd);
+                      if (start && end) return { start, end };
+                      if (start) return { start };
+                      if (end) return { end };
+                      return null;
+                    })() as any
+                  }
                   onChange={(range: { start?: DateValue; end?: DateValue }) => {
                     const start =
                       range.start instanceof CalendarDate
@@ -653,11 +526,11 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                         : undefined;
                     const end =
                       range.end instanceof CalendarDate ? range.end : undefined;
-                    onFilterChange({
-                      ...safeFilters,
+                    setMobileFilters((prev) => ({
+                      ...prev,
                       dateStart: start ? calendarDateToDate(start) : undefined,
                       dateEnd: end ? calendarDateToDate(end) : undefined,
-                    });
+                    }));
                   }}
                   minValue={today(getLocalTimeZone())}
                   classNames={{
@@ -679,23 +552,15 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   </h3>
                   <div className="px-2">
                     <Slider
-                      value={ageRange}
+                      value={[mobileFilters.ageMin, mobileFilters.ageMax]}
                       onChange={(value) => {
-                        if (Array.isArray(value) && value.length === 2)
-                          setAgeRange(value as [number, number]);
-                      }}
-                      onChangeEnd={(value) => {
-                        if (
-                          Array.isArray(value) &&
-                          value.length === 2 &&
-                          (value[0] !== safeFilters.ageMin ||
-                            value[1] !== safeFilters.ageMax)
-                        ) {
-                          onFilterChange({
-                            ...safeFilters,
+                        if (Array.isArray(value) && value.length === 2) {
+                          setMobileFilters((prev) => ({
+                            ...prev,
                             ageMin: value[0],
                             ageMax: value[1],
-                          });
+                          }));
+                          setAgeRange(value as [number, number]);
                         }
                       }}
                       minValue={18}
@@ -704,26 +569,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                       size="sm"
                       label="Age Range"
                     />
-                    {/* <DropdownMenu
-                      open={openDropdown === "age"}
-                      onOpenChange={(open) =>
-                        setOpenDropdown(open ? "age" : null)
-                      }
-                    >
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-                          aria-label="Age range filter"
-                        >
-                          Age Range
-                          <ChevronDown className="ml-2 w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="p-4 min-w-[350px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
-                        
-                      </DropdownMenuContent>
-                    </DropdownMenu> */}
                   </div>
                 </div>
 
@@ -738,14 +583,21 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                         <HeroButton
                           key={option}
                           variant={
-                            safeFilters.gender === option ? "solid" : "bordered"
+                            mobileFilters.gender === option
+                              ? "solid"
+                              : "bordered"
                           }
                           color={
-                            safeFilters.gender === option
+                            mobileFilters.gender === option
                               ? "primary"
                               : "default"
                           }
-                          onPress={() => handleGenderChange(option)}
+                          onPress={() =>
+                            setMobileFilters((prev) => ({
+                              ...prev,
+                              gender: option,
+                            }))
+                          }
                           className="flex-1"
                         >
                           {option}
@@ -761,97 +613,22 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     Interests
                   </h3>
                   <ListboxWrapper>
-                    <style>
-                      {`
-              [data-slot="input-wrapper"] {
-                border: none !important;
-              }
-              [data-slot="input-wrapper"]::after {
-                display: none !important;
-              }
-            `}
-                    </style>
-                    <div
-                      style={
-                        {
-                          outline: "none",
-                          boxShadow: "none",
-                          "--tw-ring-shadow": "none",
-                          "--tw-ring-color": "transparent",
-                          "--tw-ring-offset-shadow": "none",
-                        } as React.CSSProperties
-                      }
-                    >
-                      {/* <Input
-                      variant="underlined"
-                      id="destination-input"
-                      type="text"
-                      placeholder="Type city or country..."
-                      value={destinationInput}
-                      onChange={(e) => setDestinationInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (
-                          e.key === "Enter" &&
-                          !filteredDestinations.some(
-                            (opt) =>
-                              opt.toLowerCase() ===
-                              destinationInput.trim().toLowerCase()
-                          )
-                        ) {
-                          onFilterChange({
-                            ...safeFilters,
-                            destination: destinationInput,
-                          });
-                          setOpenDropdown(null);
-                        }
-                      }}
-                      style={
-                        {
-                          outline: "none",
-                          boxShadow: "none",
-                          "--tw-ring-shadow": "none",
-                          "--tw-ring-color": "transparent",
-                          "--tw-ring-offset-shadow": "none",
-                          background: "transparent",
-                          backgroundColor: "transparent",
-                          height: "32px",
-                          paddingTop: "4px",
-                          paddingBottom: "4px",
-                        } as React.CSSProperties
-                      }
-                      className="mb-2"
-                      aria-label="Destination filter"
-                      autoFocus
-                    /> */}
-                    </div>
                     <Listbox
                       disallowEmptySelection
                       aria-label="Single selection example"
-                      selectedKeys={selectedKeys}
+                      selectedKeys={new Set(mobileFilters.interests)}
                       selectionMode="multiple"
                       variant="flat"
-                      onSelectionChange={(keys) =>
-                        setSelectedKeys(keys as Set<string>)
-                      }
+                      onSelectionChange={(keys) => {
+                        setMobileFilters((prev) => ({
+                          ...prev,
+                          interests: Array.from(keys) as string[],
+                        }));
+                      }}
                     >
-                      {filteredDestinations.filter((dest) => dest !== "Any")
-                        .length > 0 ? (
-                        INTEREST_OPTIONS.map((interest) => (
-                          <ListboxItem key={interest}>
-                            {interest}
-                            {safeFilters.destination === interest && (
-                              <Check
-                                className="w-4 h-4 ml-auto text-primary"
-                                aria-hidden="true"
-                              />
-                            )}
-                          </ListboxItem>
-                        ))
-                      ) : (
-                        <div className="px-4 text-sm text-muted-foreground">
-                          No matches
-                        </div>
-                      )}
+                      {INTEREST_OPTIONS.map((interest) => (
+                        <ListboxItem key={interest}>{interest}</ListboxItem>
+                      ))}
                     </Listbox>
                   </ListboxWrapper>
                 </div>
@@ -865,14 +642,24 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
               variant="bordered"
               onPress={() => {
                 onFilterChange(DEFAULT_FILTERS);
+                setMobileFilters(DEFAULT_FILTERS);
                 setAgeRange([18, 99]);
                 setDestinationInput("");
+                setSelectedKeys(new Set([ANY_DESTINATION]));
+                onClose();
               }}
               className="flex-1"
             >
               Clear All
             </HeroButton>
-            <HeroButton color="primary" onPress={onClose} className="flex-1">
+            <HeroButton
+              color="primary"
+              onPress={() => {
+                onFilterChange(mobileFilters);
+                onClose();
+              }}
+              className="flex-1"
+            >
               Apply Filters
             </HeroButton>
           </div>
@@ -1177,12 +964,6 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   }}
                 >
                   {interest}
-                  {safeFilters.interests.includes(interest) && (
-                    <Check
-                      className="w-4 h-4 ml-auto text-primary"
-                      aria-hidden="true"
-                    />
-                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
