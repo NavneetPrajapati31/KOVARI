@@ -984,19 +984,19 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
       ) : (
         // Mobile: Show filter button that opens modal for screens <1024px
         <div className="flex items-center gap-2">
-          <HeroButton
-            variant="bordered"
-            startContent={<Filter className="w-4 h-4" />}
-            onPress={onOpen}
-            className="rounded-full border-primary/30 bg-card text-primary font-medium"
+          <Button
+            variant={"outline"}
+            onClick={onOpen}
+            className="rounded-2xl !px-4 border-primary/30 bg-card text-primary font-medium"
           >
+            <Filter className="w-4 h-4" />
             Filters
             {getActiveFiltersCount() > 0 && (
               <Badge className="ml-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
                 {getActiveFiltersCount()}
               </Badge>
             )}
-          </HeroButton>
+          </Button>
           <MobileFiltersModal />
         </div>
       )}
