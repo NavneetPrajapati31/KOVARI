@@ -2,6 +2,7 @@
 import { useState, KeyboardEvent } from "react";
 import { Button } from "../ui/button";
 import ExploreFilters from "./ExploreFilters";
+import React from "react";
 
 const TABS = [{ label: "Travelers" }, { label: "Groups" }];
 
@@ -23,13 +24,15 @@ interface ExploreHeaderProps {
   onDropdownOpenChange?: (isOpen: boolean) => void;
 }
 
-export default function ExploreHeader({
-  activeTab,
-  onTabChange,
-  filters,
-  onFilterChange,
-  onDropdownOpenChange,
-}: ExploreHeaderProps) {
+const ExploreHeader = (props: ExploreHeaderProps) => {
+  const {
+    activeTab,
+    onTabChange,
+    filters,
+    onFilterChange,
+    onDropdownOpenChange,
+  } = props;
+
   const handleTabClick = (index: number) => {
     onTabChange(index);
   };
@@ -78,4 +81,6 @@ export default function ExploreHeader({
       </div>
     </div>
   );
-}
+};
+
+export default React.memo(ExploreHeader);

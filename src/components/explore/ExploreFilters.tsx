@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+import React from "react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Slider,
@@ -120,6 +120,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   mode,
   onDropdownOpenChange,
 }) => {
+  console.log("ExploreFilters mounted");
   const safeFilters = filters ?? DEFAULT_FILTERS;
   const [isDesktop, setIsDesktop] = useState(false);
   const [isSmallMobile, setIsSmallMobile] = useState(false);
@@ -161,9 +162,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   // Add local state for mobile filters
   const [mobileFilters, setMobileFilters] = useState<FiltersState>(safeFilters);
 
-  // Sync mobileFilters with parent filters when modal opens
+  // Sync mobileFilters with parent filters only when modal is opened (not on every prop change)
+  const prevIsOpen = useRef(isOpen);
   useEffect(() => {
-    if (isOpen) {
+    if (!prevIsOpen.current && isOpen) {
       setMobileFilters(safeFilters);
       setAgeRange([safeFilters.ageMin, safeFilters.ageMax]);
       setDestinationInput(safeFilters.destination || "");
@@ -175,6 +177,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
         ])
       );
     }
+    prevIsOpen.current = isOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -641,11 +644,11 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <HeroButton
               variant="bordered"
               onPress={() => {
-                onFilterChange(DEFAULT_FILTERS);
                 setMobileFilters(DEFAULT_FILTERS);
                 setAgeRange([18, 99]);
                 setDestinationInput("");
                 setSelectedKeys(new Set([ANY_DESTINATION]));
+                onFilterChange(DEFAULT_FILTERS);
                 onClose();
               }}
               className="flex-1"
@@ -1001,4 +1004,4 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   );
 };
 
-export default ExploreFilters;
+export default React.memo(ExploreFilters);
