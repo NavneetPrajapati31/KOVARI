@@ -4,9 +4,33 @@ import { useState } from "react";
 import { Card, Image, Skeleton, Divider } from "@heroui/react";
 import { Avatar } from "@/components/ui/avatar";
 import { MapPin, Calendar, Users, Loader2 } from "lucide-react";
-import type { GroupCardProps } from "@/types/group";
 import SkeletonCard from "./SkeletonCard";
 import { Button } from "../ui/button";
+
+interface GroupCardProps {
+  group: {
+    id: string;
+    name: string;
+    privacy: "public" | "private" | "invite-only";
+    destination: string;
+    dateRange: {
+      start: Date;
+      end?: Date;
+      isOngoing: boolean;
+    };
+    memberCount: number;
+    userStatus: "member" | "pending" | "blocked" | null;
+    creator: {
+      name: string;
+      avatar?: string;
+    };
+  };
+  onAction: (
+    groupId: string,
+    action: "view" | "request" | "join"
+  ) => Promise<void>;
+  isLoading?: boolean;
+}
 
 export function GroupCard({
   group,
@@ -81,7 +105,7 @@ export function GroupCard({
   const buttonConfig = getActionButton();
 
   if (isLoading) {
-    return <SkeletonCard />;
+    return <SkeletonCard card="group" />;
   }
 
   return (
@@ -156,7 +180,7 @@ export function GroupCard({
             {buttonConfig.text}
           </Button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-2 justify-center items-center">
             <Button
               color="primary"
               className="w-1/2 gap-2 font-semibold rounded-lg"

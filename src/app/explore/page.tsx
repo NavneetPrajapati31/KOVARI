@@ -1,28 +1,29 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import ExploreHeader from "@/components/explore/ExploreHeader";
+import ExploreResults from "@/components/explore/ExploreResults";
 
 export default function ExplorePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return tab === "groups" ? 1 : 0;
+  });
+
+  const handleTabChange = (index: number) => {
+    setActiveTab(index);
+    const newTab = index === 1 ? "groups" : "travelers";
+    router.push(`/explore?tab=${newTab}`, { scroll: false });
+  };
+
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6 h-screen">
-      <Card>
-        <CardHeader>
-          <CardTitle>Coming Soon</CardTitle>
-          <CardDescription>
-            We&apos;re working on something exciting for you!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Our team is working hard to bring you an explore page. Stay tuned
-            for updates!
-          </p>
-        </CardContent>
-      </Card>
+    <div className="flex flex-col w-full min-h-screen">
+      <ExploreHeader activeTab={activeTab} onTabChange={handleTabChange} />
+      <div className="w-full flex-1 px-4">
+        <ExploreResults activeTab={activeTab} />
+      </div>
     </div>
   );
 }
