@@ -7,10 +7,11 @@ import { z } from "zod";
 const GroupSchema = z.object({
   name: z.string().min(3),
   destination: z.string().min(2),
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  start_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/),
+  end_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/),
   is_public: z.boolean(),
   description: z.string().max(500).optional(),
+  cover_image: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -18,8 +19,28 @@ export async function POST(req: Request) {
     const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
 
-    const body = await req.json();
-    const parsed = GroupSchema.safeParse(body);
+    let body: any;
+    let parsed;
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      body = {
+        name: formData.get("name"),
+        destination: formData.get("destination"),
+        start_date: formData.get("start_date"),
+        end_date: formData.get("end_date"),
+        is_public: String(formData.get("is_public")) === "true",
+        description: formData.get("description") || undefined,
+        cover_image:
+          formData.get("cover_image") instanceof File
+            ? (formData.get("cover_image") as File).name // You may want to upload the file to storage and get a URL here
+            : formData.get("cover_image") || undefined,
+      };
+      parsed = GroupSchema.safeParse(body);
+    } else {
+      body = await req.json();
+      parsed = GroupSchema.safeParse(body);
+    }
 
     if (!parsed.success) {
       console.error("Validation error:", parsed.error);
@@ -69,6 +90,7 @@ export async function POST(req: Request) {
     const payload = {
       creator_id: userRow.id,
       ...parsed.data,
+      cover_image: parsed.data.cover_image || null,
     };
 
     console.log("Attempting to insert payload:", payload);

@@ -3,9 +3,9 @@ import { Card, Skeleton } from "@heroui/react";
 
 export default function GroupCardSkeleton() {
   return (
-    <Card className="w-full max-w-[600px] h-[300px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
+    <Card className="w-full max-w-[600px] h-[350px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
       {/* Image skeleton */}
-      <div className="relative w-full h-[140px] overflow-hidden mb-7">
+      <div className="relative w-full h-[160px] overflow-hidden mb-10">
         <Skeleton className="absolute inset-0 w-full h-full rounded-t-2xl" />
       </div>
       {/* Content skeleton */}

@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
+import type React from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-// import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectItem } from "@heroui/react";
 import { DatePicker } from "@heroui/react";
@@ -19,6 +19,7 @@ import { getLocalTimeZone, today } from "@internationalized/date";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Switch } from "@heroui/switch";
+import { ImageUpload } from "../image-upload";
 
 const destinations = [
   { value: "paris", label: "Paris, France" },
@@ -71,11 +72,11 @@ const formSchema = z
       .string()
       .max(500, "Description cannot exceed 500 characters")
       .optional(),
+    coverImage: z.union([z.instanceof(File), z.string()]).optional(),
   })
   .refine(
     (data) => {
       if (data.startDate && data.endDate) {
-        // Compare dates by setting time to midnight to ignore time differences
         const start = new Date(data.startDate);
         start.setHours(0, 0, 0, 0);
         const end = new Date(data.endDate);
@@ -138,17 +139,25 @@ export function GroupCreationForm() {
       });
       return false;
     } else {
-      // Clear the error if dates are valid
       setFormError("endDate", {
         type: "manual",
         message: undefined,
       });
-      // Clear any existing errors
       if (errors.endDate) {
         delete errors.endDate;
       }
       return true;
     }
+  };
+
+  const handleImageUpload = (file: File | string) => {
+    setValue("coverImage", file);
+    trigger("coverImage");
+  };
+
+  const handleImageRemove = () => {
+    setValue("coverImage", undefined);
+    trigger("coverImage");
   };
 
   const isFormValid = () => {
@@ -161,7 +170,6 @@ export function GroupCreationForm() {
 
     const hasNoErrors = Object.keys(errors).length === 0;
 
-    // Additional check for date validation
     const datesAreValid = Boolean(
       watchedValues.startDate &&
         watchedValues.endDate &&
@@ -179,6 +187,7 @@ export function GroupCreationForm() {
         destination: watchedValues.destination,
         startDate: watchedValues.startDate,
         endDate: watchedValues.endDate,
+        coverImage: watchedValues.coverImage,
       },
     });
 
@@ -190,22 +199,43 @@ export function GroupCreationForm() {
       setIsSubmitting(true);
       setError(null);
 
-      const payload = {
-        name: data.groupName,
-        destination: data.destination,
-        start_date: format(data.startDate, "yyyy-MM-dd"),
-        end_date: format(data.endDate, "yyyy-MM-dd"),
-        is_public: data.isPublic,
-        description: data.description || undefined,
-      };
+      let response;
+      // If coverImage is a File, use FormData
+      if (data.coverImage instanceof File) {
+        const formData = new FormData();
+        formData.append("name", data.groupName);
+        formData.append("destination", data.destination);
+        formData.append("start_date", format(data.startDate, "yyyy-MM-dd"));
+        formData.append("end_date", format(data.endDate, "yyyy-MM-dd"));
+        formData.append("is_public", String(data.isPublic));
+        if (data.description) {
+          formData.append("description", data.description);
+        }
+        formData.append("cover_image", data.coverImage);
 
-      const response = await fetch("/api/create-group", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+        response = await fetch("/api/create-group", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        // coverImage is a string (URL) or undefined
+        const payload = {
+          name: data.groupName,
+          destination: data.destination,
+          start_date: format(data.startDate, "yyyy-MM-dd"),
+          end_date: format(data.endDate, "yyyy-MM-dd"),
+          is_public: data.isPublic,
+          description: data.description || undefined,
+          cover_image: data.coverImage,
+        };
+        response = await fetch("/api/create-group", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -332,7 +362,6 @@ export function GroupCreationForm() {
                         );
                       }
 
-                      // If end date is before new start date, update it
                       if (
                         watchedValues.endDate &&
                         newStartDate > watchedValues.endDate
@@ -402,6 +431,14 @@ export function GroupCreationForm() {
               </div>
             </div>
 
+            <ImageUpload
+              label="Upload Group Cover Image"
+              onImageUpload={handleImageUpload}
+              onImageRemove={handleImageRemove}
+              maxSizeInMB={10}
+              acceptedFormats={["PNG", "JPG", "JPEG", "WEBP"]}
+            />
+
             <div className="space-y-2">
               <Label
                 htmlFor="description"
@@ -446,10 +483,6 @@ export function GroupCreationForm() {
                 className="data-[state=checked]:bg-primary"
               />
             </div>
-            {/* <p className="text-xs text-muted-foreground">
-              Public groups can be discovered and joined by anyone. Private
-              groups are only visible to invited members.
-            </p> */}
 
             <Button
               type="submit"

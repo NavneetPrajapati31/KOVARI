@@ -32,6 +32,7 @@ export interface Group {
     avatar?: string;
   };
   created_at: string;
+  cover_image?: string;
 }
 
 // Add FiltersState type (should be moved to a shared types file in production)
@@ -226,7 +227,8 @@ export const fetchPublicGroups = async (
       start_date,
       end_date,
       creator_id,
-      created_at
+      created_at,
+      cover_image
     `
     )
     .eq("is_public", true)
@@ -329,6 +331,7 @@ export const fetchPublicGroups = async (
         avatar: creatorProfiles[group.creator_id]?.profile_photo || undefined,
       },
       created_at: group.created_at,
+      cover_image: group.cover_image || undefined,
     };
   });
 
