@@ -1,138 +1,155 @@
-"use client"
+"use client";
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Calendar, MapPin, Clock, Users } from "lucide-react"
+import { useState } from "react";
+import { Card, CardBody } from "@heroui/react";
+import { Avatar } from "@heroui/react";
+import { Calendar, MapPin, Loader2 } from "lucide-react";
+import { Button } from "../ui/button";
 
 interface GroupInvite {
-    id: string
-    groupName: string
-    creator: {
-      name: string
-      avatar: string
-      initials: string
-    }
-    destination?: string
-    dates?: string
-    description: string
-    teamMembers: {
-      avatar: string
-      initials: string
-      color: string
-    }[]
-    acceptedCount: number
-    expiresInDays: number
-    inviteDate: string
-  }
-  
-
-interface GroupInviteCardProps {
-  invite: GroupInvite
-  onAccept: () => void
-  onDecline: () => void
+  id: string;
+  groupName: string;
+  creator: {
+    name: string;
+    avatar: string;
+    initials: string;
+  };
+  destination?: string;
+  dates?: string;
+  description: string;
+  teamMembers: {
+    avatar: string;
+    initials: string;
+    color: string;
+  }[];
+  acceptedCount: number;
+  expiresInDays: number;
+  inviteDate: string;
 }
 
-export function GroupInviteCard({ invite, onAccept, onDecline }: GroupInviteCardProps) {
-  const remainingMembers = Math.max(0, invite.acceptedCount - invite.teamMembers.length)
+interface GroupInviteCardProps {
+  invite: GroupInvite;
+  onAccept: () => void;
+  onDecline: () => void;
+}
+
+export function GroupInviteCard({
+  invite,
+  onAccept,
+  onDecline,
+}: GroupInviteCardProps) {
+  const [actionLoading, setActionLoading] = useState(false);
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-white shadow-lg p-1 rounded-md">
-      <CardContent className="p-6">
-        {/* Date Header */}
-        <div className="text-sm text-gray-500 mb-4">{invite.inviteDate}</div>
-
-        {/* Title */}
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Pending invite</h2>
-
-        {/* Creator Avatar */}
-        <div className="flex justify-center mb-4">
-          <Avatar className="w-16 h-16 bg-blue-500">
-            <AvatarImage src={invite.creator.avatar || "/placeholder.svg"} alt={invite.creator.name} />
-            <AvatarFallback className="bg-blue-500 text-white text-lg font-semibold">
-              {invite.creator.initials}
-            </AvatarFallback>
-          </Avatar>
+    <Card className="w-full max-w-[600px] h-[290px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+      <CardBody className="px-5 py-4 relative">
+        {/* Profile Section with Avatar and User Info */}
+        <div className="flex items-center gap-4 mb-2">
+          {/* Creator Avatar */}
+          <Avatar
+            src={invite.creator.avatar || "/placeholder.svg"}
+            alt={`${invite.creator.name}'s profile`}
+            size="md"
+          />
+          {/* Group Info - Right of Avatar */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <h2 className="text-md font-bold text-foreground truncate">
+              {invite.groupName}
+            </h2>
+            <p className="text-muted-foreground text-xs truncate">
+              by {invite.creator.name}
+            </p>
+          </div>
         </div>
 
-        {/* Invitation Text */}
-        <div className="text-center mb-4">
-          <p className="text-lg text-gray-900 mb-2">
-            <span className="font-semibold">{invite.creator.name}</span> invited you to the project
+        <div className="text-left mb-4">
+          <p className="text-muted-foreground text-xs leading-relaxed line-clamp-2">
+            {invite.description}
           </p>
-          <p className="text-lg font-semibold text-gray-900 mb-3">"{invite.groupName}"</p>
         </div>
 
-        {/* Description */}
-        <p className="text-gray-600 text-center mb-6 leading-relaxed">{invite.description}</p>
+        {/* Invitation Details */}
+        <div className="text-left">
+          {invite.dates && (
+            <div className="flex items-center gap-2 text-primary text-sm font-medium mb-2">
+              <Calendar className="w-4 h-4" />
+              <span className="text-xs">{invite.dates}</span>
+            </div>
+          )}
+          {invite.destination && (
+            <div className="flex items-center gap-2">
+              <MapPin
+                className="w-4 h-4 text-muted-foreground"
+                aria-label="Destination"
+              />
+              <span className="text-xs text-foreground">
+                {invite.destination}
+              </span>
+            </div>
+          )}
+        </div>
 
-        {/* Destination and Dates */}
-        {(invite.destination || invite.dates) && (
-          <div className="flex flex-col sm:flex-row gap-4 mb-6 text-sm text-gray-600">
-            {invite.destination && (
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                <span>{invite.destination}</span>
-              </div>
-            )}
-            {invite.dates && (
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>{invite.dates}</span>
-              </div>
-            )}
+        {/* Member Avatars Row with Count and Text */}
+        {invite.teamMembers && invite.teamMembers.length > 0 && (
+          <div className="flex items-center gap-3 mt-4 mb-2">
+            <div className="flex -space-x-2">
+              {invite.teamMembers.slice(0, 2).map((member, idx) => (
+                <Avatar
+                  key={idx}
+                  src={member.avatar || "/placeholder.svg"}
+                  alt={member.initials}
+                  size="sm"
+                  className={`border-2 border-white ${member.color}`}
+                />
+              ))}
+              {invite.teamMembers.length < invite.acceptedCount && (
+                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-violet-300 text-white text-xs font-semibold border-2 border-white">
+                  +{invite.acceptedCount - invite.teamMembers.length}
+                </div>
+              )}
+            </div>
+            <span className="text-muted-foreground text-xs line-clamp-2">
+              {invite.acceptedCount} people already joined the group including{" "}
+              {invite.teamMembers[0]?.initials || "a member"}.
+            </span>
           </div>
         )}
-
-        {/* Team Members */}
-        <div className="flex justify-center mb-4">
-          <div className="flex -space-x-2">
-            {invite.teamMembers.map((member, index) => (
-              <Avatar key={index} className={`w-8 h-8 border-2 border-white ${member.color}`}>
-                <AvatarImage src={member.avatar || "/placeholder.svg"} alt={`Team member ${member.initials}`} />
-                <AvatarFallback className={`${member.color} text-white text-xs font-semibold`}>
-                  {member.initials}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-            {remainingMembers > 0 && (
-              <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
-                <span className="text-xs font-semibold text-gray-600">+{remainingMembers}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Acceptance Status */}
-        <div className="text-center mb-6">
-          <p className="text-sm text-gray-600 flex items-center justify-center gap-1">
-            <Users className="w-4 h-4" />
-            {invite.acceptedCount} from your team have already accepted
-          </p>
-        </div>
-
-        {/* Expiration Notice */}
-        <div className="text-center mb-6">
-          <p className="text-sm text-gray-500 flex items-center justify-center gap-1">
-            <Clock className="w-4 h-4" />
-            Your invitation expires in {invite.expiresInDays} days
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3 justify-center">
+      </CardBody>
+      <div className="px-5 pb-5 mt-auto">
+        <div className="flex gap-2 justify-center items-center">
           <Button
-            variant="outline"
-            onClick={onDecline}
-            className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+            color="primary"
+            className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
+            aria-label="Accept Invitation"
+            tabIndex={0}
+            disabled={actionLoading}
+            onClick={() => {
+              setActionLoading(true);
+              onAccept();
+              setTimeout(() => setActionLoading(false), 1000);
+            }}
           >
+            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            Accept
+          </Button>
+          <Button
+            color="primary"
+            variant="outline"
+            className="border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
+            aria-label="Decline Invitation"
+            tabIndex={0}
+            disabled={actionLoading}
+            onClick={() => {
+              setActionLoading(true);
+              onDecline();
+              setTimeout(() => setActionLoading(false), 1000);
+            }}
+          >
+            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
             Decline
           </Button>
-          <Button onClick={onAccept} className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white">
-            Accept invitation
-          </Button>
         </div>
-      </CardContent>
+      </div>
     </Card>
-  )
+  );
 }

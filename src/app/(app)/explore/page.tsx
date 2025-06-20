@@ -69,7 +69,12 @@ export default function ExplorePage() {
   const searchParams = useSearchParams();
 
   // Helper to get tab index from searchParams
-  const getTabIndex = () => (searchParams.get("tab") === "groups" ? 1 : 0);
+  const getTabIndex = () => {
+    const tab = searchParams.get("tab");
+    if (tab === "groups") return 1;
+    if (tab === "invitations") return 2;
+    return 0;
+  };
 
   const [activeTab, setActiveTab] = useState(getTabIndex);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -110,7 +115,9 @@ export default function ExplorePage() {
   const handleTabChange = (index: number) => {
     if (index !== activeTab) {
       setActiveTab(index);
-      const newTab = index === 1 ? "groups" : "travelers";
+      let newTab = "travelers";
+      if (index === 1) newTab = "groups";
+      else if (index === 2) newTab = "invitations";
       router.push(`/explore?tab=${newTab}`, { scroll: false });
     }
   };
@@ -118,9 +125,12 @@ export default function ExplorePage() {
   const handleFilterChange = (newFilters: FiltersState) => {
     setFilters(newFilters);
     // Merge with current tab param
+    let tabParam = "travelers";
+    if (activeTab === 1) tabParam = "groups";
+    else if (activeTab === 2) tabParam = "invitations";
     const query: Record<string, string> = {
       ...serializeFiltersToQuery(newFilters),
-      tab: activeTab === 1 ? "groups" : "travelers",
+      tab: tabParam,
     };
     const queryString = Object.entries(query)
       .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)

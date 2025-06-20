@@ -4,7 +4,7 @@ import { createClient } from "./supabase";
 export interface Traveler {
   id: string;
   name: string;
-  username?: string;
+  username: string;
   age: number;
   bio: string;
   profilePhoto: string;

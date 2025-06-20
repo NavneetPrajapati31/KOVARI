@@ -4,13 +4,13 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import TravelerCard from "../cards/TravelerCard";
 import { GroupCard } from "../cards/GroupCard";
+import { GroupInviteCard } from "../cards/InvitationCard";
 import {
   fetchSoloTravelers,
   fetchPublicGroups,
   Traveler,
   Group,
 } from "@/lib/fetchExploreData";
-import { FiltersState } from "@/app/explore/page";
 
 type UserStatus = "member" | "pending" | "blocked" | null;
 
@@ -246,6 +246,145 @@ const dummyGroups = [
   },
 ];
 
+// Dummy data for invitations
+const dummyInvitations = [
+  {
+    id: "i1",
+    groupName: "Bali Adventure Squad",
+    creator: {
+      name: "Sarah Johnson",
+      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+      initials: "SJ",
+    },
+    destination: "Bali, Indonesia",
+    dates: "July 15 - July 30, 2024",
+    description: "Join us for an unforgettable adventure in Bali!",
+    teamMembers: [
+      {
+        avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+        initials: "MC",
+        color: "bg-blue-400",
+      },
+      {
+        avatar: "https://randomuser.me/api/portraits/women/68.jpg",
+        initials: "EW",
+        color: "bg-pink-400",
+      },
+    ],
+    acceptedCount: 2,
+    expiresInDays: 5,
+    inviteDate: "2024-06-01",
+  },
+  {
+    id: "i2",
+    groupName: "Tokyo Foodies",
+    creator: {
+      name: "Michael Chen",
+      avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+      initials: "MC",
+    },
+    destination: "Tokyo, Japan",
+    dates: "August 1 - August 15, 2024",
+    description: "Explore Tokyo's culinary scene with fellow food lovers!",
+    teamMembers: [
+      {
+        avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+        initials: "SJ",
+        color: "bg-green-400",
+      },
+      {
+        avatar: "https://randomuser.me/api/portraits/men/75.jpg",
+        initials: "DK",
+        color: "bg-yellow-400",
+      },
+    ],
+    acceptedCount: 3,
+    expiresInDays: 3,
+    inviteDate: "2024-06-03",
+  },
+  {
+    id: "i3",
+    groupName: "Barcelona Art Lovers",
+    creator: {
+      name: "Emma Wilson",
+      avatar: "https://randomuser.me/api/portraits/women/68.jpg",
+      initials: "EW",
+    },
+    destination: "Barcelona, Spain",
+    dates: "September 5 - September 20, 2024",
+    description: "Discover Barcelona's art and culture with us!",
+    teamMembers: [
+      {
+        avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+        initials: "MC",
+        color: "bg-blue-400",
+      },
+      {
+        avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+        initials: "SJ",
+        color: "bg-pink-400",
+      },
+    ],
+    acceptedCount: 4,
+    expiresInDays: 7,
+    inviteDate: "2024-06-05",
+  },
+  {
+    id: "i4",
+    groupName: "Thailand Backpackers",
+    creator: {
+      name: "David Kim",
+      avatar: "https://randomuser.me/api/portraits/men/75.jpg",
+      initials: "DK",
+    },
+    destination: "Bangkok, Thailand",
+    dates: "October 10 - October 25, 2024",
+    description: "Backpack through Thailand with a fun group!",
+    teamMembers: [
+      {
+        avatar: "https://randomuser.me/api/portraits/women/68.jpg",
+        initials: "EW",
+        color: "bg-purple-400",
+      },
+      {
+        avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+        initials: "MC",
+        color: "bg-blue-400",
+      },
+    ],
+    acceptedCount: 1,
+    expiresInDays: 10,
+    inviteDate: "2024-06-07",
+  },
+  {
+    id: "i5",
+    groupName: "Sydney Surf Crew",
+    creator: {
+      name: "Liam Brown",
+      avatar: "https://randomuser.me/api/portraits/men/23.jpg",
+      initials: "LB",
+    },
+    destination: "Sydney, Australia",
+    dates: "December 1 - December 15, 2024",
+    description: "Catch the best waves and enjoy the sun in Sydney!",
+    teamMembers: [
+      {
+        avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+        initials: "SJ",
+        color: "bg-orange-400",
+      },
+      {
+        avatar: "https://randomuser.me/api/portraits/men/75.jpg",
+        initials: "DK",
+        color: "bg-yellow-400",
+      },
+    ],
+    acceptedCount: 2,
+    expiresInDays: 15,
+    inviteDate: "2024-06-10",
+  },
+];
+
 const PAGE_SIZE = 20;
 
 // TODO: Move FiltersState to a shared types file and import here
@@ -307,6 +446,11 @@ export default function ExploreResults({
       setIsLoading(false);
       return;
     }
+    // Only fetch for Travelers and Groups tabs
+    if (activeTab === 2) {
+      setIsLoading(false);
+      return;
+    }
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
@@ -321,7 +465,7 @@ export default function ExploreResults({
           setTravelers(data);
           setTravelerCursor(nextCursor);
           setHasMoreTravelers(!!nextCursor);
-        } else {
+        } else if (activeTab === 1) {
           const { data, nextCursor } = await fetchPublicGroups(
             user.id,
             filters,
@@ -345,6 +489,8 @@ export default function ExploreResults({
   const handleLoadMore = useCallback(async () => {
     if (isFetchingMore || isLoading) return;
     if (!user) return;
+    // Only fetch for Travelers and Groups tabs
+    if (activeTab === 2) return;
     setIsFetchingMore(true);
     try {
       if (activeTab === 0 && hasMoreTravelers && travelerCursor) {
@@ -412,7 +558,12 @@ export default function ExploreResults({
 
   if (!isLoaded || isLoading) {
     const skeletonCount =
-      PAGE_SIZE - (activeTab === 0 ? travelers.length : groups.length);
+      PAGE_SIZE -
+      (activeTab === 0
+        ? travelers.length
+        : activeTab === 1
+        ? groups.length
+        : dummyInvitations.length);
     return (
       <div className="w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
@@ -422,15 +573,32 @@ export default function ExploreResults({
             activeTab === 0 ? (
               <TravelerCard
                 key={i}
-                traveler={{} as Traveler}
+                traveler={{
+                  id: "",
+                  name: "",
+                  username: "",
+                  age: 0,
+                  bio: "",
+                  profilePhoto: "",
+                  destination: "",
+                  travelDates: "",
+                  matchStrength: "medium",
+                }}
                 isLoading={true}
               />
-            ) : (
+            ) : activeTab === 1 ? (
               <GroupCard
                 key={i}
                 group={{} as Group}
                 onAction={handleGroupAction}
                 isLoading={true}
+              />
+            ) : (
+              <GroupInviteCard
+                key={i}
+                invite={dummyInvitations[0]}
+                onAccept={() => {}}
+                onDecline={() => {}}
               />
             )
           )}
@@ -460,23 +628,42 @@ export default function ExploreResults({
               No travelers found.
             </div>
           )
-        ) : groups.length > 0 ? (
-          groups.map((group) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              onAction={handleGroupAction}
-              isLoading={false}
+        ) : activeTab === 1 ? (
+          groups.length > 0 ? (
+            groups.map((group) => (
+              <GroupCard
+                key={group.id}
+                group={group}
+                onAction={handleGroupAction}
+                isLoading={false}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center text-muted-foreground py-8">
+              No groups found.
+            </div>
+          )
+        ) : dummyInvitations.length > 0 ? (
+          dummyInvitations.map((invite) => (
+            <GroupInviteCard
+              key={invite.id}
+              invite={invite}
+              onAccept={() => {}}
+              onDecline={() => {}}
             />
           ))
         ) : (
           <div className="col-span-full text-center text-muted-foreground py-8">
-            No groups found.
+            No invitations found.
           </div>
         )}
       </div>
       {/* Infinite scroll sentinel */}
-      {(activeTab === 0 ? hasMoreTravelers : hasMoreGroups) && (
+      {(activeTab === 0
+        ? hasMoreTravelers
+        : activeTab === 1
+        ? hasMoreGroups
+        : false) && (
         <div ref={loadMoreRef} className="w-full flex justify-center py-8">
           {isFetchingMore && (
             <span className="text-muted-foreground">Loading more...</span>

@@ -4,7 +4,11 @@ import { Button } from "../ui/button";
 import ExploreFilters from "./ExploreFilters";
 import React from "react";
 
-const TABS = [{ label: "Travelers" }, { label: "Groups" }];
+const TABS = [
+  { label: "Travelers" },
+  { label: "Groups" },
+  { label: "Invitations" },
+];
 
 interface FiltersState {
   destination: string;
@@ -60,7 +64,7 @@ const ExploreHeader = (props: ExploreHeaderProps) => {
             variant={"outline"}
             className={
               activeTab === idx
-                ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary"
+                ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
                 : "text-foreground/80 font-semibold bg-transparent rounded-2xl hover:text-primary"
             }
             onClick={() => handleTabClick(idx)}
@@ -71,14 +75,16 @@ const ExploreHeader = (props: ExploreHeaderProps) => {
         ))}
       </div>
       {/* Filters */}
-      <div className="flex flex-wrap gap-1 items-center flex-1 justify-end min-w-0 overflow-x-auto">
-        <ExploreFilters
-          filters={filters}
-          onFilterChange={onFilterChange}
-          mode={activeTab === 1 ? "group" : "traveler"}
-          onDropdownOpenChange={onDropdownOpenChange}
-        />
-      </div>
+      {activeTab !== 2 && (
+        <div className="flex flex-wrap gap-1 items-center flex-1 justify-end min-w-0 overflow-x-auto">
+          <ExploreFilters
+            filters={filters}
+            onFilterChange={onFilterChange}
+            mode={activeTab === 1 ? "group" : "traveler"}
+            onDropdownOpenChange={onDropdownOpenChange}
+          />
+        </div>
+      )}
     </div>
   );
 };
