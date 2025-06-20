@@ -10,6 +10,19 @@
     outline-opacity: 0.5;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom Scrollbar Styles */
+
+  /* Firefox */
+  * {
+    scroll-behavior: smooth;
+    scrollbar-width: 50px;
+    scrollbar-color: gray transparent;
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);

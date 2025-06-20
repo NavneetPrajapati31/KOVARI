@@ -59,7 +59,7 @@ const ImageStretch = ({
   );
 };
 
-export function GroupCardv2({
+export function MyGroupCard({
   group,
   onAction,
   isLoading = false,
@@ -199,58 +199,39 @@ export function GroupCardv2({
           </div>
           {/* Action button(s) at the bottom - keeping your exact logic */}
           <div className="px-5 pb-5 mt-auto">
-            {group?.userStatus === "member" ? (
+            <div className="flex gap-2 justify-center items-center">
               <Button
                 color="primary"
-                className="w-full gap-2 text-xs font-semibold rounded-lg bg-white/80 hover:bg-white text-gray-900"
+                className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
                 aria-label="View Group"
                 tabIndex={0}
                 disabled={actionLoading}
               >
                 {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-                View Group
+                Itinerary
               </Button>
-            ) : group?.userStatus === "pending" ||
-              group?.userStatus === "blocked" ? (
               <Button
                 color="primary"
-                className="w-full gap-2 text-xs font-semibold rounded-lg bg-white/95 hover:bg-white text-gray-900"
-                aria-label="status pending"
+                className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
+                aria-label="View Group"
                 tabIndex={0}
                 disabled={actionLoading}
               >
                 {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-                {buttonConfig?.text}
+                Chat
               </Button>
-            ) : (
-              <div className="flex gap-2 justify-center items-center">
-                <Button
-                  color="primary"
-                  className="w-1/2 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
-                  aria-label="View Group"
-                  tabIndex={0}
-                  disabled={actionLoading}
-                >
-                  {actionLoading && (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  )}
-                  View Group
-                </Button>
-                <Button
-                  color="primary"
-                  variant="outline"
-                  className="border-white/30 bg-white/10 hover:bg-white/20 border-1 hover:text-white w-1/2 gap-2 text-xs font-semibold rounded-lg text-white"
-                  aria-label="Request to Join"
-                  tabIndex={0}
-                  disabled={actionLoading}
-                >
-                  {actionLoading && (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  )}
-                  Request to Join
-                </Button>
-              </div>
-            )}
+              <Button
+                color="primary"
+                variant="outline"
+                className="border-white/30 bg-white/10 hover:bg-white/20 border-1 hover:text-white w-1/3 gap-2 text-xs font-semibold rounded-lg text-white"
+                aria-label="Request to Join"
+                tabIndex={0}
+                disabled={actionLoading}
+              >
+                {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+                View More
+              </Button>
+            </div>
           </div>
         </div>
       </div>
