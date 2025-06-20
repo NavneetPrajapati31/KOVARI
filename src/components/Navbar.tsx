@@ -136,7 +136,7 @@ export default function App({
 
   const menuItems = [
     {
-      key: "profile",
+      key: "auth",
       label: (
         <div className="h-14 gap-2">
           <p className="font-semibold">Signed in as</p>
@@ -146,16 +146,16 @@ export default function App({
         </div>
       ),
     },
-    // {
-    //   key: "settings",
-    //   label: "My Settings",
-    //   onClick: () => handleNavigation("/settings"),
-    // },
-    // {
-    //   key: "team_settings",
-    //   label: "Team Settings",
-    //   onClick: () => handleNavigation("/team-settings"),
-    // },
+    {
+      key: "profile",
+      label: "My Profile",
+      onClick: () => handleNavigation("/profile"),
+    },
+    {
+      key: "Groups",
+      label: "My Groups",
+      onClick: () => handleNavigation("/groups"),
+    },
     // {
     //   key: "analytics",
     //   label: "Analytics",
