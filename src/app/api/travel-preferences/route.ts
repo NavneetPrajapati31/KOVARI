@@ -7,7 +7,7 @@ const PreferencesSchema = z.object({
   destinations: z.array(z.string()).min(1),
   start_date: z.string(), // ISO date
   end_date: z.string(),
-  hobbies: z.array(z.string()).optional(),
+  interests: z.array(z.string()).optional(),
 });
 
 export async function POST(req: Request) {

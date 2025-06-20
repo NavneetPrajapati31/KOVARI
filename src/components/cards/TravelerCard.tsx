@@ -14,7 +14,7 @@ import {
 } from "@heroui/react";
 import { Check, Heart, X, Calendar, MapPin, User, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
-import SkeletonCard from "./SkeletonCard";
+import TravelerCardSkeleton from "../skeleton/TravelerCardSkeleton";
 
 interface TravelerCardProps {
   traveler: {
@@ -50,7 +50,7 @@ export default function TravelerCard({
   const [actionLoading, setActionLoading] = useState(false);
 
   if (isLoading) {
-    return <SkeletonCard card="traveler" />;
+    return <TravelerCardSkeleton />;
   }
 
   return (

@@ -57,11 +57,12 @@ export function useSyncUserToSupabase() {
       }
 
       // If user doesn't exist, create them
+      let userIdInSupabase = existingUser?.id;
       if (!existingUser) {
-        const { error: insertError } = await supabase
+        const { data: newUser, error: insertError } = await supabase
           .from("users")
           .insert({ clerk_user_id: userId })
-          .select()
+          .select("id")
           .single();
 
         if (insertError) {
@@ -73,9 +74,49 @@ export function useSyncUserToSupabase() {
           }
           return false;
         }
+        userIdInSupabase = newUser?.id;
       }
 
-      console.log("✅ User synced to Supabase successfully");
+      // --- Clerk username sync to profiles table ---
+      if (!userIdInSupabase) {
+        console.error("No Supabase user id found for Clerk user");
+        return false;
+      }
+      const clerkUsername = user.username || user.firstName || user.id;
+      // Check if profile exists for this user_id
+      const { data: profile, error: profileFetchError } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", userIdInSupabase)
+        .single();
+
+      if (profile) {
+        // Only update username if profile exists
+        const { error: profileUpdateError } = await supabase
+          .from("profiles")
+          .update({ username: clerkUsername })
+          .eq("user_id", userIdInSupabase);
+        if (profileUpdateError) {
+          console.error(
+            "Error updating username in profiles:",
+            profileUpdateError
+          );
+          if (retries > 0) {
+            console.log(`Retrying... ${retries} attempts left`);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            return syncUser(retries - 1);
+          }
+          return false;
+        }
+      } else {
+        // No profile row exists, skip upsert to avoid NOT NULL constraint errors
+        console.warn(
+          `No profile row found for user_id ${userIdInSupabase}, skipping username update.`
+        );
+      }
+      // --- End Clerk username sync ---
+
+      console.log("✅ User and username synced to Supabase successfully");
       return true;
     } catch (error) {
       console.error("Error in syncUser:", error);
