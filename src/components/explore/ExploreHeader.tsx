@@ -51,7 +51,7 @@ const ExploreHeader = (props: ExploreHeaderProps) => {
   };
 
   return (
-    <div className="w-full flex flex-row flex-wrap items-center gap-2 px-9 py-6">
+    <div className="w-full flex flex-row flex-wrap items-center gap-2 px-4 py-6">
       {/* Tabs */}
       <div className="flex gap-2 flex-shrink-0">
         {TABS.map((tab, idx) => (

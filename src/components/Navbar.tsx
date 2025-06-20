@@ -144,7 +144,7 @@ export default function App({
         onMenuOpenChange={setIsMenuOpen}
         className="backdrop-blur-3xl"
         classNames={{
-          wrapper: "max-w-full px-9",
+          wrapper: "max-w-full px-4",
         }}
       >
         <NavbarBrand>

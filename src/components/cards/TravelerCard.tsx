@@ -54,30 +54,30 @@ export default function TravelerCard({
   }
 
   return (
-    <Card className="w-full max-w-[360px] h-[265px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[600px] h-[235px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       <CardBody className="px-5 py-4 relative">
         {/* Profile Section with Avatar and User Info */}
         <div className="flex items-center gap-4 mb-2">
           {/* Profile Image */}
           <Avatar
-            src={traveler.profilePhoto || "/placeholder.svg?height=80&width=80"}
+            src={traveler.profilePhoto || "/placeholder.svg"}
             alt={`${traveler.name}'s profile`}
-            size="lg"
+            size="md"
           />
 
           {/* User Info - Right of Avatar */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <h2 className="text-lg font-bold text-foreground truncate">
+            <h2 className="text-md font-bold text-foreground truncate">
               {traveler.name}
             </h2>
-            <p className="text-muted-foreground text-sm truncate">
+            <p className="text-muted-foreground text-xs truncate">
               @{traveler.username}
             </p>
           </div>
         </div>
 
         <div className="text-left mb-4">
-          <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2">
+          <p className="text-muted-foreground text-xs leading-relaxed line-clamp-2">
             {traveler.bio}
           </p>
         </div>
@@ -85,15 +85,15 @@ export default function TravelerCard({
         {/* Travel Details */}
         <div className="text-left">
           <div className="flex items-center gap-2 text-primary text-sm font-medium mb-2">
-            <Calendar className="w-5 h-5" />
-            <span className="text-sm">{traveler.travelDates}</span>
+            <Calendar className="w-4 h-4" />
+            <span className="text-xs">{traveler.travelDates}</span>
           </div>
           <div className="flex items-center gap-2">
             <MapPin
               className="w-4 h-4 text-muted-foreground"
               aria-label="Destination"
             />
-            <span className="text-sm text-foreground">
+            <span className="text-xs text-foreground">
               {traveler.destination}
             </span>
           </div>
@@ -103,7 +103,7 @@ export default function TravelerCard({
         <div className="flex gap-2 justify-center items-center">
           <Button
             color="primary"
-            className="w-1/2 gap-2 font-semibold rounded-lg"
+            className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
             aria-label="Connect"
             tabIndex={0}
             disabled={actionLoading}
@@ -114,7 +114,7 @@ export default function TravelerCard({
           <Button
             color="primary"
             variant="outline"
-            className="border-1 w-1/2 gap-2 font-semibold rounded-lg"
+            className="border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
             aria-label="View Profile"
             tabIndex={0}
             disabled={actionLoading}
