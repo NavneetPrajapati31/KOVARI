@@ -5,6 +5,7 @@ import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
 import { MapPin, Calendar, Users, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import GroupCardSkeleton from "../skeleton/GroupCardSkeleton";
+import { useRouter } from "next/navigation";
 
 interface GroupCardProps {
   group: {
@@ -21,6 +22,7 @@ interface GroupCardProps {
     userStatus: "member" | "pending" | "blocked" | null;
     creator: {
       name: string;
+      username: string;
       avatar?: string;
     };
     cover_image?: string;
@@ -135,6 +137,8 @@ export function MyGroupCard({
     return <GroupCardSkeleton />;
   }
 
+  const router = useRouter();
+
   return (
     <Card className="relative w-full max-w-[600px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Background Image - now covers full card */}
@@ -193,7 +197,7 @@ export function MyGroupCard({
                 aria-label={`Avatar of ${group?.creator?.name}`}
               />
               <span className="text-white/80 font-medium text-xs truncate">
-                Created by {group?.creator?.name || "Unknown Creator"}
+                Created by @{group?.creator?.username || "Unknown Creator"}
               </span>
             </div>
           </div>
@@ -220,6 +224,7 @@ export function MyGroupCard({
                 {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
                 Chat
               </Button>
+
               <Button
                 color="primary"
                 variant="outline"
@@ -227,6 +232,7 @@ export function MyGroupCard({
                 aria-label="Request to Join"
                 tabIndex={0}
                 disabled={actionLoading}
+                onClick={() => router.push(`/groups/${group.id}/home`)}
               >
                 {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
                 View More
