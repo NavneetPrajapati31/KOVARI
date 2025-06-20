@@ -682,8 +682,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
         <DropdownMenuTrigger asChild className="">
           <Button
             variant={"outline"}
-            className="bg-card rounded-full px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-            aria-label="Destination filter"
+            className={`bg-card rounded-full px-4 py-2 text-muted-foreground hover:text-primary ${
+              openDropdown === "destination" ? "text-primary" : ""
+            } font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+            aria-label="Destination filter`}
           >
             {safeFilters.destination && safeFilters.destination !== "Any"
               ? safeFilters.destination
@@ -808,8 +810,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="rounded-full border-primary/30 bg-card  px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-            aria-label="Date range filter"
+            className={`rounded-full border-primary/30 bg-card  px-4 py-2 text-muted-foreground hover:text-primary ${
+              openDropdown === "date" ? "text-primary" : ""
+            }  font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+            aria-label="Date range filter`}
           >
             Date Range
             <ChevronDown className="ml-2 w-4 h-4" />
@@ -852,8 +856,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-                aria-label="Age range filter"
+                className={`rounded-full border-primary/30 bg-card min-w-[140px] px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "age" ? "text-primary" : ""
+                }  font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                aria-label="Age range filter`}
               >
                 Age Range
                 <ChevronDown className="ml-2 w-4 h-4" />
@@ -897,8 +903,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="rounded-full border-primary/30 bg-card px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-                aria-label="Gender filter"
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "gender" ? "text-primary" : ""
+                }  font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                aria-label="Gender filter`}
               >
                 {getGenderLabel()}
                 <ChevronDown className="ml-2 w-4 h-4" />
@@ -938,8 +946,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="rounded-full border-primary/30 bg-card px-4 py-2 text-primary font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-                aria-label="Interests filter"
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "interests" ? "text-primary" : ""
+                } font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
+                aria-label="Interests filter`}
               >
                 Interests
                 <ChevronDown className="ml-2 w-4 h-4" />

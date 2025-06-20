@@ -414,8 +414,8 @@ export default function ExploreResults({
     const skeletonCount =
       PAGE_SIZE - (activeTab === 0 ? travelers.length : groups.length);
     return (
-      <div className="w-full px-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 justify-items-start">
+      <div className="w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
           {Array.from({
             length: skeletonCount > 0 ? skeletonCount : PAGE_SIZE,
           }).map((_, i) =>
@@ -444,8 +444,8 @@ export default function ExploreResults({
   }
 
   return (
-    <div className="w-full px-5 mb-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 justify-items-start">
+    <div className="w-full mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
         {activeTab === 0 ? (
           travelers.length > 0 ? (
             travelers.map((traveler) => (
