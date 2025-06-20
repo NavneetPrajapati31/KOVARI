@@ -1,28 +1,108 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+"use client";
 
-export default function GroupPage() {
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { GroupCardv2 } from "@/components/cards/GroupCardv2";
+import GroupCardSkeleton from "@/components/skeleton/GroupCardSkeleton";
+import { fetchPublicGroups, Group, FiltersState } from "@/lib/fetchExploreData";
+import { MyGroupCard } from "@/components/cards/MyGroupCard";
+
+const SKELETON_COUNT = 16;
+
+const DEFAULT_FILTERS: FiltersState = {
+  destination: "",
+  dateStart: undefined,
+  dateEnd: undefined,
+  ageMin: 0,
+  ageMax: 100,
+  gender: "",
+  interests: [],
+};
+
+export default function GroupsPage() {
+  const { user, isLoaded } = useUser();
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      if (!isLoaded) return;
+      if (!user) {
+        setGroups([]);
+        setIsLoading(false);
+        setHasError(false);
+        return;
+      }
+      setIsLoading(true);
+      setHasError(false);
+      try {
+        const { data } = await fetchPublicGroups(
+          user.id,
+          DEFAULT_FILTERS,
+          null,
+          SKELETON_COUNT
+        );
+        setGroups(data);
+      } catch (error) {
+        setHasError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchGroups();
+  }, [user, isLoaded]);
+
+  const handleGroupAction = async (
+    groupId: string,
+    action: "view" | "request" | "join"
+  ) => {
+    // Implement group action logic (navigate, request, join, etc.)
+    // For now, just log
+    console.log(`Group action: ${action} for group ${groupId}`);
+  };
+
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6 h-screen">
-      <Card>
-        <CardHeader>
-          <CardTitle>Coming Soon</CardTitle>
-          <CardDescription>
-            We&apos;re working on something exciting for you!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Our team is working hard to bring you an group interface. Stay tuned
-            for updates!
-          </p>
-        </CardContent>
-      </Card>
+    <div className="flex-1 space-y-4 p-4 w-full">
+      <header className="mb-0">
+        <h1
+          className="text-md font-bold tracking-tight text-foreground"
+          tabIndex={0}
+          aria-label="Groups"
+        >
+          Groups
+        </h1>
+      </header>
+      {isLoading ? (
+        <div className="w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
+            {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+              <GroupCardSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      ) : hasError ? (
+        <div className="text-center text-red-500 py-8" role="alert">
+          Failed to load groups. Please try again.
+        </div>
+      ) : groups.length === 0 ? (
+        <div className="text-center text-muted-foreground py-8">
+          No groups found.
+        </div>
+      ) : (
+        <div className="w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
+            {groups.map((group) => (
+              <MyGroupCard
+                key={group.id}
+                group={group}
+                onAction={handleGroupAction}
+                isLoading={false}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
