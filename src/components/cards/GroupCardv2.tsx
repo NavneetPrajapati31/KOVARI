@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
 import { MapPin, Calendar, Users, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
@@ -31,6 +31,33 @@ interface GroupCardProps {
   ) => Promise<void>;
   isLoading?: boolean;
 }
+
+// Client-side image stretch component
+interface ImageStretchProps {
+  src: string;
+  alt: string;
+  ariaLabel?: string;
+  className?: string;
+}
+
+const ImageStretch = ({
+  src,
+  alt,
+  ariaLabel,
+  className = "",
+}: ImageStretchProps) => {
+  return (
+    <div className="w-full h-full">
+      <img
+        src={src}
+        alt={alt}
+        aria-label={ariaLabel}
+        className={`w-full h-full object-fill object-bottom object-right rounded-t-2xl rounded-b-none transition-all duration-500 ${className}`}
+        style={{ display: "block" }}
+      />
+    </div>
+  );
+};
 
 export function GroupCardv2({
   group,
@@ -109,18 +136,16 @@ export function GroupCardv2({
   }
 
   return (
-    <Card className="relative w-full max-w-[600px] h-[320px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="relative w-full max-w-[600px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Background Image - now covers full card */}
-      <div className="absolute inset-0 z-0 w-full h-full">
-        <Image
+      <div className="relative w-full h-full overflow-hidden bg-muted">
+        <ImageStretch
           src={
-            group?.cover_image ||
-            "https://images.pexels.com/photos/2365775/pexels-photo-2365775.jpeg" ||
-            "/placeholder.svg"
+            group.cover_image ||
+            "https://images.pexels.com/photos/13820406/pexels-photo-13820406.jpeg"
           }
-          alt={group?.name || "Group cover"}
-          className="object-fill w-full h-full"
-          aria-label={group?.name || "Group cover"}
+          alt={group.name || "Group cover"}
+          ariaLabel={group.name || "Group cover"}
         />
       </div>
 
