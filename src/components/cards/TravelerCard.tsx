@@ -54,7 +54,7 @@ export default function TravelerCard({
   }
 
   return (
-    <Card className="w-full max-w-[600px] h-[240px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[600px] h-[235px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       <CardBody className="px-5 py-4 relative">
         {/* Profile Section with Avatar and User Info */}
         <div className="flex items-center gap-4 mb-2">
@@ -103,7 +103,7 @@ export default function TravelerCard({
         <div className="flex gap-2 justify-center items-center">
           <Button
             color="primary"
-            className="w-1/2 gap-2 font-semibold rounded-lg"
+            className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
             aria-label="Connect"
             tabIndex={0}
             disabled={actionLoading}
@@ -114,7 +114,7 @@ export default function TravelerCard({
           <Button
             color="primary"
             variant="outline"
-            className="border-1 w-1/2 gap-2 font-semibold rounded-lg"
+            className="border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
             aria-label="View Profile"
             tabIndex={0}
             disabled={actionLoading}

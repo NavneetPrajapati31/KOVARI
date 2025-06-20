@@ -108,7 +108,7 @@ export function GroupCard({
   }
 
   return (
-    <Card className="w-full max-w-[600px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[600px] h-[300px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Top image section */}
       <div className="relative w-full h-[140px] overflow-hidden bg-muted">
         <Image
@@ -126,19 +126,19 @@ export function GroupCard({
         {/* Group name */}
         <div className="flex items-center">
           <span
-            className="text-lg font-bold leading-tight truncate text-foreground"
+            className="text-md font-bold leading-tight truncate text-foreground"
             title={group.name}
           >
             {group.name}
           </span>
         </div>
         {/* Date/time */}
-        <div className="flex items-center gap-2 text-primary text-sm font-medium mb-3">
-          <Calendar className="w-5 h-5" />
+        <div className="flex items-center gap-2 text-primary text-xs font-medium mb-3">
+          <Calendar className="w-4 h-4" />
           <span>{formatDateRange()}</span>
         </div>
         {/* Destination */}
-        <div className="text-muted-foreground text-sm font-medium flex items-center gap-2">
+        <div className="text-muted-foreground text-xs font-medium flex items-center gap-2">
           <span>{formatMemberCount()}</span>
           <Divider
             orientation="vertical"
@@ -152,10 +152,10 @@ export function GroupCard({
           <Avatar
             src={group.creator.avatar}
             alt={group.creator.name}
-            className="w-6 h-6"
+            className="w-4 h-4"
             aria-label={`Avatar of ${group.creator.name}`}
           />
-          <span className="text-muted-foreground font-medium text-sm truncate">
+          <span className="text-muted-foreground font-medium text-xs truncate">
             Created by {group.creator.name || "Unknown Creator"}
           </span>
         </div>
@@ -165,7 +165,7 @@ export function GroupCard({
         {group.userStatus === "member" ? (
           <Button
             color="primary"
-            className="w-full gap-2 font-semibold rounded-lg"
+            className="w-full gap-2 text-xs font-semibold rounded-lg"
             aria-label="View Group"
             tabIndex={0}
             disabled={actionLoading}
@@ -176,7 +176,7 @@ export function GroupCard({
         ) : group.userStatus === "pending" || group.userStatus === "blocked" ? (
           <Button
             color="primary"
-            className="w-full gap-2 font-semibold rounded-lg"
+            className="w-full gap-2 text-xs font-semibold rounded-lg"
             aria-label="status pending"
             tabIndex={0}
             disabled={actionLoading}
@@ -188,7 +188,7 @@ export function GroupCard({
           <div className="flex gap-2 justify-center items-center">
             <Button
               color="primary"
-              className="w-1/2 gap-2 font-semibold rounded-lg"
+              className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
               aria-label="View Group"
               tabIndex={0}
               disabled={actionLoading}
@@ -199,7 +199,7 @@ export function GroupCard({
             <Button
               color="primary"
               variant="outline"
-              className="border-1 w-1/2 gap-2 font-semibold rounded-lg"
+              className="border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
               aria-label="Request to Join"
               tabIndex={0}
               disabled={actionLoading}
