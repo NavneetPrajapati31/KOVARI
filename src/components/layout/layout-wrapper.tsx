@@ -16,7 +16,6 @@ const HIDE_LAYOUT_ROUTES = [
 // Pages where blur should NOT be applied even if avatar menu is open
 const EXCEPTION_BLUR_ROUTES = [
   "/",
-  "/profile",
   // Add more routes as needed
 ];
 

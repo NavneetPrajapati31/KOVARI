@@ -5,8 +5,9 @@ import { Card, CardBody } from "@heroui/react";
 import { Avatar } from "@heroui/react";
 import { Calendar, MapPin, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
+import InvitationCardSkeleton from "../skeleton/InvitationCardSkeleton";
 
-interface GroupInvite {
+export interface GroupInvite {
   id: string;
   groupName: string;
   creator: {
@@ -29,6 +30,7 @@ interface GroupInvite {
 
 interface GroupInviteCardProps {
   invite: GroupInvite;
+  isLoading?: boolean;
   onAccept: () => void;
   onDecline: () => void;
 }
@@ -37,8 +39,13 @@ export function GroupInviteCard({
   invite,
   onAccept,
   onDecline,
+  isLoading = false,
 }: GroupInviteCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
+
+  if (isLoading) {
+    return <InvitationCardSkeleton />;
+  }
 
   return (
     <Card className="w-full max-w-[600px] h-[290px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">

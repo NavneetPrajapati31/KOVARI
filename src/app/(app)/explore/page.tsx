@@ -72,7 +72,6 @@ export default function ExplorePage() {
   const getTabIndex = () => {
     const tab = searchParams.get("tab");
     if (tab === "groups") return 1;
-    if (tab === "invitations") return 2;
     return 0;
   };
 
@@ -88,7 +87,6 @@ export default function ExplorePage() {
 
   // Sync filters state with URL changes (e.g., browser navigation)
   useEffect(() => {
-    // Only update if different to avoid unnecessary resets
     if (
       filters.destination !== parsedFilters.destination ||
       filters.dateStart?.toISOString() !==
@@ -109,7 +107,6 @@ export default function ExplorePage() {
     if (activeTab !== tabIndex) {
       setActiveTab(tabIndex);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const handleTabChange = (index: number) => {
@@ -117,7 +114,6 @@ export default function ExplorePage() {
       setActiveTab(index);
       let newTab = "travelers";
       if (index === 1) newTab = "groups";
-      else if (index === 2) newTab = "invitations";
       router.push(`/explore?tab=${newTab}`, { scroll: false });
     }
   };
@@ -127,7 +123,6 @@ export default function ExplorePage() {
     // Merge with current tab param
     let tabParam = "travelers";
     if (activeTab === 1) tabParam = "groups";
-    else if (activeTab === 2) tabParam = "invitations";
     const query: Record<string, string> = {
       ...serializeFiltersToQuery(newFilters),
       tab: tabParam,
