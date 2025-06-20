@@ -202,7 +202,7 @@ export function MyGroupCard({
             <div className="flex gap-2 justify-center items-center">
               <Button
                 color="primary"
-                className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-background text-black"
+                className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
                 aria-label="View Group"
                 tabIndex={0}
                 disabled={actionLoading}
@@ -212,7 +212,7 @@ export function MyGroupCard({
               </Button>
               <Button
                 color="primary"
-                className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-background text-black"
+                className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
                 aria-label="View Group"
                 tabIndex={0}
                 disabled={actionLoading}

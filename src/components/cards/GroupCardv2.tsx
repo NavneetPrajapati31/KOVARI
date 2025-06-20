@@ -226,7 +226,7 @@ export function GroupCardv2({
               <div className="flex gap-2 justify-center items-center">
                 <Button
                   color="primary"
-                  className="w-1/2 gap-2 text-xs font-semibold rounded-lg bg-background text-black"
+                  className="w-1/2 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
                   aria-label="View Group"
                   tabIndex={0}
                   disabled={actionLoading}
