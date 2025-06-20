@@ -997,7 +997,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
           <Button
             variant={"outline"}
             onClick={onOpen}
-            className="rounded-2xl !px-4 border-primary/30 bg-card text-primary font-medium"
+            className="rounded-2xl !px-4 border-primary/30 bg-card text-muted-foreground font-medium"
           >
             <Filter className="w-4 h-4" />
             Filters

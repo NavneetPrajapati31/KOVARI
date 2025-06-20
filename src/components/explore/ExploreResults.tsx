@@ -10,6 +10,7 @@ import {
   Traveler,
   Group,
 } from "@/lib/fetchExploreData";
+import { GroupCardv2 } from "../cards/GroupCardv2";
 
 type UserStatus = "member" | "pending" | "blocked" | null;
 
