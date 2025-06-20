@@ -28,6 +28,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
 import Spinner from "./Spinner";
+import { createClient } from "@/lib/supabase";
 
 export const AcmeLogo = () => {
   return (
@@ -53,11 +54,58 @@ export default function App({
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [profilePhotoLoading, setProfilePhotoLoading] = useState(false);
+  const [profilePhotoError, setProfilePhotoError] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     // Hide spinner when route changes
     setIsNavigating(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const fetchProfilePhoto = async () => {
+      if (!user?.id) return;
+      setProfilePhotoLoading(true);
+      setProfilePhotoError(null);
+      try {
+        const supabase = createClient();
+        // First, get the user's row in the users table by clerk_user_id
+        const { data: userRow, error: userError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("clerk_user_id", user.id)
+          .maybeSingle();
+        if (userError) throw userError;
+        if (!userRow?.id) {
+          setProfilePhotoUrl(null);
+          setProfilePhotoLoading(false);
+          return;
+        }
+        // Now get the profile row by user_id
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("profile_photo")
+          .eq("user_id", userRow.id)
+          .maybeSingle();
+        if (profileError) throw profileError;
+        setProfilePhotoUrl(profile?.profile_photo || null);
+      } catch (err: unknown) {
+        setProfilePhotoError("Failed to load profile photo");
+        setProfilePhotoUrl(null);
+        console.error("Error fetching profile photo:", err);
+      } finally {
+        setProfilePhotoLoading(false);
+      }
+    };
+    if (isSignedIn && isLoaded) {
+      fetchProfilePhoto();
+    } else {
+      setProfilePhotoUrl(null);
+    }
+  }, [user, isSignedIn, isLoaded]);
 
   const handleNavigation = (href: string) => {
     setIsNavigating(true);
@@ -181,7 +229,7 @@ export default function App({
         </NavbarContent>
 
         <NavbarContent as="div" justify="end">
-          {!isLoaded ? (
+          {!isLoaded || profilePhotoLoading ? (
             <Skeleton className="w-8 h-8 rounded-full" />
           ) : isSignedIn ? (
             <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
@@ -193,7 +241,7 @@ export default function App({
                   color="secondary"
                   name={user?.fullName || user?.username || "User"}
                   size="sm"
-                  src={user?.imageUrl}
+                  src={profilePhotoUrl || user?.imageUrl}
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">

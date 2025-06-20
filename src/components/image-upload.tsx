@@ -17,6 +17,8 @@ interface ImageUploadProps {
   className?: string;
   maxSizeInMB?: number;
   acceptedFormats?: string[];
+  avatar?: boolean;
+  compact?: boolean;
 }
 
 export function ImageUpload({
@@ -26,6 +28,8 @@ export function ImageUpload({
   className,
   maxSizeInMB = 10,
   acceptedFormats = ["PNG", "JPG", "JPEG", "WEBP"],
+  compact = false,
+  avatar = false,
 }: ImageUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -177,6 +181,49 @@ export function ImageUpload({
     fileInputRef.current?.click();
   }, []);
 
+  // Compact/avatar mode
+  if (compact) {
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        openFileDialog();
+      }
+    };
+    return (
+      <div
+        className={cn(
+          "w-full h-full flex items-center justify-center cursor-pointer",
+          className
+        )}
+        onClick={openFileDialog}
+        tabIndex={0}
+        aria-label="Upload profile image"
+        onKeyDown={handleKeyDown}
+        role="button"
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={acceptedFormats
+            .map((format) => `.${format.toLowerCase()}`)
+            .join(",")}
+          onChange={handleFileSelect}
+          className="hidden"
+          title="Upload image file"
+          placeholder="Choose an image file"
+        />
+        {uploadedImage ? (
+          <img
+            src={uploadedImage}
+            alt="Profile"
+            className="w-full h-full object-cover rounded-full"
+          />
+        ) : (
+          <ImageIcon className="w-8 h-8 text-muted-foreground" />
+        )}
+      </div>
+    );
+  }
+
   if (uploadedImage) {
     return (
       <div className={cn("space-y-2", className)}>
@@ -184,7 +231,7 @@ export function ImageUpload({
           {label}
         </Label>
         <div className="relative group">
-          <div className="relative overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/50 p-4">
+          <div className="relative overflow-hidden rounded-lg border-2  border-border bg-muted/50 p-2">
             <img
               src={uploadedImage || "/placeholder.svg"}
               alt="Uploaded preview"
@@ -192,12 +239,12 @@ export function ImageUpload({
             />
             <Button
               type="button"
-              variant="destructive"
+              // variant="destructive"
               size="icon"
-              className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              className="bg-[#F13260] absolute top-4 right-4 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               onClick={handleRemoveImage}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 text-white" />
             </Button>
           </div>
         </div>
@@ -210,14 +257,13 @@ export function ImageUpload({
       <Label className="text-sm font-medium text-muted-foreground">
         {label}
       </Label>
-
       {/* Main Upload Area */}
       <div
         className={cn(
           "relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ease-in-out",
           isDragOver
-            ? "border-primary bg-primary/5 scale-[1.02]"
-            : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/30",
+            ? "border-primary bg-card scale-[1.02]"
+            : "border-border bg-card hover:border-primary/50 hover:bg-card",
           isUploading && "pointer-events-none opacity-50"
         )}
         onDragOver={handleDragOver}
@@ -244,21 +290,21 @@ export function ImageUpload({
             )}
           >
             {isUploading ? (
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-transparent rounded-2xl flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
             ) : (
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <ImageIcon className="w-8 h-8 text-white" />
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <div className="w-14 h-14 bg-card border-1 border-border rounded-2xl flex items-center justify-center shadow-sm">
+                <ImageIcon className="w-6 h-6 text-primary" />
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-card rounded-full flex items-center justify-center shadow-md">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
                 </div>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <p className="text-base font-medium text-foreground">
+            <p className="text-sm font-medium text-foreground">
               {isUploading ? "Uploading..." : "Drop your image here, or "}
               {!isUploading && (
                 <button
@@ -270,89 +316,94 @@ export function ImageUpload({
                 </button>
               )}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Supports: {acceptedFormats.join(", ")}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border"></div>
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">or</span>
-        </div>
-      </div>
-
-      {/* URL Import Section */}
-      <div className="space-y-3">
-        <h3 className="text-base font-medium text-foreground">
-          Import from URL
-        </h3>
-
-        <div className="flex space-x-2">
-          <div className="flex-1">
-            <Input
-              type="url"
-              placeholder="Add file URL"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              className="h-9 text-sm"
-              disabled={isUploading}
-            />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleUrlUpload}
-            disabled={!urlInput.trim() || isUploading}
-            className="px-4 h-9 transition-all duration-200 hover:scale-105"
-          >
-            {isUploading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              "Upload"
-            )}
-          </Button>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-          >
-            <div className="w-4 h-4 border border-muted-foreground rounded-full flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full"></div>
+      {/* Only show divider and URL import if not avatar mode */}
+      {!avatar && (
+        <>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border"></div>
             </div>
-            <span>Help Centre</span>
-          </button>
-
-          <div className="flex space-x-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleRemoveImage}
-              className="h-8 px-3 text-sm transition-all duration-200 hover:scale-105"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleUrlUpload}
-              disabled={!urlInput.trim() || isUploading}
-              className="h-8 px-3 text-sm bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-105"
-            >
-              Import
-            </Button>
+            <div className="relative flex justify-center text-xs ">
+              <span className="bg-card px-2 text-muted-foreground">or</span>
+            </div>
           </div>
-        </div>
-      </div>
+          {/* URL Import Section */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Import from URL
+            </h3>
+
+            <div className="flex space-x-2">
+              <div className="flex-1">
+                <Input
+                  type="url"
+                  placeholder="Add file URL"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  className="h-9 text-sm"
+                  disabled={isUploading}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleUrlUpload}
+                disabled={!urlInput.trim() || isUploading}
+                className="px-4 h-9 transition-all duration-200 hover:scale-105 border-border"
+              >
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Upload"
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/*
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+            >
+              <div className="w-4 h-4 border border-muted-foreground rounded-full flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full"></div>
+              </div>
+              <span>Help Centre</span>
+            </button>
+
+            <div className="flex space-x-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleRemoveImage}
+                className="h-8 px-3 text-sm transition-all duration-200 hover:scale-105"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleUrlUpload}
+                disabled={!urlInput.trim() || isUploading}
+                className="h-8 px-3 text-sm bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-105"
+              >
+                Import
+              </Button>
+            </div>
+          </div>
+          */}
+        </>
+      )}
     </div>
   );
 }

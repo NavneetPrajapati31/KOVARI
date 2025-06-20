@@ -60,7 +60,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
-import ProfileImageUpload from "@/components/UploadButton";
+import { ImageUpload } from "@/components/image-upload";
 import CheckIcon from "@mui/icons-material/Check";
 import CelebrationIcon from "@mui/icons-material/Celebration";
 
@@ -747,39 +747,36 @@ export default function ProfileSetupForm() {
           className="space-y-4"
         >
           {/* Profile Picture */}
-          <div className="flex flex-col items-center space-y-3">
-            <div className="relative">
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-white border-[1px] !border-muted-foreground/10">
-                {profileImage ? (
-                  <Image
-                    src={profileImage || "/placeholder.svg"}
-                    alt="Profile"
-                    width={64}
-                    height={64}
-                    className="w-full h-full object-cover"
-                    priority
+          <FormField
+            control={step2Form.control}
+            name="profilePic"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Profile Picture
+                </FormLabel>
+                <FormControl>
+                  <ImageUpload
+                    onImageUpload={(url) => {
+                      setProfileImage(url as string);
+                      field.onChange(url);
+                    }}
+                    onImageRemove={() => {
+                      setProfileImage(null);
+                      field.onChange(null);
+                    }}
+                    label=""
+                    maxSizeInMB={10}
+                    acceptedFormats={["PNG", "JPG", "JPEG", "WEBP"]}
+                    avatar
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ScanFace className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              <div className="absolute -bottom-1 -right-1">
-                <ProfileImageUpload
-                  onUpload={(url) => {
-                    console.log("Received image URL:", url);
-                    setProfileImage(url);
-                    step2Form.setValue("profilePic", url);
-                    console.log("Profile image state updated:", url);
-                  }}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Upload profile picture
-            </p>
-          </div>
+                </FormControl>
+                {/* <FormMessage className="text-xs">
+                  Upload profile picture
+                </FormMessage> */}
+              </FormItem>
+            )}
+          />
 
           {/* Bio */}
           <FormField
