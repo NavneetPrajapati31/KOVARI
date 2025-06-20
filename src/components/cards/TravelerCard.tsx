@@ -54,7 +54,7 @@ export default function TravelerCard({
   }
 
   return (
-    <Card className="w-full max-w-[400px] h-[240px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[600px] h-[240px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       <CardBody className="px-5 py-4 relative">
         {/* Profile Section with Avatar and User Info */}
         <div className="flex items-center gap-4 mb-2">

@@ -3,7 +3,7 @@ import { Card, Skeleton } from "@heroui/react";
 
 export default function TravelerCardSkeleton() {
   return (
-    <Card className="w-full max-w-[400px] h-[240px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
+    <Card className="w-full max-w-[600px] h-[240px] rounded-2xl bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden animate-pulse">
       <div className="px-5 py-4 flex items-center gap-4 mb-6">
         {/* Avatar skeleton */}
         <Skeleton className="w-10 h-10 rounded-full" />
