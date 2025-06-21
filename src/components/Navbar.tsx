@@ -137,14 +137,7 @@ export default function App({
   const menuItems = [
     {
       key: "auth",
-      label: (
-        <div className="h-14 gap-2">
-          <p className="font-semibold">Signed in as</p>
-          <p className="font-semibold">
-            {user?.primaryEmailAddress?.emailAddress}
-          </p>
-        </div>
-      ),
+      label: <span>{`Signed in as ${user?.username}`}</span>,
     },
     {
       key: "profile",
@@ -249,7 +242,7 @@ export default function App({
                   <DropdownMenuItem
                     key={item.key}
                     onClick={item.onClick}
-                    className={` w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                    className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
                   >
                     {item.label}
                   </DropdownMenuItem>
