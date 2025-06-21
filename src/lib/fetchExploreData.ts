@@ -29,6 +29,7 @@ export interface Group {
   userStatus: "member" | "pending" | "blocked" | null;
   creator: {
     name: string;
+    username: string;
     avatar?: string;
   };
   created_at: string;
@@ -293,12 +294,12 @@ export const fetchPublicGroups = async (
     .filter(Boolean);
   let creatorProfiles: Record<
     string,
-    { name: string; profile_photo?: string }
+    { name: string; username: string; profile_photo?: string }
   > = {};
   if (creatorIds.length > 0) {
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("user_id, name, profile_photo")
+      .select("user_id, name, username, profile_photo")
       .in("user_id", creatorIds);
     if (profilesError) {
       console.error("Error fetching creator profiles:", profilesError);
@@ -306,6 +307,7 @@ export const fetchPublicGroups = async (
     (profiles || []).forEach((profile: any) => {
       creatorProfiles[profile.user_id] = {
         name: profile.name || "Unknown",
+        username: profile.username || "unknown",
         profile_photo: profile.profile_photo || undefined,
       };
     });
@@ -328,6 +330,7 @@ export const fetchPublicGroups = async (
       userStatus: null,
       creator: {
         name: creatorProfiles[group.creator_id]?.name || "Unknown",
+        username: creatorProfiles[group.creator_id]?.username || "unknown",
         avatar: creatorProfiles[group.creator_id]?.profile_photo || undefined,
       },
       created_at: group.created_at,
@@ -340,4 +343,142 @@ export const fetchPublicGroups = async (
     ? mapped[mapped.length - 1]?.created_at ?? null
     : null;
   return { data: mapped, nextCursor };
+};
+
+/**
+ * Fetch groups joined by the current user.
+ */
+export const fetchMyGroups = async (
+  clerkUserId: string,
+  limit: number = 20
+): Promise<{ data: Group[]; nextCursor: string | null }> => {
+  const supabase = createClient();
+
+  // 1. Get the internal Supabase user_id from the clerk_user_id.
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("clerk_user_id", clerkUserId)
+    .single();
+
+  if (userError || !userData) {
+    console.error("Error fetching user:", userError);
+    return { data: [], nextCursor: null };
+  }
+  const internalUserId = userData.id;
+
+  // 2. Get the group_ids for the user where membership is 'accepted'.
+  const { data: memberships, error: membershipError } = await supabase
+    .from("group_memberships")
+    .select("group_id")
+    .eq("user_id", internalUserId)
+    .eq("status", "accepted");
+
+  if (membershipError) {
+    console.error("Error fetching group memberships:", membershipError);
+    return { data: [], nextCursor: null };
+  }
+
+  const groupIds = memberships.map((m) => m.group_id);
+
+  if (groupIds.length === 0) {
+    return { data: [], nextCursor: null };
+  }
+
+  // 3. Fetch the groups with those IDs.
+  const { data: groupsData, error: groupsError } = await supabase
+    .from("groups")
+    .select(
+      `
+      id,
+      name,
+      is_public,
+      destination,
+      start_date,
+      end_date,
+      creator_id,
+      created_at,
+      cover_image
+    `
+    )
+    .in("id", groupIds)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (groupsError) {
+    console.error("Error fetching groups:", groupsError);
+    return { data: [], nextCursor: null };
+  }
+
+  if (!groupsData) {
+    return { data: [], nextCursor: null };
+  }
+
+  // 4. Fetch additional data for mapping
+  const creatorIds = [...new Set(groupsData.map((g) => g.creator_id))];
+  const allGroupIds = groupsData.map((g) => g.id);
+
+  const [
+    { data: profilesData, error: profilesError },
+    { data: memberCountsData, error: countsError },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("user_id, name, username, profile_photo")
+      .in("user_id", creatorIds),
+    supabase
+      .from("group_memberships")
+      .select("group_id")
+      .in("group_id", allGroupIds)
+      .eq("status", "accepted"),
+  ]);
+
+  if (profilesError) {
+    console.error("Error fetching creator profiles:", profilesError);
+  }
+  if (countsError) {
+    console.error("Error fetching member counts:", countsError);
+  }
+
+  const profilesMap = (profilesData || []).reduce((acc: any, profile) => {
+    acc[profile.user_id] = profile;
+    return acc;
+  }, {});
+
+  const memberCountMap = (memberCountsData || []).reduce((acc: any, gm) => {
+    acc[gm.group_id] = (acc[gm.group_id] || 0) + 1;
+    return acc;
+  }, {});
+
+  // 5. Map data to Group interface
+  const mappedGroups: Group[] = groupsData.map((group) => {
+    const creator = profilesMap[group.creator_id];
+    return {
+      id: group.id,
+      name: group.name,
+      privacy: group.is_public ? "public" : "private",
+      destination: group.destination,
+      dateRange: {
+        start: new Date(group.start_date),
+        end: group.end_date ? new Date(group.end_date) : undefined,
+        isOngoing: !group.end_date,
+      },
+      memberCount: memberCountMap[group.id] || 0,
+      userStatus: "member", // User is always a member in "My Groups"
+      creator: {
+        name: creator?.name || "Unknown",
+        username: creator?.username || "unknown",
+        avatar: creator?.profile_photo,
+      },
+      created_at: group.created_at,
+      cover_image: group.cover_image,
+    };
+  });
+
+  const nextCursor =
+    mappedGroups.length === limit
+      ? mappedGroups[mappedGroups.length - 1].id
+      : null;
+
+  return { data: mappedGroups, nextCursor };
 };

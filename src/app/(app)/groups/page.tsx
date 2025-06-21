@@ -4,20 +4,10 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { GroupCardv2 } from "@/components/cards/GroupCardv2";
 import GroupCardSkeleton from "@/components/skeleton/GroupCardSkeleton";
-import { fetchPublicGroups, Group, FiltersState } from "@/lib/fetchExploreData";
+import { fetchMyGroups, Group } from "@/lib/fetchExploreData";
 import { MyGroupCard } from "@/components/cards/MyGroupCard";
 
 const SKELETON_COUNT = 16;
-
-const DEFAULT_FILTERS: FiltersState = {
-  destination: "",
-  dateStart: undefined,
-  dateEnd: undefined,
-  ageMin: 0,
-  ageMax: 100,
-  gender: "",
-  interests: [],
-};
 
 export default function GroupsPage() {
   const { user, isLoaded } = useUser();
@@ -37,12 +27,7 @@ export default function GroupsPage() {
       setIsLoading(true);
       setHasError(false);
       try {
-        const { data } = await fetchPublicGroups(
-          user.id,
-          DEFAULT_FILTERS,
-          null,
-          SKELETON_COUNT
-        );
+        const { data } = await fetchMyGroups(user.id, SKELETON_COUNT);
         setGroups(data);
       } catch (error) {
         setHasError(true);
@@ -63,14 +48,14 @@ export default function GroupsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 w-full">
+    <div className="flex-1 space-y-4 p-4 w-full h-screen">
       <header className="mb-0">
         <h1
           className="text-md font-bold tracking-tight text-foreground"
           tabIndex={0}
           aria-label="Groups"
         >
-          Groups
+          My Groups
         </h1>
       </header>
       {isLoading ? (
@@ -87,7 +72,7 @@ export default function GroupsPage() {
         </div>
       ) : groups.length === 0 ? (
         <div className="text-center text-muted-foreground py-8">
-          No groups found.
+          You haven't joined any groups yet.
         </div>
       ) : (
         <div className="w-full">

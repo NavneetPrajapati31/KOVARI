@@ -12,6 +12,7 @@ export interface GroupInvite {
   groupName: string;
   creator: {
     name: string;
+    username: string;
     avatar: string;
     initials: string;
   };
@@ -31,8 +32,8 @@ export interface GroupInvite {
 interface GroupInviteCardProps {
   invite: GroupInvite;
   isLoading?: boolean;
-  onAccept: () => void;
-  onDecline: () => void;
+  onAccept: (invitationId: string) => Promise<void> | void;
+  onDecline: (invitationId: string) => Promise<void> | void;
 }
 
 export function GroupInviteCard({
@@ -41,14 +42,16 @@ export function GroupInviteCard({
   onDecline,
   isLoading = false,
 }: GroupInviteCardProps) {
-  const [actionLoading, setActionLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<
+    "accept" | "decline" | null
+  >(null);
 
   if (isLoading) {
     return <InvitationCardSkeleton />;
   }
 
   return (
-    <Card className="w-full max-w-[600px] h-[290px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[600px] h-[215px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       <CardBody className="px-5 py-4 relative">
         {/* Profile Section with Avatar and User Info */}
         <div className="flex items-center gap-4 mb-2">
@@ -64,7 +67,7 @@ export function GroupInviteCard({
               {invite.groupName}
             </h2>
             <p className="text-muted-foreground text-xs truncate">
-              by {invite.creator.name}
+              by @{invite.creator.username}
             </p>
           </div>
         </div>
@@ -97,7 +100,7 @@ export function GroupInviteCard({
         </div>
 
         {/* Member Avatars Row with Count and Text */}
-        {invite.teamMembers && invite.teamMembers.length > 0 && (
+        {/* {invite.teamMembers && invite.teamMembers.length > 0 && (
           <div className="flex items-center gap-3 mt-4 mb-2">
             <div className="flex -space-x-2">
               {invite.teamMembers.slice(0, 2).map((member, idx) => (
@@ -120,7 +123,7 @@ export function GroupInviteCard({
               {invite.teamMembers[0]?.initials || "a member"}.
             </span>
           </div>
-        )}
+        )} */}
       </CardBody>
       <div className="px-5 pb-5 mt-auto">
         <div className="flex gap-2 justify-center items-center">
@@ -129,14 +132,21 @@ export function GroupInviteCard({
             className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
             aria-label="Accept Invitation"
             tabIndex={0}
-            disabled={actionLoading}
-            onClick={() => {
-              setActionLoading(true);
-              onAccept();
-              setTimeout(() => setActionLoading(false), 1000);
+            disabled={!!loadingAction}
+            onClick={async () => {
+              setLoadingAction("accept");
+              try {
+                await onAccept(invite.id);
+              } catch (error) {
+                console.error("Error accepting invitation:", error);
+              } finally {
+                setTimeout(() => setLoadingAction(null), 1000);
+              }
             }}
           >
-            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            {loadingAction === "accept" && (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            )}
             Accept
           </Button>
           <Button
@@ -145,14 +155,21 @@ export function GroupInviteCard({
             className="border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
             aria-label="Decline Invitation"
             tabIndex={0}
-            disabled={actionLoading}
-            onClick={() => {
-              setActionLoading(true);
-              onDecline();
-              setTimeout(() => setActionLoading(false), 1000);
+            disabled={!!loadingAction}
+            onClick={async () => {
+              setLoadingAction("decline");
+              try {
+                await onDecline(invite.id);
+              } catch (error) {
+                console.error("Error declining invitation:", error);
+              } finally {
+                setTimeout(() => setLoadingAction(null), 1000);
+              }
             }}
           >
-            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            {loadingAction === "decline" && (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            )}
             Decline
           </Button>
         </div>

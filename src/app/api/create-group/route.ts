@@ -95,10 +95,11 @@ export async function POST(req: Request) {
 
     console.log("Attempting to insert payload:", payload);
 
-    const { data, error: insertError } = await supabase
+    const { data: groupData, error: insertError } = await supabase
       .from("groups")
       .insert(payload)
-      .select();
+      .select()
+      .single();
 
     if (insertError) {
       console.error("Raw insert error:", insertError);
@@ -108,8 +109,36 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("Insert successful, data:", data);
-    return new Response("Group created", { status: 201 });
+    if (!groupData) {
+      return new Response("Failed to create group, no data returned.", {
+        status: 500,
+      });
+    }
+
+    const { error: membershipError } = await supabase
+      .from("group_memberships")
+      .insert({
+        group_id: groupData.id,
+        user_id: userRow.id,
+        status: "accepted",
+        joined_at: new Date().toISOString(),
+      });
+
+    if (membershipError) {
+      console.error("Error creating group membership:", membershipError);
+      // Rollback group creation if membership fails
+      await supabase.from("groups").delete().eq("id", groupData.id);
+      return new Response(
+        `Failed to create group membership: ${JSON.stringify(membershipError)}`,
+        { status: 500 }
+      );
+    }
+
+    console.log("Group and membership created successfully:", groupData);
+    return new Response(JSON.stringify(groupData), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response("Internal server error", { status: 500 });

@@ -1,39 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { GroupInviteCard } from "./cards/InvitationCard";
 import type { GroupInvite } from "./cards/InvitationCard";
-import InvitationCardSkeleton from "./skeleton/InvitationCardSkeleton";
 
 interface InvitationResultsProps {
   invitations: GroupInvite[];
+  onAccept?: (invitationId: string) => void;
+  onDecline?: (invitationId: string) => void;
+  isLoading?: boolean;
 }
-
-const SKELETON_COUNT = 12;
 
 const InvitationResults: React.FC<InvitationResultsProps> = ({
   invitations,
+  onAccept,
+  onDecline,
+  isLoading: externalLoading = false,
 }) => {
-  const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="w-full">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
-          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-            <InvitationCardSkeleton key={i} />
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   if (hasError) {
     return (
@@ -57,8 +39,8 @@ const InvitationResults: React.FC<InvitationResultsProps> = ({
         <GroupInviteCard
           key={invite.id}
           invite={invite}
-          onAccept={() => {}}
-          onDecline={() => {}}
+          onAccept={() => onAccept?.(invite.id)}
+          onDecline={() => onDecline?.(invite.id)}
         />
       ))}
     </div>
