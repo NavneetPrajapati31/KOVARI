@@ -20,7 +20,7 @@
   * {
     scroll-behavior: smooth;
     scrollbar-width: 50px;
-    scrollbar-color: gray transparent;
+    scrollbar-color: gray #f9fafb;
   }
 }
 

@@ -5,6 +5,7 @@ import {
   ChevronUp,
   Home,
   Inbox,
+  PanelLeftIcon,
   Search,
   Settings,
   User2,
@@ -17,10 +18,10 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -30,6 +31,7 @@ import {
 } from "./ui/dropdown-menu";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Avatar } from "@heroui/react";
+import { Button } from "./ui/button";
 
 // Menu items.
 const items = [
@@ -60,24 +62,64 @@ const items = [
   },
 ];
 
+function SidebarToggle() {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="bg-transparent text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+      onClick={toggleSidebar}
+    >
+      <PanelLeftIcon className="h-5 w-5 transition-transform duration-300 ease-in-out" />
+    </Button>
+  );
+}
+
 export function AppSidebar() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <div
+            className="
+              flex items-center border-b
+              justify-between
+              group-data-[state=collapsed]:justify-center
+              group-data-[state=collapsed]:border-none
+              group-data-[state=collapsed]:p-0
+            "
+          >
+            <h2
+              className="
+                text-sm font-semibold text-muted-foreground
+                max-w-[120px] opacity-100 pr-2
+                overflow-hidden
+                group-data-[state=collapsed]:max-w-0
+                group-data-[state=collapsed]:opacity-0
+                group-data-[state=collapsed]:pr-0
+              "
+            >
+              {" "}
+              Application
+            </h2>
+            <SidebarToggle />
+          </div>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="text-muted-foreground" />
+                      <span className="group-data-[state=collapsed]:hidden">
+                        {item.title}
+                      </span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
