@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import GroupCardSkeleton from "../skeleton/GroupCardSkeleton";
 import { useRouter } from "next/navigation";
 
-interface DestinationCardProps {
+interface GroupCoverCardProps {
   imageUrl?: string;
   name: string;
   country: string;
@@ -41,18 +41,18 @@ const ImageStretch = ({
   );
 };
 
-export function DestinationCard({
+export function GroupCoverCard({
   name,
   country,
   imageUrl,
   onExplore,
-}: DestinationCardProps) {
+}: GroupCoverCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
   const router = useRouter();
 
   return (
-    <Card className="relative  w-[230px] h-[200px] rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="relative w-full h-[200px] rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Background Image - now covers full card */}
       <div className="relative w-full h-full overflow-hidden bg-muted">
         <ImageStretch
@@ -63,39 +63,28 @@ export function DestinationCard({
       </div>
 
       {/* Glassmorphism content overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-10">
+      {/* <div className="absolute bottom-0 left-0 right-0 z-10">
         <div
           className="backdrop-blur-md"
           style={{
             maskImage:
-              "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
+              "linear-gradient(to top, black 0%, black 80%, transparent 100%)",
             WebkitMaskImage:
-              "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
+              "linear-gradient(to top, black 0%, black 80%, transparent 100%)",
           }}
         >
-          {/* Content section - keeping your exact structure */}
-          <div className="flex flex-row gap-1 px-3 py-3">
-            {/* Creator avatar and name */}
-            <div className="flex flex-col items-start gap-0.5 flex-1">
-              <span className="text-white font-medium text-xs truncate">
+          <div className="flex flex-col gap-1 px-5 pt-4 pb-4">
+            <div className="flex flex-col items-start gap-1">
+              <span className="text-white/80 font-medium text-xs truncate">
                 Mount Fuji
               </span>
-              <span className="text-white font-medium text-xs truncate">
+              <span className="text-white/80 font-medium text-xs truncate">
                 Japan
               </span>
             </div>
-            <div className="flex justify-end items-end flex-shrink-0">
-              <Button
-                variant={"outline"}
-                size={"sm"}
-                className="bg-transparent text-xs px-5 py-1 text-white border-white rounded-full hover:text-white hover:bg-white/20"
-              >
-                Explore
-              </Button>
-            </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </Card>
   );
 }
