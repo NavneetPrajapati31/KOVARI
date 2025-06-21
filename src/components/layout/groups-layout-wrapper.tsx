@@ -42,7 +42,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const handleTabChange = (index: number) => {
     if (index !== activeTab) {
       const tab = TABS[index];
-      router.push(`/groups/${params.groupId}/${tab.href}`);
+      router.replace(`/groups/${params.groupId}/${tab.href}`);
     }
   };
 
@@ -69,23 +69,19 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         <header>
           <div className="flex gap-2 flex-shrink-0">
             {TABS.map((tab, idx) => (
-              <Link
+              <Button
                 key={tab.label}
-                href={`/groups/${params.groupId}/${tab.href}`}
-                passHref
-                legacyBehavior
+                variant={"outline"}
+                className={
+                  activeTab === idx
+                    ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
+                    : "text-foreground/80 font-semibold bg-transparent rounded-2xl hover:text-primary"
+                }
+                onClick={() => handleTabClick(idx)}
+                onKeyDown={(e) => handleTabKeyDown(e, idx)}
               >
-                <a
-                  className={cn(
-                    buttonVariants({ variant: "outline" }),
-                    activeTab === idx
-                      ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
-                      : "text-foreground/80 font-semibold bg-transparent rounded-2xl hover:text-primary"
-                  )}
-                >
-                  {tab.label}
-                </a>
-              </Link>
+                {tab.label}
+              </Button>
             ))}
           </div>
         </header>

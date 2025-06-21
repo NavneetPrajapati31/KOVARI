@@ -11,6 +11,7 @@ import GoogleMapsViewer from "@/components/google-maps-viewer";
 import { RangeCalendar } from "@heroui/react";
 import { today, getLocalTimeZone } from "@internationalized/date";
 import { cn } from "@/lib/utils";
+import { DestinationCard } from "@/components/cards/DestinationCard";
 
 const TABS = [
   { label: "Overview", href: "home" },
@@ -65,7 +66,7 @@ const GroupHomePage = () => {
       {/* Left Sidebar - Chat List */}
       <div className="w-1/4 border-r border-border flex flex-col">
         {/* Sidebar Header */}
-        <div className="relative h-[190px] rounded-lg overflow-hidden p-3">
+        <div className="relative h-[200px] rounded-lg overflow-hidden p-3">
           <Image
             src={
               "https://images.pexels.com/photos/31401510/pexels-photo-31401510.jpeg"
@@ -77,7 +78,7 @@ const GroupHomePage = () => {
         </div>
 
         {/* Chat List Area */}
-        <div className="flex flex-col gap-2 px-4 pt-3 pb-4">
+        <div className="flex flex-col gap-2 px-4 pt-3 pb-3">
           {/* Group name */}
           <div className="flex flex-col items-start gap-2 mb-2">
             <span
@@ -112,7 +113,14 @@ const GroupHomePage = () => {
       </div>
 
       {/* Right Main Area - Chat Conversation */}
-      <div className="flex-1 flex flex-col p-2"></div>
+      <div className="flex-1 flex flex-col p-2">
+        <DestinationCard
+          name="Mount Fuji"
+          country="Japan"
+          imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+          onExplore={() => router.push("/explore")}
+        />
+      </div>
     </div>
   );
 };
