@@ -7,7 +7,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <AppSidebar />
       <main className="flex-1 overflow-y-auto p-0">
-        <LayoutWrapper>{children}</LayoutWrapper>
+        {/* <LayoutWrapper>{children}</LayoutWrapper> */}
+        {children}
       </main>
     </SidebarProvider>
   );

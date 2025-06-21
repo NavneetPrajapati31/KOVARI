@@ -47,11 +47,6 @@ const items = [
     icon: Inbox,
   },
   {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
-  },
-  {
     title: "Explore",
     url: "/explore",
     icon: Search,
@@ -173,7 +168,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <div
             className="
-              flex items-center border-b border-border mb-2 mt-1
+              flex items-center border-b border-border mb-1 mt-1
               justify-between
               group-data-[state=collapsed]:justify-center
               group-data-[state=collapsed]:border-none
