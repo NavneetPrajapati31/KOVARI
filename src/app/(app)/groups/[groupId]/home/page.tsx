@@ -1,12 +1,7 @@
 import React from "react";
 
 const GroupHomePage = () => {
-  return (
-    <div>
-      <h1>Group Home Page</h1>
-      <p>Welcome to your group's home page.</p>
-    </div>
-  );
+  return <div></div>;
 };
 
 export default GroupHomePage;
