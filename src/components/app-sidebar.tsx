@@ -32,17 +32,18 @@ import {
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Avatar } from "@heroui/react";
 import { Button } from "./ui/button";
+import type { UserResource } from "@clerk/types";
 
 // Menu items.
 const items = [
   {
     title: "Home",
-    url: "#",
+    url: "/",
     icon: Home,
   },
   {
-    title: "Inbox",
-    url: "#",
+    title: "Groups",
+    url: "/groups",
     icon: Inbox,
   },
   {
@@ -51,8 +52,8 @@ const items = [
     icon: Calendar,
   },
   {
-    title: "Search",
-    url: "#",
+    title: "Explore",
+    url: "/explore",
     icon: Search,
   },
   {
@@ -61,6 +62,19 @@ const items = [
     icon: Settings,
   },
 ];
+
+export const AcmeLogo = () => {
+  return (
+    <svg fill="none" height="30" viewBox="0 0 32 32" width="30">
+      <path
+        clipRule="evenodd"
+        d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
+        fill="currentColor"
+        fillRule="evenodd"
+      />
+    </svg>
+  );
+};
 
 function SidebarToggle() {
   const { toggleSidebar } = useSidebar();
@@ -77,37 +91,115 @@ function SidebarToggle() {
   );
 }
 
+// Extracted SidebarUserMenu for DRYness
+interface SidebarUserMenuProps {
+  user: UserResource | null | undefined;
+  onProfileClick?: () => void;
+  onSignOutClick?: () => void;
+}
+
+const SidebarUserMenu = ({
+  user,
+  onProfileClick,
+  onSignOutClick,
+}: SidebarUserMenuProps) => {
+  const { state } = useSidebar();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="border-none outline-none flex h-auto items-center gap-2 py-3 w-full focus:outline-none focus:ring-0 justify-start"
+          aria-label="User menu"
+          tabIndex={0}
+        >
+          <Avatar
+            src={user?.imageUrl || "/placeholder.svg"}
+            alt={user?.fullName || "User avatar"}
+            size="sm"
+            className="flex-shrink-0"
+          />
+          <div
+            className={`
+              transition-all duration-300 origin-left overflow-hidden
+              ${
+                state === "collapsed"
+                  ? "max-w-0 opacity-0 scale-x-0"
+                  : "max-w-[160px] opacity-100 scale-x-100"
+              }
+            `}
+            style={{ minWidth: 0 }}
+          >
+            <p className="text-sm font-bold text-foreground truncate">
+              {user?.fullName}
+            </p>
+            <p className="text-muted-foreground text-xs truncate text-start">
+              @{user?.username}
+            </p>
+          </div>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="top"
+        className="w-[--radix-popper-anchor-width] shadow-sm"
+      >
+        <DropdownMenuItem
+          className="focus:bg-transparent focus:text-primary focus:outline-none border-none"
+          onClick={onProfileClick}
+        >
+          <span>My Profile</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="focus:bg-transparent focus:text-primary focus:outline-none"
+          onClick={onSignOutClick}
+        >
+          <span>Sign out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 export function AppSidebar() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
+  const { state } = useSidebar();
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarContent>
+      <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>
           <div
             className="
-              flex items-center border-b
+              flex items-center border-b mb-2
               justify-between
               group-data-[state=collapsed]:justify-center
               group-data-[state=collapsed]:border-none
               group-data-[state=collapsed]:p-0
             "
           >
-            <h2
-              className="
-                text-sm font-semibold text-muted-foreground
-                max-w-[120px] opacity-100 pr-2
-                overflow-hidden
-                group-data-[state=collapsed]:max-w-0
-                group-data-[state=collapsed]:opacity-0
-                group-data-[state=collapsed]:pr-0
-              "
+            <div
+              className="relative flex items-center justify-start"
+              style={{ width: 140 }}
             >
-              {" "}
-              Application
-            </h2>
+              {/* <AcmeLogo /> */}
+              <span
+                className={`font-semibold text-muted-foreground
+                  transition-all duration-300 origin-left overflow-hidden
+                  
+                  ${
+                    state === "collapsed"
+                      ? "max-w-0 opacity-0 scale-x-0"
+                      : "max-w-[100px] opacity-100 scale-x-100 pl-2"
+                  }
+                `}
+                style={{ minWidth: 0 }}
+              >
+                KOVARI
+              </span>
+            </div>
             <SidebarToggle />
           </div>
           <SidebarGroupContent>
@@ -117,7 +209,18 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
                       <item.icon className="text-muted-foreground" />
-                      <span className="group-data-[state=collapsed]:hidden">
+                      <span
+                        className={`
+                          transition-all duration-300 origin-left overflow-hidden
+                          font-semibold text-muted-foreground
+                          ${
+                            state === "collapsed"
+                              ? "max-w-0 opacity-0 scale-x-0"
+                              : "max-w-[120px] opacity-100 scale-x-100"
+                          }
+                        `}
+                        style={{ minWidth: 0 }}
+                      >
                         {item.title}
                       </span>
                     </a>
@@ -128,57 +231,14 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      {/* Always show the user menu at the bottom, only details collapse/expand */}
       {user && (
-        <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton className="flex h-auto items-center gap-4 py-3 focus:outline-none focus:ring-0">
-                    {/* Profile Image */}
-                    <Avatar
-                      src={user.imageUrl || "/placeholder.svg"}
-                      alt={user.fullName || "User avatar"}
-                      size="md"
-                    />
-
-                    {/* User Info - Right of Avatar */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h2 className="text-md font-bold text-foreground truncate">
-                        {user.fullName}
-                      </h2>
-                      <p className="text-muted-foreground text-xs truncate">
-                        @{user.username}
-                      </p>
-                    </div>
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="top"
-                  className="w-[--radix-popper-anchor-width] shadow-sm"
-                >
-                  <DropdownMenuItem
-                    className="focus:bg-transparent focus:text-primary focus:outline-none border-none"
-                    onClick={() => router.push("/profile")}
-                  >
-                    <span>My Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="focus:bg-transparent focus:text-primary focus:outline-none"
-                    onClick={() => router.push("/groups")}
-                  >
-                    <span>My Groups</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="focus:bg-transparent focus:text-primary focus:outline-none"
-                    onClick={() => signOut({ redirectUrl: "/" })}
-                  >
-                    <span>Sign out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
+        <SidebarFooter className="flex justify-center">
+          <SidebarUserMenu
+            user={user}
+            onProfileClick={() => router.push("/profile")}
+            onSignOutClick={() => signOut({ redirectUrl: "/" })}
+          />
         </SidebarFooter>
       )}
     </Sidebar>
