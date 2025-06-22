@@ -22,11 +22,20 @@ import {
   Dot,
   Hotel,
   MapPin,
+  Pen,
+  Pencil,
   Plane,
+  Check,
   X,
 } from "lucide-react";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import React, { KeyboardEvent, useCallback, useEffect, useState } from "react";
+import React, {
+  KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import GoogleMapsViewer from "@/components/google-maps-viewer";
 import { RangeCalendar } from "@heroui/react";
 import { today, getLocalTimeZone } from "@internationalized/date";
@@ -71,9 +80,20 @@ const upcoming = [
     date: "2024-01-16",
     time: "10:00",
     type: "activity",
-    status: "pending",
+    status: "confirmed",
     location: "Minato City, Tokyo",
     priority: "low",
+  },
+  {
+    id: 4,
+    title: "Car Rental Pickup",
+    description: "Toyota Camry - Hertz",
+    date: "2024-01-17",
+    time: "09:00",
+    type: "transport",
+    status: "confirmed",
+    location: "Shibuya Station",
+    priority: "medium",
   },
 ];
 
@@ -180,11 +200,48 @@ const GroupHomePage = () => {
     }
   };
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [noteText, setNoteText] = useState(
+    "June 22-29, 2024 - Our epic Mount Fuji adventure is locked in! Get ready for some serious mountain magic and unforgettable memories!"
+  );
+  const [displayDate, setDisplayDate] = useState("Jun 22, 2024");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      const length = noteText.length;
+      textareaRef.current.setSelectionRange(length, length);
+    }
+  }, [isEditing, noteText]);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    // Reset to original values if needed
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && e.ctrlKey) {
+      handleSave();
+    } else if (e.key === "Escape") {
+      handleCancel();
+    }
+  };
+
   const members = [
     {
       name: "Tanisha Combs",
       avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
       role: "admin",
       username: "tanishacombs",
     },
@@ -290,6 +347,19 @@ const GroupHomePage = () => {
                         description: "text-left",
                       }}
                     />
+                    {member.role === "admin" ? (
+                      <Chip
+                        size="sm"
+                        variant="bordered"
+                        className="text-xs capitalize flex-shrink-0 self-center bg-primary-light border-1 border-primary"
+                      >
+                        <span className="font-medium p-2 text-xs text-primary">
+                          admin
+                        </span>
+                      </Chip>
+                    ) : (
+                      ""
+                    )}
                   </div>
                 ))}
               </div>
@@ -354,7 +424,7 @@ const GroupHomePage = () => {
               </span>
 
               <div className="flex items-center justify-center w-full">
-                <div className="w-[250px] flex justify-center">
+                <div className="w-[250px] flex justify-center mb-0">
                   <div className="scale-90 origin-center">
                     <RangeCalendar
                       isReadOnly
@@ -367,11 +437,68 @@ const GroupHomePage = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-xs font-medium text-muted-foreground mb-3 ml-3 mr-3 leading-relaxed">
-                June 22-29, 2024 - Our epic Mount Fuji adventure is locked in!
-                Get ready for some serious mountain magic and unforgettable
-                memories!
-              </p>
+
+              <div className="bg-[#fff2c0] border-1 border-none p-3 rounded-3xl shadow-sm relative">
+                {isEditing ? (
+                  <textarea
+                    ref={textareaRef}
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="block w-full text-xs font-medium text-muted-foreground mb-10 bg-transparent border-none outline-none resize-none min-h-[60px] placeholder:text-muted-foreground/50 focus:ring-0 overflow-hidden"
+                    placeholder="Enter your travel note..."
+                    autoFocus
+                    style={{ lineHeight: "1.625" }}
+                  />
+                ) : (
+                  <p className="text-xs font-medium text-muted-foreground mb-10 leading-relaxed">
+                    {noteText}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between absolute left-0 right-0 bottom-0 px-4 py-2 mt-2 mb-1">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={displayDate}
+                      onChange={(e) => setDisplayDate(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="text-xs text-muted-foreground font-medium bg-transparent border-none outline-none w-20"
+                      placeholder="Date"
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {displayDate}
+                    </span>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    {isEditing ? (
+                      <>
+                        <Check
+                          className="w-4 h-4 cursor-pointer text-green-600 hover:text-green-700 transition-colors outline-none focus:outline-none"
+                          onClick={handleSave}
+                          tabIndex={0}
+                          aria-label="Save changes"
+                        />
+                        <X
+                          className="w-4 h-4 cursor-pointer text-red-600 hover:text-red-700 transition-colors outline-none focus:outline-none"
+                          onClick={handleCancel}
+                          tabIndex={0}
+                          aria-label="Cancel editing"
+                        />
+                      </>
+                    ) : (
+                      <Pencil
+                        className="w-4 h-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors outline-none focus:outline-none"
+                        onClick={handleEdit}
+                        tabIndex={0}
+                        aria-label="Edit"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
             </Card>
           </div>
           <div className="flex-1">
@@ -391,6 +518,13 @@ const GroupHomePage = () => {
                         {upcoming.length} items scheduled
                       </p>
                     </div>
+                  </div>
+                  <div>
+                    <Link href={`/groups/${params.groupId}/itinerary`}>
+                      <p className="text-primary text-xs font-medium cursor-pointer">
+                        View full itinerary
+                      </p>
+                    </Link>
                   </div>
                 </div>
 

@@ -128,10 +128,10 @@ export default function App({
   };
 
   const navigationItems = [
-    { name: "Features", href: "#features", icon: Compass },
-    { name: "How It Works", href: "#working", icon: MessageCircle },
-    { name: "Pricing", href: "/pricing", icon: Users },
-    { name: "About Us", href: "/about-us", icon: LayoutDashboard },
+    // { name: "Features", href: "#features", icon: Compass },
+    // { name: "How It Works", href: "#working", icon: MessageCircle },
+    // { name: "Pricing", href: "/pricing", icon: Users },
+    // { name: "About Us", href: "/about-us", icon: LayoutDashboard },
   ];
 
   const menuItems = [
