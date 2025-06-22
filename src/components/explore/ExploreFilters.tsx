@@ -990,10 +990,10 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
     <>
       {isDesktop ? (
         // Desktop: Show original horizontal filters for screens >=1024px
-        <DesktopFilters />
+        (<DesktopFilters />)
       ) : (
         // Mobile: Show filter button that opens modal for screens <1024px
-        <div className="flex items-center gap-2">
+        (<div className="flex items-center gap-2">
           <Button
             variant={"outline"}
             onClick={onOpen}
@@ -1008,7 +1008,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             )}
           </Button>
           <MobileFiltersModal />
-        </div>
+        </div>)
       )}
     </>
   );
