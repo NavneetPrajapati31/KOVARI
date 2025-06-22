@@ -315,7 +315,7 @@ const GroupHomePage = () => {
             <Card className="bg-primary-light border-3 p-1 border-card w-full h-[200px] rounded-3xl shadow-sm">
               <CardBody>
                 <span className="text-sm mb-1 font-semibold text-primary">
-                  AI description
+                  AI Overview
                 </span>
                 <p className="text-sm font-medium">
                   Mount Fuji is a dreamlike destination for travelers seeking

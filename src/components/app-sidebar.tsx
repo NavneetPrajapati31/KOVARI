@@ -42,14 +42,19 @@ const items = [
     icon: Home,
   },
   {
-    title: "Groups",
-    url: "/groups",
-    icon: Inbox,
-  },
-  {
     title: "Explore",
     url: "/explore",
     icon: Search,
+  },
+  {
+    title: "Chats",
+    url: "/chat",
+    icon: User2,
+  },
+  {
+    title: "Groups",
+    url: "/groups",
+    icon: Inbox,
   },
   {
     title: "Settings",

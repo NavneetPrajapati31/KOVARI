@@ -184,7 +184,7 @@ export default function App({
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}
-        className="backdrop-blur-3xl border-border"
+        className="backdrop-blur-xl bg-background/80 border-border sticky top-0 z-40"
         classNames={{
           wrapper: "max-w-full px-4",
         }}

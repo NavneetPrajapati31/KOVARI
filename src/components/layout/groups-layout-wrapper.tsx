@@ -63,7 +63,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     }
   };
   return (
-    <div className="flex h-screen bg-background text-foreground p-4">
+    <div className="flex bg-background text-foreground p-4">
       {/* Sidebar can go here */}
       <div className="flex-1 flex flex-col">
         <header>
