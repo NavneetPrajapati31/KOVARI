@@ -52,7 +52,7 @@ export function DestinationCard({
   const router = useRouter();
 
   return (
-    <Card className="relative  w-[230px] h-[200px] rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="relative  w-[250px] h-[200px] rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Background Image - now covers full card */}
       <div className="relative w-full h-full overflow-hidden bg-muted">
         <ImageStretch

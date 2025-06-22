@@ -235,9 +235,9 @@ const GroupHomePage = () => {
         </div>
 
         {/* Chat List Area */}
-        <div className="flex flex-col gap-2 px-4 pt-3 pb-3">
+        <div className="flex flex-col gap-2 px-3 pt-3 pb-3">
           {/* Group name */}
-          <div className="flex flex-col items-start gap-2 mb-2">
+          <div className="flex flex-col items-start gap-2 mb-2 px-1">
             <span
               className="text-md font-bold leading-tight truncate text-foreground"
               title="France Group"
@@ -249,24 +249,52 @@ const GroupHomePage = () => {
             </p>
           </div>
 
-          <span className="text-sm font-bold leading-tight truncate text-foreground mb-3 ml-1">
-            Mark The Dates!
-          </span>
+          <Card className="bg-card border-1 p-1 border-border w-full h-full rounded-3xl shadow-sm">
+            <CardHeader className="flex flex-col p-3 items-start">
+              <h2 className="text-sm font-semibold text-gray-800 mb-1">
+                {members.length} members
+              </h2>
+              <Divider />
+            </CardHeader>
 
-          <div className="flex items-center justify-center w-full">
-            <div className="w-[220px] flex justify-center">
-              <div className="scale-100 origin-center">
-                <RangeCalendar
-                  isReadOnly
-                  aria-label="Date (Read Only)"
-                  value={{
-                    start: today(getLocalTimeZone()),
-                    end: today(getLocalTimeZone()).add({ weeks: 1 }),
-                  }}
-                />
+            <CardBody className="px-3 pb-4 pt-1">
+              <div className="space-y-4">
+                {members.map((member, index) => (
+                  <div key={index} className="flex items-center gap-4">
+                    <User
+                      avatarProps={{
+                        src: member.avatar,
+                        size: "sm",
+                        className: "flex-shrink-0",
+                      }}
+                      name={
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-800 text-sm">
+                            {member.name}
+                          </span>
+                        </div>
+                      }
+                      description={
+                        <Link
+                          isExternal
+                          href={`https://x.com/${member.username}`}
+                          size="sm"
+                          className="text-gray-600 text-xs hover:text-gray-800"
+                        >
+                          @{member.username}
+                        </Link>
+                      }
+                      classNames={{
+                        wrapper: "flex-1 min-w-0",
+                        name: "text-left",
+                        description: "text-left",
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
 
           {/* <GoogleMapsViewer /> */}
         </div>
@@ -320,51 +348,30 @@ const GroupHomePage = () => {
 
         <div className="flex flex-row gap-2 flex-1">
           <div className="flex-shrink-0">
-            <Card className="bg-card border-1 p-1 border-border w-[230px] h-full rounded-3xl shadow-sm">
-              <CardHeader className="flex flex-col p-3 items-start">
-                <h2 className="text-sm font-semibold text-gray-800 mb-1">
-                  {members.length} members
-                </h2>
-                <Divider />
-              </CardHeader>
+            <Card className="bg-card border-1 p-2 border-border w-[250px] h-full rounded-3xl shadow-sm">
+              <span className="text-sm font-semibold leading-tight truncate text-foreground mb-1 mt-2 ml-3">
+                Mark The Dates!
+              </span>
 
-              <CardBody className="px-3 pb-4 pt-1">
-                <div className="space-y-4">
-                  {members.map((member, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                      <User
-                        avatarProps={{
-                          src: member.avatar,
-                          size: "sm",
-                          className: "flex-shrink-0",
-                        }}
-                        name={
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-800 text-sm">
-                              {member.name}
-                            </span>
-                          </div>
-                        }
-                        description={
-                          <Link
-                            isExternal
-                            href={`https://x.com/${member.username}`}
-                            size="sm"
-                            className="text-gray-600 text-xs hover:text-gray-800"
-                          >
-                            @{member.username}
-                          </Link>
-                        }
-                        classNames={{
-                          wrapper: "flex-1 min-w-0",
-                          name: "text-left",
-                          description: "text-left",
-                        }}
-                      />
-                    </div>
-                  ))}
+              <div className="flex items-center justify-center w-full">
+                <div className="w-[250px] flex justify-center">
+                  <div className="scale-90 origin-center">
+                    <RangeCalendar
+                      isReadOnly
+                      aria-label="Date (Read Only)"
+                      value={{
+                        start: today(getLocalTimeZone()),
+                        end: today(getLocalTimeZone()).add({ weeks: 1 }),
+                      }}
+                    />
+                  </div>
                 </div>
-              </CardBody>
+              </div>
+              <p className="text-xs font-medium text-muted-foreground mb-3 ml-3 mr-3 leading-relaxed">
+                June 22-29, 2024 - Our epic Mount Fuji adventure is locked in!
+                Get ready for some serious mountain magic and unforgettable
+                memories!
+              </p>
             </Card>
           </div>
           <div className="flex-1">
@@ -377,10 +384,10 @@ const GroupHomePage = () => {
                       {/* <Calendar className="w-4 h-4 text-primary" /> */}
                     </div>
                     <div>
-                      <h3 className="text-md font-semibold text-foreground">
+                      <h3 className="text-sm font-semibold text-foreground mb-1">
                         Upcoming Itinerary
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {upcoming.length} items scheduled
                       </p>
                     </div>
