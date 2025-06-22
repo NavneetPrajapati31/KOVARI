@@ -78,10 +78,10 @@ export function DestinationCard({
             {/* Creator avatar and name */}
             <div className="flex flex-col items-start gap-0.5 flex-1">
               <span className="text-white font-medium text-xs truncate">
-                Mount Fuji
+                {name}
               </span>
               <span className="text-white font-medium text-xs truncate">
-                Japan
+                {country}
               </span>
             </div>
             <div className="flex justify-end items-end flex-shrink-0">
@@ -89,6 +89,7 @@ export function DestinationCard({
                 variant={"outline"}
                 size={"sm"}
                 className="bg-transparent text-xs px-5 py-1 text-white border-white rounded-full hover:text-white hover:bg-white/20"
+                onClick={onExplore}
               >
                 Explore
               </Button>

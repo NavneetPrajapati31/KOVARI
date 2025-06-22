@@ -56,7 +56,10 @@ export function GroupCoverCard({
       {/* Background Image - now covers full card */}
       <div className="relative w-full h-full overflow-hidden bg-muted">
         <ImageStretch
-          src={imageUrl || ""}
+          src={
+            imageUrl ||
+            "https://images.pexels.com/photos/281260/pexels-photo-281260.jpeg"
+          }
           alt={"Group cover"}
           ariaLabel={"Group cover"}
         />
