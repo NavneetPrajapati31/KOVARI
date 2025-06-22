@@ -26,7 +26,7 @@ export interface Group {
     isOngoing: boolean;
   };
   memberCount: number;
-  userStatus: "member" | "pending" | "blocked" | null;
+  userStatus: "member" | "pending" | "blocked" | "declined" | null;
   creator: {
     name: string;
     username: string;
@@ -254,28 +254,30 @@ export const fetchPublicGroups = async (
     return { data: [], nextCursor: null };
   }
 
-  // Get group ids joined by user
-  const { data: memberships } = await supabase
-    .from("group_memberships")
-    .select("group_id")
-    .eq("user_id", currentUserId);
-  const joinedGroupIds = (memberships || []).map((m: any) => m.group_id);
-
-  // Filter out groups joined by user and apply date filter
-  const filteredGroups = (groups || []).filter((g: any) => {
-    if (joinedGroupIds.includes(g.id)) return false;
-    // Date filtering: only include if ranges overlap
-    if (filters.dateStart || filters.dateEnd) {
-      const gStart = g.start_date ? new Date(g.start_date) : undefined;
-      const gEnd = g.end_date ? new Date(g.end_date) : gStart;
-      if (filters.dateStart && gEnd && gEnd < filters.dateStart) return false;
-      if (filters.dateEnd && gStart && gStart > filters.dateEnd) return false;
+  // Get group membership status for the user for all groups
+  const groupIds = (groups || []).map((g: any) => g.id);
+  let userMemberships: Record<string, string> = {};
+  if (groupIds.length > 0 && currentUserId) {
+    // Get internal user_id from users table
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_user_id", currentUserId)
+      .single();
+    const internalUserId = userData?.id;
+    if (internalUserId) {
+      const { data: memberships } = await supabase
+        .from("group_memberships")
+        .select("group_id, status")
+        .eq("user_id", internalUserId)
+        .in("group_id", groupIds);
+      (memberships || []).forEach((m: any) => {
+        userMemberships[m.group_id] = m.status;
+      });
     }
-    return true;
-  });
+  }
 
   // For each group, get member count
-  const groupIds = filteredGroups.map((g: any) => g.id);
   let memberCounts: Record<string, number> = {};
   if (groupIds.length > 0) {
     const { data: membershipsData } = await supabase
@@ -289,7 +291,7 @@ export const fetchPublicGroups = async (
   }
 
   // Fetch creator profiles for all creator_ids
-  const creatorIds = filteredGroups
+  const creatorIds = (groups || [])
     .map((g: any) => g.creator_id)
     .filter(Boolean);
   let creatorProfiles: Record<
@@ -314,8 +316,13 @@ export const fetchPublicGroups = async (
   }
 
   // Map to Group type
-  const mapped = filteredGroups.map((group: any) => {
+  const mapped = (groups || []).map((group: any) => {
     const privacy: Group["privacy"] = group.is_public ? "public" : "private";
+    let userStatus: Group["userStatus"] = null;
+    const membershipStatus = userMemberships[group.id];
+    if (membershipStatus === "accepted") userStatus = "member";
+    else if (membershipStatus === "pending") userStatus = "pending";
+    else if (membershipStatus === "declined") userStatus = "declined";
     return {
       id: group.id,
       name: group.name,
@@ -327,7 +334,7 @@ export const fetchPublicGroups = async (
         isOngoing: !group.end_date,
       },
       memberCount: memberCounts[group.id] || 0,
-      userStatus: null,
+      userStatus,
       creator: {
         name: creatorProfiles[group.creator_id]?.name || "Unknown",
         username: creatorProfiles[group.creator_id]?.username || "unknown",

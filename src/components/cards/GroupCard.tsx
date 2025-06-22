@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
-import { MapPin, Calendar, Users, Loader2 } from "lucide-react";
+import { MapPin, Calendar, Users, Loader2, Router } from "lucide-react";
 import { Button } from "../ui/button";
 import GroupCardSkeleton from "../skeleton/GroupCardSkeleton";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface GroupCardProps {
   group: {
@@ -18,7 +20,7 @@ interface GroupCardProps {
       isOngoing: boolean;
     };
     memberCount: number;
-    userStatus: "member" | "pending" | "blocked" | null;
+    userStatus: "member" | "pending" | "blocked" | "declined" | null;
     creator: {
       name: string;
       avatar?: string;
@@ -30,12 +32,14 @@ interface GroupCardProps {
     action: "view" | "request" | "join"
   ) => Promise<void>;
   isLoading?: boolean;
+  onShowLoading?: () => void;
 }
 
 export function GroupCard({
   group,
   onAction,
   isLoading = false,
+  onShowLoading,
 }: GroupCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -108,6 +112,14 @@ export function GroupCard({
     return <GroupCardSkeleton />;
   }
 
+  const router = useRouter();
+
+  const handleViewGroup = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onShowLoading) onShowLoading();
+    router.push(`/groups/${group.id}/home`);
+  };
+
   return (
     <Card className="w-full max-w-[600px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Top image section */}
@@ -170,6 +182,7 @@ export function GroupCard({
             aria-label="View Group"
             tabIndex={0}
             disabled={actionLoading}
+            onClick={handleViewGroup}
           >
             {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
             View Group
@@ -193,6 +206,7 @@ export function GroupCard({
               aria-label="View Group"
               tabIndex={0}
               disabled={actionLoading}
+              onClick={handleViewGroup}
             >
               {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
               View Group
@@ -204,6 +218,10 @@ export function GroupCard({
               aria-label="Request to Join"
               tabIndex={0}
               disabled={actionLoading}
+              onClick={async () => {
+                if (onShowLoading) onShowLoading();
+                await handleAction();
+              }}
             >
               {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
               Request to Join

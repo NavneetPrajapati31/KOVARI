@@ -269,11 +269,13 @@ type TravelerWithFilters = Traveler & {
 interface ExploreResultsProps {
   activeTab: number;
   filters: FiltersState;
+  onShowLoading?: () => void;
 }
 
 export default function ExploreResults({
   activeTab,
   filters,
+  onShowLoading,
 }: ExploreResultsProps) {
   const { user, isLoaded } = useUser();
   const [isLoading, setIsLoading] = useState(true);
@@ -484,6 +486,7 @@ export default function ExploreResults({
               group={group}
               onAction={handleGroupAction}
               isLoading={false}
+              onShowLoading={onShowLoading}
             />
           ))
         ) : (

@@ -6,6 +6,8 @@ import { GroupCardv2 } from "@/components/cards/GroupCardv2";
 import GroupCardSkeleton from "@/components/skeleton/GroupCardSkeleton";
 import { fetchMyGroups, Group } from "@/lib/fetchExploreData";
 import { MyGroupCard } from "@/components/cards/MyGroupCard";
+import { GroupCard } from "@/components/cards/GroupCard";
+import { Loader2 } from "lucide-react";
 
 const SKELETON_COUNT = 16;
 
@@ -14,6 +16,7 @@ export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isPageRedirecting, setIsPageRedirecting] = useState(false);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -48,7 +51,12 @@ export default function GroupsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 w-full h-screen">
+    <div className="flex-1 space-y-4 p-4 w-full h-screen relative">
+      {isPageRedirecting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <Loader2 className="w-11 h-11 animate-spin text-black" />
+        </div>
+      )}
       <header className="mb-0">
         <h1
           className="text-md font-bold tracking-tight text-foreground"
@@ -78,11 +86,12 @@ export default function GroupsPage() {
         <div className="w-full">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
             {groups.map((group) => (
-              <MyGroupCard
+              <GroupCard
                 key={group.id}
                 group={group}
                 onAction={handleGroupAction}
                 isLoading={false}
+                onShowLoading={() => setIsPageRedirecting(true)}
               />
             ))}
           </div>

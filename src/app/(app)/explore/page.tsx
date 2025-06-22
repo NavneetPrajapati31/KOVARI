@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExploreHeader from "@/components/explore/ExploreHeader";
 import ExploreResults from "@/components/explore/ExploreResults";
+import { Loader2 } from "lucide-react";
 
 interface FiltersState {
   destination: string;
@@ -77,6 +78,7 @@ export default function ExplorePage() {
 
   const [activeTab, setActiveTab] = useState(getTabIndex);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
 
   // Memoize parsed filters from searchParams
   const parsedFilters = useMemo(
@@ -141,8 +143,25 @@ export default function ExplorePage() {
   ]);
   const memoizedOnDropdownOpenChange = useCallback(setIsFilterDropdownOpen, []);
 
+  useEffect(() => {
+    if (isPageLoading) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    // Clean up on unmount
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isPageLoading]);
+
   return (
-    <div className="flex flex-col w-full min-h-screen">
+    <div className="flex flex-col w-full min-h-screen relative">
+      {isPageLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <Loader2 className="w-11 h-11 animate-spin text-black" />
+        </div>
+      )}
       <ExploreHeader
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -157,7 +176,11 @@ export default function ExplorePage() {
             : "blur-0 opacity-100"
         }`}
       >
-        <ExploreResults activeTab={activeTab} filters={filters} />
+        <ExploreResults
+          activeTab={activeTab}
+          filters={filters}
+          onShowLoading={() => setIsPageLoading(true)}
+        />
       </div>
     </div>
   );
