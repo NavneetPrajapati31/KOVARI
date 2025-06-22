@@ -23,6 +23,7 @@ interface GroupCardProps {
     userStatus: "member" | "pending" | "blocked" | "declined" | null;
     creator: {
       name: string;
+      username: string;
       avatar?: string;
     };
     cover_image?: string;
@@ -169,7 +170,7 @@ export function GroupCard({
             aria-label={`Avatar of ${group.creator.name}`}
           />
           <span className="text-muted-foreground font-medium text-xs truncate">
-            Created by {group.creator.name || "Unknown Creator"}
+            Created by {`@${group.creator.username}` || "Unknown Creator"}
           </span>
         </div>
       </div>

@@ -57,6 +57,11 @@ const items = [
     icon: Inbox,
   },
   {
+    title: "Profile",
+    url: "/profile",
+    icon: User2,
+  },
+  {
     title: "Settings",
     url: "#",
     icon: Settings,

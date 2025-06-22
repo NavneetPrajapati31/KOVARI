@@ -185,5 +185,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-
-// TODO - Fix Age Range Slider

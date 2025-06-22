@@ -11,6 +11,7 @@ import {
   Group,
 } from "@/lib/fetchExploreData";
 import { GroupCardv2 } from "../cards/GroupCardv2";
+import { FiltersState } from "@/types/filters-state";
 
 type UserStatus = "member" | "pending" | "blocked" | null;
 
@@ -248,18 +249,6 @@ const dummyGroups = [
 
 const PAGE_SIZE = 20;
 
-// TODO: Move FiltersState to a shared types file and import here
-// For now, define it locally to fix linter error
-export interface FiltersState {
-  destination: string;
-  dateStart: Date | undefined;
-  dateEnd: Date | undefined;
-  ageMin: number;
-  ageMax: number;
-  gender: string;
-  interests: string[];
-}
-
 // Patch Traveler type for filtering (gender, interests optional)
 type TravelerWithFilters = Traveler & {
   gender?: string;
@@ -479,20 +468,28 @@ export default function ExploreResults({
               No travelers found.
             </div>
           )
-        ) : groups.length > 0 ? (
-          groups.map((group) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              onAction={handleGroupAction}
-              isLoading={false}
-              onShowLoading={onShowLoading}
-            />
-          ))
         ) : (
-          <div className="col-span-full text-center text-muted-foreground py-8">
-            No groups found.
-          </div>
+          (() => {
+            // Filter out groups where userStatus === 'member'
+            const notJoinedGroups = groups.filter(
+              (group) => group.userStatus !== "member"
+            );
+            return notJoinedGroups.length > 0 ? (
+              notJoinedGroups.map((group) => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  onAction={handleGroupAction}
+                  isLoading={false}
+                  onShowLoading={onShowLoading}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center text-muted-foreground py-8">
+                No groups found.
+              </div>
+            );
+          })()
         )}
       </div>
       {/* Infinite scroll sentinel */}
