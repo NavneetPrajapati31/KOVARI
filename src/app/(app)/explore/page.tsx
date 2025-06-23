@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ExploreHeader from "@/components/explore/ExploreHeader";
 import ExploreResults from "@/components/explore/ExploreResults";
 import { Loader2 } from "lucide-react";
+import { Spinner } from "@heroui/react";
 
 interface FiltersState {
   destination: string;
@@ -159,7 +160,8 @@ export default function ExplorePage() {
     <div className="flex flex-col w-full min-h-screen relative">
       {isPageLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          <Loader2 className="w-11 h-11 animate-spin text-black" />
+          {/* <Loader2 className="w-11 h-11 animate-spin text-black" /> */}
+          <Spinner variant="spinner" size="md" color="primary" />
         </div>
       )}
       <ExploreHeader

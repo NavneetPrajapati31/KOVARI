@@ -8,6 +8,7 @@ import { fetchMyGroups, Group } from "@/lib/fetchExploreData";
 import { MyGroupCard } from "@/components/cards/MyGroupCard";
 import { GroupCard } from "@/components/cards/GroupCard";
 import { Loader2 } from "lucide-react";
+import { Spinner } from "@heroui/react";
 
 const SKELETON_COUNT = 16;
 
@@ -51,10 +52,11 @@ export default function GroupsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 w-full h-screen relative">
+    <div className="flex-1 space-y-4 p-4 w-full min-h-screen relative">
       {isPageRedirecting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          <Loader2 className="w-11 h-11 animate-spin text-black" />
+          {/* <Loader2 className="w-11 h-11 animate-spin text-black" /> */}
+          <Spinner variant="spinner" size="md" color="primary" />
         </div>
       )}
       <header className="mb-0">
