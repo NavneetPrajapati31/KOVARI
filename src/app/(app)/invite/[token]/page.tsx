@@ -4,41 +4,58 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { JoinGroupButton } from "@/features/groups/components/join-group-button";
+import { AcceptInviteClient } from "./accept-invite-client";
 
 interface InvitePageProps {
   params: { token: string };
 }
 
 export default async function InvitePage({ params }: InvitePageProps) {
-  const { token } = params;
+  const { token } = await params;
   const { userId } = await auth();
 
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookies().get(name)?.value;
+          return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          cookies().set(name, value, options);
+          cookieStore.set({ name, value, ...options });
         },
-        remove(name: string, options: CookieOptions) {
-          cookies().delete(name, options);
+        remove(name: string) {
+          cookieStore.delete(name);
         },
       },
     }
   );
 
-  // 1. Lookup invite link
+  // 1. Lookup invite link in group_invite_links
   const { data: linkRow, error: linkError } = await supabase
     .from("group_invite_links")
     .select("group_id, expires_at")
     .eq("token", token)
     .maybeSingle();
 
-  if (linkError || !linkRow) {
+  // 1b. Lookup invite in group_email_invitations if not found in group_invite_links
+  let emailInvite = null;
+  let groupId = linkRow?.group_id;
+  if (!linkRow) {
+    const { data: emailRow, error: emailError } = await supabase
+      .from("group_email_invitations")
+      .select("group_id, status, email")
+      .eq("token", token)
+      .maybeSingle();
+    if (emailRow) {
+      emailInvite = emailRow;
+      groupId = emailRow.group_id;
+    }
+  }
+
+  if ((!linkRow && !emailInvite) || linkError) {
     return (
       <div className="max-w-lg mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
         <h1 className="text-2xl font-bold mb-2">Invalid or Expired Link</h1>
@@ -51,8 +68,6 @@ export default async function InvitePage({ params }: InvitePageProps) {
       </div>
     );
   }
-
-  const groupId = linkRow.group_id;
 
   // 2. Lookup group info
   const { data: group, error: groupError } = await supabase
@@ -113,6 +128,12 @@ export default async function InvitePage({ params }: InvitePageProps) {
     );
   }
 
+  // If this is an email invite, accept it automatically after sign-in
+  if (emailInvite && emailInvite.status === "pending") {
+    return <AcceptInviteClient token={token} groupId={groupId} />;
+  }
+
+  // 5. If already a member, redirect
   const { data: existingMembership } = await supabase
     .from("group_memberships")
     .select("id, status")

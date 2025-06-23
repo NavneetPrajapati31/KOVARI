@@ -179,7 +179,7 @@ export function InviteTeammatesModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-md p-0 gap-0 bg-card min-w-0"
+        className="max-w-lg p-0 gap-0 bg-card min-w-0"
         hideCloseButton
       >
         <DialogTitle></DialogTitle>

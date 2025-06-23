@@ -157,33 +157,34 @@ export default function ExplorePage() {
   }, [isPageLoading]);
 
   return (
-    <div className="flex flex-col w-full min-h-screen relative">
+    <>
       {isPageLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          {/* <Loader2 className="w-11 h-11 animate-spin text-black" /> */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-card h-screen">
           <Spinner variant="spinner" size="md" color="primary" />
         </div>
       )}
-      <ExploreHeader
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        filters={memoizedFilters}
-        onFilterChange={memoizedOnFilterChange}
-        onDropdownOpenChange={memoizedOnDropdownOpenChange}
-      />
-      <div
-        className={`w-full flex-1 px-4 transition-[filter,opacity] duration-500 ease-in-out ${
-          isFilterDropdownOpen
-            ? "blur-md opacity-80 pointer-events-none select-none"
-            : "blur-0 opacity-100"
-        }`}
-      >
-        <ExploreResults
+      <div className="flex flex-col w-full min-h-screen relative">
+        <ExploreHeader
           activeTab={activeTab}
-          filters={filters}
-          onShowLoading={() => setIsPageLoading(true)}
+          onTabChange={handleTabChange}
+          filters={memoizedFilters}
+          onFilterChange={memoizedOnFilterChange}
+          onDropdownOpenChange={memoizedOnDropdownOpenChange}
         />
+        <div
+          className={`w-full flex-1 px-4 transition-[filter,opacity] duration-500 ease-in-out ${
+            isFilterDropdownOpen
+              ? "blur-md opacity-80 pointer-events-none select-none"
+              : "blur-0 opacity-100"
+          }`}
+        >
+          <ExploreResults
+            activeTab={activeTab}
+            filters={filters}
+            onShowLoading={() => setIsPageLoading(true)}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

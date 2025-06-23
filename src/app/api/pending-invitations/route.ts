@@ -128,7 +128,10 @@ export async function GET() {
       .select(
         `
         group_id,
-        profiles!inner(name, username, profile_photo)
+        users!inner(
+          id,
+          profiles!inner(name, username, profile_photo)
+        )
       `
       )
       .in("group_id", groupIds)
@@ -155,7 +158,9 @@ export async function GET() {
         if (!acc[item.group_id]) {
           acc[item.group_id] = [];
         }
-        acc[item.group_id].push(item.profiles);
+        if (item.users && item.users.profiles) {
+          acc[item.group_id].push(item.users.profiles);
+        }
         return acc;
       },
       {}

@@ -122,6 +122,7 @@ export async function POST(req: Request) {
         user_id: userRow.id,
         status: "accepted",
         joined_at: new Date().toISOString(),
+        role: "admin",
       });
 
     if (membershipError) {

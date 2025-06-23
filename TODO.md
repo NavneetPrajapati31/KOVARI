@@ -30,3 +30,63 @@
 **Additional Notes:**
 
 - ***
+
+**Description:** Page reload on small triggers for filters.
+
+- **Location (File/Component/Route):**
+
+- **Steps to Reproduce:**
+
+1.
+2.
+3.
+
+**Expected Behavior:**
+
+- **Actual Behavior:**
+
+- **Priority:**
+
+- [ ] Low
+- [ ] Medium
+- [ ] High
+
+**Status:**
+
+- [ ] Open
+- [ ] In Progress
+- [ ] Fixed
+
+**Additional Notes:**
+
+- ***
+
+**Description:** Links not optimised
+
+- **Location (File/Component/Route):**
+
+- **Steps to Reproduce:**
+
+1.
+2.
+3.
+
+**Expected Behavior:**
+
+- **Actual Behavior:**
+
+- **Priority:**
+
+- [ ] Low
+- [ ] Medium
+- [ ] High
+
+**Status:**
+
+- [ ] Open
+- [ ] In Progress
+- [ ] Fixed
+
+**Additional Notes:**
+
+- ***
