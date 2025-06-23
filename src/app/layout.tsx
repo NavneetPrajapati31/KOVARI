@@ -21,6 +21,7 @@ if (process.env.NEXT_PUBLIC_DEV_THEME === "true") {
 import { Poppins, Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { HeroUIProvider } from "@heroui/react";
+import { AuthProvider } from "@/components/auth-provider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -49,7 +50,7 @@ export default function RootLayout({
       <html lang="en">
         <body className={`${inter.variable} ${poppins.variable} font-body`}>
           <HeroUIProvider>
-            {children}
+            <AuthProvider>{children}</AuthProvider>
             <Toaster
               position="bottom-right"
               duration={2500}

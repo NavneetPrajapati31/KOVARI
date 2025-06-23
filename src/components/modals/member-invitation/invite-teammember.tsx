@@ -7,6 +7,7 @@ import { X, Link2 } from "lucide-react";
 import { UserTagInput } from "./user-tag-input";
 import { TeammateRow } from "./teammate-row";
 import { toast } from "@/hooks/use-toast";
+import { Divider } from "@heroui/react";
 
 interface User {
   id: string;
@@ -65,7 +66,6 @@ const availableUsers: User[] = [
     id: "5",
     name: "Richard Winson",
     email: "richard.winson@company.com",
-    avatar: "/placeholder.svg?height=32&width=32",
   },
   { id: "6", name: "Tedd Morrison", email: "tedd.morrison@company.com" },
   { id: "7", name: "Alex Morgan", email: "alex.morgan@company.com" },
@@ -178,28 +178,33 @@ export function InviteTeammatesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 bg-white">
-        <DialogTitle>Invite Teammates</DialogTitle>
+      <DialogContent
+        className="max-w-md p-0 gap-0 bg-card min-w-0"
+        hideCloseButton
+      >
+        <DialogTitle></DialogTitle>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-6 pt-4 pb-2">
+          <h2 className="text-md font-semibold text-foreground">
             Invite Teammates
           </h2>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="h-6 w-6 p-0 hover:bg-gray-100"
+            className="p-0 hover:bg-transparent text-foreground hover:text-foreground"
             aria-label="Close invite modal"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="px-6 space-y-4">
+        <Divider className="mb-4" />
+
+        <div className="px-6 pb-4 space-y-4">
           {/* Tag Input with Invite Button */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
+          <div className="flex items-center gap-1">
+            <div className="flex-1 min-w-0">
               <UserTagInput
                 availableUsers={availableUsers}
                 selectedUsers={selectedUsers}
@@ -209,9 +214,10 @@ export function InviteTeammatesModal({
               />
             </div>
             <Button
+              size={"lg"}
               onClick={handleInvite}
               disabled={selectedUsers.length === 0 || isInviting}
-              className="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-full"
+              className="bg-foreground text-primary-foreground px-6 py-2 rounded-full text-sm"
               aria-label="Invite selected users"
             >
               {isInviting ? "Inviting..." : "Invite"}
@@ -219,18 +225,18 @@ export function InviteTeammatesModal({
           </div>
 
           {/* Shareable Link Section */}
-          <div className="bg-gray-50 rounded-2xl p-4">
+          <div className="bg-gray-100 rounded-2xl p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className="relative">
-                  <Link2 className="h-5 w-5 text-gray-600" />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                  <Link2 className="h-5 w-5 text-muted-foreground" />
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></div>
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">
+                  <h3 className="font-medium text-sm text-foreground">
                     Shareable Link is now Live!
                   </h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Create and get shareable link for this group.
                   </p>
                 </div>
@@ -239,20 +245,20 @@ export function InviteTeammatesModal({
                 variant="outline"
                 size="sm"
                 onClick={handleGetLink}
-                className="bg-white border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-1.5 rounded-lg text-sm"
+                className="bg-card border-border hover:bg-gray-200 text-muted-foreground px-5 py-1.5 rounded-lg text-sm"
                 aria-label="Get invite link"
                 disabled={isLinkLoading}
               >
-                {isLinkLoading ? "Loading..." : "Get Link"}
+                {isLinkLoading ? "Creating..." : "Get Link"}
               </Button>
             </div>
             {inviteLink && (
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-3 flex items-center gap-2">
                 <input
                   type="text"
                   value={inviteLink}
                   readOnly
-                  className="w-full text-xs bg-gray-100 rounded px-2 py-1 border border-gray-200"
+                  className="w-full text-xs bg-transparent rounded px-3 py-2 border border-gray-200"
                   aria-label="Invite link"
                 />
                 <Button
@@ -264,7 +270,7 @@ export function InviteTeammatesModal({
                       description: "Invite link copied to clipboard.",
                     });
                   }}
-                  className="text-xs px-2"
+                  className="text-xs px-3 py-1 bg-primary"
                   aria-label="Copy invite link"
                 >
                   Copy
@@ -277,14 +283,14 @@ export function InviteTeammatesModal({
           </div>
         </div>
 
-        {/* Team Members List */}
+        {/* Team Members List
         <div className="px-6 pb-6 pt-2">
           <div className="space-y-1">
             {mockTeammates.map((teammate) => (
               <TeammateRow key={teammate.id} teammate={teammate} />
             ))}
           </div>
-        </div>
+        </div> */}
       </DialogContent>
     </Dialog>
   );

@@ -8,7 +8,7 @@ const generateToken = (length = 24) =>
   randomBytes(length).toString("base64url");
 
 const INVITE_BASE_URL =
-  process.env.NEXT_PUBLIC_INVITE_BASE_URL || "https://yourdomain.com/invite";
+  process.env.NEXT_PUBLIC_INVITE_BASE_URL || "localhost:3000/invite";
 
 export async function GET(req: Request) {
   try {

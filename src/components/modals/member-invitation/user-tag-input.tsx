@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Command,
   CommandEmpty,
@@ -39,9 +39,12 @@ export function UserTagInput({
   placeholder = "Search users...",
   allowCustomInput = false,
 }: UserTagInputProps) {
-  const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Filter users not already selected and matching search
   const filteredUsers = availableUsers.filter(
     (user) =>
       !selectedUsers.some((selected) => selected.id === user.id) &&
@@ -52,11 +55,13 @@ export function UserTagInput({
   const handleSelectUser = (user: User) => {
     onSelectionChange([...selectedUsers, user]);
     setSearchValue("");
-    setOpen(false);
+    setDropdownOpen(false);
+    inputRef.current?.focus();
   };
 
   const handleRemoveUser = (userId: string) => {
     onSelectionChange(selectedUsers.filter((user) => user.id !== userId));
+    inputRef.current?.focus();
   };
 
   const getInitials = (name: string) => {
@@ -68,16 +73,13 @@ export function UserTagInput({
       .slice(0, 2);
   };
 
-  // Helper to check if searchValue is a valid email
+  // Custom input logic
   const isValidEmail = (input: string): boolean => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
   };
-  // Helper to check if searchValue is a valid username
   const isValidUsername = (input: string): boolean => {
     return /^[a-zA-Z0-9_]{3,20}$/.test(input);
   };
-
-  // If custom input is allowed and searchValue is not empty and not in availableUsers, allow adding
   const canAddCustom =
     allowCustomInput &&
     searchValue.trim().length > 0 &&
@@ -88,124 +90,198 @@ export function UserTagInput({
     ) &&
     (isValidEmail(searchValue) || isValidUsername(searchValue));
 
+  // Handle dropdown open/close on click outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Keyboard navigation for dropdown
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [dropdownOpen, searchValue, filteredUsers.length]);
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!dropdownOpen && (e.key === "ArrowDown" || e.key === "Enter")) {
+      setDropdownOpen(true);
+      return;
+    }
+    if (dropdownOpen) {
+      const totalOptions = filteredUsers.length + (canAddCustom ? 1 : 0);
+      if (e.key === "ArrowDown") {
+        setHighlightedIndex((i) => (i + 1) % totalOptions);
+        e.preventDefault();
+      } else if (e.key === "ArrowUp") {
+        setHighlightedIndex((i) => (i - 1 + totalOptions) % totalOptions);
+        e.preventDefault();
+      } else if (e.key === "Enter") {
+        if (highlightedIndex < filteredUsers.length) {
+          handleSelectUser(filteredUsers[highlightedIndex]);
+        } else if (canAddCustom && highlightedIndex === filteredUsers.length) {
+          handleSelectUser({
+            id: `custom-${searchValue}`,
+            name: searchValue,
+            email: isValidEmail(searchValue) ? searchValue : "",
+            avatar: undefined,
+          });
+        }
+        e.preventDefault();
+      } else if (e.key === "Escape") {
+        setDropdownOpen(false);
+        e.preventDefault();
+      }
+    }
+    // Remove last tag with Backspace if input is empty
+    if (
+      e.key === "Backspace" &&
+      searchValue === "" &&
+      selectedUsers.length > 0
+    ) {
+      handleRemoveUser(selectedUsers[selectedUsers.length - 1].id);
+    }
+  };
+
   return (
-    <div className="relative">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div className="flex items-center gap-2 bg-gray-50 rounded-full px-4 py-2 min-h-[44px] flex-wrap cursor-text">
-            {/* Selected Users */}
-            {selectedUsers.map((user) => (
-              <div
+    <div ref={containerRef} className="relative w-full">
+      <div
+        className="flex items-center flex-nowrap gap-2 bg-transparent border border-gray-200 rounded-full px-2 h-10 w-full min-w-0 max-w-[370px] overflow-x-auto focus-within:ring-0 transition scrollbar-none"
+        onClick={() => inputRef.current?.focus()}
+        tabIndex={0}
+        aria-label="User selection input"
+      >
+        {selectedUsers.map((user) => (
+          <span
+            key={user.id}
+            className="shrink-0 flex items-center rounded-full bg-gray-100 px-2 py-1 mr-1 text-foreground text-xs font-medium shadow-sm"
+          >
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="h-5 w-5 rounded-full mr-2"
+              />
+            ) : (
+              <span className="h-5 w-5 rounded-full bg-gray-300 flex items-center justify-center mr-2 text-xs font-bold">
+                {getInitials(user.name)}
+              </span>
+            )}
+            <span className="text-xs">{user.name}</span>
+            <button
+              type="button"
+              className="ml-2 text-gray-400 hover:text-gray-700 focus:outline-none"
+              aria-label={`Remove ${user.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveUser(user.id);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          type="text"
+          className="flex-1 min-w-[50px] border-none outline-none bg-transparent text-sm text-foreground focus:ring-0 px-1"
+          placeholder={selectedUsers.length === 0 ? placeholder : ""}
+          value={searchValue}
+          onChange={(e) => {
+            setSearchValue(e.target.value);
+            setDropdownOpen(true);
+          }}
+          onFocus={() => setDropdownOpen(true)}
+          onKeyDown={handleInputKeyDown}
+          aria-label="Add user by name or email"
+        />
+      </div>
+      {dropdownOpen && (filteredUsers.length > 0 || canAddCustom) && (
+        <ul
+          className="absolute left-0 mt-2 w-full bg-white border-1 border-border rounded-xl shadow-lg z-10 max-h-60 overflow-auto"
+          role="listbox"
+        >
+          {filteredUsers.map((user, idx) => {
+            const isHighlighted = idx === highlightedIndex;
+            const ariaSelected = isHighlighted ? "true" : "false";
+            return (
+              <li
                 key={user.id}
-                className="flex items-center gap-2 bg-white rounded-full pl-1 pr-2 py-1 shadow-sm"
+                className={`flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-100 rounded-xl ${
+                  isHighlighted ? "bg-gray-200" : ""
+                }`}
+                onMouseDown={() => handleSelectUser(user)}
+                onMouseEnter={() => setHighlightedIndex(idx)}
+                role="option"
+                aria-selected={ariaSelected}
               >
-                <Avatar className="h-6 w-6">
-                  <AvatarImage
-                    src={user.avatar || "/placeholder.svg"}
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
                     alt={user.name}
+                    className="h-8 w-8 rounded-full"
                   />
-                  <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-medium">
+                ) : (
+                  <span className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold">
                     {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium text-gray-900">
-                  {user.name}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-4 w-4 p-0 hover:bg-gray-100 rounded-full"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveUser(user.id);
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-
-            {/* Placeholder text when no users selected */}
-            {selectedUsers.length === 0 && (
-              <span className="text-sm text-gray-500 flex-1">Tedd</span>
-            )}
-
-            {/* Show current search or placeholder */}
-            {selectedUsers.length > 0 && (
-              <span className="text-sm text-gray-900 flex-1">Tedd</span>
-            )}
-          </div>
-        </PopoverTrigger>
-        <PopoverContent className="w-80 p-0" align="start">
-          <Command>
-            <CommandInput
-              placeholder={placeholder}
-              value={searchValue}
-              onValueChange={setSearchValue}
-              autoFocus
-            />
-            <CommandList>
-              <CommandEmpty>No users found.</CommandEmpty>
-              <CommandGroup>
-                {filteredUsers.map((user) => (
-                  <CommandItem
-                    key={user.id}
-                    value={`${user.name} ${user.email}`}
-                    onSelect={() => handleSelectUser(user)}
-                    className="flex items-center gap-3 px-4 py-2"
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={user.avatar || "/placeholder.svg"}
-                        alt={user.name}
-                      />
-                      <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-medium">
-                        {getInitials(user.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {user.email}
-                      </div>
-                    </div>
-                  </CommandItem>
-                ))}
-                {/* Custom input option */}
-                {canAddCustom && (
-                  <CommandItem
-                    key={searchValue}
-                    value={searchValue}
-                    onSelect={() => {
-                      handleSelectUser({
-                        id: `custom-${searchValue}`,
-                        name: searchValue,
-                        email: isValidEmail(searchValue) ? searchValue : "",
-                        avatar: undefined,
-                      });
-                    }}
-                    className="flex items-center gap-3 px-4 py-2 text-blue-600"
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-medium">
-                        {isValidEmail(searchValue)
-                          ? searchValue[0].toUpperCase()
-                          : getInitials(searchValue)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <div className="font-medium">
-                        Invite "{searchValue}"{" "}
-                        {isValidEmail(searchValue) ? "(email)" : "(username)"}
-                      </div>
-                    </div>
-                  </CommandItem>
+                  </span>
                 )}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm text-foreground">
+                    {user.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+          {canAddCustom &&
+            (() => {
+              const isHighlighted = filteredUsers.length === highlightedIndex;
+              const ariaSelected = isHighlighted ? "true" : "false";
+              return (
+                <li
+                  className="flex items-center gap-3 px-4 py-2 cursor-pointer text-blue-600 hover:bg-blue-50 rounded-xl"
+                  onMouseDown={() => {
+                    handleSelectUser({
+                      id: `custom-${searchValue}`,
+                      name: searchValue,
+                      email: isValidEmail(searchValue) ? searchValue : "",
+                      avatar: undefined,
+                    });
+                  }}
+                  role="option"
+                  aria-selected={ariaSelected}
+                >
+                  <span className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold">
+                    {isValidEmail(searchValue)
+                      ? searchValue[0].toUpperCase()
+                      : getInitials(searchValue)}
+                  </span>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Invite "{searchValue}"</span>
+                    <span className="text-sm text-gray-500">
+                      {isValidEmail(searchValue)
+                        ? "Email"
+                        : isValidUsername(searchValue)
+                        ? "Username"
+                        : null}
+                    </span>
+                  </div>
+                </li>
+              );
+            })()}
+        </ul>
+      )}
     </div>
   );
 }

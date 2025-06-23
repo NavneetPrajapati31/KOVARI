@@ -11,8 +11,10 @@ import {
   User,
   CardHeader,
   Chip,
+  Tabs,
+  Tab,
+  Link,
 } from "@heroui/react";
-import { Tabs, Tab, Link } from "@heroui/react";
 import {
   ArrowRight,
   Calendar,
@@ -195,7 +197,7 @@ const GroupHomePage = () => {
         const res = await fetch(`/api/groups/${params.groupId}/members`);
         if (!res.ok) throw new Error("Failed to fetch group members");
         const data = await res.json();
-        setGroupMembers(data);
+        setGroupMembers(data.members || []);
       } catch (err: unknown) {
         setMembersError((err as Error).message);
       } finally {

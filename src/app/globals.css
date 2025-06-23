@@ -141,6 +141,13 @@
     @apply text-brand-primary;
     box-shadow: 0 0 0px 1000px white inset !important;
   }
+  .scrollbar-none {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Webkit */
+  }
 }
 /* Override root variables with hardcoded colors for fallback / specific overrides */
 /* Note: Avoid redefining radius multiple times, keep consistent */
