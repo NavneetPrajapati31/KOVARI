@@ -320,7 +320,7 @@ const GroupHomePage = () => {
       {/* Left Sidebar - Chat List */}
       <div className="w-1/4 border-r border-border flex flex-col">
         {/* Sidebar Header */}
-        <div className="p-3">
+        <div className="p-3 pb-2">
           {groupInfoLoading ? (
             <Skeleton className="relative w-full h-[200px] rounded-3xl shadow-sm" />
           ) : (
@@ -334,35 +334,35 @@ const GroupHomePage = () => {
         </div>
 
         {/* Chat List Area */}
-        <div className="flex flex-col gap-2 px-3 mt-2 pb-3">
+        <div className="flex flex-col gap-2 px-3 mt-0 pb-3">
           {/* Group name */}
-          <div className="flex flex-col items-start gap-2 mb-2 px-1">
-            {groupInfoLoading ? (
-              <>
-                <Skeleton className="h-3 w-1/3 mb-2 rounded-full" />
-                <Skeleton className="h-3 w-2/3 rounded-full" />
-                <Skeleton className="h-3 w-2/3 rounded-full" />
-              </>
-            ) : (
-              <>
-                <span
-                  className="text-md font-bold leading-tight truncate text-foreground"
-                  title={groupInfo?.name}
-                >
-                  {groupInfo?.name}
-                </span>
-                <p className="text-sm font-medium leading-relaxed">
-                  {groupInfo?.description}
-                </p>
-              </>
-            )}
-          </div>
 
-          <Card className="bg-card border-1 p-1 border-border w-full h-full rounded-3xl shadow-sm">
+          <Card className="bg-card border-1 p-2 pt-4 border-border w-full h-full rounded-3xl shadow-sm">
+            <div className="flex flex-col items-start gap-2 mb-2 px-3">
+              {groupInfoLoading ? (
+                <>
+                  <Skeleton className="h-3 w-1/3 mb-2 mt-1 rounded-full" />
+                  <Skeleton className="h-3 w-full rounded-full" />
+                  <Skeleton className="h-3 w-full rounded-full" />
+                </>
+              ) : (
+                <>
+                  <span
+                    className="text-md font-bold leading-tight truncate text-foreground"
+                    title={groupInfo?.name}
+                  >
+                    {groupInfo?.name}
+                  </span>
+                  <p className="text-sm font-medium">
+                    {groupInfo?.description}
+                  </p>
+                </>
+              )}
+            </div>
             <CardHeader className="flex flex-col p-3 items-start">
               <h2 className="text-sm font-semibold text-gray-800 mb-1">
                 {membersLoading ? (
-                  <Skeleton className="h-2.5 w-24 rounded-full mt-2" />
+                  <Skeleton className="h-3 w-24 rounded-full mt-1" />
                 ) : (
                   `${groupMembers.length} members`
                 )}

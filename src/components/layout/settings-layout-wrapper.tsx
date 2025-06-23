@@ -30,7 +30,7 @@ export default function LayoutWrapper() {
   const ActiveComponent = TAB_COMPONENTS[activeTab] || EditPage;
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground border-1 border-border rounded-3xl">
+    <div className="flex h-full bg-background text-foreground border-1 border-border rounded-3xl">
       {/* Left Sidebar - Settings Tabs */}
       <div className="w-1/4 border-r border-border flex flex-col">
         <SettingsSidebar activeTab={activeTab} setActiveTab={setActiveTab} />

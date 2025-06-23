@@ -202,9 +202,9 @@ export default function page() {
   console.log({ user, members, currentUserId, currentUserMembership });
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div className="w-full mx-auto p-4 space-y-6">
+      {/* Header Section with Button on the right */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-md sm:text-lg font-bold text-foreground">
             Members
@@ -216,7 +216,7 @@ export default function page() {
           </p>
         </div>
         <Button
-          className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg flex items-center gap-2 self-start"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg flex items-center gap-2 self-start sm:self-center"
           onClick={handleOpenInviteModal}
           aria-label="Invite member"
           tabIndex={0}
@@ -266,10 +266,10 @@ export default function page() {
             {sortedMembers.map((member) => (
               <div
                 key={member.id}
-                className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-border last:border-b-0 hover:bg-gray-50"
+                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50"
               >
                 <div className="col-span-3 flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
+                  <Avatar className="h-8 w-8">
                     <AvatarImage
                       src={member.avatar || "/placeholder.svg"}
                       alt={member.name}
