@@ -308,6 +308,13 @@ const GroupHomePage = () => {
     window.open(url, "_blank");
   };
 
+  // Ensure admins appear at the top
+  const sortedMembers = [...groupMembers].sort((a, b) => {
+    if (a.role === "admin" && b.role !== "admin") return -1;
+    if (a.role !== "admin" && b.role === "admin") return 1;
+    return 0;
+  });
+
   return (
     <div className="flex h-full bg-background text-foreground border-1 border-border rounded-3xl">
       {/* Left Sidebar - Chat List */}
@@ -375,7 +382,7 @@ const GroupHomePage = () => {
                         </div>
                       </div>
                     ))
-                  : groupMembers.map((member, index) => (
+                  : sortedMembers.map((member, index) => (
                       <div key={index} className="flex items-center gap-4">
                         <User
                           avatarProps={{

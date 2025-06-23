@@ -210,7 +210,6 @@ export function UserTagInput({
         >
           {filteredUsers.map((user, idx) => {
             const isHighlighted = idx === highlightedIndex;
-            const ariaSelected = isHighlighted ? "true" : "false";
             return (
               <li
                 key={user.id}
@@ -220,7 +219,7 @@ export function UserTagInput({
                 onMouseDown={() => handleSelectUser(user)}
                 onMouseEnter={() => setHighlightedIndex(idx)}
                 role="option"
-                aria-selected={ariaSelected}
+                aria-selected={isHighlighted}
               >
                 {user.avatar ? (
                   <img
@@ -247,7 +246,6 @@ export function UserTagInput({
           {canAddCustom &&
             (() => {
               const isHighlighted = filteredUsers.length === highlightedIndex;
-              const ariaSelected = isHighlighted ? "true" : "false";
               return (
                 <li
                   className="flex items-center gap-3 px-4 py-2 cursor-pointer text-blue-600 hover:bg-blue-50 rounded-xl"
@@ -260,7 +258,7 @@ export function UserTagInput({
                     });
                   }}
                   role="option"
-                  aria-selected={ariaSelected}
+                  aria-selected={isHighlighted}
                 >
                   <span className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold">
                     {isValidEmail(searchValue)

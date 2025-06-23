@@ -124,6 +124,13 @@ export default function page() {
       : undefined;
   const isCurrentUserAdmin = currentUserMembership?.role === "admin";
 
+  // Ensure admins appear at the top
+  const sortedMembers = [...members].sort((a, b) => {
+    if (a.role === "admin" && b.role !== "admin") return -1;
+    if (a.role !== "admin" && b.role === "admin") return 1;
+    return 0;
+  });
+
   const handleOpenInviteModal = () => setIsInviteModalOpen(true);
   const handleCloseInviteModal = () => setIsInviteModalOpen(false);
 
@@ -256,7 +263,7 @@ export default function page() {
             </div>
 
             {/* Table Rows */}
-            {members.map((member) => (
+            {sortedMembers.map((member) => (
               <div
                 key={member.id}
                 className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-border last:border-b-0 hover:bg-gray-50"
@@ -332,7 +339,7 @@ export default function page() {
       {/* Mobile/Tablet Card View */}
       {!isLoading && !error && (
         <div className="lg:hidden space-y-4">
-          {members.map((member) => (
+          {sortedMembers.map((member) => (
             <div
               key={member.id}
               className="bg-card rounded-lg border border-border p-4 space-y-3"
