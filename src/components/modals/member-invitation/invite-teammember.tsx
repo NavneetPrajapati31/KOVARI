@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Link2 } from "lucide-react";
 import { UserTagInput } from "./user-tag-input";
-import { TeammateRow } from "./teammate-row";
 import { toast } from "@/hooks/use-toast";
 import { Divider } from "@heroui/react";
 
@@ -82,6 +81,7 @@ export function InviteTeammatesModal({
   const [inviteLink, setInviteLink] = useState<string>("");
   const [isLinkLoading, setIsLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState<string>("");
+  const [isCopied, setIsCopied] = useState(false);
 
   // Helper to validate email
   const isValidEmail = (input: string): boolean => {
@@ -179,13 +179,13 @@ export function InviteTeammatesModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-lg p-0 gap-0 bg-card min-w-0"
+        className="max-w-lg w-[95vw] sm:w-full p-0 gap-0 bg-card min-w-0 max-h-[90vh] overflow-hidden"
         hideCloseButton
       >
         <DialogTitle></DialogTitle>
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-4 pb-2">
-          <h2 className="text-md font-semibold text-foreground">
+          <h2 className="text-md font-semibold text-foreground truncate pr-2">
             Invite Teammates
           </h2>
           <Button
@@ -201,10 +201,10 @@ export function InviteTeammatesModal({
 
         <Divider className="mb-4" />
 
-        <div className="px-6 pb-4 space-y-4">
+        <div className="px-4 sm:px-6 pb-4 space-y-4 overflow-y-auto flex-1">
           {/* Tag Input with Invite Button */}
-          <div className="flex items-center gap-1">
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-1">
+            <div className="flex-1 min-w-0 w-full">
               <UserTagInput
                 availableUsers={availableUsers}
                 selectedUsers={selectedUsers}
@@ -217,7 +217,7 @@ export function InviteTeammatesModal({
               size={"lg"}
               onClick={handleInvite}
               disabled={selectedUsers.length === 0 || isInviting}
-              className="bg-foreground text-primary-foreground px-6 py-2 rounded-full text-sm"
+              className="bg-primary text-white px-6 py-2 rounded-full text-sm w-full sm:w-auto whitespace-nowrap"
               aria-label="Invite selected users"
             >
               {isInviting ? "Inviting..." : "Invite"}
@@ -225,18 +225,18 @@ export function InviteTeammatesModal({
           </div>
 
           {/* Shareable Link Section */}
-          <div className="bg-gray-100 rounded-2xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          <div className="bg-gray-100 rounded-2xl p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 sm:justify-between">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                 <div className="relative">
                   <Link2 className="h-5 w-5 text-muted-foreground" />
                   <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></div>
                 </div>
                 <div>
-                  <h3 className="font-medium text-sm text-foreground">
+                  <h3 className="font-medium text-sm text-foreground truncate">
                     Shareable Link is now Live!
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-1">
                     Create and get shareable link for this group.
                   </p>
                 </div>
@@ -245,7 +245,7 @@ export function InviteTeammatesModal({
                 variant="outline"
                 size="sm"
                 onClick={handleGetLink}
-                className="bg-card border-border hover:bg-gray-200 text-muted-foreground px-5 py-1.5 rounded-lg text-sm"
+                className="bg-card border-border hover:bg-gray-200 text-muted-foreground px-4 sm:px-5 py-1.5 rounded-lg text-sm whitespace-nowrap shrink-0"
                 aria-label="Get invite link"
                 disabled={isLinkLoading}
               >
@@ -253,12 +253,12 @@ export function InviteTeammatesModal({
               </Button>
             </div>
             {inviteLink && (
-              <div className="mt-3 flex items-center gap-2">
+              <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <input
                   type="text"
                   value={inviteLink}
                   readOnly
-                  className="w-full text-xs bg-transparent rounded px-3 py-2 border border-gray-200"
+                  className="flex-1 text-xs bg-transparent rounded px-3 py-2 border border-gray-200 min-w-0 break-all"
                   aria-label="Invite link"
                 />
                 <Button
@@ -269,11 +269,15 @@ export function InviteTeammatesModal({
                       title: "Link copied!",
                       description: "Invite link copied to clipboard.",
                     });
+                    setIsCopied(true);
+                    setTimeout(() => setIsCopied(false), 1500);
                   }}
-                  className="text-xs px-3 py-1 bg-primary"
-                  aria-label="Copy invite link"
+                  className="text-xs px-3 py-1 bg-primary whitespace-nowrap w-full sm:w-auto"
+                  aria-label={
+                    isCopied ? "Invite link copied" : "Copy invite link"
+                  }
                 >
-                  Copy
+                  {isCopied ? "Copied!" : "Copy"}
                 </Button>
               </div>
             )}

@@ -1,20 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { createPortal } from "react-dom";
+import type React from "react";
 import { X } from "lucide-react";
 
 interface User {
@@ -41,6 +28,11 @@ export function UserTagInput({
 }: UserTagInputProps) {
   const [searchValue, setSearchValue] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -53,6 +45,7 @@ export function UserTagInput({
   );
 
   const handleSelectUser = (user: User) => {
+    console.log("Selecting user:", user); // Debug log
     onSelectionChange([...selectedUsers, user]);
     setSearchValue("");
     setDropdownOpen(false);
@@ -90,6 +83,18 @@ export function UserTagInput({
     ) &&
     (isValidEmail(searchValue) || isValidUsername(searchValue));
 
+  // Calculate dropdown position
+  const updateDropdownPosition = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  };
+
   // Handle dropdown open/close on click outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -97,12 +102,33 @@ export function UserTagInput({
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
       ) {
-        setDropdownOpen(false);
+        // Check if click is on dropdown items
+        const target = e.target as Element;
+        if (!target.closest("[data-dropdown-container]")) {
+          setDropdownOpen(false);
+        }
       }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // Update position when dropdown opens
+  useEffect(() => {
+    if (dropdownOpen) {
+      updateDropdownPosition();
+      const handleResize = () => updateDropdownPosition();
+      const handleScroll = () => updateDropdownPosition();
+
+      window.addEventListener("resize", handleResize);
+      window.addEventListener("scroll", handleScroll, true);
+
+      return () => {
+        window.removeEventListener("resize", handleResize);
+        window.removeEventListener("scroll", handleScroll, true);
+      };
+    }
+  }, [dropdownOpen]);
 
   // Keyboard navigation for dropdown
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -150,10 +176,140 @@ export function UserTagInput({
     }
   };
 
+  const dropdownContent = dropdownOpen &&
+    (filteredUsers.length > 0 || canAddCustom) && (
+      <div
+        data-dropdown-container="true"
+        className="bg-white border border-gray-200 rounded-xl shadow-xl max-h-[300px] overflow-auto"
+        style={{
+          position: "fixed",
+          top: dropdownPosition.top,
+          left: dropdownPosition.left,
+          width: dropdownPosition.width,
+          zIndex: 99999,
+          pointerEvents: "auto",
+          cursor: "default",
+        }}
+        role="listbox"
+      >
+        {filteredUsers.map((user, idx) => {
+          const isHighlighted = idx === highlightedIndex;
+          return (
+            <div
+              key={user.id}
+              className={`flex items-center gap-3 px-3 sm:px-4 py-3 transition-colors min-w-0 first:rounded-t-xl last:rounded-b-xl ${
+                isHighlighted ? "bg-gray-100" : "hover:bg-gray-50"
+              }`}
+              style={{
+                cursor: "pointer",
+                pointerEvents: "auto",
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Mouse down on user:", user);
+                handleSelectUser(user);
+              }}
+              onMouseUp={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Mouse up on user:", user);
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Click on user:", user);
+                handleSelectUser(user);
+              }}
+              onMouseEnter={() => setHighlightedIndex(idx)}
+              role="option"
+              aria-selected={isHighlighted}
+            >
+              {user.avatar ? (
+                <img
+                  src={user.avatar || "/placeholder.svg"}
+                  alt={user.name}
+                  className="h-8 w-8 rounded-full shrink-0"
+                />
+              ) : (
+                <span className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold shrink-0">
+                  {getInitials(user.name)}
+                </span>
+              )}
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-medium text-sm text-foreground truncate">
+                  {user.name}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {user.email}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        {canAddCustom && (
+          <div
+            className="flex items-center gap-3 px-3 sm:px-4 py-3 text-blue-600 transition-colors min-w-0 first:rounded-t-xl last:rounded-b-xl hover:bg-blue-50"
+            style={{
+              cursor: "pointer",
+              pointerEvents: "auto",
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log("Mouse down on custom user:", searchValue);
+              handleSelectUser({
+                id: `custom-${searchValue}`,
+                name: searchValue,
+                email: isValidEmail(searchValue) ? searchValue : "",
+                avatar: undefined,
+              });
+            }}
+            onMouseUp={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log("Mouse up on custom user:", searchValue);
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log("Click on custom user:", searchValue);
+              handleSelectUser({
+                id: `custom-${searchValue}`,
+                name: searchValue,
+                email: isValidEmail(searchValue) ? searchValue : "",
+                avatar: undefined,
+              });
+            }}
+            role="option"
+            aria-selected={filteredUsers.length === highlightedIndex}
+          >
+            <span className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold shrink-0">
+              {isValidEmail(searchValue)
+                ? searchValue[0].toUpperCase()
+                : getInitials(searchValue)}
+            </span>
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="font-medium text-sm truncate">
+                Invite "{searchValue}"
+              </span>
+              <span className="text-xs text-gray-500">
+                {isValidEmail(searchValue)
+                  ? "Email"
+                  : isValidUsername(searchValue)
+                  ? "Username"
+                  : null}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
   return (
     <div ref={containerRef} className="relative w-full">
       <div
-        className="flex items-center flex-nowrap gap-2 bg-transparent border border-gray-200 rounded-full px-2 h-10 w-full min-w-0 max-w-[370px] overflow-x-auto focus-within:ring-0 transition scrollbar-none"
+        className="flex items-start flex-wrap gap-1 sm:gap-2 bg-transparent border border-gray-200 rounded-full px-3 py-2 min-h-[2.5rem] w-full min-w-0 focus-within:ring-0 transition"
         onClick={() => inputRef.current?.focus()}
         tabIndex={0}
         aria-label="User selection input"
@@ -161,11 +317,11 @@ export function UserTagInput({
         {selectedUsers.map((user) => (
           <span
             key={user.id}
-            className="shrink-0 flex items-center rounded-full bg-gray-100 px-2 py-1 mr-1 text-foreground text-xs font-medium shadow-sm"
+            className="shrink-0 flex items-center rounded-full bg-gray-100 px-2 py-1 mb-1 text-foreground text-xs font-medium shadow-sm max-w-[180px]"
           >
             {user.avatar ? (
               <img
-                src={user.avatar}
+                src={user.avatar || "/placeholder.svg"}
                 alt={user.name}
                 className="h-5 w-5 rounded-full mr-2"
               />
@@ -174,7 +330,7 @@ export function UserTagInput({
                 {getInitials(user.name)}
               </span>
             )}
-            <span className="text-xs">{user.name}</span>
+            <span className="text-xs truncate max-w-[120px]">{user.name}</span>
             <button
               type="button"
               className="ml-2 text-gray-400 hover:text-gray-700 focus:outline-none"
@@ -191,7 +347,7 @@ export function UserTagInput({
         <input
           ref={inputRef}
           type="text"
-          className="flex-1 min-w-[50px] border-none outline-none bg-transparent text-sm text-foreground focus:ring-0 px-1"
+          className="flex-1 min-w-[120px] border-none outline-none bg-transparent text-sm text-foreground focus:ring-0 px-1 mt-1"
           placeholder={selectedUsers.length === 0 ? placeholder : ""}
           value={searchValue}
           onChange={(e) => {
@@ -203,83 +359,8 @@ export function UserTagInput({
           aria-label="Add user by name or email"
         />
       </div>
-      {dropdownOpen && (filteredUsers.length > 0 || canAddCustom) && (
-        <ul
-          className="absolute left-0 mt-2 w-full bg-white border-1 border-border rounded-xl shadow-lg z-10 max-h-60 overflow-auto"
-          role="listbox"
-        >
-          {filteredUsers.map((user, idx) => {
-            const isHighlighted = idx === highlightedIndex;
-            return (
-              <li
-                key={user.id}
-                className={`flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-100 rounded-xl ${
-                  isHighlighted ? "bg-gray-200" : ""
-                }`}
-                onMouseDown={() => handleSelectUser(user)}
-                onMouseEnter={() => setHighlightedIndex(idx)}
-                role="option"
-                aria-selected={isHighlighted}
-              >
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className="h-8 w-8 rounded-full"
-                  />
-                ) : (
-                  <span className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold">
-                    {getInitials(user.name)}
-                  </span>
-                )}
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm text-foreground">
-                    {user.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {user.email}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
-          {canAddCustom &&
-            (() => {
-              const isHighlighted = filteredUsers.length === highlightedIndex;
-              return (
-                <li
-                  className="flex items-center gap-3 px-4 py-2 cursor-pointer text-blue-600 hover:bg-blue-50 rounded-xl"
-                  onMouseDown={() => {
-                    handleSelectUser({
-                      id: `custom-${searchValue}`,
-                      name: searchValue,
-                      email: isValidEmail(searchValue) ? searchValue : "",
-                      avatar: undefined,
-                    });
-                  }}
-                  role="option"
-                  aria-selected={isHighlighted}
-                >
-                  <span className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold">
-                    {isValidEmail(searchValue)
-                      ? searchValue[0].toUpperCase()
-                      : getInitials(searchValue)}
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="font-medium">Invite "{searchValue}"</span>
-                    <span className="text-sm text-gray-500">
-                      {isValidEmail(searchValue)
-                        ? "Email"
-                        : isValidUsername(searchValue)
-                        ? "Username"
-                        : null}
-                    </span>
-                  </div>
-                </li>
-              );
-            })()}
-        </ul>
-      )}
+      {typeof window !== "undefined" &&
+        createPortal(dropdownContent, document.body)}
     </div>
   );
 }

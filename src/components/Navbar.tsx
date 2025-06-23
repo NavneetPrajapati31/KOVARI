@@ -142,12 +142,16 @@ export default function App({
     {
       key: "profile",
       label: "My Profile",
-      onClick: () => handleNavigation("/profile"),
+      // onClick: () => handleNavigation("/profile"),
+      // onClick: () => router.replace("/profile"),
+      href: "/profile",
     },
     {
       key: "Groups",
       label: "My Groups",
-      onClick: () => handleNavigation("/groups"),
+      // onClick: () => handleNavigation("/groups"),
+      // onClick: () => router.replace("/groups"),
+      href: "/groups",
     },
     // {
     //   key: "analytics",
@@ -239,23 +243,31 @@ export default function App({
               </DropdownMenuTrigger>
               <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
                 {menuItems.map((item) => (
-                  <DropdownMenuItem
+                  <Link
                     key={item.key}
-                    onClick={item.onClick}
-                    className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                    href={item.href}
+                    className="flex flex-col"
                   >
-                    {item.label}
-                  </DropdownMenuItem>
+                    <DropdownMenuItem
+                      key={item.key}
+                      onClick={item.onClick}
+                      className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                    >
+                      {item.label}
+                    </DropdownMenuItem>
+                  </Link>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button
-              className="px-6 h-9 bg-primary hover:bg-primary-hover text-background rounded-lg"
-              onClick={() => handleNavigation("/sign-up")}
-            >
-              Sign Up
-            </Button>
+            <Link href="/sign-up">
+              <Button
+                className="px-6 h-9 bg-primary text-background rounded-lg"
+                // onClick={() => handleNavigation("/sign-up")}
+              >
+                Sign Up
+              </Button>
+            </Link>
           )}
         </NavbarContent>
 

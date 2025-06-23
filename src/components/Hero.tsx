@@ -4,6 +4,7 @@ import React, { useCallback } from "react";
 import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const BUTTON_WIDTH = "w-[163px]";
 const BUTTON_HEIGHT = "h-10";
@@ -70,33 +71,37 @@ export default function Hero() {
             {HERO_DESCRIPTION}
           </p>
           <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
-            <Button
-              className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} bg-primary px-[16px] py-[10px] ${BUTTON_TEXT_SIZE} font-medium leading-5 text-background`}
-              radius="full"
-              onPress={handleStartPlanning}
-              aria-label="Start Planning"
-            >
-              Start Planning
-            </Button>
-            <Button
-              className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} border-1 border-border shadow-sm px-[16px] py-[10px] ${BUTTON_TEXT_SIZE} font-medium leading-5`}
-              endContent={
-                <span className="pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full">
-                  <Icon
-                    className="text-default-500 [&>path]:stroke-[1.5]"
-                    icon="solar:arrow-right-linear"
-                    width={16}
-                    aria-label="Arrow right"
-                  />
-                </span>
-              }
-              radius="full"
-              variant="bordered"
-              onPress={handleFindTravelers}
-              aria-label="Find Travelers"
-            >
-              Find Travelers
-            </Button>
+            <Link href="/sign-in">
+              <Button
+                className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} bg-primary px-[16px] py-[10px] ${BUTTON_TEXT_SIZE} font-medium leading-5 text-background`}
+                radius="full"
+                // onPress={handleStartPlanning}
+                aria-label="Start Planning"
+              >
+                Start Planning
+              </Button>
+            </Link>
+            <Link href="/explore">
+              <Button
+                className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} border-1 border-border shadow-sm px-[16px] py-[10px] ${BUTTON_TEXT_SIZE} font-medium leading-5`}
+                endContent={
+                  <span className="pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full">
+                    <Icon
+                      className="text-default-500 [&>path]:stroke-[1.5]"
+                      icon="solar:arrow-right-linear"
+                      width={16}
+                      aria-label="Arrow right"
+                    />
+                  </span>
+                }
+                radius="full"
+                variant="bordered"
+                // onPress={handleFindTravelers}
+                aria-label="Find Travelers"
+              >
+                Find Travelers
+              </Button>
+            </Link>
           </div>
         </section>
         <div className="pointer-events-none absolute inset-0 top-[-25%] z-10 scale-150 select-none sm:scale-125">

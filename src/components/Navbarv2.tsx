@@ -5,7 +5,6 @@ import {
   NavbarBrand,
   NavbarContent,
   NavbarItem,
-  Link,
   DropdownItem,
   DropdownTrigger,
   Dropdown,
@@ -26,9 +25,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
+import {
+  Compass,
+  MessageCircle,
+  Users,
+  LayoutDashboard,
+  Plus,
+} from "lucide-react";
 import Spinner from "./Spinner";
 import { createClient } from "@/lib/supabase";
+import Link from "next/link";
 
 export const AcmeLogo = () => {
   return (
@@ -192,11 +198,16 @@ export default function App({
         <NavbarBrand>
           <Link
             href="/"
-            className="text-foreground !opacity-100"
+            className="flex items-center text-foreground !opacity-100 h-12"
             onClick={() => handleNavigation("/")}
+            style={{ minHeight: "3rem" }}
           >
-            <AcmeLogo />
-            <p className="font-bold text-xl text-inherit">KOVARI</p>
+            <span className="flex items-center h-10 w-10">
+              <AcmeLogo />
+            </span>
+            <span className="font-bold text-xl text-inherit leading-none">
+              KOVARI
+            </span>
           </Link>
         </NavbarBrand>
 
@@ -223,6 +234,16 @@ export default function App({
         </NavbarContent>
 
         <NavbarContent as="div" justify="end">
+          <Link href="/create-group">
+            <Button
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1 rounded-full flex items-center gap-2 self-start sm:self-center"
+              aria-label="Invite member"
+              tabIndex={0}
+            >
+              <span className="text-xs">Create Group</span>
+              <Plus className="h-3 w-3" />
+            </Button>
+          </Link>
           {!isLoaded || profilePhotoLoading ? (
             <Skeleton className="w-8 h-8 rounded-full" />
           ) : isSignedIn ? (

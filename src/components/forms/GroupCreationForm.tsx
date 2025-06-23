@@ -242,6 +242,13 @@ export function GroupCreationForm() {
         throw new Error(errorData.message || "Failed to create group");
       }
 
+      const responseData = await response.json();
+      const groupId = responseData.groupId || responseData.id;
+
+      if (!groupId) {
+        throw new Error("Group created but no group ID returned");
+      }
+
       toast.success("Group created successfully");
       router.push(`/groups/${groupId}`);
     } catch (err) {
@@ -254,7 +261,7 @@ export function GroupCreationForm() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6 md:p-6 custom-autofill-white">
-      <Card className="w-full max-w-3xl bg-card shadow-none border-border py-2">
+      <Card className="w-full max-w-4xl bg-card shadow-none border-border py-2">
         <CardContent className="p-7">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-2">
