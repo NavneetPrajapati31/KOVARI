@@ -205,7 +205,7 @@ export default function page() {
     <div className="w-full mx-auto p-4 space-y-6">
       {/* Header Section with Button on the right */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
+        <div className="space-y-2 mb-4">
           <h1 className="text-md sm:text-lg font-bold text-foreground">
             Members
           </h1>
@@ -221,7 +221,7 @@ export default function page() {
           aria-label="Invite member"
           tabIndex={0}
         >
-          <span>Invite member</span>
+          <span className="text-xs sm:text-sm">Invite member</span>
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -345,7 +345,7 @@ export default function page() {
               className="bg-card rounded-lg border border-border p-4 space-y-3"
             >
               <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
+                <Avatar className="h-9 w-9">
                   <AvatarImage
                     src={member.avatar || "/placeholder.svg"}
                     alt={member.name}

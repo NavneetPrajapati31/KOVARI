@@ -32,6 +32,12 @@ import {
 } from "lucide-react";
 import { Chip, Spinner } from "@heroui/react";
 import { createClient } from "@/lib/supabase";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface ItineraryItem {
   id: string;
@@ -571,8 +577,8 @@ export default function ItineraryPage() {
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
+          {/* Desktop actions (md+) */}
+          <div className="hidden md:flex items-center gap-2">
             <Button
               className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium"
               onClick={() => {
@@ -583,7 +589,6 @@ export default function ItineraryPage() {
               <Users className="w-4 h-4 mr-2" />
               <span className="text-sm">Invite Member</span>
             </Button>
-
             <Button
               variant="outline"
               className="border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium"
@@ -603,127 +608,59 @@ export default function ItineraryPage() {
               </svg>
               <span className="text-sm">Share</span>
             </Button>
+            <Button
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm">Add Item</span>
+            </Button>
           </div>
-
-          {/* Add Item button - moved here for better layout */}
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4" />
-                <span className="text-sm">Add Item</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Add Itinerary Item</DialogTitle>
-                <DialogDescription>
-                  Create a new activity or event for your group's itinerary.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Title</label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    placeholder="Activity title"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Activity description"
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Date & Time</label>
-                    <Input
-                      type="datetime-local"
-                      value={formData.datetime}
-                      onChange={(e) =>
-                        setFormData({ ...formData, datetime: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Type</label>
-                    <Select
-                      value={formData.type}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, type: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(TYPE_ICONS).map(([key, icon]) => (
-                          <SelectItem key={key} value={key}>
-                            <span className="flex items-center gap-2">
-                              <span>{icon}</span>
-                              <span className="capitalize">{key}</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Location</label>
-                    <Input
-                      value={formData.location}
-                      onChange={(e) =>
-                        setFormData({ ...formData, location: e.target.value })
-                      }
-                      placeholder="Location"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Priority</label>
-                    <Select
-                      value={formData.priority}
-                      onValueChange={(value: "low" | "medium" | "high") =>
-                        setFormData({ ...formData, priority: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddDialogOpen(false)}
-                >
-                  Cancel
+          {/* Mobile dropdown actions (sm) */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="More actions">
+                  <MoreHorizontal className="w-5 h-5" />
                 </Button>
-                <Button onClick={handleAddItem}>Add Item</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    console.log("Invite member clicked");
+                  }}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Invite Member
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    console.log("Share clicked");
+                  }}
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                  </svg>
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
       {/* Board Columns */}
-      <div className="flex gap-4 pb-4">
+      <div className="flex flex-col md:grid md:grid-cols-2 xl:flex xl:flex-row gap-4 pb-4">
         {BOARD_COLUMNS.map((column) => {
           const filteredItems = itineraryItems.filter(
             (item) => dbStatusToColumnId(item.status) === column.id
@@ -732,7 +669,7 @@ export default function ItineraryPage() {
           return (
             <div
               key={column.id}
-              className="max-w-[320px] w-full bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col"
+              className="w-full overflow-y-clip bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col"
               onDragOver={handleDragOver}
               onDrop={(e) =>
                 handleDrop(e, column.id as ItineraryItem["status"])
@@ -1021,6 +958,118 @@ export default function ItineraryPage() {
               Cancel
             </Button>
             <Button onClick={handleUpdateItem}>Update Item</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Add Item Dialog (shared for both desktop and mobile) */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogTrigger asChild>
+          {/* Hidden trigger, open via setIsAddDialogOpen */}
+          <div style={{ display: "none" }} />
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Itinerary Item</DialogTitle>
+            <DialogDescription>
+              Create a new activity or event for your group's itinerary.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Title</label>
+              <Input
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                placeholder="Activity title"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    description: e.target.value,
+                  })
+                }
+                placeholder="Activity description"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Date & Time</label>
+                <Input
+                  type="datetime-local"
+                  value={formData.datetime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, datetime: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Type</label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, type: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TYPE_ICONS).map(([key, icon]) => (
+                      <SelectItem key={key} value={key}>
+                        <span className="flex items-center gap-2">
+                          <span>{icon}</span>
+                          <span className="capitalize">{key}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Location</label>
+                <Input
+                  value={formData.location}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
+                  placeholder="Location"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Priority</label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value: "low" | "medium" | "high") =>
+                    setFormData({ ...formData, priority: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddItem}>Add Item</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

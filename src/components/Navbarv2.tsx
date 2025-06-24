@@ -234,7 +234,7 @@ export default function App({
         </NavbarContent>
 
         <NavbarContent as="div" justify="end">
-          <Link href="/create-group">
+          <Link href="/create-group" className="hidden md:flex">
             <Button
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1 rounded-full flex items-center gap-2 self-start sm:self-center"
               aria-label="Invite member"
