@@ -3,10 +3,10 @@ import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { groupId: string; itemId: string } }
+  { params }: { params: Promise<{ groupId: string; itemId: string }> }
 ) {
   const supabase = createRouteHandlerSupabaseClient();
-  const { groupId, itemId } = params;
+  const { groupId, itemId } = await params;
   const { data, error } = await supabase
     .from("itinerary_items")
     .select("*")
@@ -22,10 +22,10 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { groupId: string; itemId: string } }
+  { params }: { params: Promise<{ groupId: string; itemId: string }> }
 ) {
   const supabase = createRouteHandlerSupabaseClient();
-  const { groupId, itemId } = params;
+  const { groupId, itemId } = await params;
   const body = await req.json();
 
   // Debug: log the incoming body
@@ -88,10 +88,10 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { groupId: string; itemId: string } }
+  { params }: { params: Promise<{ groupId: string; itemId: string }> }
 ) {
   const supabase = createRouteHandlerSupabaseClient();
-  const { groupId, itemId } = params;
+  const { groupId, itemId } = await params;
   const { error } = await supabase
     .from("itinerary_items")
     .delete()

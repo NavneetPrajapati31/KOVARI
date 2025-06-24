@@ -163,10 +163,10 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { groupId: string } }
+  { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
-    const { groupId } = params;
+    const { groupId } = await params;
     if (!groupId) {
       return new NextResponse("Missing groupId", { status: 400 });
     }
@@ -217,10 +217,10 @@ export async function GET(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { groupId: string } }
+  { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
-    const { groupId } = params;
+    const { groupId } = await params;
     if (!groupId) {
       return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
     }

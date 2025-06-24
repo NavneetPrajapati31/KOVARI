@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { groupId: string } }
+  { params }: { params: Promise<{ groupId: string }> }
 ) {
   const supabase = createRouteHandlerSupabaseClient();
-  const { groupId } = params;
+  const { groupId } = await params;
 
   const { data, error } = await supabase
     .from("groups")
@@ -27,10 +27,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { groupId: string } }
+  { params }: { params: Promise<{ groupId: string }> }
 ) {
   const supabase = createRouteHandlerSupabaseClient();
-  const { groupId } = params;
+  const { groupId } = await params;
   const body = await req.json();
   const { notes } = body;
   if (typeof notes !== "string") {

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
 import { MapPin, Calendar, Users, Loader2, ArrowUpRight } from "lucide-react";
-import { Button } from "../../../components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import GroupCardSkeleton from "../../explore/components/GroupCardSkeleton";
 import { useRouter } from "next/navigation";
 

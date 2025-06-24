@@ -2,16 +2,16 @@ import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { JoinGroupButton } from "@/features/groups/components/join-group-button";
 import { AcceptInviteClient } from "./accept-invite-client";
 
-interface PageProps {
-  params: { token: string };
-}
-
-export default async function InvitePage({ params }: PageProps) {
-  const { token } = params;
+export default async function InvitePage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
   const { userId } = await auth();
 
   const cookieStore = await cookies();

@@ -18,9 +18,16 @@ export default function GroupCardPreviewPage() {
     },
     privacy: "public" as "public" | "private" | "invite-only", // Try "private", "invite-only"
     memberCount: 4,
-    userStatus: null as "member" | "pending" | "blocked" | null, // Try "member", "pending", "blocked"
+    userStatus: null as
+      | "member"
+      | "pending"
+      | "pending_request"
+      | "blocked"
+      | "declined"
+      | null,
     creator: {
       name: "Aman Verma",
+      username: "amanverma",
       avatar: "https://randomuser.me/api/portraits/men/32.jpg",
     },
   };
