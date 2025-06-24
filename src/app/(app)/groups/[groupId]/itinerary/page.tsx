@@ -549,7 +549,7 @@ export default function ItineraryPage() {
             Itinerary Board
           </h1>
           <p className="text-sm text-gray-600">
-            Plan and organize your group's travel activities
+            Plan and organize your group&apos;s travel activities
           </p>
         </div>
 
@@ -971,7 +971,7 @@ export default function ItineraryPage() {
           <DialogHeader>
             <DialogTitle>Add Itinerary Item</DialogTitle>
             <DialogDescription>
-              Create a new activity or event for your group's itinerary.
+              Create a new activity or event for your group&apos;s itinerary.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

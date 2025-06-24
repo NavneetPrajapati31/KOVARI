@@ -223,7 +223,7 @@ export function UserTagInput({
               }}
               onMouseEnter={() => setHighlightedIndex(idx)}
               role="option"
-              aria-selected={isHighlighted}
+              aria-selected={isHighlighted ? true : false}
             >
               {user.avatar ? (
                 <img
@@ -282,7 +282,9 @@ export function UserTagInput({
               });
             }}
             role="option"
-            aria-selected={filteredUsers.length === highlightedIndex}
+            aria-selected={
+              filteredUsers.length === highlightedIndex ? true : false
+            }
           >
             <span className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold shrink-0">
               {isValidEmail(searchValue)
@@ -291,14 +293,14 @@ export function UserTagInput({
             </span>
             <div className="flex flex-col min-w-0 flex-1">
               <span className="font-medium text-sm truncate">
-                Invite "{searchValue}"
+                Invite &quot;{searchValue}&quot;
               </span>
               <span className="text-xs text-gray-500">
                 {isValidEmail(searchValue)
                   ? "Email"
                   : isValidUsername(searchValue)
-                  ? "Username"
-                  : null}
+                    ? "Username"
+                    : null}
               </span>
             </div>
           </div>

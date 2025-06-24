@@ -184,6 +184,7 @@ export default function App({
     <>
       {/* {isNavigating && <Spinner />} */}
       <Navbar
+        height={"4rem"}
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}

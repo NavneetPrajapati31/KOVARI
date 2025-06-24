@@ -58,7 +58,7 @@ export function GroupInviteCard({
           {/* Creator Avatar */}
           <Avatar
             src={invite.creator.avatar || "/placeholder.svg"}
-            alt={`${invite.creator.name}'s profile`}
+            alt={`${invite.creator.name}&apos;s profile`}
             size="md"
           />
           {/* Group Info - Right of Avatar */}

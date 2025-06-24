@@ -643,8 +643,8 @@ const GroupHomePage = () => {
                                     item.status === "confirmed"
                                       ? "text-green-600 bg-green-100"
                                       : item.status == "cancelled"
-                                      ? "text-destructive bg-[#dc2626]/15"
-                                      : ""
+                                        ? "text-destructive bg-[#dc2626]/15"
+                                        : ""
                                   }`}
                                 >
                                   <span className="font-medium p-2">

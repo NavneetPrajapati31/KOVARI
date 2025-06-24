@@ -66,6 +66,7 @@ export function MyGroupCard({
   onAction,
   isLoading = false,
 }: GroupCardProps) {
+  const router = useRouter();
   const [actionLoading, setActionLoading] = useState(false);
 
   const formatDateRange = () => {
@@ -144,8 +145,6 @@ export function MyGroupCard({
   if (isLoading) {
     return <GroupCardSkeleton />;
   }
-
-  const router = useRouter();
 
   return (
     <Card className="relative w-full max-w-[600px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">

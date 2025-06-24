@@ -10,12 +10,12 @@ import {
 
 if (process.env.NEXT_PUBLIC_DEV_THEME === "true") {
   try {
-    require("./dev-theme.css");
+    require("@/styles/dev-theme.css");
   } catch {
     console.warn("⚠️ dev-theme.css not found. Skipping dev theme.");
   }
 } else {
-  require("./globals.css");
+  require("@/styles/globals.css");
 }
 
 import { Poppins, Inter } from "next/font/google";

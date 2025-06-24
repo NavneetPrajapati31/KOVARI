@@ -48,6 +48,7 @@ export function GroupCard({
   isLoading = false,
   onShowLoading,
 }: GroupCardProps) {
+  const router = useRouter();
   const [viewGroupLoading, setViewGroupLoading] = useState(false);
   const [requestToJoinLoading, setRequestToJoinLoading] = useState(false);
   const [userStatus, setUserStatus] = useState(group.userStatus);
@@ -131,8 +132,6 @@ export function GroupCard({
   if (isLoading) {
     return <GroupCardSkeleton />;
   }
-
-  const router = useRouter();
 
   const handleViewGroup = (e: React.MouseEvent) => {
     e.preventDefault();

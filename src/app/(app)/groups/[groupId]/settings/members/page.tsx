@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { InviteTeammatesModal } from "@/features/invite/components/invite-teammember";
 import {
@@ -107,7 +109,7 @@ const MembersCardSkeleton = () => (
   </div>
 );
 
-export default function page() {
+export default function Page() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -214,9 +216,9 @@ export default function page() {
             Members
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
-            Manage your group's members. Invite new people and remove members as
-            needed. Group admins can control who participates and help keep your
-            group organized and secure.
+            Manage your group&apos;s members. Invite new people and remove
+            members as needed. Group admins can control who participates and
+            help keep your group organized and secure.
           </p>
         </div>
         <Button

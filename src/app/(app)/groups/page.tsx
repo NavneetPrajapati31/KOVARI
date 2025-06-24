@@ -83,7 +83,7 @@ export default function GroupsPage() {
           </div>
         ) : groups.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            You haven't joined any groups yet.
+            You haven&apos;t joined any groups yet.
           </div>
         ) : (
           <div className="w-full">

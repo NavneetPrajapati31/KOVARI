@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import InvitationResults, { GroupInvite } from "@/features/invitations/components/InvitationResults";
+import InvitationResults, {
+  GroupInvite,
+} from "@/features/invitations/components/InvitationResults";
 import { Button } from "@/shared/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";

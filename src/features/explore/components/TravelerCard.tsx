@@ -61,7 +61,7 @@ export default function TravelerCard({
           {/* Profile Image */}
           <Avatar
             src={traveler.profilePhoto || "/placeholder.svg"}
-            alt={`${traveler.name}'s profile`}
+            alt={`${traveler.name}&apos;s profile`}
             size="md"
           />
 

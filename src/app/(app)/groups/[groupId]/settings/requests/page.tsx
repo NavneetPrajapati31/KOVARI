@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@heroui/react";
 import { useParams } from "next/navigation";

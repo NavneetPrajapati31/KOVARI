@@ -360,7 +360,8 @@ export default function EditPage() {
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Customize your group's information, privacy, and travel preferences.
+          Customize your group&apos;s information, privacy, and travel
+          preferences.
         </p>
       </div>
 
@@ -395,7 +396,7 @@ export default function EditPage() {
                 Basic Information
               </CardTitle>
               <CardDescription className="text-xs">
-                Update your group's name, description, and cover image.
+                Update your group&apos;s name, description, and cover image.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -877,7 +878,7 @@ export default function EditPage() {
                 {
                   key: "messageModeration",
                   label: "Message Moderation",
-                  description: "Review messages before they're posted",
+                  description: "Review messages before they&apos;re posted",
                 },
               ].map((setting) => (
                 <div
@@ -933,7 +934,7 @@ export default function EditPage() {
                   Travel Interests
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Select interests that match your group's travel style.
+                  Select interests that match your group&apos;s travel style.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

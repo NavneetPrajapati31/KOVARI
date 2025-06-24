@@ -95,7 +95,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
     return (
       <div className="max-w-lg mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
         <h1 className="text-2xl font-bold mb-2">
-          You're Invited to Join {group.name}!
+          You&apos;re Invited to Join {group.name}!
         </h1>
         <p className="text-gray-600 mb-4">
           Sign in or create an account to join this group.
@@ -148,7 +148,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
   return (
     <div className="max-w-lg mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
       <h1 className="text-2xl font-bold mb-2">
-        You're Invited to Join {group.name}!
+        You&apos;re Invited to Join {group.name}!
       </h1>
       <p className="text-gray-600 mb-4">
         {group.description || "Join this group to start collaborating!"}
