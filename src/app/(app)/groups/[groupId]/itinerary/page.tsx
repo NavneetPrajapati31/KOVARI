@@ -30,7 +30,7 @@ import {
   MessageCircle,
   Users,
 } from "lucide-react";
-import { Spinner } from "@heroui/react";
+import { Chip, Spinner } from "@heroui/react";
 import { createClient } from "@/lib/supabase";
 
 interface ItineraryItem {
@@ -175,10 +175,12 @@ export default function ItineraryPage() {
   ];
 
   // --- NEW: Status badge mapping ---
-  const STATUS_BADGES: Record<string, { label: string; color: string }> = {
+  const COLUMN_BADGES: Record<string, { label: string; color: string }> = {
     planned: { label: "Not Started", color: "bg-blue-50 text-blue-700" },
-    confirmed: { label: "In Progress", color: "bg-purple-50 text-purple-700" },
-    "in-progress": { label: "On Track", color: "bg-pink-50 text-pink-700" },
+    "in-progress": {
+      label: "In Progress",
+      color: "bg-purple-50 text-purple-700",
+    },
     completed: { label: "Complete", color: "bg-green-50 text-green-700" },
     cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
   };
@@ -228,18 +230,15 @@ export default function ItineraryPage() {
   };
 
   useEffect(() => {
-    console.log("[DEBUG] useEffect called, params.groupId:", params.groupId);
-    console.log("[DEBUG] Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log(
-      "[DEBUG] Supabase ANON KEY:",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    // [DEBUG] useEffect called, params.groupId: ...
+    // [DEBUG] Supabase URL: ...
+    // [DEBUG] Supabase ANON KEY: ...
     fetchItineraryData();
     fetchGroupMembers();
-    // Setup Supabase client
+    // --- Supabase realtime subscription temporarily disabled ---
+    /*
     const supabase = createClient();
-    console.log("[DEBUG] Supabase client created");
-    // Subscribe to itinerary changes for this group
+    // [DEBUG] Supabase client created
     const channel = supabase
       .channel("itinerary-realtime")
       .on(
@@ -248,7 +247,7 @@ export default function ItineraryPage() {
           event: "*",
           schema: "public",
           table: "itinerary_items",
-          // filter: `group_id=eq.${params.groupId}`, // TEMPORARILY REMOVED FOR DEBUG
+          // filter: `group_id=eq.${params.groupId}`,
         },
         (payload) => {
           console.log("[Supabase Realtime] Event:", payload.eventType, payload);
@@ -281,11 +280,12 @@ export default function ItineraryPage() {
         }
       )
       .subscribe();
-    console.log("[DEBUG] Subscribed to Supabase channel");
+    // [DEBUG] Subscribed to Supabase channel
     return () => {
       supabase.removeChannel(channel);
-      console.log("[DEBUG] Unsubscribed from Supabase channel");
+      // [DEBUG] Unsubscribed from Supabase channel
     };
+    */
   }, [params.groupId]);
 
   const fetchItineraryData = async () => {
@@ -465,6 +465,13 @@ export default function ItineraryPage() {
   const handleDrop = (e: React.DragEvent, status: ItineraryItem["status"]) => {
     e.preventDefault();
     if (draggedItem && draggedItem.status !== status) {
+      // Optimistically update local state
+      setItineraryItems((prev) =>
+        prev.map((item) =>
+          item.id === draggedItem.id ? { ...item, status } : item
+        )
+      );
+      // Send update to backend
       handleStatusUpdate(draggedItem.id, status);
     }
     setDraggedItem(null);
@@ -773,40 +780,19 @@ export default function ItineraryPage() {
                     onClick={() => openEditDialog(item)}
                   >
                     {/* Status badge */}
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
-                          STATUS_BADGES[item.status]?.color ||
-                          "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full mr-1.5"
-                          style={{
-                            backgroundColor:
-                              item.status === "planned" ||
-                              item.status === "confirmed"
-                                ? "#7F56D9"
-                                : item.status === "in-progress"
-                                ? "#EC4899"
-                                : item.status === "completed"
-                                ? "#16A34A"
-                                : "#6B7280",
-                          }}
-                        ></span>
-                        {STATUS_BADGES[item.status]?.label || item.status}
-                      </span>
-                      <button
-                        className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Handle menu actions
-                        }}
-                        aria-label="Task actions"
-                      >
-                        <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                      </button>
-                    </div>
+                    {(() => {
+                      const columnId = dbStatusToColumnId(item.status);
+                      const badge = COLUMN_BADGES[columnId];
+                      return (
+                        <Chip
+                          className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
+                            badge?.color || "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {badge?.label || columnId}
+                        </Chip>
+                      );
+                    })()}
 
                     {/* Title & Description */}
                     <div className="space-y-1">
