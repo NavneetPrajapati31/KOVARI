@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { Spinner } from "@heroui/react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -23,8 +24,8 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-600" />
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-card h-screen">
+        <Spinner variant="spinner" size="md" color="primary" />
       </div>
     );
   }

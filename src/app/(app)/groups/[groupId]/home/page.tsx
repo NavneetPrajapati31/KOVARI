@@ -337,7 +337,7 @@ const GroupHomePage = () => {
         <div className="flex flex-col gap-2 px-3 mt-0 pb-3">
           {/* Group name */}
 
-          <Card className="bg-card border-1 p-2 pt-4 border-border w-full h-full rounded-3xl shadow-sm">
+          <Card className="bg-card border-1 p-1 pt-4 border-border w-full h-full rounded-3xl shadow-sm">
             <div className="flex flex-col items-start gap-2 mb-2 px-3">
               {groupInfoLoading ? (
                 <>

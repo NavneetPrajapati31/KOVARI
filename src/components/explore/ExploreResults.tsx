@@ -13,7 +13,7 @@ import {
 import { GroupCardv2 } from "../cards/GroupCardv2";
 import { FiltersState } from "@/types/filters-state";
 
-type UserStatus = "member" | "pending" | "blocked" | null;
+type UserStatus = "member" | "pending" | "pending_request" | "blocked" | null;
 
 // Dummy data for travelers
 const dummyTravelers = [
@@ -405,7 +405,64 @@ export default function ExploreResults({
     action: "view" | "request" | "join"
   ) => {
     console.log(`Group action: ${action} for group ${groupId}`);
-    // Implement actual group action logic here
+
+    if (!user) {
+      console.error("User not authenticated");
+      return;
+    }
+
+    try {
+      if (action === "view") {
+        // Navigate to group page
+        window.location.href = `/groups/${groupId}/home`;
+        return;
+      }
+
+      if (action === "join") {
+        // For public groups - direct join
+        const response = await fetch(`/api/groups/${groupId}/join`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Join error:", errorText);
+          // You could show a toast notification here
+          return;
+        }
+
+        // Refresh the groups list to update the UI
+        window.location.reload();
+        return;
+      }
+
+      if (action === "request") {
+        // For private/invite-only groups - send join request
+        const response = await fetch(`/api/groups/${groupId}/join-request`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Join request error:", errorText);
+          // You could show a toast notification here
+          return;
+        }
+
+        // Refresh the groups list to update the UI
+        window.location.reload();
+        return;
+      }
+    } catch (error) {
+      console.error("Error performing group action:", error);
+      // You could show a toast notification here
+    }
   };
 
   if (!isLoaded || isLoading) {

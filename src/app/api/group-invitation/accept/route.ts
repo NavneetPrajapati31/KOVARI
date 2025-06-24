@@ -56,6 +56,25 @@ export async function POST(req: Request) {
       console.error("User not found", { userError, userRow });
       return new Response("User not found", { status: 404 });
     }
+
+    // Check if group is full (10 members limit)
+    const { data: memberCount, error: countError } = await supabase
+      .from("group_memberships")
+      .select("id", { count: "exact" })
+      .eq("group_id", invite.group_id)
+      .eq("status", "accepted");
+
+    if (countError) {
+      console.error("Error checking member count:", countError);
+      return new Response("Failed to check member count", { status: 500 });
+    }
+
+    if (memberCount && memberCount.length >= 10) {
+      return new Response("Group is full (maximum 10 members)", {
+        status: 400,
+      });
+    }
+
     // Add user to group_memberships if not already a member
     const { data: existing, error: existError } = await supabase
       .from("group_memberships")

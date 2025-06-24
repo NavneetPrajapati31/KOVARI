@@ -5,11 +5,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { groupId: string } }
+  { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
     const { userId } = await auth();
-    const { groupId } = params;
+    const { groupId } = await params;
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -19,7 +19,7 @@ export async function POST(
       return new NextResponse("Missing groupId", { status: 400 });
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -56,6 +56,7 @@ export async function POST(
           group_id: groupId,
           user_id: user.id,
           status: "accepted",
+          role: "member",
           joined_at: new Date().toISOString(),
         },
         { onConflict: "group_id, user_id" }

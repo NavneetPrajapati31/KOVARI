@@ -18,7 +18,7 @@ interface GroupCardProps {
       isOngoing: boolean;
     };
     memberCount: number;
-    userStatus: "member" | "pending" | "blocked" | null;
+    userStatus: "member" | "pending" | "pending_request" | "blocked" | null;
     creator: {
       name: string;
       avatar?: string;
@@ -94,6 +94,14 @@ export function GroupCardv2({
       return { text: "View Group", variant: "default", action: "view" };
     }
     if (group.userStatus === "pending") {
+      return {
+        text: "Invitation Pending",
+        variant: "secondary",
+        action: null,
+        disabled: true,
+      };
+    }
+    if (group.userStatus === "pending_request") {
       return {
         text: "Request Pending",
         variant: "secondary",
@@ -211,6 +219,7 @@ export function GroupCardv2({
                 View Group
               </Button>
             ) : group?.userStatus === "pending" ||
+              group?.userStatus === "pending_request" ||
               group?.userStatus === "blocked" ? (
               <Button
                 color="primary"

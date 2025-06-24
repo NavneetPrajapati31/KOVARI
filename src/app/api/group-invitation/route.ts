@@ -147,6 +147,24 @@ export async function POST(req: Request) {
 
     // Handle accept/decline actions
     if (action === "accept") {
+      // Check if group is full (10 members limit)
+      const { data: memberCount, error: countError } = await supabase
+        .from("group_memberships")
+        .select("id", { count: "exact" })
+        .eq("group_id", groupId)
+        .eq("status", "accepted");
+
+      if (countError) {
+        console.error("Error checking member count:", countError);
+        return new Response("Failed to check member count", { status: 500 });
+      }
+
+      if (memberCount && memberCount.length >= 10) {
+        return new Response("Group is full (maximum 10 members)", {
+          status: 400,
+        });
+      }
+
       // Update membership status to 'accepted' and role to 'member'
       const { error: updateError } = await supabase
         .from("group_memberships")
@@ -205,25 +223,72 @@ export async function POST(req: Request) {
         }
         if (data) userRow = { id: data.user_id };
         if (userRow && userRow.id) {
-          // Add to group_memberships as pending (if not already a member)
+          // Check for existing membership to prevent duplicate invites
           const { data: existing, error: existError } = await supabase
             .from("group_memberships")
-            .select("id")
+            .select("id, status")
             .eq("group_id", groupId)
             .eq("user_id", userRow.id)
             .maybeSingle();
-          if (!existing) {
-            const { error: insertError } = await supabase
-              .from("group_memberships")
-              .insert({
-                group_id: groupId,
-                user_id: userRow.id,
-                status: "pending",
-                joined_at: new Date().toISOString(),
-              });
-            if (insertError) {
-              console.error("Error inviting user:", insertError);
+
+          if (existError) {
+            console.error("Error checking existing membership:", existError);
+            continue;
+          }
+
+          // If user is already a member or has a pending/declined status, skip
+          if (existing) {
+            if (existing.status === "accepted") {
+              console.log(
+                `User ${userRow.id} is already a member of group ${groupId}`
+              );
+              continue;
             }
+            if (existing.status === "pending") {
+              console.log(
+                `User ${userRow.id} already has a pending invitation to group ${groupId}`
+              );
+              continue;
+            }
+            if (existing.status === "declined") {
+              console.log(
+                `User ${userRow.id} previously declined invitation to group ${groupId}`
+              );
+              continue;
+            }
+          }
+
+          // Check if group is full before adding new member
+          const { data: memberCount, error: countError } = await supabase
+            .from("group_memberships")
+            .select("id", { count: "exact" })
+            .eq("group_id", groupId)
+            .eq("status", "accepted");
+
+          if (countError) {
+            console.error("Error checking member count:", countError);
+            continue;
+          }
+
+          if (memberCount && memberCount.length >= 10) {
+            console.log(
+              `Group ${groupId} is full, cannot invite user ${userRow.id}`
+            );
+            continue;
+          }
+
+          // Add to group_memberships as pending
+          const { error: insertError } = await supabase
+            .from("group_memberships")
+            .insert({
+              group_id: groupId,
+              user_id: userRow.id,
+              status: "pending",
+              role: "member",
+              joined_at: new Date().toISOString(),
+            });
+          if (insertError) {
+            console.error("Error inviting user:", insertError);
           }
         }
       } else if (invite.email) {

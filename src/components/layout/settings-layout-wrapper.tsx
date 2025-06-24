@@ -1,44 +1,58 @@
 "use client";
-import React, { useState, Suspense } from "react";
+import React, { useCallback, memo } from "react";
 import SettingsSidebar from "@/components/layout/settings-sidebar";
+import { useSettingsTabs } from "@/hooks/use-settings-tabs";
 
-const EditPage = React.lazy(
-  () => import("@/app/(app)/groups/[groupId]/settings/edit/page")
-);
-const MembersPage = React.lazy(
-  () => import("@/app/(app)/groups/[groupId]/settings/members/page")
-);
-const DangerPage = React.lazy(
-  () => import("@/app/(app)/groups/[groupId]/settings/danger/page")
-);
+// Preload all components for instant switching
+import EditPage from "@/app/(app)/groups/[groupId]/settings/edit/page";
+import MembersPage from "@/app/(app)/groups/[groupId]/settings/members/page";
+import DangerPage from "@/app/(app)/groups/[groupId]/settings/danger/page";
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
 }
 
-const TAB_COMPONENTS: Record<
-  string,
-  React.LazyExoticComponent<React.FunctionComponent>
-> = {
+const TAB_COMPONENTS = {
   edit: EditPage,
   members: MembersPage,
   delete: DangerPage,
-};
+} as const;
+
+// Memoized tab content component to prevent unnecessary re-renders
+const TabContent = memo(
+  ({ activeTab }: { activeTab: keyof typeof TAB_COMPONENTS }) => {
+    const ActiveComponent = TAB_COMPONENTS[activeTab];
+
+    return (
+      <div className="w-full h-full">
+        <ActiveComponent />
+      </div>
+    );
+  }
+);
+
+TabContent.displayName = "TabContent";
 
 export default function LayoutWrapper() {
-  const [activeTab, setActiveTab] = useState<string>("edit");
-  const ActiveComponent = TAB_COMPONENTS[activeTab] || EditPage;
+  const { activeTab, setActiveTab } = useSettingsTabs();
+
+  const handleTabChange = useCallback(
+    (key: string) => {
+      setActiveTab(key);
+    },
+    [setActiveTab]
+  );
 
   return (
     <div className="flex h-full bg-background text-foreground border-1 border-border rounded-3xl">
       {/* Left Sidebar - Settings Tabs */}
       <div className="w-1/4 border-r border-border flex flex-col">
-        <SettingsSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <SettingsSidebar activeTab={activeTab} setActiveTab={handleTabChange} />
       </div>
-      <div className="flex-1 flex flex-col p-3 gap-2">
-        <Suspense fallback={null}>
-          <ActiveComponent />
-        </Suspense>
+
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col p-3 gap-2 overflow-hidden">
+        <TabContent key={activeTab} activeTab={activeTab} />
       </div>
     </div>
   );

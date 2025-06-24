@@ -4,10 +4,10 @@ import { getAuth } from "@clerk/nextjs/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { groupId: string } }
+  { params }: { params: Promise<{ groupId: string }> }
 ) {
   const supabase = createRouteHandlerSupabaseClient();
-  const { groupId } = params;
+  const { groupId } = await params;
 
   const { data, error } = await supabase
     .from("group_memberships")

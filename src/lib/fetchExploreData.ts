@@ -26,7 +26,13 @@ export interface Group {
     isOngoing: boolean;
   };
   memberCount: number;
-  userStatus: "member" | "pending" | "blocked" | "declined" | null;
+  userStatus:
+    | "member"
+    | "pending"
+    | "pending_request"
+    | "blocked"
+    | "declined"
+    | null;
   creator: {
     name: string;
     username: string;
@@ -322,6 +328,8 @@ export const fetchPublicGroups = async (
     const membershipStatus = userMemberships[group.id];
     if (membershipStatus === "accepted") userStatus = "member";
     else if (membershipStatus === "pending") userStatus = "pending";
+    else if (membershipStatus === "pending_request")
+      userStatus = "pending_request";
     else if (membershipStatus === "declined") userStatus = "declined";
     return {
       id: group.id,
