@@ -35,38 +35,8 @@ const nextConfig = {
   },
   // Add webpack optimization settings
   webpack: (config, { dev, isServer }) => {
-    // Optimize cache settings based on environment
-    config.cache = dev
-      ? {
-          type: "memory",
-        }
-      : {
-          type: "filesystem",
-          buildDependencies: {
-            config: [__filename],
-          },
-          cacheDirectory: path.resolve(__dirname, ".next/cache"),
-          maxAge: 172800000, // 2 days
-          compression: "gzip",
-          store: "pack",
-          version: "1.0.0",
-          allowCollectingMemory: true,
-          memoryCacheUnaffected: true,
-          serialization: {
-            serialize: (data) => {
-              if (typeof data === "string" && data.length > 1024) {
-                return Buffer.from(data);
-              }
-              return data;
-            },
-            deserialize: (data) => {
-              if (Buffer.isBuffer(data)) {
-                return data.toString();
-              }
-              return data;
-            },
-          },
-        };
+    // Optimize cache settings: always use memory cache for compatibility
+    config.cache = { type: "memory" };
 
     // Handle Supabase realtime-js dependency
     config.resolve.fallback = {
