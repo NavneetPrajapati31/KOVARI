@@ -3,17 +3,17 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { Textarea } from "@/shared/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/shared/components/ui/dialog";
 import {
   Plus,
   Calendar,
@@ -37,7 +37,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/components/ui/dropdown-menu";
 
 interface ItineraryItem {
   id: string;
@@ -793,8 +793,8 @@ export default function ItineraryPage() {
                             item.priority === "high"
                               ? "bg-red-50 text-red-700"
                               : item.priority === "medium"
-                              ? "bg-yellow-50 text-yellow-700"
-                              : "bg-blue-50 text-blue-700"
+                                ? "bg-yellow-50 text-yellow-700"
+                                : "bg-blue-50 text-blue-700"
                           }`}
                         >
                           {item.priority.charAt(0).toUpperCase() +

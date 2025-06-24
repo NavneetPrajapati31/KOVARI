@@ -8,7 +8,7 @@ import {
   FormControl,
   FormMessage,
   FormDescription,
-} from "@/components/ui/form";
+} from "@/shared/components/ui/form";
 
 export const Form = FormPrimitive;
 export {

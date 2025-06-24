@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import {
   CardBody,
   Card,
@@ -38,12 +38,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import GoogleMapsViewer from "@/components/google-maps-viewer";
+import GoogleMapsViewer from "@/shared/components/google-maps-viewer";
 import { RangeCalendar } from "@heroui/react";
 import { today, getLocalTimeZone, parseDate } from "@internationalized/date";
-import { cn } from "@/lib/utils";
-import { DestinationCard } from "@/components/cards/DestinationCard";
-import { GroupCoverCard } from "@/components/cards/GroupCoverCard";
+import { cn } from "@/shared/utils/utils";
+import { DestinationCard } from "@/features/groups/components/DestinationCard";
+import { GroupCoverCard } from "@/features/groups/components/GroupCoverCard";
 import { Skeleton } from "@heroui/react";
 
 const TABS = [

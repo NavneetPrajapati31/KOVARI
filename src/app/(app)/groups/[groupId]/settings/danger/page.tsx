@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -17,9 +17,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shared/components/ui/dialog";
 import { AlertTriangle, LogOut, Trash2 } from "lucide-react";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 
 interface MembershipInfo {
   isCreator: boolean;

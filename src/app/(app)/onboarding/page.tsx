@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useSyncUserToSupabase } from "@/lib/syncUserToSupabase";
-import ProfileSetupForm from "@/components/forms/ProfileSetupForm";
+import ProfileSetupForm from "@/features/onboarding/components/ProfileSetupForm";
 
 export default function ProfileSetupPage() {
   const { syncUser } = useSyncUserToSupabase();

@@ -1,7 +1,7 @@
 "use client";
 
-import { InviteConfirmationModal } from "@/components/modals/InviteModal";
-import { InviteTeammatesModal } from "@/components/modals/member-invitation/invite-teammember";
+import { InviteConfirmationModal } from "@/features/invite/components/InviteModal";
+import { InviteTeammatesModal } from "@/features/invite/components/invite-teammember";
 import React from "react";
 
 const mockTraveler = {

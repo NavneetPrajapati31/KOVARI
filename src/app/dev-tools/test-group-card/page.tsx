@@ -1,6 +1,6 @@
 "use client";
 
-import { GroupCard } from "@/components/cards/GroupCard";
+import { GroupCard } from "@/features/explore/components/GroupCard";
 import { addDays } from "date-fns";
 
 export default function GroupCardPreviewPage() {

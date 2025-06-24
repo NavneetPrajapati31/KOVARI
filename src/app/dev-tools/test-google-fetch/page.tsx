@@ -1,4 +1,4 @@
-import GoogleImageDemo from "@/components/google-image-demo";
+import GoogleImageDemo from "@/shared/components/google-image-demo";
 import React from "react";
 
 export default function page() {

@@ -4,27 +4,27 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
+import { Textarea } from "@/shared/components/ui/textarea";
+import { Switch } from "@/shared/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/components/ui/select";
+import { Badge } from "@/shared/components/ui/badge";
+import { Separator } from "@/shared/components/ui/separator";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/components/ui/card";
 import {
   Globe,
   Lock,
@@ -48,7 +48,7 @@ import {
   Mail,
   ChevronRight,
 } from "lucide-react";
-import { ImageUpload } from "@/components/image-upload";
+import { ImageUpload } from "@/shared/components/image-upload";
 import { DatePicker } from "@heroui/react";
 import { CalendarDate } from "@internationalized/date";
 
@@ -515,7 +515,7 @@ export default function EditPage() {
                     onChange={(cd) => {
                       setValue(
                         "startDate",
-                        cd ? calendarDateToDate(cd)?.toISOString() ?? "" : ""
+                        cd ? (calendarDateToDate(cd)?.toISOString() ?? "") : ""
                       );
                     }}
                   />
@@ -536,7 +536,7 @@ export default function EditPage() {
                     onChange={(cd) => {
                       setValue(
                         "endDate",
-                        cd ? calendarDateToDate(cd)?.toISOString() ?? "" : ""
+                        cd ? (calendarDateToDate(cd)?.toISOString() ?? "") : ""
                       );
                     }}
                   />

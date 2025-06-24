@@ -1,6 +1,6 @@
 "use client";
 
-import TravelerCard from "@/components/cards/TravelerCard";
+import TravelerCard from "@/features/explore/components/TravelerCard";
 
 export default function TravelerCardPreviewPage() {
   const sampleTraveler = {

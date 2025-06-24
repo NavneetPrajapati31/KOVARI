@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import InvitationResults, { GroupInvite } from "@/components/InvitationResults";
-import { Button } from "@/components/ui/button";
+import InvitationResults, { GroupInvite } from "@/features/invitations/components/InvitationResults";
+import { Button } from "@/shared/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import InvitationCardSkeleton from "@/components/skeleton/InvitationCardSkeleton";
+import InvitationCardSkeleton from "@/features/invitations/components/InvitationCardSkeleton";
 
 export default function ProfilePage() {
   const [invitations, setInvitations] = useState<GroupInvite[]>([]);

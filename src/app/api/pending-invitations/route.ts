@@ -158,8 +158,14 @@ export async function GET() {
         if (!acc[item.group_id]) {
           acc[item.group_id] = [];
         }
-        if (item.users && item.users.profiles) {
-          acc[item.group_id].push(item.users.profiles);
+        const user = Array.isArray(item.users) ? item.users[0] : item.users;
+        if (user && user.profiles) {
+          const profile = Array.isArray(user.profiles)
+            ? user.profiles[0]
+            : user.profiles;
+          if (profile) {
+            acc[item.group_id].push(profile);
+          }
         }
         return acc;
       },

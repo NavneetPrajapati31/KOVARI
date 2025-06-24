@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import ExploreHeader from "@/components/explore/ExploreHeader";
-import ExploreResults from "@/components/explore/ExploreResults";
+import ExploreHeader from "@/features/explore/components/ExploreHeader";
+import ExploreResults from "@/features/explore/components/ExploreResults";
 import { Loader2 } from "lucide-react";
 import { Spinner } from "@heroui/react";
 

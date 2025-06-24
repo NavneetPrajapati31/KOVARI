@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import Spinner from "@/components/Spinner";
+import Spinner from "@/shared/components/Spinner";
 
 export default function SSOCallback() {
   const { handleRedirectCallback } = useClerk();

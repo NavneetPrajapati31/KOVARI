@@ -1,5 +1,5 @@
-import AuthForm from "@/components/forms/auth-form";
-import HeroSection from "@/components/hero-section";
+import AuthForm from "@/features/auth/components/auth-form";
+import HeroSection from "@/features/auth/components/hero-section";
 
 export default function SignInPage() {
   return (

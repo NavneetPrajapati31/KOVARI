@@ -1,4 +1,4 @@
-import LayoutWrapper from "@/components/layout/groups-layout-wrapper";
+import LayoutWrapper from "@/shared/components/layout/groups-layout-wrapper";
 
 interface GroupsLayoutProps {
   children: React.ReactNode;

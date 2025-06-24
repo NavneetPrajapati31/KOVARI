@@ -1,7 +1,7 @@
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { SidebarWrapper } from "@/components/sidebar-wrapper";
-import LayoutWrapper from "@/components/layout/app-layout-wrapper";
-import ProtectedRoute from "@/components/protected-route";
+import { SidebarProvider } from "@/shared/components/ui/sidebar";
+import { SidebarWrapper } from "@/shared/components/layout/sidebar-wrapper";
+import LayoutWrapper from "@/shared/components/layout/app-layout-wrapper";
+import ProtectedRoute from "@/shared/components/protected-route";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

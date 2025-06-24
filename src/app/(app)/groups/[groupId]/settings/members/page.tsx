@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { InviteTeammatesModal } from "@/components/modals/member-invitation/invite-teammember";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { InviteTeammatesModal } from "@/features/invite/components/invite-teammember";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
+import { Button } from "@/shared/components/ui/button";
+import { Badge } from "@/shared/components/ui/badge";
 import { Plus } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Chip } from "@heroui/react";
-import { RemoveMemberModal } from "@/components/modals/member-invitation/remove-member-modal";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { RemoveMemberModal } from "@/features/invite/components/remove-member-modal";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 
 interface GroupMember {
   id: string;

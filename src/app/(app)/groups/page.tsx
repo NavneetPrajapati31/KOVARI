@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { GroupCardv2 } from "@/components/cards/GroupCardv2";
-import GroupCardSkeleton from "@/components/skeleton/GroupCardSkeleton";
-import { fetchMyGroups, Group } from "@/lib/fetchExploreData";
-import { MyGroupCard } from "@/components/cards/MyGroupCard";
-import { GroupCard } from "@/components/cards/GroupCard";
+import { GroupCardv2 } from "@/features/explore/components/GroupCardv2";
+import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
+import { fetchMyGroups, Group } from "@/features/explore/lib/fetchExploreData";
+import { MyGroupCard } from "@/features/groups/components/MyGroupCard";
+import { GroupCard } from "@/features/explore/components/GroupCard";
 import { Loader2 } from "lucide-react";
 import { Spinner } from "@heroui/react";
 
