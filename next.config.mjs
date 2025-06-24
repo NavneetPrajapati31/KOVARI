@@ -33,63 +33,63 @@ const nextConfig = {
     ],
   },
   // Add webpack optimization settings
-  webpack: (config, { dev, isServer }) => {
-    // Optimize cache settings: always use memory cache for compatibility
-    config.cache = { type: "memory" };
+  // webpack: (config, { dev, isServer }) => {
+  //   // Optimize cache settings: always use memory cache for compatibility
+  //   config.cache = { type: "memory" };
 
-    // Handle Supabase realtime-js dependency
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      ws: false,
-      net: false,
-      tls: false,
-      fs: false,
-      dns: false,
-      child_process: false,
-    };
+  //   // Handle Supabase realtime-js dependency
+  //   config.resolve.fallback = {
+  //     ...config.resolve.fallback,
+  //     ws: false,
+  //     net: false,
+  //     tls: false,
+  //     fs: false,
+  //     dns: false,
+  //     child_process: false,
+  //   };
 
-    // Optimize chunk size and string handling
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        chunks: "all",
-        minSize: 20000,
-        maxSize: 244000,
-        minChunks: 1,
-        maxAsyncRequests: 30,
-        maxInitialRequests: 30,
-        cacheGroups: {
-          defaultVendors: {
-            test: /[\\/]node_modules[\\/]/,
-            priority: -10,
-            reuseExistingChunk: true,
-          },
-          default: {
-            minChunks: 2,
-            priority: -20,
-            reuseExistingChunk: true,
-          },
-        },
-      },
-    };
+  //   // Optimize chunk size and string handling
+  //   config.optimization = {
+  //     ...config.optimization,
+  //     splitChunks: {
+  //       chunks: "all",
+  //       minSize: 20000,
+  //       maxSize: 244000,
+  //       minChunks: 1,
+  //       maxAsyncRequests: 30,
+  //       maxInitialRequests: 30,
+  //       cacheGroups: {
+  //         defaultVendors: {
+  //           test: /[\\/]node_modules[\\/]/,
+  //           priority: -10,
+  //           reuseExistingChunk: true,
+  //         },
+  //         default: {
+  //           minChunks: 2,
+  //           priority: -20,
+  //           reuseExistingChunk: true,
+  //         },
+  //       },
+  //     },
+  //   };
 
-    // Only add minimizer in production
-    if (!dev) {
-      config.optimization.minimize = true;
-      config.optimization.minimizer = ["..."];
-    }
+  //   // Only add minimizer in production
+  //   if (!dev) {
+  //     config.optimization.minimize = true;
+  //     config.optimization.minimizer = ["..."];
+  //   }
 
-    // Add performance hints only in production
-    if (!dev) {
-      config.performance = {
-        hints: "warning",
-        maxEntrypointSize: 512000,
-        maxAssetSize: 512000,
-      };
-    }
+  //   // Add performance hints only in production
+  //   if (!dev) {
+  //     config.performance = {
+  //       hints: "warning",
+  //       maxEntrypointSize: 512000,
+  //       maxAssetSize: 512000,
+  //     };
+  //   }
 
-    return config;
-  },
+  //   return config;
+  // },
 };
 
 export default withSentryConfig(nextConfig, {
