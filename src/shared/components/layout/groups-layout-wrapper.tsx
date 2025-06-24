@@ -114,7 +114,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         <header>
           <div className="flex gap-2 flex-shrink-0">{tabButtons}</div>
         </header>
-        <main className="flex-1 pt-0 md:pt-4">{children}</main>
+        <main className="flex-1 pt-4 md:pt-0 xl:pt-4">{children}</main>
       </div>
     </div>
   );
