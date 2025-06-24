@@ -32,6 +32,7 @@ import { RangeCalendar } from "@heroui/react";
 import { today, getLocalTimeZone } from "@internationalized/date";
 import { ChevronDown, Check, Filter, X } from "lucide-react";
 import { cn } from "@/shared/utils/utils";
+import { z } from "zod";
 
 const GENDER_OPTIONS = ["Any", "Male", "Female", "Other"];
 const INTEREST_OPTIONS = [
@@ -113,6 +114,34 @@ export const ListboxWrapper: React.FC<React.PropsWithChildren> = ({
     {children}
   </div>
 );
+
+// Zod schema for filter validation
+const filtersSchema = z
+  .object({
+    destination: z.string(),
+    dateStart: z.date().optional().or(z.undefined()),
+    dateEnd: z.date().optional().or(z.undefined()),
+    ageMin: z.number().min(18, "Min age is 18").max(100, "Max age is 100"),
+    ageMax: z.number().min(18, "Min age is 18").max(100, "Max age is 100"),
+    gender: z.string(),
+    interests: z.array(z.string()),
+  })
+  .refine((data) => data.ageMin <= data.ageMax, {
+    message: "Minimum age must be less than or equal to maximum age.",
+    path: ["ageMin"],
+  })
+  .refine(
+    (data) => {
+      if (data.dateStart && data.dateEnd) {
+        return data.dateStart <= data.dateEnd;
+      }
+      return true;
+    },
+    {
+      message: "Start date must be before end date.",
+      path: ["dateStart"],
+    }
+  );
 
 const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   filters,
@@ -362,6 +391,33 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
     if (safeFilters.gender && safeFilters.gender !== "Any") count++;
     if (safeFilters.interests.length > 0) count++;
     return count;
+  };
+
+  const [validationErrors, setValidationErrors] = useState<
+    Partial<Record<keyof FiltersState, string>>
+  >({});
+
+  // Helper to validate filters
+  const validateFilters = (filters: FiltersState): boolean => {
+    const result = filtersSchema.safeParse(filters);
+    if (!result.success) {
+      const errors: Partial<Record<keyof FiltersState, string>> = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path[0] as keyof FiltersState;
+        errors[key] = issue.message;
+      }
+      setValidationErrors(errors);
+      return false;
+    }
+    setValidationErrors({});
+    return true;
+  };
+
+  // Replace all onFilterChange calls with validation
+  const handleValidatedFilterChange = (filters: FiltersState) => {
+    if (validateFilters(filters)) {
+      onFilterChange(filters);
+    }
   };
 
   // Mobile Modal Content
@@ -658,7 +714,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <HeroButton
               color="primary"
               onPress={() => {
-                onFilterChange(mobileFilters);
+                handleValidatedFilterChange(mobileFilters);
                 onClose();
               }}
               className="flex-1"
@@ -731,7 +787,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                       destinationInput.trim().toLowerCase()
                   )
                 ) {
-                  onFilterChange({
+                  handleValidatedFilterChange({
                     ...safeFilters,
                     destination: destinationInput,
                   });
@@ -773,13 +829,19 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     aria-label={destination}
                     onClick={() => {
                       setDestinationInput(destination);
-                      onFilterChange({ ...safeFilters, destination });
+                      handleValidatedFilterChange({
+                        ...safeFilters,
+                        destination,
+                      });
                       setOpenDropdown(null);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         setDestinationInput(destination);
-                        onFilterChange({ ...safeFilters, destination });
+                        handleValidatedFilterChange({
+                          ...safeFilters,
+                          destination,
+                        });
                         setOpenDropdown(null);
                       }
                     }}
@@ -828,7 +890,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   range.start instanceof CalendarDate ? range.start : undefined;
                 const end =
                   range.end instanceof CalendarDate ? range.end : undefined;
-                onFilterChange({
+                handleValidatedFilterChange({
                   ...safeFilters,
                   dateStart: start ? calendarDateToDate(start) : undefined,
                   dateEnd: end ? calendarDateToDate(end) : undefined,
@@ -879,7 +941,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     (value[0] !== safeFilters.ageMin ||
                       value[1] !== safeFilters.ageMax)
                   ) {
-                    onFilterChange({
+                    handleValidatedFilterChange({
                       ...safeFilters,
                       ageMin: value[0],
                       ageMax: value[1],
@@ -903,10 +965,8 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
-                  openDropdown === "gender" ? "text-primary" : ""
-                }  font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent"
-                aria-label="Gender filter`}
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${openDropdown === "gender" ? "text-primary" : ""} font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent`}
+                aria-label="Gender filter"
               >
                 {getGenderLabel()}
                 <ChevronDown className="ml-2 w-4 h-4" />
@@ -923,7 +983,12 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     aria-pressed={safeFilters.gender === option}
                     tabIndex={0}
                     aria-label={option}
-                    onClick={() => handleGenderChange(option)}
+                    onClick={() =>
+                      handleValidatedFilterChange({
+                        ...safeFilters,
+                        gender: option,
+                      })
+                    }
                   >
                     {option}
                     {safeFilters.gender === option && (
@@ -967,12 +1032,21 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   aria-label={interest}
                   onClick={(e) => {
                     e.preventDefault();
-                    handleInterestToggle(interest);
+                    const interests = safeFilters.interests.includes(interest)
+                      ? safeFilters.interests.filter((i) => i !== interest)
+                      : [...safeFilters.interests, interest];
+                    handleValidatedFilterChange({ ...safeFilters, interests });
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      handleInterestToggle(interest);
+                      const interests = safeFilters.interests.includes(interest)
+                        ? safeFilters.interests.filter((i) => i !== interest)
+                        : [...safeFilters.interests, interest];
+                      handleValidatedFilterChange({
+                        ...safeFilters,
+                        interests,
+                      });
                     }
                   }}
                 >
