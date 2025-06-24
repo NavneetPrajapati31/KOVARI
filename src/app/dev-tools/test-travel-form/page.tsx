@@ -13,7 +13,7 @@ export default function TestTravelForm() {
         destinations: ["Goa", "Rishikesh"],
         start_date: "2025-12-01",
         end_date: "2025-12-10",
-        interests: ["Adventure", "Culture"],
+        hobbies: ["Adventure", "Culture"],
       }),
       headers: { "Content-Type": "application/json" },
     });

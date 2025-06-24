@@ -57,12 +57,11 @@ export function useSyncUserToSupabase() {
       }
 
       // If user doesn't exist, create them
-      let userIdInSupabase = existingUser?.id;
       if (!existingUser) {
-        const { data: newUser, error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from("users")
           .insert({ clerk_user_id: userId })
-          .select("id")
+          .select()
           .single();
 
         if (insertError) {
@@ -74,7 +73,6 @@ export function useSyncUserToSupabase() {
           }
           return false;
         }
-        userIdInSupabase = newUser?.id;
       }
 
       console.log("✅ User synced to Supabase successfully");

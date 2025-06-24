@@ -7,21 +7,9 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
-
-if (process.env.NEXT_PUBLIC_DEV_THEME === "true") {
-  try {
-    require("@/styles/dev-theme.css");
-  } catch {
-    console.warn("⚠️ dev-theme.css not found. Skipping dev theme.");
-  }
-} else {
-  require("@/styles/globals.css");
-}
-
+import "./globals.css";
 import { Poppins, Inter } from "next/font/google";
-import { Toaster } from "@/shared/components/ui/sonner";
-import { HeroUIProvider } from "@heroui/react";
-import { AuthProvider } from "@/shared/components/auth-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -49,20 +37,8 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={`${inter.variable} ${poppins.variable} font-body`}>
-          <HeroUIProvider>
-            <AuthProvider>{children}</AuthProvider>
-            <Toaster
-              position="bottom-right"
-              duration={2500}
-              toastOptions={{
-                style: {
-                  background: "black",
-                  color: "white",
-                  border: "none",
-                },
-              }}
-            />
-          </HeroUIProvider>
+          {children}
+          <Toaster position="top-right" />
         </body>
       </html>
     </ClerkProvider>

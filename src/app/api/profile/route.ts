@@ -1,15 +1,10 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
 const schema = z.object({
   name: z.string().min(2),
-  username: z
-    .string()
-    .min(3)
-    .max(32)
-    .regex(/^[a-zA-Z0-9_]+$/),
   age: z.number().min(13).max(100),
   gender: z.enum(["Male", "Female", "Other"]),
   birthday: z.string().datetime(),
@@ -91,36 +86,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // Check if username is already taken by another user
-  const { data: existingProfile, error: existingProfileError } = await supabase
-    .from("profiles")
-    .select("user_id")
-    .ilike("username", result.data.username)
-    .not("user_id", "eq", userRow.id)
-    .maybeSingle();
-
-  if (existingProfileError) {
-    console.error(
-      "Error checking for existing username:",
-      existingProfileError
-    );
-    return new Response(
-      JSON.stringify({
-        error: "Error checking username availability. Please try again.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  if (existingProfile) {
-    return new Response(
-      JSON.stringify({
-        error: "Username is already taken. Please choose a different one.",
-      }),
-      { status: 409, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
   const profileData = {
     user_id: userRow.id,
     ...result.data,
@@ -139,21 +104,6 @@ export async function POST(req: Request) {
         details: profileUpsertError.message,
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  try {
-    const client = await clerkClient();
-    await client.users.updateUser(userId, {
-      username: result.data.username,
-    });
-  } catch (err) {
-    console.error("Error updating clerk user", err);
-    return new Response(
-      JSON.stringify({
-        error: "Profile saved, but failed to sync username with Clerk.",
-      }),
-      { status: 500 }
     );
   }
 

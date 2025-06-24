@@ -1,15 +1,10 @@
 import type { Config } from "tailwindcss";
-const { heroui } = require("@heroui/react");
 
 const config: Config = {
   content: [
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/features/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/shared/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/styles/**/*.{js,ts,jsx,tsx,mdx}",
-    "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   darkMode: "class",
   theme: {
@@ -25,7 +20,6 @@ const config: Config = {
         primary: "var(--primary)", // Use in your root: --primary: #004831
         "primary-foreground": "var(--primary-foreground)",
         "primary-hover": "var(--primary-hover)",
-        "primary-light": "var(--primary-light)",
         secondary: "var(--secondary)", // Use in your root: --secondary: #E7EBD0
         "secondary-foreground": "var(--secondary-foreground)",
         muted: "var(--muted)", // --muted: #586F7C
@@ -59,7 +53,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), heroui()],
+  plugins: [],
 };
 
 export default config;
