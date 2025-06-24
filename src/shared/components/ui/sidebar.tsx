@@ -139,6 +139,16 @@ function SidebarProvider({
 
   if (!hasMounted) return null;
 
+  // On mobile, do not render the sidebar wrapper, just the children (main content and mobile sidebar/Sheet)
+  if (isMobile) {
+    return (
+      <SidebarContext.Provider value={contextValue}>
+        <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
+      </SidebarContext.Provider>
+    );
+  }
+
+  // On desktop, render the sidebar wrapper with sidebar and main content as flex row
   return (
     <SidebarContext.Provider value={contextValue}>
       <TooltipProvider delayDuration={0}>
@@ -183,7 +193,7 @@ function Sidebar({
       <div
         data-slot="sidebar"
         className={cn(
-          "bg-sidebar text-sidebar-foreground flex h-full w-[var(--sidebar-width)] flex-col",
+          "bg-sidebar text-sidebar-foreground hidden md:flex h-full w-[var(--sidebar-width)] flex-col",
           className
         )}
         {...props}

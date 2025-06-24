@@ -12,6 +12,7 @@ interface DestinationCardProps {
   name: string;
   country: string;
   onExplore: () => void;
+  forMobile?: boolean;
 }
 
 // Client-side image stretch component
@@ -34,7 +35,7 @@ const ImageStretch = ({
         src={src}
         alt={alt}
         aria-label={ariaLabel}
-        className={`w-full h-full object-fill object-bottom object-right rounded-t-2xl rounded-b-none transition-all duration-500 ${className}`}
+        className={`w-full h-full object-fill object-bottom object-right transition-all duration-500 ${className}`}
         style={{ display: "block" }}
       />
     </div>
@@ -46,26 +47,30 @@ export function DestinationCard({
   country,
   imageUrl,
   onExplore,
+  forMobile = false,
 }: DestinationCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
   const router = useRouter();
 
   return (
-    <Card className="relative  w-[250px] h-[200px] rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card
+      className={`relative ${forMobile === true ? "w-full h-[180px]" : "w-[250px] h-[200px]"}  rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground`}
+    >
       {/* Background Image - now covers full card */}
-      <div className="relative w-full h-full overflow-hidden bg-muted">
+      <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl">
         <ImageStretch
           src={imageUrl || ""}
           alt={"Group cover"}
           ariaLabel={"Group cover"}
+          className="rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl"
         />
       </div>
 
       {/* Glassmorphism content overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-10">
+      <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-3xl sm:rounded-b-3xl md:rounded-b-3xl lg:rounded-b-3xl">
         <div
-          className="backdrop-blur-md"
+          className="backdrop-blur-md w-full rounded-b-3xl sm:rounded-b-3xl md:rounded-b-3xl lg:rounded-b-3xl"
           style={{
             maskImage:
               "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
@@ -74,13 +79,13 @@ export function DestinationCard({
           }}
         >
           {/* Content section - keeping your exact structure */}
-          <div className="flex flex-row gap-1 px-3 py-3">
+          <div className="flex flex-row gap-1 px-4 py-3">
             {/* Creator avatar and name */}
-            <div className="flex flex-col items-start gap-0.5 flex-1">
-              <span className="text-white font-medium text-xs truncate">
+            <div className="flex flex-col items-start flex-1">
+              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
                 {name}
               </span>
-              <span className="text-white font-medium text-xs truncate">
+              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
                 {country}
               </span>
             </div>

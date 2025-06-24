@@ -12,6 +12,7 @@ interface GroupCoverCardProps {
   name: string;
   country: string;
   onExplore: () => void;
+  forMobile?: boolean;
 }
 
 // Client-side image stretch component
@@ -46,13 +47,16 @@ export function GroupCoverCard({
   country,
   imageUrl,
   onExplore,
+  forMobile = false,
 }: GroupCoverCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
   const router = useRouter();
 
   return (
-    <Card className="relative w-full h-[200px] rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card
+      className={`relative w-full ${forMobile === true ? "h-[180px]" : "h-[200px]"}  rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground`}
+    >
       {/* Background Image - now covers full card */}
       <div className="relative w-full h-full overflow-hidden bg-muted">
         <ImageStretch
