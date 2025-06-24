@@ -1,6 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import { fileURLToPath } from "url";
 import path from "path";
+import TerserPlugin from "terser-webpack-plugin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,7 +109,7 @@ const nextConfig = {
       config.optimization.minimize = true;
       config.optimization.minimizer = [
         "...",
-        new (require("terser-webpack-plugin"))({
+        new TerserPlugin({
           terserOptions: {
             compress: {
               drop_console: true,
