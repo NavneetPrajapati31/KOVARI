@@ -133,7 +133,11 @@ export default function App({
     return pathname === href;
   };
 
-  const navigationItems = [
+  const navigationItems: {
+    name: string;
+    href: string;
+    icon?: React.ElementType;
+  }[] = [
     // { name: "Features", href: "#features", icon: Compass },
     // { name: "How It Works", href: "#working", icon: MessageCircle },
     // { name: "Pricing", href: "/pricing", icon: Users },
@@ -289,7 +293,6 @@ export default function App({
                 color={"foreground"}
                 href={item.href}
                 onClick={() => handleNavigation(item.href)}
-                size="md"
               >
                 {/* <item.icon className="w-4 h-4" /> */}
                 {item.name}
