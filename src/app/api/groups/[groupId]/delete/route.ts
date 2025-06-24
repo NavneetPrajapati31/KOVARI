@@ -12,11 +12,11 @@ export async function DELETE(
     const { groupId } = await params;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!groupId) {
-      return new NextResponse("Missing groupId", { status: 400 });
+      return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
     }
 
     const cookieStore = await cookies();
@@ -47,7 +47,7 @@ export async function DELETE(
 
     if (userError || !user) {
       console.error("Error finding user:", userError);
-      return new NextResponse("User not found", { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Check if group exists and get creator info
@@ -58,14 +58,15 @@ export async function DELETE(
       .single();
 
     if (groupError || !group) {
-      return new NextResponse("Group not found", { status: 404 });
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
     // Check if user is the creator of the group
     if (group.creator_id !== user.id) {
-      return new NextResponse("Only the group creator can delete the group", {
-        status: 403,
-      });
+      return NextResponse.json(
+        { error: "Only the group creator can delete the group" },
+        { status: 403 }
+      );
     }
 
     // Delete all related data in a transaction-like manner
@@ -79,7 +80,10 @@ export async function DELETE(
 
     if (emailInviteError) {
       console.error("Error deleting email invitations:", emailInviteError);
-      return new NextResponse("Failed to delete group data", { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to delete group data" },
+        { status: 500 }
+      );
     }
 
     // Delete itinerary items
@@ -90,7 +94,10 @@ export async function DELETE(
 
     if (itineraryError) {
       console.error("Error deleting itinerary items:", itineraryError);
-      return new NextResponse("Failed to delete group data", { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to delete group data" },
+        { status: 500 }
+      );
     }
 
     // Delete group memberships
@@ -101,7 +108,10 @@ export async function DELETE(
 
     if (membershipError) {
       console.error("Error deleting group memberships:", membershipError);
-      return new NextResponse("Failed to delete group data", { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to delete group data" },
+        { status: 500 }
+      );
     }
 
     // Finally, delete the group itself
@@ -112,7 +122,10 @@ export async function DELETE(
 
     if (groupDeleteError) {
       console.error("Error deleting group:", groupDeleteError);
-      return new NextResponse("Failed to delete group", { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to delete group" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -121,6 +134,9 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("[DELETE_GROUP_DELETE]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

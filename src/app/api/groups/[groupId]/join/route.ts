@@ -8,10 +8,10 @@ export async function POST(
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
     const { groupId } = await params;
 
-    if (!userId) {
+    if (!clerkUserId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -31,17 +31,60 @@ export async function POST(
           set(name: string, value: string, options: CookieOptions) {
             cookieStore.set(name, value, options);
           },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.delete(name, options);
+          remove(name: string) {
+            cookieStore.delete(name);
           },
         },
       }
     );
 
+    let targetClerkUserId = clerkUserId;
+    let body: any = {};
+    try {
+      body = await req.json();
+      if (
+        body.userId &&
+        typeof body.userId === "string" &&
+        body.userId !== clerkUserId
+      ) {
+        // Check if current user is admin of the group
+        const { data: adminMembership, error: adminError } = await supabase
+          .from("group_memberships")
+          .select("role")
+          .eq("group_id", groupId)
+          .eq("status", "accepted")
+          .eq(
+            "user_id",
+            (
+              await supabase
+                .from("users")
+                .select("id")
+                .eq("clerk_user_id", clerkUserId)
+                .single()
+            ).data?.id
+          )
+          .maybeSingle();
+        if (adminError) {
+          return new NextResponse("Database error", { status: 500 });
+        }
+        if (adminMembership && adminMembership.role === "admin") {
+          targetClerkUserId = body.userId;
+        } else {
+          return new NextResponse(
+            "Only admins can approve join requests for others",
+            { status: 403 }
+          );
+        }
+      }
+    } catch (e) {
+      // ignore, fallback to default
+    }
+
+    // Get user UUID from Clerk userId (target)
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("id")
-      .eq("clerk_user_id", userId)
+      .eq("clerk_user_id", targetClerkUserId)
       .single();
 
     if (userError || !user) {

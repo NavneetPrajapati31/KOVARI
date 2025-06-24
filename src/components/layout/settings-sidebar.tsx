@@ -4,6 +4,7 @@ import React, { KeyboardEvent, useCallback, useMemo, useRef } from "react";
 const TABS = [
   { key: "edit", label: "Edit Group" },
   { key: "members", label: "Manage Members" },
+  { key: "requests", label: "Join Requests" },
   { key: "delete", label: "Leave Group" },
 ] as const;
 

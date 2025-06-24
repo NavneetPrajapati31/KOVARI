@@ -48,7 +48,9 @@ export function GroupCard({
   isLoading = false,
   onShowLoading,
 }: GroupCardProps) {
-  const [actionLoading, setActionLoading] = useState(false);
+  const [viewGroupLoading, setViewGroupLoading] = useState(false);
+  const [requestToJoinLoading, setRequestToJoinLoading] = useState(false);
+  const [userStatus, setUserStatus] = useState(group.userStatus);
 
   const formatDateRange = () => {
     if (group.dateRange.isOngoing) return "Ongoing";
@@ -74,10 +76,10 @@ export function GroupCard({
   };
 
   const getActionButton = () => {
-    if (group.userStatus === "member") {
+    if (userStatus === "member") {
       return { text: "View Group", variant: "default", action: "view" };
     }
-    if (group.userStatus === "pending") {
+    if (userStatus === "pending") {
       return {
         text: "Invitation Pending",
         variant: "secondary",
@@ -85,7 +87,7 @@ export function GroupCard({
         disabled: true,
       };
     }
-    if (group.userStatus === "pending_request") {
+    if (userStatus === "pending_request") {
       return {
         text: "Request Pending",
         variant: "secondary",
@@ -93,7 +95,7 @@ export function GroupCard({
         disabled: true,
       };
     }
-    if (group.userStatus === "blocked") {
+    if (userStatus === "blocked") {
       return {
         text: "Unavailable",
         variant: "secondary",
@@ -107,17 +109,20 @@ export function GroupCard({
     return { text: "Join Group", variant: "default", action: "join" };
   };
 
-  const handleAction = async () => {
-    const buttonConfig = getActionButton();
-    if (!buttonConfig.action || buttonConfig.disabled) return;
-    setActionLoading(true);
+  const handleRequestToJoin = async () => {
+    setRequestToJoinLoading(true);
     try {
-      await onAction(
-        group.id,
-        buttonConfig.action as "view" | "request" | "join"
-      );
+      const res = await fetch(`/api/groups/${group.id}/join-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        setRequestToJoinLoading(false);
+        return;
+      }
+      setUserStatus("pending_request");
     } finally {
-      setActionLoading(false);
+      setRequestToJoinLoading(false);
     }
   };
 
@@ -131,6 +136,7 @@ export function GroupCard({
 
   const handleViewGroup = (e: React.MouseEvent) => {
     e.preventDefault();
+    setViewGroupLoading(true);
     if (onShowLoading) onShowLoading();
     router.push(`/groups/${group.id}/home`);
   };
@@ -190,28 +196,37 @@ export function GroupCard({
       </div>
       {/* Action button(s) at the bottom */}
       <div className="px-5 pb-5 mt-auto">
-        {group.userStatus === "member" ? (
+        {userStatus === "member" ? (
           <Button
             color="primary"
             className="w-full gap-2 text-xs font-semibold rounded-lg"
             aria-label="View Group"
             tabIndex={0}
-            disabled={actionLoading}
+            disabled={viewGroupLoading}
             onClick={handleViewGroup}
           >
-            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            {viewGroupLoading && <Loader2 className="w-5 h-5 animate-spin" />}
             View Group
           </Button>
-        ) : group.userStatus === "pending" || group.userStatus === "blocked" ? (
+        ) : userStatus === "pending" || userStatus === "blocked" ? (
           <Button
             color="primary"
             className="w-full gap-2 text-xs font-semibold rounded-lg"
             aria-label="status pending"
             tabIndex={0}
-            disabled={actionLoading}
+            disabled={false}
           >
-            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
             {buttonConfig.text}
+          </Button>
+        ) : userStatus === "pending_request" ? (
+          <Button
+            color="primary"
+            className="w-full gap-2 text-xs font-semibold rounded-lg"
+            aria-label="Request Pending"
+            tabIndex={0}
+            disabled
+          >
+            Request Pending
           </Button>
         ) : (
           <div className="flex gap-2 justify-center items-center">
@@ -220,10 +235,10 @@ export function GroupCard({
               className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
               aria-label="View Group"
               tabIndex={0}
-              disabled={actionLoading}
+              disabled={viewGroupLoading}
               onClick={handleViewGroup}
             >
-              {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+              {viewGroupLoading && <Loader2 className="w-5 h-5 animate-spin" />}
               View Group
             </Button>
             <Button
@@ -232,13 +247,12 @@ export function GroupCard({
               className="border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
               aria-label="Request to Join"
               tabIndex={0}
-              disabled={actionLoading}
-              onClick={async () => {
-                if (onShowLoading) onShowLoading();
-                await handleAction();
-              }}
+              disabled={requestToJoinLoading}
+              onClick={handleRequestToJoin}
             >
-              {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+              {requestToJoinLoading && (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              )}
               Request to Join
             </Button>
           </div>

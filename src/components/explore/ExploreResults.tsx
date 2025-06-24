@@ -527,12 +527,13 @@ export default function ExploreResults({
           )
         ) : (
           (() => {
-            // Filter out groups where userStatus === 'member'
-            const notJoinedGroups = groups.filter(
-              (group) => group.userStatus !== "member"
+            // Filter out groups where userStatus === 'member' or user is the creator
+            const notJoinedOrCreatedGroups = groups.filter(
+              (group) =>
+                group.userStatus !== "member" && group.creatorId !== user?.id
             );
-            return notJoinedGroups.length > 0 ? (
-              notJoinedGroups.map((group) => (
+            return notJoinedOrCreatedGroups.length > 0 ? (
+              notJoinedOrCreatedGroups.map((group) => (
                 <GroupCard
                   key={group.id}
                   group={group}

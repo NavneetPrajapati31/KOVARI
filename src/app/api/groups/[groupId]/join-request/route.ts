@@ -32,7 +32,7 @@ export async function POST(
             cookieStore.set(name, value, options);
           },
           remove(name: string, options: CookieOptions) {
-            cookieStore.delete(name, options);
+            cookieStore.delete(name);
           },
         },
       }
@@ -158,5 +158,121 @@ export async function POST(
   } catch (error) {
     console.error("[JOIN_REQUEST_POST]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { groupId: string } }
+) {
+  try {
+    const { groupId } = params;
+    if (!groupId) {
+      return new NextResponse("Missing groupId", { status: 400 });
+    }
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set(name, value, options);
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.delete(name);
+          },
+        },
+      }
+    );
+    // Fetch all pending join requests for the group, with user details
+    const { data, error } = await supabase
+      .from("group_memberships")
+      .select(
+        "id, user_id, joined_at, users!inner(clerk_user_id, profiles!inner(name, profile_photo, username))"
+      )
+      .eq("group_id", groupId)
+      .eq("status", "pending_request");
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    // Map to expected structure
+    const joinRequests = (data || []).map((m: any) => ({
+      id: m.id,
+      userId: m.users.clerk_user_id,
+      name: m.users.profiles.name,
+      avatar: m.users.profiles.profile_photo,
+      username: m.users.profiles.username,
+      requestedAt: m.joined_at,
+    }));
+    return NextResponse.json({ joinRequests });
+  } catch (error) {
+    console.error("[JOIN_REQUEST_GET]", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { groupId: string } }
+) {
+  try {
+    const { groupId } = params;
+    if (!groupId) {
+      return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
+    }
+    let requestId: string | undefined;
+    try {
+      const body = await req.json();
+      requestId = body.requestId;
+    } catch (e) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+    if (!requestId) {
+      return NextResponse.json(
+        { error: "requestId is required" },
+        { status: 400 }
+      );
+    }
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set(name, value, options);
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.delete(name);
+          },
+        },
+      }
+    );
+    // Only delete if status is pending_request
+    const { error } = await supabase
+      .from("group_memberships")
+      .delete()
+      .eq("id", requestId)
+      .eq("status", "pending_request");
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[JOIN_REQUEST_DELETE]", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

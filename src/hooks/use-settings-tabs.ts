@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
-export type SettingsTab = "edit" | "members" | "delete";
+export type SettingsTab = "edit" | "members" | "requests" | "delete";
 
-const VALID_TABS: SettingsTab[] = ["edit", "members", "delete"];
+const VALID_TABS: SettingsTab[] = ["edit", "members", "requests", "delete"];
 
 export const useSettingsTabs = () => {
   const router = useRouter();

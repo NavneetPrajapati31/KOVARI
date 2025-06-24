@@ -6,6 +6,7 @@ import { useSettingsTabs } from "@/hooks/use-settings-tabs";
 // Preload all components for instant switching
 import EditPage from "@/app/(app)/groups/[groupId]/settings/edit/page";
 import MembersPage from "@/app/(app)/groups/[groupId]/settings/members/page";
+import RequestPage from "@/app/(app)/groups/[groupId]/settings/requests/page";
 import DangerPage from "@/app/(app)/groups/[groupId]/settings/danger/page";
 
 interface LayoutWrapperProps {
@@ -15,6 +16,7 @@ interface LayoutWrapperProps {
 const TAB_COMPONENTS = {
   edit: EditPage,
   members: MembersPage,
+  requests: RequestPage,
   delete: DangerPage,
 } as const;
 
@@ -44,7 +46,7 @@ export default function LayoutWrapper() {
   );
 
   return (
-    <div className="flex flex-col md:flex-row h-full bg-background text-foreground border-1 border-border rounded-3xl">
+    <div className="flex flex-col md:flex-row min-h-screen bg-background text-foreground border-1 border-border rounded-3xl">
       {/* Top Sidebar (Mobile) / Left Sidebar (Desktop) - Settings Tabs */}
       <div className="w-full md:w-1/4 lg:w-1/5 border-b md:border-b-0 md:border-r border-border flex flex-col">
         <SettingsSidebar activeTab={activeTab} setActiveTab={handleTabChange} />

@@ -89,8 +89,14 @@ export default function DangerPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to leave group");
+        let errorMessage = "Failed to leave group";
+        try {
+          const data = await res.json();
+          errorMessage = data.error || data.message || errorMessage;
+        } catch {
+          // fallback to default error message
+        }
+        throw new Error(errorMessage);
       }
 
       // Redirect to groups page after leaving
@@ -117,8 +123,14 @@ export default function DangerPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to delete group");
+        let errorMessage = "Failed to delete group";
+        try {
+          const data = await res.json();
+          errorMessage = data.error || data.message || errorMessage;
+        } catch {
+          // fallback to default error message
+        }
+        throw new Error(errorMessage);
       }
 
       // Redirect to groups page after deleting

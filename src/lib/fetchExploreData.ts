@@ -38,6 +38,7 @@ export interface Group {
     username: string;
     avatar?: string;
   };
+  creatorId: string;
   created_at: string;
   cover_image?: string;
 }
@@ -348,6 +349,7 @@ export const fetchPublicGroups = async (
         username: creatorProfiles[group.creator_id]?.username || "unknown",
         avatar: creatorProfiles[group.creator_id]?.profile_photo || undefined,
       },
+      creatorId: group.creator_id,
       created_at: group.created_at,
       cover_image: group.cover_image || undefined,
     };
@@ -485,6 +487,7 @@ export const fetchMyGroups = async (
         username: creator?.username || "unknown",
         avatar: creator?.profile_photo,
       },
+      creatorId: group.creator_id,
       created_at: group.created_at,
       cover_image: group.cover_image,
     };
