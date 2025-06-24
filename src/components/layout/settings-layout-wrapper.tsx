@@ -44,9 +44,9 @@ export default function LayoutWrapper() {
   );
 
   return (
-    <div className="flex h-full bg-background text-foreground border-1 border-border rounded-3xl">
-      {/* Left Sidebar - Settings Tabs */}
-      <div className="w-1/4 border-r border-border flex flex-col">
+    <div className="flex flex-col md:flex-row h-full bg-background text-foreground border-1 border-border rounded-3xl">
+      {/* Top Sidebar (Mobile) / Left Sidebar (Desktop) - Settings Tabs */}
+      <div className="w-full md:w-1/4 lg:w-1/5 border-b md:border-b-0 md:border-r border-border flex flex-col">
         <SettingsSidebar activeTab={activeTab} setActiveTab={handleTabChange} />
       </div>
 

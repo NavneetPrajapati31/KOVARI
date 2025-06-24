@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 export type SettingsTab = "edit" | "members" | "delete";
@@ -9,6 +9,7 @@ export const useSettingsTabs = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isUpdatingRef = useRef(false);
 
   // Get initial tab from URL or default to 'edit'
   const getInitialTab = (): SettingsTab => {
@@ -21,8 +22,13 @@ export const useSettingsTabs = () => {
 
   const [activeTab, setActiveTabState] = useState<SettingsTab>(getInitialTab);
 
-  // Sync with URL changes
+  // Sync with URL changes only when not updating programmatically
   useEffect(() => {
+    if (isUpdatingRef.current) {
+      isUpdatingRef.current = false;
+      return;
+    }
+
     const tabParam = searchParams.get("tab");
     if (
       tabParam &&
@@ -40,10 +46,13 @@ export const useSettingsTabs = () => {
         : "edit";
 
       if (validTab !== activeTab) {
+        // Mark that we're updating programmatically
+        isUpdatingRef.current = true;
+
         // Set state immediately for responsive UI
         setActiveTabState(validTab);
 
-        // Update URL immediately without debounce
+        // Update URL
         const newSearchParams = new URLSearchParams(searchParams);
         newSearchParams.set("tab", validTab);
 

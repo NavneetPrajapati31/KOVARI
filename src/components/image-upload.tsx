@@ -19,6 +19,7 @@ interface ImageUploadProps {
   acceptedFormats?: string[];
   avatar?: boolean;
   compact?: boolean;
+  hideLabel?: boolean;
 }
 
 export function ImageUpload({
@@ -30,6 +31,7 @@ export function ImageUpload({
   acceptedFormats = ["PNG", "JPG", "JPEG", "WEBP"],
   compact = false,
   avatar = false,
+  hideLabel = false,
 }: ImageUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -227,9 +229,11 @@ export function ImageUpload({
   if (uploadedImage) {
     return (
       <div className={cn("space-y-2", className)}>
-        <Label className="text-sm font-medium text-muted-foreground">
-          {label}
-        </Label>
+        {!hideLabel && (
+          <Label className="text-sm font-medium text-muted-foreground">
+            {label}
+          </Label>
+        )}
         <div className="relative group">
           <div className="relative overflow-hidden rounded-lg border-2  border-border bg-muted/50 p-2">
             <img
@@ -254,9 +258,11 @@ export function ImageUpload({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <Label className="text-sm font-medium text-muted-foreground">
-        {label}
-      </Label>
+      {!hideLabel && (
+        <Label className="text-sm font-medium text-muted-foreground">
+          {label}
+        </Label>
+      )}
       {/* Main Upload Area */}
       <div
         className={cn(

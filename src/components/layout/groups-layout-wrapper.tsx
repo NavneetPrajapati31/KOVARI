@@ -93,11 +93,11 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         <Button
           key={tab.label}
           variant={"outline"}
-          className={
+          className={`text-xs sm:text-sm ${
             activeTab === idx
               ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
               : "text-foreground/80 font-semibold bg-transparent rounded-2xl hover:text-primary"
-          }
+          }`}
           onClick={() => handleTabClick(idx)}
           onKeyDown={(e) => handleTabKeyDown(e, idx)}
         >
