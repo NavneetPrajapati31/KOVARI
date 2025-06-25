@@ -13,6 +13,7 @@ interface DestinationCardProps {
   country: string;
   onExplore: () => void;
   forMobile?: boolean;
+  forTablet?: boolean;
 }
 
 // Client-side image stretch component
@@ -48,6 +49,7 @@ export function DestinationCard({
   imageUrl,
   onExplore,
   forMobile = false,
+  forTablet = false,
 }: DestinationCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -55,7 +57,7 @@ export function DestinationCard({
 
   return (
     <Card
-      className={`relative ${forMobile === true ? "w-full h-[180px]" : "w-[250px] h-[200px]"}  rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground`}
+      className={`relative ${forMobile === true ? "w-full h-[180px]" : forTablet === true ? "w-full h-[220px] " : "w-[250px] h-[200px]"}  rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground`}
     >
       {/* Background Image - now covers full card */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl">
