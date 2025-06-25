@@ -346,9 +346,9 @@ const GroupHomePage = () => {
   return (
     <>
       {/* Mobile Layout */}
-      <div className="md:hidden flex flex-col h-full bg-background text-foreground px-0">
+      <div className="md:hidden flex flex-col h-full bg-background text-foreground px-0 overflow-x-hidden">
         {/* Mobile Content - Vertical Stack */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           {/* Group Info + Members */}
           <div>
             <Card className="bg-card border-1 border-border rounded-3xl shadow-sm">
@@ -699,7 +699,7 @@ const GroupHomePage = () => {
         <div className="flex-1 overflow-y-auto">
           {/* Group Info + Members */}
           <div>
-            <Card className="bg-background border-1 border-border rounded-3xl shadow-sm mt-3">
+            <Card className="bg-background border-1 border-border rounded-3xl shadow-sm mt-0">
               <CardBody className="p-4">
                 {/* Image Cards */}
                 <div className="space-y-4 mb-4">

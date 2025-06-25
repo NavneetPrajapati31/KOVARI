@@ -108,13 +108,13 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   );
 
   return (
-    <div className="flex bg-background text-foreground p-4">
+    <div className="flex bg-background text-foreground px-2 py-4 sm:p-4 overflow-x-hidden">
       {/* Sidebar can go here */}
       <div className="flex-1 flex flex-col">
         <header>
           <div className="flex gap-2 flex-shrink-0">{tabButtons}</div>
         </header>
-        <main className="flex-1 pt-4 md:pt-0 xl:pt-4">{children}</main>
+        <main className="flex-1 pt-4 md:pt-4 xl:pt-4">{children}</main>
       </div>
     </div>
   );

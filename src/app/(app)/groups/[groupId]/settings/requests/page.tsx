@@ -140,33 +140,121 @@ export default function RequestsPage() {
           can take action.
         </p>
       </div>
-      {/* Join Requests Card */}
+      {/* Desktop Table View */}
       {!isJoinRequestsLoading &&
         !joinRequestsError &&
         joinRequests.length > 0 && (
-          <div className="bg-card rounded-3xl border border-border mt-6">
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-3xl border-b border-border bg-gray-100">
-              <div className="col-span-3 text-xs font-medium text-foreground">
-                Name
+          <div className="hidden lg:block">
+            <div className="bg-card rounded-xl border border-border mt-6">
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-xl border-b border-border bg-gray-100">
+                <div className="col-span-3 text-xs font-medium text-foreground">
+                  Name
+                </div>
+                <div className="col-span-2 text-xs font-medium text-foreground">
+                  Username
+                </div>
+                <div className="col-span-2 text-xs font-medium text-foreground">
+                  Status
+                </div>
+                <div className="col-span-3 text-xs font-medium text-foreground">
+                  Date
+                </div>
+                <div className="col-span-2 text-xs font-medium text-foreground"></div>
               </div>
-              <div className="col-span-2 text-xs font-medium text-foreground">
-                Username
-              </div>
-              <div className="col-span-2 text-xs font-medium text-foreground">
-                Status
-              </div>
-              <div className="col-span-3 text-xs font-medium text-foreground">
-                Date
-              </div>
-              <div className="col-span-2 text-xs font-medium text-foreground"></div>
+              {joinRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50 items-center"
+                >
+                  <div className="col-span-3 flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={request.avatar || "/placeholder.svg"}
+                        alt={request.name}
+                      />
+                      <AvatarFallback>
+                        {request.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-foreground text-sm">
+                      {request.name}
+                    </span>
+                  </div>
+                  <div className="col-span-2 flex items-center">
+                    <span className="text-muted-foreground text-sm">
+                      {request.username}
+                    </span>
+                  </div>
+                  <div className="col-span-2 flex items-center">
+                    <Chip
+                      size="sm"
+                      variant="bordered"
+                      className="text-sm capitalize flex-shrink-0 self-center bg-yellow-100 border-1 border-yellow-400 text-yellow-700 px-2"
+                    >
+                      <span className="font-medium text-xs">Pending</span>
+                    </Chip>
+                  </div>
+                  <div className="col-span-3 flex items-center">
+                    <span className="text-muted-foreground text-sm">
+                      {formatDate(request.requestedAt)}
+                    </span>
+                  </div>
+                  <div className="col-span-2 flex items-center justify-end gap-2">
+                    {isCurrentUserAdmin && (
+                      <>
+                        <Button
+                          variant="outline"
+                          className="text-success hover:text-success hover:bg-success/10 border-success bg-success/10 px-3 py-1 h-auto text-xs"
+                          onClick={() => handleApproveRequest(request)}
+                          aria-label={`Approve ${request.name}`}
+                          tabIndex={0}
+                          disabled={
+                            approveLoadingId === request.id ||
+                            rejectLoadingId === request.id
+                          }
+                        >
+                          {approveLoadingId === request.id
+                            ? "Approving..."
+                            : "Approve"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="text-destructive border-destructive bg-destructive/10 hover:text-destructive hover:bg-destructive/10 px-3 py-1 h-auto text-xs"
+                          onClick={() => handleRejectRequest(request)}
+                          aria-label={`Reject ${request.name}`}
+                          tabIndex={0}
+                          disabled={
+                            rejectLoadingId === request.id ||
+                            approveLoadingId === request.id
+                          }
+                        >
+                          {rejectLoadingId === request.id
+                            ? "Rejecting..."
+                            : "Reject"}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
+        )}
+      {/* Mobile/Tablet Card View */}
+      {!isJoinRequestsLoading &&
+        !joinRequestsError &&
+        joinRequests.length > 0 && (
+          <div className="lg:hidden space-y-4">
             {joinRequests.map((request) => (
               <div
                 key={request.id}
-                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50 items-center"
+                className="bg-card rounded-xl border border-border p-4 space-y-3"
               >
-                <div className="col-span-3 flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
                     <AvatarImage
                       src={request.avatar || "/placeholder.svg"}
                       alt={request.name}
@@ -178,16 +266,14 @@ export default function RequestsPage() {
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="font-medium text-foreground text-sm">
-                    {request.name}
-                  </span>
-                </div>
-                <div className="col-span-2 flex items-center">
-                  <span className="text-muted-foreground text-sm">
-                    {request.username}
-                  </span>
-                </div>
-                <div className="col-span-2 flex items-center">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-foreground truncate text-sm">
+                      {request.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      @{request.username}
+                    </p>
+                  </div>
                   <Chip
                     size="sm"
                     variant="bordered"
@@ -196,14 +282,12 @@ export default function RequestsPage() {
                     <span className="font-medium text-xs">Pending</span>
                   </Chip>
                 </div>
-                <div className="col-span-3 flex items-center">
-                  <span className="text-muted-foreground text-sm">
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <div className="text-xs text-muted-foreground">
                     {formatDate(request.requestedAt)}
-                  </span>
-                </div>
-                <div className="col-span-2 flex items-center justify-end gap-2">
+                  </div>
                   {isCurrentUserAdmin && (
-                    <>
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         className="text-success hover:text-success hover:bg-success/10 border-success bg-success/10 px-3 py-1 h-auto text-xs"
@@ -234,7 +318,7 @@ export default function RequestsPage() {
                           ? "Rejecting..."
                           : "Reject"}
                       </Button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -243,43 +327,67 @@ export default function RequestsPage() {
         )}
       {/* Join Requests Loading/Error States */}
       {isJoinRequestsLoading && (
-        <div className="bg-card rounded-3xl border border-border mt-6 animate-pulse">
-          <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-3xl border-b border-border bg-gray-100">
-            <div className="col-span-3 text-xs font-medium text-foreground">
-              Name
+        <>
+          {/* Desktop Skeleton */}
+          <div className="hidden lg:block bg-card rounded-xl border border-border mt-6 animate-pulse">
+            <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-xl border-b border-border bg-gray-100">
+              <div className="col-span-3 text-xs font-medium text-foreground">
+                Name
+              </div>
+              <div className="col-span-2 text-xs font-medium text-foreground">
+                Username
+              </div>
+              <div className="col-span-2 text-xs font-medium text-foreground">
+                Status
+              </div>
+              <div className="col-span-3 text-xs font-medium text-foreground">
+                Date
+              </div>
+              <div className="col-span-2 text-xs font-medium text-foreground"></div>
             </div>
-            <div className="col-span-2 text-xs font-medium text-foreground">
-              Username
-            </div>
-            <div className="col-span-2 text-xs font-medium text-foreground">
-              Status
-            </div>
-            <div className="col-span-3 text-xs font-medium text-foreground">
-              Date
-            </div>
-            <div className="col-span-2 text-xs font-medium text-foreground"></div>
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 items-center"
+              >
+                <div className="col-span-3 flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-muted" />
+                  <div className="h-4 w-20 bg-muted rounded" />
+                </div>
+                <div className="col-span-2 flex items-center">
+                  <div className="h-4 w-20 bg-muted rounded" />
+                </div>
+                <div className="col-span-2 flex items-center">
+                  <div className="h-4 w-20 bg-muted rounded" />
+                </div>
+                <div className="col-span-3 flex items-center">
+                  <div className="h-4 w-20 bg-muted rounded" />
+                </div>
+              </div>
+            ))}
           </div>
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 items-center"
-            >
-              <div className="col-span-3 flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-muted" />
-                <div className="h-4 w-20 bg-muted rounded" />
+          {/* Mobile/Tablet Skeleton */}
+          <div className="lg:hidden space-y-4 animate-pulse">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-card rounded-xl border border-border p-4 space-y-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-muted" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="h-3 w-24 bg-muted rounded" />
+                    <div className="h-3 w-16 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-border gap-2">
+                  <div className="h-3 w-1/2 bg-muted rounded" />
+                  <div className="h-3 w-1/2 bg-muted rounded" />
+                </div>
               </div>
-              <div className="col-span-2 flex items-center">
-                <div className="h-4 w-20 bg-muted rounded" />
-              </div>
-              <div className="col-span-2 flex items-center">
-                <div className="h-4 w-20 bg-muted rounded" />
-              </div>
-              <div className="col-span-3 flex items-center">
-                <div className="h-4 w-20 bg-muted rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
       {joinRequestsError && (
         <div className="w-full flex justify-center py-6">

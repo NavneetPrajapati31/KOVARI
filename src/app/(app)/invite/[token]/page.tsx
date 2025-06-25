@@ -57,12 +57,12 @@ export default async function InvitePage({
 
   if ((!linkRow && !emailInvite) || linkError) {
     return (
-      <div className="max-w-lg mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
-        <h1 className="text-2xl font-bold mb-2">Invalid or Expired Link</h1>
-        <p className="text-gray-600 mb-4">
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+        <h1 className="text-md font-bold mb-2">Invalid or Expired Link</h1>
+        <p className="text-muted-foreground text-sm font-medium mb-4">
           This invite link is invalid or has expired.
         </p>
-        <Link href="/" className="text-blue-600 underline">
+        <Link href="/" className="text-primary text-sm  font-medium underline">
           Go Home
         </Link>
       </div>
@@ -78,12 +78,12 @@ export default async function InvitePage({
 
   if (groupError || !group) {
     return (
-      <div className="max-w-lg mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
-        <h1 className="text-2xl font-bold mb-2">Group Not Found</h1>
-        <p className="text-gray-600 mb-4">
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+        <h1 className="text-md font-bold mb-2">Group Not Found</h1>
+        <p className="text-muted-foreground text-sm font-medium mb-4">
           The group for this invite could not be found.
         </p>
-        <Link href="/" className="text-blue-600 underline">
+        <Link href="/" className="text-primary text-sm  font-medium underline">
           Go Home
         </Link>
       </div>
@@ -93,16 +93,16 @@ export default async function InvitePage({
   // 3. If not signed in, prompt to sign in
   if (!userId) {
     return (
-      <div className="max-w-lg mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
-        <h1 className="text-2xl font-bold mb-2">
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+        <h1 className="text-md font-bold mb-2">
           You&apos;re Invited to Join {group.name}!
         </h1>
-        <p className="text-gray-600 mb-4">
+        <p className="text-muted-foreground text-sm font-medium mb-4">
           Sign in or create an account to join this group.
         </p>
         <Link
           href={`/sign-in?redirect_url=/invite/${token}`}
-          className="inline-block bg-blue-600 text-white px-4 py-2 rounded font-semibold"
+          className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded font-semibold text-sm"
         >
           Sign In
         </Link>
@@ -119,9 +119,9 @@ export default async function InvitePage({
 
   if (!user) {
     return (
-      <div className="max-w-lg mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
-        <h1 className="text-2xl font-bold mb-2">User Not Found</h1>
-        <p className="text-gray-600 mb-4">
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+        <h1 className="text-md font-bold mb-2">User Not Found</h1>
+        <p className="text-muted-foreground text-sm font-medium mb-4">
           Could not find your user record in our database.
         </p>
       </div>
@@ -146,11 +146,11 @@ export default async function InvitePage({
   }
 
   return (
-    <div className="max-w-lg mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
-      <h1 className="text-2xl font-bold mb-2">
+    <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+      <h1 className="text-md font-bold mb-2">
         You&apos;re Invited to Join {group.name}!
       </h1>
-      <p className="text-gray-600 mb-4">
+      <p className="text-muted-foreground text-sm font-medium mb-4">
         {group.description || "Join this group to start collaborating!"}
       </p>
       <JoinGroupButton groupId={group.id} />

@@ -120,3 +120,33 @@
 **Additional Notes:**
 
 - ***
+
+**Description:** Onboarding failed to sync user
+
+- **Location (File/Component/Route):**
+
+- **Steps to Reproduce:**
+
+1.
+2.
+3.
+
+**Expected Behavior:**
+
+- **Actual Behavior:**
+
+- **Priority:**
+
+- [ ] Low
+- [ ] Medium
+- [ ] High
+
+**Status:**
+
+- [ ] Open
+- [ ] In Progress
+- [ ] Fixed
+
+**Additional Notes:**
+
+- ***

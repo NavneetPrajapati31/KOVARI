@@ -33,8 +33,8 @@ export default function Hero() {
   }, [router]);
 
   return (
-    <div className="relative flex h-[110vh] sm:h-[90vh] w-full flex-col overflow-hidden bg-background">
-      <main className="container mx-auto flex flex-1 flex-col items-center justify-center overflow-hidden px-8">
+    <div className="relative flex h-full sm:h-[90vh] w-full flex-col sm:overflow-hidden overflow-x-hidden bg-background">
+      <main className="container mx-auto flex flex-1 flex-col items-center justify-center overflow-hidden px-8 py-8 mt-6 sm:mt-0">
         <section className={HERO_SECTION_CLASSES}>
           <Button
             className="h-9 overflow-hidden border-1 border-border shadow-sm px-[18px] py-2 text-small font-normal leading-5 text-default-500"

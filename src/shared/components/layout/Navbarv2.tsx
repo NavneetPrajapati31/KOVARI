@@ -31,6 +31,11 @@ import {
   Users,
   LayoutDashboard,
   Plus,
+  Home,
+  Search,
+  User2,
+  Inbox,
+  Settings,
 } from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
@@ -60,7 +65,7 @@ export default function App({
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [profilePhotohref, setProfilePhotohref] = useState<string | null>(null);
   const [profilePhotoLoading, setProfilePhotoLoading] = useState(false);
   const [profilePhotoError, setProfilePhotoError] = useState<string | null>(
     null
@@ -86,7 +91,7 @@ export default function App({
           .maybeSingle();
         if (userError) throw userError;
         if (!userRow?.id) {
-          setProfilePhotoUrl(null);
+          setProfilePhotohref(null);
           setProfilePhotoLoading(false);
           return;
         }
@@ -97,10 +102,10 @@ export default function App({
           .eq("user_id", userRow.id)
           .maybeSingle();
         if (profileError) throw profileError;
-        setProfilePhotoUrl(profile?.profile_photo || null);
+        setProfilePhotohref(profile?.profile_photo || null);
       } catch (err: unknown) {
         setProfilePhotoError("Failed to load profile photo");
-        setProfilePhotoUrl(null);
+        setProfilePhotohref(null);
         console.error("Error fetching profile photo:", err);
       } finally {
         setProfilePhotoLoading(false);
@@ -109,7 +114,7 @@ export default function App({
     if (isSignedIn && isLoaded) {
       fetchProfilePhoto();
     } else {
-      setProfilePhotoUrl(null);
+      setProfilePhotohref(null);
     }
   }, [user, isSignedIn, isLoaded]);
 
@@ -138,10 +143,36 @@ export default function App({
     href: string;
     icon?: React.ElementType;
   }[] = [
-    // { name: "Features", href: "#features", icon: Compass },
-    // { name: "How It Works", href: "#working", icon: MessageCircle },
-    // { name: "Pricing", href: "/pricing", icon: Users },
-    // { name: "About Us", href: "/about-us", icon: LayoutDashboard },
+    {
+      name: "Home",
+      href: "/",
+      icon: Home,
+    },
+    {
+      name: "Explore",
+      href: "/explore",
+      icon: Search,
+    },
+    {
+      name: "Chats",
+      href: "/chat",
+      icon: User2,
+    },
+    {
+      name: "Groups",
+      href: "/groups",
+      icon: Inbox,
+    },
+    {
+      name: "Profile",
+      href: "/profile",
+      icon: User2,
+    },
+    {
+      name: "Settings",
+      href: "#",
+      icon: Settings,
+    },
   ];
 
   const menuItems = [
@@ -216,10 +247,10 @@ export default function App({
         </NavbarBrand>
 
         <NavbarContent className="hidden md:flex gap-8" justify="center">
-          {navigationItems.map((item) => (
+          {/* {navigationItems.map((item) => (
             <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
               <Link
-                // color={isActiveRoute(item.href) ? "primary" : "foreground"}
+                color={isActiveRoute(item.href) ? "primary" : "foreground"}
                 color={"foreground"}
                 href={item.href}
                 onClick={() => handleNavigation(item.href)}
@@ -230,11 +261,11 @@ export default function App({
                 }`}
                 aria-current={isActiveRoute(item.href) ? "page" : undefined}
               >
-                {/* <item.icon className="w-4 h-4" /> */}
+                <item.icon className="w-4 h-4" />
                 {item.name}
               </Link>
             </NavbarItem>
-          ))}
+          ))} */}
         </NavbarContent>
 
         <NavbarContent as="div" justify="end">
@@ -260,7 +291,7 @@ export default function App({
                   color="secondary"
                   name={user?.fullName || user?.username || "User"}
                   size="sm"
-                  src={profilePhotoUrl || user?.imageUrl}
+                  src={profilePhotohref || user?.imageUrl}
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
@@ -285,7 +316,7 @@ export default function App({
           )}
         </NavbarContent>
 
-        <NavbarMenu className="md:hidden">
+        <NavbarMenu className="md:hidden backdrop-blur-2xl">
           {navigationItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>
               <Link
@@ -294,7 +325,7 @@ export default function App({
                 href={item.href}
                 onClick={() => handleNavigation(item.href)}
               >
-                {/* <item.icon className="w-4 h-4" /> */}
+                {item.icon && <item.icon className="w-4 h-4" />}
                 {item.name}
               </Link>
             </NavbarMenuItem>
