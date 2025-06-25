@@ -61,9 +61,9 @@ const HamburgerIcon = () => (
     role="img"
     className="text-black"
   >
-    <rect y="5" width="22" height="1.5" rx="1" fill="currentColor" />
-    <rect y="11" width="22" height="1.5" rx="1" fill="currentColor" />
-    <rect y="17" width="22" height="1.5" rx="1" fill="currentColor" />
+    <rect y="5" width="20" height="1.5" rx="1" fill="currentColor" />
+    <rect y="11" width="20" height="1.5" rx="1" fill="currentColor" />
+    <rect y="17" width="20" height="1.5" rx="1" fill="currentColor" />
   </svg>
 );
 
