@@ -83,3 +83,7 @@
 body {
   @apply bg-background text-foreground font-body;
 }
+
+.custom-hamburger-toggle span:not(.sr-only):not(.absolute) {
+  display: none !important;
+}

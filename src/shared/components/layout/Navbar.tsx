@@ -26,7 +26,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
-import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
+import {
+  Compass,
+  MessageCircle,
+  Users,
+  LayoutDashboard,
+  Menu,
+} from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
 
@@ -42,6 +48,24 @@ export const AcmeLogo = () => {
     </svg>
   );
 };
+
+// Custom Hamburger Icon
+const HamburgerIcon = () => (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-label="Open menu"
+    role="img"
+    className="text-black"
+  >
+    <rect y="5" width="22" height="1.5" rx="1" fill="currentColor" />
+    <rect y="11" width="22" height="1.5" rx="1" fill="currentColor" />
+    <rect y="17" width="22" height="1.5" rx="1" fill="currentColor" />
+  </svg>
+);
 
 export default function App({
   onAvatarMenuOpenChange,
@@ -188,6 +212,7 @@ export default function App({
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}
+        isMenuOpen={isMenuOpen}
         className="backdrop-blur-3xl border-border"
         classNames={{
           wrapper: "max-w-full px-4",
@@ -227,49 +252,66 @@ export default function App({
         </NavbarContent>
 
         <NavbarContent as="div" justify="end">
-          {!isLoaded || profilePhotoLoading ? (
-            <Skeleton className="w-8 h-8 rounded-full" />
-          ) : isSignedIn ? (
-            <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
-              <DropdownMenuTrigger asChild>
-                <Avatar
-                  isBordered
-                  as="button"
-                  className={"transition-transform"}
-                  color="secondary"
-                  name={user?.fullName || user?.username || "User"}
-                  size="sm"
-                  src={profilePhotoUrl || user?.imageUrl}
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
-                {menuItems.map((item) => (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    className="flex flex-col"
-                  >
-                    <DropdownMenuItem
+          <div className="flex items-center gap-x-2">
+            {/* Avatar */}
+            {!isLoaded || profilePhotoLoading ? (
+              <Skeleton className="w-8 h-8 rounded-full" />
+            ) : isSignedIn ? (
+              <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
+                <DropdownMenuTrigger asChild>
+                  <Avatar
+                    isBordered
+                    as="button"
+                    className={"transition-transform"}
+                    color="secondary"
+                    name={user?.fullName || user?.username || "User"}
+                    size="sm"
+                    src={profilePhotoUrl || user?.imageUrl}
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
+                  {menuItems.map((item) => (
+                    <Link
                       key={item.key}
-                      onClick={item.onClick}
-                      className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                      href={item.href}
+                      className="flex flex-col"
                     >
-                      {item.label}
-                    </DropdownMenuItem>
-                  </Link>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Link href="/sign-up">
-              <Button
-                className="px-6 h-9 bg-primary text-background rounded-lg"
-                // onClick={() => handleNavigation("/sign-up")}
-              >
-                Sign Up
-              </Button>
-            </Link>
-          )}
+                      <DropdownMenuItem
+                        key={item.key}
+                        onClick={item.onClick}
+                        className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                      >
+                        {item.label}
+                      </DropdownMenuItem>
+                    </Link>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link href="/sign-up">
+                <Button className="px-6 h-9 bg-primary text-background rounded-lg">
+                  Sign Up
+                </Button>
+              </Link>
+            )}
+            {/* Hamburger */}
+            <button
+              type="button"
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              aria-pressed={isMenuOpen}
+              tabIndex={0}
+              className="w-10 h-10 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setIsMenuOpen((open) => !open);
+                }
+              }}
+            >
+              {/* <Menu className="w-6 h-6 text-black" /> */}
+              <HamburgerIcon />
+            </button>
+          </div>
         </NavbarContent>
 
         <NavbarMenu className="md:hidden">
@@ -288,10 +330,6 @@ export default function App({
             </NavbarMenuItem>
           ))}
         </NavbarMenu>
-        <NavbarMenuToggle
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-          className="block md:hidden"
-        />
       </Navbar>
     </>
   );
