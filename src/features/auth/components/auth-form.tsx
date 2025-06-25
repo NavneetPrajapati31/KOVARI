@@ -37,7 +37,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       if (isSignUp) {
         // Sign up with email and password
         if (password !== confirmPassword) {
-          setError("Passwords don&apos;t match");
+          setError("Passwords don't match");
           return;
         }
 
@@ -325,9 +325,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
       {/* Toggle Auth Mode */}
       <div className="text-center text-sm text-muted-foreground pt-2">
-        {isSignUp
-          ? "Already have an account? "
-          : "Don&apos;t have an account? "}
+        {isSignUp ? "Already have an account? " : "Don't have an account? "}
         <button
           onClick={() => router.push(isSignUp ? "/sign-in" : "/sign-up")}
           className="text-foreground hover:underline font-medium"
