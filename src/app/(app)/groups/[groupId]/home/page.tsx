@@ -514,31 +514,39 @@ const GroupHomePage = () => {
                       ))}
                 </div>
 
-                <DestinationCard
-                  name={name}
-                  country={country}
-                  imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                  onExplore={handleExplore}
-                  forMobile
-                />
+                {groupInfoLoading ? (
+                  <Skeleton className="w-full h-[180px] rounded-3xl" />
+                ) : (
+                  <DestinationCard
+                    name={name}
+                    country={country}
+                    imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                    onExplore={handleExplore}
+                    forMobile
+                  />
+                )}
 
                 {/* AI Overview */}
-                <div className="mt-1">
-                  <Card className="bg-primary-light border-3 border-card rounded-3xl shadow-sm">
-                    <CardBody className="p-4">
-                      <h3 className="text-xs font-semibold text-primary mb-2">
-                        AI Overview
-                      </h3>
-                      <p className="text-xs font-medium leading-relaxed">
-                        Mount Fuji is a dreamlike destination for travelers
-                        seeking both adventure and serenity. Towering gracefully
-                        over Honshu Island, it invites climbers to ascend its
-                        slopes during the official climbing season in July and
-                        August, offering panoramic sunrise views that are truly
-                        unforgettable.
-                      </p>
-                    </CardBody>
-                  </Card>
+                <div className="mt-2">
+                  {groupInfoLoading ? (
+                    <Skeleton className="w-full h-[150px] rounded-3xl" />
+                  ) : (
+                    <Card className="bg-primary-light border-3 border-card rounded-3xl shadow-sm">
+                      <CardBody className="p-4">
+                        <h3 className="text-xs font-semibold text-primary mb-2">
+                          AI Overview
+                        </h3>
+                        <p className="text-xs font-medium leading-relaxed">
+                          Mount Fuji is a dreamlike destination for travelers
+                          seeking both adventure and serenity. Towering
+                          gracefully over Honshu Island, it invites climbers to
+                          ascend its slopes during the official climbing season
+                          in July and August, offering panoramic sunrise views
+                          that are truly unforgettable.
+                        </p>
+                      </CardBody>
+                    </Card>
+                  )}
                 </div>
 
                 {/* Upcoming Itinerary */}
@@ -626,67 +634,76 @@ const GroupHomePage = () => {
                 </div>
 
                 {/* Travel Note */}
-                <div className="mt-2 bg-[#fff2c0] border-none p-3 mx-1 rounded-3xl shadow-sm relative">
-                  {isEditing ? (
-                    <textarea
-                      ref={textareaRef}
-                      value={noteText.trim() === "" ? "" : noteText}
-                      onChange={(e) => setNoteText(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      className="block w-full text-xs font-medium text-muted-foreground mb-10 bg-transparent border-none outline-none resize-none min-h-[60px] placeholder:text-muted-foreground focus:ring-0 overflow-hidden"
-                      placeholder="Enter your travel note..."
-                      autoFocus
-                      style={{ lineHeight: "1.625" }}
-                    />
-                  ) : (
-                    <p className="text-xs font-medium text-muted-foreground mb-10 leading-relaxed">
-                      {noteText.trim() === "" ? (
-                        <span className="text-muted-foreground">
-                          Enter your travel note...
-                        </span>
-                      ) : (
-                        noteText
-                      )}
-                    </p>
-                  )}
 
-                  <div className="flex items-center justify-between absolute left-0 right-0 bottom-0 px-4 py-2 mt-2 mb-1">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={displayDate}
-                        onChange={(e) => setDisplayDate(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className="text-xs text-muted-foreground font-medium bg-transparent border-none outline-none w-20"
-                        placeholder="Date"
-                      />
-                    ) : (
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {displayDate}
-                      </span>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      {isEditing ? (
-                        <>
-                          <Check
-                            className="w-4 h-4 cursor-pointer text-green-600 hover:text-green-700 transition-colors"
-                            onClick={handleSave}
-                          />
-                          <X
-                            className="w-4 h-4 cursor-pointer text-red-600 hover:text-red-700 transition-colors"
-                            onClick={handleCancel}
-                          />
-                        </>
-                      ) : (
-                        <Pencil
-                          className="w-4 h-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={handleEdit}
-                        />
-                      )}
-                    </div>
+                {groupInfoLoading ? (
+                  <div className="px-1">
+                    <Skeleton className="w-full h-[150px] rounded-3xl" />
                   </div>
-                </div>
+                ) : (
+                  <div className="mt-2 bg-[#fff2c0] border-none p-3 mx-1 rounded-3xl shadow-sm relative">
+                    <>
+                      {isEditing ? (
+                        <textarea
+                          ref={textareaRef}
+                          value={noteText.trim() === "" ? "" : noteText}
+                          onChange={(e) => setNoteText(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          className="block w-full text-xs font-medium text-muted-foreground mb-10 bg-transparent border-none outline-none resize-none min-h-[60px] placeholder:text-muted-foreground focus:ring-0 overflow-hidden"
+                          placeholder="Enter your travel note..."
+                          autoFocus
+                          style={{ lineHeight: "1.625" }}
+                        />
+                      ) : (
+                        <p className="text-xs font-medium text-muted-foreground mb-10 leading-relaxed">
+                          {noteText.trim() === "" ? (
+                            <span className="text-muted-foreground">
+                              Enter your travel note...
+                            </span>
+                          ) : (
+                            noteText
+                          )}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between absolute left-0 right-0 bottom-0 px-4 py-2 mt-2 mb-1">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={displayDate}
+                            onChange={(e) => setDisplayDate(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            className="text-xs text-muted-foreground font-medium bg-transparent border-none outline-none w-20"
+                            placeholder="Date"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {displayDate}
+                          </span>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          {isEditing ? (
+                            <>
+                              <Check
+                                className="w-4 h-4 cursor-pointer text-green-600 hover:text-green-700 transition-colors"
+                                onClick={handleSave}
+                              />
+                              <X
+                                className="w-4 h-4 cursor-pointer text-red-600 hover:text-red-700 transition-colors"
+                                onClick={handleCancel}
+                              />
+                            </>
+                          ) : (
+                            <Pencil
+                              className="w-4 h-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                              onClick={handleEdit}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  </div>
+                )}
               </CardBody>
             </Card>
           </div>
@@ -702,9 +719,13 @@ const GroupHomePage = () => {
             <Card className="bg-background border-1 border-border rounded-3xl shadow-sm mt-0">
               <CardBody className="p-4">
                 {/* Image Cards */}
-                <div className="space-y-4 mb-4">
+                <div className="flex flex-row gap-3 mb-4">
                   {groupInfoLoading ? (
-                    <Skeleton className="w-full h-[200px] rounded-3xl" />
+                    <>
+                      <Skeleton className="w-1/3 lg:w-1/4 h-[220px] rounded-3xl" />
+                      <Skeleton className="w-1/3 lg:w-1/4 h-[220px] rounded-3xl" />
+                      <Skeleton className="w-1/3 lg:w-1/2 h-[220px] rounded-3xl" />
+                    </>
                   ) : (
                     <div className="flex flex-row gap-2">
                       <div className="flex-1 basis-1/3 lg:basis-1/4">
@@ -784,7 +805,7 @@ const GroupHomePage = () => {
                     <CardBody className="px-3 pb-4 pt-1">
                       <div className="space-y-4">
                         {membersLoading
-                          ? Array.from({ length: 7 }).map((_, i) => (
+                          ? Array.from({ length: 8 }).map((_, i) => (
                               <div
                                 key={i}
                                 className="flex items-center gap-4 mt-2"
@@ -854,7 +875,9 @@ const GroupHomePage = () => {
                     {groupInfoLoading ||
                     !groupInfo?.start_date ||
                     !groupInfo?.end_date ? (
-                      <Skeleton className="h-[250px] w-full px-2 rounded-3xl my-3" />
+                      <div className="px-2">
+                        <Skeleton className="h-[250px] w-full rounded-3xl my-3" />
+                      </div>
                     ) : (
                       <div className="flex items-center justify-center w-full">
                         <div className="w-[250px] flex justify-center mb-0">
@@ -873,7 +896,9 @@ const GroupHomePage = () => {
                     )}
 
                     {groupInfoLoading ? (
-                      <Skeleton className="h-[130px] w-full p-3 rounded-3xl shadow-sm relative" />
+                      <div className="px-2">
+                        <Skeleton className="h-[130px] w-full p-3 rounded-3xl shadow-sm relative" />
+                      </div>
                     ) : (
                       <div className="bg-[#fff2c0] border-none p-3 m-2 mt-0 rounded-3xl shadow-sm relative">
                         {isEditing ? (
@@ -1111,7 +1136,7 @@ const GroupHomePage = () => {
               <CardBody className="px-3 pb-4 pt-1">
                 <div className="space-y-4">
                   {membersLoading
-                    ? Array.from({ length: 7 }).map((_, i) => (
+                    ? Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-4 mt-2">
                           <Skeleton className="h-8 w-8 rounded-full" />
                           <div className="flex-1 min-w-0">
@@ -1172,31 +1197,44 @@ const GroupHomePage = () => {
         <div className="flex-1 flex flex-col p-3 gap-2">
           <div className="flex flex-row gap-2">
             <div className="flex-shrink-0">
-              <DestinationCard
-                name={name}
-                country={country}
-                imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                onExplore={handleExplore}
-              />
+              {groupInfoLoading ? (
+                <>
+                  <Skeleton className="w-[250px] h-[200px] rounded-3xl" />
+                </>
+              ) : (
+                <DestinationCard
+                  name={name}
+                  country={country}
+                  imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                  onExplore={handleExplore}
+                />
+              )}
             </div>
             <div className="flex-1">
-              <Card className="bg-primary-light border-3 p-1 border-card w-full h-[200px] rounded-3xl shadow-sm">
-                <CardBody>
-                  <span className="text-sm mb-1 font-semibold text-primary">
-                    AI Overview
-                  </span>
-                  <p className="text-sm font-medium">
-                    Mount Fuji is a dreamlike destination for travelers seeking
-                    both adventure and serenity. Towering gracefully over Honshu
-                    Island, it invites climbers to ascend its slopes during the
-                    official climbing season in July and August, offering
-                    panoramic sunrise views that are truly unforgettable. For
-                    those who prefer to admire its beauty from afar, nearby
-                    spots like Lake Kawaguchi, Hakone, and the famous Chureito
-                    Pagoda provide postcard-perfect photo ops.
-                  </p>
-                </CardBody>
-              </Card>
+              {groupInfoLoading ? (
+                <>
+                  <Skeleton className="w-full h-[200px] rounded-3xl" />
+                </>
+              ) : (
+                <Card className="bg-primary-light border-3 p-1 border-card w-full h-[200px] rounded-3xl shadow-sm">
+                  <CardBody>
+                    <span className="text-sm mb-1 font-semibold text-primary">
+                      AI Overview
+                    </span>
+                    <p className="text-sm font-medium">
+                      Mount Fuji is a dreamlike destination for travelers
+                      seeking both adventure and serenity. Towering gracefully
+                      over Honshu Island, it invites climbers to ascend its
+                      slopes during the official climbing season in July and
+                      August, offering panoramic sunrise views that are truly
+                      unforgettable. For those who prefer to admire its beauty
+                      from afar, nearby spots like Lake Kawaguchi, Hakone, and
+                      the famous Chureito Pagoda provide postcard-perfect photo
+                      ops.
+                    </p>
+                  </CardBody>
+                </Card>
+              )}
             </div>
           </div>
 
@@ -1210,7 +1248,9 @@ const GroupHomePage = () => {
                 {groupInfoLoading ||
                 !groupInfo?.start_date ||
                 !groupInfo?.end_date ? (
-                  <Skeleton className="h-[250px] w-full px-2 rounded-3xl my-3" />
+                  <div className="px-2">
+                    <Skeleton className="h-[250px] w-full px-2 rounded-3xl my-3" />
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center w-full">
                     <div className="w-[250px] flex justify-center mb-0">
@@ -1229,7 +1269,9 @@ const GroupHomePage = () => {
                 )}
 
                 {groupInfoLoading ? (
-                  <Skeleton className="h-[130px] w-full p-3 rounded-3xl shadow-sm relative" />
+                  <div className="px-2">
+                    <Skeleton className="h-[130px] w-full p-3 rounded-3xl shadow-sm relative" />
+                  </div>
                 ) : (
                   <div className="bg-[#fff2c0] border-none p-3 rounded-3xl shadow-sm relative">
                     {isEditing ? (

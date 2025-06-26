@@ -185,7 +185,7 @@ export function GroupCard({
           <Avatar
             src={group.creator.avatar}
             alt={group.creator.name}
-            className="w-4 h-4"
+            className="w-6 h-6"
             aria-label={`Avatar of ${group.creator.name}`}
           />
           <span className="text-muted-foreground font-medium text-xs truncate">

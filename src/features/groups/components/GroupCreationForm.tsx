@@ -250,7 +250,7 @@ export function GroupCreationForm() {
       }
 
       toast.success("Group created successfully");
-      router.push(`/groups/${groupId}`);
+      router.push(`/groups/${groupId}/home`);
     } catch (err) {
       console.error("Error creating group:", err);
       setError(err instanceof Error ? err.message : "Failed to create group");
