@@ -178,7 +178,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <div
             className="
-              flex items-center border-b border-border mb-1 mt-1
+              flex items-center border-none mb-1 mt-1
               justify-between
               group-data-[state=collapsed]:justify-center
               group-data-[state=collapsed]:border-none
