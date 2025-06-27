@@ -147,9 +147,13 @@ export default function DangerPage() {
   if (isLoading) {
     return (
       <div className="w-full mx-auto p-4 space-y-4">
-        <div className="animate-pulse mt-2">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        <div className="space-y-2">
+          <h1 className="text-md sm:text-lg font-bold text-foreground">
+            Danger Zone
+          </h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            Irreversible and destructive actions for this group.
+          </p>
         </div>
         <div className="animate-pulse space-y-2">
           <div className="h-40 bg-gray-200 rounded-xl"></div>

@@ -1,11 +1,44 @@
 "use client";
 import React, { KeyboardEvent, useCallback, useMemo, useRef } from "react";
+import {
+  Settings,
+  MapPin,
+  Shield,
+  MessageCircle,
+  Heart,
+  Zap,
+  Users,
+  AlertTriangle,
+  Trash2,
+} from "lucide-react";
 
 const TABS = [
-  { key: "edit", label: "Edit Group" },
-  { key: "members", label: "Manage Members" },
-  { key: "requests", label: "Join Requests" },
-  { key: "delete", label: "Leave Group" },
+  // Edit Group Sections
+  { key: "basic", label: "Basic Info", icon: Settings, category: "edit" },
+  { key: "travel", label: "Travel Details", icon: MapPin, category: "edit" },
+  { key: "privacy", label: "Privacy & Safety", icon: Shield, category: "edit" },
+  {
+    key: "communication",
+    label: "Communication",
+    icon: MessageCircle,
+    category: "edit",
+  },
+  { key: "preferences", label: "Preferences", icon: Heart, category: "edit" },
+  { key: "advanced", label: "Advanced", icon: Zap, category: "edit" },
+  // Other sections
+  {
+    key: "members",
+    label: "Manage Members",
+    icon: Users,
+    category: "management",
+  },
+  {
+    key: "requests",
+    label: "Join Requests",
+    icon: AlertTriangle,
+    category: "management",
+  },
+  { key: "delete", label: "Leave Group", icon: Trash2, category: "danger" },
 ] as const;
 
 interface SettingsSidebarProps {
@@ -86,40 +119,66 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     [activeTab, setActiveTab]
   );
 
-  const tabElements = useMemo(
-    () =>
-      TABS.map((tab, index) => (
-        <button
-          key={tab.key}
-          ref={(el) => {
-            tabRefs.current[index] = el;
-          }}
-          type="button"
-          className={`text-left font-medium text-xs sm:text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-0 hover:bg-gray-100 transition-colors ${
-            activeTab === tab.key
-              ? "text-primary bg-primary-light font-medium"
-              : ""
-          }`}
-          aria-current={activeTab === tab.key ? "page" : undefined}
-          aria-label={tab.label}
-          tabIndex={0}
-          onClick={(e) => handleTabClick(e, tab.key)}
-          onKeyDown={(e) => handleKeyDown(e, tab.key)}
-          onMouseDown={(e) => e.preventDefault()}
-          onTouchStart={(e) => e.preventDefault()}
-        >
-          {tab.label}
-        </button>
-      )),
-    [activeTab, handleTabClick, handleKeyDown]
+  const groupedTabs = useMemo(() => {
+    const groups = {
+      edit: TABS.filter((tab) => tab.category === "edit"),
+      management: TABS.filter((tab) => tab.category === "management"),
+      danger: TABS.filter((tab) => tab.category === "danger"),
+    };
+    return groups;
+  }, []);
+
+  const renderTabGroup = (
+    groupKey: string,
+    tabs: Array<(typeof TABS)[number]>,
+    title?: string
+  ) => (
+    <div key={groupKey} className="space-y-0">
+      {title && (
+        <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          {title}
+        </div>
+      )}
+      {tabs.map((tab, index) => {
+        const Icon = tab.icon;
+        return (
+          <button
+            key={tab.key}
+            ref={(el) => {
+              tabRefs.current[index] = el;
+            }}
+            type="button"
+            className={`w-full text-left font-medium text-xs sm:text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 hover:bg-gray-100 transition-colors flex items-center gap-2 ${
+              activeTab === tab.key
+                ? "text-primary bg-primary/10 font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            aria-current={activeTab === tab.key ? "page" : undefined}
+            aria-label={tab.label}
+            tabIndex={0}
+            onClick={(e) => handleTabClick(e, tab.key)}
+            onKeyDown={(e) => handleKeyDown(e, tab.key)}
+            onMouseDown={(e) => e.preventDefault()}
+            onTouchStart={(e) => e.preventDefault()}
+          >
+            <Icon className="h-4 w-4" />
+            <span className="truncate">{tab.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 
   return (
     <nav
-      aria-label="Settings Tabs"
-      className="flex flex-row md:flex-col gap-1 p-2 md:p-4 border-b md:border-b-0 md:border-r border-gray-200"
+      aria-label="Settings Navigation"
+      className="flex flex-row md:flex-col gap-4 p-2 md:p-4 border-b md:border-b-0 md:border-r border-gray-200 overflow-y-auto"
     >
-      {tabElements}
+      {renderTabGroup("edit", groupedTabs.edit, "Edit Group")}
+      <div className="border-t border-gray-200 mb-0.5" />
+      {renderTabGroup("management", groupedTabs.management, "Management")}
+      <div className="border-t border-gray-200 mb-0.5" />
+      {renderTabGroup("danger", groupedTabs.danger, "Danger Zone")}
     </nav>
   );
 };

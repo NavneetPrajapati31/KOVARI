@@ -164,7 +164,7 @@ export default function RequestsPage() {
               {joinRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50 items-center"
+                  className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50 hover:rounded-xl hover:last:rounded-t-none items-center"
                 >
                   <div className="col-span-3 flex items-center gap-3">
                     <Avatar className="h-8 w-8">

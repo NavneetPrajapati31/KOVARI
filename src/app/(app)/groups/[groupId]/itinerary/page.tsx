@@ -29,6 +29,8 @@ import {
   MoreHorizontal,
   MessageCircle,
   Users,
+  ClockIcon,
+  MapPin,
 } from "lucide-react";
 import { Chip, Spinner } from "@heroui/react";
 import { createClient } from "@/lib/supabase";
@@ -38,20 +40,30 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/shared/components/ui/dropdown-menu";
+import { InviteTeammatesModal } from "@/features/invite/components/invite-teammember";
 
 interface ItineraryItem {
   id: string;
+  group_id: string;
   title: string;
-  description: string;
+  description: string | null;
   datetime: string;
-  type: string;
-  status: "planned" | "confirmed" | "in-progress" | "completed" | "cancelled";
-  location: string;
+  type:
+    | "flight"
+    | "accommodation"
+    | "activity"
+    | "transport"
+    | "budget"
+    | "other";
+  status: "confirmed" | "pending" | "cancelled" | "completed";
+  location: string | null;
   priority: "low" | "medium" | "high";
-  assigned_to?: string[];
-  created_by?: string;
-  created_at?: string;
-  updated_at?: string;
+  notes: string | null;
+  assigned_to: string[] | null;
+  image_url: string | null;
+  external_link: string | null;
+  created_at: string | null;
+  is_archived: boolean | null;
 }
 
 interface GroupMember {
@@ -61,20 +73,32 @@ interface GroupMember {
   username: string;
 }
 
+// Updated columns based on database status values
 const COLUMNS = [
-  { id: "planned", title: "Planned", color: "bg-blue-50 border-blue-200" },
+  {
+    id: "pending",
+    title: "To do",
+    color: "bg-orange-50 text-orange-700",
+    dot: "#F59E0B",
+  },
   {
     id: "confirmed",
-    title: "Confirmed",
-    color: "bg-green-50 border-green-200",
+    title: "In Progress",
+    color: "bg-blue-50 text-blue-700",
+    dot: "#3B82F6",
   },
   {
-    id: "in-progress",
-    title: "In Progress",
-    color: "bg-yellow-50 border-yellow-200",
+    id: "completed",
+    title: "Done",
+    color: "bg-purple-50 text-purple-700",
+    dot: "#8B5CF6",
   },
-  { id: "completed", title: "Completed", color: "bg-gray-50 border-gray-200" },
-  { id: "cancelled", title: "Cancelled", color: "bg-red-50 border-red-200" },
+  {
+    id: "cancelled",
+    title: "Cancelled",
+    color: "bg-red-50 text-red-700",
+    dot: "#B91C1C",
+  },
 ] as const;
 
 const PRIORITY_COLORS = {
@@ -83,52 +107,80 @@ const PRIORITY_COLORS = {
   high: "bg-red-100 text-red-700 border-red-300",
 };
 
+// Updated type icons based on database schema
 const TYPE_ICONS = {
+  flight: "✈️",
   accommodation: "🏨",
-  transportation: "🚗",
   activity: "🎯",
-  food: "🍽️",
-  sightseeing: "👁️",
-  shopping: "🛍️",
-  entertainment: "🎭",
+  transport: "🚗",
+  budget: "💰",
   other: "📝",
 };
 
 const TYPE_COLORS = {
+  flight: "bg-blue-100 text-blue-700 border-blue-300",
   accommodation: "bg-purple-100 text-purple-700 border-purple-300",
-  transportation: "bg-blue-100 text-blue-700 border-blue-300",
   activity: "bg-green-100 text-green-700 border-green-300",
-  food: "bg-orange-100 text-orange-700 border-orange-300",
-  sightseeing: "bg-indigo-100 text-indigo-700 border-indigo-300",
-  shopping: "bg-pink-100 text-pink-700 border-pink-300",
-  entertainment: "bg-yellow-100 text-yellow-700 border-yellow-300",
+  transport: "bg-indigo-100 text-indigo-700 border-indigo-300",
+  budget: "bg-yellow-100 text-yellow-700 border-yellow-300",
   other: "bg-gray-100 text-gray-700 border-gray-300",
 };
 
-// Add a mapping for UI status to DB status
-const STATUS_MAP: Record<
-  string,
-  "confirmed" | "pending" | "cancelled" | "completed"
-> = {
-  planned: "pending",
-  "in-progress": "confirmed",
-  completed: "completed",
-  confirmed: "confirmed",
-  cancelled: "cancelled",
-  pending: "pending",
+// Status badge mapping based on database values
+const COLUMN_BADGES: Record<string, { label: string; color: string }> = {
+  pending: { label: "Not Started", color: "bg-blue-50 text-blue-700" },
+  confirmed: { label: "In Progress", color: "bg-purple-50 text-purple-700" },
+  completed: { label: "Completed", color: "bg-green-50 text-green-700" },
+  cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
 };
 
-// Map DB status to UI column id
-const dbStatusToColumnId = (status: string) => {
-  if (status === "pending") return "planned";
-  if (status === "confirmed") return "in-progress";
-  if (status === "completed") return "completed";
-  if (status === "cancelled") return "cancelled";
-  return "planned";
+// Priority badge mapping
+const PRIORITY_BADGES: Record<string, string> = {
+  low: "bg-[#F4F4F5] text-[#71717A]",
+  medium: "bg-[#FEF3C7] text-[#B54708]",
+  high: "bg-[#FEE2E2] text-[#B91C1C]",
+};
+
+// Meta info icons (SVG inline for comments, links, checklist)
+const MetaIcon = {
+  comments: (
+    <svg
+      className="w-4 h-4 inline-block mr-1"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  links: (
+    <svg
+      className="w-4 h-4 inline-block mr-1"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M10 13a5 5 0 0 1 7 7l-1 1a5 5 0 0 1-7-7m1-1a5 5 0 0 1 7-7l1 1a5 5 0 0 1-7 7" />
+    </svg>
+  ),
+  checklist: (
+    <svg
+      className="w-4 h-4 inline-block mr-1"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M5 13l4 4L19 7" />
+    </svg>
+  ),
 };
 
 export default function ItineraryPage() {
   const params = useParams<{ groupId: string }>();
+  const groupId = params.groupId;
   const [itineraryItems, setItineraryItems] = useState<ItineraryItem[]>([]);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,158 +192,28 @@ export default function ItineraryPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
   const [draggedItem, setDraggedItem] = useState<ItineraryItem | null>(null);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  const handleOpenInviteModal = () => setIsInviteModalOpen(true);
+  const handleCloseInviteModal = () => setIsInviteModalOpen(false);
 
   // Form state for new/edit item
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     datetime: "",
-    type: "other",
+    type: "other" as ItineraryItem["type"],
     location: "",
     priority: "medium" as "low" | "medium" | "high",
+    notes: "",
     assigned_to: [] as string[],
+    image_url: "",
+    external_link: "",
   });
 
-  // --- NEW: Status/Column definitions for minimal UI ---
-  const BOARD_COLUMNS = [
-    {
-      id: "planned",
-      title: "To do",
-      color: "bg-orange-50 text-orange-700",
-      dot: "#F59E0B",
-    },
-    {
-      id: "in-progress",
-      title: "In Progress",
-      color: "bg-blue-50 text-blue-700",
-      dot: "#3B82F6",
-    },
-    {
-      id: "completed",
-      title: "Done",
-      color: "bg-purple-50 text-purple-700",
-      dot: "#8B5CF6",
-    },
-    {
-      id: "cancelled",
-      title: "Cancelled",
-      color: "bg-red-50 text-red-700",
-      dot: "#B91C1C",
-    },
-  ];
-
-  // --- NEW: Status badge mapping ---
-  const COLUMN_BADGES: Record<string, { label: string; color: string }> = {
-    planned: { label: "Not Started", color: "bg-blue-50 text-blue-700" },
-    "in-progress": {
-      label: "In Progress",
-      color: "bg-purple-50 text-purple-700",
-    },
-    completed: { label: "Complete", color: "bg-green-50 text-green-700" },
-    cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
-  };
-
-  // --- NEW: Priority badge mapping ---
-  const PRIORITY_BADGES: Record<string, string> = {
-    low: "bg-[#F4F4F5] text-[#71717A]",
-    medium: "bg-[#FEF3C7] text-[#B54708]",
-    high: "bg-[#FEE2E2] text-[#B91C1C]",
-  };
-
-  // --- NEW: Meta info icons (SVG inline for comments, links, checklist) ---
-  const MetaIcon = {
-    comments: (
-      <svg
-        className="w-4 h-4 inline-block mr-1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
-    links: (
-      <svg
-        className="w-4 h-4 inline-block mr-1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path d="M10 13a5 5 0 0 1 7 7l-1 1a5 5 0 0 1-7-7m1-1a5 5 0 0 1 7-7l1 1a5 5 0 0 1-7 7" />
-      </svg>
-    ),
-    checklist: (
-      <svg
-        className="w-4 h-4 inline-block mr-1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path d="M5 13l4 4L19 7" />
-      </svg>
-    ),
-  };
-
   useEffect(() => {
-    // [DEBUG] useEffect called, params.groupId: ...
-    // [DEBUG] Supabase URL: ...
-    // [DEBUG] Supabase ANON KEY: ...
     fetchItineraryData();
     fetchGroupMembers();
-    // --- Supabase realtime subscription temporarily disabled ---
-    /*
-    const supabase = createClient();
-    // [DEBUG] Supabase client created
-    const channel = supabase
-      .channel("itinerary-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "itinerary_items",
-          // filter: `group_id=eq.${params.groupId}`,
-        },
-        (payload) => {
-          console.log("[Supabase Realtime] Event:", payload.eventType, payload);
-          if (payload.eventType === "INSERT") {
-            setItineraryItems((prev) => {
-              if (prev.some((item) => item.id === payload.new.id)) return prev;
-              const updated = [...prev, payload.new as ItineraryItem];
-              console.log("[Supabase Realtime] After INSERT:", updated);
-              return updated;
-            });
-          } else if (payload.eventType === "UPDATE") {
-            setItineraryItems((prev) => {
-              const updated = prev.map((item) =>
-                item.id === payload.new.id
-                  ? { ...(payload.new as ItineraryItem) }
-                  : item
-              );
-              console.log("[Supabase Realtime] After UPDATE:", updated);
-              return updated;
-            });
-          } else if (payload.eventType === "DELETE") {
-            setItineraryItems((prev) => {
-              const updated = prev.filter(
-                (item) => item.id !== (payload.old as ItineraryItem).id
-              );
-              console.log("[Supabase Realtime] After DELETE:", updated);
-              return updated;
-            });
-          }
-        }
-      )
-      .subscribe();
-    // [DEBUG] Subscribed to Supabase channel
-    return () => {
-      supabase.removeChannel(channel);
-      // [DEBUG] Unsubscribed from Supabase channel
-    };
-    */
   }, [params.groupId]);
 
   const fetchItineraryData = async () => {
@@ -300,6 +222,7 @@ export default function ItineraryPage() {
       const response = await fetch(`/api/groups/${params.groupId}/itinerary`);
       if (!response.ok) throw new Error("Failed to fetch itinerary");
       const data = await response.json();
+      console.log("Fetched itinerary data:", data);
       setItineraryItems(data);
     } catch (err) {
       setError((err as Error).message);
@@ -313,6 +236,7 @@ export default function ItineraryPage() {
       const response = await fetch(`/api/groups/${params.groupId}/members`);
       if (!response.ok) throw new Error("Failed to fetch members");
       const data = await response.json();
+      console.log("Fetched group members:", data);
       setGroupMembers(data.members || []);
     } catch (err) {
       console.error("Failed to fetch members:", err);
@@ -326,14 +250,11 @@ export default function ItineraryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          status: STATUS_MAP["planned"],
+          status: "pending", // Default status for new items
           group_id: params.groupId,
           assigned_to: Array.isArray(formData.assigned_to)
             ? formData.assigned_to
             : [],
-          title: formData.title,
-          datetime: formData.datetime,
-          type: formData.type,
         }),
       });
 
@@ -341,6 +262,7 @@ export default function ItineraryPage() {
 
       setIsAddDialogOpen(false);
       resetForm();
+      fetchItineraryData(); // Refresh data
     } catch (err) {
       setError((err as Error).message);
     }
@@ -357,14 +279,10 @@ export default function ItineraryPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...formData,
-            status: STATUS_MAP[editingItem.status as string] || "confirmed",
             assigned_to: Array.isArray(formData.assigned_to)
               ? formData.assigned_to
               : [],
             group_id: params.groupId,
-            title: formData.title,
-            datetime: formData.datetime,
-            type: formData.type,
           }),
         }
       );
@@ -374,6 +292,7 @@ export default function ItineraryPage() {
       setIsEditDialogOpen(false);
       setEditingItem(null);
       resetForm();
+      fetchItineraryData(); // Refresh data
     } catch (err) {
       setError((err as Error).message);
     }
@@ -389,6 +308,7 @@ export default function ItineraryPage() {
       );
 
       if (!response.ok) throw new Error("Failed to delete item");
+      fetchItineraryData(); // Refresh data
     } catch (err) {
       setError((err as Error).message);
     }
@@ -411,21 +331,17 @@ export default function ItineraryPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...item,
-            status: STATUS_MAP[newStatus as string] || "confirmed",
+            status: newStatus,
             assigned_to: Array.isArray(item.assigned_to)
               ? item.assigned_to
               : [],
-            group_id: (item as any).group_id
-              ? (item as any).group_id
-              : params.groupId,
-            title: item.title,
-            datetime: item.datetime,
-            type: item.type,
+            group_id: params.groupId,
           }),
         }
       );
 
       if (!response.ok) throw new Error("Failed to update status");
+      fetchItineraryData(); // Refresh data
     } catch (err) {
       setError((err as Error).message);
     }
@@ -439,7 +355,10 @@ export default function ItineraryPage() {
       type: "other",
       location: "",
       priority: "medium",
+      notes: "",
       assigned_to: [],
+      image_url: "",
+      external_link: "",
     });
   };
 
@@ -447,12 +366,15 @@ export default function ItineraryPage() {
     setEditingItem(item);
     setFormData({
       title: item.title,
-      description: item.description,
+      description: item.description || "",
       datetime: item.datetime,
       type: item.type,
-      location: item.location,
+      location: item.location || "",
       priority: item.priority,
+      notes: item.notes || "",
       assigned_to: item.assigned_to || [],
+      image_url: item.image_url || "",
+      external_link: item.external_link || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -487,8 +409,10 @@ export default function ItineraryPage() {
   const filteredItems = itineraryItems.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.description &&
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.location &&
+        item.location.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = filterType === "all" || item.type === filterType;
     const matchesPriority =
       filterPriority === "all" || item.priority === filterPriority;
@@ -497,9 +421,7 @@ export default function ItineraryPage() {
   });
 
   const getItemsByStatus = (status: ItineraryItem["status"]) => {
-    return filteredItems.filter(
-      (item) => dbStatusToColumnId(item.status) === status
-    );
+    return filteredItems.filter((item) => item.status === status);
   };
 
   const formatDateTime = (datetime: string) => {
@@ -539,7 +461,6 @@ export default function ItineraryPage() {
     );
   }
 
-  // --- NEW: Responsive, minimal board UI ---
   return (
     <div className="space-y-6 bg-gray-50 min-h-screen p-2">
       {/* Header */}
@@ -563,13 +484,13 @@ export default function ItineraryPage() {
                   key={member.id}
                   src={member.avatar || "/placeholder-user.jpg"}
                   alt={member.name}
-                  className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                  className="w-8 h-8 rounded-full shadow-sm"
                   title={member.name}
                 />
               ))}
               {groupMembers.length > 4 && (
-                <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm bg-gray-100 flex items-center justify-center">
-                  <span className="text-sm font-medium text-gray-600">
+                <div className="w-8 h-8 rounded-full border-border border-3 shadow-sm bg-gray-100 flex items-center justify-center">
+                  <span className="text-xs font-medium text-gray-600">
                     +{groupMembers.length - 4}
                   </span>
                 </div>
@@ -581,17 +502,14 @@ export default function ItineraryPage() {
           <div className="hidden md:flex items-center gap-2">
             <Button
               className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium"
-              onClick={() => {
-                // Handle invite member action
-                console.log("Invite member clicked");
-              }}
+              onClick={handleOpenInviteModal}
             >
               <Users className="w-4 h-4 mr-2" />
               <span className="text-sm">Invite Member</span>
             </Button>
             <Button
               variant="outline"
-              className="border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium"
+              className="border-gray-300 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium"
               onClick={() => {
                 // Handle share action
                 console.log("Share clicked");
@@ -609,7 +527,7 @@ export default function ItineraryPage() {
               <span className="text-sm">Share</span>
             </Button>
             <Button
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              className="flex items-center rounded-lg gap-2 bg-primary hover:bg-primary-hover"
               onClick={() => setIsAddDialogOpen(true)}
             >
               <Plus className="h-4 w-4" />
@@ -625,11 +543,7 @@ export default function ItineraryPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => {
-                    console.log("Invite member clicked");
-                  }}
-                >
+                <DropdownMenuItem onClick={handleOpenInviteModal}>
                   <Users className="w-4 h-4 mr-2" />
                   Invite Member
                 </DropdownMenuItem>
@@ -661,9 +575,9 @@ export default function ItineraryPage() {
 
       {/* Board Columns */}
       <div className="flex flex-col md:grid md:grid-cols-2 xl:flex xl:flex-row gap-4 pb-4">
-        {BOARD_COLUMNS.map((column) => {
+        {COLUMNS.map((column) => {
           const filteredItems = itineraryItems.filter(
-            (item) => dbStatusToColumnId(item.status) === column.id
+            (item) => item.status === column.id
           );
 
           return (
@@ -718,16 +632,33 @@ export default function ItineraryPage() {
                   >
                     {/* Status badge */}
                     {(() => {
-                      const columnId = dbStatusToColumnId(item.status);
-                      const badge = COLUMN_BADGES[columnId];
+                      const badge = COLUMN_BADGES[item.status];
                       return (
-                        <Chip
-                          className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
-                            badge?.color || "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {badge?.label || columnId}
-                        </Chip>
+                        <div className="flex gap-1">
+                          <Chip
+                            className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
+                              badge?.color || "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            <span className="font-semibold">
+                              {badge?.label || item.status}
+                            </span>
+                          </Chip>
+                          <Chip
+                            className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
+                              item.priority === "high"
+                                ? "bg-red-50 text-red-700"
+                                : item.priority === "medium"
+                                  ? "bg-yellow-50 text-yellow-700"
+                                  : "bg-blue-50 text-blue-700"
+                            }`}
+                          >
+                            <span className="font-semibold">
+                              {item.priority.charAt(0).toUpperCase() +
+                                item.priority.slice(1)}
+                            </span>
+                          </Chip>
+                        </div>
                       );
                     })()}
 
@@ -736,16 +667,81 @@ export default function ItineraryPage() {
                       <h3 className="font-medium text-gray-900 text-sm leading-tight">
                         {item.title}
                       </h3>
-                      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
-                        {item.description}
-                      </p>
+                      {item.description && (
+                        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-4 text-gray-500 text-xs">
+                        {/* Date */}
+                        {item.datetime && (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-3 h-3" aria-label="Date" />
+                            <div className="flex flex-col leading-tight">
+                              <span>
+                                {new Date(item.datetime).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "2-digit",
+                                  }
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Time */}
+                        {item.datetime && (
+                          <div className="flex items-center gap-2">
+                            <ClockIcon className="h-3 w-3" />
+                            {/* <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                              aria-label="Time"
+                            >
+                              <circle cx="12" cy="12" r="10" />
+                              <path d="M12 6v6l4 2" />
+                            </svg> */}
+                            <div className="flex flex-col leading-tight">
+                              <span>
+                                {new Date(item.datetime).toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  }
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {/* Location */}
+                      <div className="flex items-center gap-4 text-gray-500 text-xs">
+                        {item.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3 w-3" />
+                            <div className="flex flex-col leading-tight">
+                              <span className="text-xs">{item.location}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Assignees and Due Date */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400">
-                          Assignees :
+                        <span className="text-xs text-gray-500">
+                          Assignees ({item.assigned_to?.length || 0}):
                         </span>
                         <div className="flex -space-x-1">
                           {(item.assigned_to || [])
@@ -754,17 +750,24 @@ export default function ItineraryPage() {
                               const member = groupMembers.find(
                                 (m) => m.id === uid
                               );
+                              console.log(`Assignee ${index}:`, {
+                                uid,
+                                member,
+                                groupMembers: groupMembers.length,
+                              });
                               return member ? (
                                 <img
                                   key={uid}
                                   src={member.avatar || "/placeholder-user.jpg"}
                                   alt={member.name}
-                                  className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
+                                  className="w-6 h-6 rounded-full shadow-sm"
+                                  title={member.name}
                                 />
                               ) : (
                                 <div
                                   key={index}
-                                  className="w-6 h-6 rounded-full border-2 border-white shadow-sm bg-gray-200 flex items-center justify-center"
+                                  className="w-6 h-6 rounded-full shadow-sm bg-gray-200 flex items-center justify-center"
+                                  title={`Unknown user: ${uid}`}
                                 >
                                   <span className="text-xs text-gray-500">
                                     ?
@@ -773,38 +776,24 @@ export default function ItineraryPage() {
                               );
                             })}
                           {(item.assigned_to || []).length > 3 && (
-                            <div className="w-6 h-6 rounded-full border-2 border-white shadow-sm bg-gray-100 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full  shadow-sm bg-gray-100 flex items-center justify-center">
                               <span className="text-xs text-gray-600">
                                 +{(item.assigned_to || []).length - 3}
                               </span>
                             </div>
                           )}
+                          {/* Show message if no assignees */}
+                          {(item.assigned_to || []).length === 0 && (
+                            <span className="text-xs text-gray-400 italic">
+                              No assignees
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {item.datetime && (
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {formatDateTime(item.datetime).date}
-                          </span>
-                        )}
-                        <span
-                          className={`text-xs font-medium rounded-full px-2 py-1 ${
-                            item.priority === "high"
-                              ? "bg-red-50 text-red-700"
-                              : item.priority === "medium"
-                                ? "bg-yellow-50 text-yellow-700"
-                                : "bg-blue-50 text-blue-700"
-                          }`}
-                        >
-                          {item.priority.charAt(0).toUpperCase() +
-                            item.priority.slice(1)}
-                        </span>
                       </div>
                     </div>
 
                     {/* Meta info row */}
-                    <div className="flex items-center gap-4 text-xs text-gray-400 pt-1 border-t border-gray-50">
+                    {/* <div className="flex items-center gap-4 text-xs text-gray-400 pt-1 border-t border-gray-50">
                       <span className="flex items-center gap-1">
                         <MessageCircle className="w-3 h-3" />
                         {Math.floor(Math.random() * 10)} Comments
@@ -834,28 +823,18 @@ export default function ItineraryPage() {
                         {Math.floor(Math.random() * 3)}/
                         {Math.floor(Math.random() * 5) + 1}
                       </span>
-                    </div>
+                    </div> */}
                   </div>
                 ))}
               </div>
             </div>
           );
         })}
-
-        {/* Add Column Button */}
-        {/* <div className="min-w-[60px] flex items-start pt-12">
-          <button
-            className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-colors"
-            aria-label="Add column"
-          >
-            <Plus className="w-5 h-5 text-gray-400" />
-          </button>
-        </div> */}
       </div>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Edit Itinerary Item</DialogTitle>
             <DialogDescription>
@@ -899,7 +878,7 @@ export default function ItineraryPage() {
                 <label className="text-sm font-medium">Type</label>
                 <Select
                   value={formData.type}
-                  onValueChange={(value) =>
+                  onValueChange={(value: ItineraryItem["type"]) =>
                     setFormData({ ...formData, type: value })
                   }
                 >
@@ -949,6 +928,82 @@ export default function ItineraryPage() {
                 </Select>
               </div>
             </div>
+            <div>
+              <label className="text-sm font-medium">Notes</label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+                placeholder="Additional notes"
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Image URL</label>
+                <Input
+                  value={formData.image_url}
+                  onChange={(e) =>
+                    setFormData({ ...formData, image_url: e.target.value })
+                  }
+                  placeholder="Image URL"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">External Link</label>
+                <Input
+                  value={formData.external_link}
+                  onChange={(e) =>
+                    setFormData({ ...formData, external_link: e.target.value })
+                  }
+                  placeholder="External link"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Assign To</label>
+              <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                {groupMembers.map((member) => (
+                  <label
+                    key={member.id}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.assigned_to.includes(member.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            assigned_to: [...formData.assigned_to, member.id],
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            assigned_to: formData.assigned_to.filter(
+                              (id) => id !== member.id
+                            ),
+                          });
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <img
+                      src={member.avatar || "/placeholder-user.jpg"}
+                      alt={member.name}
+                      className="w-6 h-6 rounded-full"
+                    />
+                    <span className="text-sm">{member.name}</span>
+                  </label>
+                ))}
+                {groupMembers.length === 0 && (
+                  <p className="text-sm text-gray-500 italic">
+                    No group members available
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -961,13 +1016,14 @@ export default function ItineraryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Add Item Dialog (shared for both desktop and mobile) */}
+
+      {/* Add Item Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
           {/* Hidden trigger, open via setIsAddDialogOpen */}
           <div style={{ display: "none" }} />
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Add Itinerary Item</DialogTitle>
             <DialogDescription>
@@ -1014,7 +1070,7 @@ export default function ItineraryPage() {
                 <label className="text-sm font-medium">Type</label>
                 <Select
                   value={formData.type}
-                  onValueChange={(value) =>
+                  onValueChange={(value: ItineraryItem["type"]) =>
                     setFormData({ ...formData, type: value })
                   }
                 >
@@ -1064,6 +1120,82 @@ export default function ItineraryPage() {
                 </Select>
               </div>
             </div>
+            <div>
+              <label className="text-sm font-medium">Notes</label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+                placeholder="Additional notes"
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Image URL</label>
+                <Input
+                  value={formData.image_url}
+                  onChange={(e) =>
+                    setFormData({ ...formData, image_url: e.target.value })
+                  }
+                  placeholder="Image URL"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">External Link</label>
+                <Input
+                  value={formData.external_link}
+                  onChange={(e) =>
+                    setFormData({ ...formData, external_link: e.target.value })
+                  }
+                  placeholder="External link"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Assign To</label>
+              <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                {groupMembers.map((member) => (
+                  <label
+                    key={member.id}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.assigned_to.includes(member.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            assigned_to: [...formData.assigned_to, member.id],
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            assigned_to: formData.assigned_to.filter(
+                              (id) => id !== member.id
+                            ),
+                          });
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <img
+                      src={member.avatar || "/placeholder-user.jpg"}
+                      alt={member.name}
+                      className="w-6 h-6 rounded-full"
+                    />
+                    <span className="text-sm">{member.name}</span>
+                  </label>
+                ))}
+                {groupMembers.length === 0 && (
+                  <p className="text-sm text-gray-500 italic">
+                    No group members available
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -1073,6 +1205,12 @@ export default function ItineraryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <InviteTeammatesModal
+        open={isInviteModalOpen}
+        onOpenChange={setIsInviteModalOpen}
+        groupId={groupId}
+      />
     </div>
   );
 }

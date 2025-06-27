@@ -1,9 +1,28 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
-export type SettingsTab = "edit" | "members" | "requests" | "delete";
+export type SettingsTab =
+  | "basic"
+  | "travel"
+  | "privacy"
+  | "communication"
+  | "preferences"
+  | "advanced"
+  | "members"
+  | "requests"
+  | "delete";
 
-const VALID_TABS: SettingsTab[] = ["edit", "members", "requests", "delete"];
+const VALID_TABS: SettingsTab[] = [
+  "basic",
+  "travel",
+  "privacy",
+  "communication",
+  "preferences",
+  "advanced",
+  "members",
+  "requests",
+  "delete",
+];
 
 export const useSettingsTabs = () => {
   const router = useRouter();
@@ -11,13 +30,13 @@ export const useSettingsTabs = () => {
   const searchParams = useSearchParams();
   const isUpdatingRef = useRef(false);
 
-  // Get initial tab from URL or default to 'edit'
+  // Get initial tab from URL or default to 'basic'
   const getInitialTab = (): SettingsTab => {
     const tabParam = searchParams.get("tab");
     if (tabParam && VALID_TABS.includes(tabParam as SettingsTab)) {
       return tabParam as SettingsTab;
     }
-    return "edit";
+    return "basic";
   };
 
   const [activeTab, setActiveTabState] = useState<SettingsTab>(getInitialTab);
@@ -43,7 +62,7 @@ export const useSettingsTabs = () => {
     (tab: string) => {
       const validTab = VALID_TABS.includes(tab as SettingsTab)
         ? (tab as SettingsTab)
-        : "edit";
+        : "basic";
 
       if (validTab !== activeTab) {
         // Mark that we're updating programmatically

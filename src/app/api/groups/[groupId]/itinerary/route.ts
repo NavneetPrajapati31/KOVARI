@@ -11,7 +11,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("itinerary_items")
     .select(
-      "id, title, description, datetime, type, status, location, priority"
+      "id, title, description, datetime, type, status, location, priority, assigned_to"
     )
     .eq("group_id", groupId)
     .order("datetime", { ascending: true });

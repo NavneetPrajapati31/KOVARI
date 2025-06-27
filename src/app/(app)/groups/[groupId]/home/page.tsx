@@ -1425,13 +1425,19 @@ const GroupHomePage = () => {
                                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                                   <div className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />
-                                    <span className="font-medium">
-                                      {formatDate(item.datetime)}
-                                    </span>
+                                    <span>{formatDate(item.datetime)}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
-                                    <span>{item.datetime.split("T")[1]}</span>
+                                    <span>
+                                      {new Date(
+                                        item.datetime
+                                      ).toLocaleTimeString("en-US", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                      })}
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <MapPin className="w-3 h-3" />
