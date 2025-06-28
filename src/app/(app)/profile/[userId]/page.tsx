@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 
 interface ProfilePageProps {
-  params: { userId: string };
+  params: Promise<{ userId: string }>;
 }
 
 // Utility to map Clerk ID to internal UUID
@@ -69,7 +69,8 @@ const fetchUserProfile = async (
     const { data: postsData } = await supabase
       .from("user_posts")
       .select("id, image_url")
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
     const posts = Array.isArray(postsData) ? postsData : [];
 

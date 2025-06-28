@@ -35,7 +35,8 @@ export async function GET(
   const { data: postsData } = await supabase
     .from("user_posts")
     .select("id, image_url")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
 
   const posts = Array.isArray(postsData) ? postsData : [];
 
