@@ -12,6 +12,7 @@ import {
 } from "@/features/explore/lib/fetchExploreData";
 import { GroupCardv2 } from "@/features/explore/components/GroupCardv2";
 import { FiltersState } from "@/features/explore/types/filters-state";
+import { createClient } from "@/lib/supabase";
 
 type UserStatus = "member" | "pending" | "pending_request" | "blocked" | null;
 
@@ -276,7 +277,41 @@ export default function ExploreResults({
   const [hasMoreTravelers, setHasMoreTravelers] = useState(true);
   const [hasMoreGroups, setHasMoreGroups] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [internalUserId, setInternalUserId] = useState<string | null>(null);
+  const [isResolvingUserId, setIsResolvingUserId] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  // Resolve Clerk user ID to internal UUID
+  useEffect(() => {
+    const resolveUserId = async () => {
+      if (!user) {
+        setInternalUserId(null);
+        setIsResolvingUserId(false);
+        return;
+      }
+      setIsResolvingUserId(true);
+      try {
+        const supabase = createClient();
+        const { data: userRow, error } = await supabase
+          .from("users")
+          .select("id")
+          .eq("clerk_user_id", user.id)
+          .single();
+        if (error || !userRow) {
+          setInternalUserId(null);
+        } else {
+          setInternalUserId(userRow.id);
+        }
+      } catch (err) {
+        setInternalUserId(null);
+      } finally {
+        setIsResolvingUserId(false);
+      }
+    };
+    if (isLoaded) {
+      resolveUserId();
+    }
+  }, [user, isLoaded]);
 
   // Reset state on tab/filter/user change
   useEffect(() => {
@@ -288,12 +323,12 @@ export default function ExploreResults({
     setHasMoreGroups(true);
     setError(null);
     setIsLoading(true);
-  }, [activeTab, filters, user, isLoaded]);
+  }, [activeTab, filters, internalUserId]);
 
   // Initial fetch
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!user) {
+    if (!isLoaded || isResolvingUserId) return;
+    if (!user || !internalUserId) {
       setError("You must be signed in to view explore results.");
       setIsLoading(false);
       return;
@@ -304,7 +339,7 @@ export default function ExploreResults({
       try {
         if (activeTab === 0) {
           const { data, nextCursor } = await fetchSoloTravelers(
-            user.id,
+            internalUserId,
             filters,
             null,
             20
@@ -314,7 +349,7 @@ export default function ExploreResults({
           setHasMoreTravelers(!!nextCursor);
         } else if (activeTab === 1) {
           const { data, nextCursor } = await fetchPublicGroups(
-            user.id,
+            internalUserId,
             filters,
             null,
             20
@@ -330,17 +365,17 @@ export default function ExploreResults({
       }
     };
     fetchData();
-  }, [activeTab, filters, user, isLoaded]);
+  }, [activeTab, filters, user, isLoaded, internalUserId, isResolvingUserId]);
 
   // Infinite scroll handler
   const handleLoadMore = useCallback(async () => {
-    if (isFetchingMore || isLoading) return;
-    if (!user) return;
+    if (isFetchingMore || isLoading || isResolvingUserId) return;
+    if (!user || !internalUserId) return;
     if (activeTab === 0 && hasMoreTravelers && travelerCursor) {
       setIsFetchingMore(true);
       try {
         const { data, nextCursor } = await fetchSoloTravelers(
-          user.id,
+          internalUserId,
           filters,
           travelerCursor,
           20
@@ -357,7 +392,7 @@ export default function ExploreResults({
       setIsFetchingMore(true);
       try {
         const { data, nextCursor } = await fetchPublicGroups(
-          user.id,
+          internalUserId,
           filters,
           groupCursor,
           20
@@ -374,12 +409,14 @@ export default function ExploreResults({
   }, [
     activeTab,
     user,
+    internalUserId,
     travelerCursor,
     groupCursor,
     hasMoreTravelers,
     hasMoreGroups,
     isFetchingMore,
     isLoading,
+    isResolvingUserId,
     filters,
   ]);
 
@@ -489,6 +526,8 @@ export default function ExploreResults({
                   matchStrength: "medium",
                 }}
                 isLoading={true}
+                travelerUserId={""}
+                initialIsFollowing={false}
               />
             ) : (
               <GroupCard
@@ -513,13 +552,27 @@ export default function ExploreResults({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
         {activeTab === 0 ? (
           travelers.length > 0 ? (
-            travelers.map((traveler) => (
-              <TravelerCard
-                key={traveler.id}
-                traveler={traveler}
-                isLoading={false}
-              />
-            ))
+            travelers
+              .filter(
+                (traveler) =>
+                  !(
+                    typeof (traveler as any).isFollowing === "boolean" &&
+                    (traveler as any).isFollowing
+                  )
+              )
+              .map((traveler) => (
+                <TravelerCard
+                  key={traveler.id}
+                  traveler={traveler}
+                  isLoading={false}
+                  travelerUserId={traveler.userId}
+                  initialIsFollowing={
+                    typeof (traveler as any).isFollowing === "boolean"
+                      ? (traveler as any).isFollowing
+                      : false
+                  }
+                />
+              ))
           ) : (
             <div className="col-span-full text-center text-muted-foreground py-8">
               No travelers found.

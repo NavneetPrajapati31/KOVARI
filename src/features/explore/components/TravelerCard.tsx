@@ -11,10 +11,12 @@ import {
   Image,
   Badge,
   Skeleton,
+  Spinner,
 } from "@heroui/react";
 import { Check, Heart, X, Calendar, MapPin, User, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import TravelerCardSkeleton from "@/features/explore/components/TravelerCardSkeleton";
+import { useToast } from "@/shared/hooks/use-toast";
 
 interface TravelerCardProps {
   traveler: {
@@ -29,6 +31,8 @@ interface TravelerCardProps {
     matchStrength: "high" | "medium" | "low";
   };
   isLoading?: boolean;
+  travelerUserId: string;
+  initialIsFollowing?: boolean;
 }
 
 const MATCH_STRENGTH_LABELS: Record<string, string> = {
@@ -46,8 +50,59 @@ const MATCH_STRENGTH_COLORS: Record<string, string> = {
 export default function TravelerCard({
   traveler,
   isLoading = false,
+  travelerUserId,
+  initialIsFollowing = false,
 }: TravelerCardProps) {
-  const [actionLoading, setActionLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleFollow = async () => {
+    setIsFollowLoading(true);
+    try {
+      const response = await fetch(`/api/follow/${travelerUserId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setIsFollowing(data.action === "followed");
+        toast({
+          title: data.action === "followed" ? "Followed" : "Unfollowed",
+          description:
+            data.action === "followed"
+              ? "You are now following this traveler."
+              : "You have unfollowed this traveler.",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to update follow status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
+
+  const handleViewProfile = async () => {
+    setIsProfileLoading(true);
+    try {
+      // Example: navigate to profile page
+      window.location.href = `/profile/${travelerUserId}`;
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
 
   if (isLoading) {
     return <TravelerCardSkeleton />;
@@ -104,12 +159,15 @@ export default function TravelerCard({
           <Button
             color="primary"
             className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
-            aria-label="Connect"
+            aria-label={isFollowing ? "Unfollow" : "Follow"}
             tabIndex={0}
-            disabled={actionLoading}
+            disabled={isFollowLoading}
+            onClick={handleFollow}
           >
-            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-            Connect
+            {isFollowLoading && (
+              <Spinner variant="spinner" size="sm" color="secondary" />
+            )}
+            {!isFollowLoading && (isFollowing ? "Unfollow" : "Follow")}
           </Button>
           <Button
             color="primary"
@@ -117,10 +175,18 @@ export default function TravelerCard({
             className="border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
             aria-label="View Profile"
             tabIndex={0}
-            disabled={actionLoading}
+            disabled={isProfileLoading}
+            onClick={handleViewProfile}
           >
-            {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-            View Profile
+            {isProfileLoading ? (
+              <Spinner
+                variant="spinner"
+                size="sm"
+                classNames={{ spinnerBars: "bg-black" }}
+              />
+            ) : (
+              "View Profile"
+            )}
           </Button>
         </div>
       </div>

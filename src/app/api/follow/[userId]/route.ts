@@ -3,10 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
-) {
+export async function POST(req: NextRequest, { params }: { params: any }) {
   try {
     const { userId: currentUserId } = await auth();
     const { userId: targetUserId } = await params;
@@ -146,10 +143,7 @@ export async function POST(
   }
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: any }) {
   try {
     const { userId: currentUserId } = await auth();
     const { userId: targetUserId } = await params;

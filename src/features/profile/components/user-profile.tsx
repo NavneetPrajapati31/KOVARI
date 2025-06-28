@@ -140,7 +140,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     "https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
                   }
                   alt="Profile"
-                  className="w-full h-full object-cover rounded-3xl"
+                  className="w-full h-full object-cover rounded-3xl items-stretch"
                 />
               </Card>
 

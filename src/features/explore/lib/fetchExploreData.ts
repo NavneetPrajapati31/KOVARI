@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase";
 // Traveler type for TravelerCard
 export interface Traveler {
   id: string;
+  userId: string;
   name: string;
   username: string;
   age: number;
@@ -12,6 +13,7 @@ export interface Traveler {
   travelDates: string;
   matchStrength: "high" | "medium" | "low";
   created_at: string;
+  isFollowing: boolean;
 }
 
 // Group type for GroupCard
@@ -115,7 +117,7 @@ export const fetchSoloTravelers = async (
 
     // Filter out current user after the join
     const filteredProfiles = (profiles || []).filter(
-      (profile: any) => profile.users?.clerk_user_id !== currentUserId
+      (profile: any) => profile.user_id !== currentUserId
     );
 
     // Then fetch travel preferences for these profiles
@@ -127,6 +129,22 @@ export const fetchSoloTravelers = async (
 
     if (prefsError) {
       console.error("Error fetching travel preferences:", prefsError);
+    }
+
+    // Fetch following info for current user
+    let followingIds = new Set<string>();
+    if (userIds.length > 0) {
+      const { data: followingRows, error: followingError } = await supabase
+        .from("user_follows")
+        .select("following_id")
+        .eq("follower_id", currentUserId)
+        .in("following_id", userIds);
+      if (followingError) {
+        console.error("Error fetching following info:", followingError);
+      }
+      followingIds = new Set(
+        (followingRows || []).map((row: any) => row.following_id)
+      );
     }
 
     // Create a map of travel preferences by user_id
@@ -186,6 +204,7 @@ export const fetchSoloTravelers = async (
 
         return {
           id: profile.id || "",
+          userId: profile.user_id,
           name: profile.name || "",
           username: profile.username || "",
           age: profile.age || 0,
@@ -195,13 +214,14 @@ export const fetchSoloTravelers = async (
           travelDates: formatDateRange(startDate, endDate),
           matchStrength: "medium" as const,
           created_at: profile.created_at,
+          isFollowing: followingIds.has(profile.user_id),
         };
       })
       .filter(Boolean);
 
     const hasMore = mapped.length === limit;
     const nextCursor = hasMore
-      ? mapped[mapped.length - 1]?.created_at ?? null
+      ? (mapped[mapped.length - 1]?.created_at ?? null)
       : null;
     return { data: mapped as Traveler[], nextCursor };
   } catch (e) {
@@ -357,7 +377,7 @@ export const fetchPublicGroups = async (
 
   const hasMore = mapped.length === limit;
   const nextCursor = hasMore
-    ? mapped[mapped.length - 1]?.created_at ?? null
+    ? (mapped[mapped.length - 1]?.created_at ?? null)
     : null;
   return { data: mapped, nextCursor };
 };
