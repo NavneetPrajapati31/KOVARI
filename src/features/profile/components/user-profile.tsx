@@ -400,7 +400,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
                       Age
                     </dt>
-                    <dd className="text-sm text-foreground font-medium">
+                    <dd className="text-xs text-foreground font-medium mt-0.5">
                       {profile.age}
                     </dd>
                   </div>
@@ -408,7 +408,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
                       Gender
                     </dt>
-                    <dd className="text-sm text-foreground font-medium">
+                    <dd className="text-xs text-foreground font-medium mt-0.5">
                       {profile.gender}
                     </dd>
                   </div>
@@ -416,7 +416,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
                       Nationality
                     </dt>
-                    <dd className="text-sm text-foreground font-medium">
+                    <dd className="text-xs text-foreground font-medium mt-0.5">
                       {profile.nationality}
                     </dd>
                   </div>
@@ -424,7 +424,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
                       Profession
                     </dt>
-                    <dd className="text-sm text-foreground font-medium">
+                    <dd className="text-xs text-foreground font-medium mt-0.5">
                       {profile.profession}
                     </dd>
                   </div>
@@ -471,15 +471,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     {profile.posts.map((post) => (
                       <div
                         key={post.id}
-                        className="relative group aspect-[4/5] bg-muted rounded-lg overflow-hidden flex items-center justify-center shadow-sm"
+                        className="relative group aspect-[4/5] bg-muted rounded-none overflow-hidden flex items-center justify-center shadow-sm"
                       >
                         <Image
                           src={post.image_url}
                           alt={`Post ${post.id}`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover rounded-none"
                         />
                         {/* Bottom overlay for buttons */}
-                        <div
+                        {/* <div
                           className="absolute bottom-0 left-0 w-full h-16 z-10 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           aria-label="Post actions"
                         >
@@ -488,7 +488,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               className="px-3 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0 text-xs"
                               tabIndex={0}
                               aria-label="View post"
-                              // onClick={() => handleSave(String(post.id))}
                               onKeyDown={handleKeyDown}
                             >
                               View
@@ -497,13 +496,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               className="px-3 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0 text-xs"
                               tabIndex={0}
                               aria-label="Share post"
-                              // onClick={() => handleCopy(String(post.id))}
                               onKeyDown={handleKeyDown}
                             >
                               Share
                             </Button>
                           </div>
-                        </div>
+                        </div> */}
                       </div>
                     ))}
                   </div>
@@ -787,7 +785,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           className="w-full h-full object-cover"
                         />
                         {/* Bottom overlay for buttons */}
-                        {/* <div
+                        <div
                           className="absolute bottom-0 left-0 w-full h-20 z-10 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           aria-label="Post actions"
                         >
@@ -809,7 +807,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               Share
                             </Button>
                           </div>
-                        </div> */}
+                        </div>
                       </div>
                     ))}
                   </div>
