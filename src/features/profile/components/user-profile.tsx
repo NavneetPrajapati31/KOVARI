@@ -14,6 +14,7 @@ import { Image, Spinner } from "@heroui/react";
 import Link from "next/link";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSidebar } from "@/shared/components/ui/sidebar";
+import { Camera, Heart } from "lucide-react";
 
 export interface UserProfile {
   name: string;
@@ -123,6 +124,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSave = (postId: string) => {
+    // TODO: Implement save logic
+    console.log("Save", postId);
+  };
+
+  const handleCopy = (postId: string) => {
+    // TODO: Implement copy logic
+    console.log("Copy", postId);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      (event.target as HTMLButtonElement).click();
     }
   };
 
@@ -376,41 +393,56 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             {activeTab === "Trips" && (
               <div>
                 {profile.posts.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-4 gap-2">
                     {profile.posts.map((post) => (
                       <div
                         key={post.id}
-                        className="aspect-[4/5] bg-muted rounded-3xl overflow-hidden flex items-center justify-center shadow-sm"
+                        className="relative group aspect-[4/5] bg-muted rounded-3xl overflow-hidden flex items-center justify-center shadow-sm"
                       >
                         <Image
                           src={post.image_url}
                           alt={`Post ${post.id}`}
                           className="w-full h-full object-cover"
                         />
+                        {/* Bottom overlay for buttons */}
+                        <div
+                          className="absolute bottom-0 left-0 w-full h-20 z-10 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          aria-label="Post actions"
+                        >
+                          <div className="flex gap-2 bg-transparent rounded-2xl border-none shadow-none px-4 py-6 h-full w-full justify-center bg-gradient-to-t from-black/30 to-transparent">
+                            <Button
+                              className="px-6 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0"
+                              tabIndex={0}
+                              aria-label="View post"
+                              // onClick={() => handleSave(String(post.id))}
+                              onKeyDown={handleKeyDown}
+                            >
+                              View Post
+                            </Button>
+                            <Button
+                              className="px-6 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0"
+                              tabIndex={0}
+                              aria-label="Share post"
+                              // onClick={() => handleCopy(String(post.id))}
+                              onKeyDown={handleKeyDown}
+                            >
+                              {/* <Heart /> */}
+                              Share
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                      <svg
-                        className="w-8 h-8 text-muted-foreground"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
+                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+                      <Camera />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                    <h3 className="text-md font-semibold text-foreground mb-1">
                       No posts yet
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       This user hasn't shared any posts yet.
                     </p>
                   </div>
