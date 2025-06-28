@@ -25,7 +25,10 @@ export default function TravelerCardPreviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8 flex justify-center items-center">
-      <TravelerCard traveler={sampleTraveler} />
+      <TravelerCard
+        traveler={sampleTraveler}
+        travelerUserId={sampleTraveler.id}
+      />
     </div>
   );
 }
