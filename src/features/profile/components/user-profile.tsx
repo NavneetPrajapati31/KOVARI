@@ -249,7 +249,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   </div>
                 </div>
 
-                <div className="flex flex-row items-center gap-x-6 w-full mt-3 mb-1 min-[376px]:hidden">
+                <div className="flex flex-row items-center gap-x-6 w-full mt-3 mb-2 min-[376px]:hidden">
                   <div className="flex flex-row gap-6 items-center flex-shrink-0">
                     <div className="text-left flex flex-row justify-start items-center gap-1">
                       <div className="text-xs font-black text-foreground">
@@ -467,7 +467,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             {activeTab === "Trips" && (
               <div>
                 {profile.posts.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1">
                     {profile.posts.map((post) => (
                       <div
                         key={post.id}
@@ -787,7 +787,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           className="w-full h-full object-cover"
                         />
                         {/* Bottom overlay for buttons */}
-                        <div
+                        {/* <div
                           className="absolute bottom-0 left-0 w-full h-20 z-10 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           aria-label="Post actions"
                         >
@@ -796,7 +796,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               className="px-6 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0"
                               tabIndex={0}
                               aria-label="View post"
-                              // onClick={() => handleSave(String(post.id))}
                               onKeyDown={handleKeyDown}
                             >
                               View Post
@@ -805,14 +804,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               className="px-6 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0"
                               tabIndex={0}
                               aria-label="Share post"
-                              // onClick={() => handleCopy(String(post.id))}
                               onKeyDown={handleKeyDown}
                             >
-                              {/* <Heart /> */}
                               Share
                             </Button>
                           </div>
-                        </div>
+                        </div> */}
                       </div>
                     ))}
                   </div>
