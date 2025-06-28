@@ -237,7 +237,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       {/* Always show the user menu at the bottom, only details collapse/expand */}
-      {user && (
+      {/* {user && (
         <SidebarFooter className="flex justify-center">
           <SidebarUserMenu
             user={user}
@@ -245,7 +245,7 @@ export function AppSidebar() {
             onSignOutClick={() => signOut({ redirectUrl: "/" })}
           />
         </SidebarFooter>
-      )}
+      )} */}
     </Sidebar>
   );
 }

@@ -272,22 +272,29 @@ export default function App({
           <Link href="/create-group" className="hidden md:flex">
             <Button
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1 rounded-full flex items-center gap-2 self-start sm:self-center"
-              aria-label="Invite member"
-              tabIndex={0}
+              aria-label="Create Group"
             >
               <span className="text-xs">Create Group</span>
               <Plus className="h-3 w-3" />
             </Button>
           </Link>
+          <Link href="/invitations" className="hidden md:flex">
+            <div
+              className="bg-foreground hover:bg-black/70 transition-all duration-300 text-primary-foreground p-2.5 rounded-full flex items-center self-start sm:self-center"
+              aria-label="Invitations"
+            >
+              <Inbox className="h-4 w-4" />
+            </div>
+          </Link>
           {!isLoaded || profilePhotoLoading ? (
-            <Skeleton className="w-8 h-8 rounded-full" />
+            <Skeleton className="w-9 h-9 rounded-full" />
           ) : isSignedIn ? (
             <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
               <DropdownMenuTrigger asChild>
                 <Avatar
                   isBordered
                   as="button"
-                  className={"transition-transform"}
+                  className={"transition-transform ring-primary"}
                   color="secondary"
                   name={user?.fullName || user?.username || "User"}
                   size="sm"
