@@ -13,6 +13,7 @@ import { Separator } from "@/shared/components/ui/separator";
 import { Image, Spinner } from "@heroui/react";
 import Link from "next/link";
 import { useToast } from "@/shared/hooks/use-toast";
+import { useSidebar } from "@/shared/components/ui/sidebar";
 
 export interface UserProfile {
   name: string;
@@ -131,22 +132,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
         {/* Profile Information Section */}
         <Card className="rounded-none border-none shadow-none bg-transparent p-0">
           <CardContent className="p-0">
-            <div className="flex flex-row items-stretch lg:justify-start gap-4">
-              {/* Profile Avatar Overlay */}
-              <Card className="max-w-[220px] max-h-[220px] p-0 bg-transparent border-none shadow-none rounded-3xl flex overflow-hidden">
-                <Image
-                  src={
-                    profile.profileImage ||
-                    "https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
-                  }
-                  alt="Profile"
-                  className="w-full h-full object-cover rounded-3xl items-stretch"
-                />
+            <div className="flex flex-row items-stretch gap-4">
+              {/* Profile Avatar Overlay - Stretches to match second card height */}
+              <Card className="min-w-[220px] min-h-[220px] w-[220px] aspect-square p-0 bg-transparent border-none shadow-none rounded-3xl flex overflow-hidden flex-shrink-0 items-stretch">
+                <div className="w-full h-full aspect-square">
+                  <Image
+                    src={
+                      profile.profileImage ||
+                      "https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
+                    }
+                    alt="Profile"
+                    className="w-full h-full object-cover rounded-3xl"
+                  />
+                </div>
               </Card>
 
-              <Card className="flex flex-row rounded-3xl bg-transparent w-full border-1 border-border shadow-none p-6 items-start justify-start">
+              <Card className="flex flex-row rounded-3xl bg-transparent border border-border shadow-none p-6 items-start justify-start flex-1 min-w-0">
                 {/* Left Info */}
-                <div className="flex flex-col items-start justify-start max-w-lg">
+                <div className="flex flex-col items-start justify-start flex-1 min-w-0">
                   {/* Name and Badge */}
                   <div className="flex items-center gap-2 mb-0.5">
                     <h1 className="text-xl font-extrabold text-foreground leading-tight">
@@ -229,11 +232,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
 
                 {/* Right Side - Badges and Stats */}
-                <div className="flex flex-col items-start justify-center gap-8">
+                <div className="flex flex-col items-start justify-center gap-6 flex-shrink-0 ml-8">
                   {/* Stats */}
-                  <div className="flex gap-12 items-start">
+                  <div className="flex gap-10 items-start">
                     <div className="text-left">
-                      <div className="text-sm text-muted-foreground mb-0.5 font-medium">
+                      <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Followers
                       </div>
                       <div className="text-lg font-black text-foreground">
@@ -241,7 +244,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </div>
                     </div>
                     <div className="text-left">
-                      <div className="text-sm text-muted-foreground mb-0.5 font-medium">
+                      <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Following
                       </div>
                       <div className="text-lg font-black text-foreground">
@@ -249,7 +252,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </div>
                     </div>
                     <div className="text-left">
-                      <div className="text-sm text-muted-foreground mb-0.5 font-medium">
+                      <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Likes
                       </div>
                       <div className="text-lg font-black text-foreground">
@@ -373,7 +376,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             {activeTab === "Trips" && (
               <div>
                 {profile.posts.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {profile.posts.map((post) => (
                       <div
                         key={post.id}
