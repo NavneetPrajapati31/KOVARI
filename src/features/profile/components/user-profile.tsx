@@ -134,7 +134,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           <CardContent className="p-0">
             <div className="flex flex-row items-stretch gap-4">
               {/* Profile Avatar Overlay - Stretches to match second card height */}
-              <Card className="min-w-[220px] min-h-[220px] w-[220px] aspect-square p-0 bg-transparent border-none shadow-none rounded-3xl flex overflow-hidden flex-shrink-0 items-stretch">
+              <Card className="w-[230px] h-[230px] aspect-square p-0 bg-transparent border-none shadow-none rounded-3xl flex overflow-hidden flex-shrink-0 items-stretch">
                 <div className="w-full h-full aspect-square">
                   <Image
                     src={
@@ -147,7 +147,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
               </Card>
 
-              <Card className="flex flex-row rounded-3xl bg-transparent border border-border shadow-none p-6 items-start justify-start flex-1 min-w-0">
+              <Card className="flex flex-row rounded-3xl bg-transparent border border-border shadow-none p-6 py-5 items-start justify-start flex-1 min-w-0">
                 {/* Left Info */}
                 <div className="flex flex-col items-start justify-start flex-1 min-w-0">
                   {/* Name and Badge */}
@@ -163,7 +163,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   <div className="text-sm text-muted-foreground font-medium mt-1">
                     {profile.profession}
                   </div>
-                  <div className="text-sm text-muted-foreground font-medium mt-1">
+                  <div className="text-sm text-muted-foreground font-medium mt-1 line-clamp-3">
                     {profile.bio}
                   </div>
                   {/* Action Buttons */}
