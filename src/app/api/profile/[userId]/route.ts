@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 
 export async function GET(
   req: NextRequest,
-  context: { params: { userId: string } }
+  context: { params: Promise<{ userId: string }> }
 ) {
   // Await params for compatibility with Next.js dynamic route API
   const params = await context.params;
