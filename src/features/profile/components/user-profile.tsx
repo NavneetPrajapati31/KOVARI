@@ -163,8 +163,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
 
               <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none px-5 py-5 gap-0 items-start justify-start flex-1 min-w-0">
                 {/* Left Info */}
-                <div className="flex flex-row items-center gap-x-6 w-full mb-2 max-[375px]:hidden">
-                  <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-4">
+                <div className="flex flex-row items-center gap-x-6 w-full mb-2">
+                  <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-3">
                     <div className="flex flex-col">
                       <Avatar
                         className="h-[70px] w-[70px]"
@@ -180,7 +180,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <p className="text-xs text-muted-foreground font-medium">
                         @{profile.username}
                       </p>
-                      <div className="flex flex-row items-center gap-x-6 w-full mt-2 max-[375px]:hidden">
+                      <div className="flex flex-row items-center gap-x-6 w-full mt-2">
                         <div className="flex flex-row gap-6 items-center flex-shrink-0">
                           <div className="text-left flex flex-row justify-start items-center gap-1">
                             <div className="text-xs font-black text-foreground">
@@ -228,7 +228,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   </div>
                 </div>
 
-                <div className="flex flex-row items-center gap-x-6 w-full min-[376px]:hidden">
+                {/* <div className="flex flex-row items-center gap-x-6 w-full min-[376px]:hidden">
                   <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-4">
                     <div className="flex flex-col">
                       <Avatar
@@ -276,7 +276,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </span>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Profession */}
                 <div className="text-xs  text-muted-foreground font-medium mt-1">
