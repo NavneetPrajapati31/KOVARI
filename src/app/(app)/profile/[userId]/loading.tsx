@@ -6,12 +6,12 @@ export default function Loading() {
     <>
       {/* Mobile/Tablet Layout */}
       <div className="min-h-screen bg-transparent md:hidden">
-        <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-5">
+        <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-3">
           {/* Profile Information Section */}
           <Card className="rounded-none border-none shadow-none bg-transparent p-0">
             <CardContent className="p-0">
               <div className="flex flex-row items-stretch gap-4">
-                <Card className="flex rounded-3xl bg-transparent border border-border shadow-none p-6 py-5 items-start justify-start flex-1 min-w-0">
+                <Card className="flex rounded-3xl bg-transparent border border-border shadow-none p-4 items-start justify-start flex-1 min-w-0">
                   <div className="flex flex-row items-center gap-x-6 w-full mb-4 mt-3">
                     <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-4">
                       <div className="flex flex-col">
@@ -41,19 +41,19 @@ export default function Loading() {
 
           <Card
             aria-label="User details"
-            className="w-full h-full rounded-3xl bg-transparent shadow-none p-6 flex flex-col gap-6 border border-border mx-auto"
+            className="w-full h-full rounded-3xl bg-transparent shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
           >
             <Skeleton className="w-1/5 rounded-full h-3 mt-2 mb-1"></Skeleton>
 
             <Card className="rounded-none border-none shadow-none bg-transparent p-0">
               <CardContent className="p-0">
-                <div className="grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-1">
                   {Array.from({ length: 8 }).map((post, index) => (
                     <div
                       key={index}
                       className="aspect-[4/5] bg-muted rounded-none overflow-hidden flex items-center justify-center shadow-sm"
                     >
-                      <Skeleton className="w-full h-full object-cover"></Skeleton>
+                      <Skeleton className="w-full h-full object-cover rounded-none"></Skeleton>
                     </div>
                   ))}
                 </div>

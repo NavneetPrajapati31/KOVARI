@@ -142,7 +142,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   // Mobile/Tablet Layout Component
   const MobileLayout = () => (
     <div className="min-h-screen bg-transparent md:hidden">
-      <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-4">
+      <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-3">
         {/* Mobile Profile Header */}
         <Card className="rounded-none border-none shadow-none bg-transparent p-0">
           <CardContent className="p-0">
@@ -161,7 +161,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
               </Card> */}
 
-              <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none px-4 py-5 gap-0 items-start justify-start flex-1 min-w-0">
+              <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none p-4 gap-0 items-start justify-start flex-1 min-w-0">
                 {/* Left Info */}
                 <div className="flex flex-row items-center gap-x-6 w-full mb-2">
                   <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-3">
