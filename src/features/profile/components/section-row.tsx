@@ -1,38 +1,231 @@
-import React from "react";
-import { Pencil } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Pencil, Check, X } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 
 interface SectionRowProps {
   label: string;
   value: React.ReactNode;
   onEdit?: () => void;
+  onSave?: (value: string | number) => Promise<void>;
   editLabel?: string;
   children?: React.ReactNode;
+  fieldType?: "text" | "number" | "select" | "textarea";
+  selectOptions?: { value: string; label: string }[];
+  isLoading?: boolean;
+  error?: string | null;
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  maxLength?: number;
 }
 
 const SectionRow: React.FC<SectionRowProps> = ({
   label,
   value,
   onEdit,
+  onSave,
   editLabel = "Edit",
   children,
-}) => (
-  <div className="flex items-start justify-between py-4 border-b last:border-b-0">
-    <div>
-      <div className="font-semibold text-gray-900 text-sm mb-1">{label}</div>
-      <div className="text-gray-700 text-sm whitespace-pre-line">{value}</div>
-      {children}
+  fieldType = "text",
+  selectOptions = [],
+  isLoading = false,
+  error,
+  placeholder,
+  min,
+  max,
+  maxLength,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
+
+  const handleEdit = () => {
+    setEditValue(String(value));
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!onSave) return;
+
+    setIsSaving(true);
+    try {
+      await onSave(editValue);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error saving:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditValue("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      handleCancel();
+    }
+  };
+
+  const renderEditField = () => {
+    if (fieldType === "select") {
+      return (
+        <Select value={editValue} onValueChange={setEditValue}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={placeholder || "Select an option"} />
+          </SelectTrigger>
+          <SelectContent>
+            {selectOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    if (fieldType === "textarea") {
+      return (
+        <textarea
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className={`w-full min-h-[80px] p-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary ${
+            error
+              ? "border-destructive focus:border-destructive"
+              : "border-input focus:border-primary"
+          }`}
+          disabled={isSaving}
+          placeholder={placeholder}
+          maxLength={maxLength}
+        />
+      );
+    }
+
+    return (
+      <Input
+        ref={inputRef}
+        type={fieldType}
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className={`w-full h-8 ${error ? "border-destructive focus:border-destructive" : ""}`}
+        disabled={isSaving}
+        placeholder={placeholder}
+        min={min}
+        max={max}
+        maxLength={maxLength}
+      />
+    );
+  };
+
+  return (
+    <div className="flex items-start justify-between py-3 border-b last:border-b-0">
+      <div className="flex-1">
+        <div className="font-semibold text-foreground text-sm mb-1">
+          {label}
+        </div>
+        {isEditing ? (
+          <div className="space-y-2">
+            <div
+              className={
+                fieldType === "textarea"
+                  ? "space-y-2"
+                  : "flex gap-2 items-center"
+              }
+            >
+              {renderEditField()}
+              {fieldType !== "textarea" && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="bg-primary text-xs text-primary-foreground"
+                  >
+                    <Check className="w-3 h-3" />
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="text-xs"
+                  >
+                    <X className="w-3 h-3" />
+                    Cancel
+                  </Button>
+                </>
+              )}
+            </div>
+            {fieldType === "textarea" && (
+              <div className="flex gap-2 items-center">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="bg-primary text-xs text-primary-foreground"
+                >
+                  <Check className="w-3 h-3" />
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                  className="text-xs"
+                >
+                  <X className="w-3 h-3" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+            {error && (
+              <div className="text-destructive text-xs mt-1">{error}</div>
+            )}
+          </div>
+        ) : (
+          <div className="text-muted-foreground text-sm whitespace-pre-line font-medium">
+            {value}
+          </div>
+        )}
+        {children}
+      </div>
+      {!isEditing && (onEdit || onSave) && (
+        <button
+          type="button"
+          onClick={onSave ? handleEdit : onEdit}
+          disabled={isLoading}
+          className="ml-4 px-3 py-1.5 border border-border rounded-lg text-muted-foreground hover:bg-gray-200 transition-all duration-300 flex items-center gap-1 text-xs font-semibold disabled:opacity-50"
+          aria-label={editLabel}
+        >
+          <Pencil className="w-3 h-3" /> {editLabel}
+        </button>
+      )}
     </div>
-    {onEdit && (
-      <button
-        type="button"
-        onClick={onEdit}
-        className="ml-4 px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-1 text-xs font-medium"
-        aria-label={editLabel}
-      >
-        <Pencil className="w-4 h-4" /> {editLabel}
-      </button>
-    )}
-  </div>
-);
+  );
+};
 
 export default SectionRow;

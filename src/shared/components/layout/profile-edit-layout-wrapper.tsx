@@ -1,5 +1,5 @@
 "use client";
-import React, { useCallback, memo } from "react";
+import React, { useCallback, memo, useEffect } from "react";
 import ProfileEditSidebar from "@/shared/components/layout/profile-edit-sidebar";
 import { useProfileEditTabs } from "@/features/profile/hooks/use-profile-edit-tabs";
 import { useForm } from "react-hook-form";
@@ -8,21 +8,25 @@ import {
   profileEditSchema,
   ProfileEditForm,
 } from "@/features/profile/lib/types";
+import { useProfileData } from "@/features/profile/hooks/use-profile-data";
 import GeneralSection from "@/app/(app)/profile/edit/general/section";
 import ProfessionalSection from "@/app/(app)/profile/edit/professional/section";
 import PersonalSection from "@/app/(app)/profile/edit/personal/section";
+import { ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 
 const DEFAULT_VALUES: ProfileEditForm = {
-  avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-  name: "Alex Jackson",
-  username: "alexjackson",
-  age: 28,
-  gender: "female",
-  nationality: "USA",
-  profession: "Product Designer",
-  interests: ["UI/UX", "Travel", "Photography"],
-  languages: ["English", "Spanish"],
-  bio: "Passionate about design and travel. Always learning new things.",
+  avatar: "",
+  name: "",
+  username: "",
+  age: 0,
+  gender: "prefer_not_to_say",
+  nationality: "",
+  profession: "",
+  interests: [],
+  languages: [],
+  bio: "",
 };
 
 const SectionContent = memo(
@@ -31,11 +35,20 @@ const SectionContent = memo(
     form,
     isSubmitting,
     onSubmit,
+    profileData,
+    isLoading,
+    updateProfileField,
   }: {
     activeTab: string;
     form: ReturnType<typeof useForm<ProfileEditForm>>;
     isSubmitting: boolean;
     onSubmit: () => void;
+    profileData: ProfileEditForm | null;
+    isLoading: boolean;
+    updateProfileField: (
+      field: keyof ProfileEditForm,
+      value: string | number | string[]
+    ) => Promise<any>;
   }) => {
     if (activeTab === "general") {
       return (
@@ -43,6 +56,9 @@ const SectionContent = memo(
           form={form}
           isSubmitting={isSubmitting}
           onSubmit={onSubmit}
+          profileData={profileData}
+          isLoading={isLoading}
+          updateProfileField={updateProfileField}
         />
       );
     }
@@ -52,6 +68,9 @@ const SectionContent = memo(
           form={form}
           isSubmitting={isSubmitting}
           onSubmit={onSubmit}
+          profileData={profileData}
+          isLoading={isLoading}
+          updateProfileField={updateProfileField}
         />
       );
     }
@@ -61,6 +80,9 @@ const SectionContent = memo(
           form={form}
           isSubmitting={isSubmitting}
           onSubmit={onSubmit}
+          profileData={profileData}
+          isLoading={isLoading}
+          updateProfileField={updateProfileField}
         />
       );
     }
@@ -75,11 +97,25 @@ SectionContent.displayName = "SectionContent";
 
 export default function ProfileEditLayoutWrapper() {
   const { activeTab, setActiveTab } = useProfileEditTabs();
+  const { profileData, isLoading, updateProfileField } = useProfileData();
+  const router = useRouter();
   const form = useForm<ProfileEditForm>({
     resolver: zodResolver(profileEditSchema),
     defaultValues: DEFAULT_VALUES,
   });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  // Update form with fetched data
+  useEffect(() => {
+    if (profileData) {
+      Object.keys(profileData).forEach((key) => {
+        form.setValue(
+          key as keyof ProfileEditForm,
+          profileData[key as keyof ProfileEditForm]
+        );
+      });
+    }
+  }, [profileData, form]);
 
   const handleTabChange = useCallback(
     (key: string) => {
@@ -100,24 +136,56 @@ export default function ProfileEditLayoutWrapper() {
     }
   }, []);
 
+  const handleBackToProfile = useCallback(() => {
+    // Check if the user came from the profile page
+    const referrer = document.referrer;
+    const isFromProfile =
+      referrer.includes("/profile") && !referrer.includes("/profile/edit");
+
+    if (isFromProfile && window.history.length > 1) {
+      // User came from profile page, go back
+      router.back();
+    } else {
+      // User came from elsewhere or no history, redirect to profile
+      router.replace("/profile");
+    }
+  }, [router]);
+
   return (
-    <div className="flex flex-col md:flex-row min-h-screen h-full bg-background text-foreground border-none rounded-none">
-      {/* Sidebar */}
-      <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">
-        <ProfileEditSidebar
-          activeTab={activeTab}
-          setActiveTab={handleTabChange}
-        />
+    <div className="flex flex-col min-h-screen h-full bg-background text-foreground border-none rounded-none">
+      {/* Breadcrumb */}
+      <div className="px-4 py-2">
+        <Button
+          onClick={handleBackToProfile}
+          className="inline-flex items-center gap-1 text-sm bg-transparent text-foreground transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to Profile
+        </Button>
       </div>
-      {/* Content Area */}
-      <div className="flex-1 flex flex-col p-3 gap-2 overflow-hidden">
-        <SectionContent
-          key={activeTab}
-          activeTab={activeTab}
-          form={form}
-          isSubmitting={isSubmitting}
-          onSubmit={handleSubmit}
-        />
+
+      {/* Main Content */}
+      <div className="flex flex-col md:flex-row min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl mx-6 mb-6">
+        {/* Sidebar */}
+        <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">
+          <ProfileEditSidebar
+            activeTab={activeTab}
+            setActiveTab={handleTabChange}
+          />
+        </div>
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col p-3 gap-2 overflow-hidden">
+          <SectionContent
+            key={activeTab}
+            activeTab={activeTab}
+            form={form}
+            isSubmitting={isSubmitting}
+            onSubmit={handleSubmit}
+            profileData={profileData}
+            isLoading={isLoading}
+            updateProfileField={updateProfileField}
+          />
+        </div>
       </div>
     </div>
   );
