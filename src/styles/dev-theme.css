@@ -87,3 +87,18 @@ body {
 .custom-hamburger-toggle span:not(.sr-only):not(.absolute) {
   display: none !important;
 }
+
+/* React Image Crop Styles */
+@import "react-image-crop/dist/ReactCrop.css";
+
+.reactCrop__crop-selection {
+  border: 2px var(--primary) !important;
+  box-shadow: none !important;
+  background: none !important;
+}
+.reactCrop__drag-handle {
+  display: none !important;
+}
+.reactCrop__crop-selection:after {
+  display: none !important;
+}

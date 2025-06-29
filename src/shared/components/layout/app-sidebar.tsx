@@ -173,7 +173,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="bg-background">
       <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>
           <div

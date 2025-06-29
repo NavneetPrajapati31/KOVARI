@@ -12,6 +12,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Avatar, Spinner } from "@heroui/react";
 import { toast } from "sonner";
 import { uploadFiles } from "@/lib/uploadthing";
+import ProfileCropModal from "@/shared/components/profile-crop-modal";
 
 interface GeneralSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -38,6 +39,9 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   );
   const [avatarUploadLoading, setAvatarUploadLoading] = useState(false);
   const [avatarDeleteLoading, setAvatarDeleteLoading] = useState(false);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState<string>("");
+  const [cropLoading, setCropLoading] = useState(false);
   const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -151,7 +155,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
     }
   };
 
-  // Handle avatar upload
+  // Handle avatar upload - now shows crop modal instead of direct upload
   const handleAvatarUpload = async (file: File) => {
     // Validate file
     const maxSizeInMB = 4;
@@ -168,9 +172,22 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
       return;
     }
 
-    setAvatarUploadLoading(true);
+    // Create temporary URL for the crop modal
+    const tempUrl = URL.createObjectURL(file);
+    setTempImageUrl(tempUrl);
+    setCropModalOpen(true);
+  };
+
+  // Handle crop completion
+  const handleCropComplete = async (croppedImageUrl: string) => {
+    setCropLoading(true);
     try {
-      // Upload to UploadThing
+      // Convert blob URL to File object for upload
+      const response = await fetch(croppedImageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "profile-crop.jpg", { type: "image/jpeg" });
+
+      // Upload the cropped image
       const uploaded = await uploadFiles("profileImageUploader", {
         files: [file],
       });
@@ -179,15 +196,19 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
       if (url) {
         // Update the avatar field
         await handleSaveField("avatar", url);
-        toast.success("Avatar uploaded successfully!");
+        toast.success("Profile photo updated successfully!");
+        setCropModalOpen(false);
       } else {
         throw new Error("No URL returned from upload");
       }
     } catch (error) {
-      console.error("Avatar upload error:", error);
-      toast.error("Failed to upload avatar");
+      console.error("Cropped image upload error:", error);
+      toast.error("Failed to upload profile photo");
     } finally {
-      setAvatarUploadLoading(false);
+      setCropLoading(false);
+      // Clean up temporary URL
+      URL.revokeObjectURL(tempImageUrl);
+      setTempImageUrl("");
     }
   };
 
@@ -236,6 +257,16 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   // Handle upload button click
   const handleUploadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  // Handle crop modal close
+  const handleCropModalClose = () => {
+    setCropModalOpen(false);
+    // Clean up temporary URL
+    if (tempImageUrl) {
+      URL.revokeObjectURL(tempImageUrl);
+      setTempImageUrl("");
+    }
   };
 
   const genderOptions = [
@@ -412,6 +443,15 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
           />
         </div>
       </section>
+
+      {/* Profile Crop Modal */}
+      <ProfileCropModal
+        open={cropModalOpen}
+        onOpenChange={handleCropModalClose}
+        imageUrl={tempImageUrl}
+        onCropComplete={handleCropComplete}
+        isLoading={cropLoading}
+      />
     </div>
   );
 };
