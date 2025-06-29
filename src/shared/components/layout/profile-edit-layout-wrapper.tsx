@@ -15,6 +15,7 @@ import PersonalSection from "@/app/(app)/profile/edit/personal/section";
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
+import Link from "next/link";
 
 const DEFAULT_VALUES: ProfileEditForm = {
   avatar: "",
@@ -155,13 +156,15 @@ export default function ProfileEditLayoutWrapper() {
     <div className="flex flex-col min-h-screen h-full bg-background text-foreground border-none rounded-none">
       {/* Breadcrumb */}
       <div className="px-4 py-2">
-        <Button
-          onClick={handleBackToProfile}
-          className="inline-flex items-center gap-1 text-sm bg-transparent text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to Profile
-        </Button>
+        <Link href={"/profile"}>
+          <Button
+            // onClick={handleBackToProfile}
+            className="inline-flex items-center gap-1 text-sm bg-transparent text-foreground transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Profile
+          </Button>
+        </Link>
       </div>
 
       {/* Main Content */}

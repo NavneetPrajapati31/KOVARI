@@ -48,6 +48,15 @@ export async function GET() {
       );
     }
 
+    // Get travel preferences for interests
+    const { data: travelPrefData } = await supabase
+      .from("travel_preferences")
+      .select("interests")
+      .eq("user_id", user.id)
+      .single();
+
+    const interests = travelPrefData?.interests || [];
+
     // Transform data to match ProfileEditForm structure
     const profileData = {
       avatar: profile.profile_photo || "",
@@ -57,7 +66,7 @@ export async function GET() {
       gender: profile.gender?.toLowerCase() || "prefer_not_to_say",
       nationality: profile.nationality || "",
       profession: profile.job || "",
-      interests: profile.interests || [],
+      interests,
       languages: profile.languages || [],
       bio: profile.bio || "",
     };
