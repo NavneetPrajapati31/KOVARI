@@ -1,52 +1,24 @@
 "use client";
 import React, { KeyboardEvent, useCallback, useMemo, useRef } from "react";
-import {
-  Settings,
-  MapPin,
-  Shield,
-  MessageCircle,
-  Heart,
-  Zap,
-  Users,
-  AlertTriangle,
-  Trash2,
-} from "lucide-react";
+import { User, Briefcase, Globe2 } from "lucide-react";
 
 const TABS = [
-  // Edit Group Sections
-  { key: "basic", label: "Basic Info", icon: Settings, category: "edit" },
-  { key: "travel", label: "Travel Details", icon: MapPin, category: "edit" },
-  { key: "privacy", label: "Privacy & Safety", icon: Shield, category: "edit" },
+  { key: "general", label: "General", icon: User, category: "profile" },
   {
-    key: "communication",
-    label: "Communication",
-    icon: MessageCircle,
-    category: "edit",
+    key: "professional",
+    label: "Professional",
+    icon: Briefcase,
+    category: "profile",
   },
-  { key: "preferences", label: "Preferences", icon: Heart, category: "edit" },
-  { key: "advanced", label: "Advanced", icon: Zap, category: "edit" },
-  // Other sections
-  {
-    key: "members",
-    label: "Manage Members",
-    icon: Users,
-    category: "management",
-  },
-  {
-    key: "requests",
-    label: "Join Requests",
-    icon: AlertTriangle,
-    category: "management",
-  },
-  { key: "delete", label: "Leave Group", icon: Trash2, category: "danger" },
+  { key: "personal", label: "Personal", icon: Globe2, category: "profile" },
 ] as const;
 
-interface SettingsSidebarProps {
+interface ProfileEditSidebarProps {
   activeTab: string;
   setActiveTab: (key: string) => void;
 }
 
-const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
+const ProfileEditSidebar: React.FC<ProfileEditSidebarProps> = ({
   activeTab,
   setActiveTab,
 }) => {
@@ -57,14 +29,11 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     (e: React.MouseEvent<HTMLButtonElement>, key: string) => {
       e.preventDefault();
       e.stopPropagation();
-
-      // Prevent rapid clicks
       const now = Date.now();
       if (now - lastClickTime.current < 300) {
         return;
       }
       lastClickTime.current = now;
-
       if (activeTab !== key) {
         setActiveTab(key);
       }
@@ -87,7 +56,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         const nextTab = TABS[nextIndex].key;
         if (activeTab !== nextTab) {
           setActiveTab(nextTab);
-          // Focus the next tab
           setTimeout(() => tabRefs.current[nextIndex]?.focus(), 0);
         }
       } else if (e.key === "ArrowLeft") {
@@ -97,7 +65,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         const prevTab = TABS[prevIndex].key;
         if (activeTab !== prevTab) {
           setActiveTab(prevTab);
-          // Focus the previous tab
           setTimeout(() => tabRefs.current[prevIndex]?.focus(), 0);
         }
       } else if (e.key === "Home") {
@@ -119,13 +86,11 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     [activeTab, setActiveTab]
   );
 
+  // Grouping for future extensibility (currently only one group)
   const groupedTabs = useMemo(() => {
-    const groups = {
-      edit: TABS.filter((tab) => tab.category === "edit"),
-      management: TABS.filter((tab) => tab.category === "management"),
-      danger: TABS.filter((tab) => tab.category === "danger"),
+    return {
+      profile: TABS.filter((tab) => tab.category === "profile"),
     };
-    return groups;
   }, []);
 
   const renderTabGroup = (
@@ -171,16 +136,12 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   return (
     <nav
-      aria-label="Settings Navigation"
+      aria-label="Profile Navigation"
       className="flex flex-row md:flex-col gap-4 p-2 md:p-4 border-gray-200 overflow-y-auto"
     >
-      {renderTabGroup("edit", groupedTabs.edit, "Edit Group")}
-      <div className="border-t border-gray-200 mb-0.5" />
-      {renderTabGroup("management", groupedTabs.management, "Management")}
-      <div className="border-t border-gray-200 mb-0.5" />
-      {renderTabGroup("danger", groupedTabs.danger, "Danger Zone")}
+      {renderTabGroup("profile", groupedTabs.profile, "Profile")}
     </nav>
   );
 };
 
-export default SettingsSidebar;
+export default ProfileEditSidebar;
