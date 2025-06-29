@@ -161,7 +161,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
               </Card> */}
 
-              <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none px-5 py-5 gap-0 items-start justify-start flex-1 min-w-0">
+              <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none px-4 py-5 gap-0 items-start justify-start flex-1 min-w-0">
                 {/* Left Info */}
                 <div className="flex flex-row items-center gap-x-6 w-full mb-2">
                   <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-3">
