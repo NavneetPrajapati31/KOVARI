@@ -142,7 +142,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   // Mobile/Tablet Layout Component
   const MobileLayout = () => (
     <div className="min-h-screen bg-transparent md:hidden">
-      <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-3">
+      <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-3 shadow-none p-3">
         {/* Mobile Profile Header */}
         <Card className="rounded-none border-none shadow-none bg-transparent p-0">
           <CardContent className="p-0">
@@ -178,10 +178,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         </h1>
                       </div>
                       <p className="text-xs text-muted-foreground font-medium">
-                        @{profile.username}
+                        @
+                        {profile.username.length > 30
+                          ? `${profile.username.substring(0, 30)}...`
+                          : profile.username}
                       </p>
                       <div className="flex flex-row items-center gap-x-6 w-full mt-2">
-                        <div className="flex flex-row gap-6 items-center flex-shrink-0">
+                        <div className="flex flex-row gap-4 items-center flex-shrink-0">
                           <div className="text-left flex flex-row justify-start items-center gap-1">
                             <div className="text-xs font-black text-foreground">
                               {followersCount}
@@ -558,7 +561,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </h1>
                     </div>
                     <p className="text-xs text-muted-foreground font-medium mb-2">
-                      @{profile.username}
+                      @
+                      {profile.username.length > 30
+                        ? `${profile.username.substring(0, 30)}...`
+                        : profile.username}
                     </p>
                   </div>
                   <div className="flex flex-row gap-10 items-center flex-shrink-0">

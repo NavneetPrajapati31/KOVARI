@@ -6,7 +6,7 @@ export default function Loading() {
     <>
       {/* Mobile/Tablet Layout */}
       <div className="min-h-screen bg-transparent md:hidden">
-        <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-3">
+        <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-3 shadow-none p-3">
           {/* Profile Information Section */}
           <Card className="rounded-none border-none shadow-none bg-transparent p-0">
             <CardContent className="p-0">
