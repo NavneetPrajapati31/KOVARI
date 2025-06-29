@@ -797,7 +797,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         >
                           <div className="flex gap-2 bg-transparent rounded-2xl border-none shadow-none px-4 py-6 h-full w-full justify-center bg-gradient-to-t from-black/30 to-transparent">
                             <Button
-                              className="px-6 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0"
+                              className="px-6 py-1 w-1/2 rounded-full bg-white/80 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0"
                               tabIndex={0}
                               aria-label="View post"
                               onKeyDown={handleKeyDown}
@@ -805,7 +805,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               View Post
                             </Button>
                             <Button
-                              className="px-6 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0"
+                              className="px-6 py-1 w-1/2 rounded-full bg-white/80 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0"
                               tabIndex={0}
                               aria-label="Share post"
                               onKeyDown={handleKeyDown}
