@@ -1,10 +1,10 @@
-// src/app/dashboard/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import DashboardCard from "@/components/ui/DashboardCard";
 
 function SkeletonDemo() {
   return (
@@ -28,14 +28,24 @@ export default function Dashboard() {
     }
   }, [isSignedIn, user, setUser]);
 
+  const loading = false; // Replace with real logic later
+  const groups = 2;
+  const trips = 0;
+  const invites = 5;
+
   return (
-    <div className="p-6 flex items-center justify-center min-h-screen">
+    <div className="min-h-screen bg-[#F6ECD9] text-[#004831] p-6">
       {isSignedIn ? (
-        <h1 className="text-2xl font-bold">Welcome, {user.firstName} 👋</h1>
+        <>
+          <h1 className="text-2xl font-bold mb-6">Welcome, {user.firstName} 👋</h1>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <DashboardCard title="My Groups" count={groups} loading={loading} emptyText="No groups yet" />
+            <DashboardCard title="Upcoming Trips" count={trips} loading={loading} emptyText="No upcoming trips" />
+            <DashboardCard title="Invitations" count={invites} loading={loading} emptyText="No invites" />
+          </div>
+        </>
       ) : (
-        <div>
-          <SkeletonDemo />
-        </div>
+        <SkeletonDemo />
       )}
     </div>
   );
