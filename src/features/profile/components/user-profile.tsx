@@ -360,7 +360,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
         {/* Mobile Content Card */}
         <Card
           aria-label="User details"
-          className="w-full h-full rounded-3xl bg-transparent shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
+          className="w-full h-full min-h-[80vh] rounded-3xl bg-transparent shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
         >
           {/* Tabs Navigation - Mobile Style */}
           <div className="flex gap-x-2 sm:gap-x-4">
@@ -825,7 +825,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <h3 className="text-md font-semibold text-foreground mb-1">
                       No posts yet
                     </h3>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mb-8">
                       This user hasn't shared any posts yet.
                     </p>
                   </div>
