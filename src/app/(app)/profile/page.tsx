@@ -55,7 +55,7 @@ const ProfileLoading = () => {
             <Card className="rounded-none border-none shadow-none bg-transparent p-0">
               <CardContent className="p-0">
                 <div className="grid grid-cols-3 gap-1">
-                  {Array.from({ length: 8 }).map((post, index) => (
+                  {Array.from({ length: 9 }).map((post, index) => (
                     <div
                       key={index}
                       className="aspect-[4/5] bg-muted rounded-none overflow-hidden flex items-center justify-center shadow-sm"
