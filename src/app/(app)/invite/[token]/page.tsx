@@ -57,7 +57,7 @@ export default async function InvitePage({
 
   if ((!linkRow && !emailInvite) || linkError) {
     return (
-      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-card rounded-xl shadow text-center">
         <h1 className="text-md font-bold mb-2">Invalid or Expired Link</h1>
         <p className="text-muted-foreground text-sm font-medium mb-4">
           This invite link is invalid or has expired.
@@ -78,7 +78,7 @@ export default async function InvitePage({
 
   if (groupError || !group) {
     return (
-      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-card rounded-xl shadow text-center">
         <h1 className="text-md font-bold mb-2">Group Not Found</h1>
         <p className="text-muted-foreground text-sm font-medium mb-4">
           The group for this invite could not be found.
@@ -93,7 +93,7 @@ export default async function InvitePage({
   // 3. If not signed in, prompt to sign in
   if (!userId) {
     return (
-      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-card rounded-xl shadow text-center">
         <h1 className="text-md font-bold mb-2">
           You&apos;re Invited to Join {group.name}!
         </h1>
@@ -119,7 +119,7 @@ export default async function InvitePage({
 
   if (!user) {
     return (
-      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-card rounded-xl shadow text-center">
         <h1 className="text-md font-bold mb-2">User Not Found</h1>
         <p className="text-muted-foreground text-sm font-medium mb-4">
           Could not find your user record in our database.
@@ -146,7 +146,7 @@ export default async function InvitePage({
   }
 
   return (
-    <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow text-center">
+    <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-card rounded-xl shadow text-center">
       <h1 className="text-md font-bold mb-2">
         You&apos;re Invited to Join {group.name}!
       </h1>

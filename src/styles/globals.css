@@ -188,7 +188,7 @@
 }
 
 body {
-  @apply bg-[#f9fafb] text-foreground;
+  @apply bg-background text-foreground;
 }
 
 .custom-hamburger-toggle span:not(.sr-only):not(.absolute) {

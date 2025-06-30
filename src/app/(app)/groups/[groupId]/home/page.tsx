@@ -306,7 +306,7 @@ const GroupHomePage = () => {
                 }}
                 name={
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800 text-sm">
+                    <span className="font-medium text-foreground text-sm">
                       {member.name}
                     </span>
                   </div>
@@ -316,7 +316,7 @@ const GroupHomePage = () => {
                     isExternal
                     href={`https://x.com/${member.username}`}
                     size="sm"
-                    className="text-gray-600 text-xs hover:text-gray-800"
+                    className="text-muted-foreground text-xs"
                   >
                     @{member.username}
                   </Link>
@@ -792,7 +792,7 @@ const GroupHomePage = () => {
                       )}
                     </div>
                     <CardHeader className="flex flex-col p-3 items-start">
-                      <h2 className="text-sm font-semibold text-gray-800 mb-1">
+                      <h2 className="text-sm font-semibold text-foreground mb-1">
                         {membersLoading ? (
                           <Skeleton className="h-3 w-24 rounded-full mt-1" />
                         ) : (
@@ -830,7 +830,7 @@ const GroupHomePage = () => {
                                   }}
                                   name={
                                     <div className="flex items-center gap-2">
-                                      <span className="font-medium text-gray-800 text-sm">
+                                      <span className="font-medium text-foreground text-sm">
                                         {member.name}
                                       </span>
                                     </div>
@@ -840,7 +840,7 @@ const GroupHomePage = () => {
                                       isExternal
                                       href={`https://x.com/${member.username}`}
                                       size="sm"
-                                      className="text-gray-600 text-xs hover:text-gray-800"
+                                      className="text-muted-foreground text-xs"
                                     >
                                       @{member.username}
                                     </Link>
@@ -1123,7 +1123,7 @@ const GroupHomePage = () => {
                 )}
               </div>
               <CardHeader className="flex flex-col p-3 items-start">
-                <h2 className="text-sm font-semibold text-gray-800 mb-1">
+                <h2 className="text-sm font-semibold text-foreground mb-1">
                   {membersLoading ? (
                     <Skeleton className="h-3 w-24 rounded-full mt-1" />
                   ) : (
@@ -1155,7 +1155,7 @@ const GroupHomePage = () => {
                             }}
                             name={
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-800 text-sm">
+                                <span className="font-medium text-foreground text-sm">
                                   {member.name}
                                 </span>
                               </div>
@@ -1165,7 +1165,7 @@ const GroupHomePage = () => {
                                 isExternal
                                 href={`https://x.com/${member.username}`}
                                 size="sm"
-                                className="text-gray-600 text-xs hover:text-gray-800"
+                                className="text-muted-foreground text-xs"
                               >
                                 @{member.username}
                               </Link>

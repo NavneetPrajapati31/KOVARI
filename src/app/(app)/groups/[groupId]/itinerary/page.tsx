@@ -462,14 +462,14 @@ export default function ItineraryPage() {
   }
 
   return (
-    <div className="space-y-6 bg-gray-50 min-h-screen p-2">
+    <div className="space-y-6 bg-transparent min-h-screen p-2">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">
+          <h1 className="text-lg font-semibold text-foreground">
             Itinerary Board
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Plan and organize your group&apos;s travel activities
           </p>
         </div>
@@ -489,8 +489,8 @@ export default function ItineraryPage() {
                 />
               ))}
               {groupMembers.length > 4 && (
-                <div className="w-8 h-8 rounded-full border-border border-3 shadow-sm bg-gray-100 flex items-center justify-center">
-                  <span className="text-xs font-medium text-gray-600">
+                <div className="w-8 h-8 rounded-full border-border border-3 shadow-sm bg-card flex items-center justify-center">
+                  <span className="text-xs font-medium text-muted-foreground">
                     +{groupMembers.length - 4}
                   </span>
                 </div>
@@ -501,7 +501,7 @@ export default function ItineraryPage() {
           {/* Desktop actions (md+) */}
           <div className="hidden md:flex items-center gap-2">
             <Button
-              className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium"
+              className="bg-violet-600 hover:bg-violet-700 text-primary-foreground px-4 py-2 rounded-lg font-medium"
               onClick={handleOpenInviteModal}
             >
               <Users className="w-4 h-4 mr-2" />
@@ -509,7 +509,7 @@ export default function ItineraryPage() {
             </Button>
             <Button
               variant="outline"
-              className="border-gray-300 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium"
+              className="border-border text-foreground hover:bg-gray-200 px-4 py-2 rounded-lg font-medium"
               onClick={() => {
                 // Handle share action
                 console.log("Share clicked");
@@ -583,23 +583,23 @@ export default function ItineraryPage() {
           return (
             <div
               key={column.id}
-              className="w-full overflow-y-clip bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col"
+              className="w-full overflow-y-clip bg-card rounded-lg border border-border shadow-sm flex flex-col"
               onDragOver={handleDragOver}
               onDrop={(e) =>
                 handleDrop(e, column.id as ItineraryItem["status"])
               }
             >
               {/* Column Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div className="flex items-center gap-2">
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: column.dot }}
                   ></span>
-                  <span className="font-medium text-gray-900 text-sm">
+                  <span className="font-medium text-foreground text-sm">
                     {column.title}
                   </span>
-                  <span className="ml-1 text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  <span className="ml-1 text-xs bg-gray-100 text-muted-foreground rounded-full px-2 py-0.5 min-w-[20px] text-center">
                     {filteredItems.length}
                   </span>
                 </div>
@@ -609,13 +609,13 @@ export default function ItineraryPage() {
                     onClick={() => setIsAddDialogOpen(true)}
                     aria-label="Add task"
                   >
-                    <Plus className="w-4 h-4 text-gray-500" />
+                    <Plus className="w-4 h-4 text-muted-foreground" />
                   </button>
                   <button
                     className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
                     aria-label="Column actions"
                   >
-                    <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                    <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
               </div>
@@ -625,7 +625,7 @@ export default function ItineraryPage() {
                 {filteredItems.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col gap-3 relative transition-shadow cursor-pointer"
+                    className="bg-card border border-border rounded-lg shadow-sm p-4 flex flex-col gap-3 relative transition-shadow cursor-pointer"
                     draggable
                     onDragStart={(e) => handleDragStart(e, item)}
                     onClick={() => openEditDialog(item)}
@@ -637,7 +637,7 @@ export default function ItineraryPage() {
                         <div className="flex gap-1">
                           <Chip
                             className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
-                              badge?.color || "bg-gray-100 text-gray-700"
+                              badge?.color || "bg-gray-100 text-foreground"
                             }`}
                           >
                             <span className="font-semibold">
@@ -664,18 +664,18 @@ export default function ItineraryPage() {
 
                     {/* Title & Description */}
                     <div className="space-y-1">
-                      <h3 className="font-medium text-gray-900 text-sm leading-tight">
+                      <h3 className="font-medium text-foreground text-sm leading-tight">
                         {item.title}
                       </h3>
                       {item.description && (
-                        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                           {item.description}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center gap-4 text-gray-500 text-xs">
+                      <div className="flex items-center gap-4 text-muted-foreground text-xs">
                         {/* Date */}
                         {item.datetime && (
                           <div className="flex items-center gap-2">
@@ -725,7 +725,7 @@ export default function ItineraryPage() {
                         )}
                       </div>
                       {/* Location */}
-                      <div className="flex items-center gap-4 text-gray-500 text-xs">
+                      <div className="flex items-center gap-4 text-muted-foreground text-xs">
                         {item.location && (
                           <div className="flex items-center gap-2">
                             <MapPin className="h-3 w-3" />
@@ -740,7 +740,7 @@ export default function ItineraryPage() {
                     {/* Assignees and Due Date */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-muted-foreground">
                           Assignees ({item.assigned_to?.length || 0}):
                         </span>
                         <div className="flex -space-x-1">
@@ -769,7 +769,7 @@ export default function ItineraryPage() {
                                   className="w-6 h-6 rounded-full shadow-sm bg-gray-200 flex items-center justify-center"
                                   title={`Unknown user: ${uid}`}
                                 >
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-muted-foreground">
                                     ?
                                   </span>
                                 </div>
@@ -777,14 +777,14 @@ export default function ItineraryPage() {
                             })}
                           {(item.assigned_to || []).length > 3 && (
                             <div className="w-6 h-6 rounded-full  shadow-sm bg-gray-100 flex items-center justify-center">
-                              <span className="text-xs text-gray-600">
+                              <span className="text-xs text-muted-foreground">
                                 +{(item.assigned_to || []).length - 3}
                               </span>
                             </div>
                           )}
                           {/* Show message if no assignees */}
                           {(item.assigned_to || []).length === 0 && (
-                            <span className="text-xs text-gray-400 italic">
+                            <span className="text-xs text-muted-foreground italic">
                               No assignees
                             </span>
                           )}
@@ -998,7 +998,7 @@ export default function ItineraryPage() {
                   </label>
                 ))}
                 {groupMembers.length === 0 && (
-                  <p className="text-sm text-gray-500 italic">
+                  <p className="text-sm text-muted-foreground italic">
                     No group members available
                   </p>
                 )}
@@ -1190,7 +1190,7 @@ export default function ItineraryPage() {
                   </label>
                 ))}
                 {groupMembers.length === 0 && (
-                  <p className="text-sm text-gray-500 italic">
+                  <p className="text-sm text-muted-foreground italic">
                     No group members available
                   </p>
                 )}

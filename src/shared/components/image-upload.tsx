@@ -248,7 +248,7 @@ export function ImageUpload({
               className="bg-[#F13260] absolute top-4 right-4 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               onClick={handleRemoveImage}
             >
-              <X className="h-4 w-4 text-white" />
+              <X className="h-4 w-4 text-primary-foreground" />
             </Button>
           </div>
         </div>
@@ -268,8 +268,8 @@ export function ImageUpload({
         className={cn(
           "relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ease-in-out",
           isDragOver
-            ? "border-primary bg-card scale-[1.02]"
-            : "border-border bg-card hover:border-primary/50 hover:bg-card",
+            ? "border-primary bg-transparent scale-[1.02]"
+            : "border-border bg-transparent hover:border-primary/50 hover:bg-transparent",
           isUploading && "pointer-events-none opacity-50"
         )}
         onDragOver={handleDragOver}

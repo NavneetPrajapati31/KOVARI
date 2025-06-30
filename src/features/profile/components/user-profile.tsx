@@ -817,8 +817,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-12 h-12 bg-border rounded-full flex items-center justify-center mb-3">
-                      <Camera />
+                    <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mb-3">
+                      <Camera className="text-foreground" />
                     </div>
                     <h3 className="text-md font-semibold text-foreground mb-1">
                       No posts yet
