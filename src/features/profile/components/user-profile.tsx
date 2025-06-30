@@ -538,17 +538,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           <CardContent className="p-0">
             <div className="flex flex-row items-stretch gap-4">
               {/* Profile Avatar Overlay - Stretches to match second card height */}
-              <Card className="w-[230px] h-[230px] min-[840px]:h-[210px] min-[840px]:w-[210px] aspect-square p-0 bg-transparent border-none shadow-none rounded-3xl flex overflow-hidden flex-shrink-0 items-stretch">
-                <div className="w-full h-full">
-                  <Image
-                    src={
-                      profile.profileImage ||
-                      "https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
-                    }
-                    alt="Profile"
-                    className="w-full h-full object-cover rounded-3xl"
-                  />
-                </div>
+              <Card className="w-[230px] h-[230px] min-[840px]:h-[210px] min-[840px]:w-[210px] p-0 bg-muted border-none shadow-none rounded-3xl overflow-hidden flex-shrink-0">
+                <img
+                  src={
+                    profile.profileImage ||
+                    "https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
+                  }
+                  alt="Profile"
+                  className="w-full h-full object-contain rounded-3xl"
+                />
               </Card>
 
               <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none p-6 py-5 gap-0 items-start justify-start flex-1 min-w-0">
