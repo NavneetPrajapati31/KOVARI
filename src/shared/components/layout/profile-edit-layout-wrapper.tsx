@@ -16,6 +16,7 @@ import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 const DEFAULT_VALUES: ProfileEditForm = {
   avatar: "",
@@ -105,6 +106,7 @@ export default function ProfileEditLayoutWrapper() {
     defaultValues: DEFAULT_VALUES,
   });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const isMobile = useIsMobile();
 
   // Update form with fetched data
   useEffect(() => {
@@ -155,39 +157,70 @@ export default function ProfileEditLayoutWrapper() {
   return (
     <div className="flex flex-col min-h-screen h-full bg-background text-foreground border-none rounded-none">
       {/* Breadcrumb */}
-      <div className="px-4 py-2">
+      <div className="px-1 py-2 md:px-4">
         <Link href={"/profile"}>
           <Button
             // onClick={handleBackToProfile}
-            className="inline-flex items-center gap-1 text-sm bg-transparent text-foreground transition-colors"
+            className="inline-flex items-center gap-1 text-xs md:text-sm bg-transparent text-foreground transition-colors"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="md:h-4 md:w-4 h-3 w-3" />
             Back to Profile
           </Button>
         </Link>
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl mx-6 mb-6">
-        {/* Sidebar */}
-        <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">
-          <ProfileEditSidebar
-            activeTab={activeTab}
-            setActiveTab={handleTabChange}
-          />
-        </div>
+      <div className="flex flex-col md:flex-row min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl mx-3 mb-6 md:mx-6">
+        {/* Sidebar (hide on mobile) */}
+        {!isMobile && (
+          <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">
+            <ProfileEditSidebar
+              activeTab={activeTab}
+              setActiveTab={handleTabChange}
+            />
+          </div>
+        )}
         {/* Content Area */}
-        <div className="flex-1 flex flex-col p-3 gap-2 overflow-hidden">
-          <SectionContent
-            key={activeTab}
-            activeTab={activeTab}
-            form={form}
-            isSubmitting={isSubmitting}
-            onSubmit={handleSubmit}
-            profileData={profileData}
-            isLoading={isLoading}
-            updateProfileField={updateProfileField}
-          />
+        <div className="flex-1 flex flex-col p-4 md:p-3 gap-2 overflow-hidden">
+          {isMobile ? (
+            <div className="flex flex-col gap-6">
+              <GeneralSection
+                form={form}
+                isSubmitting={isSubmitting}
+                onSubmit={handleSubmit}
+                profileData={profileData}
+                isLoading={isLoading}
+                updateProfileField={updateProfileField}
+              />
+              <ProfessionalSection
+                form={form}
+                isSubmitting={isSubmitting}
+                onSubmit={handleSubmit}
+                profileData={profileData}
+                isLoading={isLoading}
+                updateProfileField={updateProfileField}
+              />
+              <PersonalSection
+                form={form}
+                isSubmitting={isSubmitting}
+                onSubmit={handleSubmit}
+                profileData={profileData}
+                isLoading={isLoading}
+                updateProfileField={updateProfileField}
+              />
+            </div>
+          ) : (
+            <SectionContent
+              key={activeTab}
+              activeTab={activeTab}
+              form={form}
+              isSubmitting={isSubmitting}
+              onSubmit={handleSubmit}
+              profileData={profileData}
+              isLoading={isLoading}
+              updateProfileField={updateProfileField}
+            />
+          )}
         </div>
       </div>
     </div>

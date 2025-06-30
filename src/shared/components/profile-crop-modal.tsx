@@ -218,6 +218,7 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
             variant="outline"
             onClick={handleRotate}
             className="flex items-center gap-1"
+            disabled={isLoading}
           >
             <RotateCcw className="w-3 h-3" />
             Rotate

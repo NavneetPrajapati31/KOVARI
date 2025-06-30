@@ -7,6 +7,7 @@ import {
   profileEditSchema,
 } from "@/features/profile/lib/types";
 import SectionRow from "@/features/profile/components/section-row";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 interface ProfessionalSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -25,6 +26,7 @@ const ProfessionalSection: React.FC<ProfessionalSectionProps> = ({
   updateProfileField,
 }) => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const isMobile = useIsMobile();
 
   // Validate a single field with better error handling
   const validateField = (
@@ -71,21 +73,23 @@ const ProfessionalSection: React.FC<ProfessionalSectionProps> = ({
   };
 
   return (
-    <div className="w-full mx-auto p-4 space-y-6">
+    <div className={`w-full mx-auto ${isMobile ? "p-0" : "p-4"} space-y-6`}>
       {/* Header */}
-      <div className="space-y-2">
+      <div className="md:space-y-2 space-y-1">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">
+          <h1 className="md:text-lg text-md font-semibold text-foreground">
             Edit Professional Info
           </h1>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="md:text-sm text-xs text-muted-foreground">
           Update your professional details.
         </p>
       </div>
       {/* Card Content */}
-      <section className="bg-transparent rounded-2xl shadow-none border border-border p-2 px-6">
-        <div className="divide-y divide-gray-100">
+      <section
+        className={`rounded-2xl border border-border ${isMobile ? "bg-transparent p-0 shadow-none" : "bg-transparent p-4 px-6 shadow-none"}`}
+      >
+        <div className={isMobile ? "space-y-2 px-4 pt-2 pb-4" : ""}>
           <SectionRow
             label="Profession"
             value={form.watch("profession") || "-"}

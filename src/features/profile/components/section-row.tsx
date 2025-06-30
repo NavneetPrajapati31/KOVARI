@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 interface SectionRowProps {
   label: string;
@@ -47,6 +48,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
   const [editValue, setEditValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -91,7 +93,10 @@ const SectionRow: React.FC<SectionRowProps> = ({
       return (
         <Select value={editValue} onValueChange={setEditValue}>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder={placeholder || "Select an option"} />
+            <SelectValue
+              placeholder={placeholder || "Select an option"}
+              className="text-sm"
+            />
           </SelectTrigger>
           <SelectContent>
             {selectOptions.map((option) => (
@@ -110,7 +115,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`w-full min-h-[80px] p-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary ${
+          className={`w-full min-h-[80px] p-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-sm ${
             error
               ? "border-destructive focus:border-destructive"
               : "border-input focus:border-primary"
@@ -129,7 +134,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        className={`w-full h-8 ${error ? "border-destructive focus:border-destructive" : ""}`}
+        className={`w-full h-8 ${error ? "border-destructive focus:border-destructive" : ""} placeholder:text-sm`}
         disabled={isSaving}
         placeholder={placeholder}
         min={min}
@@ -140,9 +145,13 @@ const SectionRow: React.FC<SectionRowProps> = ({
   };
 
   return (
-    <div className="flex items-start justify-between py-3 border-b last:border-b-0">
+    <div
+      className={`flex items-start justify-between py-3 border-b last:border-b-0 ${isMobile ? "px-0" : ""}`}
+    >
       <div className="flex-1">
-        <div className="font-semibold text-foreground text-sm mb-1">
+        <div
+          className={`font-semibold text-foreground ${isMobile ? "text-sm mb-1" : "text-sm mb-1"}`}
+        >
           {label}
         </div>
         {isEditing ? (
@@ -151,30 +160,34 @@ const SectionRow: React.FC<SectionRowProps> = ({
               className={
                 fieldType === "textarea"
                   ? "space-y-2"
-                  : "flex gap-2 items-center"
+                  : `flex gap-2 items-center`
               }
             >
               {renderEditField()}
               {fieldType !== "textarea" && (
                 <>
                   <Button
-                    size="sm"
+                    size={isMobile ? "icon" : "sm"}
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="bg-primary text-xs text-primary-foreground"
+                    className={
+                      isMobile
+                        ? "bg-primary text-primary-foreground text-xs"
+                        : "bg-primary text-xs text-primary-foreground"
+                    }
+                    aria-label="Save"
                   >
                     <Check className="w-3 h-3" />
-                    Save
                   </Button>
                   <Button
-                    size="sm"
+                    size={isMobile ? "icon" : "sm"}
                     variant="outline"
                     onClick={handleCancel}
                     disabled={isSaving}
-                    className="text-xs"
+                    className={isMobile ? "text-xs" : "text-xs"}
+                    aria-label="Cancel"
                   >
                     <X className="w-3 h-3" />
-                    Cancel
                   </Button>
                 </>
               )}
@@ -182,23 +195,27 @@ const SectionRow: React.FC<SectionRowProps> = ({
             {fieldType === "textarea" && (
               <div className="flex gap-2 items-center">
                 <Button
-                  size="sm"
+                  size={isMobile ? "icon" : "sm"}
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-primary text-xs text-primary-foreground"
+                  className={
+                    isMobile
+                      ? "bg-primary text-primary-foreground p-2"
+                      : "bg-primary text-xs text-primary-foreground"
+                  }
+                  aria-label="Save"
                 >
-                  <Check className="w-3 h-3" />
-                  Save
+                  <Check className="w-4 h-4" />
                 </Button>
                 <Button
-                  size="sm"
+                  size={isMobile ? "icon" : "sm"}
                   variant="outline"
                   onClick={handleCancel}
                   disabled={isSaving}
-                  className="text-xs"
+                  className={isMobile ? "p-2" : "text-xs"}
+                  aria-label="Cancel"
                 >
-                  <X className="w-3 h-3" />
-                  Cancel
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
             )}
@@ -218,10 +235,11 @@ const SectionRow: React.FC<SectionRowProps> = ({
           type="button"
           onClick={onSave ? handleEdit : onEdit}
           disabled={isLoading}
-          className="ml-4 px-3 py-1.5 border border-border rounded-lg text-muted-foreground hover:bg-gray-200 transition-all duration-300 flex items-center gap-1 text-xs font-semibold disabled:opacity-50"
+          className={`ml-4 border border-border rounded-lg text-muted-foreground hover:bg-gray-200 transition-all duration-300 flex items-center ${isMobile ? "p-2" : "px-3 py-1.5 gap-1 text-xs font-semibold"} disabled:opacity-50`}
           aria-label={editLabel}
         >
-          <Pencil className="w-3 h-3" /> {editLabel}
+          <Pencil className="w-4 h-4" />
+          {!isMobile && editLabel}
         </button>
       )}
     </div>

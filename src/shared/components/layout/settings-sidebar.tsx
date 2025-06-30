@@ -148,10 +148,10 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               tabRefs.current[index] = el;
             }}
             type="button"
-            className={`w-full text-left font-medium text-xs sm:text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 hover:bg-gray-100 transition-colors flex items-center gap-2 ${
+            className={`w-full text-left font-medium text-xs sm:text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20  transition-colors flex items-center gap-2 ${
               activeTab === tab.key
                 ? "text-primary bg-primary-light font-semibold"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
             }`}
             aria-current={activeTab === tab.key ? "page" : undefined}
             aria-label={tab.label}

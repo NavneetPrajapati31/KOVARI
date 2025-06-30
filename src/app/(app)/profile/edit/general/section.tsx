@@ -13,6 +13,7 @@ import { Avatar, Spinner } from "@heroui/react";
 import { toast } from "sonner";
 import { uploadFiles } from "@/lib/uploadthing";
 import ProfileCropModal from "@/shared/components/profile-crop-modal";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 interface GeneralSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -44,6 +45,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   const [cropLoading, setCropLoading] = useState(false);
   const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   // Check username availability with debouncing
   const checkUsernameAvailability = async (
@@ -304,90 +306,163 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   // }
 
   return (
-    <div className="w-full mx-auto p-4 space-y-6">
+    <div className={`w-full mx-auto ${isMobile ? "p-0" : "p-4"} space-y-6`}>
       {/* Header */}
-      <div className="space-y-2">
+      <div className="md:space-y-2 space-y-1">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">
+          <h1 className="md:text-lg text-md font-semibold text-foreground">
             Edit General Info
           </h1>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="md:text-sm text-xs text-muted-foreground">
           Update your basic profile details.
         </p>
       </div>
       {/* Card Content */}
-      <section className="bg-transparent rounded-2xl shadow-none border border-border p-4 px-6">
-        <div className="flex items-center gap-2 pb-4 border-b-1 border-border">
-          <Avatar
-            src={form.watch("avatar") || ""}
-            className="h-20 w-20"
-            showFallback
-            fallback={
-              <svg
-                className="w-full h-full text-gray-600"
-                fill="currentColor"
-                viewBox="0 0 24 24"
+      <section
+        className={`rounded-2xl border border-border ${isMobile ? "bg-transparent p-0 shadow-none" : "bg-transparent p-4 px-6 shadow-none"}`}
+      >
+        {/* Avatar & Buttons */}
+        {isMobile ? (
+          <div className="flex flex-col items-center justify-center py-4">
+            <div className="relative w-fit">
+              <Avatar
+                src={form.watch("avatar") || ""}
+                className="h-28 w-28 mx-auto"
+                showFallback
+                fallback={
+                  <svg
+                    className="w-full h-full text-gray-600"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="8" r="4" />
+                    <rect x="4" y="14" width="16" height="6" rx="3" />
+                  </svg>
+                }
+              />
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Button
+                className="mt-6 bg-transparent border border-border hover:bg-gray-200 shadow-none rounded-lg px-3 py-1 transition-all duration-300 disabled:opacity-50"
+                aria-label="Upload avatar"
+                onClick={handleUploadClick}
+                disabled={avatarUploadLoading || avatarDeleteLoading}
               >
-                <circle cx="12" cy="8" r="4" />
-                <rect x="4" y="14" width="16" height="6" rx="3" />
-              </svg>
-            }
-          />
-          <Button
-            size={"sm"}
-            className="ml-auto border bg-transparent border-border rounded-lg p-2 text-destructive hover:bg-[#f31260]/20 transition-all duration-300 disabled:opacity-50"
-            aria-label="Delete avatar"
-            onClick={handleAvatarDelete}
-            disabled={
-              avatarDeleteLoading ||
-              avatarUploadLoading ||
-              !form.watch("avatar")
-            }
-          >
-            {avatarDeleteLoading ? (
-              <Spinner
-                variant="spinner"
-                size="sm"
-                classNames={{ spinnerBars: "bg-destructive" }}
-              />
-            ) : (
-              <Trash2 className="w-3 h-3" />
-            )}
-          </Button>
-          <Button
-            size={"sm"}
-            className="bg-transparent border border-border rounded-lg p-1 hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
-            aria-label="Upload avatar"
-            onClick={handleUploadClick}
-            disabled={avatarUploadLoading || avatarDeleteLoading}
-          >
-            {avatarUploadLoading ? (
-              <Spinner
-                variant="spinner"
-                size="sm"
-                classNames={{ spinnerBars: "bg-black" }}
-              />
-            ) : (
-              <>
-                <Upload className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs font-semibold text-muted-foreground">
-                  Upload
+                {avatarUploadLoading ? (
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-black" }}
+                  />
+                ) : (
+                  <span className="text-xs text-primary">
+                    Change profile picture
+                  </span>
+                )}
+              </Button>
+              <Button
+                className="mt-6 px-3 py-1 bg-transparent border border-border shadow-none rounded-lg text-destructive hover:bg-[#f31260]/20 transition-all duration-300"
+                aria-label="Delete avatar"
+                onClick={handleAvatarDelete}
+                disabled={
+                  avatarDeleteLoading ||
+                  avatarUploadLoading ||
+                  !form.watch("avatar")
+                }
+              >
+                {avatarDeleteLoading ? (
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-destructive" }}
+                  />
+                ) : (
+                  <Trash2 className="w-3 h-3" />
+                )}
+              </Button>
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".png,.jpg,.jpeg,.webp"
+              onChange={handleFileSelect}
+              className="hidden"
+              aria-label="Select avatar image"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 pb-4 border-b-1 border-border">
+            <Avatar
+              src={form.watch("avatar") || ""}
+              className="h-20 w-20"
+              showFallback
+              fallback={
+                <svg
+                  className="w-full h-full text-gray-600"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <rect x="4" y="14" width="16" height="6" rx="3" />
+                </svg>
+              }
+            />
+            <Button
+              size="sm"
+              className="ml-auto border bg-transparent border-border rounded-lg px-3 py-1 text-destructive hover:bg-[#f31260]/20 transition-all duration-300 disabled:opacity-50"
+              aria-label="Delete avatar"
+              onClick={handleAvatarDelete}
+              disabled={
+                avatarDeleteLoading ||
+                avatarUploadLoading ||
+                !form.watch("avatar")
+              }
+            >
+              {avatarDeleteLoading ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-destructive" }}
+                />
+              ) : (
+                <Trash2 className="w-3 h-3" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              className="bg-transparent border border-border rounded-lg px-3 py-1 hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
+              aria-label="Upload avatar"
+              onClick={handleUploadClick}
+              disabled={avatarUploadLoading || avatarDeleteLoading}
+            >
+              {avatarUploadLoading ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-black" }}
+                />
+              ) : (
+                <span className="text-sm text-primary">
+                  Change profile picture
                 </span>
-              </>
-            )}
-          </Button>
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".png,.jpg,.jpeg,.webp"
-            onChange={handleFileSelect}
-            className="hidden"
-            aria-label="Select avatar image"
-          />
-        </div>
-        <div>
+              )}
+            </Button>
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".png,.jpg,.jpeg,.webp"
+              onChange={handleFileSelect}
+              className="hidden"
+              aria-label="Select avatar image"
+            />
+          </div>
+        )}
+        <div className={isMobile ? "space-y-2 px-4 pb-4" : ""}>
           <SectionRow
             label="Name"
             value={form.watch("name") || "Not set"}
@@ -403,9 +478,8 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             onSave={(value) => handleSaveField("username", value as string)}
             fieldType="text"
             error={fieldErrors.username || usernameCheckError}
-            isLoading={usernameCheckLoading}
-            placeholder="your_username"
-            maxLength={32}
+            placeholder="Enter your username"
+            maxLength={30}
           />
           <SectionRow
             label="Age"

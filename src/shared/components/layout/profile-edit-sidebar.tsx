@@ -98,9 +98,12 @@ const ProfileEditSidebar: React.FC<ProfileEditSidebarProps> = ({
     tabs: Array<(typeof TABS)[number]>,
     title?: string
   ) => (
-    <div key={groupKey} className="space-y-0">
+    <div
+      key={groupKey}
+      className="flex flex-row md:flex-col gap-x-2 md:gap-x-0 md:gap-y-2 flex-nowrap overflow-x-auto md:overflow-x-visible whitespace-nowrap px-1 md:px-0"
+    >
       {title && (
-        <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="hidden md:block px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {title}
         </div>
       )}
@@ -113,11 +116,12 @@ const ProfileEditSidebar: React.FC<ProfileEditSidebarProps> = ({
               tabRefs.current[index] = el;
             }}
             type="button"
-            className={`w-full text-left font-medium text-xs sm:text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 hover:bg-gray-100 transition-colors flex items-center gap-2 ${
-              activeTab === tab.key
-                ? "text-primary bg-primary-light font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={
+              `flex items-center gap-2 px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20  transition-colors font-medium text-xs sm:text-sm flex-shrink-0 md:w-full md:justify-start justify-center min-w-[80px]` +
+              (activeTab === tab.key
+                ? " text-primary bg-primary-light font-semibold"
+                : " text-muted-foreground hover:text-foreground hover:bg-gray-100")
+            }
             aria-current={activeTab === tab.key ? "page" : undefined}
             aria-label={tab.label}
             tabIndex={0}
@@ -137,7 +141,7 @@ const ProfileEditSidebar: React.FC<ProfileEditSidebarProps> = ({
   return (
     <nav
       aria-label="Profile Navigation"
-      className="flex flex-row md:flex-col gap-4 p-2 md:p-4 border-gray-200 overflow-y-auto"
+      className="flex flex-row md:flex-col gap-2 md:gap-4 p-2 md:p-4 border-border overflow-x-auto md:overflow-y-auto"
     >
       {renderTabGroup("profile", groupedTabs.profile, "Profile")}
     </nav>
