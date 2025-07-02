@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useAuthStore } from "@/stores/useAuthStore";
-import { Skeleton } from "@/components/SkeletonCard";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
+import { Skeleton } from "@/shared/components/ui/SkeletonCard";
 import DashboardCard from "@/shared/components/ui/DashboardCard"; // Updated path if you moved it
 
 function SkeletonDemo() {
