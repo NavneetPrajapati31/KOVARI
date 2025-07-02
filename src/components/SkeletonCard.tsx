@@ -27,3 +27,5 @@ const UserCard = ({ user, loading }: UserCardProps) => {
     </div>
   );
 };
+
+export { Skeleton };
