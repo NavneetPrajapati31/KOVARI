@@ -1,10 +1,15 @@
 import type { Config } from "tailwindcss";
+const { heroui } = require("@heroui/react");
 
 const config: Config = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/features/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/shared/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/styles/**/*.{js,ts,jsx,tsx,mdx}",
+    "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: "class",
   theme: {
@@ -19,6 +24,8 @@ const config: Config = {
         "popover-foreground": "var(--popover-foreground)",
         primary: "var(--primary)", // Use in your root: --primary: #004831
         "primary-foreground": "var(--primary-foreground)",
+        "primary-hover": "var(--primary-hover)",
+        "primary-light": "var(--primary-light)",
         secondary: "var(--secondary)", // Use in your root: --secondary: #E7EBD0
         "secondary-foreground": "var(--secondary-foreground)",
         muted: "var(--muted)", // --muted: #586F7C
@@ -32,13 +39,9 @@ const config: Config = {
 
         // Optional raw HEX colors if you want direct access too
         brand: {
-          green: "#004831",
-          alabaster: "#E7EBD0",
-          slate: "#586F7C",
-          mint: "#B8DDD9",
-          light: "#F4F4F9",
-          black: "#000000",
-          teal: "#04724D",
+          primary: "#004831", // British Racing Green
+          secondary: "#9BA186", // Sage
+          accent: "#003527", // Coach Green
         },
       },
 
@@ -56,7 +59,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate"), heroui()],
 };
 
 export default config;
