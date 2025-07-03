@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { uploadFiles } from "@/lib/uploadthing";
 import ProfileCropModal from "@/shared/components/profile-crop-modal";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { COUNTRIES } from "@/shared/utils/countries";
+import EditSelectModal from "@/shared/components/ui/edit-select-modal";
 
 interface GeneralSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -46,6 +48,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
+  const [isNationalityModalOpen, setNationalityModalOpen] = useState(false);
 
   // Check username availability with debouncing
   const checkUsernameAvailability = async (
@@ -509,11 +512,10 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
           <SectionRow
             label="Nationality"
             value={form.watch("nationality") || "Not set"}
-            onSave={(value) => handleSaveField("nationality", value as string)}
-            fieldType="text"
             error={fieldErrors.nationality}
             placeholder="Enter your nationality"
             maxLength={50}
+            onEdit={() => setNationalityModalOpen(true)}
           />
         </div>
       </section>
@@ -525,6 +527,16 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
         imageUrl={tempImageUrl}
         onCropComplete={handleCropComplete}
         isLoading={cropLoading}
+      />
+
+      <EditSelectModal
+        open={isNationalityModalOpen}
+        onOpenChange={setNationalityModalOpen}
+        label="Nationality"
+        options={COUNTRIES}
+        value={form.watch("nationality") || ""}
+        onSave={(value) => handleSaveField("nationality", value)}
+        placeholder="Select your nationality"
       />
     </div>
   );

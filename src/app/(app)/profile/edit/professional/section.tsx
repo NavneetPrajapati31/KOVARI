@@ -8,6 +8,8 @@ import {
 } from "@/features/profile/lib/types";
 import SectionRow from "@/features/profile/components/section-row";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { JOBS } from "@/shared/utils/jobs";
+import EditSelectModal from "@/shared/components/ui/edit-select-modal";
 
 interface ProfessionalSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -27,6 +29,7 @@ const ProfessionalSection: React.FC<ProfessionalSectionProps> = ({
 }) => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const isMobile = useIsMobile();
+  const [isJobModalOpen, setJobModalOpen] = useState(false);
 
   // Validate a single field with better error handling
   const validateField = (
@@ -93,11 +96,19 @@ const ProfessionalSection: React.FC<ProfessionalSectionProps> = ({
           <SectionRow
             label="Profession"
             value={form.watch("profession") || "-"}
-            onSave={(value) => handleSaveField("profession", value as string)}
-            fieldType="text"
             error={fieldErrors.profession}
             placeholder="Enter your profession"
             maxLength={50}
+            onEdit={() => setJobModalOpen(true)}
+          />
+          <EditSelectModal
+            open={isJobModalOpen}
+            onOpenChange={setJobModalOpen}
+            label="Profession"
+            options={JOBS}
+            value={form.watch("profession") || ""}
+            onSave={(value) => handleSaveField("profession", value)}
+            placeholder="Select your profession"
           />
         </div>
       </section>

@@ -125,7 +125,12 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
         <div className={isMobile ? "space-y-2 px-4 pt-2 pb-4" : ""}>
           <SectionRow
             label="Interests"
-            value={form.watch("interests")?.join(", ") || "-"}
+            value={
+              Array.isArray(form.watch("interests")) &&
+              form.watch("interests").length > 0
+                ? form.watch("interests").join(", ")
+                : "-"
+            }
             onSave={(value) =>
               handleSaveArrayField("interests", value as string)
             }
@@ -135,7 +140,12 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
           />
           <SectionRow
             label="Languages"
-            value={form.watch("languages")?.join(", ") || "-"}
+            value={
+              Array.isArray(form.watch("languages")) &&
+              form.watch("languages").length > 0
+                ? form.watch("languages").join(", ")
+                : "-"
+            }
             onSave={(value) =>
               handleSaveArrayField("languages", value as string)
             }
