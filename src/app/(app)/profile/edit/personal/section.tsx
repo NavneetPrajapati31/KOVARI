@@ -8,6 +8,7 @@ import {
 } from "@/features/profile/lib/types";
 import SectionRow from "@/features/profile/components/section-row";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { useProfileFieldHandler } from "@/features/profile/hooks/use-profile-field-handler";
 
 interface PersonalSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -25,52 +26,11 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
   form,
   updateProfileField,
 }) => {
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Use the custom hook for standard field logic
+  const { fieldErrors, setFieldError, validateField, handleSaveField } =
+    useProfileFieldHandler({ form, updateProfileField });
+
   const isMobile = useIsMobile();
-
-  // Validate a single field with better error handling
-  const validateField = (
-    field: keyof ProfileEditForm,
-    value: any
-  ): string | null => {
-    try {
-      const fieldSchema = profileEditSchema.shape[field];
-      if (fieldSchema) {
-        fieldSchema.parse(value);
-      }
-      return null;
-    } catch (error: any) {
-      if (error.errors && error.errors.length > 0) {
-        return error.errors[0].message;
-      }
-      return "Invalid value";
-    }
-  };
-
-  const handleSaveField = async (
-    field: keyof ProfileEditForm,
-    value: string | string[]
-  ) => {
-    // Clear previous errors
-    setFieldErrors((prev) => ({ ...prev, [field]: "" }));
-
-    // Validate the field
-    const validationError = validateField(field, value);
-    if (validationError) {
-      setFieldErrors((prev) => ({ ...prev, [field]: validationError }));
-      return;
-    }
-
-    try {
-      await updateProfileField(field, value);
-      form.setValue(field, value);
-      // Clear error on successful save
-      setFieldErrors((prev) => ({ ...prev, [field]: "" }));
-    } catch (error: any) {
-      const errorMessage = error.message || "Failed to save field";
-      setFieldErrors((prev) => ({ ...prev, [field]: errorMessage }));
-    }
-  };
 
   // Helper function to validate and process interests/languages input
   const processArrayField = (
@@ -81,18 +41,16 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
-
-    // Validate minimum length for interests and languages
     if (field === "interests" && items.length === 0) {
       throw new Error("Please select at least one interest");
     }
     if (field === "languages" && items.length === 0) {
       throw new Error("Please select at least one language");
     }
-
     return items;
   };
 
+  // Wrapper for array fields
   const handleSaveArrayField = async (
     field: "interests" | "languages",
     value: string
@@ -101,7 +59,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
       const processedValue = processArrayField(value, field);
       await handleSaveField(field, processedValue);
     } catch (error: any) {
-      setFieldErrors((prev) => ({ ...prev, [field]: error.message }));
+      setFieldError(field, error.message);
     }
   };
 

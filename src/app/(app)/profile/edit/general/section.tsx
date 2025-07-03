@@ -16,6 +16,7 @@ import ProfileCropModal from "@/shared/components/profile-crop-modal";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { COUNTRIES } from "@/shared/utils/countries";
 import EditSelectModal from "@/shared/components/ui/edit-select-modal";
+import { useProfileFieldHandler } from "@/features/profile/hooks/use-profile-field-handler";
 
 interface GeneralSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -35,7 +36,6 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   isLoading,
   updateProfileField,
 }) => {
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
   const [usernameCheckError, setUsernameCheckError] = useState<string | null>(
     null
@@ -49,6 +49,14 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
   const [isNationalityModalOpen, setNationalityModalOpen] = useState(false);
+
+  // Use the custom hook for standard field logic
+  const {
+    fieldErrors,
+    setFieldError,
+    validateField,
+    handleSaveField: baseHandleSaveField,
+  } = useProfileFieldHandler({ form, updateProfileField });
 
   // Check username availability with debouncing
   const checkUsernameAvailability = async (
@@ -92,72 +100,29 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
     });
   };
 
-  // Validate a single field with better error handling
-  const validateField = (
-    field: keyof ProfileEditForm,
-    value: any
-  ): string | null => {
-    try {
-      const fieldSchema = profileEditSchema.shape[field];
-      if (fieldSchema) {
-        fieldSchema.parse(value);
-      }
-      return null;
-    } catch (error: any) {
-      if (error.errors && error.errors.length > 0) {
-        return error.errors[0].message;
-      }
-      return "Invalid value";
-    }
-  };
-
+  // Custom handleSaveField for username (with availability check)
   const handleSaveField = async (
     field: keyof ProfileEditForm,
     value: string | number | string[]
   ) => {
-    console.log(`handleSaveField called with field: ${field}, value:`, value);
-
-    // Clear previous errors
-    setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+    setFieldError(field, "");
     setUsernameCheckError(null);
-
     // Validate the field
     const validationError = validateField(field, value);
-    console.log(`Validation error for ${field}:`, validationError);
-
     if (validationError) {
-      setFieldErrors((prev) => ({ ...prev, [field]: validationError }));
-      console.log(`Validation failed for ${field}:`, validationError);
+      setFieldError(field, validationError);
       return;
     }
-
     // Special handling for username - check availability
     if (field === "username") {
       const isAvailable = await checkUsernameAvailability(value as string);
       if (!isAvailable) {
-        setFieldErrors((prev) => ({
-          ...prev,
-          [field]: "Username is already taken",
-        }));
+        setFieldError(field, "Username is already taken");
         return;
       }
     }
-
-    try {
-      console.log(`Calling updateProfileField for ${field} with value:`, value);
-      await updateProfileField(field, value);
-      console.log(`updateProfileField successful for ${field}`);
-
-      form.setValue(field, value);
-      console.log(`Form value updated for ${field}:`, value);
-
-      // Clear error on successful save
-      setFieldErrors((prev) => ({ ...prev, [field]: "" }));
-    } catch (error: any) {
-      console.error(`Error in handleSaveField for ${field}:`, error);
-      const errorMessage = error.message || "Failed to save field";
-      setFieldErrors((prev) => ({ ...prev, [field]: errorMessage }));
-    }
+    // Use base handler for save
+    await baseHandleSaveField(field, value);
   };
 
   // Handle avatar upload - now shows crop modal instead of direct upload
