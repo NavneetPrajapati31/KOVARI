@@ -85,8 +85,8 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             label="Interests"
             value={
               Array.isArray(form.watch("interests")) &&
-              form.watch("interests").length > 0
-                ? form.watch("interests").join(", ")
+              (form.watch("interests")?.length ?? 0) > 0
+                ? form.watch("interests")!.join(", ")
                 : "-"
             }
             onSave={(value) =>
@@ -100,8 +100,8 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             label="Languages"
             value={
               Array.isArray(form.watch("languages")) &&
-              form.watch("languages").length > 0
-                ? form.watch("languages").join(", ")
+              (form.watch("languages")?.length ?? 0) > 0
+                ? form.watch("languages")!.join(", ")
                 : "-"
             }
             onSave={(value) =>
