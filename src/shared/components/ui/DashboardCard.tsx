@@ -3,6 +3,7 @@ import React from "react";
 interface DashboardCardProps {
   title: string;
   count?: number;
+  value?: string | number;
   loading?: boolean;
   emptyText?: string;
 }
@@ -10,6 +11,7 @@ interface DashboardCardProps {
 const DashboardCard: React.FC<DashboardCardProps> = ({
   title,
   count,
+  value,
   loading,
   emptyText = "No data available",
 }) => {
@@ -19,6 +21,8 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
 
       {loading ? (
         <div className="h-6 w-20 bg-[#D6D1BC] rounded animate-pulse" />
+      ) : value !== undefined ? (
+        <p className="text-4xl font-bold text-[#004831]">{value}</p>
       ) : count !== undefined && count > 0 ? (
         <p className="text-4xl font-bold text-[#004831]">{count}</p>
       ) : (
