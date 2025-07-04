@@ -23,7 +23,7 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
         <div className="h-6 w-20 bg-[#D6D1BC] rounded animate-pulse" />
       ) : value !== undefined ? (
         <p className="text-4xl font-bold text-[#004831]">{value}</p>
-      ) : count !== undefined && count > 0 ? (
+      ) : count !== undefined ? (
         <p className="text-4xl font-bold text-[#004831]">{count}</p>
       ) : (
         <p className="text-sm text-[#5C6249]">{emptyText}</p>

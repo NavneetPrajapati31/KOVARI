@@ -1,9 +1,8 @@
-// src/shared/hooks/useUserGroups.ts
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useUser } from "@clerk/nextjs";
 
-type Group = {
+export type Group = {
   group_id: string;
   group: {
     name: string;
@@ -12,6 +11,7 @@ type Group = {
       from: string;
       to: string;
     };
+    trip_type: "solo" | "group";
   } | null;
 };
 
@@ -27,17 +27,23 @@ export function useUserGroups() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("group_memberships")
-        .select("group_id, group:groups(name, destination, trip_dates)")
+        .select("group_id, group:groups(name, destination, trip_dates, trip_type)")
         .eq("user_id", user.id);
 
-        if (!error) {
-            setGroups(
-              (data || []).map((item: any) => ({
-                group_id: item.group_id,
-                group: item.group?.[0] ?? null,
-              }))
-            );
-          }
+      console.log("📦 Supabase GROUPS DATA ===>", data);
+      if (error) {
+        console.error("❌ Supabase ERROR:", error);
+      }
+
+      if (!error && data) {
+        setGroups(
+          data.map((item: any) => ({
+            group_id: item.group_id,
+            group: Array.isArray(item.group) ? item.group[0] ?? null : item.group,
+          }))
+        );
+      }
+
       setLoading(false);
     };
 
