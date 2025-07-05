@@ -1,32 +1,51 @@
 import { format } from "date-fns";
-import { Button } from "@heroui/react";
-import { Invite } from "@/shared/hooks/usePendingInvites";
+import { Card, CardContent, CardHeader, CardTitle } from "./card";
+import { Button } from "./button";
 
-interface Props {
-  invite: Invite;
+interface PendingInviteCardProps {
+  group: {
+    name: string;
+    destination: string | null;
+    start_date: string | null;
+    end_date: string | null;
+  };
   onAccept: () => void;
   onDecline: () => void;
 }
 
-export default function PendingInviteCard({ invite, onAccept, onDecline }: Props) {
-  const group = invite.group;
+export function PendingInviteCard({
+  group,
+  onAccept,
+  onDecline,
+}: PendingInviteCardProps) {
   return (
-    <div className="bg-[#ECEABE] border border-[#B2A890] rounded-xl p-4 flex justify-between items-center shadow-sm">
-      <div>
-        <h3 className="text-lg font-semibold text-[#004831]">{group.name}</h3>
-        <p className="text-sm text-[#3A3A2C]">
-          {group.destination} — {format(new Date(group.trip_dates.from), "dd MMM")} to{" "}
-          {format(new Date(group.trip_dates.to), "dd MMM")}
-        </p>
-      </div>
-      <div className="flex gap-2">
-        <Button size="sm" onClick={onAccept} className="bg-primary text-white">
-          Accept
-        </Button>
-        <Button size="sm" onClick={onDecline} className="bg-red-600 text-white">
-          Decline
-        </Button>
-      </div>
-    </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">{group.name}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {group.destination && (
+            <p className="text-sm text-muted-foreground">
+              Destination: {group.destination}
+            </p>
+          )}
+          {group.start_date && group.end_date && (
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(group.start_date), "dd MMM")} to{" "}
+              {format(new Date(group.end_date), "dd MMM")}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button onClick={onAccept} size="sm">
+              Accept
+            </Button>
+            <Button onClick={onDecline} variant="outline" size="sm">
+              Decline
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

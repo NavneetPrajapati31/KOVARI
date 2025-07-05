@@ -2,34 +2,31 @@ import React from "react";
 
 interface DashboardCardProps {
   title: string;
-  count?: number;
   value?: string | number;
+  count?: number;
   loading?: boolean;
   emptyText?: string;
 }
 
-const DashboardCard: React.FC<DashboardCardProps> = ({
+export default function DashboardCard({
   title,
-  count,
   value,
+  count,
   loading,
-  emptyText = "No data available",
-}) => {
+  emptyText,
+}: DashboardCardProps) {
   return (
-    <div className="bg-[#ECEABE] border border-[#B2A890] rounded-xl p-5 shadow-md hover:shadow-lg transition">
-      <h2 className="text-lg font-medium mb-2 text-[#004831]">{title}</h2>
-
+    <div className="bg-background border border-border rounded-xl p-5 shadow-md hover:shadow-lg transition">
+      <h2 className="text-lg font-medium mb-2 text-primary">{title}</h2>
       {loading ? (
-        <div className="h-6 w-20 bg-[#D6D1BC] rounded animate-pulse" />
+        <div className="h-6 w-20 bg-muted rounded animate-pulse" />
       ) : value !== undefined ? (
-        <p className="text-4xl font-bold text-[#004831]">{value}</p>
+        <p className="text-4xl font-bold text-primary">{value}</p>
       ) : count !== undefined ? (
-        <p className="text-4xl font-bold text-[#004831]">{count}</p>
+        <p className="text-4xl font-bold text-primary">{count}</p>
       ) : (
-        <p className="text-sm text-[#5C6249]">{emptyText}</p>
+        <p className="text-sm text-muted-foreground">{emptyText}</p>
       )}
     </div>
   );
-};
-
-export default DashboardCard;
+}

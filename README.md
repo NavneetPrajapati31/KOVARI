@@ -44,11 +44,16 @@ npm install
    Create a `.env.local` file in the root directory and add your environment variables:
 
 ```env
+# Clerk Authentication (Required)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+
+# Supabase Database (Required)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
+
+**Important:** You must configure both Clerk and Supabase environment variables for the application to work properly. The Supabase error you're seeing indicates that these variables are missing.
 
 4. Run the development server:
 
@@ -74,6 +79,33 @@ src/
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+
+## 🔧 Troubleshooting
+
+### Supabase Connection Errors
+
+If you see errors like `❌ Supabase ERROR: {}` or `Supabase environment variables are not configured`, follow these steps:
+
+1. **Check Environment Variables**: Ensure your `.env.local` file exists and contains the required Supabase variables:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+2. **Get Supabase Credentials**:
+   - Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+   - Select your project
+   - Go to Settings → API
+   - Copy the "Project URL" and "anon public" key
+
+3. **Restart Development Server**: After adding environment variables, restart your dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+4. **Verify Database Tables**: Ensure your Supabase database has the required tables (`group_memberships`, `groups`, etc.)
 
 ## 📝 License
 

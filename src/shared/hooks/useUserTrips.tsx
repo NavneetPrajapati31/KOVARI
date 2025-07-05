@@ -2,11 +2,14 @@
 import { useUserGroups } from "./useUserGroups";
 
 export function useUserTrips() {
-  const { groups, loading } = useUserGroups();
+  const { groups } = useUserGroups();
 
   const trips = groups
-    .filter((group) => group.group?.trip_dates)
-    .map((group) => group.group!.trip_dates);
+    .filter((group) => group.group?.start_date && group.group?.end_date)
+    .map((group) => ({
+      from: group.group!.start_date,
+      to: group.group!.end_date,
+    }));
 
-  return { trips, loading };
+  return { trips };
 }
