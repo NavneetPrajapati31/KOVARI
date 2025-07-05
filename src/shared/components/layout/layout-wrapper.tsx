@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Navbar from "@/shared/components/layout/Navbar";
+import Navbar from "@/shared/components/layout/NavbarV3";
 import { useState } from "react";
 
 const HIDE_LAYOUT_ROUTES = [
