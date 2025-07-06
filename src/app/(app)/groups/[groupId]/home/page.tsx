@@ -170,7 +170,7 @@ const GroupHomePage = () => {
         const res = await fetch(`/api/groups/${params.groupId}/members`);
         if (!res.ok) throw new Error("Failed to fetch group members");
         const data = await res.json();
-        setGroupMembers(data.members || []);
+        setGroupMembers(data || []);
       } catch (err: unknown) {
         setMembersError((err as Error).message);
       } finally {

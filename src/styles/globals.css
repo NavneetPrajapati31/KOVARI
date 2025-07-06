@@ -130,6 +130,19 @@
     outline-color: #004831; /* primary color */
     outline-opacity: 0.5;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom Scrollbar Styles */
+
+  /* Firefox */
+  * {
+    scroll-behavior: smooth;
+    scrollbar-width: 50px;
+    scrollbar-color: #cbd5e1 var(--background);
+  }
 }
 
 @layer utilities {
@@ -208,4 +221,22 @@ body {
 }
 .reactCrop__crop-selection:after {
   display: none !important;
+}
+
+/* Custom scrollbar styles */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

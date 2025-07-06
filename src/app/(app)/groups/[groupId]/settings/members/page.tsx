@@ -192,7 +192,12 @@ export default function Page() {
         const res = await fetch(`/api/groups/${groupId}/members`);
         if (!res.ok) throw new Error("Failed to fetch members");
         const data = await res.json();
-        setMembers(data.members || []);
+        setMembers(
+          (data || []).map((member: any) => ({
+            ...member,
+            dateAdded: member.joined_at,
+          }))
+        );
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "An unknown error occurred"
