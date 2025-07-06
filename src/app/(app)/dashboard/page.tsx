@@ -100,7 +100,7 @@ export default function Dashboard() {
 
           {/* Quick Stats */}
           <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
+            <h2 className="text-xl font-semibold text-foreground mb-3">
               Quick Stats
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -127,7 +127,7 @@ export default function Dashboard() {
 
           {/* Visual Insights */}
           <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
+            <h2 className="text-xl font-semibold text-foreground mb-3">
               Visual Insights
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -138,7 +138,7 @@ export default function Dashboard() {
 
           {/* Your Groups */}
           <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
+            <h2 className="text-xl font-semibold text-foreground mb-3">
               Your Groups
             </h2>
             {groups.length === 0 ? (
@@ -156,7 +156,7 @@ export default function Dashboard() {
 
           {/* Pending Invites */}
           <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
+            <h2 className="text-xl font-semibold text-foreground mb-3">
               Pending Invites
             </h2>
             {pendingLoading ? (
@@ -183,7 +183,7 @@ export default function Dashboard() {
 
           {/* Trip Summary */}
           <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
+            <h2 className="text-xl font-semibold text-foreground mb-3">
               Trip Summary
             </h2>
             {upcomingTrips.length === 0 && pastTrips.length === 0 ? (
@@ -192,7 +192,7 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {upcomingTrips.length > 0 && (
                   <div>
-                    <h3 className="text-md font-medium text-[#004831] mb-2">
+                    <h3 className="text-md font-medium text-foreground mb-2">
                       Upcoming Trips
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -217,7 +217,7 @@ export default function Dashboard() {
 
                 {pastTrips.length > 0 && (
                   <div>
-                    <h3 className="text-md font-medium text-[#004831] mb-2">
+                    <h3 className="text-md font-medium text-foreground mb-2">
                       Past Trips
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
