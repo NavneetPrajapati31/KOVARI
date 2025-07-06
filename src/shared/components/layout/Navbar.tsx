@@ -138,7 +138,7 @@ export default function App({
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await signOut({ redirectUrl: "/sign-in" });
     } catch (error) {
       console.error("Error signing out:", error);
     }

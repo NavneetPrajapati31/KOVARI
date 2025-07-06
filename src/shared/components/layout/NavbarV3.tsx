@@ -78,7 +78,9 @@ export default function App({
   const { signOut } = useClerk();
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [profilePhotoLoading, setProfilePhotoLoading] = useState(false);
-  const [profilePhotoError, setProfilePhotoError] = useState<string | null>(null);
+  const [profilePhotoError, setProfilePhotoError] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     setIsNavigating(false);
@@ -130,13 +132,14 @@ export default function App({
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await signOut({ redirectUrl: "/sign-in" });
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  const isActiveRoute = (href: string) => (href === "#" ? pathname === "/" : pathname === href);
+  const isActiveRoute = (href: string) =>
+    href === "#" ? pathname === "/" : pathname === href;
 
   const navigationItems = [
     { name: "Features", href: "#features", icon: Compass },
@@ -149,26 +152,25 @@ export default function App({
     { key: "auth", label: <span>{`Signed in as ${user?.username}`}</span> },
     { key: "profile", label: "My Profile", href: "/profile" },
     { key: "Groups", label: "My Groups", href: "/groups" },
-    { key: "logout", label: <p className="text-danger">Log Out</p>, onClick: handleSignOut },
+    {
+      key: "logout",
+      label: <p className="text-danger">Log Out</p>,
+      onClick: handleSignOut,
+    },
   ];
 
   return (
     <Navbar
-    
-        height={"4rem"}
-        shouldHideOnScroll
-        isBordered={false}
-        onMenuOpenChange={setIsMenuOpen}
-        isMenuOpen={isMenuOpen}
-        className="bg-[#f6ecd9]/90 hover:bg-[#f6ecd9]/95 backdrop-blur-md transition-colors duration-300 shadow-none border-none"
-        classNames={{
-          wrapper: "max-w-full px-4",
-        }}
-      >
-  
-  
-
-
+      height={"4rem"}
+      shouldHideOnScroll
+      isBordered={false}
+      onMenuOpenChange={setIsMenuOpen}
+      isMenuOpen={isMenuOpen}
+      className="bg-[#f6ecd9]/90 hover:bg-[#f6ecd9]/95 backdrop-blur-md transition-colors duration-300 shadow-none border-none"
+      classNames={{
+        wrapper: "max-w-full px-4",
+      }}
+    >
       <NavbarBrand>
         <Link
           href="/"
@@ -215,7 +217,11 @@ export default function App({
               </DropdownMenuTrigger>
               <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all border-border mr-8">
                 {menuItems.map((item) => (
-                  <Link key={item.key} href={item.href} className="flex flex-col">
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    className="flex flex-col"
+                  >
                     <DropdownMenuItem
                       key={item.key}
                       onClick={item.onClick}
