@@ -23,6 +23,7 @@ export interface GroupInfo {
   id: string;
   name: string;
   destination?: string;
+  description?: string;
   members_count?: number;
   cover_image?: string;
 }
@@ -88,17 +89,24 @@ export const useGroupChat = (groupId: string) => {
                 iv: message.encryptionIv,
                 salt: message.encryptionSalt,
               };
-              const decryptedContent = groupKeyRef.current
-                ? decryptGroupMessage(encryptedMessage, groupKeyRef.current)
-                : null;
+
+              // Use the current group key for decryption
+              const currentGroupKey = groupKeyRef.current;
               console.log(
                 "[Decrypt] Encrypted:",
                 encryptedMessage,
                 "GroupKey:",
-                groupKeyRef.current,
-                "Decrypted:",
-                decryptedContent
+                currentGroupKey,
+                "GroupKeyRef:",
+                groupKeyRef.current
               );
+
+              const decryptedContent = currentGroupKey
+                ? decryptGroupMessage(encryptedMessage, currentGroupKey)
+                : null;
+
+              console.log("[Decrypt] Result:", decryptedContent);
+
               return {
                 ...message,
                 content: decryptedContent || "[Encrypted message]",
@@ -204,12 +212,20 @@ export const useGroupChat = (groupId: string) => {
 
         const newMessage = await response.json();
 
-        // Decrypt the message for local display
-        const decryptedMessage = {
-          ...newMessage,
-          content: content.trim(),
-          isEncrypted: false,
+        // Create the decrypted message for local display
+        const decryptedMessage: ChatMessage = {
+          id: newMessage.id,
+          content: content.trim(), // Use the original content for immediate display
+          timestamp: newMessage.timestamp,
+          sender: newMessage.sender,
+          senderUsername: newMessage.senderUsername,
+          avatar: newMessage.avatar,
+          isCurrentUser: true,
+          createdAt: newMessage.createdAt,
         };
+
+        // Add the message optimistically to the UI
+        setMessages((prev) => [...prev, decryptedMessage]);
 
         return decryptedMessage;
       } catch (err) {
@@ -279,48 +295,84 @@ export const useGroupChat = (groupId: string) => {
             const currentUserUuid = await getUserUuidByClerkId(user.id);
             const isCurrentUser = messageData.user_id === currentUserUuid;
 
-            // Decrypt the message if it's encrypted
-            let decryptedContent = messageData.content;
-            if (messageData.is_encrypted && messageData.encrypted_content) {
-              try {
-                const encryptedMessage: EncryptedMessage = {
-                  encryptedContent: messageData.encrypted_content,
-                  iv: messageData.encryption_iv,
-                  salt: messageData.encryption_salt,
-                };
-                decryptedContent =
-                  decryptLocalMessage(encryptedMessage) ||
-                  "[Encrypted message]";
-              } catch (err) {
-                console.error(
-                  "[Realtime] Error decrypting real-time message:",
-                  err
+            // Skip adding the message if it's from the current user and we already have it
+            // (due to optimistic updates)
+            setMessages((prev) => {
+              const messageExists = prev.some(
+                (msg) => msg.id === messageData.id
+              );
+              if (messageExists && isCurrentUser) {
+                console.log(
+                  "[Realtime] Skipping duplicate message from current user"
                 );
-                decryptedContent = "[Failed to decrypt message]";
+                return prev;
               }
-            }
 
-            const formattedMessage: ChatMessage = {
-              id: messageData.id,
-              content: decryptedContent,
-              timestamp: new Date(messageData.created_at).toLocaleTimeString(
-                [],
-                {
-                  hour: "2-digit",
-                  minute: "2-digit",
+              // Decrypt the message if it's encrypted
+              let decryptedContent = messageData.content;
+              if (messageData.is_encrypted && messageData.encrypted_content) {
+                try {
+                  const encryptedMessage: EncryptedMessage = {
+                    encryptedContent: messageData.encrypted_content,
+                    iv: messageData.encryption_iv,
+                    salt: messageData.encryption_salt,
+                  };
+
+                  // Use the current group key for decryption
+                  const currentGroupKey = groupKeyRef.current;
+                  console.log(
+                    "[Realtime] Decrypting with key:",
+                    currentGroupKey ? "Available" : "Not available",
+                    "Encrypted message:",
+                    encryptedMessage
+                  );
+
+                  decryptedContent = currentGroupKey
+                    ? decryptGroupMessage(encryptedMessage, currentGroupKey)
+                    : "[Encrypted message]";
+
+                  console.log(
+                    "[Realtime] Decryption result:",
+                    decryptedContent
+                  );
+                } catch (err) {
+                  console.error(
+                    "[Realtime] Error decrypting real-time message:",
+                    err
+                  );
+                  decryptedContent = "[Failed to decrypt message]";
                 }
-              ),
-              sender:
-                (messageData.users as any)?.profiles?.name || "Unknown User",
-              senderUsername: (messageData.users as any)?.profiles?.username,
-              avatar: (messageData.users as any)?.profiles?.profile_photo,
-              isCurrentUser,
-              createdAt: messageData.created_at,
-            };
+              }
 
-            // Always add the message to the state (even if it's from the current user)
-            setMessages((prev) => [...prev, formattedMessage]);
-            console.log("[Realtime] Added message to state:", formattedMessage);
+              const formattedMessage: ChatMessage = {
+                id: messageData.id,
+                content: decryptedContent,
+                timestamp: new Date(messageData.created_at).toLocaleTimeString(
+                  [],
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }
+                ),
+                sender:
+                  (messageData.users as any)?.profiles?.name || "Unknown User",
+                senderUsername: (messageData.users as any)?.profiles?.username,
+                avatar: (messageData.users as any)?.profiles?.profile_photo,
+                isCurrentUser,
+                createdAt: messageData.created_at,
+              };
+
+              // If it's a new message (not from current user or not already in state)
+              if (!messageExists) {
+                console.log(
+                  "[Realtime] Adding new message to state:",
+                  formattedMessage
+                );
+                return [...prev, formattedMessage];
+              }
+
+              return prev;
+            });
           } catch (err) {
             console.error(
               "[Realtime] Error processing real-time message:",

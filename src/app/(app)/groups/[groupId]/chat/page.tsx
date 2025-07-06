@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useParams } from "next/navigation";
-import { Avatar, AvatarGroup } from "@heroui/react";
+import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -19,14 +19,16 @@ import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
 import { toast } from "sonner";
 import { Shield, ShieldCheck } from "lucide-react";
+import { Chip } from "@heroui/react";
 
 export default function GroupChatInterface() {
   const params = useParams();
   const groupId = params.groupId as string;
 
   const [message, setMessage] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  console.log("Current message state:", message);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const prevGroupIdRef = useRef<string | null>(null);
 
   const {
     messages,
@@ -45,28 +47,21 @@ export default function GroupChatInterface() {
     isEncryptionAvailable,
   } = useGroupEncryption(groupId);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const scrollToBottomImmediate = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-  };
-
   useEffect(() => {
-    // Set initial scroll position to bottom immediately
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop =
-        messagesContainerRef.current.scrollHeight;
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+      console.log("[Chat Scroll Debug] scrollHeight:", container.scrollHeight);
+      console.log("[Chat Scroll Debug] clientHeight:", container.clientHeight);
+      console.log("[Chat Scroll Debug] children:", container.children.length);
+      if (container.lastElementChild) {
+        console.log(
+          "[Chat Scroll Debug] last child:",
+          container.lastElementChild
+        );
+      }
     }
-  }, []); // Empty dependency array means this runs only once on mount
-
-  useEffect(() => {
-    // For subsequent message updates, use smooth scrolling
-    if (messages.length > 0) {
-      scrollToBottom();
-    }
-  }, [messages]);
+  }, [messages, groupId]);
 
   // Show error toast if there's an error
   useEffect(() => {
@@ -77,12 +72,17 @@ export default function GroupChatInterface() {
 
   const handleSendMessage = async () => {
     if (message.trim() && !sending) {
+      const messageToSend = message.trim();
+      setMessage(""); // Clear input immediately for better UX
+
       try {
-        await sendMessage(message);
-        setMessage("");
+        await sendMessage(messageToSend);
+        // Message is already added optimistically in the hook
       } catch (err) {
         console.error("Failed to send message:", err);
         toast.error("Failed to send message. Please try again.");
+        // Optionally restore the message to input if it failed
+        // setMessage(messageToSend);
       }
     }
   };
@@ -94,13 +94,13 @@ export default function GroupChatInterface() {
     }
   };
 
-  if (loading) {
+  if (loading && messages.length === 0) {
     return (
       <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-        <div className="flex h-[650px] items-center justify-center">
+        <div className="flex h-[80vh] items-center justify-center">
           <div className="flex items-center space-x-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="text-muted-foreground">Loading chat...</span>
+            <Spinner variant="spinner" size="md" color="primary" />
+            {/* <span className="text-muted-foreground">Loading chat...</span> */}
           </div>
         </div>
       </div>
@@ -109,22 +109,28 @@ export default function GroupChatInterface() {
 
   return (
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-      <div className="flex h-[650px]">
+      <div className="flex h-[80vh]">
         {/* Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <div className="p-5 border-b border-border bg-transparent">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <h1 className="text-md font-semibold text-foreground">
                     {groupInfo?.name || "Loading..."}
                   </h1>
                   {isEncryptionAvailable && keyFingerprint && (
-                    <div className="flex items-center gap-1 text-xs text-green-600">
-                      <ShieldCheck className="h-3 w-3" />
-                      <span>End-to-end encrypted</span>
-                    </div>
+                    <Chip
+                      size="sm"
+                      variant="bordered"
+                      className="text-xs capitalize flex-shrink-0 self-center bg-primary-light border-1 border-primary text-primary px-2"
+                    >
+                      <div className="flex items-center gap-1 text-xs text-primary">
+                        <ShieldCheck className="h-3 w-3" />
+                        <span>End-to-end encrypted</span>
+                      </div>
+                    </Chip>
                   )}
                   {!isEncryptionAvailable && !encryptionLoading && (
                     <div className="flex items-center gap-1 text-xs text-yellow-600">
@@ -170,6 +176,7 @@ export default function GroupChatInterface() {
           <div
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none"
+            data-testid="messages-container"
           >
             {messages.length === 0 ? (
               <div className="text-center py-8">
@@ -231,20 +238,20 @@ export default function GroupChatInterface() {
                 ))}
               </>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Message Input - Sticky */}
           <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border p-4 shadow-none">
             <div className="flex items-center space-x-2">
               <div className="flex-1 relative h-10 bg-gray-100 rounded-full">
-                <Input
+                <input
+                  key={groupId}
+                  type="text"
                   placeholder="Your message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  disabled={sending}
-                  className="pr-12 h-10 rounded-full placeholder:text-gray-400"
+                  className="pr-12 h-10 rounded-full placeholder:text-gray-400 w-full bg-gray-100 border-none focus:ring-0 focus:outline-none text-sm px-4"
                 />
                 <Button
                   size="icon"
@@ -274,14 +281,8 @@ export default function GroupChatInterface() {
           <div className="p-5">
             {/* Company Info */}
             <div className="text-center mb-3 border-b-1 border-border">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg
-                  className="w-8 h-8 text-primary-foreground"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
+              <div className="flex items-center justify-center mx-auto mb-3">
+                <Avatar src={groupInfo?.cover_image} size={"lg"} />
               </div>
               <h2 className="text-md font-semibold text-foreground">
                 {groupInfo?.name || "Loading..."}
@@ -289,11 +290,11 @@ export default function GroupChatInterface() {
               <p className="text-xs text-muted-foreground font-medium">
                 {members.length} member{members.length !== 1 ? "s" : ""}
               </p>
-              <p className="text-xs text-muted-foreground mt-2 text-left mb-3">
-                {groupInfo?.destination
-                  ? `Traveling to ${groupInfo.destination}`
-                  : "Group Chat"}
-              </p>
+              {groupInfo?.description && (
+                <p className="text-xs text-muted-foreground mt-2 text-left mb-3">
+                  {groupInfo.description}
+                </p>
+              )}
             </div>
 
             {/* Members */}

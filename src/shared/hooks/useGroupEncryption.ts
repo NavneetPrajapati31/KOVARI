@@ -46,51 +46,93 @@ export const useGroupEncryption = (groupId: string) => {
         throw new Error("User not found in database");
       }
 
-      // Check if we have a stored key for this group
-      const { data: existingKey, error: fetchError } = await supabase
-        .from("group_encryption_keys")
-        .select("*")
+      // Check if there's already a group key for this group (shared by all members)
+      const { data: existingGroupKey, error: fetchGroupKeyError } =
+        await supabase
+          .from("group_encryption_keys")
+          .select("*")
+          .eq("group_id", groupId)
+          .limit(1)
+          .single();
+
+      if (fetchGroupKeyError && fetchGroupKeyError.code !== "PGRST116") {
+        console.error(
+          "[Encryption] Error fetching group key:",
+          fetchGroupKeyError
+        );
+        throw fetchGroupKeyError;
+      }
+
+      if (existingGroupKey) {
+        // Use the existing group key
+        setGroupKey(existingGroupKey.encryption_key);
+        setKeyFingerprint(existingGroupKey.key_fingerprint);
+        console.log(
+          "[Encryption] Loaded existing group key:",
+          existingGroupKey.encryption_key
+        );
+        return existingGroupKey.encryption_key;
+      }
+
+      // Check if user is a member of the group before creating a key
+      const { data: membership, error: membershipError } = await supabase
+        .from("group_memberships")
+        .select("status")
         .eq("group_id", groupId)
         .eq("user_id", userRow.id)
+        .eq("status", "accepted")
         .single();
 
-      if (fetchError && fetchError.code !== "PGRST116") {
-        console.error("[Encryption] Error fetching group key:", fetchError);
-        throw fetchError;
-      }
-
-      if (existingKey) {
-        setGroupKey(existingKey.encryption_key);
-        setKeyFingerprint(existingKey.key_fingerprint);
-        console.log(
-          "[Encryption] Loaded group key:",
-          existingKey.encryption_key
+      if (membershipError || !membership) {
+        console.error(
+          "[Encryption] User is not a member of this group:",
+          membershipError
         );
-        return existingKey.encryption_key;
+        throw new Error("Not a member of this group");
       }
 
-      // Generate new key for this group
+      // Generate new shared key for this group
       const newKeyData = generateGroupKey();
       const fingerprint = generateKeyFingerprint(newKeyData.key);
 
-      // Store the key
-      const { error: insertError } = await supabase
+      // Store the shared group key
+      const insertPayload = {
+        group_id: groupId,
+        user_id: userRow.id, // The user who creates the key
+        encryption_key: newKeyData.key,
+        key_fingerprint: fingerprint,
+        created_at: newKeyData.createdAt,
+      };
+
+      console.log("[Encryption] Attempting to insert new group key:", {
+        groupId,
+        userId: userRow.id,
+        hasKey: !!newKeyData.key,
+        hasFingerprint: !!fingerprint,
+      });
+
+      const { data: insertData, error: insertError } = await supabase
         .from("group_encryption_keys")
-        .insert({
-          group_id: groupId,
-          user_id: userRow.id,
-          encryption_key: newKeyData.key,
-          key_fingerprint: fingerprint,
-          created_at: newKeyData.createdAt,
-        });
+        .insert(insertPayload)
+        .select()
+        .single();
 
       if (insertError) {
-        console.error(
-          "[Encryption] Error inserting new group key:",
-          insertError
-        );
+        console.error("[Encryption] Error inserting new group key:", {
+          error: insertError,
+          payload: insertPayload,
+          errorCode: insertError.code,
+          errorMessage: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+        });
         throw insertError;
       }
+
+      console.log(
+        "[Encryption] Successfully inserted new group key:",
+        insertData
+      );
 
       setGroupKey(newKeyData.key);
       setKeyFingerprint(fingerprint);
