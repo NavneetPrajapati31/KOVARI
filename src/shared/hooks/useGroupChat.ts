@@ -216,7 +216,11 @@ export const useGroupChat = (groupId: string) => {
         const decryptedMessage: ChatMessage = {
           id: newMessage.id,
           content: content.trim(), // Use the original content for immediate display
-          timestamp: newMessage.timestamp,
+          timestamp: new Date(newMessage.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Kolkata",
+          }),
           sender: newMessage.sender,
           senderUsername: newMessage.senderUsername,
           avatar: newMessage.avatar,
@@ -265,7 +269,6 @@ export const useGroupChat = (groupId: string) => {
               .select(
                 `
                 id,
-                content,
                 encrypted_content,
                 encryption_iv,
                 encryption_salt,
@@ -309,7 +312,7 @@ export const useGroupChat = (groupId: string) => {
               }
 
               // Decrypt the message if it's encrypted
-              let decryptedContent = messageData.content;
+              let decryptedContent = "[Encrypted message]";
               if (messageData.is_encrypted && messageData.encrypted_content) {
                 try {
                   const encryptedMessage: EncryptedMessage = {
@@ -352,6 +355,7 @@ export const useGroupChat = (groupId: string) => {
                   {
                     hour: "2-digit",
                     minute: "2-digit",
+                    timeZone: "Asia/Kolkata",
                   }
                 ),
                 sender:

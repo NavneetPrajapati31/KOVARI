@@ -48,7 +48,6 @@ export async function GET(
       .select(
         `
         id,
-        content,
         encrypted_content,
         encryption_iv,
         encryption_salt,
@@ -80,7 +79,6 @@ export async function GET(
     const formattedMessages =
       messages?.map((message: any) => ({
         id: message.id,
-        content: message.content,
         encrypted_content: message.encrypted_content,
         encryption_iv: message.encryption_iv,
         encryption_salt: message.encryption_salt,
@@ -88,6 +86,7 @@ export async function GET(
         timestamp: new Date(message.created_at).toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
+          timeZone: "Asia/Kolkata",
         }),
         sender: message.users?.profiles?.name || "Unknown User",
         senderUsername: message.users?.profiles?.username,
@@ -120,21 +119,15 @@ export async function POST(
 
     // Read the request body once
     const body = await req.json();
-    const {
-      content,
-      encryptedContent,
-      encryptionIv,
-      encryptionSalt,
-      isEncrypted,
-    } = body;
+    const { encryptedContent, encryptionIv, encryptionSalt, isEncrypted } =
+      body;
 
-    if (
-      !content ||
-      typeof content !== "string" ||
-      content.trim().length === 0
-    ) {
+    if (!isEncrypted || !encryptedContent || !encryptionIv || !encryptionSalt) {
       return NextResponse.json(
-        { error: "Message content is required" },
+        {
+          error:
+            "Only encrypted messages are supported. Missing encryption fields.",
+        },
         { status: 400 }
       );
     }
@@ -168,93 +161,40 @@ export async function POST(
       );
     }
 
-    let messageData: any = {
+    // Store encrypted message only
+    const messageData = {
       group_id: groupId,
       user_id: userRow.id,
+      encrypted_content: encryptedContent,
+      encryption_iv: encryptionIv,
+      encryption_salt: encryptionSalt,
+      is_encrypted: true,
     };
 
-    if (isEncrypted && encryptedContent && encryptionIv && encryptionSalt) {
-      // Store encrypted message
-      messageData = {
-        ...messageData,
-        encrypted_content: encryptedContent,
-        encryption_iv: encryptionIv,
-        encryption_salt: encryptionSalt,
-        is_encrypted: true,
-        content: null,
-      };
-    } else {
-      // Store plain text message
-      messageData = {
-        ...messageData,
-        content: content.trim(),
-        is_encrypted: false,
-      };
-    }
-
     // Insert the message
-    console.log("Inserting message data:", {
-      group_id: messageData.group_id,
-      user_id: messageData.user_id,
-      has_content: !!messageData.content,
-      has_encrypted_content: !!messageData.encrypted_content,
-      is_encrypted: messageData.is_encrypted,
-    });
-
-    const { data: message, error: insertError } = await supabase
+    const { data: inserted, error: insertError } = await supabase
       .from("group_messages")
-      .insert(messageData)
-      .select(
-        `
-        id,
-        content,
-        encrypted_content,
-        encryption_iv,
-        encryption_salt,
-        is_encrypted,
-        created_at,
-        user_id,
-        users(
-          id,
-          profiles(
-            name,
-            username,
-            profile_photo
-          )
-        )
-      `
-      )
+      .insert([messageData])
+      .select()
       .single();
 
     if (insertError) {
-      console.error("Error inserting message:", insertError);
-      console.error("Message data that failed:", messageData);
       return NextResponse.json(
-        { error: `Failed to send message: ${insertError.message}` },
+        { error: "Failed to insert message", details: insertError.message },
         { status: 500 }
       );
     }
 
-    // Format the response
-    const formattedMessage = {
-      id: message.id,
-      content: message.is_encrypted ? null : message.content,
-      encryptedContent: message.is_encrypted ? message.encrypted_content : null,
-      encryptionIv: message.is_encrypted ? message.encryption_iv : null,
-      encryptionSalt: message.is_encrypted ? message.encryption_salt : null,
-      isEncrypted: message.is_encrypted || false,
-      timestamp: new Date(message.created_at).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      sender: (message.users as any)?.profiles?.name || "Unknown User",
-      senderUsername: (message.users as any)?.profiles?.username,
-      avatar: (message.users as any)?.profiles?.profile_photo,
-      isCurrentUser: true,
-      createdAt: message.created_at,
-    };
-
-    return NextResponse.json(formattedMessage);
+    // Return the inserted message (with encrypted fields)
+    return NextResponse.json({
+      id: inserted.id,
+      encryptedContent: inserted.encrypted_content,
+      encryptionIv: inserted.encryption_iv,
+      encryptionSalt: inserted.encryption_salt,
+      isEncrypted: inserted.is_encrypted,
+      createdAt: inserted.created_at,
+      sender: userRow.id,
+    });
   } catch (error) {
     console.error("[POST_MESSAGE]", error);
     return NextResponse.json(
