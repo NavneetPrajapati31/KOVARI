@@ -48,7 +48,6 @@ export async function GET(
       .select(
         `
         id,
-        content,
         encrypted_content,
         encryption_iv,
         encryption_salt,
@@ -80,7 +79,6 @@ export async function GET(
     const formattedMessages =
       messages?.map((message: any) => ({
         id: message.id,
-        content: message.content,
         encrypted_content: message.encrypted_content,
         encryption_iv: message.encryption_iv,
         encryption_salt: message.encryption_salt,
@@ -207,7 +205,6 @@ export async function POST(
       .select(
         `
         id,
-        content,
         encrypted_content,
         encryption_iv,
         encryption_salt,
@@ -238,10 +235,9 @@ export async function POST(
     // Format the response
     const formattedMessage = {
       id: message.id,
-      content: message.is_encrypted ? null : message.content,
-      encryptedContent: message.is_encrypted ? message.encrypted_content : null,
-      encryptionIv: message.is_encrypted ? message.encryption_iv : null,
-      encryptionSalt: message.is_encrypted ? message.encryption_salt : null,
+      encryptedContent: message.encrypted_content,
+      encryptionIv: message.encryption_iv,
+      encryptionSalt: message.encryption_salt,
       isEncrypted: message.is_encrypted || false,
       timestamp: new Date(message.created_at).toLocaleTimeString([], {
         hour: "2-digit",

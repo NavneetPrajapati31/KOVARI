@@ -120,7 +120,7 @@ export default function GroupChatInterface() {
                   <h1 className="text-md font-semibold text-foreground">
                     {groupInfo?.name || "Loading..."}
                   </h1>
-                  {isEncryptionAvailable && keyFingerprint && (
+                  {/* {isEncryptionAvailable && keyFingerprint && (
                     <Chip
                       size="sm"
                       variant="bordered"
@@ -137,7 +137,7 @@ export default function GroupChatInterface() {
                       <Shield className="h-3 w-3" />
                       <span>Encryption unavailable</span>
                     </div>
-                  )}
+                  )} */}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {members.length} members, {onlineMembers} online

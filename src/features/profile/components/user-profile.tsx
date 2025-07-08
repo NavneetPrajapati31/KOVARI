@@ -341,10 +341,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           "Follow"
                         )}
                       </Button>
-                      <Link href={"/chat"}>
+                      <Link
+                        href={
+                          profile.userId ? `/chat/${profile.userId}` : "/chat"
+                        }
+                      >
                         <Button
                           size={"sm"}
                           className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
+                          aria-label="Message user"
+                          tabIndex={0}
                         >
                           Message
                         </Button>
@@ -651,10 +657,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           "Follow"
                         )}
                       </Button>
-                      <Link href={"/chat"}>
+                      <Link
+                        href={
+                          profile.userId ? `/chat/${profile.userId}` : "/chat"
+                        }
+                      >
                         <Button
                           size={"sm"}
                           className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
+                          aria-label="Message user"
+                          tabIndex={0}
                         >
                           Message
                         </Button>
