@@ -11,6 +11,7 @@ import { Home, Search, User2, Inbox, Settings } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 
 interface SidebarMenuProps {
   open: boolean;
@@ -61,6 +62,33 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ open, onClose }) => {
       document.body.classList.remove("overflow-hidden");
     };
   }, [open]);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.4,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: {
+      opacity: 0,
+      x: -20,
+    },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut" as const,
+      },
+    },
+  };
+
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
@@ -73,32 +101,59 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ open, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-border">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold tracking-wide uppercase select-none">
+            <span className="text-sm font-bold tracking-wide uppercase select-none">
               MENU
             </span>
           </div>
         </div>
         {/* Menu Items */}
-        <nav className="flex-1 flex flex-col justify-start gap-4 px-8 mt-2">
-          {menuItems.map((item) => (
-            <Link
+        <motion.nav
+          className="flex-1 flex flex-col justify-start gap-4 px-8 mt-2 overflow-x-auto overflow-y-hidden hide-scrollbar"
+          variants={containerVariants}
+          initial="hidden"
+          animate={open ? "visible" : "hidden"}
+        >
+          {menuItems.map((item, index) => (
+            <motion.div
               key={item.label}
-              href={item.href}
-              tabIndex={0}
-              aria-label={item.label}
-              className="text-sm font-semibold uppercase tracking-tight text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-all border-b border-border pb-5"
-              onClick={onClose}
+              initial={{ opacity: 0, x: -20, filter: "blur(8px)" }}
+              animate={
+                open
+                  ? { opacity: 1, x: 0, filter: "blur(0px)" }
+                  : { opacity: 0, x: -20, filter: "blur(8px)" }
+              }
+              transition={{
+                opacity: {
+                  duration: 0.4,
+                  delay: 0.4 + index * 0.1,
+                  ease: "easeOut",
+                },
+                x: { duration: 0.4, delay: 0.4 + index * 0.1, ease: "easeOut" },
+                filter: {
+                  duration: 0.4,
+                  delay: 0.4 + index * 0.1,
+                  ease: "easeOut",
+                },
+              }}
             >
-              {/* {item.icon && (
-                <item.icon
-                  className="w-8 h-8 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              )} */}
-              {item.label}
-            </Link>
+              <Link
+                href={item.href}
+                tabIndex={0}
+                aria-label={item.label}
+                className={`text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 ${index !== menuItems.length - 1 ? "border-b border-border pb-4" : ""}`}
+                onClick={onClose}
+              >
+                {/* {item.icon && (
+                  <item.icon
+                    className="w-8 h-8 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                )} */}
+                {item.label}
+              </Link>
+            </motion.div>
           ))}
-        </nav>
+        </motion.nav>
       </SheetContent>
       {/* Overlay handled by Sheet */}
     </Sheet>
