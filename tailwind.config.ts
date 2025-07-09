@@ -59,6 +59,8 @@ const config: Config = {
         clash: ["Clash Display", "sans-serif"],
         manrope: ["Manrope", "sans-serif"],
         sans: ["Manrope", "sans-serif"],
+        "new-title": ["NewTitle-Variable", "NewTitle-Regular", "sans-serif"],
+        helvetica: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
       },
     },
   },

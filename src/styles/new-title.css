@@ -1,0 +1,60 @@
+@font-face {
+  font-family: "NewTitle-Extralight";
+  src:
+    url("/fonts/new-title/NewTitle-Extralight.woff2") format("woff2"),
+    url("/fonts/new-title/NewTitle-Extralight.woff") format("woff"),
+    url("/fonts/new-title/NewTitle-Extralight.ttf") format("truetype");
+  font-weight: 200;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "NewTitle-Light";
+  src:
+    url("/fonts/new-title/NewTitle-Light.woff2") format("woff2"),
+    url("/fonts/new-title/NewTitle-Light.woff") format("woff"),
+    url("/fonts/new-title/NewTitle-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "NewTitle-Regular";
+  src:
+    url("/fonts/new-title/NewTitle-Regular.woff2") format("woff2"),
+    url("/fonts/new-title/NewTitle-Regular.woff") format("woff"),
+    url("/fonts/new-title/NewTitle-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "NewTitle-Medium";
+  src:
+    url("/fonts/new-title/NewTitle-Medium.woff2") format("woff2"),
+    url("/fonts/new-title/NewTitle-Medium.woff") format("woff"),
+    url("/fonts/new-title/NewTitle-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "NewTitle-Bold";
+  src:
+    url("/fonts/new-title/NewTitle-Bold.woff2") format("woff2"),
+    url("/fonts/new-title/NewTitle-Bold.woff") format("woff"),
+    url("/fonts/new-title/NewTitle-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "NewTitle-Variable";
+  src:
+    url("/fonts/new-title/NewTitle-Variable.woff2") format("woff2"),
+    url("/fonts/new-title/NewTitle-Variable.woff") format("woff"),
+    url("/fonts/new-title/NewTitle-Variable.ttf") format("truetype");
+  font-weight: 200 700;
+  font-display: swap;
+  font-style: normal;
+}

@@ -25,6 +25,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
+import { motion } from "framer-motion";
 import {
   Compass,
   MessageCircle,
@@ -60,6 +61,7 @@ export default function App({
   onAvatarMenuOpenChange?: (isOpen: boolean) => void;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const toggleMenu = () => setIsMenuOpen((v) => !v);
   const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -70,6 +72,7 @@ export default function App({
   const [profilePhotoError, setProfilePhotoError] = useState<string | null>(
     null
   );
+  const [isMenuButtonOpen, setIsMenuButtonOpen] = useState(false);
 
   useEffect(() => {
     // Hide spinner when route changes
@@ -230,42 +233,53 @@ export default function App({
           wrapper: "max-w-full px-4",
         }}
       >
-        <NavbarBrand>
+        <NavbarContent className="flex items-center gap-3 p-0" justify="start">
+          <button
+            type="button"
+            onClick={toggleMenu}
+            className="relative flex items-center gap-2 focus:outline-none p-2"
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          >
+            <div className="relative w-6 h-4 flex flex-col justify-center items-center">
+              {/* Top line */}
+              <motion.div
+                className="w-5 h-[1.5px] bg-black absolute"
+                animate={{
+                  rotate: isMenuOpen ? 45 : 0,
+                  y: isMenuOpen ? 0 : -2,
+                }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut",
+                }}
+              />
+              {/* Bottom line */}
+              <motion.div
+                className="w-5 h-[1.5px] bg-black absolute"
+                animate={{
+                  rotate: isMenuOpen ? -45 : 0,
+                  y: isMenuOpen ? 0 : 2,
+                }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut",
+                }}
+              />
+            </div>
+            <span className="text-sm font-medium tracking-wide text-black uppercase select-none">
+              MENU
+            </span>
+          </button>
+        </NavbarContent>
+        <NavbarContent className="flex-1 flex justify-center" justify="center">
           <Link
             href="/"
             className="flex items-center text-foreground !opacity-100 h-12"
             onClick={() => handleNavigation("/")}
             style={{ minHeight: "3rem" }}
           >
-            <span className="flex items-center h-10 w-10">
-              <AcmeLogo />
-            </span>
-            <span className="font-bold text-xl text-inherit leading-none">
-              KOVARI
-            </span>
+            <span className="font-clash font-medium text-xl">KOVARI</span>
           </Link>
-        </NavbarBrand>
-
-        <NavbarContent className="hidden md:flex gap-8" justify="center">
-          {/* {navigationItems.map((item) => (
-            <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
-              <Link
-                color={isActiveRoute(item.href) ? "primary" : "foreground"}
-                color={"foreground"}
-                href={item.href}
-                onClick={() => handleNavigation(item.href)}
-                className={`text-sm font-semibold transition-all duration-300 ease-in-out flex items-center gap-2 ${
-                  isActiveRoute(item.href)
-                    ? "text-primary"
-                    : "hover:text-primary"
-                }`}
-                aria-current={isActiveRoute(item.href) ? "page" : undefined}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.name}
-              </Link>
-            </NavbarItem>
-          ))} */}
         </NavbarContent>
 
         <NavbarContent as="div" justify="end">

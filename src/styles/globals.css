@@ -240,3 +240,5 @@ body {
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+@import "./new-title.css";

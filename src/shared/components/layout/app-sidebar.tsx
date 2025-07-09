@@ -191,7 +191,7 @@ export function AppSidebar() {
             >
               {/* <AcmeLogo /> */}
               <span
-                className={`font-semibold text-muted-foreground
+                className={`font-semibold font-clash text-muted-foreground
                   transition-all duration-300 origin-left overflow-hidden
                   
                   ${

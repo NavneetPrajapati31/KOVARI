@@ -7,7 +7,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <ProtectedRoute>
       <SidebarProvider>
-        <SidebarWrapper />
+        {/* <SidebarWrapper /> */}
         <main className="flex-1 flex flex-col min-h-screen">
           <LayoutWrapper>{children}</LayoutWrapper>
           {/* {children} */}
