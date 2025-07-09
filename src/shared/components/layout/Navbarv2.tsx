@@ -243,13 +243,13 @@ export default function App({
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="relative flex items-center gap-2 focus:outline-none p-2"
+            className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none"
             aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
           >
             <div className="relative w-6 h-4 flex flex-col justify-center items-center">
               {/* Top line */}
               <motion.div
-                className="w-5 h-[1.5px] bg-black absolute"
+                className="w-4 h-[1.5px] bg-black absolute"
                 animate={{
                   rotate: isSidebarOpen ? 45 : 0,
                   y: isSidebarOpen ? 0 : -2,
@@ -261,7 +261,7 @@ export default function App({
               />
               {/* Bottom line */}
               <motion.div
-                className="w-5 h-[1.5px] bg-black absolute"
+                className="w-4 h-[1.5px] bg-black absolute"
                 animate={{
                   rotate: isSidebarOpen ? -45 : 0,
                   y: isSidebarOpen ? 0 : 2,
@@ -272,7 +272,7 @@ export default function App({
                 }}
               />
             </div>
-            <span className="text-sm font-medium uppercase select-none">
+            <span className="sm:text-sm text-xs font-medium uppercase select-none">
               MENU
             </span>
           </button>
@@ -284,7 +284,9 @@ export default function App({
             onClick={() => handleNavigation("/")}
             style={{ minHeight: "3rem" }}
           >
-            <span className="font-clash font-medium text-xl">KOVARI</span>
+            <span className="font-clash font-medium sm:text-xl text-md">
+              KOVARI
+            </span>
           </Link>
         </NavbarContent>
 
@@ -336,7 +338,9 @@ export default function App({
                 <Avatar
                   isBordered
                   as="button"
-                  className={"transition-transform ring-primary"}
+                  className={
+                    "h-6 w-6 sm:h-8 sm:w-8 transition-transform ring-primary"
+                  }
                   color="secondary"
                   name={user?.fullName || user?.username || "User"}
                   size="sm"
@@ -365,7 +369,7 @@ export default function App({
           )}
         </NavbarContent>
 
-        <NavbarMenu className="md:hidden backdrop-blur-2xl">
+        {/* <NavbarMenu className="md:hidden backdrop-blur-2xl">
           {navigationItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>
               <Link
@@ -383,7 +387,7 @@ export default function App({
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="block md:hidden"
-        />
+        /> */}
       </Navbar>
     </>
   );
