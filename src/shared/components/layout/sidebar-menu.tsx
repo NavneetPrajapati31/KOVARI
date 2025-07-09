@@ -7,7 +7,6 @@ import {
   SheetTitle,
 } from "@/shared/components/ui/sheet";
 import { Button } from "@/shared/components/ui/button";
-import { AcmeLogo } from "./Navbarv2";
 import { Instagram, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -65,9 +64,6 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ open, onClose }) => {
             <span className="text-base font-medium tracking-wide text-black uppercase select-none ml-2">
               MENU
             </span>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <AcmeLogo />
           </div>
         </div>
         {/* Menu Items */}
