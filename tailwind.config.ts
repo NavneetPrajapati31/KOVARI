@@ -56,6 +56,9 @@ const config: Config = {
       fontFamily: {
         heading: ["Poppins", "sans-serif"],
         body: ["Inter", "sans-serif"],
+        clash: ["Clash Display", "sans-serif"],
+        manrope: ["Manrope", "sans-serif"],
+        sans: ["Manrope", "sans-serif"],
       },
     },
   },
