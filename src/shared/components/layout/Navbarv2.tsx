@@ -284,7 +284,7 @@ export default function App({
             onClick={() => handleNavigation("/")}
             style={{ minHeight: "3rem" }}
           >
-            <span className="font-clash font-medium text-xl">KOVARI</span>
+            <span className="font-roundhand font-bold text-3xl">Kovari</span>
           </Link>
         </NavbarContent>
 

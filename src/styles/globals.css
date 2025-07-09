@@ -1,3 +1,20 @@
+@font-face {
+  font-family: "Roundhand-Regular";
+  font-style: normal;
+  font-weight: normal;
+  src:
+    local("Roundhand-Regular"),
+    url("/fonts/roundhand/Roundhand Regular.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Roundhand-Bold";
+  font-style: normal;
+  font-weight: normal;
+  src:
+    local("Roundhand-Bold"),
+    url("/fonts/roundhand/Roundhand Bold.woff") format("woff");
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

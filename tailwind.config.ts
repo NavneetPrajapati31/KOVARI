@@ -61,6 +61,8 @@ const config: Config = {
         sans: ["Manrope", "sans-serif"],
         "new-title": ["NewTitle-Variable", "NewTitle-Regular", "sans-serif"],
         helvetica: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+        roundhand: ["Roundhand-Regular", "cursive"],
+        "roundhand-bold": ["Roundhand-Bold", "cursive"],
       },
     },
   },
