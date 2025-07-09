@@ -224,8 +224,8 @@ export default function App({
             className="text-foreground !opacity-100"
             onClick={() => handleNavigation("/")}
           >
-            {/* <AcmeLogo /> */}
-            <p className="font-medium font-clash text-xl">KOVARI</p>
+            <AcmeLogo />
+            <p className="font-bold text-xl text-inherit">KOVARI</p>
           </Link>
         </NavbarBrand>
 
