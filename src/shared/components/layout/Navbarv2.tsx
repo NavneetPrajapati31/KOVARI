@@ -234,7 +234,7 @@ export default function App({
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}
-        className="backdrop-blur-xl bg-background/80 border-border sticky top-0 z-40"
+        className="backdrop-blur-3xl bg-background/80 border-border sticky top-0 z-40"
         classNames={{
           wrapper: "max-w-full px-4",
         }}
@@ -272,7 +272,7 @@ export default function App({
                 }}
               />
             </div>
-            <span className="text-sm font-medium tracking-wide text-black uppercase select-none">
+            <span className="text-sm font-medium uppercase select-none">
               MENU
             </span>
           </button>
@@ -284,9 +284,7 @@ export default function App({
             onClick={() => handleNavigation("/")}
             style={{ minHeight: "3rem" }}
           >
-            <span className="font-roundhand font-semibold text-3xl">
-              Kovari
-            </span>
+            <span className="font-clash font-medium text-xl">KOVARI</span>
           </Link>
         </NavbarContent>
 
