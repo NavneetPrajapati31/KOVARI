@@ -63,6 +63,7 @@ const config: Config = {
         helvetica: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
         roundhand: ["Roundhand-Regular", "cursive"],
         "roundhand-bold": ["Roundhand-Bold", "cursive"],
+        matgefo: ["Matgefo", "sans-serif"],
       },
     },
   },

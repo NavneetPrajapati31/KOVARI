@@ -237,11 +237,11 @@ export default function App({
             onClick={() => handleNavigation("/")}
             style={{ minHeight: "3rem" }}
           >
-            <span className="flex items-center h-10 w-10">
+            {/* <span className="flex items-center h-10 w-10">
               <AcmeLogo />
-            </span>
-            <span className="font-bold text-xl text-inherit leading-none">
-              KOVARI
+            </span> */}
+            <span className="font-matgefo font-medium text-3xl tracking-wider">
+              Kovari
             </span>
           </Link>
         </NavbarBrand>

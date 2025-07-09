@@ -15,6 +15,14 @@
     local("Roundhand-Bold"),
     url("/fonts/roundhand/Roundhand Bold.woff") format("woff");
 }
+
+@font-face {
+  font-family: "Matgefo";
+  font-style: normal;
+  font-weight: normal;
+  src: url("/fonts/matgefo/Matgefo.otf") format("opentype");
+  font-display: swap;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
