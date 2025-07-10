@@ -339,7 +339,7 @@ export default function App({
               aria-label="Inbox"
             >
               {totalUnreadCount > 0 ? (
-                <Badge color="primary" size="sm" content={totalUnreadCount}>
+                <Badge color="primary" size="md" content={totalUnreadCount}>
                   <Send className="h-5 w-5" />
                 </Badge>
               ) : (
@@ -348,7 +348,7 @@ export default function App({
             </div>
           </Link>
           {!isLoaded || profilePhotoLoading ? (
-            <User className="h-5 w-5" />
+            <User className="h-6 w-6" />
           ) : isSignedIn ? (
             <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
               <DropdownMenuTrigger asChild>
@@ -363,9 +363,11 @@ export default function App({
                   size="sm"
                   src={profilePhotohref || user?.imageUrl}
                 /> */}
-                <User className="h-6 w-6" />
+                <div className="hover:cursor-pointer">
+                  <User className="h-6 w-6" />
+                </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
+              <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-sm transition-all duration-300 ease-in-out border-border mr-8">
                 {menuItems.map((item) => (
                   <DropdownMenuItem
                     key={item.key}
