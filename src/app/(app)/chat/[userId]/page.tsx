@@ -85,6 +85,7 @@ const MessageRow = React.memo(
             <span>{content}</span>
           ) : (
             <span
+              className="text-xs"
               dangerouslySetInnerHTML={{
                 __html: formatMessageWithLineBreaks(content),
               }}
