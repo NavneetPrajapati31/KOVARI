@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Smile,
   XCircle,
+  Check,
 } from "lucide-react";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { decryptMessage } from "@/shared/utils/encryption";
@@ -100,7 +101,7 @@ const MessageRow = React.memo(
                 minute: "2-digit",
               })}
             </span>
-            {showSpinner && <Loader2 className="w-3 h-3 animate-spin" />}
+            {showSpinner && <Check className="w-3 h-3" />}
             {showError && (
               <>
                 <XCircle className="w-3 h-3 text-red-500" />
