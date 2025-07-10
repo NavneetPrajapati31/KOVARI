@@ -13,6 +13,7 @@ import {
   Mic,
   Send,
   Loader2,
+  Smile,
 } from "lucide-react";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
@@ -20,15 +21,21 @@ import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
 import { toast } from "sonner";
 import { Shield, ShieldCheck } from "lucide-react";
 import { Chip } from "@heroui/react";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
 
 export default function GroupChatInterface() {
   const params = useParams();
   const groupId = params.groupId as string;
 
   const [message, setMessage] = useState("");
+  const [showEmoji, setShowEmoji] = useState(false);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
   console.log("Current message state:", message);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevGroupIdRef = useRef<string | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const {
     messages,
@@ -46,6 +53,46 @@ export default function GroupChatInterface() {
     loading: encryptionLoading,
     isEncryptionAvailable,
   } = useGroupEncryption(groupId);
+
+  // Insert emoji at cursor position
+  const insertEmoji = (emoji: string) => {
+    const input = inputRef.current;
+    if (!input) return;
+    const start = input.selectionStart || 0;
+    const end = input.selectionEnd || 0;
+    const value = input.value;
+    const newValue = value.slice(0, start) + emoji + value.slice(end);
+    setMessage(newValue);
+    // Move cursor after emoji (next render)
+    setTimeout(() => {
+      input.setSelectionRange(start + emoji.length, start + emoji.length);
+      input.focus();
+    }, 0);
+  };
+
+  // Close emoji picker on outside click or Escape
+  useEffect(() => {
+    if (!showEmoji) return;
+    const handleClick = (e: MouseEvent) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node) &&
+        emojiButtonRef.current &&
+        !emojiButtonRef.current.contains(e.target as Node)
+      ) {
+        setShowEmoji(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowEmoji(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [showEmoji]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -113,11 +160,11 @@ export default function GroupChatInterface() {
         {/* Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="p-5 border-b border-border bg-transparent">
+          <div className="px-3 sm:px-5 py-3 border-b border-border bg-transparent">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-md font-semibold text-foreground">
+                  <h1 className="text-sm font-semibold text-foreground">
                     {groupInfo?.name || "Loading..."}
                   </h1>
                   {/* {isEncryptionAvailable && keyFingerprint && (
@@ -175,7 +222,7 @@ export default function GroupChatInterface() {
           {/* Messages */}
           <div
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none"
+            className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
             data-testid="messages-container"
           >
             {messages.length === 0 ? (
@@ -187,7 +234,7 @@ export default function GroupChatInterface() {
             ) : (
               <>
                 <div className="text-center">
-                  <span className="text-sm text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                  <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
                     Today
                   </span>
                 </div>
@@ -195,22 +242,24 @@ export default function GroupChatInterface() {
                 {messages.map((msg: ChatMessage) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-2`}
+                    className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
                   >
                     <div
-                      className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} items-end gap-3`}
+                      className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
                     >
-                      <Avatar
-                        className="w-10 h-10 flex-shrink-0"
-                        src={msg.avatar || "/placeholder.svg"}
-                        name={msg.sender}
-                      />
+                      {!msg.isCurrentUser && (
+                        <Avatar
+                          className="w-8 h-8 flex-shrink-0"
+                          src={msg.avatar || "/placeholder.svg"}
+                          name={msg.sender}
+                        />
+                      )}
 
                       <div
                         className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                       >
                         <div
-                          className={`px-4 py-3 rounded-2xl max-w-md ${
+                          className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
                             msg.isCurrentUser
                               ? "bg-primary text-primary-foreground rounded-br-md"
                               : "bg-gray-100 text-foreground rounded-bl-md"
@@ -221,16 +270,14 @@ export default function GroupChatInterface() {
                               {msg.sender}
                             </span>
                           )}
-                          <p className="text-sm leading-relaxed">
-                            {msg.content}
-                          </p>
-                          <div className="flex items-center justify-end mt-2 gap-1 w-full">
+                          <span>{msg.content}</span>
+                          <span className="flex items-center gap-1 justify-end ml-3 mt-2.5 float-right">
                             <span
-                              className={`text-xs ${msg.isCurrentUser ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+                              className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
                             >
                               {msg.timestamp}
                             </span>
-                          </div>
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -241,37 +288,71 @@ export default function GroupChatInterface() {
           </div>
 
           {/* Message Input - Sticky */}
-          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border p-4 shadow-none">
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 relative h-10 bg-gray-100 rounded-full">
+          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
+            <div className="flex items-center space-x-1">
+              <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
                 <input
+                  ref={inputRef}
                   key={groupId}
                   type="text"
                   placeholder="Your message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="pr-12 h-10 rounded-full placeholder:text-gray-400 w-full bg-gray-100 border-none focus:ring-0 focus:outline-none text-sm px-4"
+                  className="w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none"
                 />
-                <Button
-                  size="icon"
-                  className="bg-transparent absolute right-1 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-                >
-                  <Mic className="h-6 w-6" />
-                </Button>
               </div>
-              <Button
+              <button
+                ref={emojiButtonRef}
+                type="button"
+                className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
+                aria-label="Open emoji picker"
+                tabIndex={0}
+                onClick={() => setShowEmoji((v) => !v)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowEmoji((v) => !v);
+                  }
+                }}
+              >
+                <Smile className="h-5 w-5" />
+              </button>
+              {showEmoji && (
+                <div
+                  ref={popoverRef}
+                  className="absolute bottom-12 right-0 z-50 bg-card border-none rounded-xl shadow-none p-2"
+                  role="dialog"
+                  aria-label="Emoji picker"
+                >
+                  {/* @ts-ignore */}
+                  <Picker
+                    data={data}
+                    theme="light"
+                    previewPosition="none"
+                    skinTonePosition="search"
+                    emojiSet="apple"
+                    emojiButtonSize={32}
+                    emojiSize={24}
+                    onEmojiSelect={(emoji: any) => {
+                      insertEmoji(emoji.native);
+                      // DO NOT close popover after select
+                    }}
+                    style={{ width: "320px" }}
+                  />
+                </div>
+              )}
+              <button
                 onClick={handleSendMessage}
                 disabled={!message.trim() || sending}
-                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 disabled:opacity-50"
-                size="icon"
+                className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3"
               >
                 {sending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Spinner variant="spinner" size="sm" color="primary" />
                 ) : (
                   <Send className="h-5 w-5" />
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>
