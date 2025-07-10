@@ -14,11 +14,13 @@ import {
   EllipsisVertical,
   User,
   ArrowLeft,
+  Smile,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { encryptMessage, decryptMessage } from "@/shared/utils/encryption";
 import Link from "next/link";
+import InputEmoji from "react-input-emoji";
 
 export interface DirectMessage {
   id: string;
@@ -36,6 +38,10 @@ interface PartnerProfile {
   username?: string;
   profile_photo?: string;
 }
+
+// Utility to format message with line breaks
+const formatMessageWithLineBreaks = (message: string) =>
+  message.replace(/\n/g, "<br />");
 
 const DirectChatPage = () => {
   const { user, isLoaded } = useUser();
@@ -56,6 +62,17 @@ const DirectChatPage = () => {
   const [error, setError] = useState<string | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const lastMessagesRef = useRef<DirectMessage[]>([]);
+  // Remove emoji-mart logic, handled by InputEmoji
+
+  // Scroll to bottom utility
+  const scrollToBottom = () => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  };
 
   // For demo: derive a shared secret from both UUIDs (in production, use a secure key exchange)
   const sharedSecret =
@@ -90,7 +107,21 @@ const DirectChatPage = () => {
     if (container) {
       container.scrollTop = container.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, loading]);
+
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      lastMessagesRef.current = messages;
+    }
+  }, [messages, loading]);
+
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      setHasLoadedOnce(true);
+    }
+  }, [loading, messages.length]);
+
+  const effectiveMessages = loading ? lastMessagesRef.current : messages;
 
   const handleBackClick = () => {
     router.push("/chat");
@@ -120,6 +151,7 @@ const DirectChatPage = () => {
       }
       setInput("");
       refetch();
+      scrollToBottom();
     } catch (err: any) {
       setError(err.message || "Failed to send message");
     } finally {
@@ -127,7 +159,19 @@ const DirectChatPage = () => {
     }
   };
 
-  if (!isLoaded || loading || !currentUserUuid) {
+  // Remove emoji-mart logic, handled by InputEmoji
+
+  // Only use real messages from the server
+  const mergedMessages = effectiveMessages;
+
+  if (
+    !isLoaded ||
+    !currentUserUuid ||
+    (!hasLoadedOnce &&
+      loading &&
+      messages.length === 0 &&
+      mergedMessages.length === 0)
+  ) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex-1 flex items-center justify-center">
@@ -191,10 +235,10 @@ const DirectChatPage = () => {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="absolute top-16 bottom-12 left-0 right-0 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
+        className="absolute top-16 bottom-14 left-0 right-0 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
         data-testid="messages-container"
       >
-        {messages.length === 0 ? (
+        {mergedMessages.length === 0 ? (
           <div className="flex-1 h-full flex items-center justify-center text-center py-8">
             <span className="text-sm text-muted-foreground">
               No messages yet. Start the conversation!
@@ -207,7 +251,7 @@ const DirectChatPage = () => {
                 Today
               </span>
             </div>
-            {messages.map((msg) => {
+            {mergedMessages.map((msg) => {
               let decryptedContent = "[Encrypted message]";
               if (
                 msg.is_encrypted &&
@@ -239,13 +283,17 @@ const DirectChatPage = () => {
                     className={`relative max-w-[75%] ${isSent ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
                   >
                     <div
-                      className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words ${
+                      className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
                         isSent
                           ? "bg-primary text-primary-foreground rounded-br-md"
                           : "bg-gray-100 text-foreground rounded-bl-md"
                       }`}
                     >
-                      <span>{decryptedContent}</span>
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: formatMessageWithLineBreaks(decryptedContent),
+                        }}
+                      />
                       <span className="flex items-center gap-1 justify-end ml-3 mt-2.5 float-right">
                         <span
                           className={`text-[10px] ${
@@ -269,38 +317,37 @@ const DirectChatPage = () => {
       </div>
 
       {/* Message Input - Always at Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border px-3 py-2 shadow-none z-10">
-        <div className="flex items-center space-x-2">
-          <div className="flex-1 relative h-8 bg-transparent rounded-full">
-            <Input
-              type="text"
-              placeholder="Your message"
+      <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border px-2 py-1 shadow-none z-10">
+        <div className="flex items-center space-x-1">
+          <div className="flex-1 relative h-auto bg-transparent rounded-full">
+            <InputEmoji
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              className="pr-12 h-8 rounded-full placeholder:text-gray-400 w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm px-4"
-              aria-label="Message input"
-              disabled={sending}
+              onChange={setInput}
+              cleanOnEnter
+              onEnter={handleSend}
+              placeholder="Your message"
+              borderColor="transparent"
+              borderRadius={24}
+              fontSize={16}
+              theme="light"
+              shouldReturn={true}
+              keepOpened={false}
+              tabIndex={0}
+              shouldConvertEmojiToImage={false}
             />
           </div>
-          <Button
+          <button
             onClick={handleSend}
             disabled={!input.trim() || sending}
-            className="rounded-full bg-transparent hover:bg-primary/90 text-primary h-8 w-8 disabled:opacity-50"
-            size="icon"
+            className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3"
             aria-label="Send message"
           >
             {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner variant="spinner" size="sm" color="primary" />
             ) : (
-              <Send className="h-4 w-4" />
+              <Send className="h-6 w-6" />
             )}
-          </Button>
+          </button>
         </div>
         {error && <div className="text-red-500 mt-2">{error}</div>}
       </div>
