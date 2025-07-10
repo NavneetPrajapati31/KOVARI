@@ -236,7 +236,7 @@ export default function App({
         onMenuOpenChange={setIsMenuOpen}
         className="backdrop-blur-3xl bg-background/80 border-border sticky top-0 z-40"
         classNames={{
-          wrapper: "max-w-full px-4",
+          wrapper: "max-w-full px-3 md:px-5",
         }}
       >
         <NavbarContent className="flex items-center gap-3 p-0" justify="start">

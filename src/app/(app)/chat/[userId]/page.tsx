@@ -2,14 +2,23 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useDirectMessages } from "@/shared/hooks/use-direct-messages";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Send, Loader2 } from "lucide-react";
+import { Image, Spinner } from "@heroui/react";
+import {
+  Send,
+  Loader2,
+  CheckCheck,
+  EllipsisVertical,
+  User,
+  ArrowLeft,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { encryptMessage, decryptMessage } from "@/shared/utils/encryption";
+import Link from "next/link";
 
 export interface DirectMessage {
   id: string;
@@ -31,6 +40,7 @@ interface PartnerProfile {
 const DirectChatPage = () => {
   const { user, isLoaded } = useUser();
   const params = useParams();
+  const router = useRouter();
   const partnerUuid = params?.userId as string; // Now this is the UUID from the URL
   const currentUserId = user?.id || "";
   const [currentUserUuid, setCurrentUserUuid] = useState<string>("");
@@ -57,12 +67,6 @@ const DirectChatPage = () => {
     const fetchUuid = async () => {
       if (!currentUserId) return;
       const uuid = await getUserUuidByClerkId(currentUserId);
-      console.log(
-        "[DirectChatPage] Clerk ID:",
-        currentUserId,
-        "Mapped UUID:",
-        uuid
-      );
       setCurrentUserUuid(uuid || "");
     };
     fetchUuid();
@@ -87,6 +91,10 @@ const DirectChatPage = () => {
       container.scrollTop = container.scrollHeight;
     }
   }, [messages]);
+
+  const handleBackClick = () => {
+    router.push("/chat");
+  };
 
   const handleSend = async () => {
     if (!input.trim() || sending || !currentUserUuid || !partnerUuid) return;
@@ -121,10 +129,10 @@ const DirectChatPage = () => {
 
   if (!isLoaded || loading || !currentUserUuid) {
     return (
-      <div className="max-w-full m-4 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-        <div className="flex h-[80vh] items-center justify-center">
+      <div className="flex flex-col h-full">
+        <div className="flex-1 flex items-center justify-center">
           <div className="flex items-center space-x-2">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <Spinner variant="spinner" size="md" color="primary" />
           </div>
         </div>
       </div>
@@ -132,159 +140,169 @@ const DirectChatPage = () => {
   }
 
   return (
-    <div className="max-w-full m-4 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-      <div className="flex h-[80vh]">
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="p-5 border-b border-border bg-transparent">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  {partnerProfile?.profile_photo && (
-                    <img
-                      src={partnerProfile.profile_photo}
-                      alt={
-                        partnerProfile.name || partnerProfile.username || "User"
-                      }
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  )}
-                  <div>
-                    <div className="font-semibold text-foreground">
-                      {partnerProfile?.name || "Unknown User"}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      @{partnerProfile?.username || partnerUuid}
-                    </div>
+    <div className="relative h-full bg-card">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 px-3 sm:px-5 py-3 border-b border-border bg-card z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Back button for mobile */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackClick}
+              className="md:hidden p-0 h-5 w-5 gap-0"
+              aria-label="Back to inbox"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <Link href={`/profile/${partnerUuid}`}>
+              <div className="flex items-center gap-3">
+                {partnerProfile?.profile_photo ? (
+                  <Image
+                    src={partnerProfile.profile_photo}
+                    alt={
+                      partnerProfile.name || partnerProfile.username || "User"
+                    }
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-semibold text-lg select-none">
+                    {partnerProfile?.name?.[0]?.toUpperCase() ||
+                      partnerProfile?.username?.[0]?.toUpperCase() || (
+                        <User className="h-5 w-5" />
+                      )}
+                  </div>
+                )}
+                <div>
+                  <div className="font-semibold text-sm text-foreground">
+                    {partnerProfile?.name || "Unknown User"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    @{partnerProfile?.username || ""}
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
-
-          {/* Messages */}
-          <div
-            ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none"
-            data-testid="messages-container"
-          >
-            {messages.length === 0 ? (
-              <div className="text-center py-8">
-                <span className="text-sm text-muted-foreground">
-                  No messages yet. Start the conversation!
-                </span>
-              </div>
-            ) : (
-              <>
-                <div className="text-center">
-                  <span className="text-sm text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
-                    Today
-                  </span>
-                </div>
-                {messages.map((msg) => {
-                  let decryptedContent = "[Encrypted message]";
-                  if (
-                    msg.is_encrypted &&
-                    msg.encrypted_content &&
-                    msg.encryption_iv &&
-                    msg.encryption_salt
-                  ) {
-                    try {
-                      decryptedContent =
-                        decryptMessage(
-                          {
-                            encryptedContent: msg.encrypted_content,
-                            iv: msg.encryption_iv,
-                            salt: msg.encryption_salt,
-                          },
-                          sharedSecret
-                        ) || "[Encrypted message]";
-                    } catch {
-                      decryptedContent = "[Failed to decrypt message]";
-                    }
-                  }
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.sender_id === currentUserUuid ? "justify-end" : "justify-start"} mb-2`}
-                    >
-                      <div
-                        className={`flex max-w-[75%] ${msg.sender_id === currentUserUuid ? "flex-row-reverse" : "flex-row"} items-end gap-3`}
-                      >
-                        <div
-                          className={`flex flex-col ${msg.sender_id === currentUserUuid ? "items-end" : "items-start"}`}
-                        >
-                          <div
-                            className={`px-4 py-3 rounded-2xl max-w-md ${
-                              msg.sender_id === currentUserUuid
-                                ? "bg-primary text-primary-foreground rounded-br-md"
-                                : "bg-gray-100 text-foreground rounded-bl-md"
-                            }`}
-                          >
-                            <p className="text-sm leading-relaxed">
-                              {decryptedContent}
-                            </p>
-                            <div className="flex items-center justify-end mt-2 gap-1 w-full">
-                              <span
-                                className={`text-xs ${msg.sender_id === currentUserUuid ? "text-primary-foreground/80" : "text-muted-foreground"}`}
-                              >
-                                {new Date(msg.created_at).toLocaleTimeString(
-                                  [],
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  }
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-          </div>
-
-          {/* Message Input - Sticky */}
-          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border p-4 shadow-none">
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 relative h-10 bg-gray-100 rounded-full">
-                <Input
-                  type="text"
-                  placeholder="Your message"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  className="pr-12 h-10 rounded-full placeholder:text-gray-400 w-full bg-gray-100 border-none focus:ring-0 focus:outline-none text-sm px-4"
-                  aria-label="Message input"
-                  disabled={sending}
-                />
-              </div>
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim() || sending}
-                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 disabled:opacity-50"
-                size="icon"
-                aria-label="Send message"
-              >
-                {sending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
-              </Button>
-            </div>
-            {error && <div className="text-red-500 mt-2">{error}</div>}
-          </div>
+          <EllipsisVertical className="h-5 w-5" />
         </div>
+      </div>
+
+      {/* Messages */}
+      <div
+        ref={messagesContainerRef}
+        className="absolute top-16 bottom-12 left-0 right-0 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
+        data-testid="messages-container"
+      >
+        {messages.length === 0 ? (
+          <div className="flex-1 h-full flex items-center justify-center text-center py-8">
+            <span className="text-sm text-muted-foreground">
+              No messages yet. Start the conversation!
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="text-center mb-4">
+              <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                Today
+              </span>
+            </div>
+            {messages.map((msg) => {
+              let decryptedContent = "[Encrypted message]";
+              if (
+                msg.is_encrypted &&
+                msg.encrypted_content &&
+                msg.encryption_iv &&
+                msg.encryption_salt
+              ) {
+                try {
+                  decryptedContent =
+                    decryptMessage(
+                      {
+                        encryptedContent: msg.encrypted_content,
+                        iv: msg.encryption_iv,
+                        salt: msg.encryption_salt,
+                      },
+                      sharedSecret
+                    ) || "[Encrypted message]";
+                } catch {
+                  decryptedContent = "[Failed to decrypt message]";
+                }
+              }
+              const isSent = msg.sender_id === currentUserUuid;
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex ${isSent ? "justify-end" : "justify-start"} mb-0.5`}
+                >
+                  <div
+                    className={`relative max-w-[75%] ${isSent ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
+                  >
+                    <div
+                      className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words ${
+                        isSent
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-gray-100 text-foreground rounded-bl-md"
+                      }`}
+                    >
+                      <span>{decryptedContent}</span>
+                      <span className="flex items-center gap-1 justify-end ml-3 mt-2.5 float-right">
+                        <span
+                          className={`text-[10px] ${
+                            isSent ? "text-white/70" : "text-gray-500"
+                          }`}
+                        >
+                          {new Date(msg.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        {isSent && <CheckCheck className="w-3 h-3" />}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
+
+      {/* Message Input - Always at Bottom */}
+      <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border px-3 py-2 shadow-none z-10">
+        <div className="flex items-center space-x-2">
+          <div className="flex-1 relative h-8 bg-transparent rounded-full">
+            <Input
+              type="text"
+              placeholder="Your message"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              className="pr-12 h-8 rounded-full placeholder:text-gray-400 w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm px-4"
+              aria-label="Message input"
+              disabled={sending}
+            />
+          </div>
+          <Button
+            onClick={handleSend}
+            disabled={!input.trim() || sending}
+            className="rounded-full bg-transparent hover:bg-primary/90 text-primary h-8 w-8 disabled:opacity-50"
+            size="icon"
+            aria-label="Send message"
+          >
+            {sending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+        {error && <div className="text-red-500 mt-2">{error}</div>}
       </div>
     </div>
   );

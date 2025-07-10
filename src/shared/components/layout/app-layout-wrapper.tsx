@@ -33,7 +33,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     <>
       {!hideLayout && <Navbar onAvatarMenuOpenChange={setIsAvatarMenuOpen} />}
       <div
-        className={`transition-[filter,opacity] duration-500 ease-in-out ${
+        className={`h-full min-h-0 transition-[filter,opacity] duration-500 ease-in-out ${
           isAvatarMenuOpen && !isBlurException
             ? "blur-md opacity-80 pointer-events-none select-none"
             : "blur-0 opacity-100"
