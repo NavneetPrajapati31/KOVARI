@@ -611,10 +611,9 @@ const DirectChatPage = () => {
           <div className="flex items-center gap-3">
             {/* Back button for mobile */}
             <Button
-              variant="ghost"
               size="icon"
               onClick={handleBackClick}
-              className="md:hidden p-0 h-5 w-5 gap-0"
+              className="bg-transparent md:hidden p-0 h-5 w-5 gap-0"
               aria-label="Back to inbox"
             >
               <ArrowLeft className="h-5 w-5" />
