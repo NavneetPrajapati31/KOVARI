@@ -45,6 +45,11 @@ const menuItems = [
     icon: User2,
   },
   {
+    label: "Invitations",
+    href: "/invitations",
+    icon: User2,
+  },
+  {
     label: "Settings",
     href: "#",
     icon: Settings,
