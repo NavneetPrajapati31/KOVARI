@@ -94,8 +94,8 @@ export const useDirectChat = (
         plain_content: value.trim(),
         client_id: clientId,
       };
-      setMessages((prev) => [...prev, optimisticMsg]);
       setSending(true);
+      setMessages((prev) => [...prev, optimisticMsg]);
       try {
         const encrypted = await encryptMessage(value.trim(), sharedSecret);
         const { data, error: insertError } = await supabase

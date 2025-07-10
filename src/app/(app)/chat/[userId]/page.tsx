@@ -357,7 +357,13 @@ const DirectChatPage = () => {
   const router = useRouter();
   const partnerUuid = params?.userId as string;
   const currentUserId = user?.id || "";
-  const [currentUserUuid, setCurrentUserUuid] = useState<string>("");
+  // Cache currentUserUuid in localStorage for instant access
+  const [currentUserUuid, setCurrentUserUuid] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("currentUserUuid") || "";
+    }
+    return "";
+  });
   const [partnerProfile, setPartnerProfile] = useState<PartnerProfile | null>(
     null
   );
@@ -366,13 +372,17 @@ const DirectChatPage = () => {
   const supabase = require("@/lib/supabase").createClient();
 
   useEffect(() => {
+    if (!currentUserId) return;
+    if (currentUserUuid) return; // Already set from localStorage
     const fetchUuid = async () => {
-      if (!currentUserId) return;
       const uuid = await getUserUuidByClerkId(currentUserId);
       setCurrentUserUuid(uuid || "");
+      if (uuid && typeof window !== "undefined") {
+        localStorage.setItem("currentUserUuid", uuid);
+      }
     };
     fetchUuid();
-  }, [currentUserId]);
+  }, [currentUserId, currentUserUuid]);
 
   useEffect(() => {
     if (!partnerUuid) return;
