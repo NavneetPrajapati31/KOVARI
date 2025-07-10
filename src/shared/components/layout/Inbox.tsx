@@ -85,6 +85,25 @@ export default function Inbox() {
     fetchUserProfiles();
   }, [inbox.conversations, supabase]);
 
+  // Listen for custom event to update recent message in real-time
+  useEffect(() => {
+    const handler = (e: any) => {
+      const { partnerId, message, createdAt } = e.detail;
+      setUserProfiles((prevProfiles) => ({ ...prevProfiles })); // force rerender if needed
+      inbox.conversations = inbox.conversations.map((c) => {
+        if (
+          c.userId === partnerId &&
+          new Date(createdAt) > new Date(c.lastMessageAt)
+        ) {
+          return { ...c, lastMessage: message, lastMessageAt: createdAt };
+        }
+        return c;
+      });
+    };
+    window.addEventListener("inbox-message-update", handler);
+    return () => window.removeEventListener("inbox-message-update", handler);
+  }, [inbox]);
+
   const handleConversationClick = (userId: string) => {
     inbox.markConversationRead(userId);
     router.push(`/chat/${userId}`);

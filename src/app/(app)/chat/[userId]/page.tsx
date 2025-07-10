@@ -452,6 +452,52 @@ const DirectChatPage = () => {
     }
   };
 
+  // Helper to get displayable message content
+  const getDisplayableContent = (msg: any) => {
+    if (msg.status === "sending" || msg.status === "failed") {
+      return msg.plain_content || "";
+    } else {
+      let decryptedContent = "[Encrypted message]";
+      if (
+        msg.is_encrypted &&
+        msg.encrypted_content &&
+        msg.encryption_iv &&
+        msg.encryption_salt
+      ) {
+        try {
+          decryptedContent =
+            decryptMessage(
+              {
+                encryptedContent: msg.encrypted_content,
+                iv: msg.encryption_iv,
+                salt: msg.encryption_salt,
+              },
+              sharedSecret
+            ) || "[Encrypted message]";
+        } catch {
+          decryptedContent = "[Failed to decrypt message]";
+        }
+      }
+      return decryptedContent;
+    }
+  };
+
+  // Dispatch event after sending or receiving a message
+  useEffect(() => {
+    if (!messages.length) return;
+    const lastMsg = messages[messages.length - 1];
+    if (!lastMsg) return;
+    window.dispatchEvent(
+      new CustomEvent("inbox-message-update", {
+        detail: {
+          partnerId: partnerUuid,
+          message: getDisplayableContent(lastMsg),
+          createdAt: lastMsg.created_at,
+        },
+      })
+    );
+  }, [messages, partnerUuid, sharedSecret]);
+
   const handleBackClick = () => {
     router.push("/chat");
   };

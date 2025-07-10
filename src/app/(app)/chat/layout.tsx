@@ -20,7 +20,13 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
           hasSelectedChat ? "hidden md:block" : "block"
         }`}
       >
-        <Inbox />
+        <Inbox
+          key={
+            Array.isArray(params?.userId)
+              ? params.userId.join("-")
+              : params?.userId || "inbox"
+          }
+        />
       </div>
       {/* Right Side - Chat Content (Desktop) or Mobile when chat selected */}
       <div

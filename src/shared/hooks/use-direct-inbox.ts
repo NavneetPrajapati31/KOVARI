@@ -69,6 +69,23 @@ export const useDirectInbox = (
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  // Listen for custom event to update recent message in real-time
+  useEffect(() => {
+    const handler = (e: any) => {
+      const { partnerId, message, createdAt } = e.detail;
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.userId === partnerId &&
+          new Date(createdAt) > new Date(c.lastMessageAt)
+            ? { ...c, lastMessage: message, lastMessageAt: createdAt }
+            : c
+        )
+      );
+    };
+    window.addEventListener("inbox-message-update", handler);
+    return () => window.removeEventListener("inbox-message-update", handler);
+  }, []);
+
   useEffect(() => {
     if (!currentUserUuid) {
       setConversations([]);
@@ -218,6 +235,7 @@ export const useDirectInbox = (
                   lastMessage = "[Failed to decrypt message]";
                 }
               }
+              // Always update lastMessage and lastMessageAt for this conversation
               if (idx !== -1) {
                 // Update existing conversation
                 const updated = [...prev];
