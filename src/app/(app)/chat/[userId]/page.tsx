@@ -610,14 +610,13 @@ const DirectChatPage = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Back button for mobile */}
-            <Button
-              size="icon"
+            <button
               onClick={handleBackClick}
               className="bg-transparent text-foreground md:hidden p-0 h-5 w-5 gap-0"
               aria-label="Back to inbox"
             >
               <ArrowLeft className="h-5 w-5" />
-            </Button>
+            </button>
             <Link href={`/profile/${partnerUuid}`}>
               <div className="flex items-center gap-3">
                 {partnerProfile?.profile_photo ? (
