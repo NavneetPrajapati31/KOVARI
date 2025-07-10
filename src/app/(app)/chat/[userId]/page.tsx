@@ -613,7 +613,7 @@ const DirectChatPage = () => {
             <Button
               size="icon"
               onClick={handleBackClick}
-              className="bg-transparent md:hidden p-0 h-5 w-5 gap-0"
+              className="bg-transparent text-foreground md:hidden p-0 h-5 w-5 gap-0"
               aria-label="Back to inbox"
             >
               <ArrowLeft className="h-5 w-5" />
