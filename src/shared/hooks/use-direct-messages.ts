@@ -27,6 +27,7 @@ export const useDirectMessages = (
   currentUserUuid: string,
   partnerUuid: string
 ): UseDirectMessagesResult => {
+  // Always call all hooks
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -92,13 +93,13 @@ export const useDirectMessages = (
             };
           });
           setMessages((prev) => {
-            // If fetching first page, replace; else, prepend
+            // If fetching first page, replace; else, append
             if (pageToFetch === 1) return decrypted;
             // Avoid duplicates
             const existingIds = new Set(prev.map((m) => m.id));
             return [
-              ...decrypted.filter((m) => !existingIds.has(m.id)),
               ...prev,
+              ...decrypted.filter((m) => !existingIds.has(m.id)),
             ];
           });
           setHasMore(data.length === PAGE_SIZE);
@@ -121,12 +122,14 @@ export const useDirectMessages = (
   }, [hasMore, page, fetchMessages]);
 
   useEffect(() => {
+    if (!currentUserUuid || !partnerUuid) return;
     setPage(1);
     fetchMessages(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserUuid, partnerUuid]);
 
   useEffect(() => {
+    if (!currentUserUuid || !partnerUuid) return;
     const channel = supabase
       .channel("direct_messages")
       .on(
@@ -163,6 +166,17 @@ export const useDirectMessages = (
       supabase.removeChannel(channel);
     };
   }, [currentUserUuid, partnerUuid, fetchMessages, supabase]);
+
+  // Return empty state if UUIDs are not set
+  if (!currentUserUuid || !partnerUuid) {
+    return {
+      messages: [],
+      loading: true,
+      refetch: async () => {},
+      fetchMore: async () => {},
+      hasMore: false,
+    };
+  }
 
   return {
     messages,

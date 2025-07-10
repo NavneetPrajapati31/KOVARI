@@ -380,6 +380,7 @@ const MessageInput = ({
 };
 
 const DirectChatPage = () => {
+  // All hooks at the top, unconditionally
   const { user, isLoaded } = useUser();
   const params = useParams();
   const router = useRouter();
@@ -518,13 +519,19 @@ const DirectChatPage = () => {
     }
   }, [fetchMore, loadingMore, hasMore]);
 
-  // Scroll to bottom when messages change
+  // Track last message ID for scroll-to-bottom
+  const lastMessageId =
+    mergedMessages.length > 0
+      ? mergedMessages[mergedMessages.length - 1].tempId ||
+        mergedMessages[mergedMessages.length - 1].id
+      : null;
+
   useLayoutEffect(() => {
     const container = messagesContainerRef.current;
     if (container) {
       container.scrollTop = container.scrollHeight;
     }
-  }, [mergedMessages.length]);
+  }, [lastMessageId]);
 
   useEffect(() => {
     const fetchUuid = async () => {
@@ -574,10 +581,11 @@ const DirectChatPage = () => {
     [handleSend]
   );
 
+  // Conditional rendering after all hooks
   if (
-    !isLoaded ||
-    (!hasLoadedOnce &&
-      loading &&
+    !currentUserUuid ||
+    !partnerUuid ||
+    (loading &&
       messages.length === 0 &&
       effectiveMessages.length === 0 &&
       optimisticMessages.length === 0)
