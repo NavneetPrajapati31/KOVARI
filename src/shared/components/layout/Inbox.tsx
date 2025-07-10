@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/shared/components/ui/input";
@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/shared/components/ui/badge";
 import { Spinner } from "@heroui/react";
 import { Search, Check, CheckCheck } from "lucide-react";
+import { X } from "lucide-react";
 import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { createClient } from "@/lib/supabase";
@@ -31,6 +32,16 @@ export default function Inbox() {
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfile>>(
     {}
   );
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleSearch = () => {
+    // Filtering is already live, but this can be used for analytics or focus/blur
+    // Optionally, you could debounce or only filter on button click
+  };
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    inputRef.current?.focus();
+  };
   const inbox = useDirectInbox(currentUserUuid, currentChatUserId);
   const supabase = createClient();
 
@@ -135,23 +146,73 @@ export default function Inbox() {
       {/* Search Bar */}
       <div className="p-3.5 bg-card flex-shrink-0 border-b border-border">
         <div className="relative">
-          <Input
+          <input
             type="text"
             placeholder="Search"
-            className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-gray-300"
+            className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-sm placeholder:text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search conversations"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearch();
+              }
+            }}
+            ref={inputRef}
           />
-          <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              aria-label="Clear search"
+              tabIndex={0}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <X className="h-5 w-5 text-gray-400" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSearch}
+              aria-label="Search"
+              tabIndex={0}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Search className="h-5 w-5 text-gray-400" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Messages List */}
       <div className="flex-1 bg-card overflow-y-auto scrollbar-hide">
-        {inbox.conversations.length === 0 ? (
-          <div className="flex items-center justify-center p-8 h-full">
-            <span className="text-muted-foreground">No conversations yet.</span>
-          </div>
-        ) : (
-          inbox.conversations.map((conversation, index) => {
+        {(() => {
+          const filteredConversations = inbox.conversations.filter(
+            (conversation) => {
+              const profile = userProfiles[conversation.userId];
+              const displayName =
+                profile?.name || profile?.username || "Unknown";
+              const username = profile?.username || "";
+              const lastMessage = conversation.lastMessage || "";
+              const query = searchQuery.trim().toLowerCase();
+              if (!query) return true;
+              return (
+                displayName.toLowerCase().includes(query) ||
+                username.toLowerCase().includes(query)
+                // lastMessage.toLowerCase().includes(query)
+              );
+            }
+          );
+          if (filteredConversations.length === 0) {
+            return (
+              <div className="flex items-center justify-center p-8 h-full">
+                <span className="text-muted-foreground">
+                  No conversations found.
+                </span>
+              </div>
+            );
+          }
+          return filteredConversations.map((conversation, index) => {
             const profile = userProfiles[conversation.userId];
             const displayName = profile?.name || profile?.username || "Unknown";
             const time = new Date(
@@ -166,7 +227,7 @@ export default function Inbox() {
               <div
                 key={conversation.userId}
                 className={`flex items-center px-4 py-3  cursor-pointer transition-colors ${
-                  index !== inbox.conversations.length - 1
+                  index !== filteredConversations.length - 1
                     ? "border-b border-border"
                     : ""
                 } ${isActive ? "bg-primary-light" : "hover:bg-gray-100"}`}
@@ -196,8 +257,6 @@ export default function Inbox() {
                         .slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
-                  {/* Online indicator - you can implement this based on your requirements */}
-                  {/* <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></div> */}
                 </div>
 
                 {/* Message Content */}
@@ -214,9 +273,6 @@ export default function Inbox() {
                       <span className="text-xs text-muted-foreground">
                         {time}
                       </span>
-                      {/* Message status indicators - you can implement based on your requirements */}
-                      {/* <CheckCheck className="h-4 w-4 text-blue-500" /> */}
-                      {/* <Check className="h-4 w-4 text-gray-400" /> */}
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -240,8 +296,8 @@ export default function Inbox() {
                 </div>
               </div>
             );
-          })
-        )}
+          });
+        })()}
       </div>
     </div>
   );
