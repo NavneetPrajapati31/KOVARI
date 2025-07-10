@@ -14,6 +14,7 @@ import {
   NavbarMenuItem,
   NavbarMenu,
   Skeleton,
+  Badge,
 } from "@heroui/react";
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
 import Link from "next/link";
 import SidebarMenu from "./sidebar-menu";
+import useTotalUnreadCount from "@/shared/hooks/use-total-unread-count";
 
 export const AcmeLogo = () => {
   return (
@@ -75,6 +77,7 @@ export default function App({
     null
   );
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const totalUnreadCount = useTotalUnreadCount();
 
   useEffect(() => {
     // Hide spinner when route changes
@@ -327,7 +330,7 @@ export default function App({
               className="bg-transparent duration-300 text-foreground p-0 m-0 rounded-full flex items-center self-start sm:self-center"
               aria-label="Inbox"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-6 w-6" />
             </div>
           </Link>
           <Link href="/chat" className="">
@@ -335,7 +338,13 @@ export default function App({
               className="bg-transparent duration-300 text-foreground p-0 m-0 rounded-full flex items-center self-start sm:self-center relative"
               aria-label="Inbox"
             >
-              <Send className="h-4 w-4" />
+              {totalUnreadCount > 0 ? (
+                <Badge color="primary" size="sm" content={totalUnreadCount}>
+                  <Send className="h-5 w-5" />
+                </Badge>
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
             </div>
           </Link>
           {!isLoaded || profilePhotoLoading ? (
@@ -354,7 +363,7 @@ export default function App({
                   size="sm"
                   src={profilePhotohref || user?.imageUrl}
                 /> */}
-                <User className="h-5 w-5" />
+                <User className="h-6 w-6" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
                 {menuItems.map((item) => (
