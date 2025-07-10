@@ -49,12 +49,31 @@ export async function POST(req: Request) {
     .eq("clerk_user_id", userId)
     .maybeSingle();
 
-  if (error || !userRow) {
+  let userIdInSupabase = userRow?.id;
+  if ((!userRow || !userRow.id) && !error) {
+    const { data: newUser, error: createError } = await supabase
+      .from("users")
+      .insert({ clerk_user_id: userId })
+      .select("id")
+      .single();
+    if (createError || !newUser) {
+      console.error("Error creating user in Supabase:", createError);
+      return new Response("Failed to create user record in Supabase", {
+        status: 500,
+      });
+    }
+    userIdInSupabase = newUser.id;
+  } else if (error) {
     return new Response("User not found", { status: 404 });
+  }
+  if (!userIdInSupabase) {
+    return new Response("User not found after creation attempt", {
+      status: 404,
+    });
   }
 
   const payload = {
-    user_id: userRow.id,
+    user_id: userIdInSupabase,
     ...parsed.data,
   };
 
@@ -62,14 +81,14 @@ export async function POST(req: Request) {
   const { data: existing } = await supabase
     .from("travel_preferences")
     .select("id")
-    .eq("user_id", userRow.id)
+    .eq("user_id", userIdInSupabase)
     .maybeSingle();
 
   if (existing) {
     const { error: updateError } = await supabase
       .from("travel_preferences")
       .update(payload)
-      .eq("user_id", userRow.id);
+      .eq("user_id", userIdInSupabase);
 
     if (updateError) {
       console.error("Supabase update error:", updateError);

@@ -52,15 +52,15 @@ export async function POST(req: Request) {
     .eq("clerk_user_id", userId)
     .maybeSingle();
 
-  // If user is not found, try to create them
-  if (!userRow && !userFetchError) {
+  // If user is not found, try to create them (always attempt creation if not found)
+  if ((!userRow || !userRow.id) && !userFetchError) {
     const { data: newUser, error: createError } = await supabase
       .from("users")
       .insert({ clerk_user_id: userId })
       .select("id")
       .single();
 
-    if (createError) {
+    if (createError || !newUser) {
       console.error("Error creating user in Supabase:", createError);
       return new Response(
         JSON.stringify({
@@ -69,7 +69,6 @@ export async function POST(req: Request) {
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
-
     userRow = newUser;
   } else if (userFetchError) {
     console.error("Error fetching user from Supabase:", userFetchError);
@@ -81,7 +80,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!userRow) {
+  if (!userRow || !userRow.id) {
     return new Response(
       JSON.stringify({
         error:
