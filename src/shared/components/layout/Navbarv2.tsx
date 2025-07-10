@@ -34,9 +34,11 @@ import {
   Plus,
   Home,
   Search,
+  User,
   User2,
   Inbox,
   Settings,
+  Send,
 } from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
@@ -313,29 +315,35 @@ export default function App({
         </NavbarContent>
 
         <NavbarContent as="div" justify="end">
-          <Link href="/create-group" className="hidden md:flex">
-            <Button
+          <Link href="/create-group" className="">
+            {/* <Button
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1 rounded-full flex items-center gap-2 self-start sm:self-center"
               aria-label="Create Group"
             >
               <span className="text-xs">Create Group</span>
               <Plus className="h-3 w-3" />
-            </Button>
-          </Link>
-          <Link href="/invitations" className="hidden md:flex">
+            </Button> */}
             <div
-              className="bg-foreground hover:bg-black/70 transition-all duration-300 text-primary-foreground p-2.5 rounded-full flex items-center self-start sm:self-center"
-              aria-label="Invitations"
+              className="bg-transparent duration-300 text-foreground p-0 m-0 rounded-full flex items-center self-start sm:self-center"
+              aria-label="Inbox"
             >
-              <Inbox className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
+            </div>
+          </Link>
+          <Link href="/chat" className="">
+            <div
+              className="bg-transparent duration-300 text-foreground p-0 m-0 rounded-full flex items-center self-start sm:self-center relative"
+              aria-label="Inbox"
+            >
+              <Send className="h-4 w-4" />
             </div>
           </Link>
           {!isLoaded || profilePhotoLoading ? (
-            <Skeleton className="w-9 h-9 rounded-full" />
+            <User className="h-5 w-5" />
           ) : isSignedIn ? (
             <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
               <DropdownMenuTrigger asChild>
-                <Avatar
+                {/* <Avatar
                   isBordered
                   as="button"
                   className={
@@ -345,7 +353,8 @@ export default function App({
                   name={user?.fullName || user?.username || "User"}
                   size="sm"
                   src={profilePhotohref || user?.imageUrl}
-                />
+                /> */}
+                <User className="h-5 w-5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
                 {menuItems.map((item) => (

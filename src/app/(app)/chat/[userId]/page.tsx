@@ -216,6 +216,7 @@ const MessageInput = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -306,6 +307,14 @@ const MessageInput = ({
             setShowEmoji((v) => !v);
           }
         }}
+        onMouseEnter={() => {
+          if (hoverTimeout) clearTimeout(hoverTimeout);
+          setShowEmoji(true);
+        }}
+        onMouseLeave={() => {
+          const timeout = setTimeout(() => setShowEmoji(false), 150);
+          setHoverTimeout(timeout);
+        }}
       >
         <Smile className="h-5 w-5" />
       </button>
@@ -315,6 +324,13 @@ const MessageInput = ({
           className="absolute bottom-12 right-0 z-50 bg-card border-none rounded-xl shadow-none p-2"
           role="dialog"
           aria-label="Emoji picker"
+          onMouseEnter={() => {
+            if (hoverTimeout) clearTimeout(hoverTimeout);
+          }}
+          onMouseLeave={() => {
+            const timeout = setTimeout(() => setShowEmoji(false), 150);
+            setHoverTimeout(timeout);
+          }}
         >
           {/* @ts-ignore */}
           <Picker
