@@ -17,7 +17,11 @@ interface UseDirectMessagesResult {
   messages: DirectMessage[];
   loading: boolean;
   refetch: () => Promise<void>;
+  fetchMore: () => Promise<void>;
+  hasMore: boolean;
 }
+
+const PAGE_SIZE = 30;
 
 export const useDirectMessages = (
   currentUserUuid: string,
@@ -25,6 +29,8 @@ export const useDirectMessages = (
 ): UseDirectMessagesResult => {
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [page, setPage] = useState<number>(1);
   const supabase = createClient();
 
   // For demo: derive a shared secret from both UUIDs (in production, use a secure key exchange)
@@ -33,82 +39,136 @@ export const useDirectMessages = (
       ? `${currentUserUuid}:${partnerUuid}`
       : `${partnerUuid}:${currentUserUuid}`;
 
-  const fetchMessages = useCallback(async () => {
-    if (!currentUserUuid || !partnerUuid) {
-      if (!currentUserUuid && !partnerUuid) {
-        console.warn("[useDirectMessages] Skipping fetch: missing UUID(s)", {
-          currentUserUuid,
-          partnerUuid,
-        });
+  const fetchMessages = useCallback(
+    async (pageOverride?: number) => {
+      if (!currentUserUuid || !partnerUuid) {
+        setMessages([]);
+        setLoading(false);
+        setHasMore(false);
+        return;
       }
-      setMessages([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const orFilter = `and(sender_id.eq.${currentUserUuid},receiver_id.eq.${partnerUuid}),and(sender_id.eq.${partnerUuid},receiver_id.eq.${currentUserUuid})`;
-    console.log("[useDirectMessages] orFilter:", orFilter);
-    try {
-      const { data, error } = await supabase
-        .from("direct_messages")
-        .select("*")
-        .or(orFilter)
-        .order("created_at", { ascending: true });
-      if (error) {
-        console.error("[useDirectMessages] Supabase error:", error);
-      }
-      if (!error && data) {
-        // Decrypt messages if needed
-        const decrypted = data.map((msg: any) => {
-          let decryptedContent = "[Encrypted message]";
-          if (
-            msg.is_encrypted &&
-            msg.encrypted_content &&
-            msg.encryption_iv &&
-            msg.encryption_salt
-          ) {
-            try {
-              decryptedContent =
-                decryptMessage(
-                  {
-                    encryptedContent: msg.encrypted_content,
-                    iv: msg.encryption_iv,
-                    salt: msg.encryption_salt,
-                  },
-                  sharedSecret
-                ) || "[Encrypted message]";
-            } catch {
-              decryptedContent = "[Failed to decrypt message]";
+      setLoading(true);
+      const orFilter = `and(sender_id.eq.${currentUserUuid},receiver_id.eq.${partnerUuid}),and(sender_id.eq.${partnerUuid},receiver_id.eq.${currentUserUuid})`;
+      const pageToFetch = pageOverride ?? page;
+      try {
+        const { data, error } = await supabase
+          .from("direct_messages")
+          .select("*")
+          .or(orFilter)
+          .order("created_at", { ascending: true })
+          .range(
+            Math.max(0, pageToFetch * PAGE_SIZE - PAGE_SIZE),
+            pageToFetch * PAGE_SIZE - 1
+          );
+        if (error) {
+          console.error("[useDirectMessages] Supabase error:", error);
+        }
+        if (!error && data) {
+          const decrypted = data.map((msg: any) => {
+            let decryptedContent = "[Encrypted message]";
+            if (
+              msg.is_encrypted &&
+              msg.encrypted_content &&
+              msg.encryption_iv &&
+              msg.encryption_salt
+            ) {
+              try {
+                decryptedContent =
+                  decryptMessage(
+                    {
+                      encryptedContent: msg.encrypted_content,
+                      iv: msg.encryption_iv,
+                      salt: msg.encryption_salt,
+                    },
+                    sharedSecret
+                  ) || "[Encrypted message]";
+              } catch {
+                decryptedContent = "[Failed to decrypt message]";
+              }
             }
-          }
-          return {
-            ...msg,
-            // No content field
-          };
-        });
-        setMessages(decrypted);
+            return {
+              ...msg,
+              // No content field
+            };
+          });
+          setMessages((prev) => {
+            // If fetching first page, replace; else, prepend
+            if (pageToFetch === 1) return decrypted;
+            // Avoid duplicates
+            const existingIds = new Set(prev.map((m) => m.id));
+            return [
+              ...decrypted.filter((m) => !existingIds.has(m.id)),
+              ...prev,
+            ];
+          });
+          setHasMore(data.length === PAGE_SIZE);
+        }
+      } catch (err) {
+        console.error("[useDirectMessages] Exception during fetch:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("[useDirectMessages] Exception during fetch:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUserUuid, partnerUuid, supabase, sharedSecret]);
+    },
+    [currentUserUuid, partnerUuid, supabase, sharedSecret, page]
+  );
+
+  // Fetch more (pagination)
+  const fetchMore = useCallback(async () => {
+    if (!hasMore) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    await fetchMessages(nextPage);
+  }, [hasMore, page, fetchMessages]);
 
   useEffect(() => {
-    fetchMessages();
+    setPage(1);
+    fetchMessages(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserUuid, partnerUuid]);
+
+  useEffect(() => {
     const channel = supabase
       .channel("direct_messages")
       .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "direct_messages" },
+        "postgres_changes" as any,
+        { event: "INSERT", schema: "public", table: "direct_messages" },
+        (payload: any) => {
+          const msg = payload.new as DirectMessage;
+          // Only add if it's for this chat
+          const isRelevant =
+            (msg.sender_id === currentUserUuid &&
+              msg.receiver_id === partnerUuid) ||
+            (msg.sender_id === partnerUuid &&
+              msg.receiver_id === currentUserUuid);
+          if (!isRelevant) return;
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            // Ensure all are DirectMessage
+            return [...prev, msg] as DirectMessage[];
+          });
+        }
+      )
+      .on(
+        "postgres_changes" as any,
+        { event: "UPDATE", schema: "public", table: "direct_messages" },
+        fetchMessages
+      )
+      .on(
+        "postgres_changes" as any,
+        { event: "DELETE", schema: "public", table: "direct_messages" },
         fetchMessages
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchMessages, supabase]);
+  }, [currentUserUuid, partnerUuid, fetchMessages, supabase]);
 
-  return { messages, loading, refetch: fetchMessages };
+  return {
+    messages,
+    loading,
+    refetch: () => fetchMessages(1),
+    fetchMore,
+    hasMore,
+  };
 };
