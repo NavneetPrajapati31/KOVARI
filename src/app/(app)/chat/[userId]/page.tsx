@@ -247,23 +247,32 @@ const MessageInput = ({
 }) => {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [text]);
+
   // Insert emoji at cursor position
   const insertEmoji = (emoji: string) => {
-    const input = inputRef.current;
-    if (!input) return;
-    const start = input.selectionStart || 0;
-    const end = input.selectionEnd || 0;
-    const value = input.value;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const value = textarea.value;
     const newValue = value.slice(0, start) + emoji + value.slice(end);
     setText(newValue);
     // Move cursor after emoji (next render)
     setTimeout(() => {
-      input.setSelectionRange(start + emoji.length, start + emoji.length);
-      input.focus();
+      textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+      textarea.focus();
     }, 0);
   };
 
@@ -291,32 +300,35 @@ const MessageInput = ({
     };
   }, [showEmoji]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
   };
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (text.trim()) {
         handleSend(text, () => setText(""));
       }
     }
+    // Shift+Enter: allow default (newline)
   };
 
   return (
     <div className="flex items-center space-x-1 relative">
       <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
-        <input
-          ref={inputRef}
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={text}
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
           placeholder="Your message"
-          className="w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none"
+          className="w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto"
           aria-label="Type your message"
           disabled={sending}
+          rows={1}
+          tabIndex={0}
+          style={{ lineHeight: "1.5" }}
         />
       </div>
       <button

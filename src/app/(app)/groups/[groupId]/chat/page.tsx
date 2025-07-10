@@ -36,6 +36,7 @@ export default function GroupChatInterface() {
   const prevGroupIdRef = useRef<string | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     messages,
@@ -56,19 +57,28 @@ export default function GroupChatInterface() {
 
   // Insert emoji at cursor position
   const insertEmoji = (emoji: string) => {
-    const input = inputRef.current;
-    if (!input) return;
-    const start = input.selectionStart || 0;
-    const end = input.selectionEnd || 0;
-    const value = input.value;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const value = textarea.value;
     const newValue = value.slice(0, start) + emoji + value.slice(end);
     setMessage(newValue);
     // Move cursor after emoji (next render)
     setTimeout(() => {
-      input.setSelectionRange(start + emoji.length, start + emoji.length);
-      input.focus();
+      textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+      textarea.focus();
     }, 0);
   };
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [message]);
 
   // Close emoji picker on outside click or Escape
   useEffect(() => {
@@ -134,11 +144,12 @@ export default function GroupChatInterface() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
+    // Shift+Enter: allow default (newline)
   };
 
   if (loading && messages.length === 0) {
@@ -291,15 +302,19 @@ export default function GroupChatInterface() {
           <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
             <div className="flex items-center space-x-1">
               <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
-                <input
-                  ref={inputRef}
+                <textarea
+                  ref={textareaRef}
                   key={groupId}
-                  type="text"
                   placeholder="Your message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none"
+                  onKeyDown={handleKeyDown}
+                  className="w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto"
+                  aria-label="Type your message"
+                  disabled={sending}
+                  rows={1}
+                  tabIndex={0}
+                  style={{ lineHeight: "1.5" }}
                 />
               </div>
               <button
