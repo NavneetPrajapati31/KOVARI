@@ -90,7 +90,7 @@ const MessageRow = React.memo(
               }}
             />
           )}
-          <span className="flex items-center gap-1 justify-end ml-3 mt-2.5 float-right">
+          <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
             <span
               className={`text-[10px] ${
                 isSent ? "text-white/70" : "text-gray-500"
@@ -597,7 +597,7 @@ const DirectChatPage = () => {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
+        className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto p-4 mb-2 max-h-[80vh] space-y-1 scrollbar-none bg-card"
         data-testid="messages-container"
         aria-live="polite"
         aria-atomic="false"
