@@ -29,34 +29,24 @@ export function useSyncUserToSupabase() {
         }
       );
 
-      // First, try to get the user to check if they exist
+      // Try to get the user to check if they exist
       const { data: existingUser, error: fetchError } = await supabase
         .from("users")
         .select("id")
         .eq("clerk_user_id", userId)
         .single();
 
-      if (fetchError) {
-        // Log the full error object for debugging
-        console.error("Error checking user existence:", {
-          error: fetchError,
-          code: fetchError.code,
-          message: fetchError.message,
-          details: fetchError.details,
-        });
-
-        // Only retry if it's not a "no rows" error
-        if (fetchError.code !== "PGRST116") {
-          if (retries > 0) {
-            console.log(`Retrying... ${retries} attempts left`);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            return syncUser(retries - 1);
-          }
-          return false;
+      // If fetchError is not a "no rows" error, log and retry
+      if (fetchError && fetchError.code !== "PGRST116") {
+        console.error("Error checking user existence:", fetchError);
+        if (retries > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return syncUser(retries - 1);
         }
+        return false;
       }
 
-      // If user doesn't exist, create them
+      // If user doesn't exist (either fetchError is "no rows" or data is null), try to create
       let userIdInSupabase = existingUser?.id;
       if (!existingUser) {
         const { data: newUser, error: insertError } = await supabase
@@ -65,16 +55,20 @@ export function useSyncUserToSupabase() {
           .select("id")
           .single();
 
-        if (insertError) {
+        if (insertError || !newUser) {
           console.error("Failed to create user in Supabase:", insertError);
           if (retries > 0) {
-            console.log(`Retrying... ${retries} attempts left`);
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return syncUser(retries - 1);
           }
           return false;
         }
-        userIdInSupabase = newUser?.id;
+        userIdInSupabase = newUser.id;
+      }
+
+      if (!userIdInSupabase) {
+        console.error("User ID in Supabase is undefined after sync.");
+        return false;
       }
 
       console.log("✅ User synced to Supabase successfully");
@@ -82,7 +76,6 @@ export function useSyncUserToSupabase() {
     } catch (error) {
       console.error("Error in syncUser:", error);
       if (retries > 0) {
-        console.log(`Retrying... ${retries} attempts left`);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return syncUser(retries - 1);
       }

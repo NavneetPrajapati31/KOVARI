@@ -231,6 +231,7 @@ export default function ProfileSetupForm() {
     null
   );
   const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [syncUserError, setSyncUserError] = useState<string | null>(null);
 
   const { syncUser } = useSyncUserToSupabase();
 
@@ -346,6 +347,7 @@ export default function ProfileSetupForm() {
   const submitProfileAndPreferences = async (data: Step3Data) => {
     try {
       setIsSubmitting(true);
+      setSyncUserError(null);
       const completeData = { ...step1Data, ...step2Data, ...data };
       console.log("Complete form data:", completeData);
 
@@ -396,7 +398,14 @@ export default function ProfileSetupForm() {
       // Step 2: Sync user to Supabase
       const syncSuccess = await syncUser();
       if (!syncSuccess) {
-        throw new Error("Failed to sync user data");
+        setSyncUserError(
+          "Failed to sync your account to our database. Please check your connection and try again."
+        );
+        toast.error(
+          "Failed to sync your account to our database. Please try again."
+        );
+        setIsSubmitting(false);
+        return;
       }
 
       // Step 4: Save travel mode
@@ -1652,11 +1661,36 @@ export default function ProfileSetupForm() {
           <ProgressIndicator />
         </CardHeader>
         <CardContent className="px-4 md:px-6 pb-6">
+          {syncUserError && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded text-red-700 text-sm flex flex-col items-center">
+              <span>{syncUserError}</span>
+              <Button
+                className="mt-2"
+                onClick={async () => {
+                  setSyncUserError(null);
+                  setIsSubmitting(true);
+                  const syncSuccess = await syncUser();
+                  setIsSubmitting(false);
+                  if (!syncSuccess) {
+                    setSyncUserError(
+                      "Failed to sync your account to our database. Please try again."
+                    );
+                  } else {
+                    toast.success("Account synced! Please continue.");
+                  }
+                }}
+              >
+                Retry Sync
+              </Button>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {step === 1 && <div key="step1">{renderStep1()}</div>}
             {step === 2 && <div key="step2">{renderStep2()}</div>}
             {step === 3 && <div key="step3">{renderStep3()}</div>}
-            {step === 4 && <div key="step4">{renderStep4()}</div>}
+            {step === 4 && !syncUserError && (
+              <div key="step4">{renderStep4()}</div>
+            )}
             {step === 5 && <div key="step5">{renderStep5()}</div>}
           </AnimatePresence>
         </CardContent>
