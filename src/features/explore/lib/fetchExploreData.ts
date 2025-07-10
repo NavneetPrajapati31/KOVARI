@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase";
+import { calculateMatchScore, Traveler as MatchTraveler } from "@/shared/utils/matching";
 
 // Traveler type for TravelerCard
 export interface Traveler {
@@ -11,9 +12,10 @@ export interface Traveler {
   profilePhoto: string;
   destination: string;
   travelDates: string;
-  matchStrength: "high" | "medium" | "low";
+  matchStrength: "medium";
   created_at: string;
   isFollowing: boolean;
+  matchScore: number;
 }
 
 // Group type for GroupCard
@@ -126,10 +128,59 @@ export const fetchSoloTravelers = async (
       .from("travel_preferences")
       .select("user_id, destinations, start_date, end_date, interests")
       .in("user_id", userIds);
-
     if (prefsError) {
       console.error("Error fetching travel preferences:", prefsError);
     }
+
+    // Fetch travel modes for these profiles
+    const { data: travelModesRows, error: travelModesError } = await supabase
+      .from("travel_modes")
+      .select("user_id, mode")
+      .in("user_id", userIds);
+    if (travelModesError) {
+      console.error("Error fetching travel modes:", travelModesError);
+    }
+    const travelModesMap = (travelModesRows || []).reduce((acc: any, row) => {
+      acc[row.user_id] = row.mode ? [row.mode] : [];
+      return acc;
+    }, {});
+
+    // Create a map of travel preferences by user_id
+    const prefsMap = (travelPrefs || []).reduce((acc: any, pref) => {
+      acc[pref.user_id] = pref;
+      return acc;
+    }, {});
+
+    // Fetch current user's travel preferences for match scoring
+    const { data: myPrefs, error: myPrefsError } = await supabase
+      .from("travel_preferences")
+      .select("user_id, destinations, start_date, end_date, interests")
+      .eq("user_id", currentUserId)
+      .single();
+    if (myPrefsError || !myPrefs) {
+      console.error("Error fetching current user's travel preferences:", myPrefsError);
+      return { data: [], nextCursor: null };
+    }
+    // Fetch current user's profile for age and profession
+    const { data: myProfile, error: myProfileError } = await supabase
+      .from("profiles")
+      .select("age, job")
+      .eq("user_id", currentUserId)
+      .single();
+    if (myProfileError || !myProfile) {
+      console.error("Error fetching current user's profile:", myProfileError);
+      return { data: [], nextCursor: null };
+    }
+    // Fetch current user's travel mode
+    const { data: myTravelModeRow, error: myTravelModeError } = await supabase
+      .from("travel_modes")
+      .select("mode")
+      .eq("user_id", currentUserId)
+      .single();
+    if (myTravelModeError) {
+      console.error("Error fetching current user's travel mode:", myTravelModeError);
+    }
+    const myTravelModes = myTravelModeRow?.mode ? [myTravelModeRow.mode] : [];
 
     // Fetch following info for current user
     let followingIds = new Set<string>();
@@ -147,11 +198,8 @@ export const fetchSoloTravelers = async (
       );
     }
 
-    // Create a map of travel preferences by user_id
-    const prefsMap = (travelPrefs || []).reduce((acc: any, pref) => {
-      acc[pref.user_id] = pref;
-      return acc;
-    }, {});
+    // Memoization cache for match scores
+    const scoreCache = new Map<string, number>();
 
     // Map the data and apply destination, date, interests filters
     const mapped = filteredProfiles
@@ -165,6 +213,11 @@ export const fetchSoloTravelers = async (
           : null;
         const interests = travelPref?.interests || [];
         const destination = travelPref?.destinations?.[0] || "";
+        // Fetch age and profession from profile
+        const age = profile.age || 0;
+        const profession = profile.job || "";
+        // Fetch travel mode from travelModesMap
+        const travelModes = travelModesMap[profile.user_id] || [];
 
         // Filter by destination (partial, case-insensitive)
         if (
@@ -202,28 +255,73 @@ export const fetchSoloTravelers = async (
           ).toLocaleDateString()}`;
         };
 
+        // Build Traveler objects for match scoring
+        const myTraveler: MatchTraveler = {
+          id: currentUserId,
+          name: "", // Not needed for scoring
+          age: myProfile.age || 0,
+          destination: myPrefs.destinations?.[0] || "",
+          startDate: myPrefs.start_date || "",
+          endDate: myPrefs.end_date || "",
+          interests: myPrefs.interests || [],
+          travelModes: myTravelModes,
+          profession: myProfile.job || "",
+        };
+        const otherTraveler: MatchTraveler = {
+          id: profile.user_id,
+          name: profile.name || "",
+          age: age,
+          destination: destination,
+          startDate: travelPref?.start_date || "",
+          endDate: travelPref?.end_date || "",
+          interests: interests,
+          travelModes: travelModes,
+          profession: profession,
+        };
+        // Memoize match score
+        const cacheKey = profile.user_id;
+        let matchScore = scoreCache.get(cacheKey);
+        if (matchScore === undefined) {
+          matchScore = calculateMatchScore(myTraveler, otherTraveler);
+          scoreCache.set(cacheKey, matchScore);
+        }
+
+        // Debug: Log match score and traveler objects
+        console.log('[MATCH DEBUG]', {
+          myTraveler,
+          otherTraveler,
+          matchScore,
+        });
+
         return {
           id: profile.id || "",
           userId: profile.user_id,
           name: profile.name || "",
           username: profile.username || "",
-          age: profile.age || 0,
+          age: age,
           bio: profile.bio || "",
           profilePhoto: profile.profile_photo || "",
           destination,
           travelDates: formatDateRange(startDate, endDate),
-          matchStrength: "medium" as const,
+          matchStrength: "medium" as const, // Optionally map matchScore to strength
+          matchScore, // Attach the numeric score
           created_at: profile.created_at,
           isFollowing: followingIds.has(profile.user_id),
         };
       })
       .filter(Boolean);
 
-    const hasMore = mapped.length === limit;
+    // Ensure mapped only contains non-null values for sorting
+    const nonNullMapped = mapped.filter(t => t) as Traveler[];
+
+    // Always sort by best match (descending matchScore)
+    nonNullMapped.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+
+    const hasMore = nonNullMapped.length === limit;
     const nextCursor = hasMore
-      ? (mapped[mapped.length - 1]?.created_at ?? null)
+      ? (nonNullMapped[nonNullMapped.length - 1]?.created_at ?? null)
       : null;
-    return { data: mapped as Traveler[], nextCursor };
+    return { data: nonNullMapped as Traveler[], nextCursor };
   } catch (e) {
     console.error("Unexpected error in fetchSoloTravelers:", e, {
       currentUserId,
