@@ -390,7 +390,7 @@ const DirectChatPage = () => {
   const [partnerProfile, setPartnerProfile] = useState<PartnerProfile | null>(
     null
   );
-  const { messages, loading, refetch, fetchMore, hasMore } = useDirectMessages(
+  const { messages, loading, refetch } = useDirectMessages(
     currentUserUuid,
     partnerUuid
   );
@@ -404,7 +404,7 @@ const DirectChatPage = () => {
   const [optimisticMessages, setOptimisticMessages] = useState<
     LocalDirectMessage[]
   >([]);
-  const [loadingMore, setLoadingMore] = useState(false);
+  // REMOVED: const [loadingMore, setLoadingMore] = useState(false);
 
   // Memoize sharedSecret
   const sharedSecret = useMemo(() => {
@@ -508,16 +508,16 @@ const DirectChatPage = () => {
     [currentUserUuid, partnerUuid, sharedSecret, supabase, refetch, toast]
   );
 
-  // Infinite scroll: fetch more messages when scrolled to top
-  const handleMessagesScroll = useCallback(async () => {
-    const container = messagesContainerRef.current;
-    if (!container || loadingMore || !hasMore) return;
-    if (container.scrollTop < 32) {
-      setLoadingMore(true);
-      await fetchMore();
-      setLoadingMore(false);
-    }
-  }, [fetchMore, loadingMore, hasMore]);
+  // REMOVED: Infinite scroll: fetch more messages when scrolled to top
+  // const handleMessagesScroll = useCallback(async () => {
+  //   const container = messagesContainerRef.current;
+  //   if (!container || loadingMore || !hasMore) return;
+  //   if (container.scrollTop < 32) {
+  //     setLoadingMore(true);
+  //     await fetchMore();
+  //     setLoadingMore(false);
+  //   }
+  // }, [fetchMore, loadingMore, hasMore]);
 
   // Track last message ID for scroll-to-bottom
   const lastMessageId =
@@ -662,13 +662,9 @@ const DirectChatPage = () => {
         aria-relevant="additions text"
         tabIndex={0}
         aria-label="Chat messages"
-        onScroll={handleMessagesScroll}
+        // REMOVED: onScroll={handleMessagesScroll}
       >
-        {loadingMore && hasMore && (
-          <div className="flex justify-center py-2">
-            <Spinner variant="spinner" size="sm" color="primary" />
-          </div>
-        )}
+        {/* REMOVED: loadingMore && hasMore spinner */}
         {mergedMessages.length === 0 ? (
           <div className="flex-1 h-full flex items-center justify-center text-center py-8">
             <span className="text-sm text-muted-foreground">
