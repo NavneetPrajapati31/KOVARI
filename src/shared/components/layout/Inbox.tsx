@@ -202,7 +202,7 @@ export default function Inbox() {
 
                 {/* Message Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-0.5">
                     <h3
                       className={`text-sm font-semibold truncate ${
                         isActive ? "text-primary" : "text-foreground"
@@ -229,7 +229,7 @@ export default function Inbox() {
                     </p>
                     {conversation.unreadCount > 0 && (
                       <Badge
-                        className="bg-blue-500 hover:bg-blue-600 text-white text-xs min-w-[20px] h-5 rounded-full flex items-center justify-center ml-2"
+                        className="bg-primary text-primary-foreground text-xs min-w-[20px] h-4 rounded-full flex items-center justify-center ml-2"
                         aria-label={`${conversation.unreadCount} unread messages`}
                         tabIndex={0}
                       >
