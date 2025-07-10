@@ -31,7 +31,7 @@ export default function Inbox() {
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfile>>(
     {}
   );
-  const { conversations, loading } = useDirectInbox(currentUserUuid);
+  const inbox = useDirectInbox(currentUserUuid, currentChatUserId);
   const supabase = createClient();
 
   // Commented out dummy data for reference
@@ -60,10 +60,10 @@ export default function Inbox() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!conversations.length) return;
+    if (!inbox.conversations.length) return;
 
     const fetchUserProfiles = async () => {
-      const userIds = conversations.map((conv) => conv.userId);
+      const userIds = inbox.conversations.map((conv) => conv.userId);
       const { data, error } = await supabase
         .from("profiles")
         .select("user_id, name, username, profile_photo")
@@ -83,13 +83,14 @@ export default function Inbox() {
     };
 
     fetchUserProfiles();
-  }, [conversations, supabase]);
+  }, [inbox.conversations, supabase]);
 
   const handleConversationClick = (userId: string) => {
+    inbox.markConversationRead(userId);
     router.push(`/chat/${userId}`);
   };
 
-  if (loading) {
+  if (inbox.loading) {
     return (
       <div className="h-full flex flex-col bg-gray-50">
         {/* Search Bar */}
@@ -126,12 +127,12 @@ export default function Inbox() {
 
       {/* Messages List */}
       <div className="flex-1 bg-card overflow-y-auto scrollbar-hide">
-        {conversations.length === 0 ? (
+        {inbox.conversations.length === 0 ? (
           <div className="flex items-center justify-center p-8 h-full">
             <span className="text-muted-foreground">No conversations yet.</span>
           </div>
         ) : (
-          conversations.map((conversation, index) => {
+          inbox.conversations.map((conversation, index) => {
             const profile = userProfiles[conversation.userId];
             const displayName = profile?.name || profile?.username || "Unknown";
             const time = new Date(
@@ -146,7 +147,7 @@ export default function Inbox() {
               <div
                 key={conversation.userId}
                 className={`flex items-center px-4 py-3  cursor-pointer transition-colors ${
-                  index !== conversations.length - 1
+                  index !== inbox.conversations.length - 1
                     ? "border-b border-border"
                     : ""
                 } ${isActive ? "bg-primary-light" : "hover:bg-gray-100"}`}
@@ -207,10 +208,15 @@ export default function Inbox() {
                     >
                       {conversation.lastMessage}
                     </p>
-                    {/* Unread count - you can implement based on your requirements */}
-                    {/* <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs min-w-[20px] h-5 rounded-full flex items-center justify-center">
-                      {unreadCount}
-                    </Badge> */}
+                    {conversation.unreadCount > 0 && (
+                      <Badge
+                        className="bg-blue-500 hover:bg-blue-600 text-white text-xs min-w-[20px] h-5 rounded-full flex items-center justify-center ml-2"
+                        aria-label={`${conversation.unreadCount} unread messages`}
+                        tabIndex={0}
+                      >
+                        {conversation.unreadCount}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>

@@ -10,6 +10,7 @@ import React, {
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { useDirectChat } from "@/shared/hooks/useDirectChat";
+import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
 import { Button } from "@/shared/components/ui/button";
 import { Image, Spinner } from "@heroui/react";
 import {
@@ -364,6 +365,13 @@ const DirectChatPage = () => {
     }
     return "";
   });
+  // Debug log for user IDs
+  useEffect(() => {
+    console.log("[DEBUG] Clerk user:", user);
+    console.log("[DEBUG] currentUserId:", currentUserId);
+    console.log("[DEBUG] currentUserUuid:", currentUserUuid);
+    console.log("[DEBUG] partnerUuid:", partnerUuid);
+  }, [user, currentUserId, currentUserUuid, partnerUuid]);
   const [partnerProfile, setPartnerProfile] = useState<PartnerProfile | null>(
     null
   );
@@ -373,7 +381,6 @@ const DirectChatPage = () => {
 
   useEffect(() => {
     if (!currentUserId) return;
-    if (currentUserUuid) return; // Already set from localStorage
     const fetchUuid = async () => {
       const uuid = await getUserUuidByClerkId(currentUserId);
       setCurrentUserUuid(uuid || "");
@@ -382,7 +389,7 @@ const DirectChatPage = () => {
       }
     };
     fetchUuid();
-  }, [currentUserId, currentUserUuid]);
+  }, [currentUserId]);
 
   useEffect(() => {
     if (!partnerUuid) return;
@@ -410,6 +417,9 @@ const DirectChatPage = () => {
       ? `${currentUserUuid}:${partnerUuid}`
       : `${partnerUuid}:${currentUserUuid}`;
   }, [currentUserUuid, partnerUuid]);
+
+  // Use the inbox hook to get markConversationRead
+  const { markConversationRead } = useDirectInbox(currentUserUuid, partnerUuid);
 
   // Scroll to bottom on new message
   const lastMessageId =
@@ -445,6 +455,15 @@ const DirectChatPage = () => {
   const handleBackClick = () => {
     router.push("/chat");
   };
+
+  // On unmount, mark conversation as read (for mobile/back nav)
+  useEffect(() => {
+    return () => {
+      if (partnerUuid && markConversationRead) {
+        markConversationRead(partnerUuid);
+      }
+    };
+  }, [partnerUuid, markConversationRead]);
 
   if (!currentUserUuid || !partnerUuid || (loading && messages.length === 0)) {
     return (
