@@ -46,7 +46,7 @@ const formatMessageWithLineBreaks = (message: string) =>
 const MessageSkeleton = () => (
   <div className="flex mb-0.5 justify-start">
     <div className="relative max-w-[75%] flex items-end gap-2">
-      <div className="relative px-4 py-1.5 rounded-2xl bg-gray-200 animate-pulse w-32 h-6" />
+      <div className="relative px-3 py-1 rounded-2xl bg-gray-200 animate-pulse w-32 h-6" />
     </div>
   </div>
 );
@@ -75,7 +75,7 @@ const MessageRow = React.memo(
         className={`relative max-w-[75%] ${isSent ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
       >
         <div
-          className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+          className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
             isSent
               ? "bg-primary text-primary-foreground rounded-br-md"
               : "bg-gray-100 text-foreground rounded-bl-md"
@@ -85,7 +85,7 @@ const MessageRow = React.memo(
           role="document"
         >
           {msg.status === "sending" || msg.status === "failed" ? (
-            <span>{content}</span>
+            <span className="text-xs">{content}</span>
           ) : (
             <span
               className="text-xs"
@@ -105,7 +105,7 @@ const MessageRow = React.memo(
                 minute: "2-digit",
               })}
             </span>
-            {showSpinner && <BiCheck className="w-4 h-4" />}
+            {showSpinner && <BiCheck className="w-4 h-4 text-white/70" />}
             {showError && (
               <>
                 <XCircle className="w-3 h-3 text-red-500" />
@@ -131,9 +131,9 @@ const MessageRow = React.memo(
               !showSpinner &&
               !showError &&
               (msg.read_at ? (
-                <BiCheckDouble className="w-4 h-4" />
+                <BiCheckDouble className="w-4 h-4 text-white/70" />
               ) : (
-                <BiCheck className="w-4 h-4" />
+                <BiCheck className="w-4 h-4 text-white/70" />
               ))}
           </span>
         </div>
@@ -297,7 +297,7 @@ const MessageInput = ({
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
           placeholder="Your message"
-          className="w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto"
+          className="w-full px-4 py-2 rounded-full border-none bg-transparent text-xs focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto scrollbar-hide"
           aria-label="Type your message"
           disabled={sending || disabled}
           rows={1}
