@@ -538,15 +538,15 @@ const DirectChatPage = () => {
     };
   }, [partnerUuid, markConversationRead]);
 
-  // if (
-  //   blockLoading ||
-  //   partnerLoading ||
-  //   !currentUserUuid ||
-  //   !partnerUuid ||
-  //   (loading && messages.length === 0)
-  // ) {
-  return <DirectChatSkeleton />;
-  // }
+  if (
+    blockLoading ||
+    partnerLoading ||
+    !currentUserUuid ||
+    !partnerUuid ||
+    (loading && messages.length === 0)
+  ) {
+    return <DirectChatSkeleton />;
+  }
   if (isBlocked) {
     return (
       <div className="flex flex-col h-full items-center justify-center text-center p-8">

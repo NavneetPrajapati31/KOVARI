@@ -4,15 +4,18 @@ import { Send, Smile } from "lucide-react";
 const SKELETON_COUNT = 16;
 
 const SKELETON_SEQUENCE = [
-  { type: "sent", count: 1, width: "w-36" },
-  { type: "received", count: 1, width: "w-36" },
-  { type: "sent", count: 2, widths: ["w-28", "w-40"] },
-  { type: "received", count: 1, width: "w-40" },
   { type: "sent", count: 2, widths: ["w-28", "w-40"] },
   { type: "received", count: 2, widths: ["w-28", "w-40"] },
-  { type: "sent", count: 1, width: "w-20" },
+  { type: "sent", count: 2, widths: ["w-28", "w-40"] },
   { type: "received", count: 2, widths: ["w-28", "w-40"] },
-  { type: "sent", count: 2, widths: ["w-28", "w-24"] },
+  { type: "sent", count: 2, widths: ["w-28", "w-40"] },
+  { type: "received", count: 2, widths: ["w-28", "w-40"] },
+  { type: "sent", count: 2, widths: ["w-28", "w-40"] },
+  { type: "received", count: 2, widths: ["w-28", "w-40"] },
+  { type: "sent", count: 2, widths: ["w-28", "w-40"] },
+  //   { type: "received", count: 1, width: "w-36" },
+  //   { type: "sent", count: 2, widths: ["w-28", "w-40"] },
+  //   { type: "received", count: 2, widths: ["w-28", "w-40"] },
 ];
 
 const DirectChatSkeleton = () => (
@@ -52,11 +55,11 @@ const DirectChatSkeleton = () => (
 
     {/* Messages Skeleton */}
     <div
-      className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto p-4 mb-2 max-h-[80vh] space-y-1 bg-card"
+      className="absolute top-16 bottom-10 left-0 right-0 overflow-hidden p-4 mb-2 max-h-[80vh] space-y-1 bg-card"
       aria-label="Chat messages skeleton"
       tabIndex={0}
     >
-      <div className="text-center flex justify-center items-center mb-6">
+      <div className="text-center flex justify-center items-center mb-5">
         <Skeleton className="px-3 py-1 rounded-full text-xs w-16 h-4 bg-gray-200" />
       </div>
 
@@ -75,7 +78,7 @@ const DirectChatSkeleton = () => (
               className={`relative max-w-[75%] ${group.type === "sent" ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
             >
               <Skeleton
-                className={`px-3 py-2 rounded-2xl text-xs h-6 bg-gray-200 ${
+                className={`rounded-2xl text-xs h-6 bg-gray-200 ${
                   group.widths
                     ? (group.widths[msgIdx] ?? "w-32")
                     : (group.width ?? "w-32")

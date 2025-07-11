@@ -4,13 +4,13 @@ import { useEffect, useState, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/shared/components/ui/input";
-// import {
-//   Avatar,
-//   AvatarFallback,
-//   AvatarImage,
-// } from "@/shared/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
-import { Spinner, Avatar } from "@heroui/react";
+import { Spinner } from "@heroui/react";
 import { Search, Check, CheckCheck } from "lucide-react";
 import { X } from "lucide-react";
 import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
@@ -243,11 +243,19 @@ export default function Inbox({ activeUserId }: InboxProps) {
               >
                 {/* Avatar */}
                 <div className="relative mr-3">
-                  <Avatar
-                    className="h-12 w-12"
-                    src={profile?.profile_photo || "/placeholder.svg"}
-                    alt={displayName}
-                  />
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage
+                      src={profile?.profile_photo || "/placeholder.svg"}
+                      alt={displayName}
+                    />
+                    <AvatarFallback className="bg-gray-200 text-gray-600 text-sm font-medium">
+                      {displayName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
 
                 {/* Message Content */}
