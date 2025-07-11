@@ -25,10 +25,10 @@ const DirectChatSkeleton = () => (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {/* Back button (mobile) */}
-          <Skeleton
+          {/* <Skeleton
             className="md:hidden h-5 w-5 rounded-full bg-gray-200"
             aria-label="Back button skeleton"
-          />
+          /> */}
           {/* Avatar */}
           <Skeleton
             className="w-10 h-10 rounded-full bg-gray-200"
