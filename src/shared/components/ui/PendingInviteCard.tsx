@@ -1,21 +1,26 @@
 import { format } from "date-fns";
-import { Button } from "@heroui/react";
-import { Invite } from "@/shared/hooks/usePendingInvites";
+import { Button } from "@/shared/components/ui/button";
+import { GroupMembership } from "@/shared/hooks/usePendingInvites";
 
 interface Props {
-  invite: Invite;
+  invite: GroupMembership;
   onAccept: () => void;
   onDecline: () => void;
 }
 
-export default function PendingInviteCard({ invite, onAccept, onDecline }: Props) {
+export default function PendingInviteCard({
+  invite,
+  onAccept,
+  onDecline,
+}: Props) {
   const group = invite.group;
   return (
     <div className="bg-[#ECEABE] border border-[#B2A890] rounded-xl p-4 flex justify-between items-center shadow-sm">
       <div>
         <h3 className="text-lg font-semibold text-[#004831]">{group.name}</h3>
         <p className="text-sm text-[#3A3A2C]">
-          {group.destination} — {format(new Date(group.trip_dates.from), "dd MMM")} to{" "}
+          {group.destination} —{" "}
+          {format(new Date(group.trip_dates.from), "dd MMM")} to{" "}
           {format(new Date(group.trip_dates.to), "dd MMM")}
         </p>
       </div>
