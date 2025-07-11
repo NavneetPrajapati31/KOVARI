@@ -61,7 +61,7 @@ export function InviteConfirmationModal({
           <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
             {traveler.avatar ? (
               <img
-                src={traveler.avatar || "/placeholder.svg"}
+                src={traveler.avatar || ""}
                 alt={traveler.name}
                 className="h-10 w-10 rounded-full object-cover"
               />

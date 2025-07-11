@@ -169,7 +169,7 @@ export default function RequestsPage() {
                   <div className="col-span-3 flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarImage
-                        src={request.avatar || "/placeholder.svg"}
+                        src={request.avatar || ""}
                         alt={request.name}
                       />
                       <AvatarFallback>
@@ -256,7 +256,7 @@ export default function RequestsPage() {
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
                     <AvatarImage
-                      src={request.avatar || "/placeholder.svg"}
+                      src={request.avatar || ""}
                       alt={request.name}
                     />
                     <AvatarFallback>

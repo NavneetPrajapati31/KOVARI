@@ -261,7 +261,7 @@ export default function GroupChatInterface() {
                       {!msg.isCurrentUser && (
                         <Avatar
                           className="w-8 h-8 flex-shrink-0"
-                          src={msg.avatar || "/placeholder.svg"}
+                          src={msg.avatar || ""}
                           name={msg.sender}
                         />
                       )}

@@ -115,7 +115,7 @@ export default function TravelerCard({
         <div className="flex items-center gap-4 mb-2">
           {/* Profile Image */}
           <Avatar
-            src={traveler.profilePhoto || "/placeholder.svg"}
+            src={traveler.profilePhoto || ""}
             alt={`${traveler.name}&apos;s profile`}
             size="md"
           />

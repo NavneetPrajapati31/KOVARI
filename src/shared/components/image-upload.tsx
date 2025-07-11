@@ -237,7 +237,7 @@ export function ImageUpload({
         <div className="relative group">
           <div className="relative overflow-hidden rounded-lg border-2  border-border bg-muted/50 p-2">
             <img
-              src={uploadedImage || "/placeholder.svg"}
+              src={uploadedImage || ""}
               alt="Uploaded preview"
               className="w-full h-48 object-cover rounded-md transition-transform duration-200"
             />

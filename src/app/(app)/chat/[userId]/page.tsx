@@ -23,6 +23,7 @@ import {
   Smile,
   XCircle,
   Check,
+  ChevronLeft,
 } from "lucide-react";
 import { BiCheckDouble, BiCheck } from "react-icons/bi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
@@ -422,6 +423,7 @@ const DirectChatPage = () => {
   const [iBlockedThem, setIBlockedThem] = useState(false);
   const [theyBlockedMe, setTheyBlockedMe] = useState(false);
   const [blockLoading, setBlockLoading] = useState(true);
+  const [unblockError, setUnblockError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -576,18 +578,20 @@ const DirectChatPage = () => {
 
   const handleUnblock = async () => {
     setIsUnblocking(true);
+    setUnblockError(null);
     try {
       await unblockUser(currentUserUuid, partnerUuid);
+      setIBlockedThem(false); // local state update if you want to avoid reload
       toast({
         title: "User unblocked",
         description: "You can now chat with this user.",
         variant: "default",
       });
-      // Option 1: reload page (safe, simple)
-      window.location.reload();
-      // Option 2: set local state if you want to avoid reload
-      // setIsBlocked(false);
+      // Optional: if you want to support a callback
+      // if (onUnblocked) onUnblocked();
+      // window.location.reload();
     } catch (e: any) {
+      setUnblockError("Failed to unblock user");
       toast({
         title: "Failed to unblock user",
         description: e?.message || "An error occurred.",
@@ -609,7 +613,15 @@ const DirectChatPage = () => {
   }
   if (iBlockedThem) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-center p-8">
+      <div className="relative flex flex-col h-full items-center justify-center text-center p-3">
+        <button
+          onClick={handleBackClick}
+          className="absolute top-4 left-3 bg-transparent text-foreground md:hidden p-0 gap-1 inline-flex items-center text-xs md:text-sm transition-colors"
+          aria-label="Back to inbox"
+        >
+          <ChevronLeft className="md:h-4 md:w-4 h-3 w-3" />
+          Back to Inbox
+        </button>
         <span className="text-md font-semibold text-destructive mb-2">
           You have blocked this user.
         </span>
@@ -622,14 +634,33 @@ const DirectChatPage = () => {
           className="mt-4 py-1.5 px-4 rounded-lg bg-destructive text-primary-foreground text-sm font-semibold disabled:opacity-60 focus:outline-none focus:ring-0"
           aria-label="Unblock user"
         >
-          {isUnblocking ? "Unblocking..." : "Unblock User"}
+          {isUnblocking ? (
+            <span className="flex items-center gap-2">
+              <Spinner
+                variant="spinner"
+                size="sm"
+                classNames={{ spinnerBars: "bg-primary-foreground" }}
+              />
+              Unblocking...
+            </span>
+          ) : (
+            "Unblock User"
+          )}
         </button>
       </div>
     );
   }
   if (theyBlockedMe) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-center p-8">
+      <div className="relative flex flex-col h-full items-center justify-center text-center p-3">
+        <button
+          onClick={handleBackClick}
+          className="absolute top-4 left-3 bg-transparent text-foreground md:hidden p-0 gap-1 inline-flex items-center text-xs md:text-sm transition-colors"
+          aria-label="Back to inbox"
+        >
+          <ChevronLeft className="md:h-4 md:w-4 h-3 w-3" />
+          Back to Inbox
+        </button>
         <span className="text-md font-semibold text-destructive mb-2">
           You have been blocked by this user.
         </span>
