@@ -31,9 +31,18 @@ import Link from "next/link";
 import { useToast } from "@/shared/hooks/use-toast";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
-import { useBlockStatus } from "@/shared/hooks/use-block-status";
+// import { useBlockStatus } from "@/shared/hooks/use-block-status";
 import { useUserProfile } from "@/shared/hooks/use-user-profile";
 import DirectChatSkeleton from "@/shared/components/layout/direct-chat-skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/shared/components/ui/dropdown-menu";
+import ChatActionsDropdown from "@/shared/components/chat/chat-actions-dropdown";
+import { isUserBlocked } from "@/shared/utils/blocked-users";
+import { unblockUser } from "@/shared/utils/blocked-users";
 
 interface PartnerProfile {
   name?: string;
@@ -407,12 +416,39 @@ const DirectChatPage = () => {
     loading: partnerLoading,
   } = useUserProfile(partnerUuid);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [isUnblocking, setIsUnblocking] = useState(false);
   const { toast } = useToast();
   const supabase = require("@/lib/supabase").createClient();
-  const { isBlocked, loading: blockLoading } = useBlockStatus(
-    currentUserUuid,
-    partnerUuid
-  );
+  const [iBlockedThem, setIBlockedThem] = useState(false);
+  const [theyBlockedMe, setTheyBlockedMe] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkBlocks = async () => {
+      setBlockLoading(true);
+      try {
+        const [iBlocked, theyBlocked] = await Promise.all([
+          isUserBlocked(currentUserUuid, partnerUuid),
+          isUserBlocked(partnerUuid, currentUserUuid),
+        ]);
+        if (!cancelled) {
+          setIBlockedThem(iBlocked);
+          setTheyBlockedMe(theyBlocked);
+        }
+      } finally {
+        if (!cancelled) setBlockLoading(false);
+      }
+    };
+    if (currentUserUuid && partnerUuid) {
+      checkBlocks();
+    } else {
+      setBlockLoading(false);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUserUuid, partnerUuid]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -538,6 +574,30 @@ const DirectChatPage = () => {
     };
   }, [partnerUuid, markConversationRead]);
 
+  const handleUnblock = async () => {
+    setIsUnblocking(true);
+    try {
+      await unblockUser(currentUserUuid, partnerUuid);
+      toast({
+        title: "User unblocked",
+        description: "You can now chat with this user.",
+        variant: "default",
+      });
+      // Option 1: reload page (safe, simple)
+      window.location.reload();
+      // Option 2: set local state if you want to avoid reload
+      // setIsBlocked(false);
+    } catch (e: any) {
+      toast({
+        title: "Failed to unblock user",
+        description: e?.message || "An error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUnblocking(false);
+    }
+  };
+
   if (
     blockLoading ||
     partnerLoading ||
@@ -547,14 +607,34 @@ const DirectChatPage = () => {
   ) {
     return <DirectChatSkeleton />;
   }
-  if (isBlocked) {
+  if (iBlockedThem) {
     return (
       <div className="flex flex-col h-full items-center justify-center text-center p-8">
         <span className="text-md font-semibold text-destructive mb-2">
-          You cannot send messages to this user.
+          You have blocked this user.
         </span>
         <span className="text-sm text-muted-foreground">
-          You have blocked this user or have been blocked.
+          You cannot send or receive messages.
+        </span>
+        <button
+          onClick={handleUnblock}
+          disabled={isUnblocking}
+          className="mt-4 py-1.5 px-4 rounded-lg bg-destructive text-primary-foreground text-sm font-semibold disabled:opacity-60 focus:outline-none focus:ring-0"
+          aria-label="Unblock user"
+        >
+          {isUnblocking ? "Unblocking..." : "Unblock User"}
+        </button>
+      </div>
+    );
+  }
+  if (theyBlockedMe) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-center p-8">
+        <span className="text-md font-semibold text-destructive mb-2">
+          You have been blocked by this user.
+        </span>
+        <span className="text-sm text-muted-foreground">
+          You cannot send messages to this user.
         </span>
       </div>
     );
@@ -615,7 +695,13 @@ const DirectChatPage = () => {
               </div>
             </Link>
           </div>
-          <EllipsisVertical className="h-5 w-5" />
+          {/* Dropdown menu for chat actions */}
+          <ChatActionsDropdown
+            currentUserUuid={currentUserUuid}
+            partnerUuid={partnerUuid}
+            disabled={iBlockedThem || theyBlockedMe || isPartnerDeleted}
+            partnerProfile={partnerProfile || undefined}
+          />
         </div>
       </div>
 
@@ -651,7 +737,7 @@ const DirectChatPage = () => {
         <MessageInput
           handleSend={sendMessage}
           sending={sending}
-          disabled={isBlocked || isPartnerDeleted}
+          disabled={iBlockedThem || theyBlockedMe || isPartnerDeleted}
         />
       </div>
     </div>
