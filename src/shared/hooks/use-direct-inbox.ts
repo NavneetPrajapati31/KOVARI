@@ -89,7 +89,7 @@ export const useDirectInbox = (
   useEffect(() => {
     if (!currentUserUuid) {
       setConversations([]);
-      setLoading(false);
+      setLoading(true);
       return;
     }
     const fetchInbox = async () => {
@@ -275,5 +275,12 @@ export const useDirectInbox = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationUserId]);
 
+  if (!currentUserUuid) {
+    return {
+      conversations: [],
+      loading: true,
+      markConversationRead: () => {},
+    };
+  }
   return { conversations, loading, markConversationRead };
 };

@@ -12,7 +12,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useDirectChat } from "@/shared/hooks/useDirectChat";
 import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
 import { Button } from "@/shared/components/ui/button";
-import { Image, Spinner } from "@heroui/react";
+import { Avatar, Image, Spinner } from "@heroui/react";
 import {
   Send,
   Loader2,
@@ -33,6 +33,7 @@ import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 import { useBlockStatus } from "@/shared/hooks/use-block-status";
 import { useUserProfile } from "@/shared/hooks/use-user-profile";
+import DirectChatSkeleton from "@/shared/components/layout/direct-chat-skeleton";
 
 interface PartnerProfile {
   name?: string;
@@ -290,14 +291,14 @@ const MessageInput = ({
 
   return (
     <div className="flex items-center space-x-1 relative">
-      <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
+      <div className="flex-1 relative h-auto flex items-center bg-transparent hover:cursor-text">
         <textarea
           ref={textareaRef}
           value={text}
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
           placeholder="Your message"
-          className="w-full px-4 py-2 rounded-full border-none bg-transparent text-xs focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto scrollbar-hide"
+          className="w-full h-full px-4 py-3 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none max-h-20 overflow-y-auto scrollbar-hide align-middle"
           aria-label="Type your message"
           disabled={sending || disabled}
           rows={1}
@@ -537,30 +538,15 @@ const DirectChatPage = () => {
     };
   }, [partnerUuid, markConversationRead]);
 
-  if (
-    blockLoading ||
-    partnerLoading ||
-    !currentUserUuid ||
-    !partnerUuid ||
-    (loading && messages.length === 0)
-  ) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 flex items-center justify-center">
-          <div
-            className="flex flex-col items-center space-y-2 w-full"
-            role="list"
-          >
-            {[...Array(6)].map((_, i) => (
-              <div role="listitem" key={i}>
-                <MessageSkeleton />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (
+  //   blockLoading ||
+  //   partnerLoading ||
+  //   !currentUserUuid ||
+  //   !partnerUuid ||
+  //   (loading && messages.length === 0)
+  // ) {
+  return <DirectChatSkeleton />;
+  // }
   if (isBlocked) {
     return (
       <div className="flex flex-col h-full items-center justify-center text-center p-8">
@@ -603,12 +589,12 @@ const DirectChatPage = () => {
             <Link href={`/profile/${partnerUuid}`}>
               <div className="flex items-center gap-3">
                 {partnerProfile?.profile_photo ? (
-                  <Image
+                  <Avatar
                     src={partnerProfile.profile_photo}
                     alt={
                       partnerProfile.name || partnerProfile.username || "User"
                     }
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-semibold text-lg select-none">
