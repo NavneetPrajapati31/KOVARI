@@ -79,9 +79,7 @@ const DirectChatSkeleton = () => (
             >
               <Skeleton
                 className={`rounded-2xl text-xs h-6 bg-gray-200 ${
-                  group.widths
-                    ? (group.widths[msgIdx] ?? "w-32")
-                    : (group.width ?? "w-32")
+                  group.widths ? (group.widths[msgIdx] ?? "w-32") : "w-32"
                 }`}
               />
             </div>
