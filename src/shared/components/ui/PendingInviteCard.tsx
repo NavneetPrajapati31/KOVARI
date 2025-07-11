@@ -20,8 +20,12 @@ export default function PendingInviteCard({
         <h3 className="text-lg font-semibold text-[#004831]">{group.name}</h3>
         <p className="text-sm text-[#3A3A2C]">
           {group.destination} —{" "}
-          {format(new Date(group.trip_dates.from), "dd MMM")} to{" "}
-          {format(new Date(group.trip_dates.to), "dd MMM")}
+          {group.start_date && group.end_date && (
+            <>
+              {format(new Date(group.start_date), "dd MMM")} to{" "}
+              {format(new Date(group.end_date), "dd MMM")}
+            </>
+          )}
         </p>
       </div>
       <div className="flex gap-2">
