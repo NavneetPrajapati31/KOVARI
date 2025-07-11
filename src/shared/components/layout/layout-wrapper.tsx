@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Navbar from "@/shared/components/layout/Navbarv2";
+import Navbar from "@/shared/components/layout/Navbar";
 import { useState } from "react";
 
 const HIDE_LAYOUT_ROUTES = [
@@ -15,7 +15,7 @@ const HIDE_LAYOUT_ROUTES = [
 
 // Pages where blur should NOT be applied even if avatar menu is open
 const EXCEPTION_BLUR_ROUTES = [
-  "/",
+  "/landing",
   // Add more routes as needed
 ];
 
@@ -33,7 +33,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     <>
       {!hideLayout && <Navbar onAvatarMenuOpenChange={setIsAvatarMenuOpen} />}
       <div
-        className={`h-full min-h-0 transition-[filter,opacity] duration-500 ease-in-out ${
+        className={`transition-[filter,opacity] duration-500 ease-in-out ${
           isAvatarMenuOpen && !isBlurException
             ? "blur-md opacity-80 pointer-events-none select-none"
             : "blur-0 opacity-100"
