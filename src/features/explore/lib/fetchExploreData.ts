@@ -124,30 +124,53 @@ export const fetchSoloTravelers = async (
 
     // Then fetch travel preferences for these profiles
     const userIds = filteredProfiles.map((p: any) => p.user_id);
-    const { data: travelPrefs, error: prefsError } = await supabase
-      .from("travel_preferences")
-      .select("user_id, destinations, start_date, end_date, interests")
+
+    // Batch fetch manual match scores for these userIds
+    const manualScoresPromise = supabase
+      .from("manual_match_scores")
+      .select("user_id, manual_score")
       .in("user_id", userIds);
+
+    // Batch fetch travel preferences, travel modes, and manual scores in parallel
+    const [
+      { data: travelPrefs, error: prefsError },
+      { data: travelModesRows, error: travelModesError },
+      { data: manualScores, error: manualScoresError }
+    ] = await Promise.all([
+      supabase
+        .from("travel_preferences")
+        .select("user_id, destinations, start_date, end_date, interests")
+        .in("user_id", userIds),
+      supabase
+        .from("travel_modes")
+        .select("user_id, mode")
+        .in("user_id", userIds),
+      manualScoresPromise
+    ]);
+
     if (prefsError) {
       console.error("Error fetching travel preferences:", prefsError);
     }
-
-    // Fetch travel modes for these profiles
-    const { data: travelModesRows, error: travelModesError } = await supabase
-      .from("travel_modes")
-      .select("user_id, mode")
-      .in("user_id", userIds);
     if (travelModesError) {
       console.error("Error fetching travel modes:", travelModesError);
     }
-    const travelModesMap = (travelModesRows || []).reduce((acc: any, row) => {
-      acc[row.user_id] = row.mode ? [row.mode] : [];
+    if (manualScoresError) {
+      console.error("Error fetching manual match scores:", manualScoresError);
+    }
+    // Map manual scores by user_id
+    const manualScoresMap = (manualScores || []).reduce((acc: any, row) => {
+      acc[row.user_id] = row.manual_score;
       return acc;
     }, {});
 
     // Create a map of travel preferences by user_id
     const prefsMap = (travelPrefs || []).reduce((acc: any, pref) => {
       acc[pref.user_id] = pref;
+      return acc;
+    }, {});
+
+    const travelModesMap = (travelModesRows || []).reduce((acc: any, row) => {
+      acc[row.user_id] = row.mode ? [row.mode] : [];
       return acc;
     }, {});
 
@@ -285,7 +308,10 @@ export const fetchSoloTravelers = async (
           matchScore = calculateMatchScore(myTraveler, otherTraveler);
           scoreCache.set(cacheKey, matchScore);
         }
-
+        // Manual override: if manual score exists for this user, use it
+        if (manualScoresMap[profile.user_id] !== undefined && manualScoresMap[profile.user_id] !== null) {
+          matchScore = manualScoresMap[profile.user_id];
+        }
         // Debug: Log match score and traveler objects
         console.log('[MATCH DEBUG]', {
           myTraveler,
@@ -304,7 +330,7 @@ export const fetchSoloTravelers = async (
           destination,
           travelDates: formatDateRange(startDate, endDate),
           matchStrength: "medium" as const, // Optionally map matchScore to strength
-          matchScore, // Attach the numeric score
+          matchScore, // Attach the numeric score (possibly overridden)
           created_at: profile.created_at,
           isFollowing: followingIds.has(profile.user_id),
         };
