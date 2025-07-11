@@ -23,6 +23,7 @@ import {
   Smile,
   XCircle,
   Check,
+  ChevronLeft,
 } from "lucide-react";
 import { BiCheckDouble, BiCheck } from "react-icons/bi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
@@ -609,7 +610,15 @@ const DirectChatPage = () => {
   }
   if (iBlockedThem) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-center p-8">
+      <div className="relative flex flex-col h-full items-center justify-center text-center p-3">
+        <button
+          onClick={handleBackClick}
+          className="absolute top-4 left-3 bg-transparent text-foreground md:hidden p-0 gap-1 inline-flex items-center text-xs md:text-sm transition-colors"
+          aria-label="Back to inbox"
+        >
+          <ChevronLeft className="md:h-4 md:w-4 h-3 w-3" />
+          Back to Inbox
+        </button>
         <span className="text-md font-semibold text-destructive mb-2">
           You have blocked this user.
         </span>
@@ -629,7 +638,15 @@ const DirectChatPage = () => {
   }
   if (theyBlockedMe) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-center p-8">
+      <div className="relative flex flex-col h-full items-center justify-center text-center p-3">
+        <button
+          onClick={handleBackClick}
+          className="absolute top-4 left-3 bg-transparent text-foreground md:hidden p-0 gap-1 inline-flex items-center text-xs md:text-sm transition-colors"
+          aria-label="Back to inbox"
+        >
+          <ChevronLeft className="md:h-4 md:w-4 h-3 w-3" />
+          Back to Inbox
+        </button>
         <span className="text-md font-semibold text-destructive mb-2">
           You have been blocked by this user.
         </span>
