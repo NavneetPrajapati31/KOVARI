@@ -10,7 +10,7 @@ export interface Traveler {
   age: number;
   bio: string;
   profilePhoto: string;
-  destination: string;
+  destination: string; 
   travelDates: string;
   matchStrength: "medium";
   created_at: string;
