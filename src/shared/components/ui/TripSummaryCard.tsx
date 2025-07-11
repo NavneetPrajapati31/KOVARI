@@ -21,9 +21,9 @@ export default function TripSummaryCard({
   status,
 }: Props) {
   return (
-    <div className="bg-background border border-border rounded-xl p-4 shadow hover:shadow-md transition">
+    <div className="bg-[#ECEABE] border border-[#B2A890] rounded-xl p-4 shadow hover:shadow-md transition">
       <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-semibold text-primary">{name}</h3>
+        <h3 className="text-lg font-semibold text-[#004831]">{name}</h3>
         <span
           className={`text-xs px-2 py-1 rounded-full ${
             status === "upcoming"
@@ -34,11 +34,9 @@ export default function TripSummaryCard({
           {status === "upcoming" ? "Upcoming" : "Completed"}
         </span>
       </div>
-      <p className="text-sm text-muted-foreground">📍 {destination}</p>
-      <p className="text-sm text-muted-foreground">
-        🗓 {from} → {to}
-      </p>
-      <p className="text-sm text-muted-foreground">👥 {tripType}</p>
+      <p className="text-sm text-[#5C6249]">📍 {destination}</p>
+      <p className="text-sm text-[#5C6249]">🗓 {from} → {to}</p>
+      <p className="text-sm text-[#5C6249]">👥 {tripType}</p>
     </div>
   );
 }

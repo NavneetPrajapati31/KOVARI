@@ -1,19 +1,20 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useAuthStore } from "@/shared/stores/useAuthStore";
-import { Skeleton } from "@/shared/components/ui/SkeletonCard";
-import DashboardCard from "@/shared/components/ui/DashboardCard";
-import { useUserGroups } from "@/shared/hooks/useUserGroups";
-import { useUserTrips } from "@/shared/hooks/useUserTrips";
-import { usePendingInvites } from "@/shared/hooks/usePendingInvites";
-import GroupPreviewCard from "@/shared/components/ui/GroupPreviewCard";
-import TripSummaryCard from "@/shared/components/ui/TripSummaryCard";
-import { PendingInviteCard } from "@/shared/components/ui/PendingInviteCard";
+import { useEffect, useState, useMemo } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
 
-import TripTypePieChart from "@/shared/components/charts/TripTypePieChart";
-import TripsBarChart from "@/shared/components/charts/TripsBarChart";
+import { Skeleton } from '@/shared/components/ui/SkeletonCard';
+import DashboardCard from '@/shared/components/ui/DashboardCard';
+import GroupPreviewCard from '@/shared/components/ui/GroupPreviewCard';
+import TripSummaryCard from '@/shared/components/ui/TripSummaryCard';
+import PendingInviteCard from '@/shared/components/ui/PendingInviteCard';
+import TripTypePieChart from '@/shared/components/charts/TripTypePieChart';
+import TripsBarChart from '@/shared/components/charts/TripsBarChart';
+
+import { useUserGroups } from '@/shared/hooks/useUserGroups';
+import { useUserTrips } from '@/shared/hooks/useUserTrips';
+import { usePendingInvites } from '@/shared/hooks/usePendingInvites';
 
 import {
   getMostFrequentDestinations,
@@ -21,9 +22,13 @@ import {
   getUniqueCoTravelers,
   getTripTypeStats,
   getTripsPerYear,
-} from "@/shared/utils/analytics";
+} from '@/shared/utils/analytics';
 
-import { isAfter, isBefore } from "date-fns";
+import { isAfter, isBefore } from 'date-fns';
+import dynamic from 'next/dynamic';
+
+const TravelHeatmap = dynamic(() => import('../../../shared/components/heatmap/TravelHeatmap'), { ssr: false });
+
 
 function SkeletonDemo() {
   return (
@@ -42,8 +47,10 @@ export default function Dashboard() {
   const setUser = useAuthStore((s) => s.setUser);
 
   const { groups, loading: groupsLoading } = useUserGroups();
-  const { trips } = useUserTrips();
+  const { trips, loading: tripsLoading } = useUserTrips();
   const { invites, loading: pendingLoading } = usePendingInvites();
+
+  const [travelDays, setTravelDays] = useState<string[]>([]);
 
   useEffect(() => {
     if (isSignedIn && user) {
@@ -51,13 +58,28 @@ export default function Dashboard() {
     }
   }, [isSignedIn, user, setUser]);
 
+  useEffect(() => {
+    fetch('/api/travel-days')
+      .then((res) => res.json())
+      .then((data) => setTravelDays(data.travelDays || []));
+  }, []);
+
+  useEffect(() => {
+    console.log("Fetched travelDays:", travelDays);
+  }, [travelDays]);
+
   const now = new Date();
+
   const upcomingTrips = groups.filter(
     (g) => g.group?.start_date && isAfter(new Date(g.group.start_date), now)
   );
+
   const pastTrips = groups.filter(
     (g) => g.group?.start_date && isBefore(new Date(g.group.start_date), now)
   );
+
+  // Replace with actual logic from groups/trips
+  const visitedCountryList = ['India', 'France', 'United States', 'Japan'];
 
   const mostVisited = getMostFrequentDestinations(groups);
   const totalDays = getTotalTravelDays(groups);
@@ -65,86 +87,104 @@ export default function Dashboard() {
   const tripTypeStats = getTripTypeStats(groups);
   const tripsPerYear = getTripsPerYear(groups);
 
-  const soloCount = tripTypeStats.solo;
-  const groupCount = tripTypeStats.group;
+  const formattedTravelDays = travelDays.filter(
+    d => /^\d{4}-\d{2}-\d{2}$/.test(d)
+  );
+
+  console.log("formattedTravelDays", formattedTravelDays);
+
+  // Get all unique years from travelDays
+  const years = useMemo(() => {
+    const set = new Set(formattedTravelDays.map(d => Number(d.split('-')[0])));
+    return Array.from(set).sort((a, b) => b - a); // Descending order
+  }, [formattedTravelDays]);
+
+  console.log("years", years);
+
+  // Default to the most recent year
+  const [selectedYear, setSelectedYear] = useState(() => years[0] || new Date().getFullYear());
+
+  // Update selectedYear if years change (e.g., after fetch)
+  useEffect(() => {
+    if (years.length > 0 && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
+    }
+  }, [years, selectedYear]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-4 py-6 space-y-10">
+    <div className="min-h-screen bg-[#f6f8fa] px-8 py-8">
       {isSignedIn ? (
         <>
-          <h1 className="text-2xl font-bold">Welcome, {user.firstName} 👋</h1>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-[#004831]">Dashboard</h1>
+          </div>
 
-          {/* Summary Cards */}
-          <section>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <DashboardCard
-                title="My Groups"
-                count={groups.length}
-                loading={groupsLoading}
-                emptyText="No groups yet"
-              />
-              <DashboardCard
-                title="Upcoming Trips"
-                count={trips.length}
-                loading={false}
-                emptyText="No upcoming trips"
-              />
-              <DashboardCard
-                title="Invitations"
-                count={invites.length}
-                loading={pendingLoading}
-                emptyText="No invites"
-              />
+          {/* Grid layout for insights */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+            <div className="bg-white rounded-2xl shadow p-6">
+              <span className="text-gray-500 mb-2">Top Destination</span>
+              <p className="text-2xl font-bold">{mostVisited || 'N/A'}</p>
             </div>
-          </section>
 
-          {/* Quick Stats */}
-          <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">
-              Quick Stats
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <DashboardCard
-                title="Top Destination"
-                value={mostVisited}
-                loading={groupsLoading}
-                emptyText="No destination yet"
-              />
-              <DashboardCard
-                title="Total Travel Days"
-                value={`${totalDays} days`}
-                loading={groupsLoading}
-                emptyText="0"
-              />
-              <DashboardCard
-                title="Co-Travelers (est.)"
-                value={coTravelers}
-                loading={groupsLoading}
-                emptyText="0"
-              />
+            <div className="bg-white rounded-2xl shadow p-6">
+              <span className="text-gray-500 mb-2">Total Travel Days</span>
+              <p className="text-2xl font-bold">{totalDays} days</p>
             </div>
-          </section>
 
-          {/* Visual Insights */}
-          <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">
-              Visual Insights
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TripTypePieChart solo={soloCount} group={groupCount} />
+            <div className="bg-white rounded-2xl shadow p-6">
+              <span className="text-gray-500 mb-2">Co-Travelers (est.)</span>
+              <p className="text-2xl font-bold">{coTravelers}</p>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow p-6">
+              <span className="text-gray-500 mb-2">My Groups</span>
+              <p className="text-2xl font-bold">{groups.length}</p>
+            </div>
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            <div className="bg-white rounded-2xl shadow p-6">
+              <span className="text-gray-500 mb-2">Trip Type Distribution</span>
+              <TripTypePieChart solo={tripTypeStats.solo} group={tripTypeStats.group} />
+            </div>
+            <div className="bg-white rounded-2xl shadow p-6">
+              <span className="text-gray-500 mb-2">Trips Per Year</span>
               <TripsBarChart data={tripsPerYear} />
             </div>
-          </section>
+          </div>
 
-          {/* Your Groups */}
-          <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">
-              Your Groups
-            </h2>
+          {/* Travel Heatmap */}
+          <div className="bg-white rounded-2xl shadow p-6 mb-10">
+            <div className="flex items-center gap-4 mb-2">
+              <span className="text-gray-500">Travel Activity Heatmap</span>
+              {years.length > 1 && (
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(Number(e.target.value))}
+                >
+                  {years.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {formattedTravelDays.length === 0 ? (
+              <p className="text-muted-foreground">No travel data available.</p>
+            ) : (
+              <TravelHeatmap
+                travelDays={formattedTravelDays.filter(d => Number(d.split('-')[0]) === selectedYear)}
+                year={selectedYear}
+              />
+            )}
+          </div>
+
+          {/* Groups */}
+          <section className="mb-10">
+            <h2 className="text-xl font-semibold text-[#004831] mb-3">Your Groups</h2>
             {groups.length === 0 ? (
-              <p className="text-muted-foreground">
-                You haven't joined any groups yet.
-              </p>
+              <p className="text-muted-foreground">You haven't joined any groups yet.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {groups.map((g) => (
@@ -154,47 +194,16 @@ export default function Dashboard() {
             )}
           </section>
 
-          {/* Pending Invites */}
-          <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">
-              Pending Invites
-            </h2>
-            {pendingLoading ? (
-              <p>Loading...</p>
-            ) : invites.length === 0 ? (
-              <p className="text-muted-foreground">No pending invites.</p>
-            ) : (
-              <div className="space-y-4">
-                {invites.map((invite) =>
-                  invite.group ? (
-                    <PendingInviteCard
-                      key={invite.id}
-                      group={invite.group}
-                      onAccept={() => console.log("Accept invite:", invite.id)}
-                      onDecline={() =>
-                        console.log("Decline invite:", invite.id)
-                      }
-                    />
-                  ) : null
-                )}
-              </div>
-            )}
-          </section>
-
           {/* Trip Summary */}
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">
-              Trip Summary
-            </h2>
+            <h2 className="text-xl font-semibold text-[#004831] mb-3">Trip Summary</h2>
             {upcomingTrips.length === 0 && pastTrips.length === 0 ? (
               <p className="text-muted-foreground">No trip history found.</p>
             ) : (
               <div className="space-y-6">
                 {upcomingTrips.length > 0 && (
                   <div>
-                    <h3 className="text-md font-medium text-foreground mb-2">
-                      Upcoming Trips
-                    </h3>
+                    <h3 className="text-md font-medium text-[#004831] mb-2">Upcoming Trips</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {upcomingTrips.map((g) =>
                         g.group ? (
@@ -202,24 +211,19 @@ export default function Dashboard() {
                             key={g.group_id}
                             name={g.group.name}
                             status="upcoming"
-                            destination={g.group.destination || "Unknown"}
-                            from={g.group.start_date || "TBD"}
-                            to={g.group.end_date || "TBD"}
-                            tripType={
-                              g.group.members_count === 1 ? "Solo" : "Group"
-                            }
+                            destination={g.group.destination || 'Unknown'}
+                            from={g.group.start_date || 'TBD'}
+                            to={g.group.end_date || 'TBD'}
+                            tripType={g.group.is_public ? 'Group' : 'Solo'}
                           />
                         ) : null
                       )}
                     </div>
                   </div>
                 )}
-
                 {pastTrips.length > 0 && (
                   <div>
-                    <h3 className="text-md font-medium text-foreground mb-2">
-                      Past Trips
-                    </h3>
+                    <h3 className="text-md font-medium text-[#004831] mb-2">Past Trips</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {pastTrips.map((g) =>
                         g.group ? (
@@ -227,12 +231,10 @@ export default function Dashboard() {
                             key={g.group_id}
                             name={g.group.name}
                             status="past"
-                            destination={g.group.destination || "Unknown"}
-                            from={g.group.start_date || "TBD"}
-                            to={g.group.end_date || "TBD"}
-                            tripType={
-                              g.group.members_count === 1 ? "Solo" : "Group"
-                            }
+                            destination={g.group.destination || 'Unknown'}
+                            from={g.group.start_date || 'TBD'}
+                            to={g.group.end_date || 'TBD'}
+                            tripType={g.group.is_public ? 'Group' : 'Solo'}
                           />
                         ) : null
                       )}

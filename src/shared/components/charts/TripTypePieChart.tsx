@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   PieChart,
@@ -7,49 +7,28 @@ import {
   ResponsiveContainer,
   Tooltip,
   Legend,
-} from "recharts";
-import React, { useState, useEffect } from "react";
+} from 'recharts';
+import React, { useState } from 'react';
 
 interface Props {
   solo: number;
   group: number;
 }
 
-function CustomTooltip({ active, payload }: any) {
-  if (!active || !payload || !payload.length) return null;
-  const { name, value } = payload[0];
-  return (
-    <div className="bg-background text-foreground border border-border rounded px-3 py-2 shadow">
-      <span className="font-medium">{name}:</span> {value}
-    </div>
-  );
-}
+const COLORS = ['#004831', '#9BA186']; // Solo, Group
+const LABELS = ['Solo Trips', 'Group Trips'];
 
 export default function TripTypePieChart({ solo, group }: Props) {
-  const [colors, setColors] = useState(["#004831", "#9BA186"]); // fallback
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const root = document.documentElement;
-      const primary =
-        getComputedStyle(root).getPropertyValue("--primary").trim() ||
-        "#004831";
-      const secondary =
-        getComputedStyle(root).getPropertyValue("--secondary").trim() ||
-        "#9BA186";
-      setColors([primary, secondary]);
-    }
-  }, []);
-
   const data = [
-    { name: "Solo Trips", value: solo },
-    { name: "Group Trips", value: group },
+    { name: 'Solo Trips', value: solo },
+    { name: 'Group Trips', value: group },
   ];
 
   return (
-    <div className="bg-background border border-border rounded-xl p-5 shadow-md">
-      <h2 className="text-lg font-medium mb-4 text-primary">
+    <div className="bg-[#ECEABE] border border-[#B2A890] rounded-xl p-5 shadow-md">
+      <h2 className="text-lg font-medium mb-4 text-[#004831]">
         Trip Type Distribution
       </h2>
       <ResponsiveContainer width="100%" height={250}>
@@ -68,14 +47,14 @@ export default function TripTypePieChart({ solo, group }: Props) {
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={colors[index % colors.length]}
-                stroke={index === activeIndex ? "#333" : undefined}
+                fill={COLORS[index % COLORS.length]}
+                stroke={index === activeIndex ? '#333' : undefined}
                 strokeWidth={index === activeIndex ? 2 : 1}
               />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ color: undefined }} iconType="circle" />
+          <Tooltip />
+          <Legend />
         </PieChart>
       </ResponsiveContainer>
     </div>
