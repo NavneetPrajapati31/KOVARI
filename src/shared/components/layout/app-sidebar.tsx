@@ -120,7 +120,7 @@ const SidebarUserMenu = ({
           tabIndex={0}
         >
           <Avatar
-            src={user?.imageUrl || "/placeholder.svg"}
+            src={user?.imageUrl || ""}
             alt={user?.fullName || "User avatar"}
             size="sm"
             className="flex-shrink-0"

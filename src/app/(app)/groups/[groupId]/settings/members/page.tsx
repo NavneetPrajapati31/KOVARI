@@ -281,10 +281,7 @@ export default function Page() {
               >
                 <div className="col-span-3 flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={member.avatar || "/placeholder.svg"}
-                      alt={member.name}
-                    />
+                    <AvatarImage src={member.avatar || ""} alt={member.name} />
                     <AvatarFallback>
                       {member.name
                         .split(" ")
@@ -357,10 +354,7 @@ export default function Page() {
             >
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage
-                    src={member.avatar || "/placeholder.svg"}
-                    alt={member.name}
-                  />
+                  <AvatarImage src={member.avatar || ""} alt={member.name} />
                   <AvatarFallback>
                     {member.name
                       .split(" ")

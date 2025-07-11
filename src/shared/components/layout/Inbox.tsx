@@ -245,7 +245,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                 <div className="relative mr-3">
                   <Avatar className="h-12 w-12">
                     <AvatarImage
-                      src={profile?.profile_photo || "/placeholder.svg"}
+                      src={profile?.profile_photo || ""}
                       alt={displayName}
                     />
                     <AvatarFallback className="bg-gray-200 text-gray-600 text-sm font-medium">

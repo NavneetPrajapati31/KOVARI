@@ -57,7 +57,7 @@ export function GroupInviteCard({
         <div className="flex items-center gap-4 mb-2">
           {/* Creator Avatar */}
           <Avatar
-            src={invite.creator.avatar || "/placeholder.svg"}
+            src={invite.creator.avatar || ""}
             alt={`${invite.creator.name}&apos;s profile`}
             size="md"
           />
@@ -106,7 +106,7 @@ export function GroupInviteCard({
               {invite.teamMembers.slice(0, 2).map((member, idx) => (
                 <Avatar
                   key={idx}
-                  src={member.avatar || "/placeholder.svg"}
+                  src={member.avatar || ""}
                   alt={member.initials}
                   size="sm"
                   className={`border-2 border-white ${member.color}`}

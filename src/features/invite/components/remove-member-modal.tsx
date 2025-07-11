@@ -44,10 +44,7 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
         </DialogHeader>
         <div className="flex items-center gap-4 py-2">
           <Avatar className="h-10 w-10">
-            <AvatarImage
-              src={member.avatar || "/placeholder.svg"}
-              alt={member.name}
-            />
+            <AvatarImage src={member.avatar || ""} alt={member.name} />
             <AvatarFallback>
               {member.name
                 .split(" ")

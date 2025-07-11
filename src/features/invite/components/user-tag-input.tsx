@@ -227,7 +227,7 @@ export function UserTagInput({
             >
               {user.avatar ? (
                 <img
-                  src={user.avatar || "/placeholder.svg"}
+                  src={user.avatar || ""}
                   alt={user.name}
                   className="h-8 w-8 rounded-full shrink-0"
                 />
@@ -323,7 +323,7 @@ export function UserTagInput({
           >
             {user.avatar ? (
               <img
-                src={user.avatar || "/placeholder.svg"}
+                src={user.avatar || ""}
                 alt={user.name}
                 className="h-5 w-5 rounded-full mr-2"
               />

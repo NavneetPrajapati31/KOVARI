@@ -42,10 +42,7 @@ export function TeammateRow({ teammate }: TeammateRowProps) {
     <div className="flex items-center justify-between py-3 px-1 hover:bg-gray-50 rounded-lg transition-colors min-w-0 gap-2">
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         <Avatar className="h-10 w-10">
-          <AvatarImage
-            src={teammate.avatar || "/placeholder.svg"}
-            alt={teammate.name}
-          />
+          <AvatarImage src={teammate.avatar || ""} alt={teammate.name} />
           <AvatarFallback className="bg-blue-100 text-blue-700 font-medium text-sm">
             {getInitials(teammate.name)}
           </AvatarFallback>

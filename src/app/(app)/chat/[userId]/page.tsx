@@ -423,6 +423,7 @@ const DirectChatPage = () => {
   const [iBlockedThem, setIBlockedThem] = useState(false);
   const [theyBlockedMe, setTheyBlockedMe] = useState(false);
   const [blockLoading, setBlockLoading] = useState(true);
+  const [unblockError, setUnblockError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -577,18 +578,20 @@ const DirectChatPage = () => {
 
   const handleUnblock = async () => {
     setIsUnblocking(true);
+    setUnblockError(null);
     try {
       await unblockUser(currentUserUuid, partnerUuid);
+      setIBlockedThem(false); // local state update if you want to avoid reload
       toast({
         title: "User unblocked",
         description: "You can now chat with this user.",
         variant: "default",
       });
-      // Option 1: reload page (safe, simple)
-      window.location.reload();
-      // Option 2: set local state if you want to avoid reload
-      // setIsBlocked(false);
+      // Optional: if you want to support a callback
+      // if (onUnblocked) onUnblocked();
+      // window.location.reload();
     } catch (e: any) {
+      setUnblockError("Failed to unblock user");
       toast({
         title: "Failed to unblock user",
         description: e?.message || "An error occurred.",
@@ -631,7 +634,18 @@ const DirectChatPage = () => {
           className="mt-4 py-1.5 px-4 rounded-lg bg-destructive text-primary-foreground text-sm font-semibold disabled:opacity-60 focus:outline-none focus:ring-0"
           aria-label="Unblock user"
         >
-          {isUnblocking ? "Unblocking..." : "Unblock User"}
+          {isUnblocking ? (
+            <span className="flex items-center gap-2">
+              <Spinner
+                variant="spinner"
+                size="sm"
+                classNames={{ spinnerBars: "bg-primary-foreground" }}
+              />
+              Unblocking...
+            </span>
+          ) : (
+            "Unblock User"
+          )}
         </button>
       </div>
     );
