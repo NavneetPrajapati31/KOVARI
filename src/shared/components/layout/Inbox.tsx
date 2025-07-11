@@ -16,6 +16,7 @@ import { X } from "lucide-react";
 import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { createClient } from "@/lib/supabase";
+import InboxChatListSkeleton from "./inbox-chat-list-skeleton";
 
 interface UserProfile {
   name?: string;
@@ -23,11 +24,13 @@ interface UserProfile {
   profile_photo?: string;
 }
 
-export default function Inbox() {
+interface InboxProps {
+  activeUserId?: string;
+}
+
+export default function Inbox({ activeUserId }: InboxProps) {
   const { user, isLoaded } = useUser();
   const router = useRouter();
-  const params = useParams();
-  const currentChatUserId = params?.userId as string;
   const [currentUserUuid, setCurrentUserUuid] = useState<string>("");
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfile>>(
     {}
@@ -42,26 +45,8 @@ export default function Inbox() {
     setSearchQuery("");
     inputRef.current?.focus();
   };
-  const inbox = useDirectInbox(currentUserUuid, currentChatUserId);
+  const inbox = useDirectInbox(currentUserUuid);
   const supabase = createClient();
-
-  // Commented out dummy data for reference
-  /*
-  const messages = [
-    {
-      id: 1,
-      name: "TechPulse Company",
-      message: "Reminder that we have a project meeti...",
-      time: "13:02",
-      avatar: "/placeholder.svg?height=40&width=40",
-      isRead: true,
-      hasDoubleCheck: true,
-      isOnline: false,
-      unreadCount: 0,
-    },
-    // ... rest of dummy data
-  ];
-  */
 
   useEffect(() => {
     if (!user?.id) return;
@@ -94,7 +79,7 @@ export default function Inbox() {
     };
 
     fetchUserProfiles();
-  }, [inbox.conversations, supabase]);
+  }, [inbox?.conversations, supabase]);
 
   // Listen for custom event to update recent message in real-time
   useEffect(() => {
@@ -120,7 +105,7 @@ export default function Inbox() {
     router.push(`/chat/${userId}`);
   };
 
-  if (inbox.loading) {
+  if (!currentUserUuid || inbox.loading) {
     return (
       <div className="h-full flex flex-col bg-gray-50">
         {/* Search Bar */}
@@ -134,9 +119,7 @@ export default function Inbox() {
             <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           </div>
         </div>
-        <div className="flex-1 bg-card flex items-center justify-center">
-          <Spinner variant="spinner" size="md" color="primary" />
-        </div>
+        <InboxChatListSkeleton />
       </div>
     );
   }
@@ -187,6 +170,9 @@ export default function Inbox() {
       {/* Messages List */}
       <div className="flex-1 bg-card overflow-y-auto scrollbar-hide">
         {(() => {
+          if (inbox.loading) {
+            return null;
+          }
           const filteredConversations = inbox.conversations.filter(
             (conversation) => {
               const profile = userProfiles[conversation.userId];
@@ -203,11 +189,24 @@ export default function Inbox() {
               );
             }
           );
-          if (filteredConversations.length === 0) {
+          if (
+            !inbox.loading &&
+            inbox.conversations.length > 0 &&
+            filteredConversations.length === 0
+          ) {
             return (
               <div className="flex items-center justify-center p-8 h-full">
                 <span className="text-muted-foreground">
                   No conversations found.
+                </span>
+              </div>
+            );
+          }
+          if (!inbox.loading && inbox.conversations.length === 0) {
+            return (
+              <div className="flex items-center justify-center p-8 h-full">
+                <span className="text-muted-foreground">
+                  No conversations yet.
                 </span>
               </div>
             );
@@ -221,7 +220,7 @@ export default function Inbox() {
               hour: "2-digit",
               minute: "2-digit",
             });
-            const isActive = currentChatUserId === conversation.userId;
+            const isActive = activeUserId === conversation.userId;
 
             return (
               <div

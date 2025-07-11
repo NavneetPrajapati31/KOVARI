@@ -89,7 +89,7 @@ export const useDirectInbox = (
   useEffect(() => {
     if (!currentUserUuid) {
       setConversations([]);
-      setLoading(false);
+      setLoading(true);
       return;
     }
     const fetchInbox = async () => {
@@ -97,7 +97,7 @@ export const useDirectInbox = (
       const { data, error } = await supabase
         .from("direct_messages")
         .select(
-          "id, encrypted_content, encryption_iv, encryption_salt, is_encrypted, created_at, sender_id, receiver_id"
+          "id, encrypted_content, encryption_iv, encryption_salt, is_encrypted, created_at, sender_id, receiver_id, read_at"
         )
         .or(`sender_id.eq.${currentUserUuid},receiver_id.eq.${currentUserUuid}`)
         .order("created_at", { ascending: false });
@@ -114,8 +114,8 @@ export const useDirectInbox = (
           const partnerId =
             msg.sender_id === currentUserUuid ? msg.receiver_id : msg.sender_id;
           if (!partnerId) return;
-          // Only count as unread if message is for current user and not from current user
-          if (msg.receiver_id === currentUserUuid) {
+          // Only count as unread if message is for current user and not from current user and read_at is null
+          if (msg.receiver_id === currentUserUuid && !msg.read_at) {
             unreadCountMap[partnerId] = (unreadCountMap[partnerId] || 0) + 1;
           }
           // Track latest message
@@ -275,5 +275,12 @@ export const useDirectInbox = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationUserId]);
 
+  if (!currentUserUuid) {
+    return {
+      conversations: [],
+      loading: true,
+      markConversationRead: () => {},
+    };
+  }
   return { conversations, loading, markConversationRead };
 };

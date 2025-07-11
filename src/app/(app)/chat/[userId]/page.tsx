@@ -12,7 +12,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useDirectChat } from "@/shared/hooks/useDirectChat";
 import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
 import { Button } from "@/shared/components/ui/button";
-import { Image, Spinner } from "@heroui/react";
+import { Avatar, Image, Spinner } from "@heroui/react";
 import {
   Send,
   Loader2,
@@ -24,12 +24,16 @@ import {
   XCircle,
   Check,
 } from "lucide-react";
+import { BiCheckDouble, BiCheck } from "react-icons/bi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { decryptMessage } from "@/shared/utils/encryption";
 import Link from "next/link";
 import { useToast } from "@/shared/hooks/use-toast";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
+import { useBlockStatus } from "@/shared/hooks/use-block-status";
+import { useUserProfile } from "@/shared/hooks/use-user-profile";
+import DirectChatSkeleton from "@/shared/components/layout/direct-chat-skeleton";
 
 interface PartnerProfile {
   name?: string;
@@ -43,7 +47,7 @@ const formatMessageWithLineBreaks = (message: string) =>
 const MessageSkeleton = () => (
   <div className="flex mb-0.5 justify-start">
     <div className="relative max-w-[75%] flex items-end gap-2">
-      <div className="relative px-4 py-1.5 rounded-2xl bg-gray-200 animate-pulse w-32 h-6" />
+      <div className="relative px-3 py-1 rounded-2xl bg-gray-200 animate-pulse w-32 h-6" />
     </div>
   </div>
 );
@@ -72,7 +76,7 @@ const MessageRow = React.memo(
         className={`relative max-w-[75%] ${isSent ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
       >
         <div
-          className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+          className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
             isSent
               ? "bg-primary text-primary-foreground rounded-br-md"
               : "bg-gray-100 text-foreground rounded-bl-md"
@@ -82,7 +86,7 @@ const MessageRow = React.memo(
           role="document"
         >
           {msg.status === "sending" || msg.status === "failed" ? (
-            <span>{content}</span>
+            <span className="text-xs">{content}</span>
           ) : (
             <span
               className="text-xs"
@@ -102,7 +106,7 @@ const MessageRow = React.memo(
                 minute: "2-digit",
               })}
             </span>
-            {showSpinner && <Check className="w-3 h-3" />}
+            {showSpinner && <BiCheck className="w-4 h-4 text-white/70" />}
             {showError && (
               <>
                 <XCircle className="w-3 h-3 text-red-500" />
@@ -124,9 +128,14 @@ const MessageRow = React.memo(
                 )}
               </>
             )}
-            {isSent && !showSpinner && !showError && (
-              <CheckCheck className="w-3 h-3" />
-            )}
+            {isSent &&
+              !showSpinner &&
+              !showError &&
+              (msg.read_at ? (
+                <BiCheckDouble className="w-4 h-4 text-white/70" />
+              ) : (
+                <BiCheck className="w-4 h-4 text-white/70" />
+              ))}
           </span>
         </div>
       </div>
@@ -208,9 +217,11 @@ const MessageList = ({
 const MessageInput = ({
   handleSend,
   sending,
+  disabled,
 }: {
   handleSend: (value: string) => void;
   sending: boolean;
+  disabled: boolean;
 }) => {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -280,16 +291,16 @@ const MessageInput = ({
 
   return (
     <div className="flex items-center space-x-1 relative">
-      <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
+      <div className="flex-1 relative h-auto flex items-center bg-transparent hover:cursor-text">
         <textarea
           ref={textareaRef}
           value={text}
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
           placeholder="Your message"
-          className="w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto"
+          className="w-full h-full px-4 py-3 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none max-h-20 overflow-y-auto scrollbar-hide align-middle"
           aria-label="Type your message"
-          disabled={sending}
+          disabled={sending || disabled}
           rows={1}
           tabIndex={0}
           style={{ lineHeight: "1.5" }}
@@ -356,7 +367,7 @@ const MessageInput = ({
             setText("");
           }
         }}
-        disabled={sending || !text.trim()}
+        disabled={sending || !text.trim() || disabled}
         className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3"
         aria-label="Send message"
       >
@@ -390,12 +401,18 @@ const DirectChatPage = () => {
     console.log("[DEBUG] currentUserUuid:", currentUserUuid);
     console.log("[DEBUG] partnerUuid:", partnerUuid);
   }, [user, currentUserId, currentUserUuid, partnerUuid]);
-  const [partnerProfile, setPartnerProfile] = useState<PartnerProfile | null>(
-    null
-  );
+  const {
+    profile: partnerProfile,
+    isDeleted: isPartnerDeleted,
+    loading: partnerLoading,
+  } = useUserProfile(partnerUuid);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const supabase = require("@/lib/supabase").createClient();
+  const { isBlocked, loading: blockLoading } = useBlockStatus(
+    currentUserUuid,
+    partnerUuid
+  );
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -409,24 +426,9 @@ const DirectChatPage = () => {
     fetchUuid();
   }, [currentUserId]);
 
-  useEffect(() => {
-    if (!partnerUuid) return;
-    const fetchPartnerProfile = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("name, username, profile_photo")
-        .eq("user_id", partnerUuid)
-        .single();
-      if (!error && data) setPartnerProfile(data);
-    };
-    fetchPartnerProfile();
-  }, [partnerUuid, supabase]);
-
   // Use the new direct chat hook
-  const { messages, loading, sending, error, sendMessage } = useDirectChat(
-    currentUserUuid,
-    partnerUuid
-  );
+  const { messages, loading, sending, error, sendMessage, markMessagesRead } =
+    useDirectChat(currentUserUuid, partnerUuid);
 
   // Memoize sharedSecret
   const sharedSecret = useMemo(() => {
@@ -516,6 +518,13 @@ const DirectChatPage = () => {
     );
   }, [messages, partnerUuid, sharedSecret]);
 
+  // Mark messages as read when chat is opened or partnerUuid changes
+  useEffect(() => {
+    if (markMessagesRead) {
+      markMessagesRead();
+    }
+  }, [partnerUuid, markMessagesRead]);
+
   const handleBackClick = () => {
     router.push("/chat");
   };
@@ -529,21 +538,36 @@ const DirectChatPage = () => {
     };
   }, [partnerUuid, markConversationRead]);
 
-  if (!currentUserUuid || !partnerUuid || (loading && messages.length === 0)) {
+  if (
+    blockLoading ||
+    partnerLoading ||
+    !currentUserUuid ||
+    !partnerUuid ||
+    (loading && messages.length === 0)
+  ) {
+    return <DirectChatSkeleton />;
+  }
+  if (isBlocked) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 flex items-center justify-center">
-          <div
-            className="flex flex-col items-center space-y-2 w-full"
-            role="list"
-          >
-            {[...Array(6)].map((_, i) => (
-              <div role="listitem" key={i}>
-                <MessageSkeleton />
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="flex flex-col h-full items-center justify-center text-center p-8">
+        <span className="text-md font-semibold text-destructive mb-2">
+          You cannot send messages to this user.
+        </span>
+        <span className="text-sm text-muted-foreground">
+          You have blocked this user or have been blocked.
+        </span>
+      </div>
+    );
+  }
+  if (isPartnerDeleted) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-center p-8">
+        <span className="text-md font-semibold text-destructive mb-2">
+          This user no longer exists.
+        </span>
+        <span className="text-sm text-muted-foreground">
+          You cannot send messages to a deleted user.
+        </span>
       </div>
     );
   }
@@ -565,12 +589,12 @@ const DirectChatPage = () => {
             <Link href={`/profile/${partnerUuid}`}>
               <div className="flex items-center gap-3">
                 {partnerProfile?.profile_photo ? (
-                  <Image
+                  <Avatar
                     src={partnerProfile.profile_photo}
                     alt={
                       partnerProfile.name || partnerProfile.username || "User"
                     }
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-semibold text-lg select-none">
@@ -624,7 +648,11 @@ const DirectChatPage = () => {
 
       {/* Message Input - Always at Bottom */}
       <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border px-2 py-1 shadow-none z-10">
-        <MessageInput handleSend={sendMessage} sending={sending} />
+        <MessageInput
+          handleSend={sendMessage}
+          sending={sending}
+          disabled={isBlocked || isPartnerDeleted}
+        />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase";
 import { encryptMessage, decryptMessage } from "@/shared/utils/encryption";
 import { v4 as uuidv4 } from "uuid";
 
+
 export interface DirectChatMessage {
   id: string;
   sender_id: string;
@@ -17,6 +18,7 @@ export interface DirectChatMessage {
   tempId?: string;
   plain_content?: string; // for optimistic UI
   client_id?: string;
+  read_at?: string; // Added for read_at
 }
 
 export interface UseDirectChatResult {
@@ -25,6 +27,7 @@ export interface UseDirectChatResult {
   sending: boolean;
   error: string | null;
   sendMessage: (value: string) => Promise<void>;
+  markMessagesRead: () => Promise<void>;
 }
 
 export const useDirectChat = (
@@ -131,6 +134,21 @@ export const useDirectChat = (
     [currentUserUuid, partnerUuid, sharedSecret, supabase]
   );
 
+  // Add markMessagesRead function
+  const markMessagesRead = useCallback(async () => {
+    if (!currentUserUuid || !partnerUuid) return;
+    try {
+      await supabase
+        .from("direct_messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("receiver_id", currentUserUuid)
+        .eq("sender_id", partnerUuid)
+        .is("read_at", null);
+    } catch (err) {
+      // Optionally handle error
+    }
+  }, [currentUserUuid, partnerUuid, supabase]);
+
   // Real-time subscription
   useEffect(() => {
     isMounted.current = true;
@@ -161,6 +179,25 @@ export const useDirectChat = (
           });
         }
       )
+      .on(
+        "postgres_changes" as any,
+        { event: "UPDATE", schema: "public", table: "direct_messages" },
+        (payload: any) => {
+          const msg = payload.new as DirectChatMessage;
+          // Only update if it's for this chat
+          const isRelevant =
+            (msg.sender_id === currentUserUuid &&
+              msg.receiver_id === partnerUuid) ||
+            (msg.sender_id === partnerUuid &&
+              msg.receiver_id === currentUserUuid);
+          if (!isRelevant) return;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === msg.id ? { ...m, read_at: msg.read_at } : m
+            )
+          );
+        }
+      )
       .subscribe();
     return () => {
       isMounted.current = false;
@@ -180,5 +217,6 @@ export const useDirectChat = (
     sending,
     error,
     sendMessage,
+    markMessagesRead,
   };
 };
