@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 
@@ -27,7 +27,7 @@ import {
 import { isAfter, isBefore } from 'date-fns';
 import dynamic from 'next/dynamic';
 
-const TravelHeatmap = dynamic(() => import('@/shared/components/heatmap/TravelHeatmap'), { ssr: false });
+const TravelHeatmap = dynamic(() => import('../../../shared/components/heatmap/TravelHeatmap'), { ssr: false });
 
 
 function SkeletonDemo() {
@@ -64,6 +64,10 @@ export default function Dashboard() {
       .then((data) => setTravelDays(data.travelDays || []));
   }, []);
 
+  useEffect(() => {
+    console.log("Fetched travelDays:", travelDays);
+  }, [travelDays]);
+
   const now = new Date();
 
   const upcomingTrips = groups.filter(
@@ -82,6 +86,30 @@ export default function Dashboard() {
   const coTravelers = getUniqueCoTravelers(groups);
   const tripTypeStats = getTripTypeStats(groups);
   const tripsPerYear = getTripsPerYear(groups);
+
+  const formattedTravelDays = travelDays.filter(
+    d => /^\d{4}-\d{2}-\d{2}$/.test(d)
+  );
+
+  console.log("formattedTravelDays", formattedTravelDays);
+
+  // Get all unique years from travelDays
+  const years = useMemo(() => {
+    const set = new Set(formattedTravelDays.map(d => Number(d.split('-')[0])));
+    return Array.from(set).sort((a, b) => b - a); // Descending order
+  }, [formattedTravelDays]);
+
+  console.log("years", years);
+
+  // Default to the most recent year
+  const [selectedYear, setSelectedYear] = useState(() => years[0] || new Date().getFullYear());
+
+  // Update selectedYear if years change (e.g., after fetch)
+  useEffect(() => {
+    if (years.length > 0 && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
+    }
+  }, [years, selectedYear]);
 
   return (
     <div className="min-h-screen bg-[#f6f8fa] px-8 py-8">
@@ -128,10 +156,29 @@ export default function Dashboard() {
 
           {/* Travel Heatmap */}
           <div className="bg-white rounded-2xl shadow p-6 mb-10">
-            <span className="text-gray-500 mb-2">Travel Activity Heatmap</span>
-            <TravelHeatmap travelDays={travelDays} />
+            <div className="flex items-center gap-4 mb-2">
+              <span className="text-gray-500">Travel Activity Heatmap</span>
+              {years.length > 1 && (
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(Number(e.target.value))}
+                >
+                  {years.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {formattedTravelDays.length === 0 ? (
+              <p className="text-muted-foreground">No travel data available.</p>
+            ) : (
+              <TravelHeatmap
+                travelDays={formattedTravelDays.filter(d => Number(d.split('-')[0]) === selectedYear)}
+                year={selectedYear}
+              />
+            )}
           </div>
-
 
           {/* Groups */}
           <section className="mb-10">
@@ -143,29 +190,6 @@ export default function Dashboard() {
                 {groups.map((g) => (
                   <GroupPreviewCard key={g.group_id} group={g} />
                 ))}
-              </div>
-            )}
-          </section>
-
-          {/* Pending Invites */}
-          <section className="mb-10">
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">Pending Invites</h2>
-            {pendingLoading ? (
-              <p>Loading...</p>
-            ) : invites.length === 0 ? (
-              <p className="text-muted-foreground">No pending invites.</p>
-            ) : (
-              <div className="space-y-4">
-                {invites.map((invite) =>
-                  invite.group ? (
-                    <PendingInviteCard
-                      key={invite.id}
-                      invite={invite}
-                      onAccept={() => console.log('Accept invite:', invite.id)}
-                      onDecline={() => console.log('Decline invite:', invite.id)}
-                    />
-                  ) : null
-                )}
               </div>
             )}
           </section>
