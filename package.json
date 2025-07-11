@@ -61,6 +61,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.57.0",
+    "react-icons": "^5.5.0",
     "react-image-crop": "^11.0.10",
     "react-input-emoji": "^5.9.0",
     "react-leaflet": "^4.2.1",
