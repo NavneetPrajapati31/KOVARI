@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 export type SettingsTab =
   | "basic"
@@ -10,9 +11,10 @@ export type SettingsTab =
   | "advanced"
   | "members"
   | "requests"
-  | "delete";
+  | "delete"
+  | null;
 
-const VALID_TABS: SettingsTab[] = [
+const VALID_TABS: Exclude<SettingsTab, null>[] = [
   "basic",
   "travel",
   "privacy",
@@ -29,13 +31,18 @@ export const useSettingsTabs = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isUpdatingRef = useRef(false);
+  const isMobile = useIsMobile();
 
-  // Get initial tab from URL or default to 'basic'
+  // Get initial tab from URL or default to 'basic' (desktop) or null (mobile)
   const getInitialTab = (): SettingsTab => {
     const tabParam = searchParams.get("tab");
-    if (tabParam && VALID_TABS.includes(tabParam as SettingsTab)) {
-      return tabParam as SettingsTab;
+    if (
+      tabParam &&
+      VALID_TABS.includes(tabParam as Exclude<SettingsTab, null>)
+    ) {
+      return tabParam as Exclude<SettingsTab, null>;
     }
+    if (isMobile) return null;
     return "basic";
   };
 
@@ -51,18 +58,23 @@ export const useSettingsTabs = () => {
     const tabParam = searchParams.get("tab");
     if (
       tabParam &&
-      VALID_TABS.includes(tabParam as SettingsTab) &&
+      VALID_TABS.includes(tabParam as Exclude<SettingsTab, null>) &&
       tabParam !== activeTab
     ) {
-      setActiveTabState(tabParam as SettingsTab);
+      setActiveTabState(tabParam as Exclude<SettingsTab, null>);
     }
-  }, [searchParams, activeTab]);
+    // If no tab param and mobile, clear activeTab
+    if (!tabParam && isMobile && activeTab) {
+      setActiveTabState(null);
+    }
+  }, [searchParams, activeTab, isMobile]);
 
   const setActiveTab = useCallback(
-    (tab: string) => {
-      const validTab = VALID_TABS.includes(tab as SettingsTab)
-        ? (tab as SettingsTab)
-        : "basic";
+    (tab: string | null) => {
+      const validTab =
+        tab && VALID_TABS.includes(tab as Exclude<SettingsTab, null>)
+          ? (tab as Exclude<SettingsTab, null>)
+          : null;
 
       if (validTab !== activeTab) {
         // Mark that we're updating programmatically
@@ -73,8 +85,11 @@ export const useSettingsTabs = () => {
 
         // Update URL
         const newSearchParams = new URLSearchParams(searchParams);
-        newSearchParams.set("tab", validTab);
-
+        if (validTab) {
+          newSearchParams.set("tab", validTab);
+        } else {
+          newSearchParams.delete("tab");
+        }
         router.replace(`${pathname}?${newSearchParams.toString()}`, {
           scroll: false,
         });
@@ -86,7 +101,7 @@ export const useSettingsTabs = () => {
   return {
     activeTab,
     setActiveTab,
-    isValidTab: (tab: string): tab is SettingsTab =>
-      VALID_TABS.includes(tab as SettingsTab),
+    isValidTab: (tab: string): tab is Exclude<SettingsTab, null> =>
+      VALID_TABS.includes(tab as Exclude<SettingsTab, null>),
   };
 };
