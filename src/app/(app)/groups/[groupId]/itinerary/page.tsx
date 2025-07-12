@@ -652,7 +652,7 @@ export default function ItineraryPage() {
                   title={member.name}
                 />
               ))}
-              {groupMembers.length > 4 && (
+              {Array.isArray(groupMembers) && groupMembers.length > 4 && (
                 <div className="w-8 h-8 rounded-full border-border border-3 shadow-sm bg-card flex items-center justify-center">
                   <span className="text-xs font-medium text-muted-foreground">
                     +{groupMembers.length - 4}
@@ -1161,7 +1161,7 @@ export default function ItineraryPage() {
                     <span className="text-sm">{member.name}</span>
                   </label>
                 ))}
-                {groupMembers.length === 0 && (
+                {Array.isArray(groupMembers) && groupMembers.length === 0 && (
                   <p className="text-sm text-muted-foreground italic">
                     No group members available
                   </p>
@@ -1353,7 +1353,7 @@ export default function ItineraryPage() {
                     <span className="text-sm">{member.name}</span>
                   </label>
                 ))}
-                {groupMembers.length === 0 && (
+                {Array.isArray(groupMembers) && groupMembers.length === 0 && (
                   <p className="text-sm text-muted-foreground italic">
                     No group members available
                   </p>

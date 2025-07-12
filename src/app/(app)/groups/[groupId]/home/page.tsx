@@ -170,7 +170,7 @@ const GroupHomePage = () => {
         const res = await fetch(`/api/groups/${params.groupId}/members`);
         if (!res.ok) throw new Error("Failed to fetch group members");
         const data = await res.json();
-        setGroupMembers(data || []);
+        setGroupMembers(data.members || []);
       } catch (err: unknown) {
         setMembersError((err as Error).message);
       } finally {
@@ -282,7 +282,9 @@ const GroupHomePage = () => {
   };
 
   // Ensure admins appear at the top
-  const sortedMembers = [...groupMembers].sort((a, b) => {
+  const sortedMembers = [
+    ...(Array.isArray(groupMembers) ? groupMembers : []),
+  ].sort((a, b) => {
     if (a.role === "admin" && b.role !== "admin") return -1;
     if (a.role !== "admin" && b.role === "admin") return 1;
     return 0;
@@ -293,7 +295,10 @@ const GroupHomePage = () => {
     <Dialog open={showAllMembers} onOpenChange={setShowAllMembers}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Group Members ({groupMembers.length})</DialogTitle>
+          <DialogTitle>
+            Group Members (
+            {Array.isArray(groupMembers) ? groupMembers.length : 0})
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 max-h-96 overflow-y-auto">
           {sortedMembers.map((member, index) => (
@@ -442,7 +447,7 @@ const GroupHomePage = () => {
                     <Skeleton className="h-3 w-1/2 rounded-full" />
                   ) : (
                     <h3 className="text-sm font-semibold">
-                      {`${groupMembers.length} members`}
+                      {`${Array.isArray(groupMembers) ? groupMembers.length : 0} members`}
                     </h3>
                   )}
 
@@ -796,7 +801,7 @@ const GroupHomePage = () => {
                         {membersLoading ? (
                           <Skeleton className="h-3 w-24 rounded-full mt-1" />
                         ) : (
-                          `${groupMembers.length} members`
+                          `${Array.isArray(groupMembers) ? groupMembers.length : 0} members`
                         )}
                       </h2>
                       {membersLoading ? "" : <Divider />}
@@ -1127,7 +1132,7 @@ const GroupHomePage = () => {
                   {membersLoading ? (
                     <Skeleton className="h-3 w-24 rounded-full mt-1" />
                   ) : (
-                    `${groupMembers.length} members`
+                    `${Array.isArray(groupMembers) ? groupMembers.length : 0} members`
                   )}
                 </h2>
                 {membersLoading ? "" : <Divider />}
