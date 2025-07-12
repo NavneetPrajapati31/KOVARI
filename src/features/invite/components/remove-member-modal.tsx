@@ -18,6 +18,7 @@ interface RemoveMemberModalProps {
   onOpenChange: (open: boolean) => void;
   member: {
     id: string;
+    clerkId: string;
     name: string;
     avatar: string;
     username: string;

@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -31,6 +31,7 @@ import {
   Users,
   ClockIcon,
   MapPin,
+  AlertCircle,
 } from "lucide-react";
 import { Chip, Spinner } from "@heroui/react";
 import { createClient } from "@/lib/supabase";
@@ -41,6 +42,8 @@ import {
   DropdownMenuItem,
 } from "@/shared/components/ui/dropdown-menu";
 import { InviteTeammatesModal } from "@/features/invite/components/invite-teammember";
+import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
+import { toast } from "sonner";
 
 interface ItineraryItem {
   id: string;
@@ -180,7 +183,25 @@ const MetaIcon = {
 
 export default function ItineraryPage() {
   const params = useParams<{ groupId: string }>();
+  const router = useRouter();
   const groupId = params.groupId;
+
+  // Check user membership status
+  const {
+    membershipInfo,
+    loading: membershipLoading,
+    error: membershipError,
+    refetch: refetchMembership,
+  } = useGroupMembership(groupId);
+
+  // Debug: Log membership error and info
+  console.log(
+    "membershipError",
+    membershipError,
+    "membershipInfo",
+    membershipInfo
+  );
+
   const [itineraryItems, setItineraryItems] = useState<ItineraryItem[]>([]);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,9 +214,62 @@ export default function ItineraryPage() {
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
   const [draggedItem, setDraggedItem] = useState<ItineraryItem | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isRejoining, setIsRejoining] = useState(false);
 
   const handleOpenInviteModal = () => setIsInviteModalOpen(true);
   const handleCloseInviteModal = () => setIsInviteModalOpen(false);
+
+  // Handle rejoining after being removed
+  const handleRejoinGroup = async () => {
+    setIsRejoining(true);
+    try {
+      const response = await fetch(`/api/groups/${groupId}/join-request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        toast.success("Join request sent successfully");
+        // Refetch membership info
+        await refetchMembership();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Failed to send join request");
+      }
+    } catch (err) {
+      console.error("Error sending join request:", err);
+      toast.error("Failed to send join request");
+    } finally {
+      setIsRejoining(false);
+    }
+  };
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
+  // Handle membership errors
+  useEffect(() => {
+    if (membershipError) {
+      if (membershipError.includes("Not a member")) {
+        toast.error("You are not a member of this group");
+        // Redirect to groups page after a short delay
+        // setTimeout(() => {
+        //   router.push("/groups");
+        // }, 2000);
+      } else if (membershipError.includes("Group not found")) {
+        toast.error("Group not found");
+        // router.push("/groups");
+      } else {
+        toast.error(membershipError);
+      }
+    }
+  }, [membershipError, router]);
 
   // Form state for new/edit item
   const [formData, setFormData] = useState({
@@ -437,6 +511,96 @@ export default function ItineraryPage() {
       }),
     };
   };
+
+  // Membership check and error handling must be before any layout rendering
+  if (membershipLoading) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="flex items-center space-x-2">
+          <Spinner variant="spinner" size="sm" color="primary" />
+          <span className="text-primary text-sm">Checking membership...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const isNotMember =
+    (!membershipLoading &&
+      membershipInfo &&
+      !membershipInfo.isMember &&
+      !membershipInfo.isCreator) ||
+    (membershipError && membershipError.includes("Not a member"));
+
+  const hasPendingRequest = membershipInfo?.hasPendingRequest || false;
+
+  if (isNotMember) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-8 flex flex-col items-center justify-center">
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Join the group to access itinerary
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            You need to be a member of this group to view the itinerary.
+          </p>
+          <Button
+            onClick={handleRejoinGroup}
+            disabled={isRejoining}
+            className={`w-full mb-2 text-xs ${hasPendingRequest ? "pointer-events-none" : ""}`}
+            variant={hasPendingRequest ? "outline" : "default"}
+          >
+            {isRejoining ? (
+              <>
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  className="mr-1"
+                  classNames={{ spinnerBars: "bg-white" }}
+                />
+                Requesting...
+              </>
+            ) : hasPendingRequest ? (
+              "Request Pending"
+            ) : (
+              "Request to Join Group"
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (membershipError && membershipError.includes("Group not found")) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center mb-2">
+            <AlertCircle className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Group Not Found
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            The group you're looking for doesn't exist or has been deleted.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

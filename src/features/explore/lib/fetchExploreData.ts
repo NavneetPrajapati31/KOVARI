@@ -285,14 +285,17 @@ export const fetchPublicGroups = async (
   const groupIds = (groups || []).map((g: any) => g.id);
   let userMemberships: Record<string, string> = {};
   if (groupIds.length > 0 && currentUserId) {
-    // Get internal user_id from users table
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", currentUserId)
-      .single();
-    const internalUserId = userData?.id;
-    if (internalUserId) {
+    let internalUserId = currentUserId;
+    if (currentUserId.length !== 36) {
+      // Looks like a Clerk user ID, map to internal UUID
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("clerk_user_id", currentUserId)
+        .single();
+      if (userData?.id) internalUserId = userData.id;
+    }
+    if (internalUserId && internalUserId.length === 36) {
       const { data: memberships } = await supabase
         .from("group_memberships")
         .select("group_id, status")

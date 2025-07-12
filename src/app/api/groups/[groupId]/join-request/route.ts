@@ -8,15 +8,19 @@ export async function POST(
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
+    console.log("[JOIN_REQUEST_POST] Handler called");
     const { userId } = await auth();
     const { groupId } = await params;
+    console.log("[JOIN_REQUEST_POST] userId:", userId, "groupId:", groupId);
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      console.log("[JOIN_REQUEST_POST] Unauthorized: No userId");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!groupId) {
-      return new NextResponse("Missing groupId", { status: 400 });
+      console.log("[JOIN_REQUEST_POST] Missing groupId");
+      return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
     }
 
     const cookieStore = await cookies();
@@ -38,16 +42,34 @@ export async function POST(
       }
     );
 
-    // Get user UUID from Clerk userId
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .single();
+    // Get user UUID from Clerk userId or internal UUID
+    let user;
+    let userError;
+    if (userId.length === 36) {
+      // Looks like a UUID, search by id
+      ({ data: user, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", userId)
+        .single());
+      console.log("[JOIN_REQUEST_POST] user lookup by id:", user, userError);
+    } else {
+      // Looks like a Clerk user ID, search by clerk_user_id
+      ({ data: user, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("clerk_user_id", userId)
+        .single());
+      console.log(
+        "[JOIN_REQUEST_POST] user lookup by clerk_user_id:",
+        user,
+        userError
+      );
+    }
 
     if (userError || !user) {
-      console.error("Error finding user:", userError);
-      return new NextResponse("User not found", { status: 404 });
+      console.error("[JOIN_REQUEST_POST] Error finding user:", userError);
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Check if group exists and is public
@@ -56,14 +78,19 @@ export async function POST(
       .select("id, is_public")
       .eq("id", groupId)
       .single();
+    console.log("[JOIN_REQUEST_POST] group lookup:", group, groupError);
 
     if (groupError || !group) {
-      console.error("Error finding group:", groupError);
-      return new NextResponse("Group not found", { status: 404 });
+      console.error("[JOIN_REQUEST_POST] Error finding group:", groupError);
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
     if (!group.is_public) {
-      return new NextResponse("Group is not public", { status: 403 });
+      console.log("[JOIN_REQUEST_POST] Group is not public");
+      return NextResponse.json(
+        { error: "Group is not public" },
+        { status: 403 }
+      );
     }
 
     // Check if user already has a membership
@@ -73,30 +100,47 @@ export async function POST(
       .eq("group_id", groupId)
       .eq("user_id", user.id)
       .maybeSingle();
+    console.log(
+      "[JOIN_REQUEST_POST] existingMembership:",
+      existingMembership,
+      membershipError
+    );
 
     if (membershipError) {
-      console.error("Error checking existing membership:", membershipError);
-      return new NextResponse("Database error", { status: 500 });
+      console.error(
+        "[JOIN_REQUEST_POST] Error checking existing membership:",
+        membershipError
+      );
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
     // Handle different existing membership statuses
     if (existingMembership) {
       if (existingMembership.status === "accepted") {
-        return new NextResponse("Already a member of this group", {
-          status: 400,
-        });
+        console.log("[JOIN_REQUEST_POST] Already a member of this group");
+        return NextResponse.json(
+          { error: "Already a member of this group" },
+          { status: 400 }
+        );
       }
       if (existingMembership.status === "pending_request") {
-        return new NextResponse("Join request already pending", {
-          status: 400,
-        });
+        console.log("[JOIN_REQUEST_POST] Join request already pending");
+        return NextResponse.json(
+          { error: "Join request already pending" },
+          { status: 400 }
+        );
       }
       if (existingMembership.status === "pending") {
-        return new NextResponse("Already have a pending invitation", {
-          status: 400,
-        });
+        console.log("[JOIN_REQUEST_POST] Already have a pending invitation");
+        return NextResponse.json(
+          { error: "Already have a pending invitation" },
+          { status: 400 }
+        );
       }
       if (existingMembership.status === "declined") {
+        console.log(
+          "[JOIN_REQUEST_POST] Updating declined membership to pending_request"
+        );
         // Update declined membership to pending_request
         const { error: updateError } = await supabase
           .from("group_memberships")
@@ -107,12 +151,17 @@ export async function POST(
           .eq("id", existingMembership.id);
 
         if (updateError) {
-          console.error("Error updating membership status:", updateError);
-          return new NextResponse("Failed to update membership", {
-            status: 500,
-          });
+          console.error(
+            "[JOIN_REQUEST_POST] Error updating membership status:",
+            updateError
+          );
+          return NextResponse.json(
+            { error: "Failed to update membership" },
+            { status: 500 }
+          );
         }
 
+        console.log("[JOIN_REQUEST_POST] Join request sent (declined updated)");
         return NextResponse.json({
           success: true,
           message: "Join request sent",
@@ -126,19 +175,29 @@ export async function POST(
       .select("id", { count: "exact" })
       .eq("group_id", groupId)
       .eq("status", "accepted");
+    console.log("[JOIN_REQUEST_POST] memberCount:", memberCount, countError);
 
     if (countError) {
-      console.error("Error checking member count:", countError);
-      return new NextResponse("Failed to check member count", { status: 500 });
+      console.error(
+        "[JOIN_REQUEST_POST] Error checking member count:",
+        countError
+      );
+      return NextResponse.json(
+        { error: "Failed to check member count" },
+        { status: 500 }
+      );
     }
 
     if (memberCount && memberCount.length >= 10) {
-      return new NextResponse("Group is full (maximum 10 members)", {
-        status: 400,
-      });
+      console.log("[JOIN_REQUEST_POST] Group is full (maximum 10 members)");
+      return NextResponse.json(
+        { error: "Group is full (maximum 10 members)" },
+        { status: 400 }
+      );
     }
 
     // Create new membership with pending_request status
+    console.log("[JOIN_REQUEST_POST] Inserting new pending_request membership");
     const { error: insertError } = await supabase
       .from("group_memberships")
       .insert({
@@ -150,14 +209,24 @@ export async function POST(
       });
 
     if (insertError) {
-      console.error("Error creating join request:", insertError);
-      return new NextResponse("Failed to create join request", { status: 500 });
+      console.error(
+        "[JOIN_REQUEST_POST] Error creating join request:",
+        insertError
+      );
+      return NextResponse.json(
+        { error: "Failed to create join request" },
+        { status: 500 }
+      );
     }
 
+    console.log("[JOIN_REQUEST_POST] Join request sent (new membership)");
     return NextResponse.json({ success: true, message: "Join request sent" });
   } catch (error) {
-    console.error("[JOIN_REQUEST_POST]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("[JOIN_REQUEST_POST] Uncaught error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 

@@ -60,6 +60,12 @@ export const useGroupChat = (groupId: string) => {
 
       const response = await fetch(`/api/groups/${groupId}/messages`);
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("Not a member of this group");
+        }
+        if (response.status === 404) {
+          throw new Error("Group not found");
+        }
         throw new Error("Failed to fetch messages");
       }
 
@@ -205,6 +211,15 @@ export const useGroupChat = (groupId: string) => {
             statusText: response.statusText,
             error: errorData,
           });
+
+          // Handle specific error cases
+          if (response.status === 403) {
+            throw new Error("Not a member of this group");
+          }
+          if (response.status === 404) {
+            throw new Error("Group not found");
+          }
+
           throw new Error(
             `Failed to send message: ${errorData.error || response.statusText}`
           );
@@ -280,7 +295,8 @@ export const useGroupChat = (groupId: string) => {
                   profiles(
                     name,
                     username,
-                    profile_photo
+                    profile_photo,
+                    deleted
                   )
                 )
               `
@@ -358,10 +374,23 @@ export const useGroupChat = (groupId: string) => {
                     timeZone: "Asia/Kolkata",
                   }
                 ),
-                sender:
-                  (messageData.users as any)?.profiles?.name || "Unknown User",
-                senderUsername: (messageData.users as any)?.profiles?.username,
-                avatar: (messageData.users as any)?.profiles?.profile_photo,
+                sender: (() => {
+                  const profile = (messageData.users as any)?.profiles;
+                  const isDeleted = profile?.deleted === true;
+                  return isDeleted
+                    ? "Deleted User"
+                    : profile?.name || "Unknown User";
+                })(),
+                senderUsername: (() => {
+                  const profile = (messageData.users as any)?.profiles;
+                  const isDeleted = profile?.deleted === true;
+                  return isDeleted ? undefined : profile?.username;
+                })(),
+                avatar: (() => {
+                  const profile = (messageData.users as any)?.profiles;
+                  const isDeleted = profile?.deleted === true;
+                  return isDeleted ? undefined : profile?.profile_photo;
+                })(),
                 isCurrentUser,
                 createdAt: messageData.created_at,
               };

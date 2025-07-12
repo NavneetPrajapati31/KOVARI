@@ -72,11 +72,19 @@ export async function GET(
     const isCreator = group.creator_id === user.id;
     const isMember = membership && membership.status === "accepted";
     const isAdmin = membership && membership.role === "admin";
+    const hasPendingRequest =
+      membership && membership.status === "pending_request";
+
+    // If not a member, not the creator, and no pending request, return 403
+    if (!isMember && !isCreator && !hasPendingRequest) {
+      return new NextResponse("Not a member of this group", { status: 403 });
+    }
 
     return NextResponse.json({
       isCreator,
       isMember,
       isAdmin,
+      hasPendingRequest,
       membership: membership || null,
     });
   } catch (error) {
