@@ -73,6 +73,11 @@ export async function GET(
     const isMember = membership && membership.status === "accepted";
     const isAdmin = membership && membership.role === "admin";
 
+    // If not a member and not the creator, return 403
+    if (!isMember && !isCreator) {
+      return new NextResponse("Not a member of this group", { status: 403 });
+    }
+
     return NextResponse.json({
       isCreator,
       isMember,

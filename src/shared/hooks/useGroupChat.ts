@@ -60,6 +60,12 @@ export const useGroupChat = (groupId: string) => {
 
       const response = await fetch(`/api/groups/${groupId}/messages`);
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("Not a member of this group");
+        }
+        if (response.status === 404) {
+          throw new Error("Group not found");
+        }
         throw new Error("Failed to fetch messages");
       }
 
@@ -205,6 +211,15 @@ export const useGroupChat = (groupId: string) => {
             statusText: response.statusText,
             error: errorData,
           });
+
+          // Handle specific error cases
+          if (response.status === 403) {
+            throw new Error("Not a member of this group");
+          }
+          if (response.status === 404) {
+            throw new Error("Group not found");
+          }
+
           throw new Error(
             `Failed to send message: ${errorData.error || response.statusText}`
           );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -14,22 +14,30 @@ import {
   Send,
   Loader2,
   Smile,
+  AlertCircle,
+  Users,
+  Lock,
 } from "lucide-react";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
+import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
 import { toast } from "sonner";
 import { Shield, ShieldCheck } from "lucide-react";
 import { Chip } from "@heroui/react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 
+const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
+
 export default function GroupChatInterface() {
   const params = useParams();
+  const router = useRouter();
   const groupId = params.groupId as string;
 
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [messageLengthError, setMessageLengthError] = useState(false);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   console.log("Current message state:", message);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +63,22 @@ export default function GroupChatInterface() {
     isEncryptionAvailable,
   } = useGroupEncryption(groupId);
 
+  // Check user membership status
+  const {
+    membershipInfo,
+    loading: membershipLoading,
+    error: membershipError,
+    refetch: refetchMembership,
+  } = useGroupMembership(groupId);
+
+  // Debug: Log membership error and info
+  console.log(
+    "membershipError",
+    membershipError,
+    "membershipInfo",
+    membershipInfo
+  );
+
   // Insert emoji at cursor position
   const insertEmoji = (emoji: string) => {
     const textarea = textareaRef.current;
@@ -78,6 +102,11 @@ export default function GroupChatInterface() {
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
+  }, [message]);
+
+  // Check message length
+  useEffect(() => {
+    setMessageLengthError(message.length > MAX_MESSAGE_LENGTH);
   }, [message]);
 
   // Close emoji picker on outside click or Escape
@@ -127,8 +156,26 @@ export default function GroupChatInterface() {
     }
   }, [error]);
 
+  // Handle membership errors
+  useEffect(() => {
+    if (membershipError) {
+      if (membershipError.includes("Not a member")) {
+        toast.error("You are not a member of this group");
+        // Redirect to groups page after a short delay
+        // setTimeout(() => {
+        //   router.push("/groups");
+        // }, 2000);
+      } else if (membershipError.includes("Group not found")) {
+        toast.error("Group not found");
+        // router.push("/groups");
+      } else {
+        toast.error(membershipError);
+      }
+    }
+  }, [membershipError, router]);
+
   const handleSendMessage = async () => {
-    if (message.trim() && !sending) {
+    if (message.trim() && !sending && !messageLengthError) {
       const messageToSend = message.trim();
       setMessage(""); // Clear input immediately for better UX
 
@@ -147,10 +194,102 @@ export default function GroupChatInterface() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (!messageLengthError) {
+        handleSendMessage();
+      }
     }
     // Shift+Enter: allow default (newline)
   };
+
+  // Handle rejoining after being removed
+  const handleRejoinGroup = async () => {
+    try {
+      const response = await fetch(`/api/groups/${groupId}/join-request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        toast.success("Join request sent successfully");
+        // Refetch membership info
+        await refetchMembership();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Failed to send join request");
+      }
+    } catch (err) {
+      console.error("Error sending join request:", err);
+      toast.error("Failed to send join request");
+    }
+  };
+
+  // Membership check and error handling must be before any layout rendering
+  if (membershipLoading) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="flex items-center space-x-2">
+          <Spinner variant="spinner" size="sm" color="primary" />
+          <span className="text-primary text-sm">Checking membership...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (membershipError && membershipError.includes("Not a member")) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-8 flex flex-col items-center justify-center">
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Join the group to access chats
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            You need to be a member of this group to view and participate in the
+            chat.
+          </p>
+          <Button
+            onClick={handleRejoinGroup}
+            className="w-full max-w-xs mb-2 text-xs"
+          >
+            Request to Join Group
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full max-w-xs text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (membershipError && membershipError.includes("Group not found")) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center mb-4">
+            <AlertCircle className="h-12 w-12 text-muted-foreground" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground mb-2">
+            Group Not Found
+          </h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            The group you're looking for doesn't exist or has been deleted.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && messages.length === 0) {
     return (
@@ -168,212 +307,8 @@ export default function GroupChatInterface() {
   return (
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
       <div className="flex h-[80vh]">
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="px-3 sm:px-5 py-3 border-b border-border bg-transparent">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-sm font-semibold text-foreground">
-                    {groupInfo?.name || "Loading..."}
-                  </h1>
-                  {/* {isEncryptionAvailable && keyFingerprint && (
-                    <Chip
-                      size="sm"
-                      variant="bordered"
-                      className="text-xs capitalize flex-shrink-0 self-center bg-primary-light border-1 border-primary text-primary px-2"
-                    >
-                      <div className="flex items-center gap-1 text-xs text-primary">
-                        <ShieldCheck className="h-3 w-3" />
-                        <span>End-to-end encrypted</span>
-                      </div>
-                    </Chip>
-                  )}
-                  {!isEncryptionAvailable && !encryptionLoading && (
-                    <div className="flex items-center gap-1 text-xs text-yellow-600">
-                      <Shield className="h-3 w-3" />
-                      <span>Encryption unavailable</span>
-                    </div>
-                  )} */}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {members.length} members, {onlineMembers} online
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="icon"
-                  className="bg-transparent text-muted-foreground hover:text-foreground"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="icon"
-                  className="bg-transparent text-muted-foreground hover:text-foreground"
-                >
-                  <Phone className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="icon"
-                  className="bg-transparent text-muted-foreground hover:text-foreground"
-                >
-                  <Video className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="icon"
-                  className="bg-transparent text-muted-foreground hover:text-foreground"
-                >
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div
-            ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
-            data-testid="messages-container"
-          >
-            {messages.length === 0 ? (
-              <div className="text-center py-8">
-                <span className="text-sm text-muted-foreground">
-                  No messages yet. Start the conversation!
-                </span>
-              </div>
-            ) : (
-              <>
-                <div className="text-center">
-                  <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
-                    Today
-                  </span>
-                </div>
-
-                {messages.map((msg: ChatMessage) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
-                  >
-                    <div
-                      className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
-                    >
-                      {!msg.isCurrentUser && (
-                        <Avatar
-                          className="w-8 h-8 flex-shrink-0"
-                          src={msg.avatar || ""}
-                          name={msg.sender}
-                        />
-                      )}
-
-                      <div
-                        className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
-                      >
-                        <div
-                          className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
-                            msg.isCurrentUser
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-gray-100 text-foreground rounded-bl-md"
-                          }`}
-                        >
-                          {!msg.isCurrentUser && (
-                            <span className="block text-sm font-semibold text-muted-foreground mb-1">
-                              {msg.sender}
-                            </span>
-                          )}
-                          <span>{msg.content}</span>
-                          <span className="flex items-center gap-1 justify-end ml-3 mt-2.5 float-right">
-                            <span
-                              className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
-                            >
-                              {msg.timestamp}
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-
-          {/* Message Input - Sticky */}
-          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
-            <div className="flex items-center space-x-1">
-              <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
-                <textarea
-                  ref={textareaRef}
-                  key={groupId}
-                  placeholder="Your message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto"
-                  aria-label="Type your message"
-                  disabled={sending}
-                  rows={1}
-                  tabIndex={0}
-                  style={{ lineHeight: "1.5" }}
-                />
-              </div>
-              <button
-                ref={emojiButtonRef}
-                type="button"
-                className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
-                aria-label="Open emoji picker"
-                tabIndex={0}
-                onClick={() => setShowEmoji((v) => !v)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setShowEmoji((v) => !v);
-                  }
-                }}
-              >
-                <Smile className="h-5 w-5" />
-              </button>
-              {showEmoji && (
-                <div
-                  ref={popoverRef}
-                  className="absolute bottom-12 right-0 z-50 bg-card border-none rounded-xl shadow-none p-2"
-                  role="dialog"
-                  aria-label="Emoji picker"
-                >
-                  {/* @ts-ignore */}
-                  <Picker
-                    data={data}
-                    theme="light"
-                    previewPosition="none"
-                    skinTonePosition="search"
-                    emojiSet="apple"
-                    emojiButtonSize={32}
-                    emojiSize={24}
-                    onEmojiSelect={(emoji: any) => {
-                      insertEmoji(emoji.native);
-                      // DO NOT close popover after select
-                    }}
-                    style={{ width: "320px" }}
-                  />
-                </div>
-              )}
-              <button
-                onClick={handleSendMessage}
-                disabled={!message.trim() || sending}
-                className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3"
-              >
-                {sending ? (
-                  <Spinner variant="spinner" size="sm" color="primary" />
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Right Sidebar */}
-        <div className="w-72 border-l border-border bg-muted/30 overflow-y-auto scrollbar-none hidden lg:block">
+        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-none hidden lg:block">
           <div className="p-5">
             {/* Company Info */}
             <div className="text-center mb-3 border-b-1 border-border">
@@ -409,11 +344,11 @@ export default function GroupChatInterface() {
                 </div>
               ) : (
                 <AvatarGroup
-                  max={7}
+                  max={10}
                   total={members.length}
                   className="justify-start mb-4"
                   renderCount={(count) => {
-                    const remainingCount = members.length - 7;
+                    const remainingCount = members.length - 10;
                     return remainingCount > 0 ? (
                       <div className="w-11 h-11 bg-primary rounded-full flex items-center justify-center border-2 border-background">
                         <span className="text-primary-foreground text-xs font-medium">
@@ -573,6 +508,217 @@ export default function GroupChatInterface() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="px-3 sm:px-5 py-3 border-b border-border bg-transparent">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-sm font-semibold text-foreground">
+                    {groupInfo?.name || "Loading..."}
+                  </h1>
+                  {/* {isEncryptionAvailable && keyFingerprint && (
+                    <Chip
+                      size="sm"
+                      variant="bordered"
+                      className="text-xs capitalize flex-shrink-0 self-center bg-primary-light border-1 border-primary text-primary px-2"
+                    >
+                      <div className="flex items-center gap-1 text-xs text-primary">
+                        <ShieldCheck className="h-3 w-3" />
+                        <span>End-to-end encrypted</span>
+                      </div>
+                    </Chip>
+                  )}
+                  {!isEncryptionAvailable && !encryptionLoading && (
+                    <div className="flex items-center gap-1 text-xs text-yellow-600">
+                      <Shield className="h-3 w-3" />
+                      <span>Encryption unavailable</span>
+                    </div>
+                  )} */}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {members.length} members, {onlineMembers} online
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="icon"
+                  className="bg-transparent text-muted-foreground hover:text-foreground"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+                <Button
+                  size="icon"
+                  className="bg-transparent text-muted-foreground hover:text-foreground"
+                >
+                  <Phone className="h-5 w-5" />
+                </Button>
+                <Button
+                  size="icon"
+                  className="bg-transparent text-muted-foreground hover:text-foreground"
+                >
+                  <Video className="h-5 w-5" />
+                </Button>
+                <Button
+                  size="icon"
+                  className="bg-transparent text-muted-foreground hover:text-foreground"
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
+            data-testid="messages-container"
+          >
+            {messages.length === 0 ? (
+              <div className="text-center py-8">
+                <span className="text-sm text-muted-foreground">
+                  No messages yet. Start the conversation!
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="text-center">
+                  <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                    Today
+                  </span>
+                </div>
+
+                {messages.map((msg: ChatMessage) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
+                  >
+                    <div
+                      className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
+                    >
+                      {!msg.isCurrentUser && (
+                        <Avatar
+                          className="w-8 h-8 flex-shrink-0"
+                          src={msg.avatar || ""}
+                          name={msg.sender}
+                        />
+                      )}
+
+                      <div
+                        className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
+                      >
+                        <div
+                          className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                            msg.isCurrentUser
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-gray-100 text-foreground rounded-bl-md"
+                          }`}
+                        >
+                          {!msg.isCurrentUser && (
+                            <span className="block text-sm font-semibold text-muted-foreground mb-1">
+                              {msg.sender}
+                            </span>
+                          )}
+                          <span>{msg.content}</span>
+                          <span className="flex items-center gap-1 justify-end ml-3 mt-2.5 float-right">
+                            <span
+                              className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
+                            >
+                              {msg.timestamp}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+
+          {/* Message Input - Sticky */}
+          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
+            <div className="flex items-center space-x-1">
+              <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
+                <textarea
+                  ref={textareaRef}
+                  key={groupId}
+                  placeholder="Your message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className={`w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto ${
+                    messageLengthError ? "border-red-500" : ""
+                  }`}
+                  aria-label="Type your message"
+                  disabled={sending}
+                  rows={1}
+                  tabIndex={0}
+                  style={{ lineHeight: "1.5" }}
+                />
+                {messageLengthError && (
+                  <div className="absolute -top-6 left-0 text-xs text-red-500">
+                    Message too long ({message.length}/{MAX_MESSAGE_LENGTH}{" "}
+                    characters)
+                  </div>
+                )}
+              </div>
+              <button
+                ref={emojiButtonRef}
+                type="button"
+                className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
+                aria-label="Open emoji picker"
+                tabIndex={0}
+                onClick={() => setShowEmoji((v) => !v)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowEmoji((v) => !v);
+                  }
+                }}
+              >
+                <Smile className="h-5 w-5" />
+              </button>
+              {showEmoji && (
+                <div
+                  ref={popoverRef}
+                  className="absolute bottom-12 right-0 z-50 bg-card border-none rounded-xl shadow-none p-2"
+                  role="dialog"
+                  aria-label="Emoji picker"
+                >
+                  {/* @ts-ignore */}
+                  <Picker
+                    data={data}
+                    theme="light"
+                    previewPosition="none"
+                    skinTonePosition="search"
+                    emojiSet="apple"
+                    emojiButtonSize={32}
+                    emojiSize={24}
+                    onEmojiSelect={(emoji: any) => {
+                      insertEmoji(emoji.native);
+                      // DO NOT close popover after select
+                    }}
+                    style={{ width: "320px" }}
+                  />
+                </div>
+              )}
+              <button
+                onClick={handleSendMessage}
+                disabled={!message.trim() || sending || messageLengthError}
+                className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3"
+              >
+                {sending ? (
+                  <Spinner variant="spinner" size="sm" color="primary" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </button>
             </div>
           </div>
         </div>
