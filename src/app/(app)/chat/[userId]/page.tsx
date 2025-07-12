@@ -70,6 +70,7 @@ const MessageRow = React.memo(
     showSpinner,
     showError,
     onRetry,
+    isSenderDeleted,
   }: {
     msg: any;
     isSent: boolean;
@@ -77,6 +78,7 @@ const MessageRow = React.memo(
     showSpinner: boolean;
     showError: boolean;
     onRetry?: (msg: any) => void;
+    isSenderDeleted?: boolean;
   }) => (
     <div
       className={`flex ${isSent ? "justify-end" : "justify-start"} mb-0.5`}
@@ -178,6 +180,10 @@ const MessageList = ({
           let content: string = "";
           let showSpinner = false;
           let showError = false;
+
+          // Check if sender is deleted
+          const isSenderDeleted = msg.sender_profile?.deleted === true;
+
           if (msg.status === "sending" || msg.status === "failed") {
             content = msg.plain_content || "";
             showSpinner = msg.status === "sending";
@@ -215,6 +221,7 @@ const MessageList = ({
                 showSpinner={showSpinner}
                 showError={showError}
                 onRetry={onRetry}
+                isSenderDeleted={isSenderDeleted}
               />
             </div>
           );
@@ -670,18 +677,8 @@ const DirectChatPage = () => {
       </div>
     );
   }
-  if (isPartnerDeleted) {
-    return (
-      <div className="flex flex-col h-full items-center justify-center text-center p-8">
-        <span className="text-md font-semibold text-destructive mb-2">
-          This user no longer exists.
-        </span>
-        <span className="text-sm text-muted-foreground">
-          You cannot send messages to a deleted user.
-        </span>
-      </div>
-    );
-  }
+  // Don't block access for deleted users - just show them as Anonymous
+  // The chat will still be accessible and messages will be visible
 
   return (
     <div className="relative h-full bg-card">
@@ -699,7 +696,11 @@ const DirectChatPage = () => {
             </button>
             <Link href={`/profile/${partnerUuid}`}>
               <div className="flex items-center gap-3">
-                {partnerProfile?.profile_photo ? (
+                {isPartnerDeleted ? (
+                  <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-semibold text-lg select-none">
+                    <User className="h-5 w-5" />
+                  </div>
+                ) : partnerProfile?.profile_photo ? (
                   <Avatar
                     src={partnerProfile.profile_photo}
                     alt={
@@ -717,10 +718,12 @@ const DirectChatPage = () => {
                 )}
                 <div>
                   <div className="font-semibold text-sm text-foreground">
-                    {partnerProfile?.name || "Unknown User"}
+                    {isPartnerDeleted
+                      ? "Deleted User"
+                      : partnerProfile?.name || "Unknown User"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    @{partnerProfile?.username || ""}
+                    {`@${partnerProfile?.username || ""}`}
                   </div>
                 </div>
               </div>
@@ -730,7 +733,7 @@ const DirectChatPage = () => {
           <ChatActionsDropdown
             currentUserUuid={currentUserUuid}
             partnerUuid={partnerUuid}
-            disabled={iBlockedThem || theyBlockedMe || isPartnerDeleted}
+            disabled={iBlockedThem || theyBlockedMe}
             partnerProfile={partnerProfile || undefined}
           />
         </div>

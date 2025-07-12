@@ -11,7 +11,7 @@ import {
 } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Spinner } from "@heroui/react";
-import { Search, Check, CheckCheck } from "lucide-react";
+import { Search, Check, CheckCheck, User } from "lucide-react";
 import { X } from "lucide-react";
 import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
@@ -22,6 +22,7 @@ interface UserProfile {
   name?: string;
   username?: string;
   profile_photo?: string;
+  deleted?: boolean;
 }
 
 interface InboxProps {
@@ -62,7 +63,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
       const userIds = inbox.conversations.map((conv) => conv.userId);
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, name, username, profile_photo")
+        .select("user_id, name, username, profile_photo, deleted")
         .in("user_id", userIds);
 
       if (!error && data) {
@@ -72,6 +73,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
             name: profile.name,
             username: profile.username,
             profile_photo: profile.profile_photo,
+            deleted: profile.deleted,
           };
         });
         setUserProfiles(profilesMap);
@@ -213,7 +215,10 @@ export default function Inbox({ activeUserId }: InboxProps) {
           }
           return filteredConversations.map((conversation, index) => {
             const profile = userProfiles[conversation.userId];
-            const displayName = profile?.name || profile?.username || "Unknown";
+            const isDeleted = profile?.deleted === true;
+            const displayName = isDeleted
+              ? "Deleted User"
+              : profile?.name || profile?.username || "Unknown";
             const time = new Date(
               conversation.lastMessageAt
             ).toLocaleTimeString([], {
@@ -243,17 +248,21 @@ export default function Inbox({ activeUserId }: InboxProps) {
               >
                 {/* Avatar */}
                 <div className="relative mr-3">
-                  <Avatar className="h-12 w-12">
+                  <Avatar className="h-12 w-12 bg-muted">
                     <AvatarImage
-                      src={profile?.profile_photo || ""}
+                      src={isDeleted ? "" : profile?.profile_photo || ""}
                       alt={displayName}
                     />
-                    <AvatarFallback className="bg-gray-200 text-gray-600 text-sm font-medium">
-                      {displayName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)}
+                    <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium">
+                      {isDeleted ? (
+                        <User className="h-5 w-5" />
+                      ) : (
+                        displayName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .slice(0, 2)
+                      )}
                     </AvatarFallback>
                   </Avatar>
                 </div>
