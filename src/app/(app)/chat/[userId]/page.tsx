@@ -119,10 +119,10 @@ const MessageRow = React.memo(
             {showSpinner && <BiCheck className="w-4 h-4 text-white/70" />}
             {showError && (
               <>
-                <XCircle className="w-3 h-3 text-red-500" />
+                <XCircle className="w-3 h-3 text-destructive" />
                 {onRetry && (
                   <button
-                    className="ml-1 text-xs text-red-500 underline hover:text-red-700 focus:outline-none"
+                    className="ml-1 text-xs text-destructive underline focus:outline-none"
                     tabIndex={0}
                     aria-label="Retry sending message"
                     onClick={() => onRetry(msg)}

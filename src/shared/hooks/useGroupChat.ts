@@ -295,7 +295,8 @@ export const useGroupChat = (groupId: string) => {
                   profiles(
                     name,
                     username,
-                    profile_photo
+                    profile_photo,
+                    deleted
                   )
                 )
               `
@@ -373,10 +374,23 @@ export const useGroupChat = (groupId: string) => {
                     timeZone: "Asia/Kolkata",
                   }
                 ),
-                sender:
-                  (messageData.users as any)?.profiles?.name || "Unknown User",
-                senderUsername: (messageData.users as any)?.profiles?.username,
-                avatar: (messageData.users as any)?.profiles?.profile_photo,
+                sender: (() => {
+                  const profile = (messageData.users as any)?.profiles;
+                  const isDeleted = profile?.deleted === true;
+                  return isDeleted
+                    ? "Deleted User"
+                    : profile?.name || "Unknown User";
+                })(),
+                senderUsername: (() => {
+                  const profile = (messageData.users as any)?.profiles;
+                  const isDeleted = profile?.deleted === true;
+                  return isDeleted ? undefined : profile?.username;
+                })(),
+                avatar: (() => {
+                  const profile = (messageData.users as any)?.profiles;
+                  const isDeleted = profile?.deleted === true;
+                  return isDeleted ? undefined : profile?.profile_photo;
+                })(),
                 isCurrentUser,
                 createdAt: messageData.created_at,
               };

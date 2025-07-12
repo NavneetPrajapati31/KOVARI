@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Users,
   Lock,
+  User,
 } from "lucide-react";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
@@ -629,31 +630,36 @@ export default function GroupChatInterface() {
                     <div
                       className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
                     >
-                      {!msg.isCurrentUser && (
-                        <Avatar
-                          className="w-8 h-8 flex-shrink-0"
-                          src={msg.avatar || ""}
-                          name={msg.sender}
-                        />
-                      )}
+                      {!msg.isCurrentUser &&
+                        (msg.sender === "Deleted User" ? (
+                          <div className="w-8 h-8 flex-shrink-0 rounded-full bg-muted flex items-center justify-center">
+                            <User className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        ) : (
+                          <Avatar
+                            className="w-8 h-8 flex-shrink-0"
+                            src={msg.avatar || ""}
+                            name={msg.sender}
+                          />
+                        ))}
 
                       <div
                         className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                       >
                         <div
-                          className={`relative px-4 py-1.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                          className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
                             msg.isCurrentUser
                               ? "bg-primary text-primary-foreground rounded-br-md"
                               : "bg-gray-100 text-foreground rounded-bl-md"
                           }`}
                         >
                           {!msg.isCurrentUser && (
-                            <span className="block text-sm font-semibold text-muted-foreground mb-1">
+                            <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
                               {msg.sender}
                             </span>
                           )}
-                          <span>{msg.content}</span>
-                          <span className="flex items-center gap-1 justify-end ml-3 mt-2.5 float-right">
+                          <span className="text-xs">{msg.content}</span>
+                          <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
                             <span
                               className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
                             >

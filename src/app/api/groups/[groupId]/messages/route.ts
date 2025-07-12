@@ -59,7 +59,8 @@ export async function GET(
           profiles(
             name,
             username,
-            profile_photo
+            profile_photo,
+            deleted
           )
         )
       `
@@ -77,23 +78,28 @@ export async function GET(
 
     // Transform messages to include sender info and format timestamps
     const formattedMessages =
-      messages?.map((message: any) => ({
-        id: message.id,
-        encrypted_content: message.encrypted_content,
-        encryption_iv: message.encryption_iv,
-        encryption_salt: message.encryption_salt,
-        is_encrypted: message.is_encrypted,
-        timestamp: new Date(message.created_at).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "Asia/Kolkata",
-        }),
-        sender: message.users?.profiles?.name || "Unknown User",
-        senderUsername: message.users?.profiles?.username,
-        avatar: message.users?.profiles?.profile_photo,
-        isCurrentUser: message.user_id === userRow.id,
-        createdAt: message.created_at,
-      })) || [];
+      messages?.map((message: any) => {
+        const profile = message.users?.profiles;
+        const isDeleted = profile?.deleted === true;
+
+        return {
+          id: message.id,
+          encrypted_content: message.encrypted_content,
+          encryption_iv: message.encryption_iv,
+          encryption_salt: message.encryption_salt,
+          is_encrypted: message.is_encrypted,
+          timestamp: new Date(message.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Kolkata",
+          }),
+          sender: isDeleted ? "Deleted User" : profile?.name || "Unknown User",
+          senderUsername: isDeleted ? undefined : profile?.username,
+          avatar: isDeleted ? undefined : profile?.profile_photo,
+          isCurrentUser: message.user_id === userRow.id,
+          createdAt: message.created_at,
+        };
+      }) || [];
 
     return NextResponse.json(formattedMessages);
   } catch (error) {

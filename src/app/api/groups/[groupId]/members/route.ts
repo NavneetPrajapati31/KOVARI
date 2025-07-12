@@ -56,7 +56,8 @@ export async function GET(
           profiles(
             name,
             username,
-            profile_photo
+            profile_photo,
+            deleted
           )
         )
       `
@@ -78,16 +79,21 @@ export async function GET(
 
     // Transform members data (return both user_id and users.id for debugging)
     const formattedMembers =
-      members?.map((member: any) => ({
-        id: member.user_id, // from group_memberships
-        userIdFromUserTable: member.users?.id, // from users table
-        clerkId: member.users?.clerk_user_id, // Clerk user id
-        name: member.users?.profiles?.name || "Unknown User",
-        username: member.users?.profiles?.username,
-        avatar: member.users?.profiles?.profile_photo,
-        role: member.role,
-        joined_at: member.joined_at,
-      })) || [];
+      members?.map((member: any) => {
+        const profile = member.users?.profiles;
+        const isDeleted = profile?.deleted === true;
+
+        return {
+          id: member.user_id, // from group_memberships
+          userIdFromUserTable: member.users?.id, // from users table
+          clerkId: member.users?.clerk_user_id, // Clerk user id
+          name: isDeleted ? "Deleted User" : profile?.name || "Unknown User",
+          username: isDeleted ? undefined : profile?.username,
+          avatar: isDeleted ? undefined : profile?.profile_photo,
+          role: member.role,
+          joined_at: member.joined_at,
+        };
+      }) || [];
     return NextResponse.json({ members: formattedMembers });
   } catch (error) {
     console.error("[GET_MEMBERS]", error);
