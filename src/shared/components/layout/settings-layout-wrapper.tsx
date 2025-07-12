@@ -8,9 +8,10 @@ import { z } from "zod";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { Spinner } from "@heroui/react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronLeft } from "lucide-react";
 import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
 import { toast } from "sonner";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 // Import section components
 import { BasicInfoSection } from "@/features/groups/components/edit-group-sections/basic-info-section";
@@ -122,7 +123,7 @@ const PAGE_COMPONENTS = {
 } as const;
 
 // Memoized section content component
-const SectionContent = memo(({ activeTab }: { activeTab: string }) => {
+const SectionContent = memo(({ activeTab }: { activeTab: string | null }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Initialize form for edit sections
@@ -179,7 +180,7 @@ const SectionContent = memo(({ activeTab }: { activeTab: string }) => {
   };
 
   // Check if it's an edit section
-  if (activeTab in SECTION_COMPONENTS) {
+  if (activeTab && activeTab in SECTION_COMPONENTS) {
     const SectionComponent =
       SECTION_COMPONENTS[activeTab as keyof typeof SECTION_COMPONENTS];
     return (
@@ -194,7 +195,7 @@ const SectionContent = memo(({ activeTab }: { activeTab: string }) => {
   }
 
   // Check if it's a page component
-  if (activeTab in PAGE_COMPONENTS) {
+  if (activeTab && activeTab in PAGE_COMPONENTS) {
     const PageComponent =
       PAGE_COMPONENTS[activeTab as keyof typeof PAGE_COMPONENTS];
     return (
@@ -283,13 +284,22 @@ export default function LayoutWrapper() {
   }, [membershipError, router]);
 
   const { activeTab, setActiveTab } = useSettingsTabs();
+  const isMobile = useIsMobile();
+  const [showSidebarMobile, setShowSidebarMobile] = React.useState(true);
 
-  const handleTabChange = useCallback(
+  // When tab changes on mobile, show content
+  const handleTabChange = React.useCallback(
     (key: string) => {
       setActiveTab(key);
+      if (isMobile) setShowSidebarMobile(false);
     },
-    [setActiveTab]
+    [setActiveTab, isMobile]
   );
+
+  // When screen size changes to desktop, always show both
+  React.useEffect(() => {
+    if (!isMobile) setShowSidebarMobile(true);
+  }, [isMobile]);
 
   // Membership check and error handling must be before any layout rendering
   if (membershipLoading) {
@@ -381,16 +391,92 @@ export default function LayoutWrapper() {
     );
   }
 
+  // Responsive layout
+  if (isMobile) {
+    return (
+      <div className="flex flex-col min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl">
+        {activeTab == null ? (
+          <div className="w-full">
+            <SettingsSidebar
+              activeTab={activeTab ?? ""}
+              setActiveTab={handleTabChange}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Header with back button and tab title */}
+            <div className="flex items-center gap-2 p-4 px-6 border-b border-border">
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm text-foreground font-medium focus:outline-none"
+                onClick={() => {
+                  setActiveTab(null);
+                  setShowSidebarMobile(true);
+                  // Remove tab param from URL
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete("tab");
+                  // Use router.replace to update the URL without tab param
+                  router.replace(url.pathname + url.search, { scroll: false });
+                }}
+                aria-label="Back to settings list"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    setActiveTab(null);
+                    setShowSidebarMobile(true);
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("tab");
+                    router.replace(url.pathname + url.search, {
+                      scroll: false,
+                    });
+                  }
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <h2 className="text-xs font-semibold text-foreground">
+                {(() => {
+                  const tabLabels: Record<string, string> = {
+                    basic: "Basic Info",
+                    travel: "Travel Details",
+                    privacy: "Privacy & Safety",
+                    communication: "Communication",
+                    preferences: "Preferences",
+                    advanced: "Advanced",
+                    members: "Manage Members",
+                    requests: "Join Requests",
+                    delete: "Leave Group",
+                  };
+                  return tabLabels[activeTab] || "Settings";
+                })()}
+              </h2>
+            </div>
+            {/* Content */}
+            <div className="flex-1 p-3">
+              <SectionContent
+                key={activeTab ?? "none"}
+                activeTab={activeTab ?? ""}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop layout
   return (
     <div className="flex flex-col md:flex-row min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl">
-      {/* Top Sidebar (Mobile) / Left Sidebar (Desktop) - Settings Tabs */}
+      {/* Sidebar */}
       <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">
-        <SettingsSidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+        <SettingsSidebar
+          activeTab={activeTab ?? ""}
+          setActiveTab={handleTabChange}
+        />
       </div>
-
-      {/* Content Area */}
+      {/* Content */}
       <div className="flex-1 flex flex-col p-3 gap-2 overflow-hidden">
-        <SectionContent key={activeTab} activeTab={activeTab} />
+        <SectionContent key={activeTab || "none"} activeTab={activeTab} />
       </div>
     </div>
   );

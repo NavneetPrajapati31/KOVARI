@@ -10,7 +10,9 @@ import {
   Users,
   AlertTriangle,
   Trash2,
+  ChevronRight,
 } from "lucide-react";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 const TABS = [
   // Edit Group Sections
@@ -50,6 +52,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   activeTab,
   setActiveTab,
 }) => {
+  const isMobile = useIsMobile();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const lastClickTime = useRef<number>(0);
 
@@ -148,7 +151,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               tabRefs.current[index] = el;
             }}
             type="button"
-            className={`w-full text-left font-medium text-xs sm:text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20  transition-colors flex items-center gap-2 ${
+            className={`w-full text-left font-medium text-xs sm:text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20  transition-colors flex items-center justify-between gap-2 ${
               activeTab === tab.key
                 ? "text-primary bg-primary-light font-semibold"
                 : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
@@ -161,8 +164,16 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             onMouseDown={(e) => e.preventDefault()}
             onTouchStart={(e) => e.preventDefault()}
           >
-            <Icon className="h-4 w-4" />
-            <span className="truncate">{tab.label}</span>
+            <span className="flex items-center gap-2">
+              <Icon className="h-4 w-4" />
+              <span className="truncate">{tab.label}</span>
+            </span>
+            {isMobile && (
+              <ChevronRight
+                className="h-4 w-4 text-muted-foreground ml-1 flex-shrink-0"
+                aria-hidden="true"
+              />
+            )}
           </button>
         );
       })}
@@ -172,7 +183,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="flex flex-row md:flex-col gap-4 p-2 md:p-4 border-gray-200 overflow-y-auto"
+      className="flex flex-col gap-4 p-2 md:p-4 border-gray-200 overflow-y-auto"
     >
       {renderTabGroup("edit", groupedTabs.edit, "Edit Group")}
       <div className="border-t border-gray-200 mb-0.5" />
