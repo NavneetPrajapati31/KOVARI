@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase";
 import { encryptMessage, decryptMessage } from "@/shared/utils/encryption";
 import { v4 as uuidv4 } from "uuid";
 
-
 export interface DirectChatMessage {
   id: string;
   sender_id: string;
@@ -19,6 +18,13 @@ export interface DirectChatMessage {
   plain_content?: string; // for optimistic UI
   client_id?: string;
   read_at?: string; // Added for read_at
+  // Sender profile information
+  sender_profile?: {
+    name?: string;
+    username?: string;
+    profile_photo?: string;
+    deleted?: boolean;
+  };
 }
 
 export interface UseDirectChatResult {
@@ -47,7 +53,7 @@ export const useDirectChat = (
       ? `${currentUserUuid}:${partnerUuid}`
       : `${partnerUuid}:${currentUserUuid}`;
 
-  // Fetch initial messages
+  // Fetch initial messages with sender profile information
   const fetchMessages = useCallback(async () => {
     if (!currentUserUuid || !partnerUuid) {
       setMessages([]);
@@ -59,14 +65,32 @@ export const useDirectChat = (
     try {
       const { data, error } = await supabase
         .from("direct_messages")
-        .select("*")
+        .select(
+          `
+          *,
+          sender:users!direct_messages_sender_id_fkey(
+            id,
+            profiles(
+              name,
+              username,
+              profile_photo,
+              deleted
+            )
+          )
+        `
+        )
         .or(orFilter)
         .order("created_at", { ascending: true });
       if (error) {
         setError(error.message);
         setMessages([]);
       } else if (data) {
-        setMessages(data);
+        // Transform messages to include sender profile information
+        const transformedMessages = data.map((msg: any) => ({
+          ...msg,
+          sender_profile: msg.sender?.profiles?.[0] || undefined,
+        }));
+        setMessages(transformedMessages);
       }
     } catch (err: any) {
       setError(err.message || "Failed to fetch messages");
@@ -158,7 +182,7 @@ export const useDirectChat = (
       .on(
         "postgres_changes" as any,
         { event: "INSERT", schema: "public", table: "direct_messages" },
-        (payload: any) => {
+        async (payload: any) => {
           const msg = payload.new as DirectChatMessage;
           // Only add if it's for this chat
           const isRelevant =
@@ -167,16 +191,55 @@ export const useDirectChat = (
             (msg.sender_id === partnerUuid &&
               msg.receiver_id === currentUserUuid);
           if (!isRelevant) return;
-          setMessages((prev) => {
-            // Remove optimistic message if client_id matches
-            const filtered = prev.filter((optimisticMsg) => {
-              if (!optimisticMsg.client_id) return true;
-              return optimisticMsg.client_id !== msg.client_id;
+
+          // Fetch sender profile information for the new message
+          try {
+            const { data: senderData } = await supabase
+              .from("users")
+              .select(
+                `
+                id,
+                profiles(
+                  name,
+                  username,
+                  profile_photo,
+                  deleted
+                )
+              `
+              )
+              .eq("id", msg.sender_id)
+              .single();
+
+            const messageWithProfile: DirectChatMessage = {
+              ...msg,
+              sender_profile: senderData?.profiles?.[0] || undefined,
+            };
+
+            setMessages((prev) => {
+              // Remove optimistic message if client_id matches
+              const filtered = prev.filter((optimisticMsg) => {
+                if (!optimisticMsg.client_id) return true;
+                return optimisticMsg.client_id !== msg.client_id;
+              });
+              // Add the real message if not already present
+              if (filtered.some((m) => m.id === msg.id)) return filtered;
+              return [...filtered, messageWithProfile];
             });
-            // Add the real message if not already present
-            if (filtered.some((m) => m.id === msg.id)) return filtered;
-            return [...filtered, msg];
-          });
+          } catch (err) {
+            console.error(
+              "Error fetching sender profile for real-time message:",
+              err
+            );
+            // Add message without profile info if fetch fails
+            setMessages((prev) => {
+              const filtered = prev.filter((optimisticMsg) => {
+                if (!optimisticMsg.client_id) return true;
+                return optimisticMsg.client_id !== msg.client_id;
+              });
+              if (filtered.some((m) => m.id === msg.id)) return filtered;
+              return [...filtered, msg];
+            });
+          }
         }
       )
       .on(
