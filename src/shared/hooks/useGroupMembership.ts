@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase";
 
 export interface MembershipInfo {
   isCreator: boolean;
   isMember: boolean;
   isAdmin: boolean;
+  hasPendingRequest: boolean;
   membership: {
     id: string;
     role: string;
@@ -54,6 +56,47 @@ export const useGroupMembership = (groupId: string) => {
   useEffect(() => {
     fetchMembership();
   }, [fetchMembership]);
+
+  // Realtime subscription for instant removal detection (broad group filter for debugging)
+  useEffect(() => {
+    if (!user || !groupId) return;
+    const supabase = createClient();
+    let channel: any;
+
+    channel = supabase
+      .channel(`group_membership_${groupId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "group_memberships",
+          filter: `group_id=eq.${groupId}`,
+        },
+        (payload) => {
+          console.log("[Realtime] ANY Membership UPDATE payload:", payload);
+          fetchMembership();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "group_memberships",
+          filter: `group_id=eq.${groupId}`,
+        },
+        (payload) => {
+          console.log("[Realtime] ANY Membership DELETE payload:", payload);
+          fetchMembership();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [user, groupId, fetchMembership]);
 
   return {
     membershipInfo,

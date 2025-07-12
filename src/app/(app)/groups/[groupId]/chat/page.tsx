@@ -38,6 +38,7 @@ export default function GroupChatInterface() {
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [messageLengthError, setMessageLengthError] = useState(false);
+  const [isRejoining, setIsRejoining] = useState(false);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   console.log("Current message state:", message);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -203,6 +204,7 @@ export default function GroupChatInterface() {
 
   // Handle rejoining after being removed
   const handleRejoinGroup = async () => {
+    setIsRejoining(true);
     try {
       const response = await fetch(`/api/groups/${groupId}/join-request`, {
         method: "POST",
@@ -222,6 +224,8 @@ export default function GroupChatInterface() {
     } catch (err) {
       console.error("Error sending join request:", err);
       toast.error("Failed to send join request");
+    } finally {
+      setIsRejoining(false);
     }
   };
 
@@ -237,7 +241,16 @@ export default function GroupChatInterface() {
     );
   }
 
-  if (membershipError && membershipError.includes("Not a member")) {
+  const isNotMember =
+    (!membershipLoading &&
+      membershipInfo &&
+      !membershipInfo.isMember &&
+      !membershipInfo.isCreator) ||
+    (membershipError && membershipError.includes("Not a member"));
+
+  const hasPendingRequest = membershipInfo?.hasPendingRequest || false;
+
+  if (isNotMember) {
     return (
       <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
         <div className="text-center max-w-md mx-auto p-8 flex flex-col items-center justify-center">
@@ -245,19 +258,34 @@ export default function GroupChatInterface() {
             Join the group to access chats
           </h2>
           <p className="text-xs text-muted-foreground mb-6">
-            You need to be a member of this group to view and participate in the
-            chat.
+            You need to be a member of this group to view the chat.
           </p>
           <Button
             onClick={handleRejoinGroup}
-            className="w-full max-w-xs mb-2 text-xs"
+            disabled={isRejoining}
+            className={`w-full mb-2 text-xs ${hasPendingRequest ? "pointer-events-none" : ""}`}
+            variant={hasPendingRequest ? "outline" : "default"}
           >
-            Request to Join Group
+            {isRejoining ? (
+              <>
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  className="mr-1"
+                  classNames={{ spinnerBars: "bg-white" }}
+                />
+                Requesting...
+              </>
+            ) : hasPendingRequest ? (
+              "Request Pending"
+            ) : (
+              "Request to Join Group"
+            )}
           </Button>
           <Button
             variant="outline"
             onClick={() => router.push("/groups")}
-            className="w-full max-w-xs text-xs"
+            className="w-full text-xs"
           >
             Back to Groups
           </Button>
@@ -270,19 +298,19 @@ export default function GroupChatInterface() {
     return (
       <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
         <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
-          <div className="flex items-center justify-center mb-4">
-            <AlertCircle className="h-12 w-12 text-muted-foreground" />
+          <div className="flex items-center justify-center mb-2">
+            <AlertCircle className="h-7 w-7 text-muted-foreground" />
           </div>
-          <h2 className="text-lg font-semibold text-foreground mb-2">
+          <h2 className="text-md font-semibold text-foreground mb-2">
             Group Not Found
           </h2>
-          <p className="text-sm text-muted-foreground mb-6">
+          <p className="text-xs text-muted-foreground mb-6">
             The group you're looking for doesn't exist or has been deleted.
           </p>
           <Button
             variant="outline"
             onClick={() => router.push("/groups")}
-            className="w-full"
+            className="w-full text-xs"
           >
             Back to Groups
           </Button>

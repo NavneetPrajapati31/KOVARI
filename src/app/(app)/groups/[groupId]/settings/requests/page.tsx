@@ -8,7 +8,6 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@heroui/react";
 import { useParams } from "next/navigation";
-import { useAuthStore } from "@/shared/stores/useAuthStore";
 
 interface JoinRequest {
   id: string;
@@ -42,9 +41,23 @@ export default function RequestsPage() {
   const [rejectLoadingId, setRejectLoadingId] = useState<string | null>(null);
   const params = useParams<{ groupId: string }>();
   const groupId = params.groupId;
-  const { user } = useAuthStore();
-  const currentUserId = user?.id;
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
+
+  // Fetch current user's internal user ID
+  useEffect(() => {
+    const fetchCurrentUserId = async () => {
+      try {
+        const res = await fetch("/api/profile/current");
+        if (!res.ok) return;
+        const data = await res.json();
+        setCurrentUserId(data.id); // assuming API returns { id: ... }
+      } catch {
+        setCurrentUserId(null);
+      }
+    };
+    fetchCurrentUserId();
+  }, []);
 
   // Fetch join requests
   useEffect(() => {
@@ -70,18 +83,47 @@ export default function RequestsPage() {
 
   // Check if current user is admin (fetch from /members API)
   useEffect(() => {
+    console.log("[REQUESTS_PAGE] useEffect running", {
+      groupId,
+      currentUserId,
+    });
     if (!groupId || !currentUserId) return;
     const fetchMembership = async () => {
       try {
         const res = await fetch(`/api/groups/${groupId}/members`);
         if (!res.ok) return;
         const data = await res.json();
-        const current = (data.members || []).find(
-          (m: any) => m.clerkId === currentUserId
+        console.log("[REQUESTS_PAGE] Fetched members:", data.members);
+        // Log both id and userIdFromUserTable for each member
+        console.log(
+          "[REQUESTS_PAGE] Checking member match:",
+          data.members?.map((m: any) => ({
+            id: m.id,
+            userIdFromUserTable: m.userIdFromUserTable,
+            matches: m.id === currentUserId,
+            matchesUserTable: m.userIdFromUserTable === currentUserId,
+          }))
         );
-        setIsCurrentUserAdmin(current?.role === "admin");
+        // Compare using both fields
+        const current = (data.members || []).find(
+          (m: any) =>
+            m.id === currentUserId || m.userIdFromUserTable === currentUserId
+        );
+        console.log(
+          "[REQUESTS_PAGE] My role in this group:",
+          current?.role || "unknown"
+        );
+        const isAdmin = current?.role === "admin";
+        setIsCurrentUserAdmin(isAdmin);
+        // Log current user's role
+        console.log(
+          `[REQUESTS_PAGE] Current user role: ${current?.role || "unknown"}, Is admin: ${isAdmin}`
+        );
       } catch {
         setIsCurrentUserAdmin(false);
+        console.log(
+          `[REQUESTS_PAGE] Error fetching membership, setting admin to false`
+        );
       }
     };
     fetchMembership();

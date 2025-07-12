@@ -59,6 +59,7 @@ export async function GET() {
 
     // Transform data to match ProfileEditForm structure
     const profileData = {
+      id: user.id, // Add the internal user UUID
       avatar: profile.profile_photo || "",
       name: profile.name || "",
       username: profile.username || "",

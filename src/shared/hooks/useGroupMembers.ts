@@ -30,7 +30,9 @@ export const useGroupMembers = (groupId: string) => {
       }
 
       const data = await response.json();
-      setMembers(data);
+      // Handle both array and object response formats
+      const membersArray = Array.isArray(data) ? data : data.members || [];
+      setMembers(membersArray);
     } catch (err) {
       console.error("Error fetching members:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch members");

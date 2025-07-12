@@ -15,12 +15,12 @@ export async function POST(
 
     if (!userId) {
       console.log("[JOIN_REQUEST_POST] Unauthorized: No userId");
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!groupId) {
       console.log("[JOIN_REQUEST_POST] Missing groupId");
-      return new NextResponse("Missing groupId", { status: 400 });
+      return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
     }
 
     const cookieStore = await cookies();
@@ -69,7 +69,7 @@ export async function POST(
 
     if (userError || !user) {
       console.error("[JOIN_REQUEST_POST] Error finding user:", userError);
-      return new NextResponse("User not found", { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Check if group exists and is public
@@ -82,12 +82,15 @@ export async function POST(
 
     if (groupError || !group) {
       console.error("[JOIN_REQUEST_POST] Error finding group:", groupError);
-      return new NextResponse("Group not found", { status: 404 });
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
     if (!group.is_public) {
       console.log("[JOIN_REQUEST_POST] Group is not public");
-      return new NextResponse("Group is not public", { status: 403 });
+      return NextResponse.json(
+        { error: "Group is not public" },
+        { status: 403 }
+      );
     }
 
     // Check if user already has a membership
@@ -108,28 +111,31 @@ export async function POST(
         "[JOIN_REQUEST_POST] Error checking existing membership:",
         membershipError
       );
-      return new NextResponse("Database error", { status: 500 });
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
     // Handle different existing membership statuses
     if (existingMembership) {
       if (existingMembership.status === "accepted") {
         console.log("[JOIN_REQUEST_POST] Already a member of this group");
-        return new NextResponse("Already a member of this group", {
-          status: 400,
-        });
+        return NextResponse.json(
+          { error: "Already a member of this group" },
+          { status: 400 }
+        );
       }
       if (existingMembership.status === "pending_request") {
         console.log("[JOIN_REQUEST_POST] Join request already pending");
-        return new NextResponse("Join request already pending", {
-          status: 400,
-        });
+        return NextResponse.json(
+          { error: "Join request already pending" },
+          { status: 400 }
+        );
       }
       if (existingMembership.status === "pending") {
         console.log("[JOIN_REQUEST_POST] Already have a pending invitation");
-        return new NextResponse("Already have a pending invitation", {
-          status: 400,
-        });
+        return NextResponse.json(
+          { error: "Already have a pending invitation" },
+          { status: 400 }
+        );
       }
       if (existingMembership.status === "declined") {
         console.log(
@@ -149,9 +155,10 @@ export async function POST(
             "[JOIN_REQUEST_POST] Error updating membership status:",
             updateError
           );
-          return new NextResponse("Failed to update membership", {
-            status: 500,
-          });
+          return NextResponse.json(
+            { error: "Failed to update membership" },
+            { status: 500 }
+          );
         }
 
         console.log("[JOIN_REQUEST_POST] Join request sent (declined updated)");
@@ -175,14 +182,18 @@ export async function POST(
         "[JOIN_REQUEST_POST] Error checking member count:",
         countError
       );
-      return new NextResponse("Failed to check member count", { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to check member count" },
+        { status: 500 }
+      );
     }
 
     if (memberCount && memberCount.length >= 10) {
       console.log("[JOIN_REQUEST_POST] Group is full (maximum 10 members)");
-      return new NextResponse("Group is full (maximum 10 members)", {
-        status: 400,
-      });
+      return NextResponse.json(
+        { error: "Group is full (maximum 10 members)" },
+        { status: 400 }
+      );
     }
 
     // Create new membership with pending_request status
@@ -202,14 +213,20 @@ export async function POST(
         "[JOIN_REQUEST_POST] Error creating join request:",
         insertError
       );
-      return new NextResponse("Failed to create join request", { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to create join request" },
+        { status: 500 }
+      );
     }
 
     console.log("[JOIN_REQUEST_POST] Join request sent (new membership)");
     return NextResponse.json({ success: true, message: "Join request sent" });
   } catch (error) {
     console.error("[JOIN_REQUEST_POST] Uncaught error:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
