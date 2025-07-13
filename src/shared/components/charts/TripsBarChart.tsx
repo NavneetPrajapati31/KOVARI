@@ -21,18 +21,14 @@ export default function TripsBarChart({ data }: Props) {
   }));
 
   return (
-    <div className="bg-[#ECEABE] border border-[#B2A890] rounded-xl p-5 shadow-md">
-      <h2 className="text-lg font-medium mb-4 text-[#004831]">Trips Per Year</h2>
+    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-md">
+      <span className="font-bold text-black mb-2">Trips Per Year</span>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={barData}>
           <XAxis dataKey="year" />
           <YAxis allowDecimals={false} />
           <Tooltip />
-          <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-            {barData.map((_, index) => (
-              <Cell key={`bar-${index}`} fill="#004831" />
-            ))}
-          </Bar>
+          <Bar dataKey="count" radius={[6, 6, 0, 0]} fill="currentColor" />
         </BarChart>
       </ResponsiveContainer>
     </div>

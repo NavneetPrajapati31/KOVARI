@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 
+// UI Components
 import { Skeleton } from '@/shared/components/ui/SkeletonCard';
 import DashboardCard from '@/shared/components/ui/DashboardCard';
 import GroupPreviewCard from '@/shared/components/ui/GroupPreviewCard';
@@ -11,11 +12,17 @@ import TripSummaryCard from '@/shared/components/ui/TripSummaryCard';
 import PendingInviteCard from '@/shared/components/ui/PendingInviteCard';
 import TripTypePieChart from '@/shared/components/charts/TripTypePieChart';
 import TripsBarChart from '@/shared/components/charts/TripsBarChart';
+import TodoChecklist from '@/shared/components/Todo-Checklist/Todo-checklist';
+import DoneTripsCard from '@/shared/components/DoneTripsCard/DoneTripsCard';
+import { GroupCard } from '@/shared/components/GroupCard/GroupCard';
+import { GroupList } from '@/shared/components/GroupCard/GroupCard-list';
 
+// Hooks
 import { useUserGroups } from '@/shared/hooks/useUserGroups';
 import { useUserTrips } from '@/shared/hooks/useUserTrips';
 import { usePendingInvites } from '@/shared/hooks/usePendingInvites';
 
+// Utils
 import {
   getMostFrequentDestinations,
   getTotalTravelDays,
@@ -24,11 +31,10 @@ import {
   getTripsPerYear,
 } from '@/shared/utils/analytics';
 
+// Helpers
 import { isAfter, isBefore } from 'date-fns';
 import dynamic from 'next/dynamic';
-
-const TravelHeatmap = dynamic(() => import('../../../shared/components/heatmap/TravelHeatmap'), { ssr: false });
-
+const TravelHeatmap = dynamic(() => import('@/shared/components/heatmap/TravelHeatmap'), { ssr: false });
 
 function SkeletonDemo() {
   return (
@@ -46,204 +52,109 @@ export default function Dashboard() {
   const { user, isSignedIn } = useUser();
   const setUser = useAuthStore((s) => s.setUser);
 
-  const { groups, loading: groupsLoading } = useUserGroups();
-  const { trips, loading: tripsLoading } = useUserTrips();
-  const { invites, loading: pendingLoading } = usePendingInvites();
-
-  const [travelDays, setTravelDays] = useState<string[]>([]);
-
+  // Load user data on sign in
   useEffect(() => {
     if (isSignedIn && user) {
       setUser(user);
     }
   }, [isSignedIn, user, setUser]);
 
+  // Hooks to fetch user-related data
+  const { groups, loading: groupsLoading } = useUserGroups();
+  const { trips, loading: tripsLoading } = useUserTrips();
+  const { invites, loading: pendingLoading } = usePendingInvites();
+
+  // Travel Days (for Heatmap)
+  const [travelDays, setTravelDays] = useState<string[]>([]);
   useEffect(() => {
     fetch('/api/travel-days')
       .then((res) => res.json())
       .then((data) => setTravelDays(data.travelDays || []));
   }, []);
 
+  const formattedTravelDays = travelDays.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+
+  const years = useMemo(() => {
+    const yearSet = new Set(formattedTravelDays.map((d) => Number(d.split('-')[0])));
+    return Array.from(yearSet).sort((a, b) => b - a);
+  }, [formattedTravelDays]);
+
+  const [selectedYear, setSelectedYear] = useState(() => years[0] || new Date().getFullYear());
   useEffect(() => {
-    console.log("Fetched travelDays:", travelDays);
-  }, [travelDays]);
+    if (years.length && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
+    }
+  }, [years, selectedYear]);
 
   const now = new Date();
 
-  const upcomingTrips = groups.filter(
-    (g) => g.group?.start_date && isAfter(new Date(g.group.start_date), now)
-  );
+  // Filter trips
+  const upcomingTrips = groups.filter((g) => g.group?.start_date && isAfter(new Date(g.group.start_date), now));
+  const pastTrips = groups.filter((g) => g.group?.start_date && isBefore(new Date(g.group.start_date), now));
 
-  const pastTrips = groups.filter(
-    (g) => g.group?.start_date && isBefore(new Date(g.group.start_date), now)
-  );
-
-  // Replace with actual logic from groups/trips
-  const visitedCountryList = ['India', 'France', 'United States', 'Japan'];
-
+  // Analytics
   const mostVisited = getMostFrequentDestinations(groups);
   const totalDays = getTotalTravelDays(groups);
   const coTravelers = getUniqueCoTravelers(groups);
   const tripTypeStats = getTripTypeStats(groups);
   const tripsPerYear = getTripsPerYear(groups);
 
-  const formattedTravelDays = travelDays.filter(
-    d => /^\d{4}-\d{2}-\d{2}$/.test(d)
-  );
-
-  console.log("formattedTravelDays", formattedTravelDays);
-
-  // Get all unique years from travelDays
-  const years = useMemo(() => {
-    const set = new Set(formattedTravelDays.map(d => Number(d.split('-')[0])));
-    return Array.from(set).sort((a, b) => b - a); // Descending order
-  }, [formattedTravelDays]);
-
-  console.log("years", years);
-
-  // Default to the most recent year
-  const [selectedYear, setSelectedYear] = useState(() => years[0] || new Date().getFullYear());
-
-  // Update selectedYear if years change (e.g., after fetch)
-  useEffect(() => {
-    if (years.length > 0 && !years.includes(selectedYear)) {
-      setSelectedYear(years[0]);
-    }
-  }, [years, selectedYear]);
-
   return (
-    <div className="min-h-screen bg-[#f6f8fa] px-8 py-8">
+    <div className="min-h-screen bg-white px-4 py-8">
       {isSignedIn ? (
         <>
+          {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-[#004831]">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-black">Dashboard</h1>
           </div>
 
-          {/* Grid layout for insights */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-            <div className="bg-white rounded-2xl shadow p-6">
-              <span className="text-gray-500 mb-2">Top Destination</span>
-              <p className="text-2xl font-bold">{mostVisited || 'N/A'}</p>
+          {/* Dashboard Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* Summary Cards */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-6">
+              <DashboardCard title="Top Destination" value={mostVisited || 'N/A'} loading={groupsLoading} />
+              <DashboardCard title="Total Travel Days" value={`${totalDays} days`} loading={groupsLoading} />
+              <DashboardCard title="Co-Travelers (est.)" value={coTravelers} loading={groupsLoading} />
+              <DashboardCard title="My Groups" value={groups.length} loading={groupsLoading} />
             </div>
 
-            <div className="bg-white rounded-2xl shadow p-6">
-              <span className="text-gray-500 mb-2">Total Travel Days</span>
-              <p className="text-2xl font-bold">{totalDays} days</p>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow p-6">
-              <span className="text-gray-500 mb-2">Co-Travelers (est.)</span>
-              <p className="text-2xl font-bold">{coTravelers}</p>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow p-6">
-              <span className="text-gray-500 mb-2">My Groups</span>
-              <p className="text-2xl font-bold">{groups.length}</p>
-            </div>
-          </div>
-
-          {/* Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            <div className="bg-white rounded-2xl shadow p-6">
-              <span className="text-gray-500 mb-2">Trip Type Distribution</span>
-              <TripTypePieChart solo={tripTypeStats.solo} group={tripTypeStats.group} />
-            </div>
-            <div className="bg-white rounded-2xl shadow p-6">
-              <span className="text-gray-500 mb-2">Trips Per Year</span>
+            {/* Bar Chart */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-2">
               <TripsBarChart data={tripsPerYear} />
             </div>
-          </div>
 
-          {/* Travel Heatmap */}
-          <div className="bg-white rounded-2xl shadow p-6 mb-10">
-            <div className="flex items-center gap-4 mb-2">
-              <span className="text-gray-500">Travel Activity Heatmap</span>
-              {years.length > 1 && (
-                <select
-                  className="border rounded px-2 py-1 text-sm"
-                  value={selectedYear}
-                  onChange={e => setSelectedYear(Number(e.target.value))}
-                >
-                  {years.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
+            {/* Travel Activity Heatmap */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-white rounded-2xl shadow-md p-6 flex flex-col min-h-[260px]">
+              {formattedTravelDays.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-400">No travel data available.</p>
+                </div>
+              ) : (
+                <TravelHeatmap
+                  travelDays={formattedTravelDays}
+                  year={selectedYear}
+                  years={years}
+                  setSelectedYear={setSelectedYear}
+                />
               )}
             </div>
-            {formattedTravelDays.length === 0 ? (
-              <p className="text-muted-foreground">No travel data available.</p>
-            ) : (
-              <TravelHeatmap
-                travelDays={formattedTravelDays.filter(d => Number(d.split('-')[0]) === selectedYear)}
-                year={selectedYear}
-              />
-            )}
+
+            {/* Done Trips Summary */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-1 flex flex-col">
+              <DoneTripsCard />
+            </div>
+
+            {/* User's Groups List */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-1 flex flex-col">
+              <GroupList title="My Groups" />
+            </div>
+
+            {/* Todo Checklist */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-2 flex flex-col">
+              <TodoChecklist />
+            </div>
           </div>
-
-          {/* Groups */}
-          <section className="mb-10">
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">Your Groups</h2>
-            {groups.length === 0 ? (
-              <p className="text-muted-foreground">You haven't joined any groups yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {groups.map((g) => (
-                  <GroupPreviewCard key={g.group_id} group={g} />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Trip Summary */}
-          <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">Trip Summary</h2>
-            {upcomingTrips.length === 0 && pastTrips.length === 0 ? (
-              <p className="text-muted-foreground">No trip history found.</p>
-            ) : (
-              <div className="space-y-6">
-                {upcomingTrips.length > 0 && (
-                  <div>
-                    <h3 className="text-md font-medium text-[#004831] mb-2">Upcoming Trips</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {upcomingTrips.map((g) =>
-                        g.group ? (
-                          <TripSummaryCard
-                            key={g.group_id}
-                            name={g.group.name}
-                            status="upcoming"
-                            destination={g.group.destination || 'Unknown'}
-                            from={g.group.start_date || 'TBD'}
-                            to={g.group.end_date || 'TBD'}
-                            tripType={g.group.is_public ? 'Group' : 'Solo'}
-                          />
-                        ) : null
-                      )}
-                    </div>
-                  </div>
-                )}
-                {pastTrips.length > 0 && (
-                  <div>
-                    <h3 className="text-md font-medium text-[#004831] mb-2">Past Trips</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {pastTrips.map((g) =>
-                        g.group ? (
-                          <TripSummaryCard
-                            key={g.group_id}
-                            name={g.group.name}
-                            status="past"
-                            destination={g.group.destination || 'Unknown'}
-                            from={g.group.start_date || 'TBD'}
-                            to={g.group.end_date || 'TBD'}
-                            tripType={g.group.is_public ? 'Group' : 'Solo'}
-                          />
-                        ) : null
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
         </>
       ) : (
         <SkeletonDemo />
