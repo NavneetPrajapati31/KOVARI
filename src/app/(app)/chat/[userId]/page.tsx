@@ -81,7 +81,7 @@ const MessageRow = React.memo(
     isSenderDeleted?: boolean;
   }) => (
     <div
-      className={`flex ${isSent ? "justify-end" : "justify-start"} mb-0.5`}
+      className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
       aria-label={isSent ? "Sent message" : "Received message"}
     >
       <div
