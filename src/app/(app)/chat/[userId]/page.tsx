@@ -29,6 +29,7 @@ import {
 import { BiCheckDouble, BiCheck } from "react-icons/bi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { decryptMessage } from "@/shared/utils/encryption";
+import { formatMessageDate, isSameDay } from "@/shared/utils/utils";
 import Link from "next/link";
 import { useToast } from "@/shared/hooks/use-toast";
 import Picker from "@emoji-mart/react";
@@ -168,10 +169,73 @@ const MessageList = ({
   sharedSecret: string;
   onRetry?: (msg: any) => void;
 }) => {
+  // Group messages by date and add date separators
+  const messagesWithSeparators = useMemo(() => {
+    const result: Array<{
+      type: "message" | "separator";
+      data: any;
+      date?: string;
+    }> = [];
+
+    messages.forEach((msg, index) => {
+      const messageDate = msg.created_at;
+
+      // Debug logging
+      console.log(`Message ${index}:`, {
+        date: messageDate,
+        formatted: formatMessageDate(messageDate),
+        parsed: new Date(messageDate).toLocaleString(),
+      });
+
+      // Add date separator if this is the first message or if the date changed
+      if (
+        index === 0 ||
+        !isSameDay(messageDate, messages[index - 1].created_at)
+      ) {
+        result.push({
+          type: "separator",
+          data: { date: messageDate },
+          date: messageDate,
+        });
+      }
+
+      result.push({
+        type: "message",
+        data: msg,
+      });
+    });
+
+    return result;
+  }, [messages]);
+
+  // Handle empty messages case
+  if (messages.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <span className="text-sm text-muted-foreground">
+            No messages yet. Start a conversation!
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div role="list">
-        {messages.map((msg) => {
+        {messagesWithSeparators.map((item, index) => {
+          if (item.type === "separator") {
+            return (
+              <div key={`separator-${item.date}`} className="text-center my-4">
+                <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                  {formatMessageDate(item.date!)}
+                </span>
+              </div>
+            );
+          }
+
+          const msg = item.data;
           const isSent = msg.sender_id === currentUserUuid;
           let content: string = "";
           let showSpinner = false;
@@ -222,11 +286,6 @@ const MessageList = ({
             </div>
           );
         })}
-      </div>
-      <div className="text-center mt-4">
-        <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
-          Today
-        </span>
       </div>
     </>
   );

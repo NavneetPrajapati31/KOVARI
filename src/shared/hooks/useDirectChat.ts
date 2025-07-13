@@ -96,7 +96,7 @@ export const useDirectChat = (
           .or(orFilter)
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
-          .range(offset, offset + 4); // Fetch 5 messages per page
+          .range(offset, offset + 29); // Fetch 30 messages per page
 
         const { data, error } = await query;
 
@@ -123,13 +123,13 @@ export const useDirectChat = (
               );
               return [...newMessages, ...prev];
             });
-            setOffset((prev) => prev + 5);
+            setOffset((prev) => prev + 30);
           } else {
             setMessages(chronologicalMessages);
-            setOffset(5);
+            setOffset(30);
           }
 
-          setHasMoreMessages(transformedMessages.length === 5);
+          setHasMoreMessages(transformedMessages.length === 30);
         }
       } catch (err: any) {
         setError(err.message || "Failed to fetch messages");
