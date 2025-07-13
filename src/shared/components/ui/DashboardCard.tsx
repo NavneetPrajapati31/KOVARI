@@ -16,8 +16,8 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
   emptyText = "No data available",
 }) => {
   return (
-    <div className="bg-[#ECEABE] border border-[#B2A890] rounded-xl p-5 shadow-md hover:shadow-lg transition">
-      <h2 className="text-lg font-medium mb-2 text-[#004831]">{title}</h2>
+    <div className="bg-White border border-[#B2A890] rounded-xl p-5 shadow-md hover:shadow-lg transition">
+      <h2 className="text-lg font-medium mb-2 text-Black">{title}</h2>
 
       {loading ? (
         <div className="h-6 w-20 bg-[#D6D1BC] rounded animate-pulse" />
