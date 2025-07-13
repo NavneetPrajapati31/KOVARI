@@ -24,6 +24,7 @@ import {
   XCircle,
   Check,
   ChevronLeft,
+  ChevronUp,
 } from "lucide-react";
 import { BiCheckDouble, BiCheck } from "react-icons/bi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
@@ -169,11 +170,6 @@ const MessageList = ({
 }) => {
   return (
     <>
-      <div className="text-center mb-4">
-        <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
-          Today
-        </span>
-      </div>
       <div role="list">
         {messages.map((msg) => {
           const isSent = msg.sender_id === currentUserUuid;
@@ -226,6 +222,11 @@ const MessageList = ({
             </div>
           );
         })}
+      </div>
+      <div className="text-center mt-4">
+        <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+          Today
+        </span>
       </div>
     </>
   );
@@ -472,8 +473,17 @@ const DirectChatPage = () => {
   }, [currentUserId]);
 
   // Use the new direct chat hook
-  const { messages, loading, sending, error, sendMessage, markMessagesRead } =
-    useDirectChat(currentUserUuid, partnerUuid);
+  const {
+    messages,
+    loading,
+    sending,
+    error,
+    sendMessage,
+    markMessagesRead,
+    loadMoreMessages,
+    hasMoreMessages,
+    loadingMore,
+  } = useDirectChat(currentUserUuid, partnerUuid);
 
   // Memoize sharedSecret
   const sharedSecret = useMemo(() => {
@@ -486,7 +496,7 @@ const DirectChatPage = () => {
   // Use the inbox hook to get markConversationRead
   const { markConversationRead } = useDirectInbox(currentUserUuid, partnerUuid);
 
-  // Scroll to bottom on new message
+  // Only maintain scroll to bottom on new message (for flex-col)
   const lastMessageId =
     messages.length > 0
       ? messages[messages.length - 1].tempId || messages[messages.length - 1].id
@@ -742,7 +752,7 @@ const DirectChatPage = () => {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto p-4 mb-2 max-h-[80vh] space-y-1 scrollbar-none bg-card"
+        className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto scrollbar-hide p-4 mb-2 max-h-[80vh] bg-card flex flex-col"
         data-testid="messages-container"
         aria-live="polite"
         aria-atomic="false"
@@ -750,20 +760,35 @@ const DirectChatPage = () => {
         tabIndex={0}
         aria-label="Chat messages"
       >
-        {messages.length === 0 ? (
-          <div className="flex-1 h-full flex items-center justify-center text-center py-8">
-            <span className="text-sm text-muted-foreground">
-              No messages yet. Start the conversation!
-            </span>
+        {hasMoreMessages && (
+          <div className="flex justify-center py-2">
+            <button
+              onClick={loadMoreMessages}
+              disabled={loadingMore}
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              aria-label="Load more messages"
+            >
+              {loadingMore ? (
+                <>
+                  <Spinner variant="spinner" size="sm" />
+                  Loading more messages...
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Load more messages
+                </>
+              )}
+            </button>
           </div>
-        ) : (
-          <MessageList
-            messages={messages}
-            currentUserUuid={currentUserUuid}
-            sharedSecret={sharedSecret}
-            onRetry={handleRetry}
-          />
         )}
+        <div className="flex-grow" />
+        <MessageList
+          messages={messages}
+          currentUserUuid={currentUserUuid}
+          sharedSecret={sharedSecret}
+          onRetry={handleRetry}
+        />
       </div>
 
       {/* Message Input - Always at Bottom */}
