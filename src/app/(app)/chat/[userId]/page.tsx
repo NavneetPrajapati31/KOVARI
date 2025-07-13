@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useLayoutEffect,
   useState,
+  useCallback,
 } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
@@ -555,18 +556,57 @@ const DirectChatPage = () => {
   // Use the inbox hook to get markConversationRead
   const { markConversationRead } = useDirectInbox(currentUserUuid, partnerUuid);
 
-  // Only maintain scroll to bottom on new message (for flex-col)
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
+    }
+  }, []);
+
+  // Track if we're loading more messages to prevent scroll to bottom
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Update loading more state when loadingMore changes
+  useEffect(() => {
+    setIsLoadingMore(loadingMore);
+  }, [loadingMore]);
+
+  // Scroll to bottom on new messages and initial load
   const lastMessageId =
     messages.length > 0
       ? messages[messages.length - 1].tempId || messages[messages.length - 1].id
       : null;
 
   useLayoutEffect(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      container.scrollTop = container.scrollHeight;
+    // Don't scroll to bottom if we're loading more messages
+    if (!isLoadingMore && messages.length > 0) {
+      scrollToBottom();
     }
-  }, [lastMessageId]);
+  }, [lastMessageId, messages.length, isLoadingMore, scrollToBottom]);
+
+  // Additional scroll trigger for initial load completion
+  useEffect(() => {
+    // Don't scroll to bottom if we're loading more messages
+    if (!loading && !isLoadingMore && messages.length > 0) {
+      // Small delay to ensure all content is rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [loading, isLoadingMore, messages.length, scrollToBottom]);
+
+  // Scroll to bottom when switching between chats
+  useEffect(() => {
+    // Don't scroll to bottom if we're loading more messages
+    if (!isLoadingMore && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [partnerUuid, isLoadingMore, scrollToBottom]);
 
   // Error toast
   useEffect(() => {
@@ -829,7 +869,11 @@ const DirectChatPage = () => {
             >
               {loadingMore ? (
                 <>
-                  <Spinner variant="spinner" size="sm" />
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-black" }}
+                  />
                   Loading more messages...
                 </>
               ) : (
