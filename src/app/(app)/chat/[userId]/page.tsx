@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useLayoutEffect,
   useState,
+  useCallback,
 } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
@@ -24,10 +25,12 @@ import {
   XCircle,
   Check,
   ChevronLeft,
+  ChevronUp,
 } from "lucide-react";
 import { BiCheckDouble, BiCheck } from "react-icons/bi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { decryptMessage } from "@/shared/utils/encryption";
+import { formatMessageDate, isSameDay } from "@/shared/utils/utils";
 import Link from "next/link";
 import { useToast } from "@/shared/hooks/use-toast";
 import Picker from "@emoji-mart/react";
@@ -167,15 +170,73 @@ const MessageList = ({
   sharedSecret: string;
   onRetry?: (msg: any) => void;
 }) => {
+  // Group messages by date and add date separators
+  const messagesWithSeparators = useMemo(() => {
+    const result: Array<{
+      type: "message" | "separator";
+      data: any;
+      date?: string;
+    }> = [];
+
+    messages.forEach((msg, index) => {
+      const messageDate = msg.created_at;
+
+      // Debug logging
+      console.log(`Message ${index}:`, {
+        date: messageDate,
+        formatted: formatMessageDate(messageDate),
+        parsed: new Date(messageDate).toLocaleString(),
+      });
+
+      // Add date separator if this is the first message or if the date changed
+      if (
+        index === 0 ||
+        !isSameDay(messageDate, messages[index - 1].created_at)
+      ) {
+        result.push({
+          type: "separator",
+          data: { date: messageDate },
+          date: messageDate,
+        });
+      }
+
+      result.push({
+        type: "message",
+        data: msg,
+      });
+    });
+
+    return result;
+  }, [messages]);
+
+  // Handle empty messages case
+  if (messages.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <span className="text-sm text-muted-foreground">
+            No messages yet. Start a conversation!
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="text-center mb-4">
-        <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
-          Today
-        </span>
-      </div>
       <div role="list">
-        {messages.map((msg) => {
+        {messagesWithSeparators.map((item, index) => {
+          if (item.type === "separator") {
+            return (
+              <div key={`separator-${item.date}`} className="text-center my-4">
+                <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                  {formatMessageDate(item.date!)}
+                </span>
+              </div>
+            );
+          }
+
+          const msg = item.data;
           const isSent = msg.sender_id === currentUserUuid;
           let content: string = "";
           let showSpinner = false;
@@ -315,7 +376,7 @@ const MessageInput = ({
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
           placeholder="Your message"
-          className="w-full h-full px-4 py-3 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none max-h-20 overflow-y-auto scrollbar-hide align-middle"
+          className="w-full h-full px-4 py-3 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none max-h-10 overflow-y-auto scrollbar-hide align-middle"
           aria-label="Type your message"
           disabled={sending || disabled}
           rows={1}
@@ -472,8 +533,17 @@ const DirectChatPage = () => {
   }, [currentUserId]);
 
   // Use the new direct chat hook
-  const { messages, loading, sending, error, sendMessage, markMessagesRead } =
-    useDirectChat(currentUserUuid, partnerUuid);
+  const {
+    messages,
+    loading,
+    sending,
+    error,
+    sendMessage,
+    markMessagesRead,
+    loadMoreMessages,
+    hasMoreMessages,
+    loadingMore,
+  } = useDirectChat(currentUserUuid, partnerUuid);
 
   // Memoize sharedSecret
   const sharedSecret = useMemo(() => {
@@ -486,18 +556,155 @@ const DirectChatPage = () => {
   // Use the inbox hook to get markConversationRead
   const { markConversationRead } = useDirectInbox(currentUserUuid, partnerUuid);
 
-  // Scroll to bottom on new message
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      // Use requestAnimationFrame for smooth scrolling
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
+      // Additional scroll after a frame to ensure it works
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
+    }
+  }, []);
+
+  // Track if we're loading more messages to prevent scroll to bottom
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Update loading more state when loadingMore changes
+  useEffect(() => {
+    setIsLoadingMore(loadingMore);
+  }, [loadingMore]);
+
+  // Scroll to bottom on new messages and initial load
   const lastMessageId =
     messages.length > 0
       ? messages[messages.length - 1].tempId || messages[messages.length - 1].id
       : null;
 
+  // Consolidated scroll effect for all scenarios
   useLayoutEffect(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      container.scrollTop = container.scrollHeight;
+    // Don't scroll to bottom if we're loading more messages
+    if (!isLoadingMore && messages.length > 0) {
+      scrollToBottom();
     }
-  }, [lastMessageId]);
+  }, [lastMessageId, messages.length, isLoadingMore, scrollToBottom]);
+
+  // Scroll trigger for initial load completion and chat switching
+  useEffect(() => {
+    // Don't scroll to bottom if we're loading more messages
+    if (!loading && !isLoadingMore && messages.length > 0) {
+      // Small delay to ensure all content is rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [loading, isLoadingMore, messages.length, scrollToBottom]);
+
+  // Force scroll to bottom when partnerUuid changes (chat switching)
+  useEffect(() => {
+    if (partnerUuid && messages.length > 0 && !loading && !isLoadingMore) {
+      // Immediate scroll for chat switching
+      scrollToBottom();
+      // Additional scroll after a short delay to ensure content is rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [partnerUuid, messages.length, loading, isLoadingMore, scrollToBottom]);
+
+  // Additional scroll trigger specifically for chat switching
+  useEffect(() => {
+    if (partnerUuid && !loading && !isLoadingMore) {
+      // When switching chats, wait for messages to load and then scroll
+      const timer = setTimeout(() => {
+        if (messages.length > 0) {
+          scrollToBottom();
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [partnerUuid, loading, isLoadingMore, messages.length, scrollToBottom]);
+
+  // Scroll trigger for when loading completes after chat switch
+  useEffect(() => {
+    // When loading transitions from true to false and we have messages, scroll to bottom
+    if (!loading && !isLoadingMore && messages.length > 0) {
+      // Use a longer delay to ensure all content is fully rendered
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isLoadingMore, messages.length, scrollToBottom]);
+
+  // Track previous loading state to detect transitions
+  const prevLoadingRef = useRef(loading);
+  useEffect(() => {
+    // Debug logging for chat switching
+    console.log("[DEBUG] Loading state:", {
+      prevLoading: prevLoadingRef.current,
+      currentLoading: loading,
+      isLoadingMore,
+      messagesLength: messages.length,
+      partnerUuid,
+    });
+
+    // If loading just finished (transitioned from true to false) and we have messages
+    if (
+      prevLoadingRef.current &&
+      !loading &&
+      !isLoadingMore &&
+      messages.length > 0
+    ) {
+      console.log("[DEBUG] Loading finished, scrolling to bottom");
+      // Immediate scroll
+      scrollToBottom();
+      // Additional scroll after delay to ensure content is rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+    prevLoadingRef.current = loading;
+  }, [loading, isLoadingMore, messages.length, scrollToBottom, partnerUuid]);
+
+  // Direct scroll trigger for partnerUuid changes
+  useEffect(() => {
+    if (partnerUuid) {
+      console.log("[DEBUG] Partner UUID changed to:", partnerUuid);
+      // Wait for loading to complete and messages to be available
+      const checkAndScroll = () => {
+        if (!loading && !isLoadingMore && messages.length > 0) {
+          console.log("[DEBUG] Conditions met, scrolling to bottom");
+          scrollToBottom();
+          return true; // Stop checking
+        }
+        return false; // Keep checking
+      };
+
+      // Try immediately
+      if (!checkAndScroll()) {
+        // If not ready, set up polling
+        const interval = setInterval(() => {
+          if (checkAndScroll()) {
+            clearInterval(interval);
+          }
+        }, 50); // Check every 50ms
+
+        // Cleanup after 2 seconds
+        setTimeout(() => {
+          clearInterval(interval);
+        }, 2000);
+      }
+    }
+  }, [partnerUuid, loading, isLoadingMore, messages.length, scrollToBottom]);
 
   // Error toast
   useEffect(() => {
@@ -742,7 +949,7 @@ const DirectChatPage = () => {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto p-4 mb-2 max-h-[80vh] space-y-1 scrollbar-none bg-card"
+        className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto scrollbar-hide p-4 mb-2 max-h-[80vh] bg-card flex flex-col"
         data-testid="messages-container"
         aria-live="polite"
         aria-atomic="false"
@@ -750,20 +957,39 @@ const DirectChatPage = () => {
         tabIndex={0}
         aria-label="Chat messages"
       >
-        {messages.length === 0 ? (
-          <div className="flex-1 h-full flex items-center justify-center text-center py-8">
-            <span className="text-sm text-muted-foreground">
-              No messages yet. Start the conversation!
-            </span>
+        {hasMoreMessages && (
+          <div className="flex justify-center py-2">
+            <button
+              onClick={loadMoreMessages}
+              disabled={loadingMore}
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              aria-label="Load more messages"
+            >
+              {loadingMore ? (
+                <>
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-black" }}
+                  />
+                  Loading more messages...
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Load more messages
+                </>
+              )}
+            </button>
           </div>
-        ) : (
-          <MessageList
-            messages={messages}
-            currentUserUuid={currentUserUuid}
-            sharedSecret={sharedSecret}
-            onRetry={handleRetry}
-          />
         )}
+        <div className="flex-grow" />
+        <MessageList
+          messages={messages}
+          currentUserUuid={currentUserUuid}
+          sharedSecret={sharedSecret}
+          onRetry={handleRetry}
+        />
       </div>
 
       {/* Message Input - Always at Bottom */}

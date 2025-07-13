@@ -34,6 +34,9 @@ export interface UseDirectChatResult {
   error: string | null;
   sendMessage: (value: string) => Promise<void>;
   markMessagesRead: () => Promise<void>;
+  loadMoreMessages: () => Promise<void>;
+  hasMoreMessages: boolean;
+  loadingMore: boolean;
 }
 
 export const useDirectChat = (
@@ -44,6 +47,9 @@ export const useDirectChat = (
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [offset, setOffset] = useState(0);
   const supabase = createClient();
   const isMounted = useRef(true);
 
@@ -54,19 +60,27 @@ export const useDirectChat = (
       : `${partnerUuid}:${currentUserUuid}`;
 
   // Fetch initial messages with sender profile information
-  const fetchMessages = useCallback(async () => {
-    if (!currentUserUuid || !partnerUuid) {
-      setMessages([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const orFilter = `and(sender_id.eq.${currentUserUuid},receiver_id.eq.${partnerUuid}),and(sender_id.eq.${partnerUuid},receiver_id.eq.${currentUserUuid})`;
-    try {
-      const { data, error } = await supabase
-        .from("direct_messages")
-        .select(
-          `
+  const fetchMessages = useCallback(
+    async (loadMore = false) => {
+      if (!currentUserUuid || !partnerUuid) {
+        setMessages([]);
+        setLoading(false);
+        return;
+      }
+
+      if (loadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      const orFilter = `and(sender_id.eq.${currentUserUuid},receiver_id.eq.${partnerUuid}),and(sender_id.eq.${partnerUuid},receiver_id.eq.${currentUserUuid})`;
+
+      try {
+        let query = supabase
+          .from("direct_messages")
+          .select(
+            `
           *,
           sender:users!direct_messages_sender_id_fkey(
             id,
@@ -78,27 +92,66 @@ export const useDirectChat = (
             )
           )
         `
-        )
-        .or(orFilter)
-        .order("created_at", { ascending: true });
-      if (error) {
-        setError(error.message);
-        setMessages([]);
-      } else if (data) {
-        // Transform messages to include sender profile information
-        const transformedMessages = data.map((msg: any) => ({
-          ...msg,
-          sender_profile: msg.sender?.profiles?.[0] || undefined,
-        }));
-        setMessages(transformedMessages);
+          )
+          .or(orFilter)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + 29); // Fetch 30 messages per page
+
+        const { data, error } = await query;
+
+        if (error) {
+          setError(error.message);
+          if (!loadMore) {
+            setMessages([]);
+          }
+        } else if (data) {
+          // Transform messages to include sender profile information
+          const transformedMessages = data.map((msg: any) => ({
+            ...msg,
+            sender_profile: msg.sender?.profiles?.[0] || undefined,
+          }));
+
+          // Always reverse to chronological order (oldest at top)
+          const chronologicalMessages = transformedMessages.reverse();
+
+          if (loadMore) {
+            setMessages((prev) => {
+              const existingIds = new Set(prev.map((m) => m.id));
+              const newMessages = chronologicalMessages.filter(
+                (msg) => !existingIds.has(msg.id)
+              );
+              return [...newMessages, ...prev];
+            });
+            setOffset((prev) => prev + 30);
+          } else {
+            setMessages(chronologicalMessages);
+            setOffset(30);
+          }
+
+          setHasMoreMessages(transformedMessages.length === 30);
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch messages");
+        if (!loadMore) {
+          setMessages([]);
+        }
+      } finally {
+        if (loadMore) {
+          setLoadingMore(false);
+        } else {
+          setLoading(false);
+        }
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch messages");
-      setMessages([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUserUuid, partnerUuid, supabase]);
+    },
+    [currentUserUuid, partnerUuid, supabase, offset]
+  );
+
+  // Load more messages function
+  const loadMoreMessages = useCallback(async () => {
+    if (loadingMore || !hasMoreMessages) return;
+    await fetchMessages(true);
+  }, [fetchMessages, loadingMore, hasMoreMessages]);
 
   // Send a message (optimistic)
   const sendMessage = useCallback(
@@ -274,6 +327,13 @@ export const useDirectChat = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserUuid, partnerUuid]);
 
+  // Reset offset when chat changes
+  useEffect(() => {
+    setOffset(0);
+    setHasMoreMessages(true);
+    setMessages([]);
+  }, [partnerUuid]);
+
   return {
     messages,
     loading,
@@ -281,5 +341,8 @@ export const useDirectChat = (
     error,
     sendMessage,
     markMessagesRead,
+    loadMoreMessages,
+    hasMoreMessages,
+    loadingMore,
   };
 };
