@@ -560,6 +560,13 @@ const DirectChatPage = () => {
   const scrollToBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (container) {
+      // Use requestAnimationFrame for smooth scrolling
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
+      // Additional scroll after a frame to ensure it works
       requestAnimationFrame(() => {
         if (container) {
           container.scrollTop = container.scrollHeight;
@@ -582,6 +589,7 @@ const DirectChatPage = () => {
       ? messages[messages.length - 1].tempId || messages[messages.length - 1].id
       : null;
 
+  // Consolidated scroll effect for all scenarios
   useLayoutEffect(() => {
     // Don't scroll to bottom if we're loading more messages
     if (!isLoadingMore && messages.length > 0) {
@@ -589,7 +597,7 @@ const DirectChatPage = () => {
     }
   }, [lastMessageId, messages.length, isLoadingMore, scrollToBottom]);
 
-  // Additional scroll trigger for initial load completion
+  // Scroll trigger for initial load completion and chat switching
   useEffect(() => {
     // Don't scroll to bottom if we're loading more messages
     if (!loading && !isLoadingMore && messages.length > 0) {
@@ -600,13 +608,103 @@ const DirectChatPage = () => {
     }
   }, [loading, isLoadingMore, messages.length, scrollToBottom]);
 
-  // Scroll to bottom when switching between chats
+  // Force scroll to bottom when partnerUuid changes (chat switching)
   useEffect(() => {
-    // Don't scroll to bottom if we're loading more messages
-    if (!isLoadingMore && messages.length > 0) {
+    if (partnerUuid && messages.length > 0 && !loading && !isLoadingMore) {
+      // Immediate scroll for chat switching
       scrollToBottom();
+      // Additional scroll after a short delay to ensure content is rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     }
-  }, [partnerUuid, isLoadingMore, scrollToBottom]);
+  }, [partnerUuid, messages.length, loading, isLoadingMore, scrollToBottom]);
+
+  // Additional scroll trigger specifically for chat switching
+  useEffect(() => {
+    if (partnerUuid && !loading && !isLoadingMore) {
+      // When switching chats, wait for messages to load and then scroll
+      const timer = setTimeout(() => {
+        if (messages.length > 0) {
+          scrollToBottom();
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [partnerUuid, loading, isLoadingMore, messages.length, scrollToBottom]);
+
+  // Scroll trigger for when loading completes after chat switch
+  useEffect(() => {
+    // When loading transitions from true to false and we have messages, scroll to bottom
+    if (!loading && !isLoadingMore && messages.length > 0) {
+      // Use a longer delay to ensure all content is fully rendered
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isLoadingMore, messages.length, scrollToBottom]);
+
+  // Track previous loading state to detect transitions
+  const prevLoadingRef = useRef(loading);
+  useEffect(() => {
+    // Debug logging for chat switching
+    console.log("[DEBUG] Loading state:", {
+      prevLoading: prevLoadingRef.current,
+      currentLoading: loading,
+      isLoadingMore,
+      messagesLength: messages.length,
+      partnerUuid,
+    });
+
+    // If loading just finished (transitioned from true to false) and we have messages
+    if (
+      prevLoadingRef.current &&
+      !loading &&
+      !isLoadingMore &&
+      messages.length > 0
+    ) {
+      console.log("[DEBUG] Loading finished, scrolling to bottom");
+      // Immediate scroll
+      scrollToBottom();
+      // Additional scroll after delay to ensure content is rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+    prevLoadingRef.current = loading;
+  }, [loading, isLoadingMore, messages.length, scrollToBottom, partnerUuid]);
+
+  // Direct scroll trigger for partnerUuid changes
+  useEffect(() => {
+    if (partnerUuid) {
+      console.log("[DEBUG] Partner UUID changed to:", partnerUuid);
+      // Wait for loading to complete and messages to be available
+      const checkAndScroll = () => {
+        if (!loading && !isLoadingMore && messages.length > 0) {
+          console.log("[DEBUG] Conditions met, scrolling to bottom");
+          scrollToBottom();
+          return true; // Stop checking
+        }
+        return false; // Keep checking
+      };
+
+      // Try immediately
+      if (!checkAndScroll()) {
+        // If not ready, set up polling
+        const interval = setInterval(() => {
+          if (checkAndScroll()) {
+            clearInterval(interval);
+          }
+        }, 50); // Check every 50ms
+
+        // Cleanup after 2 seconds
+        setTimeout(() => {
+          clearInterval(interval);
+        }, 2000);
+      }
+    }
+  }, [partnerUuid, loading, isLoadingMore, messages.length, scrollToBottom]);
 
   // Error toast
   useEffect(() => {
