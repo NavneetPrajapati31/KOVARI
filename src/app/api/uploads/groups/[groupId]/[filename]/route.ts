@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
   }
   const filePath = path.join(
     process.cwd(),
+    "public", // <-- add this to match upload location
     "uploads",
     "groups",
     groupId,

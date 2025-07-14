@@ -247,7 +247,9 @@ export default function GroupChatInterface() {
         const err = await res.json();
         throw new Error(err.error || "Failed to upload");
       }
-      // Optionally, refresh GroupMediaSection (if you want to trigger a refresh, use a callback or context)
+      const uploaded = await res.json();
+      // Send a message with the media URL and type
+      await sendMessage("", uploaded.url, uploaded.type);
     } catch (err) {
       // Optionally show error toast
     } finally {
@@ -672,6 +674,7 @@ export default function GroupChatInterface() {
                     );
                   }
                   const msg = item.data;
+                  console.log("MSG", msg);
                   return (
                     <div
                       key={msg.id}
@@ -707,12 +710,30 @@ export default function GroupChatInterface() {
                                 {msg.sender}
                               </span>
                             )}
-                            <span
-                              className="text-xs"
-                              dangerouslySetInnerHTML={{
-                                __html: linkifyMessage(msg.content),
-                              }}
-                            />
+                            {/* Render media if present */}
+                            {msg.mediaUrl && msg.mediaType === "image" && (
+                              <img
+                                src={msg.mediaUrl}
+                                alt="sent media"
+                                className="max-w-xs max-h-48 rounded-lg mb-2"
+                              />
+                            )}
+                            {msg.mediaUrl && msg.mediaType === "video" && (
+                              <video
+                                src={msg.mediaUrl}
+                                controls
+                                className="max-w-xs max-h-48 rounded-lg mb-2"
+                              />
+                            )}
+                            {/* Render text if present */}
+                            {msg.content && (
+                              <span
+                                className="text-xs"
+                                dangerouslySetInnerHTML={{
+                                  __html: linkifyMessage(msg.content),
+                                }}
+                              />
+                            )}
                             <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
                               <span
                                 className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}

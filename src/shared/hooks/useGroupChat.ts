@@ -17,6 +17,8 @@ export interface ChatMessage {
   avatar?: string;
   isCurrentUser: boolean;
   createdAt: string;
+  mediaUrl?: string;
+  mediaType?: "image" | "video";
 }
 
 export interface GroupInfo {
@@ -74,16 +76,30 @@ export const useGroupChat = (groupId: string) => {
       // Debug: Log the fetched messages
       console.log("[FetchMessages] Data:", data);
 
-      // Map API fields to camelCase for decryption
+      // Map API fields to camelCase for decryption and always ensure mediaUrl/mediaType
       const mappedData = data.map((msg: any) => ({
         ...msg,
         isEncrypted: msg.isEncrypted ?? msg.is_encrypted,
         encryptedContent: msg.encryptedContent ?? msg.encrypted_content,
         encryptionIv: msg.encryptionIv ?? msg.encryption_iv,
         encryptionSalt: msg.encryptionSalt ?? msg.encryption_salt,
+        mediaUrl: msg.mediaUrl ?? msg.media_url ?? undefined,
+        mediaType: msg.mediaType ?? msg.media_type ?? undefined,
       }));
 
       console.log("[MappedData]", mappedData);
+
+      // Debug: Log mappedData for media fields
+      mappedData.forEach((msg: any, idx: number) => {
+        console.log(
+          `[MappedData][${idx}] id:`,
+          msg.id,
+          "mediaUrl:",
+          msg.mediaUrl,
+          "mediaType:",
+          msg.mediaType
+        );
+      });
 
       // Decrypt encrypted messages
       const decryptedMessages = await Promise.all(
@@ -131,6 +147,18 @@ export const useGroupChat = (groupId: string) => {
         })
       );
 
+      // Debug: Log decryptedMessages for media fields
+      decryptedMessages.forEach((msg: any, idx: number) => {
+        console.log(
+          `[DecryptedMessages][${idx}] id:`,
+          msg.id,
+          "mediaUrl:",
+          msg.mediaUrl,
+          "mediaType:",
+          msg.mediaType
+        );
+      });
+
       setMessages(decryptedMessages);
     } catch (err) {
       console.error("Error fetching messages:", err);
@@ -157,8 +185,12 @@ export const useGroupChat = (groupId: string) => {
 
   // Send a message
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!user || !content.trim()) return;
+    async (
+      content: string,
+      mediaUrl?: string,
+      mediaType?: "image" | "video"
+    ) => {
+      if (!user || (!content.trim() && !mediaUrl)) return;
 
       try {
         setSending(true);
@@ -166,7 +198,7 @@ export const useGroupChat = (groupId: string) => {
 
         // Encrypt the message before sending (if encryption is available)
         let encryptedMessage = null;
-        if (isEncryptionAvailable) {
+        if (isEncryptionAvailable && content.trim()) {
           encryptedMessage = await encryptMessage(content.trim());
           if (!encryptedMessage) {
             setError(
@@ -186,6 +218,8 @@ export const useGroupChat = (groupId: string) => {
           encryptionIv: encryptedMessage?.iv || null,
           encryptionSalt: encryptedMessage?.salt || null,
           isEncrypted: !!encryptedMessage,
+          mediaUrl,
+          mediaType,
         });
 
         const response = await fetch(`/api/groups/${groupId}/messages`, {
@@ -199,6 +233,8 @@ export const useGroupChat = (groupId: string) => {
             encryptionIv: encryptedMessage?.iv || null,
             encryptionSalt: encryptedMessage?.salt || null,
             isEncrypted: !!encryptedMessage,
+            mediaUrl,
+            mediaType,
           }),
         });
 
@@ -241,6 +277,8 @@ export const useGroupChat = (groupId: string) => {
           avatar: newMessage.avatar,
           isCurrentUser: true,
           createdAt: newMessage.createdAt,
+          mediaUrl,
+          mediaType,
         };
 
         // Add the message optimistically to the UI
@@ -290,6 +328,8 @@ export const useGroupChat = (groupId: string) => {
                 is_encrypted,
                 created_at,
                 user_id,
+                media_url,
+                media_type,
                 users(
                   id,
                   profiles(
@@ -393,6 +433,8 @@ export const useGroupChat = (groupId: string) => {
                 })(),
                 isCurrentUser,
                 createdAt: messageData.created_at,
+                mediaUrl: messageData.media_url ?? undefined,
+                mediaType: messageData.media_type ?? undefined,
               };
 
               // If it's a new message (not from current user or not already in state)
