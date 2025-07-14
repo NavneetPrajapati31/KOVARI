@@ -13,6 +13,7 @@ export async function GET(
     }
 
     const { groupId } = await params;
+    // REMOVE: limit/offset logic
     const supabase = createRouteHandlerSupabaseClient();
 
     // Get user's internal ID

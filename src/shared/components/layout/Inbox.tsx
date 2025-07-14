@@ -276,6 +276,9 @@ export default function Inbox({ activeUserId }: InboxProps) {
                       }`}
                     >
                       {displayName}
+                      {conversation.userId === currentUserUuid && (
+                        <span className={"text-xs ml-1"}>(You)</span>
+                      )}
                     </h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
@@ -28,6 +28,11 @@ import { Shield, ShieldCheck } from "lucide-react";
 import { Chip } from "@heroui/react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
+import {
+  isSameDay,
+  formatMessageDate,
+  linkifyMessage,
+} from "@/shared/utils/utils";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
 
@@ -229,6 +234,30 @@ export default function GroupChatInterface() {
       setIsRejoining(false);
     }
   };
+
+  // Group messages by date and add separators
+  const messagesWithSeparators = useMemo(() => {
+    const result: Array<{
+      type: "message" | "separator";
+      data: any;
+      date?: string;
+    }> = [];
+    messages.forEach((msg, index) => {
+      const messageDate = msg.createdAt;
+      if (
+        index === 0 ||
+        !isSameDay(messageDate, messages[index - 1].createdAt)
+      ) {
+        result.push({
+          type: "separator",
+          data: { date: messageDate },
+          date: messageDate,
+        });
+      }
+      result.push({ type: "message", data: msg });
+    });
+    return result;
+  }, [messages]);
 
   // Membership check and error handling must be before any layout rendering
   if (membershipLoading) {
@@ -616,61 +645,74 @@ export default function GroupChatInterface() {
               </div>
             ) : (
               <>
-                <div className="text-center">
-                  <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
-                    Today
-                  </span>
-                </div>
-
-                {messages.map((msg: ChatMessage) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
-                  >
-                    <div
-                      className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
-                    >
-                      {!msg.isCurrentUser &&
-                        (msg.sender === "Deleted User" ? (
-                          <div className="w-8 h-8 flex-shrink-0 rounded-full bg-muted flex items-center justify-center">
-                            <User className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                        ) : (
-                          <Avatar
-                            className="w-8 h-8 flex-shrink-0"
-                            src={msg.avatar || ""}
-                            name={msg.sender}
-                          />
-                        ))}
-
+                {messagesWithSeparators.map((item, idx) => {
+                  if (item.type === "separator") {
+                    return (
                       <div
-                        className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
+                        key={`separator-${item.date}`}
+                        className="text-center my-4"
                       >
+                        <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                          {formatMessageDate(item.date!)}
+                        </span>
+                      </div>
+                    );
+                  }
+                  const msg = item.data;
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
+                    >
+                      <div
+                        className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
+                      >
+                        {!msg.isCurrentUser &&
+                          (msg.sender === "Deleted User" ? (
+                            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-muted flex items-center justify-center">
+                              <User className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          ) : (
+                            <Avatar
+                              className="w-8 h-8 flex-shrink-0"
+                              src={msg.avatar || ""}
+                              name={msg.sender}
+                            />
+                          ))}
                         <div
-                          className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
-                            msg.isCurrentUser
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-gray-100 text-foreground rounded-bl-md"
-                          }`}
+                          className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                         >
-                          {!msg.isCurrentUser && (
-                            <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
-                              {msg.sender}
-                            </span>
-                          )}
-                          <span className="text-xs">{msg.content}</span>
-                          <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                          <div
+                            className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                              msg.isCurrentUser
+                                ? "bg-primary text-primary-foreground rounded-br-md"
+                                : "bg-gray-100 text-foreground rounded-bl-md"
+                            }`}
+                          >
+                            {!msg.isCurrentUser && (
+                              <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
+                                {msg.sender}
+                              </span>
+                            )}
                             <span
-                              className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
-                            >
-                              {msg.timestamp}
+                              className="text-xs"
+                              dangerouslySetInnerHTML={{
+                                __html: linkifyMessage(msg.content),
+                              }}
+                            />
+                            <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                              <span
+                                className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
+                              >
+                                {msg.timestamp}
+                              </span>
                             </span>
-                          </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </>
             )}
           </div>
@@ -678,7 +720,7 @@ export default function GroupChatInterface() {
           {/* Message Input - Sticky */}
           <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
             <div className="flex items-center space-x-1">
-              <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
+              <div className="flex-1 relative h-auto bg-transparent rounded-none hover:cursor-text">
                 <textarea
                   ref={textareaRef}
                   key={groupId}
@@ -686,7 +728,7 @@ export default function GroupChatInterface() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className={`w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto ${
+                  className={`w-full px-4 py-2 rounded-none border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto ${
                     messageLengthError ? "border-red-500" : ""
                   }`}
                   aria-label="Type your message"

@@ -77,3 +77,28 @@ export const isSameDay = (
   if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
   return dfnsIsSameDay(d1, d2);
 };
+
+/**
+ * Converts URLs in a message string to clickable, styled, accessible anchor tags.
+ * Preserves line breaks.
+ * @param message - The message string to process
+ * @returns HTML string with URLs replaced by <a> tags
+ */
+export const linkifyMessage = (message: string): string => {
+  if (!message) return "";
+  // Regex to match URLs (http, https, www)
+  const urlRegex =
+    /((https?:\/\/|www\.)[\w\-._~:/?#[\]@!$&'()*+,;=%]+)(?=[\s\n]|$)/gi;
+  // Replace URLs with anchor tags
+  let html = message.replace(urlRegex, (url) => {
+    let href = url;
+    if (!href.startsWith("http")) {
+      href = "https://" + href;
+    }
+    // Tailwind: text-primary-foreground, underline, decoration-primary-foreground, hover:text-primary-foreground, hover:decoration-primary-foreground, focus:outline-none
+    return `<a href="${href}" class="text-primary-foreground underline decoration-primary-foreground hover:text-primary-foreground hover:decoration-primary-foreground focus:outline-none" target="_blank" rel="noopener noreferrer" aria-label="Open link: ${url}">${url}</a>`;
+  });
+  // Replace line breaks with <br />
+  html = html.replace(/\n/g, "<br />");
+  return html;
+};
