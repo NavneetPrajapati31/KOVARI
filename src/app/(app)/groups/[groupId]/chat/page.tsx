@@ -18,6 +18,7 @@ import {
   Users,
   Lock,
   User,
+  Plus,
 } from "lucide-react";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
@@ -33,6 +34,9 @@ import {
   formatMessageDate,
   linkifyMessage,
 } from "@/shared/utils/utils";
+import GroupMediaSection from "@/features/groups/components/group-media-section";
+import { useUser } from "@clerk/nextjs";
+import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
 
@@ -52,6 +56,11 @@ export default function GroupChatInterface() {
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null); // Removed as per edit hint
+
+  // Add state and ref for chat file picker
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const [chatUploading, setChatUploading] = useState(false);
 
   const {
     messages,
@@ -85,6 +94,15 @@ export default function GroupChatInterface() {
     "membershipInfo",
     membershipInfo
   );
+
+  const { user } = useUser();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      getUserUuidByClerkId(user.id).then((uuid) => setUserId(uuid));
+    }
+  }, [user?.id]);
 
   // Insert emoji at cursor position
   const insertEmoji = (emoji: string) => {
@@ -206,6 +224,36 @@ export default function GroupChatInterface() {
       }
     }
     // Shift+Enter: allow default (newline)
+  };
+
+  // Add upload handler for chat input
+  // const userId = /* get user id from props, context, or hook */;
+
+  const handleChatFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return; // Only proceed if userId is loaded
+    setChatUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("uploaded_by", userId); // use real user id
+      const res = await fetch(`/api/groups/${groupId}/media`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to upload");
+      }
+      // Optionally, refresh GroupMediaSection (if you want to trigger a refresh, use a callback or context)
+    } catch (err) {
+      // Optionally show error toast
+    } finally {
+      setChatUploading(false);
+      if (chatFileInputRef.current) chatFileInputRef.current.value = "";
+    }
   };
 
   // Handle rejoining after being removed
@@ -429,54 +477,19 @@ export default function GroupChatInterface() {
             </div>
 
             {/* Photos and Videos */}
-            <div className="mb-3 border-b-1 border-border">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-foreground">
-                  Photos and videos
-                </h3>
-                <Button className="bg-transparent text-primary text-sm p-0 h-auto font-medium">
-                  See all
-                </Button>
+            {userId ? (
+              <GroupMediaSection groupId={groupId} userId={userId} />
+            ) : (
+              <div className="flex items-center justify-center py-4">
+                <Spinner variant="spinner" size="sm" color="primary" />
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Loading media...
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=200&h=150&fit=crop"
-                    alt="Team meeting"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1515378960530-7c0da6231fb1?w=200&h=150&fit=crop"
-                    alt="Office workspace"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=200&h=150&fit=crop"
-                    alt="Team collaboration"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=200&h=150&fit=crop"
-                    alt="Team celebration"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gray-100 opacity-75 flex items-center justify-center rounded-xl">
-                    <span className="text-foreground font-semibold text-lg">
-                      +178
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Shared Files */}
-            <div className="mb-3 border-b-1 border-border">
+            {/* <div className="mb-3 border-b-1 border-border">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
                   Shared files
@@ -526,10 +539,10 @@ export default function GroupChatInterface() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Shared Links */}
-            <div>
+            {/* <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
                   Shared links
@@ -566,7 +579,7 @@ export default function GroupChatInterface() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
         {/* Chat Area */}
@@ -720,6 +733,28 @@ export default function GroupChatInterface() {
           {/* Message Input - Sticky */}
           <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
             <div className="flex items-center space-x-1">
+              <button
+                type="button"
+                className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
+                aria-label="Attach photo or video"
+                tabIndex={0}
+                onClick={() => chatFileInputRef.current?.click()}
+                disabled={chatUploading}
+              >
+                {chatUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Plus className="h-5 w-5" />
+                )}
+              </button>
+              <input
+                ref={chatFileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={handleChatFileChange}
+                aria-label="Attach photo or video"
+              />
               <div className="flex-1 relative h-auto bg-transparent rounded-none hover:cursor-text">
                 <textarea
                   ref={textareaRef}
