@@ -30,7 +30,11 @@ import {
 import { BiCheckDouble, BiCheck } from "react-icons/bi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { decryptMessage } from "@/shared/utils/encryption";
-import { formatMessageDate, isSameDay } from "@/shared/utils/utils";
+import {
+  formatMessageDate,
+  isSameDay,
+  linkifyMessage,
+} from "@/shared/utils/utils";
 import Link from "next/link";
 import { useToast } from "@/shared/hooks/use-toast";
 import Picker from "@emoji-mart/react";
@@ -106,7 +110,7 @@ const MessageRow = React.memo(
             <span
               className="text-xs"
               dangerouslySetInnerHTML={{
-                __html: formatMessageWithLineBreaks(content),
+                __html: linkifyMessage(content),
               }}
             />
           )}

@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import {
   Search,
   Phone,
@@ -28,7 +28,11 @@ import { Shield, ShieldCheck } from "lucide-react";
 import { Chip } from "@heroui/react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
-import { isSameDay, formatMessageDate } from "@/shared/utils/utils";
+import {
+  isSameDay,
+  formatMessageDate,
+  linkifyMessage,
+} from "@/shared/utils/utils";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
 
@@ -57,33 +61,7 @@ export default function GroupChatInterface() {
     groupInfo,
     onlineMembers,
     sendMessage,
-    retrySendMessage,
-    refetch,
   } = useGroupChat(groupId);
-
-  // Group messages by date and add separators (must be before any return)
-  const messagesWithSeparators = React.useMemo(() => {
-    const result: Array<{
-      type: "message" | "separator";
-      data: any;
-      date?: string;
-    }> = [];
-    messages.forEach((msg, index) => {
-      const messageDate = msg.createdAt;
-      if (
-        index === 0 ||
-        !isSameDay(messageDate, messages[index - 1].createdAt)
-      ) {
-        result.push({
-          type: "separator",
-          data: { date: messageDate },
-          date: messageDate,
-        });
-      }
-      result.push({ type: "message", data: msg });
-    });
-    return result;
-  }, [messages]);
 
   const { members, loading: membersLoading } = useGroupMembers(groupId);
   const {
@@ -162,17 +140,21 @@ export default function GroupChatInterface() {
     };
   }, [showEmoji]);
 
-  // Only scroll to bottom on initial load
-  const hasScrolledRef = React.useRef(false);
-  React.useEffect(() => {
-    if (!hasScrolledRef.current && !loading && messages.length > 0) {
-      const container = messagesContainerRef.current;
-      if (container) {
-        container.scrollTop = container.scrollHeight;
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+      console.log("[Chat Scroll Debug] scrollHeight:", container.scrollHeight);
+      console.log("[Chat Scroll Debug] clientHeight:", container.clientHeight);
+      console.log("[Chat Scroll Debug] children:", container.children.length);
+      if (container.lastElementChild) {
+        console.log(
+          "[Chat Scroll Debug] last child:",
+          container.lastElementChild
+        );
       }
-      hasScrolledRef.current = true;
     }
-  }, [loading, messages.length]);
+  }, [messages, groupId]);
 
   // Show error toast if there's an error
   useEffect(() => {
@@ -252,6 +234,30 @@ export default function GroupChatInterface() {
       setIsRejoining(false);
     }
   };
+
+  // Group messages by date and add separators
+  const messagesWithSeparators = useMemo(() => {
+    const result: Array<{
+      type: "message" | "separator";
+      data: any;
+      date?: string;
+    }> = [];
+    messages.forEach((msg, index) => {
+      const messageDate = msg.createdAt;
+      if (
+        index === 0 ||
+        !isSameDay(messageDate, messages[index - 1].createdAt)
+      ) {
+        result.push({
+          type: "separator",
+          data: { date: messageDate },
+          date: messageDate,
+        });
+      }
+      result.push({ type: "message", data: msg });
+    });
+    return result;
+  }, [messages]);
 
   // Membership check and error handling must be before any layout rendering
   if (membershipLoading) {
@@ -360,7 +366,7 @@ export default function GroupChatInterface() {
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
       <div className="flex h-[80vh]">
         {/* Right Sidebar */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-hide scrollbar-none hidden lg:block">
+        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-none hidden lg:block">
           <div className="p-5">
             {/* Company Info */}
             <div className="text-center mb-3 border-b-1 border-border">
@@ -653,10 +659,9 @@ export default function GroupChatInterface() {
                     );
                   }
                   const msg = item.data;
-                  const isFailed = msg.status === "failed";
                   return (
                     <div
-                      key={msg.tempId || msg.id}
+                      key={msg.id}
                       className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
                     >
                       <div
@@ -689,31 +694,18 @@ export default function GroupChatInterface() {
                                 {msg.sender}
                               </span>
                             )}
-                            <span className="text-xs">{msg.content}</span>
+                            <span
+                              className="text-xs"
+                              dangerouslySetInnerHTML={{
+                                __html: linkifyMessage(msg.content),
+                              }}
+                            />
                             <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
                               <span
                                 className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
                               >
                                 {msg.timestamp}
                               </span>
-                              {isFailed && (
-                                <>
-                                  <span
-                                    className="ml-1 text-xs text-destructive underline cursor-pointer"
-                                    tabIndex={0}
-                                    aria-label="Retry sending message"
-                                    onClick={() => retrySendMessage(msg)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        retrySendMessage(msg);
-                                      }
-                                    }}
-                                  >
-                                    Retry
-                                  </span>
-                                </>
-                              )}
                             </span>
                           </div>
                         </div>
@@ -728,7 +720,7 @@ export default function GroupChatInterface() {
           {/* Message Input - Sticky */}
           <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
             <div className="flex items-center space-x-1">
-              <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
+              <div className="flex-1 relative h-auto bg-transparent rounded-none hover:cursor-text">
                 <textarea
                   ref={textareaRef}
                   key={groupId}
@@ -736,7 +728,7 @@ export default function GroupChatInterface() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className={`w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto ${
+                  className={`w-full px-4 py-2 rounded-none border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto ${
                     messageLengthError ? "border-red-500" : ""
                   }`}
                   aria-label="Type your message"
