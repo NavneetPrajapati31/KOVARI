@@ -7,6 +7,7 @@ import {
   decryptGroupMessage,
   type EncryptedMessage,
 } from "@/shared/utils/encryption";
+import { v4 as uuidv4 } from "uuid";
 
 export interface ChatMessage {
   id: string;
@@ -17,6 +18,8 @@ export interface ChatMessage {
   avatar?: string;
   isCurrentUser: boolean;
   createdAt: string;
+  status?: "sending" | "failed" | "sent";
+  tempId?: string;
 }
 
 export interface GroupInfo {
@@ -50,14 +53,12 @@ export const useGroupChat = (groupId: string) => {
     groupKeyRef.current = groupKey;
   }, [groupKey]);
 
-  // Fetch initial messages
+  // Fetch all messages (no pagination)
   const fetchMessages = useCallback(async () => {
     if (!user) return;
-
     try {
       setLoading(true);
       setError(null);
-
       const response = await fetch(`/api/groups/${groupId}/messages`);
       if (!response.ok) {
         if (response.status === 403) {
@@ -68,7 +69,6 @@ export const useGroupChat = (groupId: string) => {
         }
         throw new Error("Failed to fetch messages");
       }
-
       const data = await response.json();
 
       // Debug: Log the fetched messages
@@ -133,7 +133,6 @@ export const useGroupChat = (groupId: string) => {
 
       setMessages(decryptedMessages);
     } catch (err) {
-      console.error("Error fetching messages:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch messages");
     } finally {
       setLoading(false);
@@ -157,9 +156,9 @@ export const useGroupChat = (groupId: string) => {
 
   // Send a message
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, retryTempId?: string) => {
       if (!user || !content.trim()) return;
-
+      const tempId = retryTempId || uuidv4();
       try {
         setSending(true);
         setError(null);
@@ -171,9 +170,6 @@ export const useGroupChat = (groupId: string) => {
           if (!encryptedMessage) {
             setError(
               "Encryption failed: No encryption key or error in encryption."
-            );
-            console.error(
-              "[E2EE] Encryption failed: encryptMessage returned null"
             );
             return;
           }
@@ -187,6 +183,27 @@ export const useGroupChat = (groupId: string) => {
           encryptionSalt: encryptedMessage?.salt || null,
           isEncrypted: !!encryptedMessage,
         });
+
+        // Optimistic UI
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: tempId,
+            tempId,
+            content: content.trim(),
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "Asia/Kolkata",
+            }),
+            sender: user.fullName || user.username || "You",
+            senderUsername: user.username || undefined,
+            avatar: user.imageUrl,
+            isCurrentUser: true,
+            createdAt: new Date().toISOString(),
+            status: "sending",
+          },
+        ]);
 
         const response = await fetch(`/api/groups/${groupId}/messages`, {
           method: "POST",
@@ -225,30 +242,17 @@ export const useGroupChat = (groupId: string) => {
           );
         }
 
-        const newMessage = await response.json();
+        // Remove optimistic message (by tempId) on success
+        setMessages((prev) => prev.filter((msg) => msg.tempId !== tempId));
 
-        // Create the decrypted message for local display
-        const decryptedMessage: ChatMessage = {
-          id: newMessage.id,
-          content: content.trim(), // Use the original content for immediate display
-          timestamp: new Date(newMessage.createdAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: "Asia/Kolkata",
-          }),
-          sender: newMessage.sender,
-          senderUsername: newMessage.senderUsername,
-          avatar: newMessage.avatar,
-          isCurrentUser: true,
-          createdAt: newMessage.createdAt,
-        };
-
-        // Add the message optimistically to the UI
-        setMessages((prev) => [...prev, decryptedMessage]);
-
-        return decryptedMessage;
+        return { id: tempId, content: content.trim() }; // Return the tempId for retry
       } catch (err) {
         console.error("Error sending message:", err);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.tempId === tempId ? { ...msg, status: "failed" } : msg
+          )
+        );
         setError(err instanceof Error ? err.message : "Failed to send message");
         throw err;
       } finally {
@@ -256,6 +260,19 @@ export const useGroupChat = (groupId: string) => {
       }
     },
     [groupId, user, encryptMessage, isEncryptionAvailable]
+  );
+
+  // Retry failed message
+  const retrySendMessage = useCallback(
+    async (failedMsg: ChatMessage) => {
+      if (!failedMsg || !failedMsg.content) return;
+      // Remove failed message before retrying
+      setMessages((prev) =>
+        prev.filter((msg) => msg.tempId !== failedMsg.tempId)
+      );
+      await sendMessage(failedMsg.content, failedMsg.tempId);
+    },
+    [sendMessage]
   );
 
   // Set up real-time subscription
@@ -438,5 +455,6 @@ export const useGroupChat = (groupId: string) => {
     onlineMembers,
     sendMessage,
     refetch: fetchMessages,
+    retrySendMessage,
   };
 };

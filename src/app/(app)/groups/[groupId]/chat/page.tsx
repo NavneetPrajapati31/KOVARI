@@ -1,10 +1,10 @@
 "use client";
 
+import React from "react";
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import {
   Search,
   Phone,
@@ -28,6 +28,7 @@ import { Shield, ShieldCheck } from "lucide-react";
 import { Chip } from "@heroui/react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
+import { isSameDay, formatMessageDate } from "@/shared/utils/utils";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
 
@@ -56,7 +57,33 @@ export default function GroupChatInterface() {
     groupInfo,
     onlineMembers,
     sendMessage,
+    retrySendMessage,
+    refetch,
   } = useGroupChat(groupId);
+
+  // Group messages by date and add separators (must be before any return)
+  const messagesWithSeparators = React.useMemo(() => {
+    const result: Array<{
+      type: "message" | "separator";
+      data: any;
+      date?: string;
+    }> = [];
+    messages.forEach((msg, index) => {
+      const messageDate = msg.createdAt;
+      if (
+        index === 0 ||
+        !isSameDay(messageDate, messages[index - 1].createdAt)
+      ) {
+        result.push({
+          type: "separator",
+          data: { date: messageDate },
+          date: messageDate,
+        });
+      }
+      result.push({ type: "message", data: msg });
+    });
+    return result;
+  }, [messages]);
 
   const { members, loading: membersLoading } = useGroupMembers(groupId);
   const {
@@ -135,21 +162,17 @@ export default function GroupChatInterface() {
     };
   }, [showEmoji]);
 
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      container.scrollTop = container.scrollHeight;
-      console.log("[Chat Scroll Debug] scrollHeight:", container.scrollHeight);
-      console.log("[Chat Scroll Debug] clientHeight:", container.clientHeight);
-      console.log("[Chat Scroll Debug] children:", container.children.length);
-      if (container.lastElementChild) {
-        console.log(
-          "[Chat Scroll Debug] last child:",
-          container.lastElementChild
-        );
+  // Only scroll to bottom on initial load
+  const hasScrolledRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!hasScrolledRef.current && !loading && messages.length > 0) {
+      const container = messagesContainerRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
       }
+      hasScrolledRef.current = true;
     }
-  }, [messages, groupId]);
+  }, [loading, messages.length]);
 
   // Show error toast if there's an error
   useEffect(() => {
@@ -337,7 +360,7 @@ export default function GroupChatInterface() {
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
       <div className="flex h-[80vh]">
         {/* Right Sidebar */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-none hidden lg:block">
+        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-hide scrollbar-none hidden lg:block">
           <div className="p-5">
             {/* Company Info */}
             <div className="text-center mb-3 border-b-1 border-border">
@@ -616,61 +639,88 @@ export default function GroupChatInterface() {
               </div>
             ) : (
               <>
-                <div className="text-center">
-                  <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
-                    Today
-                  </span>
-                </div>
-
-                {messages.map((msg: ChatMessage) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
-                  >
-                    <div
-                      className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
-                    >
-                      {!msg.isCurrentUser &&
-                        (msg.sender === "Deleted User" ? (
-                          <div className="w-8 h-8 flex-shrink-0 rounded-full bg-muted flex items-center justify-center">
-                            <User className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                        ) : (
-                          <Avatar
-                            className="w-8 h-8 flex-shrink-0"
-                            src={msg.avatar || ""}
-                            name={msg.sender}
-                          />
-                        ))}
-
+                {messagesWithSeparators.map((item, idx) => {
+                  if (item.type === "separator") {
+                    return (
                       <div
-                        className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
+                        key={`separator-${item.date}`}
+                        className="text-center my-4"
                       >
+                        <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                          {formatMessageDate(item.date!)}
+                        </span>
+                      </div>
+                    );
+                  }
+                  const msg = item.data;
+                  const isFailed = msg.status === "failed";
+                  return (
+                    <div
+                      key={msg.tempId || msg.id}
+                      className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
+                    >
+                      <div
+                        className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
+                      >
+                        {!msg.isCurrentUser &&
+                          (msg.sender === "Deleted User" ? (
+                            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-muted flex items-center justify-center">
+                              <User className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          ) : (
+                            <Avatar
+                              className="w-8 h-8 flex-shrink-0"
+                              src={msg.avatar || ""}
+                              name={msg.sender}
+                            />
+                          ))}
                         <div
-                          className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
-                            msg.isCurrentUser
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-gray-100 text-foreground rounded-bl-md"
-                          }`}
+                          className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                         >
-                          {!msg.isCurrentUser && (
-                            <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
-                              {msg.sender}
+                          <div
+                            className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                              msg.isCurrentUser
+                                ? "bg-primary text-primary-foreground rounded-br-md"
+                                : "bg-gray-100 text-foreground rounded-bl-md"
+                            }`}
+                          >
+                            {!msg.isCurrentUser && (
+                              <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
+                                {msg.sender}
+                              </span>
+                            )}
+                            <span className="text-xs">{msg.content}</span>
+                            <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                              <span
+                                className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
+                              >
+                                {msg.timestamp}
+                              </span>
+                              {isFailed && (
+                                <>
+                                  <span
+                                    className="ml-1 text-xs text-destructive underline cursor-pointer"
+                                    tabIndex={0}
+                                    aria-label="Retry sending message"
+                                    onClick={() => retrySendMessage(msg)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        retrySendMessage(msg);
+                                      }
+                                    }}
+                                  >
+                                    Retry
+                                  </span>
+                                </>
+                              )}
                             </span>
-                          )}
-                          <span className="text-xs">{msg.content}</span>
-                          <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
-                            <span
-                              className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
-                            >
-                              {msg.timestamp}
-                            </span>
-                          </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </>
             )}
           </div>
