@@ -20,6 +20,7 @@ import {
   User,
   Plus,
 } from "lucide-react";
+import { PiPaperclip } from "react-icons/pi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
@@ -50,7 +51,7 @@ export default function GroupChatInterface() {
   const [messageLengthError, setMessageLengthError] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  console.log("Current message state:", message);
+  // console.log("Current message state:", message);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevGroupIdRef = useRef<string | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -674,7 +675,7 @@ export default function GroupChatInterface() {
                     );
                   }
                   const msg = item.data;
-                  console.log("MSG", msg);
+                  // console.log("MSG", msg);
                   return (
                     <div
                       key={msg.id}
@@ -698,50 +699,60 @@ export default function GroupChatInterface() {
                         <div
                           className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                         >
-                          <div
-                            className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
-                              msg.isCurrentUser
-                                ? "bg-primary text-primary-foreground rounded-br-md"
-                                : "bg-gray-100 text-foreground rounded-bl-md"
-                            }`}
-                          >
-                            {!msg.isCurrentUser && (
-                              <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
-                                {msg.sender}
-                              </span>
-                            )}
-                            {/* Render media if present */}
-                            {msg.mediaUrl && msg.mediaType === "image" && (
+                          {/* MEDIA: Render outside the bubble */}
+                          {msg.mediaUrl && msg.mediaType === "image" && (
+                            <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
                               <img
                                 src={msg.mediaUrl}
                                 alt="sent media"
-                                className="max-w-xs max-h-48 rounded-lg mb-2"
+                                className="w-full h-full object-cover rounded-2xl"
                               />
-                            )}
-                            {msg.mediaUrl && msg.mediaType === "video" && (
+                              <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+                                {msg.timestamp}
+                              </span>
+                            </div>
+                          )}
+                          {msg.mediaUrl && msg.mediaType === "video" && (
+                            <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
                               <video
                                 src={msg.mediaUrl}
                                 controls
-                                className="max-w-xs max-h-48 rounded-lg mb-2"
+                                className="w-full h-full object-cover rounded-2xl"
                               />
-                            )}
-                            {/* Render text if present */}
-                            {msg.content && (
+                              <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+                                {msg.timestamp}
+                              </span>
+                            </div>
+                          )}
+                          {/* TEXT: Only wrap in bubble if content exists */}
+                          {msg.content && (
+                            <div
+                              className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                                msg.isCurrentUser
+                                  ? "bg-primary text-primary-foreground rounded-br-md"
+                                  : "bg-gray-100 text-foreground rounded-bl-md"
+                              }`}
+                            >
+                              {!msg.isCurrentUser && (
+                                <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
+                                  {msg.sender}
+                                </span>
+                              )}
                               <span
                                 className="text-xs"
                                 dangerouslySetInnerHTML={{
                                   __html: linkifyMessage(msg.content),
                                 }}
                               />
-                            )}
-                            <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
-                              <span
-                                className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
-                              >
-                                {msg.timestamp}
+                              <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                                <span
+                                  className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
+                                >
+                                  {msg.timestamp}
+                                </span>
                               </span>
-                            </span>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -752,7 +763,7 @@ export default function GroupChatInterface() {
           </div>
 
           {/* Message Input - Sticky */}
-          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
+          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-2 shadow-none">
             <div className="flex items-center space-x-1">
               <button
                 type="button"
@@ -762,11 +773,11 @@ export default function GroupChatInterface() {
                 onClick={() => chatFileInputRef.current?.click()}
                 disabled={chatUploading}
               >
-                {chatUploading ? (
+                {/* {chatUploading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Plus className="h-5 w-5" />
-                )}
+                ) : ( */}
+                <PiPaperclip className="h-5 w-5" />
+                {/* )} */}
               </button>
               <input
                 ref={chatFileInputRef}
@@ -776,7 +787,8 @@ export default function GroupChatInterface() {
                 onChange={handleChatFileChange}
                 aria-label="Attach photo or video"
               />
-              <div className="flex-1 relative h-auto bg-transparent rounded-none hover:cursor-text">
+
+              <div className="flex-1 relative h-auto flex items-center bg-transparent hover:cursor-text">
                 <textarea
                   ref={textareaRef}
                   key={groupId}
@@ -784,7 +796,7 @@ export default function GroupChatInterface() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className={`w-full px-4 py-2 rounded-none border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto ${
+                  className={`w-full px-0 py-2 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none h-full max-h-10 overflow-y-auto scrollbar-hide align-middle ${
                     messageLengthError ? "border-red-500" : ""
                   }`}
                   aria-label="Type your message"

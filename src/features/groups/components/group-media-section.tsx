@@ -92,7 +92,7 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
           >
             See all
           </Button>
-          <Button
+          {/* <Button
             type="button"
             className="bg-transparent text-primary p-0 h-auto w-8 flex items-center justify-center"
             aria-label="Add photo or video"
@@ -105,7 +105,7 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
             ) : (
               <Plus className="h-5 w-5" />
             )}
-          </Button>
+          </Button> */}
           <input
             ref={fileInputRef}
             type="file"
