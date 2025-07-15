@@ -38,8 +38,16 @@ import {
 import GroupMediaSection from "@/features/groups/components/group-media-section";
 import { useUser } from "@clerk/nextjs";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
+import { Skeleton } from "@heroui/react";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
+
+// Utility: Check if message content is real text (not empty, not placeholder)
+const isRealTextMessage = (content: string) => {
+  if (!content) return false;
+  const trimmed = content.trim();
+  return trimmed !== "" && trimmed !== "[Encrypted message]";
+};
 
 export default function GroupChatInterface() {
   const params = useParams();
@@ -615,7 +623,7 @@ export default function GroupChatInterface() {
                   )} */}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {members.length} members, {onlineMembers} online
+                  {members.length} members
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -699,33 +707,33 @@ export default function GroupChatInterface() {
                         <div
                           className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                         >
-                          {/* MEDIA: Render outside the bubble */}
-                          {msg.mediaUrl && msg.mediaType === "image" && (
-                            <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
-                              <img
-                                src={msg.mediaUrl}
-                                alt="sent media"
-                                className="w-full h-full object-cover rounded-2xl"
-                              />
-                              <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
-                                {msg.timestamp}
+                          {/* MEDIA: Render outside the bubble, Telegram style */}
+                          {!msg.isCurrentUser &&
+                            msg.sender &&
+                            (msg.mediaType === "image" ||
+                              msg.mediaType === "video") && (
+                              <span className="inline-block font-semibold text-xs mb-1 mt-1 ml-1 text-muted-foreground">
+                                {msg.sender}
                               </span>
+                            )}
+                          {msg.mediaUrl && msg.mediaType === "image" && (
+                            <div className="overflow-hidden rounded-2xl">
+                              <MediaWithSkeleton
+                                url={msg.mediaUrl}
+                                timestamp={msg.timestamp}
+                              />
                             </div>
                           )}
                           {msg.mediaUrl && msg.mediaType === "video" && (
-                            <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
-                              <video
-                                src={msg.mediaUrl}
-                                controls
-                                className="w-full h-full object-cover rounded-2xl"
+                            <div className="overflow-hidden rounded-2xl">
+                              <VideoWithSkeleton
+                                url={msg.mediaUrl}
+                                timestamp={msg.timestamp}
                               />
-                              <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
-                                {msg.timestamp}
-                              </span>
                             </div>
                           )}
-                          {/* TEXT: Only wrap in bubble if content exists */}
-                          {msg.content && (
+                          {/* TEXT: Only wrap in bubble if content is real */}
+                          {isRealTextMessage(msg.content) && (
                             <div
                               className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
                                 msg.isCurrentUser
@@ -739,7 +747,11 @@ export default function GroupChatInterface() {
                                 </span>
                               )}
                               <span
-                                className="text-xs"
+                                className={`text-xs ${
+                                  msg.isCurrentUser
+                                    ? "text-primary-foreground "
+                                    : "text-foreground"
+                                } `}
                                 dangerouslySetInnerHTML={{
                                   __html: linkifyMessage(msg.content),
                                 }}
@@ -870,3 +882,57 @@ export default function GroupChatInterface() {
     </div>
   );
 }
+
+// MediaWithSkeleton component
+const MediaWithSkeleton = ({
+  url,
+  timestamp,
+}: {
+  url: string;
+  timestamp: string;
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+      {!loaded && (
+        <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
+      )}
+      <img
+        src={url}
+        alt="sent media"
+        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        onLoad={() => setLoaded(true)}
+      />
+      <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+        {timestamp}
+      </span>
+    </div>
+  );
+};
+
+// VideoWithSkeleton component
+const VideoWithSkeleton = ({
+  url,
+  timestamp,
+}: {
+  url: string;
+  timestamp: string;
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+      {!loaded && (
+        <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
+      )}
+      <video
+        src={url}
+        controls
+        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        onLoadedData={() => setLoaded(true)}
+      />
+      <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+        {timestamp}
+      </span>
+    </div>
+  );
+};

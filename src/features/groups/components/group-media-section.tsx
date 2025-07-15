@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Loader2, Plus, Video } from "lucide-react";
+import { Skeleton } from "@heroui/react";
 
 interface MediaItem {
   id: string;
@@ -117,8 +118,13 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
         </div>
       </div>
       {loading ? (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-4 w-4 animate-spin" />
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton
+              key={i}
+              className="aspect-[4/3] w-full h-full rounded-xl"
+            />
+          ))}
         </div>
       ) : error ? (
         <div className="text-center text-xs text-red-500 py-4">{error}</div>
@@ -141,19 +147,19 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
                   <>
                     <video
                       src={item.url}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                       controls={false}
                       aria-label="Video preview"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                      <Video className="h-8 w-8 text-white" />
+                      <Video className="h-5 w-5 text-primary-foreground" />
                     </div>
                   </>
                 )}
                 {idx === 3 && media.length > 4 && (
-                  <div className="absolute inset-0 bg-gray-100 opacity-75 flex items-center justify-center rounded-xl">
-                    <span className="text-foreground font-semibold text-lg">
-                      +{media.length - 4}
+                  <div className="absolute inset-0 bg-black/60 opacity-75 flex items-center justify-center rounded-xl">
+                    <span className="text-primary-foreground font-semibold text-sm">
+                      +{media.length - 3}
                     </span>
                   </div>
                 )}
