@@ -21,6 +21,7 @@ import {
   Plus,
 } from "lucide-react";
 import { PiPaperclip } from "react-icons/pi";
+import { HiPlay } from "react-icons/hi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
@@ -39,6 +40,7 @@ import GroupMediaSection from "@/features/groups/components/group-media-section"
 import { useUser } from "@clerk/nextjs";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { Skeleton } from "@heroui/react";
+import MediaViewerModal from "@/shared/components/media-viewer-modal";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
 
@@ -70,6 +72,17 @@ export default function GroupChatInterface() {
   // Add state and ref for chat file picker
   const chatFileInputRef = useRef<HTMLInputElement>(null);
   const [chatUploading, setChatUploading] = useState(false);
+
+  // Add modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMediaUrl, setModalMediaUrl] = useState<string | null>(null);
+  const [modalMediaType, setModalMediaType] = useState<
+    "image" | "video" | null
+  >(null);
+  const [modalTimestamp, setModalTimestamp] = useState<string | undefined>(
+    undefined
+  );
+  const [modalSender, setModalSender] = useState<string | undefined>(undefined);
 
   const {
     messages,
@@ -717,20 +730,62 @@ export default function GroupChatInterface() {
                               </span>
                             )}
                           {msg.mediaUrl && msg.mediaType === "image" && (
-                            <div className="overflow-hidden rounded-2xl">
+                            <button
+                              type="button"
+                              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
+                              aria-label="View image in full screen"
+                              tabIndex={0}
+                              onClick={() => {
+                                setModalMediaUrl(msg.mediaUrl);
+                                setModalMediaType("image");
+                                setModalTimestamp(msg.timestamp);
+                                setModalSender(msg.sender);
+                                setModalOpen(true);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  setModalMediaUrl(msg.mediaUrl);
+                                  setModalMediaType("image");
+                                  setModalTimestamp(msg.timestamp);
+                                  setModalSender(msg.sender);
+                                  setModalOpen(true);
+                                }
+                              }}
+                            >
                               <MediaWithSkeleton
                                 url={msg.mediaUrl}
                                 timestamp={msg.timestamp}
                               />
-                            </div>
+                            </button>
                           )}
                           {msg.mediaUrl && msg.mediaType === "video" && (
-                            <div className="overflow-hidden rounded-2xl">
+                            <button
+                              type="button"
+                              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
+                              aria-label="View video in full screen"
+                              tabIndex={0}
+                              onClick={() => {
+                                setModalMediaUrl(msg.mediaUrl);
+                                setModalMediaType("video");
+                                setModalTimestamp(msg.timestamp);
+                                setModalSender(msg.sender);
+                                setModalOpen(true);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  setModalMediaUrl(msg.mediaUrl);
+                                  setModalMediaType("video");
+                                  setModalTimestamp(msg.timestamp);
+                                  setModalSender(msg.sender);
+                                  setModalOpen(true);
+                                }
+                              }}
+                            >
                               <VideoWithSkeleton
                                 url={msg.mediaUrl}
                                 timestamp={msg.timestamp}
                               />
-                            </div>
+                            </button>
                           )}
                           {/* TEXT: Only wrap in bubble if content is real */}
                           {isRealTextMessage(msg.content) && (
@@ -879,6 +934,15 @@ export default function GroupChatInterface() {
           </div>
         </div>
       </div>
+      {/* Place the modal at the root of the component */}
+      <MediaViewerModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        mediaUrl={modalMediaUrl || ""}
+        mediaType={modalMediaType as "image" | "video"}
+        timestamp={modalTimestamp}
+        sender={modalSender}
+      />
     </div>
   );
 }
@@ -926,10 +990,13 @@ const VideoWithSkeleton = ({
       )}
       <video
         src={url}
-        controls
+        controls={false}
         className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
         onLoadedData={() => setLoaded(true)}
       />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+        <HiPlay className="h-7 w-7 text-primary-foreground" />
+      </div>
       <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
         {timestamp}
       </span>
