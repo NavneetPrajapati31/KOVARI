@@ -738,7 +738,7 @@ export default function GroupChatInterface() {
                               onClick={() => {
                                 setModalMediaUrl(msg.mediaUrl);
                                 setModalMediaType("image");
-                                setModalTimestamp(msg.timestamp);
+                                setModalTimestamp(msg.createdAt); // Use raw ISO date
                                 setModalSender(msg.sender);
                                 setModalOpen(true);
                               }}
@@ -746,7 +746,7 @@ export default function GroupChatInterface() {
                                 if (e.key === "Enter" || e.key === " ") {
                                   setModalMediaUrl(msg.mediaUrl);
                                   setModalMediaType("image");
-                                  setModalTimestamp(msg.timestamp);
+                                  setModalTimestamp(msg.createdAt); // Use raw ISO date
                                   setModalSender(msg.sender);
                                   setModalOpen(true);
                                 }
@@ -767,7 +767,7 @@ export default function GroupChatInterface() {
                               onClick={() => {
                                 setModalMediaUrl(msg.mediaUrl);
                                 setModalMediaType("video");
-                                setModalTimestamp(msg.timestamp);
+                                setModalTimestamp(msg.createdAt); // Use raw ISO date
                                 setModalSender(msg.sender);
                                 setModalOpen(true);
                               }}
@@ -775,7 +775,7 @@ export default function GroupChatInterface() {
                                 if (e.key === "Enter" || e.key === " ") {
                                   setModalMediaUrl(msg.mediaUrl);
                                   setModalMediaType("video");
-                                  setModalTimestamp(msg.timestamp);
+                                  setModalTimestamp(msg.createdAt); // Use raw ISO date
                                   setModalSender(msg.sender);
                                   setModalOpen(true);
                                 }
@@ -940,7 +940,7 @@ export default function GroupChatInterface() {
         onClose={() => setModalOpen(false)}
         mediaUrl={modalMediaUrl || ""}
         mediaType={modalMediaType as "image" | "video"}
-        timestamp={modalTimestamp}
+        timestamp={modalTimestamp} // already raw, ensure it's not formatted
         sender={modalSender}
       />
     </div>

@@ -6,9 +6,34 @@ interface MediaViewerModalProps {
   onClose: () => void;
   mediaUrl: string;
   mediaType: "image" | "video";
-  timestamp?: string;
+  timestamp?: string; // raw ISO string
   sender?: string;
 }
+
+// Utility: format timestamp for modal
+const formatMediaTimestamp = (dateString?: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+  const isToday =
+    date.getUTCDate() === now.getUTCDate() &&
+    date.getUTCMonth() === now.getUTCMonth() &&
+    date.getUTCFullYear() === now.getUTCFullYear();
+  const time = date
+    .toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .toLowerCase();
+  if (isToday) return time;
+  const day = date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  return `${day}, ${time}`;
+};
 
 export const MediaViewerModal = ({
   open,
@@ -91,7 +116,7 @@ export const MediaViewerModal = ({
                 className="text-xs text-white/80 ml-auto"
                 aria-label="Timestamp"
               >
-                {timestamp}
+                {formatMediaTimestamp(timestamp)}
               </span>
             )}
           </div>

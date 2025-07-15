@@ -7,30 +7,6 @@ import MediaViewerModal from "@/shared/components/media-viewer-modal";
 import { formatMessageDate } from "@/shared/utils/utils";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 
-// Utility: format timestamp for media modal
-const formatMediaTimestamp = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
-  const time = date
-    .toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    })
-    .toLowerCase();
-  if (isToday) return time;
-  const day = date.toLocaleDateString([], {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-  return `${day}, ${time}`;
-};
-
 interface MediaItem {
   id: string;
   url: string;
@@ -200,7 +176,7 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
                     "Unknown";
                   setModalMediaUrl(item.url);
                   setModalMediaType(item.type);
-                  setModalTimestamp(formatMediaTimestamp(item.created_at));
+                  setModalTimestamp(item.created_at); // Pass raw date
                   setModalSender(displayName);
                   setModalOpen(true);
                 }}
@@ -211,7 +187,7 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
                       "Unknown";
                     setModalMediaUrl(item.url);
                     setModalMediaType(item.type);
-                    setModalTimestamp(formatMediaTimestamp(item.created_at));
+                    setModalTimestamp(item.created_at); // Pass raw date
                     setModalSender(displayName);
                     setModalOpen(true);
                   }
