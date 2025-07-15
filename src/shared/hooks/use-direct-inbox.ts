@@ -7,6 +7,7 @@ export interface Conversation {
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
+  lastMediaType?: "image" | "video";
 }
 
 interface UseDirectInboxResult {
@@ -97,7 +98,7 @@ export const useDirectInbox = (
       const { data, error } = await supabase
         .from("direct_messages")
         .select(
-          "id, encrypted_content, encryption_iv, encryption_salt, is_encrypted, created_at, sender_id, receiver_id, read_at"
+          "id, encrypted_content, encryption_iv, encryption_salt, is_encrypted, created_at, sender_id, receiver_id, read_at, media_url, media_type"
         )
         .or(`sender_id.eq.${currentUserUuid},receiver_id.eq.${currentUserUuid}`)
         .order("created_at", { ascending: false });
@@ -130,7 +131,12 @@ export const useDirectInbox = (
                 ? `${currentUserUuid}:${partnerId}`
                 : `${partnerId}:${currentUserUuid}`;
             let lastMessage = "[Encrypted message]";
-            if (
+            let lastMediaType: "image" | "video" | undefined = undefined;
+            if (msg.media_url && msg.media_type) {
+              // Media message: show icon/label in inbox
+              lastMessage = "";
+              lastMediaType = msg.media_type;
+            } else if (
               msg.is_encrypted &&
               msg.encrypted_content &&
               msg.encryption_iv &&
@@ -155,6 +161,7 @@ export const useDirectInbox = (
               lastMessage,
               lastMessageAt: msg.created_at,
               unreadCount: 0, // will set below
+              lastMediaType,
             });
           }
         });
@@ -215,7 +222,12 @@ export const useDirectInbox = (
                   ? `${currentUserUuid}:${partnerId}`
                   : `${partnerId}:${currentUserUuid}`;
               let lastMessage = "[Encrypted message]";
-              if (
+              let lastMediaType: "image" | "video" | undefined = undefined;
+              if (msg.media_url && msg.media_type) {
+                // Media message: show icon/label in inbox
+                lastMessage = "";
+                lastMediaType = msg.media_type;
+              } else if (
                 msg.is_encrypted &&
                 msg.encrypted_content &&
                 msg.encryption_iv &&
@@ -244,6 +256,7 @@ export const useDirectInbox = (
                   lastMessage,
                   lastMessageAt: msg.created_at,
                   unreadCount: unreadMap[partnerId] || 0,
+                  lastMediaType,
                 };
                 return updated;
               } else {
@@ -254,6 +267,7 @@ export const useDirectInbox = (
                     lastMessage,
                     lastMessageAt: msg.created_at,
                     unreadCount: unreadMap[partnerId] || 0,
+                    lastMediaType,
                   },
                   ...prev,
                 ];
