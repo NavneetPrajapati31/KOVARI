@@ -6,10 +6,9 @@ import { cookies } from "next/headers";
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ userId: string }> }
+  context: { params: { userId: string } }
 ) {
-  const params = await context.params;
-  const userId = params.userId;
+  const { userId } = context.params;
   const supabase = createRouteHandlerSupabaseClient();
 
   // Get current user (for isFollowing)
@@ -100,6 +99,7 @@ export async function DELETE(
   req: Request,
   context: { params: { userId: string } }
 ) {
+  const { userId } = context.params;
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) return new Response("Unauthorized", { status: 401 });
 
@@ -123,7 +123,7 @@ export async function DELETE(
   const { error } = await supabase
     .from("user_follows")
     .delete()
-    .eq("follower_id", context.params.userId)
+    .eq("follower_id", userId)
     .eq("following_id", currentUser.id);
 
   if (error) return new Response(error.message, { status: 500 });
@@ -134,6 +134,7 @@ export async function POST(
   req: Request,
   context: { params: { userId: string } }
 ) {
+  const { userId } = context.params;
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) return new Response("Unauthorized", { status: 401 });
 
@@ -156,7 +157,7 @@ export async function POST(
   // Add follow relationship (current user follows userId)
   const { error } = await supabase.from("user_follows").insert({
     follower_id: currentUser.id,
-    following_id: context.params.userId,
+    following_id: userId,
   });
 
   if (error) return new Response(error.message, { status: 500 });

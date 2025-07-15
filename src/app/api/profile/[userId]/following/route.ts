@@ -6,10 +6,9 @@ import { cookies } from "next/headers";
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ userId: string }> }
+  context: { params: { userId: string } }
 ) {
-  const params = await context.params;
-  const userId = params.userId;
+  const { userId } = context.params;
   const supabase = createRouteHandlerSupabaseClient();
 
   // Get current user (for isFollowing)
