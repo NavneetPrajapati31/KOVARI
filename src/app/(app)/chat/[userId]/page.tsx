@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { PiPaperclip } from "react-icons/pi";
 import { BiCheckDouble, BiCheck } from "react-icons/bi";
+import { HiPlay } from "react-icons/hi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { decryptMessage } from "@/shared/utils/encryption";
 import {
@@ -115,10 +116,13 @@ const VideoWithSkeleton = ({
       )}
       <video
         src={url}
-        controls
+        controls={false}
         className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
         onLoadedData={() => setLoaded(true)}
       />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+        <HiPlay className="h-7 w-7 text-primary-foreground" />
+      </div>
       <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
         {timestamp}
       </span>
