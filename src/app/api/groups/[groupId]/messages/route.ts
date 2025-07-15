@@ -55,6 +55,8 @@ export async function GET(
         is_encrypted,
         created_at,
         user_id,
+        media_url,
+        media_type,
         users(
           id,
           profiles(
@@ -76,6 +78,8 @@ export async function GET(
         { status: 500 }
       );
     }
+
+    console.log("[GET_MESSAGES] Raw messages from DB:", messages);
 
     // Transform messages to include sender info and format timestamps
     const formattedMessages =
@@ -99,8 +103,12 @@ export async function GET(
           avatar: isDeleted ? undefined : profile?.profile_photo,
           isCurrentUser: message.user_id === userRow.id,
           createdAt: message.created_at,
+          mediaUrl: message.media_url || undefined,
+          mediaType: message.media_type || undefined,
         };
       }) || [];
+
+    console.log("[GET_MESSAGES] Formatted messages:", formattedMessages);
 
     return NextResponse.json(formattedMessages);
   } catch (error) {
@@ -126,18 +134,14 @@ export async function POST(
 
     // Read the request body once
     const body = await req.json();
-    const { encryptedContent, encryptionIv, encryptionSalt, isEncrypted } =
-      body;
-
-    if (!isEncrypted || !encryptedContent || !encryptionIv || !encryptionSalt) {
-      return NextResponse.json(
-        {
-          error:
-            "Only encrypted messages are supported. Missing encryption fields.",
-        },
-        { status: 400 }
-      );
-    }
+    const {
+      encryptedContent,
+      encryptionIv,
+      encryptionSalt,
+      isEncrypted,
+      mediaUrl,
+      mediaType,
+    } = body;
 
     const supabase = createRouteHandlerSupabaseClient();
 
@@ -168,40 +172,58 @@ export async function POST(
       );
     }
 
-    // Store encrypted message only
-    const messageData = {
-      group_id: groupId,
-      user_id: userRow.id,
-      encrypted_content: encryptedContent,
-      encryption_iv: encryptionIv,
-      encryption_salt: encryptionSalt,
-      is_encrypted: true,
-    };
-
-    // Insert the message
-    const { data: inserted, error: insertError } = await supabase
-      .from("group_messages")
-      .insert([messageData])
-      .select()
-      .single();
-
-    if (insertError) {
+    // Allow: (A) encrypted text message, (B) media-only message, (C) both
+    if (
+      (isEncrypted && encryptedContent && encryptionIv && encryptionSalt) ||
+      (mediaUrl && mediaType)
+    ) {
+      const messageData: any = {
+        group_id: groupId,
+        user_id: userRow.id,
+        is_encrypted: !!isEncrypted,
+      };
+      if (isEncrypted) {
+        messageData.encrypted_content = encryptedContent;
+        messageData.encryption_iv = encryptionIv;
+        messageData.encryption_salt = encryptionSalt;
+      }
+      if (mediaUrl && mediaType) {
+        messageData.media_url = mediaUrl;
+        messageData.media_type = mediaType;
+      }
+      console.log("[POST_MESSAGE] Inserting message:", messageData);
+      const { data: inserted, error: insertError } = await supabase
+        .from("group_messages")
+        .insert([messageData])
+        .select()
+        .single();
+      if (insertError) {
+        return NextResponse.json(
+          { error: "Failed to insert message", details: insertError.message },
+          { status: 500 }
+        );
+      }
+      // Return the inserted message (with encrypted and media fields)
+      return NextResponse.json({
+        id: inserted.id,
+        encryptedContent: inserted.encrypted_content,
+        encryptionIv: inserted.encryption_iv,
+        encryptionSalt: inserted.encryption_salt,
+        isEncrypted: inserted.is_encrypted,
+        createdAt: inserted.created_at,
+        sender: userRow.id,
+        mediaUrl: inserted.media_url,
+        mediaType: inserted.media_type,
+      });
+    } else {
       return NextResponse.json(
-        { error: "Failed to insert message", details: insertError.message },
-        { status: 500 }
+        {
+          error:
+            "Only encrypted or media messages are supported. Missing required fields.",
+        },
+        { status: 400 }
       );
     }
-
-    // Return the inserted message (with encrypted fields)
-    return NextResponse.json({
-      id: inserted.id,
-      encryptedContent: inserted.encrypted_content,
-      encryptionIv: inserted.encryption_iv,
-      encryptionSalt: inserted.encryption_salt,
-      isEncrypted: inserted.is_encrypted,
-      createdAt: inserted.created_at,
-      sender: userRow.id,
-    });
   } catch (error) {
     console.error("[POST_MESSAGE]", error);
     return NextResponse.json(

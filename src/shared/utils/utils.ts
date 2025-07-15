@@ -95,8 +95,8 @@ export const linkifyMessage = (message: string): string => {
     if (!href.startsWith("http")) {
       href = "https://" + href;
     }
-    // Tailwind: text-primary-foreground, underline, decoration-primary-foreground, hover:text-primary-foreground, hover:decoration-primary-foreground, focus:outline-none
-    return `<a href="${href}" class="text-primary-foreground underline decoration-primary-foreground hover:text-primary-foreground hover:decoration-primary-foreground focus:outline-none" target="_blank" rel="noopener noreferrer" aria-label="Open link: ${url}">${url}</a>`;
+    // Tailwind: underline, decoration-inherit, hover:decoration-inherit, focus:outline-none
+    return `<a href="${href}" class="underline decoration-inherit hover:decoration-inherit focus:outline-none" target="_blank" rel="noopener noreferrer" aria-label="Open link: ${url}">${url}</a>`;
   });
   // Replace line breaks with <br />
   html = html.replace(/\n/g, "<br />");

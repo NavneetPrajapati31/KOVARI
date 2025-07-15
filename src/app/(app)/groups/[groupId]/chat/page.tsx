@@ -18,7 +18,9 @@ import {
   Users,
   Lock,
   User,
+  Plus,
 } from "lucide-react";
+import { PiPaperclip } from "react-icons/pi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
@@ -33,8 +35,19 @@ import {
   formatMessageDate,
   linkifyMessage,
 } from "@/shared/utils/utils";
+import GroupMediaSection from "@/features/groups/components/group-media-section";
+import { useUser } from "@clerk/nextjs";
+import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
+import { Skeleton } from "@heroui/react";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
+
+// Utility: Check if message content is real text (not empty, not placeholder)
+const isRealTextMessage = (content: string) => {
+  if (!content) return false;
+  const trimmed = content.trim();
+  return trimmed !== "" && trimmed !== "[Encrypted message]";
+};
 
 export default function GroupChatInterface() {
   const params = useParams();
@@ -46,12 +59,17 @@ export default function GroupChatInterface() {
   const [messageLengthError, setMessageLengthError] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  console.log("Current message state:", message);
+  // console.log("Current message state:", message);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevGroupIdRef = useRef<string | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null); // Removed as per edit hint
+
+  // Add state and ref for chat file picker
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const [chatUploading, setChatUploading] = useState(false);
 
   const {
     messages,
@@ -85,6 +103,15 @@ export default function GroupChatInterface() {
     "membershipInfo",
     membershipInfo
   );
+
+  const { user } = useUser();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      getUserUuidByClerkId(user.id).then((uuid) => setUserId(uuid));
+    }
+  }, [user?.id]);
 
   // Insert emoji at cursor position
   const insertEmoji = (emoji: string) => {
@@ -206,6 +233,38 @@ export default function GroupChatInterface() {
       }
     }
     // Shift+Enter: allow default (newline)
+  };
+
+  // Add upload handler for chat input
+  // const userId = /* get user id from props, context, or hook */;
+
+  const handleChatFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return; // Only proceed if userId is loaded
+    setChatUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("uploaded_by", userId); // use real user id
+      const res = await fetch(`/api/groups/${groupId}/media`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to upload");
+      }
+      const uploaded = await res.json();
+      // Send a message with the media URL and type
+      await sendMessage("", uploaded.url, uploaded.type);
+    } catch (err) {
+      // Optionally show error toast
+    } finally {
+      setChatUploading(false);
+      if (chatFileInputRef.current) chatFileInputRef.current.value = "";
+    }
   };
 
   // Handle rejoining after being removed
@@ -429,54 +488,19 @@ export default function GroupChatInterface() {
             </div>
 
             {/* Photos and Videos */}
-            <div className="mb-3 border-b-1 border-border">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-foreground">
-                  Photos and videos
-                </h3>
-                <Button className="bg-transparent text-primary text-sm p-0 h-auto font-medium">
-                  See all
-                </Button>
+            {userId ? (
+              <GroupMediaSection groupId={groupId} userId={userId} />
+            ) : (
+              <div className="flex items-center justify-center py-4">
+                <Spinner variant="spinner" size="sm" color="primary" />
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Loading media...
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=200&h=150&fit=crop"
-                    alt="Team meeting"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1515378960530-7c0da6231fb1?w=200&h=150&fit=crop"
-                    alt="Office workspace"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=200&h=150&fit=crop"
-                    alt="Team collaboration"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=200&h=150&fit=crop"
-                    alt="Team celebration"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gray-100 opacity-75 flex items-center justify-center rounded-xl">
-                    <span className="text-foreground font-semibold text-lg">
-                      +178
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Shared Files */}
-            <div className="mb-3 border-b-1 border-border">
+            {/* <div className="mb-3 border-b-1 border-border">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
                   Shared files
@@ -526,10 +550,10 @@ export default function GroupChatInterface() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Shared Links */}
-            <div>
+            {/* <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
                   Shared links
@@ -566,7 +590,7 @@ export default function GroupChatInterface() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
         {/* Chat Area */}
@@ -599,7 +623,7 @@ export default function GroupChatInterface() {
                   )} */}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {members.length} members, {onlineMembers} online
+                  {members.length} members
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -659,6 +683,7 @@ export default function GroupChatInterface() {
                     );
                   }
                   const msg = item.data;
+                  // console.log("MSG", msg);
                   return (
                     <div
                       key={msg.id}
@@ -682,32 +707,64 @@ export default function GroupChatInterface() {
                         <div
                           className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                         >
-                          <div
-                            className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
-                              msg.isCurrentUser
-                                ? "bg-primary text-primary-foreground rounded-br-md"
-                                : "bg-gray-100 text-foreground rounded-bl-md"
-                            }`}
-                          >
-                            {!msg.isCurrentUser && (
-                              <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
+                          {/* MEDIA: Render outside the bubble, Telegram style */}
+                          {!msg.isCurrentUser &&
+                            msg.sender &&
+                            (msg.mediaType === "image" ||
+                              msg.mediaType === "video") && (
+                              <span className="inline-block font-semibold text-xs mb-1 mt-1 ml-1 text-muted-foreground">
                                 {msg.sender}
                               </span>
                             )}
-                            <span
-                              className="text-xs"
-                              dangerouslySetInnerHTML={{
-                                __html: linkifyMessage(msg.content),
-                              }}
-                            />
-                            <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                          {msg.mediaUrl && msg.mediaType === "image" && (
+                            <div className="overflow-hidden rounded-2xl">
+                              <MediaWithSkeleton
+                                url={msg.mediaUrl}
+                                timestamp={msg.timestamp}
+                              />
+                            </div>
+                          )}
+                          {msg.mediaUrl && msg.mediaType === "video" && (
+                            <div className="overflow-hidden rounded-2xl">
+                              <VideoWithSkeleton
+                                url={msg.mediaUrl}
+                                timestamp={msg.timestamp}
+                              />
+                            </div>
+                          )}
+                          {/* TEXT: Only wrap in bubble if content is real */}
+                          {isRealTextMessage(msg.content) && (
+                            <div
+                              className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                                msg.isCurrentUser
+                                  ? "bg-primary text-primary-foreground rounded-br-md"
+                                  : "bg-gray-100 text-foreground rounded-bl-md"
+                              }`}
+                            >
+                              {!msg.isCurrentUser && (
+                                <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
+                                  {msg.sender}
+                                </span>
+                              )}
                               <span
-                                className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
-                              >
-                                {msg.timestamp}
+                                className={`text-xs ${
+                                  msg.isCurrentUser
+                                    ? "text-primary-foreground "
+                                    : "text-foreground"
+                                } `}
+                                dangerouslySetInnerHTML={{
+                                  __html: linkifyMessage(msg.content),
+                                }}
+                              />
+                              <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                                <span
+                                  className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
+                                >
+                                  {msg.timestamp}
+                                </span>
                               </span>
-                            </span>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -718,9 +775,32 @@ export default function GroupChatInterface() {
           </div>
 
           {/* Message Input - Sticky */}
-          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
+          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-2 shadow-none">
             <div className="flex items-center space-x-1">
-              <div className="flex-1 relative h-auto bg-transparent rounded-none hover:cursor-text">
+              <button
+                type="button"
+                className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
+                aria-label="Attach photo or video"
+                tabIndex={0}
+                onClick={() => chatFileInputRef.current?.click()}
+                disabled={chatUploading}
+              >
+                {/* {chatUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : ( */}
+                <PiPaperclip className="h-5 w-5" />
+                {/* )} */}
+              </button>
+              <input
+                ref={chatFileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={handleChatFileChange}
+                aria-label="Attach photo or video"
+              />
+
+              <div className="flex-1 relative h-auto flex items-center bg-transparent hover:cursor-text">
                 <textarea
                   ref={textareaRef}
                   key={groupId}
@@ -728,7 +808,7 @@ export default function GroupChatInterface() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className={`w-full px-4 py-2 rounded-none border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto ${
+                  className={`w-full px-0 py-2 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none h-full max-h-10 overflow-y-auto scrollbar-hide align-middle ${
                     messageLengthError ? "border-red-500" : ""
                   }`}
                   aria-label="Type your message"
@@ -802,3 +882,57 @@ export default function GroupChatInterface() {
     </div>
   );
 }
+
+// MediaWithSkeleton component
+const MediaWithSkeleton = ({
+  url,
+  timestamp,
+}: {
+  url: string;
+  timestamp: string;
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+      {!loaded && (
+        <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
+      )}
+      <img
+        src={url}
+        alt="sent media"
+        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        onLoad={() => setLoaded(true)}
+      />
+      <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+        {timestamp}
+      </span>
+    </div>
+  );
+};
+
+// VideoWithSkeleton component
+const VideoWithSkeleton = ({
+  url,
+  timestamp,
+}: {
+  url: string;
+  timestamp: string;
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+      {!loaded && (
+        <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
+      )}
+      <video
+        src={url}
+        controls
+        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        onLoadedData={() => setLoaded(true)}
+      />
+      <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+        {timestamp}
+      </span>
+    </div>
+  );
+};
