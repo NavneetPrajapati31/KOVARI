@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/shared/components/ui/button";
-import { Loader2, Plus, Video } from "lucide-react";
+import { Loader2, Plus, Video, Play } from "lucide-react";
+import { HiPlay } from "react-icons/hi";
 import { Skeleton } from "@heroui/react";
+import MediaViewerModal from "@/shared/components/media-viewer-modal";
+import { formatMessageDate } from "@/shared/utils/utils";
+import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 
 interface MediaItem {
   id: string;
@@ -22,6 +26,20 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMediaUrl, setModalMediaUrl] = useState<string | null>(null);
+  const [modalMediaType, setModalMediaType] = useState<
+    "image" | "video" | null
+  >(null);
+  const [modalTimestamp, setModalTimestamp] = useState<string | undefined>(
+    undefined
+  );
+  const [modalSender, setModalSender] = useState<string | undefined>(undefined);
+
+  // Fetch group members
+  const { members } = useGroupMembers(groupId);
 
   const fetchMedia = async () => {
     setLoading(true);
@@ -145,11 +163,35 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
       ) : (
         <div className="grid grid-cols-2 gap-2 mb-4">
           {media.slice(0, 4).map((item, idx) => {
-            console.log("[MEDIA][RENDER] item.url:", item.url);
             return (
-              <div
+              <button
                 key={item.id}
-                className="aspect-[4/3] rounded-xl overflow-hidden relative group"
+                type="button"
+                className="aspect-[4/3] rounded-xl overflow-hidden relative group focus:outline-none focus:ring-0"
+                aria-label={`View ${item.type} in full screen`}
+                tabIndex={0}
+                onClick={() => {
+                  const displayName =
+                    members.find((m) => m.id === item.uploaded_by)?.name ||
+                    "Unknown";
+                  setModalMediaUrl(item.url);
+                  setModalMediaType(item.type);
+                  setModalTimestamp(item.created_at); // Pass raw date
+                  setModalSender(displayName);
+                  setModalOpen(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    const displayName =
+                      members.find((m) => m.id === item.uploaded_by)?.name ||
+                      "Unknown";
+                    setModalMediaUrl(item.url);
+                    setModalMediaType(item.type);
+                    setModalTimestamp(item.created_at); // Pass raw date
+                    setModalSender(displayName);
+                    setModalOpen(true);
+                  }
+                }}
               >
                 {item.type === "image" ? (
                   <img
@@ -166,7 +208,7 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
                       aria-label="Video preview"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                      <Video className="h-5 w-5 text-primary-foreground" />
+                      <HiPlay className="h-6 w-6 text-primary-foreground" />
                     </div>
                   </>
                 )}
@@ -177,11 +219,20 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
                     </span>
                   </div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
       )}
+      {/* Media Viewer Modal */}
+      <MediaViewerModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        mediaUrl={modalMediaUrl || ""}
+        mediaType={modalMediaType as "image" | "video"}
+        timestamp={modalTimestamp}
+        sender={modalSender}
+      />
     </div>
   );
 };
