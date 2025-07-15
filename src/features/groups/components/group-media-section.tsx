@@ -84,38 +84,40 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
         <h3 className="text-sm font-semibold text-foreground">
           Photos and videos
         </h3>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            className="bg-transparent text-primary text-sm p-0 h-auto font-medium"
-            aria-label="See all media"
-            tabIndex={0}
-          >
-            See all
-          </Button>
-          {/* <Button
-            type="button"
-            className="bg-transparent text-primary p-0 h-auto w-8 flex items-center justify-center"
-            aria-label="Add photo or video"
-            tabIndex={0}
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Plus className="h-5 w-5" />
-            )}
-          </Button> */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            className="hidden"
-            onChange={handleFileChange}
-            aria-label="Upload photo or video"
-          />
-        </div>
+        {media.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              className="bg-transparent text-primary text-sm p-0 h-auto font-medium"
+              aria-label="See all media"
+              tabIndex={0}
+            >
+              See all
+            </Button>
+            {/* <Button
+              type="button"
+              className="bg-transparent text-primary p-0 h-auto w-8 flex items-center justify-center"
+              aria-label="Add photo or video"
+              tabIndex={0}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Plus className="h-5 w-5" />
+              )}
+            </Button> */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={handleFileChange}
+              aria-label="Upload photo or video"
+            />
+          </div>
+        )}
       </div>
       {loading ? (
         <div className="grid grid-cols-2 gap-2 mb-4">
@@ -128,6 +130,18 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
         </div>
       ) : error ? (
         <div className="text-center text-xs text-red-500 py-4">{error}</div>
+      ) : media.length === 0 ? (
+        <div className="text-center py-10">
+          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
+            <Video className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">
+            No photos or videos yet
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Share memories with your group
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 mb-4">
           {media.slice(0, 4).map((item, idx) => {
