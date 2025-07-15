@@ -160,7 +160,7 @@ export default function UserCard({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-100 transition-colors">
+    <div className="flex items-center justify-between pl-4 md:pr-4 pr-3 py-3 hover:bg-gray-100 transition-colors">
       <div className="flex items-center space-x-3 flex-1 min-w-0">
         <Avatar className="sm:w-11 sm:h-11 h-10 w-10 border border-gray-200">
           <AvatarImage
@@ -234,10 +234,10 @@ export default function UserCard({
         {/* Dropdown for mobile */}
         <div className="flex md:hidden">
           <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-            <DropdownMenuTrigger asChild className="px-0">
+            <DropdownMenuTrigger asChild className="!px-0">
               <Button
                 size="sm"
-                className="w-8 h-8 p-0 bg-transparent text-foreground"
+                className="w-4 h-4 p-0 bg-transparent text-foreground"
               >
                 <EllipsisVertical className="w-4 h-4 text-foreground" />
                 <span className="sr-only">More options</span>
