@@ -4,11 +4,8 @@ import { auth } from "@clerk/nextjs/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export async function GET(
-  req: NextRequest,
-  context: { params: { userId: string } }
-) {
-  const { userId } = context.params;
+export async function GET(req: Request, context: any) {
+  const userId = context?.params?.userId;
   const supabase = createRouteHandlerSupabaseClient();
 
   // Get current user (for isFollowing)
@@ -97,9 +94,9 @@ export async function GET(
 
 export async function DELETE(
   req: Request,
-  context: { params: { userId: string } }
+  context: { params: Promise<{ userId: string }> }
 ) {
-  const { userId } = context.params;
+  const { userId } = await context.params;
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) return new Response("Unauthorized", { status: 401 });
 
@@ -132,9 +129,9 @@ export async function DELETE(
 
 export async function POST(
   req: Request,
-  context: { params: { userId: string } }
+  context: { params: Promise<{ userId: string }> }
 ) {
-  const { userId } = context.params;
+  const { userId } = await context.params;
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) return new Response("Unauthorized", { status: 401 });
 

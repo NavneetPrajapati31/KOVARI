@@ -6,9 +6,9 @@ import { cookies } from "next/headers";
 
 export async function GET(
   req: NextRequest,
-  context: { params: { userId: string } }
+  context: { params: Promise<{ userId: string }> }
 ) {
-  const { userId } = context.params;
+  const { userId } = await context.params;
   const supabase = createRouteHandlerSupabaseClient();
 
   // 1. Fetch profile (remove interests from select)
