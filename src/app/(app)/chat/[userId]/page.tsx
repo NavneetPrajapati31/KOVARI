@@ -1140,7 +1140,7 @@ const DirectChatPage = () => {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto scrollbar-hide p-4 mb-2 max-h-[80vh] bg-card flex flex-col"
+        className="absolute top-16 bottom-8 left-0 right-0 overflow-y-auto scrollbar-hide p-4 mb-2 max-h-[80vh] bg-card flex flex-col"
         data-testid="messages-container"
         aria-live="polite"
         aria-atomic="false"
