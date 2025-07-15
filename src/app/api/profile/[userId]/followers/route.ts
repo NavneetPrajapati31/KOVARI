@@ -98,7 +98,7 @@ export async function GET(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { userId: string } }
+  context: { params: { userId: string } }
 ) {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) return new Response("Unauthorized", { status: 401 });
@@ -123,7 +123,7 @@ export async function DELETE(
   const { error } = await supabase
     .from("user_follows")
     .delete()
-    .eq("follower_id", params.userId)
+    .eq("follower_id", context.params.userId)
     .eq("following_id", currentUser.id);
 
   if (error) return new Response(error.message, { status: 500 });
@@ -132,7 +132,7 @@ export async function DELETE(
 
 export async function POST(
   req: Request,
-  { params }: { params: { userId: string } }
+  context: { params: { userId: string } }
 ) {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) return new Response("Unauthorized", { status: 401 });
@@ -154,9 +154,10 @@ export async function POST(
   if (!currentUser) return new Response("User not found", { status: 404 });
 
   // Add follow relationship (current user follows userId)
-  const { error } = await supabase
-    .from("user_follows")
-    .insert({ follower_id: currentUser.id, following_id: params.userId });
+  const { error } = await supabase.from("user_follows").insert({
+    follower_id: currentUser.id,
+    following_id: context.params.userId,
+  });
 
   if (error) return new Response(error.message, { status: 500 });
   return new Response(null, { status: 201 });
