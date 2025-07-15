@@ -1031,7 +1031,16 @@ const DirectChatPage = () => {
   };
 
   // Patch MessageRow to support modal opening for media
-  const PatchedMessageRow = React.memo(
+  interface PatchedMessageRowProps {
+    msg: any;
+    isSent: boolean;
+    content: string;
+    showSpinner: boolean;
+    showError: boolean;
+    onRetry?: (msg: any) => void;
+    isSenderDeleted?: boolean;
+  }
+  const PatchedMessageRow: React.FC<PatchedMessageRowProps> = React.memo(
     ({
       msg,
       isSent,
@@ -1040,10 +1049,15 @@ const DirectChatPage = () => {
       showError,
       onRetry,
       isSenderDeleted,
-    }: any) => {
+    }) => {
       const hasMedia = !!msg.mediaUrl;
       const hasText = isRealTextMessage(content);
       const senderName = getSenderName(msg);
+      // Format timestamp from created_at
+      const timeString = new Date(msg.created_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       // Any media: show only media card (no bubble)
       if (hasMedia && msg.mediaType === "image") {
         return (
@@ -1072,7 +1086,7 @@ const DirectChatPage = () => {
                 }
               }}
             >
-              <MediaWithSkeleton url={msg.mediaUrl} timestamp={msg.timestamp} />
+              <MediaWithSkeleton url={msg.mediaUrl} timestamp={timeString} />
             </button>
           </div>
         );
@@ -1104,7 +1118,7 @@ const DirectChatPage = () => {
                 }
               }}
             >
-              <VideoWithSkeleton url={msg.mediaUrl} timestamp={msg.timestamp} />
+              <VideoWithSkeleton url={msg.mediaUrl} timestamp={timeString} />
             </button>
           </div>
         );
