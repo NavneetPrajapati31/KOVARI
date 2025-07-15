@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
 import { Image, Spinner, Avatar, User } from "@heroui/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSidebar } from "@/shared/components/ui/sidebar";
 import { Camera, Heart } from "lucide-react";
@@ -46,6 +47,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   const [followersCount, setFollowersCount] = React.useState(profile.followers);
   const { toast } = useToast();
+  const router = useRouter();
 
   // Debug logging
   console.log("Profile data:", {
@@ -139,6 +141,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     }
   };
 
+  const handleNavigateConnections = (
+    tab: "followers" | "following" | "likes"
+  ) => {
+    if (!profile.userId) return;
+    router.push(`/profile/${profile.userId}/connections?tab=${tab}`);
+  };
+
+  const handleKeyDownConnections = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    tab: "followers" | "following" | "likes"
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      handleNavigateConnections(tab);
+    }
+  };
+
   // Mobile/Tablet Layout Component
   const MobileLayout = () => (
     <div className="min-h-screen bg-transparent md:hidden">
@@ -185,7 +203,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </p>
                       <div className="flex flex-row items-center gap-x-6 w-full mt-2">
                         <div className="flex flex-row gap-4 items-center flex-shrink-0">
-                          <div className="text-left flex flex-row justify-start items-center gap-1">
+                          {/* Followers clickable */}
+                          <div
+                            className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
+                            tabIndex={0}
+                            role="button"
+                            aria-label="View followers"
+                            onClick={() =>
+                              handleNavigateConnections("followers")
+                            }
+                            onKeyDown={(e) =>
+                              handleKeyDownConnections(e, "followers")
+                            }
+                          >
                             <div className="text-xs font-black text-foreground">
                               {followersCount}
                             </div>
@@ -193,7 +223,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               Followers
                             </span>
                           </div>
-                          <div className="text-left flex flex-row justify-start items-center gap-1">
+                          {/* Following clickable */}
+                          <div
+                            className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
+                            tabIndex={0}
+                            role="button"
+                            aria-label="View following"
+                            onClick={() =>
+                              handleNavigateConnections("following")
+                            }
+                            onKeyDown={(e) =>
+                              handleKeyDownConnections(e, "following")
+                            }
+                          >
                             <div className="text-xs font-black text-foreground">
                               {profile.following}
                             </div>
@@ -201,7 +243,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               Following
                             </span>
                           </div>
-                          <div className="text-left flex flex-row justify-start items-center gap-1">
+                          <div
+                            className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
+                            tabIndex={0}
+                            role="button"
+                            aria-label="View Likes"
+                            onClick={() => handleNavigateConnections("likes")}
+                            onKeyDown={(e) =>
+                              handleKeyDownConnections(e, "likes")
+                            }
+                          >
                             <div className="text-xs font-black text-foreground">
                               {profile.likes}
                             </div>
@@ -572,7 +623,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     </p>
                   </div>
                   <div className="flex flex-row gap-10 items-center flex-shrink-0">
-                    <div className="text-left">
+                    {/* Followers clickable */}
+                    <div
+                      className="text-left cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      role="button"
+                      aria-label="View followers"
+                      onClick={() => handleNavigateConnections("followers")}
+                      onKeyDown={(e) =>
+                        handleKeyDownConnections(e, "followers")
+                      }
+                    >
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Followers
                       </div>
@@ -580,7 +641,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         {followersCount}
                       </div>
                     </div>
-                    <div className="text-left">
+                    {/* Following clickable */}
+                    <div
+                      className="text-left cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      role="button"
+                      aria-label="View following"
+                      onClick={() => handleNavigateConnections("following")}
+                      onKeyDown={(e) =>
+                        handleKeyDownConnections(e, "following")
+                      }
+                    >
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Following
                       </div>
@@ -588,7 +659,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         {profile.following}
                       </div>
                     </div>
-                    <div className="text-left">
+                    <div
+                      className="text-left cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      role="button"
+                      aria-label="View Likes"
+                      onClick={() => handleNavigateConnections("likes")}
+                      onKeyDown={(e) => handleKeyDownConnections(e, "likes")}
+                    >
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Likes
                       </div>
