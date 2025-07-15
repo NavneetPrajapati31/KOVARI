@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
-import path from "path";
-import fs from "fs/promises";
-
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads", "groups");
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 function getGroupIdFromUrl(request: NextRequest): string | null {
   const match = request.nextUrl.pathname.match(/groups\/([^/]+)\/media/);
@@ -21,7 +18,7 @@ export async function GET(request: NextRequest) {
     const supabase = createRouteHandlerSupabaseClient();
     const { data, error } = await supabase
       .from("group_media")
-      .select("id, url, type, uploaded_by, created_at")
+      .select("id, url, type, uploaded_by, created_at, cloudinary_public_id")
       .eq("group_id", groupId)
       .order("created_at", { ascending: false });
     if (error) {
@@ -69,25 +66,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
     }
 
-    // Save file to local uploads directory
-    const ext = file.type.split("/")[1] || "bin";
-    const filename = `${uuidv4()}.${ext}`;
-    const groupDir = path.join(UPLOADS_DIR, groupId);
-    await fs.mkdir(groupDir, { recursive: true });
-    const filePath = path.join(groupDir, filename);
+    // Upload to Cloudinary
     const arrayBuffer = await file.arrayBuffer();
-    await fs.writeFile(filePath, Buffer.from(arrayBuffer));
-    console.log(`[MEDIA][POST] Saved file to: ${filePath}`);
-    // Confirm file exists
-    try {
-      await fs.access(filePath);
-      console.log(`[MEDIA][POST] File confirmed at: ${filePath}`);
-    } catch (err) {
-      console.error(`[MEDIA][POST] File not found after write: ${filePath}`);
-    }
-    // Public URL for the file (dynamic API route)
-    const url = `/api/uploads/groups/${groupId}/${filename}`;
-    console.log(`[MEDIA][POST] File URL: ${url}`);
+    const buffer = Buffer.from(arrayBuffer);
+
+    const uploadResult = await uploadToCloudinary(buffer, {
+      folder: `kovari-groups/${groupId}`,
+      resource_type: type === "video" ? "video" : "image",
+      public_id: `${uuidv4()}`,
+    });
+
+    console.log(`[MEDIA][POST] Uploaded to Cloudinary: ${uploadResult.url}`);
+    const url = uploadResult.secure_url;
 
     // Insert into group_media table
     const { data: insertData, error: insertError } = await supabase
@@ -97,8 +87,9 @@ export async function POST(request: NextRequest) {
         url,
         type,
         uploaded_by: uploadedBy,
+        cloudinary_public_id: uploadResult.public_id, // Store Cloudinary public ID for future deletion
       })
-      .select("id, url, type, uploaded_by, created_at")
+      .select("id, url, type, uploaded_by, created_at, cloudinary_public_id")
       .single();
     if (insertError) {
       console.error("[MEDIA][POST] DB insert error:", insertError);
