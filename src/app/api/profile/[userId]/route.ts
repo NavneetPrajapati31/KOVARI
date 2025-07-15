@@ -8,9 +8,7 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ userId: string }> }
 ) {
-  // Await params for compatibility with Next.js dynamic route API
-  const params = await context.params;
-  const userId = params.userId;
+  const { userId } = await context.params;
   const supabase = createRouteHandlerSupabaseClient();
 
   // 1. Fetch profile (remove interests from select)

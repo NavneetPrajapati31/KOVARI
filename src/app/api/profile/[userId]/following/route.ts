@@ -8,8 +8,7 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ userId: string }> }
 ) {
-  const params = await context.params;
-  const userId = params.userId;
+  const { userId } = await context.params;
   const supabase = createRouteHandlerSupabaseClient();
 
   // Get current user (for isFollowing)
@@ -98,8 +97,9 @@ export async function GET(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { userId: string } }
+  context: { params: Promise<{ userId: string }> }
 ) {
+  const { userId } = await context.params;
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) return new Response("Unauthorized", { status: 401 });
 
@@ -124,7 +124,7 @@ export async function DELETE(
     .from("user_follows")
     .delete()
     .eq("follower_id", currentUser.id)
-    .eq("following_id", params.userId);
+    .eq("following_id", userId);
 
   if (error) return new Response(error.message, { status: 500 });
   return new Response(null, { status: 204 });
