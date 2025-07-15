@@ -25,6 +25,8 @@ export interface DirectChatMessage {
     profile_photo?: string;
     deleted?: boolean;
   };
+  mediaUrl?: string;
+  mediaType?: "image" | "video";
 }
 
 export interface UseDirectChatResult {
@@ -32,7 +34,11 @@ export interface UseDirectChatResult {
   loading: boolean;
   sending: boolean;
   error: string | null;
-  sendMessage: (value: string) => Promise<void>;
+  sendMessage: (
+    value: string,
+    mediaUrl?: string,
+    mediaType?: "image" | "video"
+  ) => Promise<void>;
   markMessagesRead: () => Promise<void>;
   loadMoreMessages: () => Promise<void>;
   hasMoreMessages: boolean;
@@ -106,10 +112,12 @@ export const useDirectChat = (
             setMessages([]);
           }
         } else if (data) {
-          // Transform messages to include sender profile information
+          // Transform messages to include sender profile information and normalize media fields
           const transformedMessages = data.map((msg: any) => ({
             ...msg,
             sender_profile: msg.sender?.profiles?.[0] || undefined,
+            mediaUrl: (msg as any)["media_url"] || msg.mediaUrl,
+            mediaType: (msg as any)["media_type"] || msg.mediaType,
           }));
 
           // Always reverse to chronological order (oldest at top)
@@ -155,11 +163,13 @@ export const useDirectChat = (
 
   // Send a message (optimistic)
   const sendMessage = useCallback(
-    async (value: string) => {
-      if (!value.trim() || !currentUserUuid || !partnerUuid) return;
+    async (value: string, mediaUrl?: string, mediaType?: "image" | "video") => {
+      if ((!value.trim() && !mediaUrl) || !currentUserUuid || !partnerUuid)
+        return;
       setError(null);
       const tempId = uuidv4();
       const clientId = uuidv4();
+      const hasText = !!value.trim();
       const optimisticMsg: DirectChatMessage = {
         id: tempId,
         tempId,
@@ -168,27 +178,38 @@ export const useDirectChat = (
         encrypted_content: "",
         encryption_iv: "",
         encryption_salt: "",
-        is_encrypted: true,
+        is_encrypted: hasText,
         created_at: new Date().toISOString(),
         status: "sending",
         plain_content: value.trim(),
         client_id: clientId,
+        mediaUrl,
+        mediaType,
       };
       setSending(true);
       setMessages((prev) => [...prev, optimisticMsg]);
       try {
-        const encrypted = await encryptMessage(value.trim(), sharedSecret);
+        let encrypted = { encryptedContent: "", iv: "", salt: "" };
+        let isEncrypted = false;
+        if (hasText) {
+          encrypted = await encryptMessage(value.trim(), sharedSecret);
+          isEncrypted = true;
+        }
         const { data, error: insertError } = await supabase
           .from("direct_messages")
           .insert([
             {
               sender_id: currentUserUuid,
               receiver_id: partnerUuid,
-              encrypted_content: encrypted.encryptedContent,
-              encryption_iv: encrypted.iv,
-              encryption_salt: encrypted.salt,
-              is_encrypted: true,
+              encrypted_content: isEncrypted
+                ? encrypted.encryptedContent
+                : null,
+              encryption_iv: isEncrypted ? encrypted.iv : null,
+              encryption_salt: isEncrypted ? encrypted.salt : null,
+              is_encrypted: isEncrypted,
               client_id: clientId,
+              media_url: mediaUrl,
+              media_type: mediaType,
             },
           ])
           .select()
@@ -266,6 +287,8 @@ export const useDirectChat = (
             const messageWithProfile: DirectChatMessage = {
               ...msg,
               sender_profile: senderData?.profiles?.[0] || undefined,
+              mediaUrl: (msg as any)["media_url"] || msg.mediaUrl,
+              mediaType: (msg as any)["media_type"] || msg.mediaType,
             };
 
             setMessages((prev) => {
@@ -290,7 +313,14 @@ export const useDirectChat = (
                 return optimisticMsg.client_id !== msg.client_id;
               });
               if (filtered.some((m) => m.id === msg.id)) return filtered;
-              return [...filtered, msg];
+              return [
+                ...filtered,
+                {
+                  ...msg,
+                  mediaUrl: (msg as any)["media_url"] || msg.mediaUrl,
+                  mediaType: (msg as any)["media_type"] || msg.mediaType,
+                },
+              ];
             });
           }
         }

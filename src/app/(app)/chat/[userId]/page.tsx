@@ -27,6 +27,7 @@ import {
   ChevronLeft,
   ChevronUp,
 } from "lucide-react";
+import { PiPaperclip } from "react-icons/pi";
 import { BiCheckDouble, BiCheck } from "react-icons/bi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { decryptMessage } from "@/shared/utils/encryption";
@@ -51,6 +52,7 @@ import {
 import ChatActionsDropdown from "@/shared/components/chat/chat-actions-dropdown";
 import { isUserBlocked } from "@/shared/utils/blocked-users";
 import { unblockUser } from "@/shared/utils/blocked-users";
+import { Skeleton } from "@heroui/react";
 
 interface PartnerProfile {
   name?: string;
@@ -69,6 +71,67 @@ const MessageSkeleton = () => (
   </div>
 );
 
+// MediaWithSkeleton component (copied from group chat)
+const MediaWithSkeleton = ({
+  url,
+  timestamp,
+}: {
+  url: string;
+  timestamp: string;
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+      {!loaded && (
+        <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
+      )}
+      <img
+        src={url}
+        alt="sent media"
+        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        onLoad={() => setLoaded(true)}
+      />
+      <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+        {timestamp}
+      </span>
+    </div>
+  );
+};
+
+// VideoWithSkeleton component (copied from group chat)
+const VideoWithSkeleton = ({
+  url,
+  timestamp,
+}: {
+  url: string;
+  timestamp: string;
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+      {!loaded && (
+        <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
+      )}
+      <video
+        src={url}
+        controls
+        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        onLoadedData={() => setLoaded(true)}
+      />
+      <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+        {timestamp}
+      </span>
+    </div>
+  );
+};
+
+// Utility: Check if message content is real text (not empty, not placeholder)
+const isRealTextMessage = (content: string) => {
+  if (!content) return false;
+  const trimmed = content.trim();
+  return trimmed !== "" && trimmed !== "[Encrypted message]";
+};
+
 const MessageRow = React.memo(
   ({
     msg,
@@ -86,80 +149,111 @@ const MessageRow = React.memo(
     showError: boolean;
     onRetry?: (msg: any) => void;
     isSenderDeleted?: boolean;
-  }) => (
-    <div
-      className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
-      aria-label={isSent ? "Sent message" : "Received message"}
-    >
-      <div
-        className={`relative max-w-[75%] ${isSent ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
-      >
+  }) => {
+    const hasMedia = !!msg.mediaUrl;
+    const hasText = isRealTextMessage(content);
+    const timeString = new Date(msg.created_at).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // Any media: show only media card (no bubble)
+    if (hasMedia && msg.mediaType === "image") {
+      return (
         <div
-          className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
-            isSent
-              ? "bg-primary text-primary-foreground rounded-br-md"
-              : "bg-gray-100 text-foreground rounded-bl-md"
-          }`}
-          tabIndex={0}
-          aria-label={content}
-          role="document"
+          className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
         >
-          {msg.status === "sending" || msg.status === "failed" ? (
-            <span className="text-xs">{content}</span>
-          ) : (
-            <span
-              className="text-xs"
-              dangerouslySetInnerHTML={{
-                __html: linkifyMessage(content),
-              }}
-            />
-          )}
-          <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
-            <span
-              className={`text-[10px] ${
-                isSent ? "text-white/70" : "text-gray-500"
-              }`}
-            >
-              {new Date(msg.created_at).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-            {showSpinner && <BiCheck className="w-4 h-4 text-white/70" />}
-            {showError && (
-              <>
-                <XCircle className="w-3 h-3 text-destructive" />
-                {onRetry && (
-                  <button
-                    className="ml-1 text-xs text-destructive underline focus:outline-none"
-                    tabIndex={0}
-                    aria-label="Retry sending message"
-                    onClick={() => onRetry(msg)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onRetry(msg);
-                      }
-                    }}
-                  >
-                    Retry
-                  </button>
-                )}
-              </>
-            )}
-            {isSent &&
-              !showSpinner &&
-              !showError &&
-              (msg.read_at ? (
-                <BiCheckDouble className="w-4 h-4 text-white/70" />
-              ) : (
-                <BiCheck className="w-4 h-4 text-white/70" />
-              ))}
-          </span>
+          <MediaWithSkeleton url={msg.mediaUrl} timestamp={timeString} />
         </div>
-      </div>
-    </div>
-  )
+      );
+    }
+    if (hasMedia && msg.mediaType === "video") {
+      return (
+        <div
+          className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
+        >
+          <VideoWithSkeleton url={msg.mediaUrl} timestamp={timeString} />
+        </div>
+      );
+    }
+
+    // Only text: show bubble
+    if (hasText) {
+      return (
+        <div
+          className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
+          aria-label={isSent ? "Sent message" : "Received message"}
+        >
+          <div
+            className={`relative max-w-[75%] ${isSent ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
+          >
+            <div
+              className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                isSent
+                  ? "bg-primary text-primary-foreground rounded-br-md"
+                  : "bg-gray-100 text-foreground rounded-bl-md"
+              }`}
+              tabIndex={0}
+              aria-label={content}
+              role="document"
+            >
+              {msg.status === "sending" || msg.status === "failed" ? (
+                <span className="text-xs">{content}</span>
+              ) : (
+                <span
+                  className="text-xs"
+                  dangerouslySetInnerHTML={{
+                    __html: linkifyMessage(content),
+                  }}
+                />
+              )}
+              <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                <span
+                  className={`text-[10px] ${
+                    isSent ? "text-white/70" : "text-gray-500"
+                  }`}
+                >
+                  {timeString}
+                </span>
+                {showSpinner && <BiCheck className="w-4 h-4 text-white/70" />}
+                {showError && (
+                  <>
+                    <XCircle className="w-3 h-3 text-destructive" />
+                    {onRetry && (
+                      <button
+                        className="ml-1 text-xs text-destructive underline focus:outline-none"
+                        tabIndex={0}
+                        aria-label="Retry sending message"
+                        onClick={() => onRetry(msg)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onRetry(msg);
+                          }
+                        }}
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </>
+                )}
+                {isSent &&
+                  !showSpinner &&
+                  !showError &&
+                  (msg.read_at ? (
+                    <BiCheckDouble className="w-4 h-4 text-white/70" />
+                  ) : (
+                    <BiCheck className="w-4 h-4 text-white/70" />
+                  ))}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // If neither media nor real text, render nothing
+    return null;
+  }
 );
 MessageRow.displayName = "MessageRow";
 
@@ -300,10 +394,18 @@ const MessageInput = ({
   handleSend,
   sending,
   disabled,
+  currentUserUuid,
+  partnerUuid,
 }: {
-  handleSend: (value: string) => void;
+  handleSend: (
+    value: string,
+    mediaUrl?: string,
+    mediaType?: string
+  ) => Promise<void>;
   sending: boolean;
   disabled: boolean;
+  currentUserUuid: string;
+  partnerUuid: string;
 }) => {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -311,6 +413,8 @@ const MessageInput = ({
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -371,8 +475,57 @@ const MessageInput = ({
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("uploaded_by", currentUserUuid);
+      formData.append("receiver_id", partnerUuid);
+      const res = await fetch(`/api/direct-chat/media`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        throw new Error("Failed to upload file");
+      }
+      const uploaded = await res.json();
+      handleSend("", uploaded.url, uploaded.type);
+    } catch (err) {
+      // @ts-ignore
+      if (window?.toast) window.toast.error("Failed to upload file");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="flex items-center space-x-1 relative">
+      <button
+        type="button"
+        className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
+        aria-label="Attach photo or video"
+        tabIndex={0}
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isUploading || sending || disabled}
+      >
+        {/* {isUploading ? (
+          <Spinner variant="spinner" size="sm" color="primary" />
+        ) : ( */}
+        <PiPaperclip className="h-5 w-5" />
+        {/* )} */}
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={handleFileChange}
+        aria-label="Attach photo or video"
+      />
       <div className="flex-1 relative h-auto flex items-center bg-transparent hover:cursor-text">
         <textarea
           ref={textareaRef}
@@ -380,7 +533,7 @@ const MessageInput = ({
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
           placeholder="Your message"
-          className="w-full h-full px-4 py-3 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none max-h-10 overflow-y-auto scrollbar-hide align-middle"
+          className="w-full h-full px-0 py-3 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none max-h-10 overflow-y-auto scrollbar-hide align-middle"
           aria-label="Type your message"
           disabled={sending || disabled}
           rows={1}
@@ -519,10 +672,41 @@ const DirectChatPage = () => {
     } else {
       setBlockLoading(false);
     }
+    // --- Real-time block status subscription ---
+    let subscription: any = null;
+    if (currentUserUuid && partnerUuid && supabase?.channel) {
+      subscription = supabase
+        .channel("user-blocks")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "blocked_users" },
+          (payload: any) => {
+            // If the block/unblock event involves the current user and partner
+            const newRow = payload.new || {};
+            const oldRow = payload.old || {};
+            if (
+              (newRow.blocker_id === partnerUuid &&
+                newRow.blocked_id === currentUserUuid) ||
+              (newRow.blocker_id === currentUserUuid &&
+                newRow.blocked_id === partnerUuid) ||
+              (oldRow.blocker_id === partnerUuid &&
+                oldRow.blocked_id === currentUserUuid) ||
+              (oldRow.blocker_id === currentUserUuid &&
+                oldRow.blocked_id === partnerUuid)
+            ) {
+              checkBlocks();
+            }
+          }
+        )
+        .subscribe();
+    }
     return () => {
       cancelled = true;
+      if (subscription && supabase?.removeChannel) {
+        supabase.removeChannel(subscription);
+      }
     };
-  }, [currentUserUuid, partnerUuid]);
+  }, [currentUserUuid, partnerUuid, supabase]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -724,12 +908,14 @@ const DirectChatPage = () => {
   // Retry handler for failed messages
   const handleRetry = (msg: any) => {
     if (msg.plain_content) {
-      sendMessage(msg.plain_content);
+      sendMessage(msg.plain_content, msg.mediaUrl, msg.mediaType);
     }
   };
 
   // Helper to get displayable message content
   const getDisplayableContent = (msg: any) => {
+    // If media, do not try to decrypt or show text
+    if (msg.mediaUrl) return "";
     if (msg.status === "sending" || msg.status === "failed") {
       return msg.plain_content || "";
     } else {
@@ -769,6 +955,7 @@ const DirectChatPage = () => {
           partnerId: partnerUuid,
           message: getDisplayableContent(lastMsg),
           createdAt: lastMsg.created_at,
+          mediaType: lastMsg.mediaType || "",
         },
       })
     );
@@ -953,7 +1140,7 @@ const DirectChatPage = () => {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="absolute top-16 bottom-10 left-0 right-0 overflow-y-auto scrollbar-hide p-4 mb-2 max-h-[80vh] bg-card flex flex-col"
+        className="absolute top-16 bottom-8 left-0 right-0 overflow-y-auto scrollbar-hide p-4 mb-2 max-h-[80vh] bg-card flex flex-col"
         data-testid="messages-container"
         aria-live="polite"
         aria-atomic="false"
@@ -999,9 +1186,35 @@ const DirectChatPage = () => {
       {/* Message Input - Always at Bottom */}
       <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border px-2 py-1 shadow-none z-10">
         <MessageInput
-          handleSend={sendMessage}
+          handleSend={async (
+            value: string,
+            mediaUrl?: string,
+            mediaType?: string
+          ) => {
+            // Always check latest block status before sending
+            const [iBlocked, theyBlocked] = await Promise.all([
+              isUserBlocked(currentUserUuid, partnerUuid),
+              isUserBlocked(partnerUuid, currentUserUuid),
+            ]);
+            if (iBlocked || theyBlocked || isPartnerDeleted) {
+              toast({
+                title: "Cannot send message",
+                description: "You cannot send messages to this user.",
+                variant: "destructive",
+              });
+              return;
+            }
+            // Ensure mediaType is 'image' | 'video' | undefined
+            const validMediaType: "image" | "video" | undefined =
+              mediaType === "image" || mediaType === "video"
+                ? mediaType
+                : undefined;
+            sendMessage(value, mediaUrl, validMediaType);
+          }}
           sending={sending}
           disabled={iBlockedThem || theyBlockedMe || isPartnerDeleted}
+          currentUserUuid={currentUserUuid}
+          partnerUuid={partnerUuid}
         />
       </div>
     </div>
