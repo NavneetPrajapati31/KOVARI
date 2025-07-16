@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSidebar } from "@/shared/components/ui/sidebar";
 import { Camera, Heart } from "lucide-react";
+import ProfileImageModal from "./profile-image-modal";
+import { AnimatePresence } from "framer-motion";
 
 export interface UserProfile {
   name: string;
@@ -48,6 +50,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   const [followersCount, setFollowersCount] = React.useState(profile.followers);
   const { toast } = useToast();
   const router = useRouter();
+
+  // Modal state for profile image (mobile only)
+  const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
+  const handleAvatarClick = () => setIsImageModalOpen(true);
+  const handleAvatarKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      setIsImageModalOpen(true);
+    }
+  };
+  const handleModalClose = () => setIsImageModalOpen(false);
 
   // Debug logging
   console.log("Profile data:", {
@@ -183,7 +195,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 {/* Left Info */}
                 <div className="flex flex-row items-center gap-x-6 w-full mb-2">
                   <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-3">
-                    <div className="flex flex-col">
+                    <div
+                      className="flex flex-col cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      aria-label="View profile image"
+                      onClick={handleAvatarClick}
+                      onKeyDown={handleAvatarKeyDown}
+                      role="button"
+                    >
                       <Avatar
                         className="h-[70px] w-[70px]"
                         src={profile.profileImage || ""}
@@ -583,6 +602,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           </CardContent>
         </Card>
       </Card>
+      {/* Modal for profile image (mobile only) */}
+      <AnimatePresence>
+        {isImageModalOpen && (
+          <ProfileImageModal
+            src={profile.profileImage || ""}
+            onClose={handleModalClose}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 

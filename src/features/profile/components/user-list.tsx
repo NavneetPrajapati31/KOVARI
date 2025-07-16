@@ -7,6 +7,8 @@ interface UserListProps {
   onRemove?: (userId: number) => void;
   onUnfollow?: (userId: number) => void;
   onFollowBack?: (userId: number) => void;
+  isOwnProfile?: boolean;
+  currentUserUuid?: string;
 }
 
 export default function UserList({
@@ -15,6 +17,8 @@ export default function UserList({
   onRemove,
   onUnfollow,
   onFollowBack,
+  isOwnProfile,
+  currentUserUuid,
 }: UserListProps) {
   if (users.length === 0) {
     return (
@@ -43,6 +47,8 @@ export default function UserList({
           onRemove={onRemove}
           onUnfollow={onUnfollow}
           onFollowBack={onFollowBack}
+          isOwnProfile={isOwnProfile}
+          currentUserUuid={currentUserUuid}
         />
       ))}
     </div>
