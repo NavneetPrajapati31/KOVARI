@@ -11,9 +11,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSidebar } from "@/shared/components/ui/sidebar";
-import { Camera, Heart } from "lucide-react";
+import { Camera, Heart, Plus } from "lucide-react";
 import ProfileImageModal from "./profile-image-modal";
 import { AnimatePresence } from "framer-motion";
+import CreatePostModal from "./create-post-modal";
 
 export interface UserProfile {
   name: string;
@@ -60,6 +61,33 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     }
   };
   const handleModalClose = () => setIsImageModalOpen(false);
+
+  // Add state and handler for modal at the top of the component
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] =
+    React.useState(false);
+  const handleOpenCreatePostModal = () => setIsCreatePostModalOpen(true);
+  const handleCloseCreatePostModal = () => setIsCreatePostModalOpen(false);
+
+  const [posts, setPosts] = React.useState(profile.posts);
+
+  const handleCreatePost = async ({
+    imageUrl,
+    title,
+    content,
+  }: {
+    imageUrl: string;
+    title: string;
+    content?: string;
+  }) => {
+    const res = await fetch("/api/user-posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_url: imageUrl, title, content }),
+    });
+    if (!res.ok) throw new Error("Failed to create post");
+    const newPost = await res.json();
+    setPosts((prev) => [newPost, ...prev]);
+  };
 
   // Debug logging
   console.log("Profile data:", {
@@ -380,6 +408,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           Explore
                         </Button>
                       </Link>
+                      {profile.isOwnProfile === true && (
+                        <Button
+                          size={"sm"}
+                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
+                          aria-label="Create post"
+                          tabIndex={0}
+                          onClick={handleOpenCreatePostModal}
+                        >
+                          <span className="hidden [@media(min-width:425px)]:inline">
+                            Create post
+                          </span>
+                          <span className="inline [@media(min-width:425px)]:hidden">
+                            <Plus className="w-4 h-4" />
+                          </span>
+                        </Button>
+                      )}
                     </>
                   ) : (
                     // Other user's profile buttons
@@ -545,9 +589,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             )}
             {activeTab === "Trips" && (
               <div>
-                {profile.posts.length > 0 ? (
+                {posts.length > 0 ? (
                   <div className="grid grid-cols-3 gap-1">
-                    {profile.posts.map((post) => (
+                    {posts.map((post) => (
                       <div
                         key={post.id}
                         className="relative group aspect-[4/5] bg-muted rounded-none overflow-hidden flex items-center justify-center shadow-sm"
@@ -592,9 +636,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <h3 className="text-sm font-semibold text-foreground mb-1">
                       No posts yet
                     </h3>
-                    <p className="text-xs text-muted-foreground">
-                      This user hasn't shared any posts yet.
-                    </p>
+                    {profile.isOwnProfile === true && (
+                      <Button
+                        className="mt-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold focus:outline-none focus:ring-0"
+                        aria-label="Create your first post"
+                        tabIndex={0}
+                        onClick={handleOpenCreatePostModal}
+                      >
+                        Create your first post
+                      </Button>
+                    )}
+                    {/* Modal for creating post will be rendered here */}
                   </div>
                 )}
               </div>
@@ -611,6 +663,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           />
         )}
       </AnimatePresence>
+      {/* Modal for creating post */}
+      {/* <CreatePostModal
+        open={isCreatePostModalOpen}
+        onClose={handleCloseCreatePostModal}
+        onCreate={handleCreatePost}
+      /> */}
     </div>
   );
 
@@ -732,6 +790,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           Explore
                         </Button>
                       </Link>
+                      {profile.isOwnProfile === true && (
+                        <Button
+                          size={"sm"}
+                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
+                          aria-label="Create post"
+                          tabIndex={0}
+                          onClick={handleOpenCreatePostModal}
+                        >
+                          Create post
+                        </Button>
+                      )}
                     </>
                   ) : (
                     // Other user's profile buttons
@@ -894,9 +963,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             )}
             {activeTab === "Trips" && (
               <div>
-                {profile.posts.length > 0 ? (
+                {posts.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-4 gap-2">
-                    {profile.posts.map((post) => (
+                    {posts.map((post) => (
                       <div
                         key={post.id}
                         className="relative group aspect-[4/5] bg-muted rounded-lg overflow-hidden flex items-center justify-center shadow-sm"
@@ -941,9 +1010,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <h3 className="text-md font-semibold text-foreground mb-1">
                       No posts yet
                     </h3>
-                    <p className="text-xs text-muted-foreground mb-8">
-                      This user hasn't shared any posts yet.
-                    </p>
+                    {profile.isOwnProfile === true && (
+                      <Button
+                        className="mt-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold focus:outline-none focus:ring-0"
+                        aria-label="Create your first post"
+                        tabIndex={0}
+                        onClick={handleOpenCreatePostModal}
+                      >
+                        Create your first post
+                      </Button>
+                    )}
+                    {/* Modal for creating post will be rendered here */}
                   </div>
                 )}
               </div>
@@ -958,6 +1035,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     <>
       <MobileLayout />
       <DesktopLayout />
+      <CreatePostModal
+        open={isCreatePostModalOpen}
+        onClose={handleCloseCreatePostModal}
+        onCreate={handleCreatePost}
+      />
     </>
   );
 };
