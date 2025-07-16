@@ -1,5 +1,6 @@
 import { Skeleton } from "@heroui/react";
 import { Send, Smile } from "lucide-react";
+import { PiPaperclip } from "react-icons/pi";
 
 const SKELETON_COUNT = 16;
 
@@ -110,6 +111,18 @@ const DirectChatSkeleton = () => (
     <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border px-2 py-1 shadow-none z-10">
       <div className="flex items-center space-x-1 relative">
         <div className="flex-1 relative h-auto flex items-center bg-transparent hover:cursor-text">
+          <button
+            type="button"
+            className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
+            aria-label="Attach photo or video"
+            tabIndex={0}
+          >
+            {/* {isUploading ? (
+          <Spinner variant="spinner" size="sm" color="primary" />
+        ) : ( */}
+            <PiPaperclip className="h-5 w-5" />
+            {/* )} */}
+          </button>
           <textarea
             placeholder="Your message"
             className="w-full h-full px-4 py-3 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none max-h-20 overflow-y-auto scrollbar-hide align-middle"

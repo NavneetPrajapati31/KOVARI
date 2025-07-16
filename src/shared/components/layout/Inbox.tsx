@@ -13,7 +13,12 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Spinner } from "@heroui/react";
 import { Search, Check, CheckCheck, User } from "lucide-react";
 import { X } from "lucide-react";
-import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
+import { BsImage } from "react-icons/bs";
+import { BsCameraVideoFill } from "react-icons/bs";
+import {
+  useDirectInbox,
+  Conversation as BaseConversation,
+} from "@/shared/hooks/use-direct-inbox";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { createClient } from "@/lib/supabase";
 import InboxChatListSkeleton from "./inbox-chat-list-skeleton";
@@ -28,6 +33,9 @@ interface UserProfile {
 interface InboxProps {
   activeUserId?: string;
 }
+
+// Extend Conversation type to include lastMediaType for local UI state
+type Conversation = BaseConversation & { lastMediaType?: string };
 
 export default function Inbox({ activeUserId }: InboxProps) {
   const { user, isLoaded } = useUser();
@@ -47,6 +55,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
     inputRef.current?.focus();
   };
   const inbox = useDirectInbox(currentUserUuid);
+  // Use only inbox.conversations as the source of truth
   const supabase = createClient();
 
   useEffect(() => {
@@ -81,28 +90,35 @@ export default function Inbox({ activeUserId }: InboxProps) {
     };
 
     fetchUserProfiles();
-  }, [inbox?.conversations, supabase]);
+  }, [inbox.conversations, supabase]);
 
-  // Listen for custom event to update recent message in real-time
   useEffect(() => {
     const handler = (e: any) => {
-      const { partnerId, message, createdAt } = e.detail;
+      const { partnerId, message, createdAt, mediaType } = e.detail;
       setUserProfiles((prevProfiles) => ({ ...prevProfiles })); // force rerender if needed
-      inbox.conversations = inbox.conversations.map((c) => {
-        if (
+      // Directly mutate inbox.conversations to add lastMediaType
+      const conv = inbox.conversations.find(
+        (c) =>
           c.userId === partnerId &&
           new Date(createdAt) > new Date(c.lastMessageAt)
-        ) {
-          return { ...c, lastMessage: message, lastMessageAt: createdAt };
-        }
-        return c;
-      });
+      );
+      if (conv) {
+        (conv as any).lastMediaType = mediaType;
+        conv.lastMessage = message;
+        conv.lastMessageAt = createdAt;
+      }
     };
     window.addEventListener("inbox-message-update", handler);
     return () => window.removeEventListener("inbox-message-update", handler);
   }, [inbox]);
 
   const handleConversationClick = (userId: string) => {
+    // conversations.forEach(conv => {
+    //   if (conv.userId === userId) {
+    //     conv.unreadCount = 0; // Mark as read
+    //   }
+    // });
+    // setConversations([...conversations]); // Force re-render to update unreadCount
     inbox.markConversationRead(userId);
     router.push(`/chat/${userId}`);
   };
@@ -172,8 +188,23 @@ export default function Inbox({ activeUserId }: InboxProps) {
       {/* Messages List */}
       <div className="flex-1 bg-card overflow-y-auto scrollbar-hide">
         {(() => {
-          if (inbox.loading) {
-            return null;
+          if (inbox.conversations.length === 0) {
+            return (
+              <div className="flex items-center justify-center p-8 h-full">
+                <span className="text-muted-foreground">
+                  No conversations found.
+                </span>
+              </div>
+            );
+          }
+          if (!inbox.loading && inbox.conversations.length === 0) {
+            return (
+              <div className="flex items-center justify-center p-8 h-full">
+                <span className="text-muted-foreground">
+                  No conversations yet.
+                </span>
+              </div>
+            );
           }
           const filteredConversations = inbox.conversations.filter(
             (conversation) => {
@@ -276,6 +307,9 @@ export default function Inbox({ activeUserId }: InboxProps) {
                       }`}
                     >
                       {displayName}
+                      {conversation.userId === currentUserUuid && (
+                        <span className={"text-xs ml-1"}>(You)</span>
+                      )}
                     </h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
@@ -285,11 +319,27 @@ export default function Inbox({ activeUserId }: InboxProps) {
                   </div>
                   <div className="flex items-center justify-between">
                     <p
-                      className={`text-xs truncate pr-2 ${
+                      className={`text-xs truncate pr-2 flex flex-row items-center ${
                         isActive ? "text-primary" : "text-gray-500"
                       }`}
                     >
-                      {conversation.lastMessage}
+                      {(conversation as any).lastMediaType === "image" ? (
+                        <>
+                          <span role="img" aria-label="Photo" className="mr-1">
+                            <BsImage className="h-3 w-3" />
+                          </span>
+                          <span>Photo</span>
+                        </>
+                      ) : (conversation as any).lastMediaType === "video" ? (
+                        <>
+                          <span role="img" aria-label="Video" className="mr-1">
+                            <BsCameraVideoFill className="h-3 w-3" />
+                          </span>
+                          <span>Video</span>
+                        </>
+                      ) : (
+                        conversation.lastMessage
+                      )}
                     </p>
                     {conversation.unreadCount > 0 && (
                       <Badge

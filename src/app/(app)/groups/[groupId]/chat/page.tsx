@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import {
   Search,
   Phone,
@@ -18,7 +18,10 @@ import {
   Users,
   Lock,
   User,
+  Plus,
 } from "lucide-react";
+import { PiPaperclip } from "react-icons/pi";
+import { HiPlay } from "react-icons/hi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
@@ -28,9 +31,25 @@ import { Shield, ShieldCheck } from "lucide-react";
 import { Chip } from "@heroui/react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
-import { isSameDay, formatMessageDate } from "@/shared/utils/utils";
+import {
+  isSameDay,
+  formatMessageDate,
+  linkifyMessage,
+} from "@/shared/utils/utils";
+import GroupMediaSection from "@/features/groups/components/group-media-section";
+import { useUser } from "@clerk/nextjs";
+import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
+import { Skeleton } from "@heroui/react";
+import MediaViewerModal from "@/shared/components/media-viewer-modal";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
+
+// Utility: Check if message content is real text (not empty, not placeholder)
+const isRealTextMessage = (content: string) => {
+  if (!content) return false;
+  const trimmed = content.trim();
+  return trimmed !== "" && trimmed !== "[Encrypted message]";
+};
 
 export default function GroupChatInterface() {
   const params = useParams();
@@ -42,12 +61,28 @@ export default function GroupChatInterface() {
   const [messageLengthError, setMessageLengthError] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  console.log("Current message state:", message);
+  // console.log("Current message state:", message);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevGroupIdRef = useRef<string | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null); // Removed as per edit hint
+
+  // Add state and ref for chat file picker
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const [chatUploading, setChatUploading] = useState(false);
+
+  // Add modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMediaUrl, setModalMediaUrl] = useState<string | null>(null);
+  const [modalMediaType, setModalMediaType] = useState<
+    "image" | "video" | null
+  >(null);
+  const [modalTimestamp, setModalTimestamp] = useState<string | undefined>(
+    undefined
+  );
+  const [modalSender, setModalSender] = useState<string | undefined>(undefined);
 
   const {
     messages,
@@ -57,33 +92,7 @@ export default function GroupChatInterface() {
     groupInfo,
     onlineMembers,
     sendMessage,
-    retrySendMessage,
-    refetch,
   } = useGroupChat(groupId);
-
-  // Group messages by date and add separators (must be before any return)
-  const messagesWithSeparators = React.useMemo(() => {
-    const result: Array<{
-      type: "message" | "separator";
-      data: any;
-      date?: string;
-    }> = [];
-    messages.forEach((msg, index) => {
-      const messageDate = msg.createdAt;
-      if (
-        index === 0 ||
-        !isSameDay(messageDate, messages[index - 1].createdAt)
-      ) {
-        result.push({
-          type: "separator",
-          data: { date: messageDate },
-          date: messageDate,
-        });
-      }
-      result.push({ type: "message", data: msg });
-    });
-    return result;
-  }, [messages]);
 
   const { members, loading: membersLoading } = useGroupMembers(groupId);
   const {
@@ -107,6 +116,15 @@ export default function GroupChatInterface() {
     "membershipInfo",
     membershipInfo
   );
+
+  const { user } = useUser();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      getUserUuidByClerkId(user.id).then((uuid) => setUserId(uuid));
+    }
+  }, [user?.id]);
 
   // Insert emoji at cursor position
   const insertEmoji = (emoji: string) => {
@@ -162,17 +180,21 @@ export default function GroupChatInterface() {
     };
   }, [showEmoji]);
 
-  // Only scroll to bottom on initial load
-  const hasScrolledRef = React.useRef(false);
-  React.useEffect(() => {
-    if (!hasScrolledRef.current && !loading && messages.length > 0) {
-      const container = messagesContainerRef.current;
-      if (container) {
-        container.scrollTop = container.scrollHeight;
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+      console.log("[Chat Scroll Debug] scrollHeight:", container.scrollHeight);
+      console.log("[Chat Scroll Debug] clientHeight:", container.clientHeight);
+      console.log("[Chat Scroll Debug] children:", container.children.length);
+      if (container.lastElementChild) {
+        console.log(
+          "[Chat Scroll Debug] last child:",
+          container.lastElementChild
+        );
       }
-      hasScrolledRef.current = true;
     }
-  }, [loading, messages.length]);
+  }, [messages, groupId]);
 
   // Show error toast if there's an error
   useEffect(() => {
@@ -226,6 +248,38 @@ export default function GroupChatInterface() {
     // Shift+Enter: allow default (newline)
   };
 
+  // Add upload handler for chat input
+  // const userId = /* get user id from props, context, or hook */;
+
+  const handleChatFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return; // Only proceed if userId is loaded
+    setChatUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("uploaded_by", userId); // use real user id
+      const res = await fetch(`/api/groups/${groupId}/media`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to upload");
+      }
+      const uploaded = await res.json();
+      // Send a message with the media URL and type
+      await sendMessage("", uploaded.url, uploaded.type);
+    } catch (err) {
+      // Optionally show error toast
+    } finally {
+      setChatUploading(false);
+      if (chatFileInputRef.current) chatFileInputRef.current.value = "";
+    }
+  };
+
   // Handle rejoining after being removed
   const handleRejoinGroup = async () => {
     setIsRejoining(true);
@@ -252,6 +306,30 @@ export default function GroupChatInterface() {
       setIsRejoining(false);
     }
   };
+
+  // Group messages by date and add separators
+  const messagesWithSeparators = useMemo(() => {
+    const result: Array<{
+      type: "message" | "separator";
+      data: any;
+      date?: string;
+    }> = [];
+    messages.forEach((msg, index) => {
+      const messageDate = msg.createdAt;
+      if (
+        index === 0 ||
+        !isSameDay(messageDate, messages[index - 1].createdAt)
+      ) {
+        result.push({
+          type: "separator",
+          data: { date: messageDate },
+          date: messageDate,
+        });
+      }
+      result.push({ type: "message", data: msg });
+    });
+    return result;
+  }, [messages]);
 
   // Membership check and error handling must be before any layout rendering
   if (membershipLoading) {
@@ -360,7 +438,7 @@ export default function GroupChatInterface() {
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
       <div className="flex h-[80vh]">
         {/* Right Sidebar */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-hide scrollbar-none hidden lg:block">
+        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-none hidden lg:block">
           <div className="p-5">
             {/* Company Info */}
             <div className="text-center mb-3 border-b-1 border-border">
@@ -423,54 +501,19 @@ export default function GroupChatInterface() {
             </div>
 
             {/* Photos and Videos */}
-            <div className="mb-3 border-b-1 border-border">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-foreground">
-                  Photos and videos
-                </h3>
-                <Button className="bg-transparent text-primary text-sm p-0 h-auto font-medium">
-                  See all
-                </Button>
+            {userId ? (
+              <GroupMediaSection groupId={groupId} userId={userId} />
+            ) : (
+              <div className="flex items-center justify-center py-4">
+                <Spinner variant="spinner" size="sm" color="primary" />
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Loading media...
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=200&h=150&fit=crop"
-                    alt="Team meeting"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1515378960530-7c0da6231fb1?w=200&h=150&fit=crop"
-                    alt="Office workspace"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=200&h=150&fit=crop"
-                    alt="Team collaboration"
-                    className="w-full h-full object-cover transition-transform duration-200"
-                  />
-                </div>
-                <div className="aspect-[4/3] rounded-xl overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=200&h=150&fit=crop"
-                    alt="Team celebration"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gray-100 opacity-75 flex items-center justify-center rounded-xl">
-                    <span className="text-foreground font-semibold text-lg">
-                      +178
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Shared Files */}
-            <div className="mb-3 border-b-1 border-border">
+            {/* <div className="mb-3 border-b-1 border-border">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
                   Shared files
@@ -520,10 +563,10 @@ export default function GroupChatInterface() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Shared Links */}
-            <div>
+            {/* <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
                   Shared links
@@ -560,7 +603,7 @@ export default function GroupChatInterface() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
         {/* Chat Area */}
@@ -593,7 +636,7 @@ export default function GroupChatInterface() {
                   )} */}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {members.length} members, {onlineMembers} online
+                  {members.length} members
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -653,10 +696,10 @@ export default function GroupChatInterface() {
                     );
                   }
                   const msg = item.data;
-                  const isFailed = msg.status === "failed";
+                  // console.log("MSG", msg);
                   return (
                     <div
-                      key={msg.tempId || msg.id}
+                      key={msg.id}
                       className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
                     >
                       <div
@@ -677,45 +720,106 @@ export default function GroupChatInterface() {
                         <div
                           className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                         >
-                          <div
-                            className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
-                              msg.isCurrentUser
-                                ? "bg-primary text-primary-foreground rounded-br-md"
-                                : "bg-gray-100 text-foreground rounded-bl-md"
-                            }`}
-                          >
-                            {!msg.isCurrentUser && (
-                              <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
+                          {/* MEDIA: Render outside the bubble, Telegram style */}
+                          {!msg.isCurrentUser &&
+                            msg.sender &&
+                            (msg.mediaType === "image" ||
+                              msg.mediaType === "video") && (
+                              <span className="inline-block font-semibold text-xs mb-1 mt-1 ml-1 text-muted-foreground">
                                 {msg.sender}
                               </span>
                             )}
-                            <span className="text-xs">{msg.content}</span>
-                            <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
-                              <span
-                                className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
-                              >
-                                {msg.timestamp}
-                              </span>
-                              {isFailed && (
-                                <>
-                                  <span
-                                    className="ml-1 text-xs text-destructive underline cursor-pointer"
-                                    tabIndex={0}
-                                    aria-label="Retry sending message"
-                                    onClick={() => retrySendMessage(msg)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        retrySendMessage(msg);
-                                      }
-                                    }}
-                                  >
-                                    Retry
-                                  </span>
-                                </>
+                          {msg.mediaUrl && msg.mediaType === "image" && (
+                            <button
+                              type="button"
+                              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
+                              aria-label="View image in full screen"
+                              tabIndex={0}
+                              onClick={() => {
+                                setModalMediaUrl(msg.mediaUrl);
+                                setModalMediaType("image");
+                                setModalTimestamp(msg.createdAt); // Use raw ISO date
+                                setModalSender(msg.sender);
+                                setModalOpen(true);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  setModalMediaUrl(msg.mediaUrl);
+                                  setModalMediaType("image");
+                                  setModalTimestamp(msg.createdAt); // Use raw ISO date
+                                  setModalSender(msg.sender);
+                                  setModalOpen(true);
+                                }
+                              }}
+                            >
+                              <MediaWithSkeleton
+                                url={msg.mediaUrl}
+                                timestamp={msg.timestamp}
+                              />
+                            </button>
+                          )}
+                          {msg.mediaUrl && msg.mediaType === "video" && (
+                            <button
+                              type="button"
+                              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
+                              aria-label="View video in full screen"
+                              tabIndex={0}
+                              onClick={() => {
+                                setModalMediaUrl(msg.mediaUrl);
+                                setModalMediaType("video");
+                                setModalTimestamp(msg.createdAt); // Use raw ISO date
+                                setModalSender(msg.sender);
+                                setModalOpen(true);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  setModalMediaUrl(msg.mediaUrl);
+                                  setModalMediaType("video");
+                                  setModalTimestamp(msg.createdAt); // Use raw ISO date
+                                  setModalSender(msg.sender);
+                                  setModalOpen(true);
+                                }
+                              }}
+                            >
+                              <VideoWithSkeleton
+                                url={msg.mediaUrl}
+                                timestamp={msg.timestamp}
+                              />
+                            </button>
+                          )}
+                          {/* TEXT: Only wrap in bubble if content is real */}
+                          {isRealTextMessage(msg.content) && (
+                            <div
+                              className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                                msg.isCurrentUser
+                                  ? "bg-primary text-primary-foreground rounded-br-md"
+                                  : "bg-gray-100 text-foreground rounded-bl-md"
+                              }`}
+                            >
+                              {!msg.isCurrentUser && (
+                                <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
+                                  {msg.sender}
+                                </span>
                               )}
-                            </span>
-                          </div>
+                              <span
+                                className={`text-xs ${
+                                  msg.isCurrentUser
+                                    ? "text-primary-foreground "
+                                    : "text-foreground"
+                                } `}
+                                dangerouslySetInnerHTML={{
+                                  __html: linkifyMessage(msg.content),
+                                }}
+                              />
+                              <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                                <span
+                                  className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
+                                >
+                                  {msg.timestamp}
+                                </span>
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -726,9 +830,32 @@ export default function GroupChatInterface() {
           </div>
 
           {/* Message Input - Sticky */}
-          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-1 shadow-none">
+          <div className="sticky bottom-0 left-0 right-0 z-10 bg-card border-t border-border  px-2 py-2 shadow-none">
             <div className="flex items-center space-x-1">
-              <div className="flex-1 relative h-auto bg-transparent rounded-full hover:cursor-text">
+              <button
+                type="button"
+                className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
+                aria-label="Attach photo or video"
+                tabIndex={0}
+                onClick={() => chatFileInputRef.current?.click()}
+                disabled={chatUploading}
+              >
+                {/* {chatUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : ( */}
+                <PiPaperclip className="h-5 w-5" />
+                {/* )} */}
+              </button>
+              <input
+                ref={chatFileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={handleChatFileChange}
+                aria-label="Attach photo or video"
+              />
+
+              <div className="flex-1 relative h-auto flex items-center bg-transparent hover:cursor-text">
                 <textarea
                   ref={textareaRef}
                   key={groupId}
@@ -736,7 +863,7 @@ export default function GroupChatInterface() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className={`w-full px-4 py-2 rounded-full border-none bg-transparent text-sm focus:outline-none resize-none min-h-[40px] max-h-40 overflow-y-auto ${
+                  className={`w-full px-0 py-2 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none h-full max-h-10 overflow-y-auto scrollbar-hide align-middle ${
                     messageLengthError ? "border-red-500" : ""
                   }`}
                   aria-label="Type your message"
@@ -807,6 +934,72 @@ export default function GroupChatInterface() {
           </div>
         </div>
       </div>
+      {/* Place the modal at the root of the component */}
+      <MediaViewerModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        mediaUrl={modalMediaUrl || ""}
+        mediaType={modalMediaType as "image" | "video"}
+        timestamp={modalTimestamp} // already raw, ensure it's not formatted
+        sender={modalSender}
+      />
     </div>
   );
 }
+
+// MediaWithSkeleton component
+const MediaWithSkeleton = ({
+  url,
+  timestamp,
+}: {
+  url: string;
+  timestamp: string;
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+      {!loaded && (
+        <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
+      )}
+      <img
+        src={url}
+        alt="sent media"
+        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        onLoad={() => setLoaded(true)}
+      />
+      <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+        {timestamp}
+      </span>
+    </div>
+  );
+};
+
+// VideoWithSkeleton component
+const VideoWithSkeleton = ({
+  url,
+  timestamp,
+}: {
+  url: string;
+  timestamp: string;
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+      {!loaded && (
+        <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
+      )}
+      <video
+        src={url}
+        controls={false}
+        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        onLoadedData={() => setLoaded(true)}
+      />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+        <HiPlay className="h-7 w-7 text-primary-foreground" />
+      </div>
+      <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
+        {timestamp}
+      </span>
+    </div>
+  );
+};

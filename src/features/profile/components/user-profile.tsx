@@ -8,9 +8,13 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
 import { Image, Spinner, Avatar, User } from "@heroui/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSidebar } from "@/shared/components/ui/sidebar";
-import { Camera, Heart } from "lucide-react";
+import { Camera, Heart, Plus } from "lucide-react";
+import ProfileImageModal from "./profile-image-modal";
+import { AnimatePresence } from "framer-motion";
+import CreatePostModal from "./create-post-modal";
 
 export interface UserProfile {
   name: string;
@@ -46,6 +50,44 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   const [followersCount, setFollowersCount] = React.useState(profile.followers);
   const { toast } = useToast();
+  const router = useRouter();
+
+  // Modal state for profile image (mobile only)
+  const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
+  const handleAvatarClick = () => setIsImageModalOpen(true);
+  const handleAvatarKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      setIsImageModalOpen(true);
+    }
+  };
+  const handleModalClose = () => setIsImageModalOpen(false);
+
+  // Add state and handler for modal at the top of the component
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] =
+    React.useState(false);
+  const handleOpenCreatePostModal = () => setIsCreatePostModalOpen(true);
+  const handleCloseCreatePostModal = () => setIsCreatePostModalOpen(false);
+
+  const [posts, setPosts] = React.useState(profile.posts);
+
+  const handleCreatePost = async ({
+    imageUrl,
+    title,
+    content,
+  }: {
+    imageUrl: string;
+    title: string;
+    content?: string;
+  }) => {
+    const res = await fetch("/api/user-posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_url: imageUrl, title, content }),
+    });
+    if (!res.ok) throw new Error("Failed to create post");
+    const newPost = await res.json();
+    setPosts((prev) => [newPost, ...prev]);
+  };
 
   // Debug logging
   console.log("Profile data:", {
@@ -139,6 +181,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     }
   };
 
+  const handleNavigateConnections = (
+    tab: "followers" | "following" | "likes"
+  ) => {
+    if (!profile.userId) return;
+    router.push(`/profile/${profile.userId}/connections?tab=${tab}`);
+  };
+
+  const handleKeyDownConnections = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    tab: "followers" | "following" | "likes"
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      handleNavigateConnections(tab);
+    }
+  };
+
   // Mobile/Tablet Layout Component
   const MobileLayout = () => (
     <div className="min-h-screen bg-transparent md:hidden">
@@ -165,7 +223,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 {/* Left Info */}
                 <div className="flex flex-row items-center gap-x-6 w-full mb-2">
                   <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-3">
-                    <div className="flex flex-col">
+                    <div
+                      className="flex flex-col cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      aria-label="View profile image"
+                      onClick={handleAvatarClick}
+                      onKeyDown={handleAvatarKeyDown}
+                      role="button"
+                    >
                       <Avatar
                         className="h-[70px] w-[70px]"
                         src={profile.profileImage || ""}
@@ -185,7 +250,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </p>
                       <div className="flex flex-row items-center gap-x-6 w-full mt-2">
                         <div className="flex flex-row gap-4 items-center flex-shrink-0">
-                          <div className="text-left flex flex-row justify-start items-center gap-1">
+                          {/* Followers clickable */}
+                          <div
+                            className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
+                            tabIndex={0}
+                            role="button"
+                            aria-label="View followers"
+                            onClick={() =>
+                              handleNavigateConnections("followers")
+                            }
+                            onKeyDown={(e) =>
+                              handleKeyDownConnections(e, "followers")
+                            }
+                          >
                             <div className="text-xs font-black text-foreground">
                               {followersCount}
                             </div>
@@ -193,7 +270,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               Followers
                             </span>
                           </div>
-                          <div className="text-left flex flex-row justify-start items-center gap-1">
+                          {/* Following clickable */}
+                          <div
+                            className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
+                            tabIndex={0}
+                            role="button"
+                            aria-label="View following"
+                            onClick={() =>
+                              handleNavigateConnections("following")
+                            }
+                            onKeyDown={(e) =>
+                              handleKeyDownConnections(e, "following")
+                            }
+                          >
                             <div className="text-xs font-black text-foreground">
                               {profile.following}
                             </div>
@@ -201,7 +290,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               Following
                             </span>
                           </div>
-                          <div className="text-left flex flex-row justify-start items-center gap-1">
+                          <div
+                            className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
+                            tabIndex={0}
+                            role="button"
+                            aria-label="View Likes"
+                            onClick={() => handleNavigateConnections("likes")}
+                            onKeyDown={(e) =>
+                              handleKeyDownConnections(e, "likes")
+                            }
+                          >
                             <div className="text-xs font-black text-foreground">
                               {profile.likes}
                             </div>
@@ -310,6 +408,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           Explore
                         </Button>
                       </Link>
+                      {profile.isOwnProfile === true && (
+                        <Button
+                          size={"sm"}
+                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
+                          aria-label="Create post"
+                          tabIndex={0}
+                          onClick={handleOpenCreatePostModal}
+                        >
+                          <span className="hidden [@media(min-width:425px)]:inline">
+                            Create post
+                          </span>
+                          <span className="inline [@media(min-width:425px)]:hidden">
+                            <Plus className="w-4 h-4" />
+                          </span>
+                        </Button>
+                      )}
                     </>
                   ) : (
                     // Other user's profile buttons
@@ -475,9 +589,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             )}
             {activeTab === "Trips" && (
               <div>
-                {profile.posts.length > 0 ? (
+                {posts.length > 0 ? (
                   <div className="grid grid-cols-3 gap-1">
-                    {profile.posts.map((post) => (
+                    {posts.map((post) => (
                       <div
                         key={post.id}
                         className="relative group aspect-[4/5] bg-muted rounded-none overflow-hidden flex items-center justify-center shadow-sm"
@@ -522,9 +636,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <h3 className="text-sm font-semibold text-foreground mb-1">
                       No posts yet
                     </h3>
-                    <p className="text-xs text-muted-foreground">
-                      This user hasn't shared any posts yet.
-                    </p>
+                    {profile.isOwnProfile === true && (
+                      <Button
+                        className="mt-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold focus:outline-none focus:ring-0"
+                        aria-label="Create your first post"
+                        tabIndex={0}
+                        onClick={handleOpenCreatePostModal}
+                      >
+                        Create your first post
+                      </Button>
+                    )}
+                    {/* Modal for creating post will be rendered here */}
                   </div>
                 )}
               </div>
@@ -532,6 +654,21 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           </CardContent>
         </Card>
       </Card>
+      {/* Modal for profile image (mobile only) */}
+      <AnimatePresence>
+        {isImageModalOpen && (
+          <ProfileImageModal
+            src={profile.profileImage || ""}
+            onClose={handleModalClose}
+          />
+        )}
+      </AnimatePresence>
+      {/* Modal for creating post */}
+      {/* <CreatePostModal
+        open={isCreatePostModalOpen}
+        onClose={handleCloseCreatePostModal}
+        onCreate={handleCreatePost}
+      /> */}
     </div>
   );
 
@@ -572,7 +709,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     </p>
                   </div>
                   <div className="flex flex-row gap-10 items-center flex-shrink-0">
-                    <div className="text-left">
+                    {/* Followers clickable */}
+                    <div
+                      className="text-left cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      role="button"
+                      aria-label="View followers"
+                      onClick={() => handleNavigateConnections("followers")}
+                      onKeyDown={(e) =>
+                        handleKeyDownConnections(e, "followers")
+                      }
+                    >
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Followers
                       </div>
@@ -580,7 +727,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         {followersCount}
                       </div>
                     </div>
-                    <div className="text-left">
+                    {/* Following clickable */}
+                    <div
+                      className="text-left cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      role="button"
+                      aria-label="View following"
+                      onClick={() => handleNavigateConnections("following")}
+                      onKeyDown={(e) =>
+                        handleKeyDownConnections(e, "following")
+                      }
+                    >
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Following
                       </div>
@@ -588,7 +745,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         {profile.following}
                       </div>
                     </div>
-                    <div className="text-left">
+                    <div
+                      className="text-left cursor-pointer focus:outline-none"
+                      tabIndex={0}
+                      role="button"
+                      aria-label="View Likes"
+                      onClick={() => handleNavigateConnections("likes")}
+                      onKeyDown={(e) => handleKeyDownConnections(e, "likes")}
+                    >
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Likes
                       </div>
@@ -626,6 +790,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           Explore
                         </Button>
                       </Link>
+                      {profile.isOwnProfile === true && (
+                        <Button
+                          size={"sm"}
+                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
+                          aria-label="Create post"
+                          tabIndex={0}
+                          onClick={handleOpenCreatePostModal}
+                        >
+                          Create post
+                        </Button>
+                      )}
                     </>
                   ) : (
                     // Other user's profile buttons
@@ -788,9 +963,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             )}
             {activeTab === "Trips" && (
               <div>
-                {profile.posts.length > 0 ? (
+                {posts.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-4 gap-2">
-                    {profile.posts.map((post) => (
+                    {posts.map((post) => (
                       <div
                         key={post.id}
                         className="relative group aspect-[4/5] bg-muted rounded-lg overflow-hidden flex items-center justify-center shadow-sm"
@@ -835,9 +1010,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     <h3 className="text-md font-semibold text-foreground mb-1">
                       No posts yet
                     </h3>
-                    <p className="text-xs text-muted-foreground mb-8">
-                      This user hasn't shared any posts yet.
-                    </p>
+                    {profile.isOwnProfile === true && (
+                      <Button
+                        className="mt-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold focus:outline-none focus:ring-0"
+                        aria-label="Create your first post"
+                        tabIndex={0}
+                        onClick={handleOpenCreatePostModal}
+                      >
+                        Create your first post
+                      </Button>
+                    )}
+                    {/* Modal for creating post will be rendered here */}
                   </div>
                 )}
               </div>
@@ -852,6 +1035,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     <>
       <MobileLayout />
       <DesktopLayout />
+      <CreatePostModal
+        open={isCreatePostModalOpen}
+        onClose={handleCloseCreatePostModal}
+        onCreate={handleCreatePost}
+      />
     </>
   );
 };
