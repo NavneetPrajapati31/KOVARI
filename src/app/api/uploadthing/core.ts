@@ -10,8 +10,14 @@ export const uploadRouter = {
   profileImageUploader: f({
     image: { maxFileSize: "4MB", maxFileCount: 1 },
   }).onUploadComplete(async ({ metadata, file }) => {
-    console.log("Upload complete, File URL:", file.ufsUrl);
-    return { url: file.ufsUrl };
+    console.log("Upload complete, File:", file);
+    // Only return serializable properties
+    return {
+      name: file.name,
+      url: file.url,
+      key: file.key,
+      ufsUrl: file.ufsUrl,
+    };
   }),
 } satisfies FileRouter;
 

@@ -26,6 +26,7 @@ import type { User } from "@/features/profile/lib/user"; // Import the User inte
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
 import { Spinner } from "@heroui/react";
+import Link from "next/link";
 
 interface UserCardProps {
   user: User;
@@ -35,6 +36,7 @@ interface UserCardProps {
   onFollowBack?: (userId: number) => void;
   isOwnProfile?: boolean;
   currentUserUuid?: string;
+  profileLink?: string;
 }
 
 export default function UserCard({
@@ -45,6 +47,7 @@ export default function UserCard({
   onFollowBack,
   isOwnProfile,
   currentUserUuid,
+  profileLink,
 }: UserCardProps) {
   const [isFollowing, setIsFollowing] = useState<boolean>(
     user.isFollowing || false
@@ -192,26 +195,56 @@ export default function UserCard({
   return (
     <div className="flex items-center justify-between pl-4 md:pr-4 pr-3 py-3 hover:bg-gray-100 transition-colors">
       <div className="flex items-center space-x-3 flex-1 min-w-0">
-        <Avatar className="sm:w-11 sm:h-11 h-10 w-10 border border-gray-200">
-          <AvatarImage
-            src={user.avatar || "/placeholder.svg"}
-            alt={user.name}
-          />
-          <AvatarFallback className="bg-gray-100 text-gray-600 text-xs font-medium">
-            {getInitials(user.name)}
-          </AvatarFallback>
-        </Avatar>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-col">
-            <span className="text-[11px] sm:text-xs font-semibold text-foreground truncate">
-              {user.name}
-            </span>
-            <span className="text-[11px] sm:text-xs text-muted-foreground truncate">
-              {user.username}
-            </span>
-          </div>
-        </div>
+        {profileLink ? (
+          <Link
+            href={profileLink}
+            className="flex items-center space-x-3 min-w-0 group focus:outline-none"
+            tabIndex={0}
+            aria-label={`View ${user.name}'s profile`}
+          >
+            <Avatar className="sm:w-11 sm:h-11 h-10 w-10 border border-gray-200">
+              <AvatarImage
+                src={user.avatar || "/placeholder.svg"}
+                alt={user.name}
+              />
+              <AvatarFallback className="bg-gray-100 text-gray-600 text-xs font-medium">
+                {getInitials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col">
+                <span className="text-[11px] sm:text-xs font-semibold text-foreground truncate">
+                  {user.name}
+                </span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                  {user.username}
+                </span>
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <>
+            <Avatar className="sm:w-11 sm:h-11 h-10 w-10 border border-gray-200">
+              <AvatarImage
+                src={user.avatar || "/placeholder.svg"}
+                alt={user.name}
+              />
+              <AvatarFallback className="bg-gray-100 text-gray-600 text-xs font-medium">
+                {getInitials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col">
+                <span className="text-[11px] sm:text-xs font-semibold text-foreground truncate">
+                  {user.name}
+                </span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                  {user.username}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex items-center space-x-2 ml-3">
@@ -331,7 +364,7 @@ export default function UserCard({
                       e.preventDefault();
                       handleRemove();
                     }}
-                    className="!text-destructive !hover:text-destructive text-[10px] sm:text-xs !bg-transparent !hover:bg-transparent"
+                    className="!text-destructive !hover:text-destructive text-xs sm:text-sm !bg-transparent !hover:bg-transparent"
                     disabled={loadingAction === "remove"}
                   >
                     {loadingAction === "remove" ? "Removing..." : "Remove"}
@@ -343,7 +376,7 @@ export default function UserCard({
                       e.preventDefault();
                       handleUnfollow();
                     }}
-                    className="!text-destructive !hover:text-destructive text-[10px] sm:text-xs !bg-transparent !hover:bg-transparent"
+                    className="!text-destructive !hover:text-destructive text-xs sm:text-sm !bg-transparent !hover:bg-transparent"
                     disabled={loadingAction === "unfollow"}
                   >
                     {loadingAction === "unfollow"
@@ -351,30 +384,6 @@ export default function UserCard({
                       : "Unfollow"}
                   </DropdownMenuItem>
                 )}
-                {/* For other profiles: show follow/message logic in dropdown */}
-                {!isOwnProfile &&
-                  (user.isFollowing ? (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleMessage();
-                      }}
-                      className="text-[10px] sm:text-xs"
-                    >
-                      Message
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleFollow();
-                      }}
-                      className="text-[10px] sm:text-xs"
-                      disabled={loadingAction === "follow"}
-                    >
-                      {loadingAction === "follow" ? "Following..." : "Follow"}
-                    </DropdownMenuItem>
-                  ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

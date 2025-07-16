@@ -1,5 +1,6 @@
 import UserCard from "./user-card";
 import type { User } from "@/features/profile/lib/user"; // Import the User interface
+import Link from "next/link";
 
 interface UserListProps {
   users: User[];
@@ -49,6 +50,7 @@ export default function UserList({
           onFollowBack={onFollowBack}
           isOwnProfile={isOwnProfile}
           currentUserUuid={currentUserUuid}
+          profileLink={`/profile/${user.id}`}
         />
       ))}
     </div>
