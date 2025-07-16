@@ -77,3 +77,9 @@ export const isSameDay = (
   if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
   return dfnsIsSameDay(d1, d2);
 };
+
+export function formatTime(time: { hour: number; minute: number; ampm: "AM" | "PM" }) {
+  const h = time.hour.toString().padStart(2, "0");
+  const m = time.minute.toString().padStart(2, "0");
+  return `${h}:${m} ${time.ampm}`;
+}
