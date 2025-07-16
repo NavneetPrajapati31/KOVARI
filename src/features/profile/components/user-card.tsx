@@ -20,10 +20,12 @@ import {
   Flag,
   UserX,
   EllipsisVertical,
+  Loader2,
 } from "lucide-react";
 import type { User } from "@/features/profile/lib/user"; // Import the User interface
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
+import { Spinner } from "@heroui/react";
 
 interface UserCardProps {
   user: User;
@@ -31,6 +33,8 @@ interface UserCardProps {
   onRemove?: (userId: number) => void;
   onUnfollow?: (userId: number) => void;
   onFollowBack?: (userId: number) => void;
+  isOwnProfile?: boolean;
+  currentUserUuid?: string;
 }
 
 export default function UserCard({
@@ -39,6 +43,8 @@ export default function UserCard({
   onRemove,
   onUnfollow,
   onFollowBack,
+  isOwnProfile,
+  currentUserUuid,
 }: UserCardProps) {
   const [isFollowing, setIsFollowing] = useState<boolean>(
     user.isFollowing || false
@@ -133,6 +139,30 @@ export default function UserCard({
     }
   };
 
+  // Add a handler for following a user from another profile
+  const handleFollow = async () => {
+    setLoadingAction("follow");
+    try {
+      const res = await fetch(`/api/profile/${user.id}/followers/`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to follow user");
+      setIsFollowing(true);
+      toast({
+        title: "Followed",
+        description: `You are now following this user.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   const handleFollowToggle = () => {
     if (isFollowing) return; // Already following
     followUser(user.id);
@@ -187,95 +217,168 @@ export default function UserCard({
       <div className="flex items-center space-x-2 ml-3">
         {/* Inline actions for desktop */}
         <div className="flex items-center space-x-2">
-          {type === "followers" && (
+          {isOwnProfile && type === "followers" && (
             <button
-              className={`px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-colors bg-primary text-primary-foreground`}
+              className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground flex justify-center items-center`}
               onClick={isFollowing ? handleMessage : handleFollowToggle}
               aria-label={isFollowing ? "message" : "follow back"}
               disabled={loadingAction === "follow"}
             >
-              {isFollowing
-                ? "Message"
-                : loadingAction === "follow"
-                  ? "Following..."
-                  : "Follow Back"}
+              {isFollowing ? (
+                "Message"
+              ) : loadingAction === "follow" ? (
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                "Follow Back"
+              )}
             </button>
           )}
-          {type === "following" && (
-            <button
-              className={`px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-colors bg-primary text-primary-foreground`}
-              onClick={handleMessage}
-              aria-label="message"
-            >
-              Message
-            </button>
+          {isOwnProfile && type === "followers" && (
+            <>
+              <button
+                className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground`}
+                onClick={handleMessage}
+                aria-label={"message"}
+              >
+                Message
+              </button>
+              <button
+                className="w-20 sm:w-24 hidden md:flex px-5 py-1.5 text-[10px] sm:text-xs text-foreground bg-transparent border border-border rounded-md justify-center items-center"
+                onClick={handleRemove}
+                aria-label="Remove follower"
+                disabled={loadingAction === "remove"}
+              >
+                {loadingAction === "remove" ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                ) : (
+                  "Remove"
+                )}
+              </button>
+            </>
           )}
-          {type === "followers" && (
-            <button
-              className="hidden md:flex px-5 py-1.5 text-[10px] sm:text-xs text-foreground bg-transparent border border-border rounded-lg"
-              onClick={handleRemove}
-              aria-label="Remove follower"
-              disabled={loadingAction === "remove"}
-            >
-              {loadingAction === "remove" ? "Removing..." : "Remove"}
-            </button>
+          {isOwnProfile && type === "following" && (
+            <>
+              <button
+                className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground`}
+                onClick={handleMessage}
+                aria-label={"message"}
+              >
+                Message
+              </button>
+              <button
+                className="w-20 sm:w-24 hidden md:flex px-5 py-1.5 text-[10px] sm:text-xs  text-foreground bg-transparent border border-border rounded-md justify-center items-center"
+                onClick={handleUnfollow}
+                aria-label="Unfollow"
+                disabled={loadingAction === "unfollow"}
+              >
+                {loadingAction === "unfollow" ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                ) : (
+                  "Unfollow"
+                )}
+              </button>
+            </>
           )}
-          {type === "following" && (
-            <button
-              className="hidden md:flex px-5 py-1.5 text-[10px] sm:text-xs  text-foreground bg-transparent border border-border rounded-lg"
-              onClick={handleUnfollow}
-              aria-label="Unfollow"
-              disabled={loadingAction === "unfollow"}
-            >
-              {loadingAction === "unfollow" ? "Unfollowing..." : "Unfollow"}
-            </button>
-          )}
+          {/* For other profiles: show follow/message logic */}
+          {!isOwnProfile &&
+            String(user.id) !== currentUserUuid &&
+            (user.isFollowing ? (
+              <button
+                className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground`}
+                onClick={handleMessage}
+                aria-label="message"
+              >
+                Message
+              </button>
+            ) : (
+              <button
+                className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground flex justify-center items-center`}
+                onClick={handleFollow}
+                aria-label="follow"
+                disabled={loadingAction === "follow"}
+              >
+                {loadingAction === "follow" ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  "Follow"
+                )}
+              </button>
+            ))}
         </div>
         {/* Dropdown for mobile */}
-        <div className="flex md:hidden">
-          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-            <DropdownMenuTrigger asChild className="!px-0">
-              <Button
-                size="sm"
-                className="w-4 h-4 p-0 bg-transparent text-foreground"
-              >
-                <EllipsisVertical className="w-4 h-4 text-foreground" />
-                <span className="sr-only">More options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-40 shadow-sm bg-white/50 backdrop-blur-md"
+        {isOwnProfile && (
+          <div className="flex md:hidden">
+            <DropdownMenu
+              open={isDropdownOpen}
+              onOpenChange={setIsDropdownOpen}
             >
-              {type === "followers" && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleRemove();
-                  }}
-                  className="!text-destructive !hover:text-destructive text-[10px] sm:text-xs !bg-transparent !hover:bg-transparent"
-                  disabled={loadingAction === "remove"}
+              <DropdownMenuTrigger asChild className="!px-0">
+                <Button
+                  size="sm"
+                  className="w-4 h-4 p-0 bg-transparent text-foreground"
                 >
-                  {/* <UserMinus className="w-4 h-4 mr-2" /> */}
-                  {loadingAction === "remove" ? "Removing..." : "Remove"}
-                </DropdownMenuItem>
-              )}
-              {type === "following" && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleUnfollow();
-                  }}
-                  className="!text-destructive !hover:text-destructive text-[10px] sm:text-xs !bg-transparent !hover:bg-transparent"
-                  disabled={loadingAction === "unfollow"}
-                >
-                  {/* <UserX className="w-4 h-4 mr-2" /> */}
-                  {loadingAction === "unfollow" ? "Unfollowing..." : "Unfollow"}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                  <EllipsisVertical className="w-4 h-4 text-foreground" />
+                  <span className="sr-only">More options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-40 shadow-sm bg-white/50 backdrop-blur-md"
+              >
+                {isOwnProfile && type === "followers" && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleRemove();
+                    }}
+                    className="!text-destructive !hover:text-destructive text-[10px] sm:text-xs !bg-transparent !hover:bg-transparent"
+                    disabled={loadingAction === "remove"}
+                  >
+                    {loadingAction === "remove" ? "Removing..." : "Remove"}
+                  </DropdownMenuItem>
+                )}
+                {isOwnProfile && type === "following" && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleUnfollow();
+                    }}
+                    className="!text-destructive !hover:text-destructive text-[10px] sm:text-xs !bg-transparent !hover:bg-transparent"
+                    disabled={loadingAction === "unfollow"}
+                  >
+                    {loadingAction === "unfollow"
+                      ? "Unfollowing..."
+                      : "Unfollow"}
+                  </DropdownMenuItem>
+                )}
+                {/* For other profiles: show follow/message logic in dropdown */}
+                {!isOwnProfile &&
+                  (user.isFollowing ? (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleMessage();
+                      }}
+                      className="text-[10px] sm:text-xs"
+                    >
+                      Message
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleFollow();
+                      }}
+                      className="text-[10px] sm:text-xs"
+                      disabled={loadingAction === "follow"}
+                    >
+                      {loadingAction === "follow" ? "Following..." : "Follow"}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
     </div>
   );

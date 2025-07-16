@@ -4,8 +4,11 @@ import { auth } from "@clerk/nextjs/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export async function GET(req: Request, context: any) {
-  const userId = context?.params?.userId;
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ userId: string }> }
+) {
+  const { userId } = await context.params;
   const supabase = createRouteHandlerSupabaseClient();
 
   // Get current user (for isFollowing)
@@ -143,20 +146,51 @@ export async function POST(
   );
 
   // Get current user's internal UUID
-  const { data: currentUser } = await supabase
+  const { data: currentUser, error: currentUserError } = await supabase
     .from("users")
     .select("id")
     .eq("clerk_user_id", clerkUserId)
     .single();
 
-  if (!currentUser) return new Response("User not found", { status: 404 });
+  if (currentUserError) {
+    console.error(
+      "[POST /followers] Error fetching current user:",
+      currentUserError.message
+    );
+    return new Response(JSON.stringify({ error: currentUserError.message }), {
+      status: 500,
+    });
+  }
+  if (!currentUser) {
+    console.error(
+      "[POST /followers] Current user not found for clerkUserId:",
+      clerkUserId
+    );
+    return new Response(JSON.stringify({ error: "User not found" }), {
+      status: 404,
+    });
+  }
 
-  // Add follow relationship (current user follows userId)
-  const { error } = await supabase.from("user_follows").insert({
+  // Debug log
+  console.log("[POST /followers] Attempting to follow:", {
     follower_id: currentUser.id,
     following_id: userId,
   });
 
-  if (error) return new Response(error.message, { status: 500 });
+  // Add follow relationship (current user follows userId)
+  const { error: insertError } = await supabase.from("user_follows").insert({
+    follower_id: currentUser.id,
+    following_id: userId,
+  });
+
+  if (insertError) {
+    console.error(
+      "[POST /followers] Supabase insert error:",
+      insertError.message
+    );
+    return new Response(JSON.stringify({ error: insertError.message }), {
+      status: 500,
+    });
+  }
   return new Response(null, { status: 201 });
 }
