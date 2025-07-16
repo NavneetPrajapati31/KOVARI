@@ -102,3 +102,8 @@ export const linkifyMessage = (message: string): string => {
   html = html.replace(/\n/g, "<br />");
   return html;
 };
+
+export function formatTime(time: { hour: number; minute: number; ampm: "AM" | "PM" }) {
+  const mm = time.minute.toString().padStart(2, "0");
+  return `${time.hour}:${mm} ${time.ampm}`;
+}

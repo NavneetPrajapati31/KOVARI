@@ -209,19 +209,10 @@ const TravelActivityHeatmap: React.FC<TravelActivityHeatmapProps> = ({
             background: #d1d5db;
             border-radius: 4px;
           }
-            .hide-scrollbar {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE 10+ */
-  }
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
-}
         `}</style>
         {/* Outer div to center the scrollable content */}
         <div className="w-full flex justify-center">
-          {/* This div handles the horizontal scrolling */}
-          <div className="overflow-x-auto heatmap-scrollbar">
+          <div className="overflow-x-auto scrollbar-hide">
             {/* This inner div contains the actual heatmap content (months + grid) */}
             <div className="flex flex-col" style={{ minWidth: `${weeks.length * cellAndGapWidth}px` }}>
               {/* Month Labels */}
