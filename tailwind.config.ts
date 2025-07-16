@@ -67,7 +67,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), heroui()],
+  plugins: [require("tailwindcss-animate"), heroui(), require('tailwind-scrollbar-hide')],
 };
 
 export default config;
