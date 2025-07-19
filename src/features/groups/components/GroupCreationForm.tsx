@@ -61,6 +61,10 @@ const formSchema = z
       .min(1, "Group name is required")
       .min(3, "Group name must be at least 3 characters"),
     destination: z.string().min(1, "Please select a destination"),
+    budget: z
+      .number({ invalid_type_error: "Budget is required" })
+      .min(1000, "Budget must be at least 1,000")
+      .max(1000000, "Budget too high"),
     startDate: z.date({
       required_error: "Start date is required",
     }),
@@ -120,6 +124,7 @@ export function GroupCreationForm() {
       isPublic: true,
       startDate: todayJs,
       endDate: tomorrowJs,
+      budget: 10000,
     },
   });
 
@@ -345,6 +350,29 @@ export function GroupCreationForm() {
                   </SelectItem>
                 )}
               </Select>
+              {errors.destination && (
+                <p className="text-sm text-[#F31260]">
+                  {errors.destination.message}
+                </p>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <Label htmlFor="budget">Budget (INR)</Label>
+              <Input
+                id="budget"
+                type="number"
+                min={1000}
+                max={1000000}
+                step={1000}
+                {...register("budget", { valueAsNumber: true })}
+                className="mt-1"
+              />
+              {errors.budget && (
+                <p className="text-sm text-[#F31260]">
+                  {errors.budget.message}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-3">

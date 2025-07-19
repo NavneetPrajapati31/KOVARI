@@ -1,70 +1,11 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import ExploreHeader from "@/features/explore/components/ExploreHeader";
-import ExploreResults from "@/features/explore/components/ExploreResults";
+import { ExploreHeader } from "@/features/explore/components/ExploreHeader";
+
 import { Loader2 } from "lucide-react";
 import { Spinner } from "@heroui/react";
-
-interface FiltersState {
-  destination: string;
-  dateStart: Date | undefined;
-  dateEnd: Date | undefined;
-  ageMin: number;
-  ageMax: number;
-  gender: string;
-  interests: string[];
-}
-
-const DEFAULT_FILTERS: FiltersState = {
-  destination: "",
-  dateStart: undefined,
-  dateEnd: undefined,
-  ageMin: 18,
-  ageMax: 99,
-  gender: "Any",
-  interests: [],
-};
-
-// Helpers to serialize/deserialize filters to/from query params
-const parseFiltersFromSearchParams = (
-  searchParams: URLSearchParams
-): FiltersState => {
-  return {
-    destination: searchParams.get("destination") || "",
-    dateStart: searchParams.get("dateStart")
-      ? new Date(searchParams.get("dateStart")!)
-      : undefined,
-    dateEnd: searchParams.get("dateEnd")
-      ? new Date(searchParams.get("dateEnd")!)
-      : undefined,
-    ageMin: searchParams.get("ageMin")
-      ? parseInt(searchParams.get("ageMin")!)
-      : 18,
-    ageMax: searchParams.get("ageMax")
-      ? parseInt(searchParams.get("ageMax")!)
-      : 99,
-    gender: searchParams.get("gender") || "Any",
-    interests: searchParams.get("interests")
-      ? searchParams.get("interests")!.split(",").filter(Boolean)
-      : [],
-  };
-};
-
-const serializeFiltersToQuery = (
-  filters: FiltersState
-): Record<string, string> => {
-  const query: Record<string, string> = {};
-  if (filters.destination) query.destination = filters.destination;
-  if (filters.dateStart) query.dateStart = filters.dateStart.toISOString();
-  if (filters.dateEnd) query.dateEnd = filters.dateEnd.toISOString();
-  if (filters.ageMin !== 18) query.ageMin = String(filters.ageMin);
-  if (filters.ageMax !== 99) query.ageMax = String(filters.ageMax);
-  if (filters.gender && filters.gender !== "Any") query.gender = filters.gender;
-  if (filters.interests.length > 0)
-    query.interests = filters.interests.join(",");
-  return query;
-};
+import { GroupCard } from "@/features/explore/components/GroupCard";
 
 export default function ExplorePage() {
   const router = useRouter();
@@ -80,29 +21,9 @@ export default function ExplorePage() {
   const [activeTab, setActiveTab] = useState(getTabIndex);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
-
-  // Memoize parsed filters from searchParams
-  const parsedFilters = useMemo(
-    () => parseFiltersFromSearchParams(searchParams),
-    [searchParams]
-  );
-  const [filters, setFilters] = useState<FiltersState>(parsedFilters);
-
-  // Sync filters state with URL changes (e.g., browser navigation)
-  useEffect(() => {
-    if (
-      filters.destination !== parsedFilters.destination ||
-      filters.dateStart?.toISOString() !==
-        parsedFilters.dateStart?.toISOString() ||
-      filters.dateEnd?.toISOString() !== parsedFilters.dateEnd?.toISOString() ||
-      filters.ageMin !== parsedFilters.ageMin ||
-      filters.ageMax !== parsedFilters.ageMax ||
-      filters.gender !== parsedFilters.gender ||
-      filters.interests.join() !== parsedFilters.interests.join()
-    ) {
-      setFilters(parsedFilters);
-    }
-  }, [parsedFilters]);
+  const [matchedGroups, setMatchedGroups] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   // Sync activeTab with URL changes
   useEffect(() => {
@@ -121,27 +42,6 @@ export default function ExplorePage() {
     }
   };
 
-  const handleFilterChange = (newFilters: FiltersState) => {
-    setFilters(newFilters);
-    // Merge with current tab param
-    let tabParam = "travelers";
-    if (activeTab === 1) tabParam = "groups";
-    const query: Record<string, string> = {
-      ...serializeFiltersToQuery(newFilters),
-      tab: tabParam,
-    };
-    const queryString = Object.entries(query)
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-      .join("&");
-    router.push(`/explore?${queryString}`, { scroll: false });
-  };
-
-  const memoizedFilters = useMemo(() => filters, [filters]);
-  const memoizedOnFilterChange = useCallback(handleFilterChange, [
-    filters,
-    activeTab,
-    router,
-  ]);
   const memoizedOnDropdownOpenChange = useCallback(setIsFilterDropdownOpen, []);
 
   useEffect(() => {
@@ -156,9 +56,39 @@ export default function ExplorePage() {
     };
   }, [isPageLoading]);
 
+  const handleSearch = async (searchData: {
+    destination: string;
+    budget: number;
+    startDate: Date;
+    endDate: Date;
+  }) => {
+    setSearchLoading(true);
+    setSearchError(null);
+    setMatchedGroups([]);
+    try {
+      const res = await fetch("/api/match-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destination: searchData.destination,
+          budget: searchData.budget,
+          startDate: searchData.startDate,
+          endDate: searchData.endDate,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
+      setMatchedGroups(data.groups || []);
+    } catch (err: any) {
+      setSearchError(err.message || "Unknown error");
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   return (
     <>
-      {isPageLoading && (
+      {(isPageLoading || searchLoading) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-card h-screen">
           <Spinner variant="spinner" size="md" color="primary" />
         </div>
@@ -167,9 +97,8 @@ export default function ExplorePage() {
         <ExploreHeader
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          filters={memoizedFilters}
-          onFilterChange={memoizedOnFilterChange}
           onDropdownOpenChange={memoizedOnDropdownOpenChange}
+          onSearch={handleSearch}
         />
         <div
           className={`w-full flex-1 px-4 transition-[filter,opacity] duration-500 ease-in-out ${
@@ -178,11 +107,25 @@ export default function ExplorePage() {
               : "blur-0 opacity-100"
           }`}
         >
-          <ExploreResults
-            activeTab={activeTab}
-            filters={filters}
-            onShowLoading={() => setIsPageLoading(true)}
-          />
+          {searchError ? (
+            <div className="flex items-center justify-center h-full text-destructive text-lg">
+              {searchError}
+            </div>
+          ) : matchedGroups.length > 0 ? (
+            <div className="flex flex-col items-center gap-6 py-8">
+              {matchedGroups.map((group) => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  onAction={async () => {}}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-lg">
+              No results to display.
+            </div>
+          )}
         </div>
       </div>
     </>
