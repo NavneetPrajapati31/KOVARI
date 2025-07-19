@@ -209,3 +209,9 @@ body {
 .reactCrop__crop-selection:after {
   display: none !important;
 }
+
+.color-github-4 { fill: #216e39; }
+.color-github-3 { fill: #30a14e; }
+.color-github-2 { fill: #40c463; }
+.color-github-1 { fill: #9be9a8; }
+.color-empty    { fill: #ebedf0; }

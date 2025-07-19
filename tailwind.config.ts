@@ -56,10 +56,18 @@ const config: Config = {
       fontFamily: {
         heading: ["Poppins", "sans-serif"],
         body: ["Inter", "sans-serif"],
+        clash: ["Clash Display", "sans-serif"],
+        manrope: ["Manrope", "sans-serif"],
+        sans: ["Manrope", "sans-serif"],
+        "new-title": ["NewTitle-Variable", "NewTitle-Regular", "sans-serif"],
+        helvetica: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+        roundhand: ["Roundhand-Regular", "cursive"],
+        "roundhand-bold": ["Roundhand-Bold", "cursive"],
+        matgefo: ["Matgefo", "sans-serif"],
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), heroui()],
+  plugins: [require("tailwindcss-animate"), heroui(), require('tailwind-scrollbar-hide')],
 };
 
 export default config;

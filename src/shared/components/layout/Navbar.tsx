@@ -138,7 +138,7 @@ export default function App({
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await signOut({ redirectUrl: "/sign-in" });
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -224,7 +224,7 @@ export default function App({
             className="text-foreground !opacity-100"
             onClick={() => handleNavigation("/")}
           >
-            <AcmeLogo />
+            {/* <AcmeLogo /> */}
             <p className="font-bold text-xl text-inherit">KOVARI</p>
           </Link>
         </NavbarBrand>

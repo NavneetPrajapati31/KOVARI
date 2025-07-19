@@ -1,29 +1,50 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
+
 import { Skeleton } from "@/shared/components/ui/SkeletonCard";
 import DashboardCard from "@/shared/components/ui/DashboardCard";
+import DoneTripsCard from "@/shared/components/DoneTripsCard/DoneTripsCard";
+import { GroupList } from "@/shared/components/GroupCard/GroupCard-list";
+import TodoChecklist from "@/shared/components/Todo-Checklist/Todo-checklist";
+import ItineraryUI from "@/shared/components/Itinerary/Itinerary-ui";
+import TripsBarChart from "@/shared/components/charts/TripsBarChart";
+import dynamic from "next/dynamic";
+
+const TravelHeatmap = dynamic(
+  () => import("@/shared/components/heatmap/TravelHeatmap"),
+  { ssr: false }
+);
+
 import { useUserGroups } from "@/shared/hooks/useUserGroups";
 import { useUserTrips } from "@/shared/hooks/useUserTrips";
 import { usePendingInvites } from "@/shared/hooks/usePendingInvites";
-import GroupPreviewCard from "@/shared/components/ui/GroupPreviewCard";
-import TripSummaryCard from "@/shared/components/ui/TripSummaryCard";
-import { PendingInviteCard } from "@/shared/components/ui/PendingInviteCard";
-
-import TripTypePieChart from "@/shared/components/charts/TripTypePieChart";
-import TripsBarChart from "@/shared/components/charts/TripsBarChart";
 
 import {
   getMostFrequentDestinations,
   getTotalTravelDays,
   getUniqueCoTravelers,
-  getTripTypeStats,
   getTripsPerYear,
 } from "@/shared/utils/analytics";
 
-import { isAfter, isBefore } from "date-fns";
+import { isBefore, isAfter } from "date-fns";
+
+interface ItineraryEvent {
+  id: string;
+  time: { hour: number; minute: number; ampm: "AM" | "PM" };
+  label?: string;
+  description: string;
+  duration: string;
+  active: boolean;
+}
+
+interface ItineraryDay {
+  id: number;
+  name: string;
+  events: ItineraryEvent[];
+}
 
 function SkeletonDemo() {
   return (
@@ -43,208 +64,238 @@ export default function Dashboard() {
 
   const { groups, loading: groupsLoading } = useUserGroups();
   const { trips } = useUserTrips();
-  const { invites, loading: pendingLoading } = usePendingInvites();
+  const { invites } = usePendingInvites();
+
+  const [travelDays, setTravelDays] = useState<string[]>([]);
+  const [itineraryDays, setItineraryDays] = useState<ItineraryDay[]>([]);
+  const [itineraryLoading, setItineraryLoading] = useState(false);
+  const [itineraryError, setItineraryError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isSignedIn && user) {
-      setUser(user);
+    if (isSignedIn && user) setUser(user);
+  }, [isSignedIn, user]);
+
+  useEffect(() => {
+    fetch("/api/travel-days")
+      .then((res) => res.json())
+      .then((data) => setTravelDays(data.travelDays || []));
+  }, []);
+
+  const formattedTravelDays = travelDays.filter((d) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(d)
+  );
+  const years = useMemo(
+    () =>
+      [...new Set(formattedTravelDays.map((d) => +d.split("-")[0]))].sort(
+        (a, b) => b - a
+      ),
+    [formattedTravelDays]
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    () => years[0] || new Date().getFullYear()
+  );
+
+  useEffect(() => {
+    if (years.length && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
     }
-  }, [isSignedIn, user, setUser]);
+  }, [years]);
 
   const now = new Date();
-  const upcomingTrips = groups.filter(
-    (g) => g.group?.start_date && isAfter(new Date(g.group.start_date), now)
+
+  const past = useMemo(
+    () =>
+      groups
+        .filter(
+          (g) =>
+            g.group?.start_date && isBefore(new Date(g.group.start_date), now)
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.group?.start_date!).getTime() -
+            new Date(a.group?.start_date!).getTime()
+        ),
+    [groups]
   );
-  const pastTrips = groups.filter(
-    (g) => g.group?.start_date && isBefore(new Date(g.group.start_date), now)
+
+  const upcoming = useMemo(
+    () =>
+      groups
+        .filter(
+          (g) =>
+            g.group?.start_date && isAfter(new Date(g.group.start_date), now)
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.group?.start_date!).getTime() -
+            new Date(b.group?.start_date!).getTime()
+        ),
+    [groups]
   );
+
+  const nearestUpcomingGroupId = upcoming[0]?.group?.id;
+  const selectedGroupId = nearestUpcomingGroupId || past[0]?.group?.id;
+
+  console.log(
+    "User groups:",
+    groups.map((g) => g.group?.id)
+  );
+  console.log("Selected Group ID for itinerary:", selectedGroupId);
+
+  // Fetch itinerary
+  useEffect(() => {
+    if (!selectedGroupId) {
+      setItineraryDays([]);
+      return;
+    }
+
+    setItineraryLoading(true);
+    setItineraryError(null);
+
+    fetch(`/api/Itinerary?groupId=${selectedGroupId}`)
+      .then((res) => {
+        console.log("API /api/Itinerary status:", res.status);
+        return res.json();
+      })
+      .then((data) => {
+        console.log("API /api/Itinerary data:", data);
+        const byDay: { [date: string]: any[] } = {};
+        data.forEach((item: any) => {
+          const date = item.datetime?.split("T")[0];
+          if (!date) return;
+          byDay[date] = byDay[date] || [];
+          byDay[date].push(item);
+        });
+
+        const sortedDays = Object.keys(byDay).sort();
+        const mapped = sortedDays.map((date, idx) => ({
+          id: idx + 1,
+          name: `Day ${idx + 1}`,
+          events: byDay[date].map((item: any) => {
+            const t = new Date(item.datetime);
+            let hour = t.getHours(),
+              minute = t.getMinutes();
+            const ampm: "AM" | "PM" = hour >= 12 ? "PM" : "AM";
+            hour = hour % 12 || 12;
+            return {
+              id: item.id,
+              time: { hour, minute, ampm },
+              label: item.title,
+              description: item.description,
+              duration: item.duration || "",
+              active: !item.is_archived,
+            };
+          }),
+        }));
+        console.log("Mapped itineraryDays:", mapped);
+        setItineraryDays(mapped);
+      })
+      .catch((err) => {
+        console.error("API /api/Itinerary error:", err);
+        setItineraryError(err.message || "Unknown error");
+      })
+      .finally(() => setItineraryLoading(false));
+  }, [selectedGroupId]);
 
   const mostVisited = getMostFrequentDestinations(groups);
   const totalDays = getTotalTravelDays(groups);
   const coTravelers = getUniqueCoTravelers(groups);
-  const tripTypeStats = getTripTypeStats(groups);
-  const tripsPerYear = getTripsPerYear(groups);
-
-  const soloCount = tripTypeStats.solo;
-  const groupCount = tripTypeStats.group;
+  const tripsPerYear = useMemo(() => getTripsPerYear(groups), [groups]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-4 py-6 space-y-10">
-      {isSignedIn ? (
+    <div className="min-h-screen bg-white px-4 py-8">
+      {!isSignedIn ? (
+        <SkeletonDemo />
+      ) : (
         <>
-          <h1 className="text-2xl font-bold">Welcome, {user.firstName} 👋</h1>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-black">Dashboard</h1>
+          </div>
 
-          {/* Summary Cards */}
-          <section>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <DashboardCard
-                title="My Groups"
-                count={groups.length}
-                loading={groupsLoading}
-                emptyText="No groups yet"
-              />
-              <DashboardCard
-                title="Upcoming Trips"
-                count={trips.length}
-                loading={false}
-                emptyText="No upcoming trips"
-              />
-              <DashboardCard
-                title="Invitations"
-                count={invites.length}
-                loading={pendingLoading}
-                emptyText="No invites"
-              />
-            </div>
-          </section>
-
-          {/* Quick Stats */}
-          <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
-              Quick Stats
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* First Row: Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div className="min-h-[140px]">
               <DashboardCard
                 title="Top Destination"
-                value={mostVisited}
+                value={mostVisited || "N/A"}
                 loading={groupsLoading}
-                emptyText="No destination yet"
               />
+            </div>
+            <div className="min-h-[140px]">
               <DashboardCard
                 title="Total Travel Days"
                 value={`${totalDays} days`}
                 loading={groupsLoading}
-                emptyText="0"
               />
+            </div>
+            <div className="min-h-[140px]">
               <DashboardCard
                 title="Co-Travelers (est.)"
                 value={coTravelers}
                 loading={groupsLoading}
-                emptyText="0"
               />
             </div>
-          </section>
+            <div className="min-h-[140px]">
+              <DashboardCard
+                title="My Groups"
+                value={groups.length}
+                loading={groupsLoading}
+              />
+            </div>
+          </div>
 
-          {/* Visual Insights */}
-          <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
-              Visual Insights
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TripTypePieChart solo={soloCount} group={groupCount} />
+          {/* Second Row: Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white rounded-2xl p-4 min-h-[300px] flex flex-col justify-between">
               <TripsBarChart data={tripsPerYear} />
             </div>
-          </section>
+            <div className="bg-white rounded-2xl p-4 min-h-[300px] flex flex-col justify-between">
+              {formattedTravelDays.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  No travel data available.
+                </div>
+              ) : (
+                <TravelHeatmap
+                  travelDays={formattedTravelDays}
+                  year={selectedYear}
+                  years={years}
+                  setSelectedYear={setSelectedYear}
+                />
+              )}
+            </div>
+          </div>
 
-          {/* Your Groups */}
-          <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
-              Your Groups
-            </h2>
-            {groups.length === 0 ? (
-              <p className="text-muted-foreground">
-                You haven't joined any groups yet.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {groups.map((g) => (
-                  <GroupPreviewCard key={g.group_id} group={g} />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Pending Invites */}
-          <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
-              Pending Invites
-            </h2>
-            {pendingLoading ? (
-              <p>Loading...</p>
-            ) : invites.length === 0 ? (
-              <p className="text-muted-foreground">No pending invites.</p>
-            ) : (
-              <div className="space-y-4">
-                {invites.map((invite) =>
-                  invite.group ? (
-                    <PendingInviteCard
-                      key={invite.id}
-                      group={invite.group}
-                      onAccept={() => console.log("Accept invite:", invite.id)}
-                      onDecline={() =>
-                        console.log("Decline invite:", invite.id)
-                      }
-                    />
-                  ) : null
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Trip Summary */}
-          <section>
-            <h2 className="text-xl font-semibold text-[#004831] mb-3">
-              Trip Summary
-            </h2>
-            {upcomingTrips.length === 0 && pastTrips.length === 0 ? (
-              <p className="text-muted-foreground">No trip history found.</p>
-            ) : (
-              <div className="space-y-6">
-                {upcomingTrips.length > 0 && (
-                  <div>
-                    <h3 className="text-md font-medium text-[#004831] mb-2">
-                      Upcoming Trips
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {upcomingTrips.map((g) =>
-                        g.group ? (
-                          <TripSummaryCard
-                            key={g.group_id}
-                            name={g.group.name}
-                            status="upcoming"
-                            destination={g.group.destination || "Unknown"}
-                            from={g.group.start_date || "TBD"}
-                            to={g.group.end_date || "TBD"}
-                            tripType={
-                              g.group.members_count === 1 ? "Solo" : "Group"
-                            }
-                          />
-                        ) : null
-                      )}
-                    </div>
+          {/* Third Row: Tools */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="h-full">
+              <DoneTripsCard />
+            </div>
+            <div className="h-full">
+              <GroupList title="My Groups" />
+            </div>
+            <div className="h-full">
+              {selectedGroupId ? (
+                itineraryLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    Loading itinerary...
                   </div>
-                )}
-
-                {pastTrips.length > 0 && (
-                  <div>
-                    <h3 className="text-md font-medium text-[#004831] mb-2">
-                      Past Trips
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {pastTrips.map((g) =>
-                        g.group ? (
-                          <TripSummaryCard
-                            key={g.group_id}
-                            name={g.group.name}
-                            status="past"
-                            destination={g.group.destination || "Unknown"}
-                            from={g.group.start_date || "TBD"}
-                            to={g.group.end_date || "TBD"}
-                            tripType={
-                              g.group.members_count === 1 ? "Solo" : "Group"
-                            }
-                          />
-                        ) : null
-                      )}
-                    </div>
+                ) : itineraryError ? (
+                  <div className="text-red-500 text-center">
+                    {itineraryError}
                   </div>
-                )}
-              </div>
-            )}
-          </section>
+                ) : (
+                  <ItineraryUI
+                    itineraryDays={itineraryDays}
+                    cardClassName="border-none shadow-md h-full"
+                  />
+                )
+              ) : null}
+            </div>
+            <div className="h-full">
+              <TodoChecklist />
+            </div>
+          </div>
         </>
-      ) : (
-        <SkeletonDemo />
       )}
     </div>
   );

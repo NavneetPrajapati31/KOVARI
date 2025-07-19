@@ -13,7 +13,7 @@ export default function SSOCallback() {
     const handleCallback = async () => {
       try {
         await handleRedirectCallback({
-          afterSignInUrl: "/",
+          afterSignInUrl: "/dashboard",
           afterSignUpUrl: "/onboarding",
         });
         // router.push("/");

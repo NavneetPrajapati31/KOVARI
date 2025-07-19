@@ -14,6 +14,7 @@ import {
   NavbarMenuItem,
   NavbarMenu,
   Skeleton,
+  Badge,
 } from "@heroui/react";
 import {
   DropdownMenu,
@@ -25,6 +26,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
+import { motion } from "framer-motion";
 import {
   Compass,
   MessageCircle,
@@ -33,13 +35,17 @@ import {
   Plus,
   Home,
   Search,
+  User,
   User2,
   Inbox,
   Settings,
+  Send,
 } from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
 import Link from "next/link";
+import SidebarMenu from "./sidebar-menu";
+import useTotalUnreadCount from "@/shared/hooks/use-total-unread-count";
 
 export const AcmeLogo = () => {
   return (
@@ -70,6 +76,8 @@ export default function App({
   const [profilePhotoError, setProfilePhotoError] = useState<string | null>(
     null
   );
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const totalUnreadCount = useTotalUnreadCount();
 
   useEffect(() => {
     // Hide spinner when route changes
@@ -125,7 +133,7 @@ export default function App({
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await signOut({ redirectUrl: "/sign-in" });
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -219,32 +227,73 @@ export default function App({
 
   return (
     <>
+      {/* Sidebar Menu Overlay */}
+      <SidebarMenu
+        open={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+
       {/* {isNavigating && <Spinner />} */}
       <Navbar
         // height={"3rem"}
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}
-        className="backdrop-blur-xl bg-background/80 border-border sticky top-0 z-40"
+        className="backdrop-blur-3xl bg-background/80 border-border sticky top-0 z-40"
         classNames={{
-          wrapper: "max-w-full px-4",
+          wrapper: "max-w-full px-3 md:px-5",
         }}
       >
-        <NavbarBrand>
+        <NavbarContent className="flex items-center gap-3 p-0" justify="start">
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none"
+            aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
+          >
+            <div className="relative w-6 h-4 flex flex-col justify-center items-center">
+              {/* Top line */}
+              <motion.div
+                className="w-4 h-[1.5px] bg-black absolute"
+                animate={{
+                  rotate: isSidebarOpen ? 45 : 0,
+                  y: isSidebarOpen ? 0 : -2,
+                }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut",
+                }}
+              />
+              {/* Bottom line */}
+              <motion.div
+                className="w-4 h-[1.5px] bg-black absolute"
+                animate={{
+                  rotate: isSidebarOpen ? -45 : 0,
+                  y: isSidebarOpen ? 0 : 2,
+                }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut",
+                }}
+              />
+            </div>
+            <span className="sm:text-sm text-xs font-medium uppercase select-none">
+              MENU
+            </span>
+          </button>
+        </NavbarContent>
+        <NavbarContent className="flex-1 flex justify-center" justify="center">
           <Link
             href="/"
             className="flex items-center text-foreground !opacity-100 h-12"
             onClick={() => handleNavigation("/")}
             style={{ minHeight: "3rem" }}
           >
-            <span className="flex items-center h-10 w-10">
-              <AcmeLogo />
-            </span>
-            <span className="font-bold text-xl text-inherit leading-none">
+            <span className="font-clash tracking-widest font-medium sm:text-xl text-md">
               KOVARI
             </span>
           </Link>
-        </NavbarBrand>
+        </NavbarContent>
 
         <NavbarContent className="hidden md:flex gap-8" justify="center">
           {/* {navigationItems.map((item) => (
@@ -268,40 +317,57 @@ export default function App({
           ))} */}
         </NavbarContent>
 
-        <NavbarContent as="div" justify="end">
-          <Link href="/create-group" className="hidden md:flex">
-            <Button
+        <NavbarContent as="div" justify="end" className="gap-2 sm:gap-3">
+          <Link href="/create-group" className="">
+            {/* <Button
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1 rounded-full flex items-center gap-2 self-start sm:self-center"
               aria-label="Create Group"
             >
               <span className="text-xs">Create Group</span>
               <Plus className="h-3 w-3" />
-            </Button>
-          </Link>
-          <Link href="/invitations" className="hidden md:flex">
+            </Button> */}
             <div
-              className="bg-foreground hover:bg-black/70 transition-all duration-300 text-primary-foreground p-2.5 rounded-full flex items-center self-start sm:self-center"
-              aria-label="Invitations"
+              className="bg-transparent duration-300 text-foreground p-0 m-0 rounded-full flex items-center self-start sm:self-center"
+              aria-label="Inbox"
             >
-              <Inbox className="h-4 w-4" />
+              <Plus className="h-5 w-5  sm:h-6 sm:w-6" />
+            </div>
+          </Link>
+          <Link href="/chat" className="">
+            <div
+              className="bg-transparent duration-300 text-foreground p-0 m-0 rounded-full flex items-center self-start sm:self-center relative"
+              aria-label="Inbox"
+            >
+              {totalUnreadCount > 0 ? (
+                <Badge color="primary" size="md" content={totalUnreadCount}>
+                  <Send className="h-4 w-4  sm:h-5 sm:w-5" />
+                </Badge>
+              ) : (
+                <Send className="h-4 w-4  sm:h-5 sm:w-5" />
+              )}
             </div>
           </Link>
           {!isLoaded || profilePhotoLoading ? (
-            <Skeleton className="w-9 h-9 rounded-full" />
+            <User className="h-5 w-5  sm:h-6 sm:w-6" />
           ) : isSignedIn ? (
             <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
               <DropdownMenuTrigger asChild>
-                <Avatar
+                {/* <Avatar
                   isBordered
                   as="button"
-                  className={"transition-transform ring-primary"}
+                  className={
+                    "h-6 w-6 sm:h-8 sm:w-8 transition-transform ring-primary"
+                  }
                   color="secondary"
                   name={user?.fullName || user?.username || "User"}
                   size="sm"
                   src={profilePhotohref || user?.imageUrl}
-                />
+                /> */}
+                <div className="hover:cursor-pointer">
+                  <User className="h-5 w-5  sm:h-6 sm:w-6" />
+                </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
+              <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-sm transition-all duration-300 ease-in-out border-border mr-8">
                 {menuItems.map((item) => (
                   <DropdownMenuItem
                     key={item.key}
@@ -323,7 +389,7 @@ export default function App({
           )}
         </NavbarContent>
 
-        <NavbarMenu className="md:hidden backdrop-blur-2xl">
+        {/* <NavbarMenu className="md:hidden backdrop-blur-2xl">
           {navigationItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>
               <Link
@@ -341,7 +407,7 @@ export default function App({
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="block md:hidden"
-        />
+        /> */}
       </Navbar>
     </>
   );

@@ -44,15 +44,15 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
     <>
       <div className="space-y-2 mb-6">
         <h1 className="text-md sm:text-lg font-bold text-foreground">
-          Privacy & Visibility
+          Privacy & Safety
         </h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
           Control who can see and join your group.
         </p>
       </div>
-      <div className="space-y-4">
-        <Card className="border-1 border-border bg-transparent">
-          <CardContent className="space-y-4">
+      <div className="space-y-4 w-full max-w-full">
+        <Card className="border-1 border-border bg-transparent w-full max-w-full min-w-0">
+          <CardContent className="space-y-4 w-full max-w-full min-w-0">
             <div className="space-y-2">
               <Label htmlFor="visibility" className="text-xs font-medium">
                 Group Visibility
@@ -61,33 +61,35 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
                 onValueChange={(value) => setValue("visibility", value as any)}
                 defaultValue={watchedValues.visibility}
               >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Select visibility" />
+                <SelectTrigger className="h-9 text-xs w-full min-w-0">
+                  <span className="truncate overflow-hidden whitespace-nowrap block w-full min-w-0">
+                    <SelectValue placeholder="Select visibility" />
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="public">
                     <div className="flex items-center gap-2">
                       <Globe className="h-3 w-3" />
-                      Public - Anyone can find and join
+                      Public
                     </div>
                   </SelectItem>
                   <SelectItem value="private">
                     <div className="flex items-center gap-2">
                       <Lock className="h-3 w-3" />
-                      Private - Invitation only
+                      Private
                     </div>
                   </SelectItem>
                   <SelectItem value="invite-only">
                     <div className="flex items-center gap-2">
                       <Users className="h-3 w-3" />
-                      Invite-only - Members can invite others
+                      Invite-only
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-2 border-t pt-4">
+            <div className="flex flex-row sm:flex-row sm:items-center sm:justify-between gap-3 py-2 border-t pt-4 min-w-0">
               <div className="space-y-1 flex-1">
                 <Label className="text-xs font-medium">Group Privacy</Label>
                 <p className="text-xs text-muted-foreground">
@@ -104,8 +106,8 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
               />
             </div>
 
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-2">
+            <div className="space-y-3 min-w-0">
+              <div className="flex flex-row sm:flex-row sm:items-center sm:justify-between gap-3 py-2 min-w-0">
                 <div className="space-y-1 flex-1">
                   <Label className="text-xs font-medium">
                     Allow Join Requests
@@ -122,7 +124,7 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-2">
+              <div className="flex flex-row sm:flex-row sm:items-center sm:justify-between gap-3 py-2 min-w-0">
                 <div className="space-y-1 flex-1">
                   <Label className="text-xs font-medium">
                     Require Approval
@@ -142,8 +144,8 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
           </CardContent>
         </Card>
 
-        <Card className="border-1 border-border bg-transparent">
-          <CardHeader className="pb-4">
+        <Card className="border-1 border-border bg-transparent w-full max-w-full min-w-0">
+          <CardHeader className="pb-4 w-full max-w-full min-w-0">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-4 w-4" />
               Safety Features
@@ -152,7 +154,7 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
               Enable safety features to protect group members.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 w-full max-w-full min-w-0">
             {[
               {
                 key: "emergencyContacts",
@@ -182,7 +184,7 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
             ].map((feature) => (
               <div
                 key={feature.key}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-2"
+                className="flex flex-row sm:flex-row sm:items-center sm:justify-between gap-3 py-2 min-w-0"
               >
                 <div className="space-y-1 flex-1">
                   <Label className="text-xs font-medium">{feature.label}</Label>

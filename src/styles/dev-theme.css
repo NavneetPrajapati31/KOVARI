@@ -1,3 +1,28 @@
+@font-face {
+  font-family: "Roundhand-Regular";
+  font-style: normal;
+  font-weight: normal;
+  src:
+    local("Roundhand-Regular"),
+    url("/fonts/roundhand/Roundhand Regular.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Roundhand-Bold";
+  font-style: normal;
+  font-weight: normal;
+  src:
+    local("Roundhand-Bold"),
+    url("/fonts/roundhand/Roundhand Bold.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Matgefo";
+  font-style: normal;
+  font-weight: normal;
+  src: url("/fonts/matgefo/Matgefo.otf") format("opentype");
+  font-display: swap;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,7 +45,7 @@
   * {
     scroll-behavior: smooth;
     scrollbar-width: 50px;
-    scrollbar-color: gray #f9fafb;
+    scrollbar-color: #cbd5e1 var(--background);
   }
 }
 
@@ -41,6 +66,14 @@
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none; /* Chrome/Safari/Webkit */
+  }
+
+  .hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
   }
 }
 
@@ -81,7 +114,7 @@
 }
 
 body {
-  @apply bg-background text-foreground font-body;
+  @apply bg-background text-foreground font-sans;
 }
 
 .custom-hamburger-toggle span:not(.sr-only):not(.absolute) {
@@ -102,3 +135,23 @@ body {
 .reactCrop__crop-selection:after {
   display: none !important;
 }
+
+/* Custom scrollbar styles */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: transparent;
+}
+
+@import "./new-title.css";

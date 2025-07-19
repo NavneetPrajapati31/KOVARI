@@ -120,7 +120,7 @@ const SidebarUserMenu = ({
           tabIndex={0}
         >
           <Avatar
-            src={user?.imageUrl || "/placeholder.svg"}
+            src={user?.imageUrl || ""}
             alt={user?.fullName || "User avatar"}
             size="sm"
             className="flex-shrink-0"
@@ -191,7 +191,7 @@ export function AppSidebar() {
             >
               {/* <AcmeLogo /> */}
               <span
-                className={`font-semibold text-muted-foreground
+                className={`font-semibold font-clash text-muted-foreground
                   transition-all duration-300 origin-left overflow-hidden
                   
                   ${

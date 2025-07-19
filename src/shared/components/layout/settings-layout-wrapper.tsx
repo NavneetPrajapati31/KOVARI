@@ -1,10 +1,17 @@
 "use client";
-import React, { useCallback, memo } from "react";
+import React, { useCallback, memo, useState } from "react";
 import SettingsSidebar from "@/shared/components/layout/settings-sidebar";
 import { useSettingsTabs } from "@/features/groups/hooks/use-settings-tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/shared/components/ui/button";
+import { Spinner } from "@heroui/react";
+import { AlertCircle, ChevronLeft } from "lucide-react";
+import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
+import { toast } from "sonner";
+import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 // Import section components
 import { BasicInfoSection } from "@/features/groups/components/edit-group-sections/basic-info-section";
@@ -116,7 +123,7 @@ const PAGE_COMPONENTS = {
 } as const;
 
 // Memoized section content component
-const SectionContent = memo(({ activeTab }: { activeTab: string }) => {
+const SectionContent = memo(({ activeTab }: { activeTab: string | null }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Initialize form for edit sections
@@ -173,7 +180,7 @@ const SectionContent = memo(({ activeTab }: { activeTab: string }) => {
   };
 
   // Check if it's an edit section
-  if (activeTab in SECTION_COMPONENTS) {
+  if (activeTab && activeTab in SECTION_COMPONENTS) {
     const SectionComponent =
       SECTION_COMPONENTS[activeTab as keyof typeof SECTION_COMPONENTS];
     return (
@@ -188,7 +195,7 @@ const SectionContent = memo(({ activeTab }: { activeTab: string }) => {
   }
 
   // Check if it's a page component
-  if (activeTab in PAGE_COMPONENTS) {
+  if (activeTab && activeTab in PAGE_COMPONENTS) {
     const PageComponent =
       PAGE_COMPONENTS[activeTab as keyof typeof PAGE_COMPONENTS];
     return (
@@ -209,25 +216,267 @@ const SectionContent = memo(({ activeTab }: { activeTab: string }) => {
 SectionContent.displayName = "SectionContent";
 
 export default function LayoutWrapper() {
-  const { activeTab, setActiveTab } = useSettingsTabs();
+  const params = useParams<{ groupId: string }>();
+  const router = useRouter();
+  const groupId = params.groupId;
 
-  const handleTabChange = useCallback(
-    (key: string) => {
-      setActiveTab(key);
-    },
-    [setActiveTab]
+  // Check user membership status
+  const {
+    membershipInfo,
+    loading: membershipLoading,
+    error: membershipError,
+    refetch: refetchMembership,
+  } = useGroupMembership(groupId);
+
+  // Debug: Log membership error and info
+  console.log(
+    "membershipError",
+    membershipError,
+    "membershipInfo",
+    membershipInfo
   );
 
+  const [isRejoining, setIsRejoining] = useState(false);
+
+  // Handle rejoining after being removed
+  const handleRejoinGroup = async () => {
+    setIsRejoining(true);
+    try {
+      const response = await fetch(`/api/groups/${groupId}/join-request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        toast.success("Join request sent successfully");
+        // Refetch membership info
+        await refetchMembership();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Failed to send join request");
+      }
+    } catch (err) {
+      console.error("Error sending join request:", err);
+      toast.error("Failed to send join request");
+    } finally {
+      setIsRejoining(false);
+    }
+  };
+
+  // Handle membership errors
+  React.useEffect(() => {
+    if (membershipError) {
+      if (membershipError.includes("Not a member")) {
+        toast.error("You are not a member of this group");
+        // Redirect to groups page after a short delay
+        // setTimeout(() => {
+        //   router.push("/groups");
+        // }, 2000);
+      } else if (membershipError.includes("Group not found")) {
+        toast.error("Group not found");
+        // router.push("/groups");
+      } else {
+        toast.error(membershipError);
+      }
+    }
+  }, [membershipError, router]);
+
+  const { activeTab, setActiveTab } = useSettingsTabs();
+  const isMobile = useIsMobile();
+  const [showSidebarMobile, setShowSidebarMobile] = React.useState(true);
+
+  // When tab changes on mobile, show content
+  const handleTabChange = React.useCallback(
+    (key: string) => {
+      setActiveTab(key);
+      if (isMobile) setShowSidebarMobile(false);
+    },
+    [setActiveTab, isMobile]
+  );
+
+  // When screen size changes to desktop, always show both
+  React.useEffect(() => {
+    if (!isMobile) setShowSidebarMobile(true);
+  }, [isMobile]);
+
+  // Membership check and error handling must be before any layout rendering
+  if (membershipLoading) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="flex items-center space-x-2">
+          <Spinner variant="spinner" size="sm" color="primary" />
+          <span className="text-primary text-sm">Checking membership...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const isNotMember =
+    (!membershipLoading &&
+      membershipInfo &&
+      !membershipInfo.isMember &&
+      !membershipInfo.isCreator) ||
+    (membershipError && membershipError.includes("Not a member"));
+
+  const hasPendingRequest = membershipInfo?.hasPendingRequest || false;
+
+  if (isNotMember) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-8 flex flex-col items-center justify-center">
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Join the group to access settings
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            You need to be a member of this group to view the settings.
+          </p>
+          <Button
+            onClick={handleRejoinGroup}
+            disabled={isRejoining}
+            className={`w-full mb-2 text-xs ${hasPendingRequest ? "pointer-events-none" : ""}`}
+            variant={hasPendingRequest ? "outline" : "default"}
+          >
+            {isRejoining ? (
+              <>
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  className="mr-1"
+                  classNames={{ spinnerBars: "bg-white" }}
+                />
+                Requesting...
+              </>
+            ) : hasPendingRequest ? (
+              "Request Pending"
+            ) : (
+              "Request to Join Group"
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (membershipError && membershipError.includes("Group not found")) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center mb-2">
+            <AlertCircle className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Group Not Found
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            The group you're looking for doesn't exist or has been deleted.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Responsive layout
+  if (isMobile) {
+    return (
+      <div className="flex flex-col min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl">
+        {activeTab == null ? (
+          <div className="w-full">
+            <SettingsSidebar
+              activeTab={activeTab ?? ""}
+              setActiveTab={handleTabChange}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Header with back button and tab title */}
+            <div className="flex items-center gap-2 p-4 px-6 border-b border-border">
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm text-foreground font-medium focus:outline-none"
+                onClick={() => {
+                  setActiveTab(null);
+                  setShowSidebarMobile(true);
+                  // Remove tab param from URL
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete("tab");
+                  // Use router.replace to update the URL without tab param
+                  router.replace(url.pathname + url.search, { scroll: false });
+                }}
+                aria-label="Back to settings list"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    setActiveTab(null);
+                    setShowSidebarMobile(true);
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("tab");
+                    router.replace(url.pathname + url.search, {
+                      scroll: false,
+                    });
+                  }
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <h2 className="text-xs font-semibold text-foreground">
+                {(() => {
+                  const tabLabels: Record<string, string> = {
+                    basic: "Basic Info",
+                    travel: "Travel Details",
+                    privacy: "Privacy & Safety",
+                    communication: "Communication",
+                    preferences: "Preferences",
+                    advanced: "Advanced",
+                    members: "Manage Members",
+                    requests: "Join Requests",
+                    delete: "Leave Group",
+                  };
+                  return tabLabels[activeTab] || "Settings";
+                })()}
+              </h2>
+            </div>
+            {/* Content */}
+            <div className="flex-1 p-3">
+              <SectionContent
+                key={activeTab ?? "none"}
+                activeTab={activeTab ?? ""}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop layout
   return (
     <div className="flex flex-col md:flex-row min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl">
-      {/* Top Sidebar (Mobile) / Left Sidebar (Desktop) - Settings Tabs */}
+      {/* Sidebar */}
       <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">
-        <SettingsSidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+        <SettingsSidebar
+          activeTab={activeTab ?? ""}
+          setActiveTab={handleTabChange}
+        />
       </div>
-
-      {/* Content Area */}
+      {/* Content */}
       <div className="flex-1 flex flex-col p-3 gap-2 overflow-hidden">
-        <SectionContent key={activeTab} activeTab={activeTab} />
+        <SectionContent key={activeTab || "none"} activeTab={activeTab} />
       </div>
     </div>
   );

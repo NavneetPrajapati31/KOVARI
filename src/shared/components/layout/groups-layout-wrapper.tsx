@@ -21,7 +21,7 @@ const TABS = [
   { label: "Overview", href: "home" },
   { label: "Chats", href: "chat" },
   { label: "Itinerary", href: "itinerary" },
-  { label: "Settings", href: "settings/edit" },
+  { label: "Settings", href: "settings" },
 ] as const;
 
 interface LayoutWrapperProps {
@@ -34,8 +34,9 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const params = useParams<{ groupId: string }>();
 
   const getTabIndex = useCallback(() => {
+    // If the path includes /settings, always select the Settings tab
+    if (pathname.includes("/settings")) return 3; // Settings tab index
     const currentPath = pathname.split("/").pop() || "home";
-    if (pathname.includes("/settings/")) return 3; // Settings tab index
     const tabIndex = TABS.findIndex((tab) => tab.href === currentPath);
     return tabIndex > -1 ? tabIndex : 0;
   }, [pathname]);

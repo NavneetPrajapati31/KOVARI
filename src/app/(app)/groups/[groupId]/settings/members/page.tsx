@@ -23,6 +23,7 @@ interface GroupMember {
   role: "admin" | "member";
   dateAdded: string;
   avatar: string;
+  userIdFromUserTable: string; // Added this field based on usage in the new condition
 }
 
 const formatDate = (dateString: string): string => {
@@ -123,10 +124,29 @@ export default function Page() {
   const [isRemoving, setIsRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const { user } = useAuthStore();
-  const currentUserId = user?.id;
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Fetch current user's internal user ID (UUID)
+  useEffect(() => {
+    const fetchCurrentUserId = async () => {
+      try {
+        const res = await fetch("/api/profile/current");
+        if (!res.ok) return;
+        const data = await res.json();
+        setCurrentUserId(data.id); // This is the internal UUID
+      } catch {
+        setCurrentUserId(null);
+      }
+    };
+    fetchCurrentUserId();
+  }, []);
+
   const currentUserMembership =
-    !isLoading && user
-      ? members.find((m) => m.clerkId === currentUserId)
+    !isLoading && currentUserId
+      ? members.find(
+          (m) =>
+            m.id === currentUserId || m.userIdFromUserTable === currentUserId
+        )
       : undefined;
   const isCurrentUserAdmin = currentUserMembership?.role === "admin";
 
@@ -192,7 +212,20 @@ export default function Page() {
         const res = await fetch(`/api/groups/${groupId}/members`);
         if (!res.ok) throw new Error("Failed to fetch members");
         const data = await res.json();
-        setMembers(data.members || []);
+        // Safely handle both array and object API responses
+        let membersArray: any[] = [];
+        if (Array.isArray(data)) {
+          membersArray = data;
+        } else if (data && Array.isArray(data.members)) {
+          membersArray = data.members;
+        }
+        setMembers(
+          membersArray.map((member: any) => ({
+            ...member,
+            clerkId: member.clerkId || member.clerk_id, // ensure clerkId is set
+            dateAdded: member.joined_at,
+          }))
+        );
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "An unknown error occurred"
@@ -276,10 +309,7 @@ export default function Page() {
               >
                 <div className="col-span-3 flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={member.avatar || "/placeholder.svg"}
-                      alt={member.name}
-                    />
+                    <AvatarImage src={member.avatar || ""} alt={member.name} />
                     <AvatarFallback>
                       {member.name
                         .split(" ")
@@ -321,20 +351,36 @@ export default function Page() {
                   </span>
                 </div>
                 <div className="col-span-2 flex items-center justify-end gap-2">
-                  {!isLoading &&
-                    isCurrentUserAdmin &&
-                    member.role !== "admin" &&
-                    member.clerkId !== currentUserId && (
-                      <Button
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 px-3 py-1 h-auto text-xs"
-                        onClick={() => handleOpenRemoveModal(member)}
-                        aria-label={`Remove ${member.name}`}
-                        tabIndex={0}
-                      >
-                        Remove
-                      </Button>
-                    )}
+                  {(() => {
+                    const showButton =
+                      !isLoading &&
+                      isCurrentUserAdmin &&
+                      member.role !== "admin" &&
+                      member.id !== currentUserId &&
+                      member.userIdFromUserTable !== currentUserId;
+                    console.log("[MEMBERS_PAGE] Button check", {
+                      isLoading,
+                      isCurrentUserAdmin,
+                      memberRole: member.role,
+                      memberId: member.id,
+                      memberUserIdFromUserTable: member.userIdFromUserTable,
+                      currentUserId,
+                      showButton,
+                    });
+                    return (
+                      showButton && (
+                        <Button
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 px-3 py-1 h-auto text-xs"
+                          onClick={() => handleOpenRemoveModal(member)}
+                          aria-label={`Remove ${member.name}`}
+                          tabIndex={0}
+                        >
+                          Remove
+                        </Button>
+                      )
+                    );
+                  })()}
                 </div>
               </div>
             ))}
@@ -352,10 +398,7 @@ export default function Page() {
             >
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage
-                    src={member.avatar || "/placeholder.svg"}
-                    alt={member.name}
-                  />
+                  <AvatarImage src={member.avatar || ""} alt={member.name} />
                   <AvatarFallback>
                     {member.name
                       .split(" ")
@@ -399,7 +442,8 @@ export default function Page() {
                 {!isLoading &&
                   isCurrentUserAdmin &&
                   member.role !== "admin" &&
-                  member.clerkId !== currentUserId && (
+                  member.id !== currentUserId &&
+                  member.userIdFromUserTable !== currentUserId && (
                     <Button
                       variant="ghost"
                       className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 px-3 py-1 h-auto text-xs"
