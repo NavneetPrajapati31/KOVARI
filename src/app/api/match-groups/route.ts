@@ -5,23 +5,29 @@ import { matchGroupsWeighted, Traveler, Group } from "@/matching/groups/matchGro
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    // Validate input
     const { destination, budget, startDate, endDate } = data;
     if (!destination || !budget || !startDate || !endDate) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-    const traveler: Traveler = {
-      destination,
-      budget: Number(budget),
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-    };
-
     const supabase = createRouteHandlerSupabaseClient();
     const { data: groups, error } = await supabase
       .from("groups")
-      .select("id, destination, budget, start_date, end_date");
+      .select(`
+        id,
+        name,
+        is_public,
+        destination,
+        start_date,
+        end_date,
+        created_at,
+        description,
+        cover_image,
+        notes,
+        members_count,
+        budget,
+        creator_id
+      `);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -29,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ groups: [] });
     }
 
-    // Convert group dates to Date objects using correct field names
+    // Map groups to the shape expected by matchGroupsWeighted
     const groupObjs: Group[] = groups.map((g: any) => ({
       id: g.id,
       destination: g.destination,
@@ -38,8 +44,23 @@ export async function POST(req: NextRequest) {
       endDate: new Date(g.end_date),
     }));
 
+    const traveler: Traveler = {
+      destination,
+      budget: Number(budget),
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+    };
+
+    // Run the matching algorithm
     const matches = matchGroupsWeighted(traveler, groupObjs);
-    return NextResponse.json({ groups: matches });
+
+    // Attach the match score to the original group data for display
+    const matchedGroups = matches.map((match) => {
+      const original = groups.find((g: any) => g.id === match.id);
+      return { ...original, score: match.score };
+    });
+
+    return NextResponse.json({ groups: matchedGroups });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
   }

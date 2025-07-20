@@ -116,7 +116,17 @@ export default function ExplorePage() {
               {matchedGroups.map((group) => (
                 <GroupCard
                   key={group.id}
-                  group={group}
+                  group={{
+                    ...group,
+                    memberCount: group.members_count,
+                    privacy: group.is_public ? 'public' : 'private',
+                    dateRange: {
+                      start: new Date(group.start_date),
+                      end: group.end_date ? new Date(group.end_date) : undefined,
+                      isOngoing: !group.end_date,
+                    },
+                    creator: group.creator || { name: 'Unknown', username: 'unknown', avatar: '' },
+                  }}
                   onAction={async () => {}}
                 />
               ))}
