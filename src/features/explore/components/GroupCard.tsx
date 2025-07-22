@@ -141,7 +141,7 @@ export function GroupCard({
   };
 
   return (
-    <Card className="w-full max-w-[600px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[400px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Top image section */}
       <div className="relative w-full h-[160px] overflow-hidden bg-muted">
         <Image

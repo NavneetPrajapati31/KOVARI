@@ -6,6 +6,7 @@ import { ExploreHeader } from "@/features/explore/components/ExploreHeader";
 import { Loader2 } from "lucide-react";
 import { Spinner } from "@heroui/react";
 import { GroupCard } from "@/features/explore/components/GroupCard";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function ExplorePage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function ExplorePage() {
   const [matchedGroups, setMatchedGroups] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
 
   // Sync activeTab with URL changes
   useEffect(() => {
@@ -86,6 +88,17 @@ export default function ExplorePage() {
     }
   };
 
+  const sortedGroups = useMemo(() => {
+    return [...matchedGroups].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  }, [matchedGroups]);
+
+  useEffect(() => {
+    // Reset to first group when matchedGroups change
+    setCurrentGroupIndex(0);
+  }, [matchedGroups]);
+
+  const currentGroup = sortedGroups[currentGroupIndex] || null;
+
   return (
     <>
       {(isPageLoading || searchLoading) && (
@@ -93,7 +106,7 @@ export default function ExplorePage() {
           <Spinner variant="spinner" size="md" color="primary" />
         </div>
       )}
-      <div className="flex flex-col w-full min-h-screen relative">
+      <div className="flex flex-col w-full relative">
         <ExploreHeader
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -107,35 +120,58 @@ export default function ExplorePage() {
               : "blur-0 opacity-100"
           }`}
         >
-          {searchError ? (
-            <div className="flex items-center justify-center h-full text-destructive text-lg">
-              {searchError}
-            </div>
-          ) : matchedGroups.length > 0 ? (
-            <div className="flex flex-col items-center gap-6 py-8">
-              {matchedGroups.map((group) => (
-                <GroupCard
-                  key={group.id}
-                  group={{
-                    ...group,
-                    memberCount: group.members_count,
-                    privacy: group.is_public ? 'public' : 'private',
-                    dateRange: {
-                      start: new Date(group.start_date),
-                      end: group.end_date ? new Date(group.end_date) : undefined,
-                      isOngoing: !group.end_date,
-                    },
-                    creator: group.creator || { name: 'Unknown', username: 'unknown', avatar: '' },
-                  }}
-                  onAction={async () => {}}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-lg">
-              No results to display.
-            </div>
-          )}
+          {activeTab === 1 ? (
+            searchError ? (
+              <div className="flex items-center justify-center h-full text-destructive text-lg">
+                {searchError}
+              </div>
+            ) : sortedGroups.length > 0 ? (
+              <div className="flex flex-col items-center gap-6 py-2">
+                <div className="flex items-center gap-4">
+                  <button
+                    className="p-2 rounded-full bg-muted hover:bg-accent disabled:opacity-50"
+                    onClick={() => setCurrentGroupIndex(i => Math.max(0, i - 1))}
+                    disabled={currentGroupIndex === 0}
+                    aria-label="Previous group"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  {currentGroup && (
+                    <GroupCard
+                      key={currentGroup.id}
+                      group={{
+                        ...currentGroup,
+                        memberCount: currentGroup.members_count,
+                        privacy: currentGroup.is_public ? 'public' : 'private',
+                        dateRange: {
+                          start: new Date(currentGroup.start_date),
+                          end: currentGroup.end_date ? new Date(currentGroup.end_date) : undefined,
+                          isOngoing: !currentGroup.end_date,
+                        },
+                        creator: currentGroup.creator || { name: 'Unknown', username: 'unknown', avatar: '' },
+                      }}
+                      onAction={async () => {}}
+                    />
+                  )}
+                  <button
+                    className="p-2 rounded-full bg-muted hover:bg-accent disabled:opacity-50"
+                    onClick={() => setCurrentGroupIndex(i => Math.min(sortedGroups.length - 1, i + 1))}
+                    disabled={currentGroupIndex === sortedGroups.length - 1}
+                    aria-label="Next group"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {sortedGroups.length > 1 && `Group ${currentGroupIndex + 1} of ${sortedGroups.length}`}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-lg">
+                No results to display.
+              </div>
+            )
+          ) : null}
         </div>
       </div>
     </>
