@@ -5,8 +5,9 @@ const TTL_SECONDS = 3600; // 1 hour
 
 export async function storeSessionPreference(userId: string, preference: any) {
   const key = `session:user:${userId}`;
+
   const value = JSON.stringify({
-    ...preference,
+    ...preference, // includes date
     timestamp: Math.floor(Date.now() / 1000),
   });
 
