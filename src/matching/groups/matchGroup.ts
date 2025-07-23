@@ -11,7 +11,13 @@ export interface Group {
   startDate: Date;
   endDate: Date;
   destination: string;
+  creator?: {
+    name: string;
+    username: string;
+    avatar?: string;
+  };
 }
+
 
 export interface MatchResult extends Group {
   score: number;

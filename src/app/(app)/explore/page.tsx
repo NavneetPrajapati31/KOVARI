@@ -1,18 +1,18 @@
 "use client";
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useUser } from "@clerk/nextjs"; // 👈 Import Clerk user hook
 import { ExploreHeader } from "@/features/explore/components/ExploreHeader";
-
-import { Loader2 } from "lucide-react";
-import { Spinner } from "@heroui/react";
 import { GroupCard } from "@/features/explore/components/GroupCard";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Spinner } from "@heroui/react";
 
 export default function ExplorePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useUser(); // 👈 Clerk user
 
-  // Helper to get tab index from searchParams
+  // Helper to get tab index from URL
   const getTabIndex = () => {
     const tab = searchParams.get("tab");
     if (tab === "groups") return 1;
@@ -27,7 +27,6 @@ export default function ExplorePage() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
 
-  // Sync activeTab with URL changes
   useEffect(() => {
     const tabIndex = getTabIndex();
     if (activeTab !== tabIndex) {
@@ -47,17 +46,13 @@ export default function ExplorePage() {
   const memoizedOnDropdownOpenChange = useCallback(setIsFilterDropdownOpen, []);
 
   useEffect(() => {
-    if (isPageLoading) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    // Clean up on unmount
+    document.body.style.overflow = isPageLoading ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [isPageLoading]);
 
+  // ✅ Search handler that stores session + fetches groups
   const handleSearch = async (searchData: {
     destination: string;
     budget: number;
@@ -67,7 +62,25 @@ export default function ExplorePage() {
     setSearchLoading(true);
     setSearchError(null);
     setMatchedGroups([]);
+
     try {
+      // Step 1: Store dynamic session (for solo matching)
+      const userId = user?.id;
+      if (userId) {
+        await fetch("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            destination: searchData.destination,
+            budget: searchData.budget,
+            mode: "solo",
+            date: searchData.startDate.toLocaleDateString("en-CA"), // ✅ Local-safe format
+          }),
+        });    
+      }
+
+      // Step 2: Group match search (Kaju's original logic)
       const res = await fetch("/api/match-groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,8 +91,10 @@ export default function ExplorePage() {
           endDate: searchData.endDate,
         }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
+
       setMatchedGroups(data.groups || []);
     } catch (err: any) {
       setSearchError(err.message || "Unknown error");
