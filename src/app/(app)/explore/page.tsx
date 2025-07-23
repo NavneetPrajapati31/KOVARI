@@ -74,9 +74,9 @@ export default function ExplorePage() {
             destination: searchData.destination,
             budget: searchData.budget,
             mode: "solo",
-            date: searchData.startDate.toISOString().split("T")[0],
+            date: searchData.startDate.toLocaleDateString("en-CA"), // ✅ Local-safe format
           }),
-        });
+        });    
       }
 
       // Step 2: Group match search (Kaju's original logic)
