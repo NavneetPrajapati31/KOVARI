@@ -30,6 +30,7 @@ import {
 } from "@/shared/utils/analytics";
 
 import { isBefore, isAfter } from "date-fns";
+import { Card } from "@heroui/react";
 
 interface ItineraryEvent {
   id: string;
@@ -203,96 +204,18 @@ export default function Dashboard() {
   const tripsPerYear = useMemo(() => getTripsPerYear(groups), [groups]);
 
   return (
-    <div className="min-h-screen bg-white px-4 py-8">
+    <div className="min-h-screen bg-background p-4">
       {!isSignedIn ? (
         <SkeletonDemo />
       ) : (
         <>
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-black">Dashboard</h1>
-          </div>
-
-          {/* First Row: Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div className="min-h-[140px]">
-              <DashboardCard
-                title="Top Destination"
-                value={mostVisited || "N/A"}
-                loading={groupsLoading}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex flex-col h-full">
+              <Card className="bg-card shadow-none border border-border h-screen w-full"></Card>
             </div>
-            <div className="min-h-[140px]">
-              <DashboardCard
-                title="Total Travel Days"
-                value={`${totalDays} days`}
-                loading={groupsLoading}
-              />
-            </div>
-            <div className="min-h-[140px]">
-              <DashboardCard
-                title="Co-Travelers (est.)"
-                value={coTravelers}
-                loading={groupsLoading}
-              />
-            </div>
-            <div className="min-h-[140px]">
-              <DashboardCard
-                title="My Groups"
-                value={groups.length}
-                loading={groupsLoading}
-              />
-            </div>
-          </div>
-
-          {/* Second Row: Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-2xl p-4 min-h-[300px] flex flex-col justify-between">
-              <TripsBarChart data={tripsPerYear} />
-            </div>
-            <div className="bg-white rounded-2xl p-4 min-h-[300px] flex flex-col justify-between">
-              {formattedTravelDays.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  No travel data available.
-                </div>
-              ) : (
-                <TravelHeatmap
-                  travelDays={formattedTravelDays}
-                  year={selectedYear}
-                  years={years}
-                  setSelectedYear={setSelectedYear}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Third Row: Tools */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="h-full">
-              <DoneTripsCard />
-            </div>
-            <div className="h-full">
-              <GroupList title="My Groups" />
-            </div>
-            <div className="h-full">
-              {selectedGroupId ? (
-                itineraryLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    Loading itinerary...
-                  </div>
-                ) : itineraryError ? (
-                  <div className="text-red-500 text-center">
-                    {itineraryError}
-                  </div>
-                ) : (
-                  <ItineraryUI
-                    itineraryDays={itineraryDays}
-                    cardClassName="border-none shadow-md h-full"
-                  />
-                )
-              ) : null}
-            </div>
-            <div className="h-full">
-              <TodoChecklist />
+            <div className="flex flex-col col-span-2 h-full gap-4">
+              <Card className="bg-card shadow-none border border-border h-1/3 w-full"></Card>
+              <Card className="bg-card shadow-none border border-border h-2/3 w-full"></Card>
             </div>
           </div>
         </>
