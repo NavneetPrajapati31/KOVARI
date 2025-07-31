@@ -31,6 +31,7 @@ import {
 
 import { isBefore, isAfter } from "date-fns";
 import { Card } from "@heroui/react";
+import { UpcomingTripCard } from "@/features/dashboard/UpcomingTripCard";
 
 interface ItineraryEvent {
   id: string;
@@ -203,20 +204,53 @@ export default function Dashboard() {
   const coTravelers = getUniqueCoTravelers(groups);
   const tripsPerYear = useMemo(() => getTripsPerYear(groups), [groups]);
 
+  // Helper to extract name and country from destination
+  const getNameAndCountry = (
+    destination?: string
+  ): { name: string; country: string } => {
+    if (!destination) return { name: "", country: "" };
+    const parts = destination.split(",").map((part) => part.trim());
+    return {
+      name: parts[0] || "",
+      country: parts[1] || "",
+    };
+  };
+
+  // Get the most recent or upcoming group for destination card
+  const selectedGroup = upcoming[0] || past[0];
+  const { name, country } = getNameAndCountry(
+    selectedGroup?.group?.destination || undefined
+  );
+
+  const handleExplore = () => {
+    if (!name) return;
+    const query = encodeURIComponent(name);
+    const url = `https://maps.apple.com/search?query=${query}`;
+    window.open(url, "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-background p-4">
       {!isSignedIn ? (
         <SkeletonDemo />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="flex flex-col h-full">
-              <Card className="bg-card shadow-none border border-border h-screen w-full"></Card>
+          <div className="flex flex-row gap-3">
+            <div className="flex-shrink-0">
+              {groupsLoading ? (
+                <>
+                  <Skeleton className="w-[260px] h-[200px] rounded-3xl" />
+                </>
+              ) : (
+                <UpcomingTripCard
+                  name={name}
+                  country={country}
+                  imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                  onExplore={handleExplore}
+                />
+              )}
             </div>
-            <div className="flex flex-col col-span-2 h-full gap-4">
-              <Card className="bg-card shadow-none border border-border h-1/3 w-full"></Card>
-              <Card className="bg-card shadow-none border border-border h-2/3 w-full"></Card>
-            </div>
+            <Card className="bg-card shadow-none border border-border flex-1 rounded-3xl h-[200px]"></Card>
           </div>
         </>
       )}
