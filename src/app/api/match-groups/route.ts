@@ -11,12 +11,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
+    const traveler: Traveler = {
+      destination,
+      budget: Number(budget),
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+    };
+
     const supabase = createRouteHandlerSupabaseClient();
 
     // This will fail if no relationship exists
     const { data: groups, error } = await supabase
       .from('groups')
-      .select('*, profiles(*)');
+      .select(', profiles()');
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -26,7 +33,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ groups: [] });
     }
 
-    // Construct valid Group[] with fallback creator data
+   
     const groupObjs: Group[] = groups.map((g: any) => ({
       id: g.id,
       destination: g.destination,
@@ -55,5 +62,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ groups: safeMatches });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
-  }
+}
 }
