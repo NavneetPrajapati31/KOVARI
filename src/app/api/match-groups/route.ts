@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
-import { matchGroupsWeighted, Traveler, Group } from "@/matching/groups/matchGroup";
+import { matchGroupsWeighted, Traveler, Group } from "@/matching/matchGroup";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ groups: [] });
     }
 
-    // Construct valid Group[] with fallback creator data
+   
     const groupObjs: Group[] = groups.map((g: any) => ({
       id: g.id,
       destination: g.destination,
@@ -49,7 +49,6 @@ export async function POST(req: NextRequest) {
 
     const matches = matchGroupsWeighted(traveler, groupObjs);
 
-    // Ensure all groups include creator (just in case)
     const safeMatches = matches.map((group) => ({
       ...group,
       creator: group.creator || {
