@@ -7,6 +7,7 @@ import { ExploreHeader } from "@/features/explore/components/ExploreHeader";
 import { GroupCard } from "@/features/explore/components/GroupCard";
 import { Spinner } from "@heroui/react";
 
+
 export default function ExplorePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,7 +82,7 @@ export default function ExplorePage() {
     };
   }, [isPageLoading]);
 
-  // ✅ Search handler that stores session + fetches groups
+  // ✅ Search handler that stores enhanced session + fetches groups
   const handleSearch = async (searchData: {
     destination: string;
     budget: number;
@@ -93,20 +94,30 @@ export default function ExplorePage() {
     setMatchedGroups([]);
 
     try {
-      // Step 1: Store dynamic session (for solo matching)
+      // Step 1: Store enhanced dynamic session (for solo matching)
       const userId = user?.id;
       if (userId) {
+        // Session creation is now handled by the API with geocoding
+
         await fetch("/api/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId,
-            destination: searchData.destination,
+            destinationName: searchData.destination,
             budget: searchData.budget,
-            mode: "solo",
-            date: searchData.startDate.toLocaleDateString("en-CA"), // ✅ Local-safe format
+            startDate: searchData.startDate.toISOString().split('T')[0],
+            endDate: searchData.endDate.toISOString().split('T')[0]
           }),
         });    
+
+        // Step 1.5: Get solo matches using enhanced matching
+        const soloMatchesRes = await fetch(`/api/match-solo?userId=${userId}`);
+        if (soloMatchesRes.ok) {
+          const soloMatches = await soloMatchesRes.json();
+          console.log("Solo matches found:", soloMatches.length);
+          // TODO: Display solo matches in the UI
+        }
       }
 
       // Step 2: Group match search (Kaju's original logic)
