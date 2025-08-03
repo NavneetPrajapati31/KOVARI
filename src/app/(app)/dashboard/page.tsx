@@ -30,8 +30,17 @@ import {
 } from "@/shared/utils/analytics";
 
 import { isBefore, isAfter } from "date-fns";
-import { Card } from "@heroui/react";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { UpcomingTripCard } from "@/features/dashboard/UpcomingTripCard";
+import { GroupCard } from "@/features/dashboard/GroupCard";
+import Component from "@/shared/components/comp-531";
+import { GalleryCard } from "@/features/dashboard/GalleryCard";
+import Heatmap from "@/features/dashboard/heatmap";
+import { TopDestinationCard } from "@/features/dashboard/TopDestinationCard";
+import { TravelDaysCard } from "@/features/dashboard/TravelDaysCard";
+import type { UserProfile as UserProfileType } from "@/features/profile/components/user-profile";
+import { InviteCard } from "@/features/dashboard/InviteCard";
+import { UserConnect } from "@/features/dashboard/UserConnect";
 
 interface ItineraryEvent {
   id: string;
@@ -230,27 +239,191 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-4 flex flex-col gap-3">
       {!isSignedIn ? (
         <SkeletonDemo />
       ) : (
         <>
-          <div className="flex flex-row gap-3">
+          <div className="flex flex-row gap-3 w-full overflow-hidden">
+            {/* Profile Information Section */}
+            <Card className="rounded-none border-none shadow-none bg-transparent p-0">
+              <CardContent className="p-0">
+                <div className="flex flex-row items-stretch gap-3">
+                  {/* Profile Avatar Overlay - Stretches to match second card height */}
+                  <Card className="w-[160px] h-[160px] min-[840px]:h-[160px] min-[840px]:w-[160px] p-0 bg-muted border-none shadow-none xl overflow-hidden flex-shrink-0">
+                    <img
+                      src={
+                        user?.imageUrl ||
+                        "https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
+                      }
+                      alt="Profile"
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                  </Card>
+
+                  {/* <Card className="flex flex-col rounded-xl bg-transparent border border-border shadow-none p-6 py-5 gap-0 items-start justify-start flex-1 min-w-0">
+                    <div className="flex flex-row items-center gap-x-10 w-full">
+                      <div className="flex flex-col flex-1 min-w-0 gap-x-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h1 className="text-md font-extrabold text-foreground leading-tight">
+                            {user?.fullName || user?.firstName || "User"}
+                          </h1>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium mb-2">
+                          @
+                          {(
+                            user?.username ||
+                            user?.emailAddresses?.[0]?.emailAddress ||
+                            ""
+                          ).length > 30
+                            ? `${(user?.username || user?.emailAddresses?.[0]?.emailAddress || "").substring(0, 30)}...`
+                            : user?.username ||
+                              user?.emailAddresses?.[0]?.emailAddress ||
+                              ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium mt-1">
+                      Traveler
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium mt-1 line-clamp-3">
+                      Exploring the world one trip at a time
+                    </div>
+                  </Card> */}
+                </div>
+              </CardContent>
+            </Card>
             <div className="flex-shrink-0">
               {groupsLoading ? (
                 <>
-                  <Skeleton className="w-[260px] h-[200px] rounded-3xl" />
+                  <Skeleton className="w-[260px] h-[180px] rounded-xl" />
                 </>
               ) : (
                 <UpcomingTripCard
                   name={name}
                   country={country}
-                  imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                  imageUrl="https://images.pexels.com/photos/8776666/pexels-photo-8776666.jpeg"
                   onExplore={handleExplore}
                 />
               )}
             </div>
-            <Card className="bg-card shadow-none border border-border flex-1 rounded-3xl h-[200px]"></Card>
+            <div className="flex-shrink-0">
+              <TopDestinationCard
+                key={1}
+                name={name}
+                country={country}
+                imageUrl="https://images.pexels.com/photos/1486222/pexels-photo-1486222.jpeg"
+                onExplore={handleExplore}
+              />
+            </div>
+            <div className="flex-shrink-0">
+              <InviteCard
+                key={1}
+                name={"Jenna Smith"}
+                country={country}
+                imageUrl="https://images.pexels.com/photos/3884492/pexels-photo-3884492.jpeg"
+                onExplore={handleExplore}
+              />
+            </div>
+            <div className="flex-1">
+              <div className="grid grid-cols-3 grid-rows-1 gap-0">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <UserConnect
+                    key={index}
+                    name={"Jenna Smith"}
+                    country={country}
+                    imageUrl="https://images.pexels.com/photos/11608681/pexels-photo-11608681.jpeg"
+                    onExplore={handleExplore}
+                  />
+                ))}
+              </div>
+            </div>
+            {/* <div className="shadow-none border-none flex-shrink-0 gap-2 flex flex-col">
+              <div className="">
+                <DashboardCard
+                  title="Total Travel Days"
+                  value={`${totalDays} days`}
+                  loading={groupsLoading}
+                />
+              </div>
+            </div> */}
+            {/* <div className="flex-1 min-w-0">
+              <div className="w-full h-full overflow-hidden">
+                <Heatmap data={[]} />
+              </div>
+            </div> */}
+          </div>
+          <div className="flex flex-row gap-3">
+            <div className="flex-shrink-0 bg-card shadow-sm rounded-xl p-4">
+              <div className="mb-3">
+                <h2 className="text-foreground font-semibold text-sm truncate">
+                  Travel Groups
+                </h2>
+                <p className="mt-0.5 text-muted-foreground text-xs">
+                  Manage your collaborative travel experiences
+                </p>
+              </div>
+              {groupsLoading ? (
+                <div className="grid grid-cols-2 grid-rows-2 gap-3 mt-6">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <Skeleton
+                      key={index}
+                      className="w-[260px] h-[200px] rounded-xl"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 grid-rows-2 gap-3 mt-6">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <GroupCard
+                      key={index}
+                      name={name}
+                      country={country}
+                      imageUrl="https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg"
+                      onExplore={handleExplore}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex-shrink-0 bg-card shadow-sm rounded-xl p-4">
+              <div className="mb-3">
+                <h2 className="text-foreground font-semibold text-sm truncate">
+                  Past Trips
+                </h2>
+                <p className="mt-0.5 text-muted-foreground text-xs">
+                  Manage your past travel experiences
+                </p>
+              </div>
+              {groupsLoading ? (
+                <div className="grid grid-cols-2 grid-rows-2 gap-3 mt-6">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <Skeleton
+                      key={index}
+                      className="w-[260px] h-[200px] rounded-xl"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 grid-rows-1 gap-3 mt-6">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <GalleryCard
+                      key={index}
+                      name={name}
+                      country={country}
+                      imageUrl="https://images.pexels.com/photos/2689619/pexels-photo-2689619.jpeg"
+                      onExplore={handleExplore}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-row gap-3">
+            <div className="h-full">
+              <TodoChecklist />
+            </div>
+            <Component />
           </div>
         </>
       )}

@@ -2,7 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
-import { MapPin, Calendar, Users, Loader2, ArrowUpRight } from "lucide-react";
+import {
+  MapPin,
+  Calendar,
+  Users,
+  Loader2,
+  ArrowUpRight,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
 import { useRouter } from "next/navigation";
@@ -43,7 +50,7 @@ const ImageStretch = ({
   );
 };
 
-export function UpcomingTripCard({
+export function TopDestinationCard({
   name,
   country,
   imageUrl,
@@ -57,7 +64,7 @@ export function UpcomingTripCard({
 
   return (
     <Card
-      className={`relative w-[220px] h-[160px] rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-sm border-none border-card overflow-hidden flex flex-col bg-card text-card-foreground`}
+      className={`relative w-[220px] h-[160px] rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-md border-none overflow-hidden flex flex-col bg-card text-card-foreground`}
     >
       {/* Background Image - now covers full card */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl">
@@ -72,7 +79,7 @@ export function UpcomingTripCard({
       {/* Glassmorphism content overlay */}
       <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl">
         <div
-          className="backdrop-blur-md w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl"
+          className="backdrop-blur-md w-full rounded-b-3xl sm:rounded-b-3xl md:rounded-b-xl lg:rounded-b-xl"
           style={{
             maskImage:
               "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
@@ -81,24 +88,26 @@ export function UpcomingTripCard({
           }}
         >
           {/* Content section - keeping your exact structure */}
-          <div className="flex flex-row gap-1 px-4 py-3">
+          <div className="flex flex-row px-4 py-3">
             {/* Creator avatar and name */}
-            <div className="flex flex-col items-start flex-1">
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
-                {name}, {country}
-              </span>
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
-                Oct 15-22, 2025
+            <div className="flex flex-col w-full">
+              <div className="flex flex-row justify-between items-center">
+                <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate">
+                  Top Destination
+                </span>
+              </div>
+              <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate">
+                Seoul
               </span>
             </div>
             <div className="flex justify-end items-end flex-shrink-0">
               <Button
                 variant={"outline"}
                 size={"sm"}
-                className="bg-transparent !text-[11px] p-1 px-2 text-white border-white rounded-full hover:text-white hover:bg-white/20"
+                className="bg-transparent !text-[11px] p-1 px-5 text-white border-white rounded-full hover:text-white hover:bg-white/20"
                 onClick={onExplore}
               >
-                Upcoming
+                <TrendingUp className="w-4 h-4" />
               </Button>
             </div>
           </div>
