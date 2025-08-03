@@ -1,5 +1,5 @@
-// finalGroupMatchingLogic_with_ScoredLogistics.ts
-// Matches a user against groups with a distance filter and a comprehensive weighted score.
+// finalGroupMatchingLogic_with_DetailedWeights.ts
+// Matches a user against groups with a distance filter and a comprehensive, detailed weighted score.
 
 // --- 1. DATA TYPE DEFINITIONS ---
 
@@ -58,17 +58,14 @@ const isWithinDistance = (loc1: Location, loc2: Location): boolean => {
 
 /**
  * SCORE: Calculates budget similarity from 0 to 1.
- * A 20k difference results in a score of 0.5, a 40k difference results in a score of 0.
  */
 const calculateBudgetScore = (userBudget: number, groupAverageBudget: number): number => {
     const budgetDifference = Math.abs(userBudget - groupAverageBudget);
-    // The score decreases as the budget difference grows.
-    return Math.max(0, 1 - budgetDifference / 40000);
+    return Math.max(0, 1 - budgetDifference / 40000); // Score is 0 if difference is 40k or more
 };
 
 /**
  * SCORE: Calculates date overlap score from 0 to 1.
- * The score is the number of overlapping days divided by the length of the user's trip.
  */
 const calculateDateOverlapScore = (userStart: string, userEnd: string, groupStart: string, groupEnd: string): number => {
     const uStart = new Date(userStart).getTime();
@@ -79,25 +76,26 @@ const calculateDateOverlapScore = (userStart: string, userEnd: string, groupStar
     const overlapStart = Math.max(uStart, gStart);
     const overlapEnd = Math.min(uEnd, gEnd);
 
-    if (overlapStart > overlapEnd) {
-        return 0; // No overlap
-    }
+    if (overlapStart > overlapEnd) return 0;
 
     const overlapDuration = (overlapEnd - overlapStart) / (1000 * 60 * 60 * 24) + 1;
     const userTripDuration = (uEnd - uStart) / (1000 * 60 * 60 * 24) + 1;
 
-    // Normalize the score based on the user's trip length
     return Math.min(1, overlapDuration / userTripDuration);
 };
 
-
-// ... (All other helper functions for age, interest, lifestyle, etc. remain the same)
+/**
+ * SCORE: Calculates age similarity score.
+ */
 const calculateAgeScore = (userAge: number, groupAverageAge: number): number => {
     if (!groupAverageAge) return 0;
     const ageDifference = Math.abs(userAge - groupAverageAge);
     return Math.max(0, 1 - ageDifference / 20);
 };
 
+/**
+ * SCORE: Calculates Jaccard similarity for arrays (languages, interests).
+ */
 const calculateJaccardSimilarity = (setA: string[], setB: string[]): number => {
     const uniqueA = new Set(setA);
     const uniqueB = new Set(setB);
@@ -106,11 +104,41 @@ const calculateJaccardSimilarity = (setA: string[], setB: string[]): number => {
     return unionSize === 0 ? 0 : intersectionSize / unionSize;
 };
 
+/**
+ * SCORE: Calculates lifestyle compatibility (smoking & drinking).
+ */
+const calculateLifestyleScore = (user: UserProfile, group: GroupProfile): number => {
+    let smokingScore = 0;
+    if ((user.smoking && group.smokingPolicy === 'Smokers Welcome') || (!user.smoking && group.smokingPolicy === 'Non-Smoking')) {
+        smokingScore = 1.0;
+    } else if (group.smokingPolicy === 'Mixed') {
+        smokingScore = 0.6;
+    }
+
+    let drinkingScore = 0;
+    if ((user.drinking && group.drinkingPolicy === 'Drinkers Welcome') || (!user.drinking && group.drinkingPolicy === 'Non-Drinking')) {
+        drinkingScore = 1.0;
+    } else if (group.drinkingPolicy === 'Mixed') {
+        drinkingScore = 0.6;
+    }
+
+    return (smokingScore + drinkingScore) / 2;
+};
+
+/**
+ * SCORE: Calculates background compatibility (profession & nationality).
+ */
+const calculateBackgroundScore = (user: UserProfile, group: GroupProfile): number => {
+    const professionScore = group.topProfessions.includes(user.profession) ? 1.0 : 0.0;
+    const nationalityScore = group.dominantNationalities.includes(user.nationality) ? 1.0 : 0.0;
+    return (professionScore + nationalityScore) / 2;
+};
+
 
 // --- 3. CORE MATCHING FUNCTION ---
 
 /**
- * Finds the best group matches for a user with a distance filter and comprehensive scoring.
+ * Finds the best group matches for a user with a distance filter and a comprehensive weighted score.
  * @param user The profile of the user searching.
  * @param allGroups An array of group profiles fetched from your database.
  * @returns A ranked list of matched groups.
@@ -122,33 +150,45 @@ export const findGroupMatchesForUser = (user: UserProfile, allGroups: GroupProfi
 
   // Step 2: Calculate a comprehensive, weighted score for every nearby group.
   const scoredMatches = nearbyGroups.map(group => {
-    // Define the importance of each category in the final score
+    // Define the importance of each attribute in the final score. Total must be 1.0.
     const weights = {
-        logistics: 0.50, // Budget and Dates now part of logistics
-        vibe: 0.50,      // Social compatibility
+        budget: 0.20,
+        dateOverlap: 0.20,
+        interests: 0.15,
+        age: 0.15,
+        language: 0.10,
+        lifestyle: 0.10,      // Smoking & Drinking
+        background: 0.10,     // Profession & Nationality
     };
 
-    // --- Calculate the Logistics Score ---
+    // --- Calculate a score for each individual attribute ---
     const budgetScore = calculateBudgetScore(user.budget, group.averageBudget);
     const dateOverlapScore = calculateDateOverlapScore(user.startDate, user.endDate, group.startDate, group.endDate);
-    const logisticsScore = (budgetScore * 0.5) + (dateOverlapScore * 0.5); // Equal weight to budget and dates
-
-    // --- Calculate the Vibe Score ---
+    const interestScore = calculateJaccardSimilarity(user.interests, group.topInterests);
     const ageScore = calculateAgeScore(user.age, group.averageAge);
     const languageScore = calculateJaccardSimilarity(user.languages, group.dominantLanguages);
-    const interestScore = calculateJaccardSimilarity(user.interests, group.topInterests);
-    // You can add lifestyle and background scores here as well
-    const vibeScore = (ageScore * 0.3) + (languageScore * 0.3) + (interestScore * 0.4);
+    const lifestyleScore = calculateLifestyleScore(user, group);
+    const backgroundScore = calculateBackgroundScore(user, group);
 
-    // --- Calculate the Final Combined Score ---
-    const finalScore = (logisticsScore * weights.logistics) + (vibeScore * weights.vibe);
+    // --- Calculate the Final Weighted Score ---
+    const finalScore =
+        (budgetScore * weights.budget) +
+        (dateOverlapScore * weights.dateOverlap) +
+        (interestScore * weights.interests) +
+        (ageScore * weights.age) +
+        (languageScore * weights.language) +
+        (lifestyleScore * weights.lifestyle) +
+        (backgroundScore * weights.background);
 
     return {
       group,
       score: parseFloat(finalScore.toFixed(3)),
       breakdown: { // Optional: include for debugging or more detailed UI
-        logisticsScore: parseFloat(logisticsScore.toFixed(3)),
-        vibeScore: parseFloat(vibeScore.toFixed(3))
+        budget: parseFloat(budgetScore.toFixed(3)),
+        dates: parseFloat(dateOverlapScore.toFixed(3)),
+        interests: parseFloat(interestScore.toFixed(3)),
+        age: parseFloat(ageScore.toFixed(3)),
+        //... add other scores if needed for the UI
       }
     };
   });
