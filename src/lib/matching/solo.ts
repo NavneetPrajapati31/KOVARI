@@ -1,198 +1,252 @@
-// finalGroupMatchingLogic_with_DetailedWeights.ts
-// Matches a user against groups with a distance filter and a comprehensive, detailed weighted score.
+// -----------------------------------------------------------------------------
+//   File 1: Matching Logic & Scoring Functions
+// -----------------------------------------------------------------------------
+// Location: /lib/matching/solo.ts
+// Purpose: This file contains all the pure calculation and scoring logic.
+// It is kept separate from the API handler for better organization and testing.
 
-// --- 1. DATA TYPE DEFINITIONS ---
+import { SoloSession, StaticAttributes } from '../../types'; // Assuming types are in /types/index.ts
 
-interface Location {
-    lat: number;
-    lon: number;
-  }
-  
-  interface UserProfile {
-    userId: string;
-    destination: Location;
-    budget: number;
-    startDate: string; // ISO: YYYY-MM-DD
-    endDate: string;   // ISO: YYYY-MM-DD
-    age: number;
-    languages: string[];
-    interests: string[];
-    smoking: boolean;
-    drinking: boolean;
-    profession: string;
-    nationality: string;
-  }
-  
-  // Assumes 'averageAge' is automatically calculated by your database trigger
-  interface GroupProfile {
-    groupId: string;
-    name: string;
-    destination: Location;
-    averageBudget: number;
-    startDate: string; // ISO: YYYY-MM-DD
-    endDate: string;   // ISO: YYYY-MM-DD
-    averageAge: number;
-    dominantLanguages: string[];
-    topInterests: string[];
-    smokingPolicy: 'Smokers Welcome' | 'Mixed' | 'Non-Smoking';
-    drinkingPolicy: 'Drinkers Welcome' | 'Mixed' | 'Non-Drinking';
-    topProfessions: string[];
-    dominantNationalities: string[];
-  }
-  
-  
-  // --- 2. HELPER & SCORING FUNCTIONS ---
-  
-  /**
-   * HARD FILTER: Calculates distance and checks if it's within the 200km limit.
-   */
-  const isWithinDistance = (loc1: Location, loc2: Location): boolean => {
-      const R = 6371; // Earth's radius in km
-      const dLat = (loc2.lat - loc1.lat) * (Math.PI / 180);
-      const dLon = (loc2.lon - loc1.lon) * (Math.PI / 180);
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(loc1.lat * (Math.PI / 180)) * Math.cos(loc2.lat * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = R * c;
-      return distance <= 200;
-  };
-  
-  /**
-   * SCORE: Calculates budget similarity from 0 to 1.
-   */
-  const calculateBudgetScore = (userBudget: number, groupAverageBudget: number): number => {
-      const budgetDifference = Math.abs(userBudget - groupAverageBudget);
-      return Math.max(0, 1 - budgetDifference / 40000); // Score is 0 if difference is 40k or more
-  };
-  
-  /**
-   * SCORE: Calculates date overlap score from 0 to 1.
-   */
-  const calculateDateOverlapScore = (userStart: string, userEnd: string, groupStart: string, groupEnd: string): number => {
-      const uStart = new Date(userStart).getTime();
-      const uEnd = new Date(userEnd).getTime();
-      const gStart = new Date(groupStart).getTime();
-      const gEnd = new Date(groupEnd).getTime();
-  
-      const overlapStart = Math.max(uStart, gStart);
-      const overlapEnd = Math.min(uEnd, gEnd);
-  
-      if (overlapStart > overlapEnd) return 0;
-  
-      const overlapDuration = (overlapEnd - overlapStart) / (1000 * 60 * 60 * 24) + 1;
-      const userTripDuration = (uEnd - uStart) / (1000 * 60 * 60 * 24) + 1;
-  
-      return Math.min(1, overlapDuration / userTripDuration);
-  };
-  
-  /**
-   * SCORE: Calculates age similarity score.
-   */
-  const calculateAgeScore = (userAge: number, groupAverageAge: number): number => {
-      if (!groupAverageAge) return 0;
-      const ageDifference = Math.abs(userAge - groupAverageAge);
-      return Math.max(0, 1 - ageDifference / 20);
-  };
-  
-  /**
-   * SCORE: Calculates Jaccard similarity for arrays (languages, interests).
-   */
-  const calculateJaccardSimilarity = (setA: string[], setB: string[]): number => {
-      const uniqueA = new Set(setA);
-      const uniqueB = new Set(setB);
-      const intersectionSize = new Set([...uniqueA].filter(x => uniqueB.has(x))).size;
-      const unionSize = uniqueA.size + uniqueB.size - intersectionSize;
-      return unionSize === 0 ? 0 : intersectionSize / unionSize;
-  };
-  
-  /**
-   * SCORE: Calculates lifestyle compatibility (smoking & drinking).
-   */
-  const calculateLifestyleScore = (user: UserProfile, group: GroupProfile): number => {
-      let smokingScore = 0;
-      if ((user.smoking && group.smokingPolicy === 'Smokers Welcome') || (!user.smoking && group.smokingPolicy === 'Non-Smoking')) {
-          smokingScore = 1.0;
-      } else if (group.smokingPolicy === 'Mixed') {
-          smokingScore = 0.6;
-      }
-  
-      let drinkingScore = 0;
-      if ((user.drinking && group.drinkingPolicy === 'Drinkers Welcome') || (!user.drinking && group.drinkingPolicy === 'Non-Drinking')) {
-          drinkingScore = 1.0;
-      } else if (group.drinkingPolicy === 'Mixed') {
-          drinkingScore = 0.6;
-      }
-  
-      return (smokingScore + drinkingScore) / 2;
-  };
-  
-  /**
-   * SCORE: Calculates background compatibility (profession & nationality).
-   */
-  const calculateBackgroundScore = (user: UserProfile, group: GroupProfile): number => {
-      const professionScore = group.topProfessions.includes(user.profession) ? 1.0 : 0.0;
-      const nationalityScore = group.dominantNationalities.includes(user.nationality) ? 1.0 : 0.0;
-      return (professionScore + nationalityScore) / 2;
-  };
-  
-  
-  // --- 3. CORE MATCHING FUNCTION ---
-  
-  /**
-   * Finds the best group matches for a user with a distance filter and a comprehensive weighted score.
-   * @param user The profile of the user searching.
-   * @param allGroups An array of group profiles fetched from your database.
-   * @returns A ranked list of matched groups.
-   */
-  export const findGroupMatchesForUser = (user: UserProfile, allGroups: GroupProfile[]) => {
-  
-    // Step 1: Apply the hard distance filter. Only groups within 200km are considered.
-    const nearbyGroups = allGroups.filter(group => isWithinDistance(user.destination, group.destination));
-  
-    // Step 2: Calculate a comprehensive, weighted score for every nearby group.
-    const scoredMatches = nearbyGroups.map(group => {
-      // Define the importance of each attribute in the final score. Total must be 1.0.
-      const weights = {
-          budget: 0.20,
-          dateOverlap: 0.20,
-          interests: 0.15,
-          age: 0.15,
-          language: 0.10,
-          lifestyle: 0.10,      // Smoking & Drinking
-          background: 0.10,     // Profession & Nationality
-      };
-  
-      // --- Calculate a score for each individual attribute ---
-      const budgetScore = calculateBudgetScore(user.budget, group.averageBudget);
-      const dateOverlapScore = calculateDateOverlapScore(user.startDate, user.endDate, group.startDate, group.endDate);
-      const interestScore = calculateJaccardSimilarity(user.interests, group.topInterests);
-      const ageScore = calculateAgeScore(user.age, group.averageAge);
-      const languageScore = calculateJaccardSimilarity(user.languages, group.dominantLanguages);
-      const lifestyleScore = calculateLifestyleScore(user, group);
-      const backgroundScore = calculateBackgroundScore(user, group);
-  
-      // --- Calculate the Final Weighted Score ---
-      const finalScore =
-          (budgetScore * weights.budget) +
-          (dateOverlapScore * weights.dateOverlap) +
-          (interestScore * weights.interests) +
-          (ageScore * weights.age) +
-          (languageScore * weights.language) +
-          (lifestyleScore * weights.lifestyle) +
-          (backgroundScore * weights.background);
-  
-      return {
-        group,
-        score: parseFloat(finalScore.toFixed(3)),
-        breakdown: { // Optional: include for debugging or more detailed UI
-          budget: parseFloat(budgetScore.toFixed(3)),
-          dates: parseFloat(dateOverlapScore.toFixed(3)),
-          interests: parseFloat(interestScore.toFixed(3)),
-          age: parseFloat(ageScore.toFixed(3)),
-          //... add other scores if needed for the UI
-        }
-      };
-    });
-  
-    // Step 3: Rank the scored matches from highest to lowest.
-    return scoredMatches.sort((a, b) => b.score - a.score);
-  };
+// --- Helper function to calculate distance between two lat/lon points ---
+const getHaversineDistance = (
+    lat1: number, lon1: number,
+    lat2: number, lon2: number
+): number => {
+    // Edge Case: Handle invalid or missing coordinates
+    if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || typeof lat2 !== 'number' || typeof lon2 !== 'number') {
+        return Infinity; // Return a large number to indicate an invalid distance
+    }
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+};
+
+// --- Scoring Functions for each attribute ---
+
+const calculateDestinationScore = (dest1?: { lat: number, lon: number }, dest2?: { lat: number, lon: number }): number => {
+    // Fallback: If either destination is missing, return neutral score instead of 0
+    if (!dest1 || !dest2) return 0.3;
+    
+    const distance = getHaversineDistance(dest1.lat, dest1.lon, dest2.lat, dest2.lon);
+    
+    // Geocoding logic: Supports destinations within 200km radius with tiered scoring
+    // This allows users to find travel companions going to nearby destinations
+    if (distance === 0) return 1.0; // Same destination
+    if (distance <= 25) return 0.95; // Very close (same city)
+    if (distance <= 50) return 0.85; // Close (same metropolitan area)
+    if (distance <= 100) return 0.75; // Nearby (same region)
+    if (distance <= 200) return 0.6; // Within geocoding range (same state/province)
+    if (distance <= 500) return 0.4; // Same country
+    if (distance <= 1000) return 0.2; // Same continent
+    
+    return 0.1; // Different continent (never returns 0 to allow all matches)
+};
+
+const calculateDateOverlapScore = (start1: string, end1: string, start2: string, end2: string): number => {
+    const s1 = new Date(start1).getTime();
+    const e1 = new Date(end1).getTime();
+    const s2 = new Date(start2).getTime();
+    const e2 = new Date(end2).getTime();
+
+    // Edge Case: Handle invalid dates
+    if (isNaN(s1) || isNaN(e1) || isNaN(s2) || isNaN(e2)) return 0;
+
+    const overlapStart = Math.max(s1, s2);
+    const overlapEnd = Math.min(e1, e2);
+    
+    const overlapDuration = Math.max(0, overlapEnd - overlapStart);
+    
+    // Convert duration from milliseconds to days
+    const overlapDays = overlapDuration / (1000 * 60 * 60 * 24);
+    
+    // Minimum 2-day overlap requirement
+    if (overlapDays < 2) {
+        return 0; // No compatibility if less than 2 days overlap
+    }
+
+    const searchingUserTripDuration = e1 - s1;
+    // Edge Case: Prevent division by zero if trip duration is 0
+    if (searchingUserTripDuration <= 0) return 0;
+
+    const totalDays = searchingUserTripDuration / (1000 * 60 * 60 * 24);
+    const overlapRatio = overlapDays / totalDays;
+    
+    // Scoring based on overlap ratio with minimum 2-day requirement
+    if (overlapRatio >= 0.8) return 1.0; // Almost complete overlap
+    if (overlapRatio >= 0.5) return 0.9; // Good overlap
+    if (overlapRatio >= 0.3) return 0.7; // Moderate overlap
+    if (overlapRatio >= 0.2) return 0.5; // Some overlap
+    if (overlapRatio >= 0.1) return 0.3; // Minimal overlap
+    
+    return 0.1; // Very minimal overlap but meets 2-day minimum
+};
+
+const getPersonalityCompatibility = (p1?: string, p2?: string): number => {
+    // Fallback: If personality is missing, return a neutral score.
+    if (!p1 || !p2) return 0.5;
+    const compatibilityMap: Record<string, Record<string, number>> = {
+        introvert: { introvert: 1.0, ambivert: 0.7, extrovert: 0.4 },
+        ambivert:  { introvert: 0.7, ambivert: 1.0, extrovert: 0.7 },
+        extrovert: { introvert: 0.4, ambivert: 0.7, extrovert: 1.0 },
+    };
+    return compatibilityMap[p1]?.[p2] ?? 0;
+};
+
+const calculateJaccardSimilarity = (set1?: string[], set2?: string[]): number => {
+    // Fallback: If interests are missing, return neutral score instead of 0
+    if (!set1 || !set2 || set1.length === 0 || set2.length === 0) return 0.3;
+    
+    const s1 = new Set(set1);
+    const s2 = new Set(set2);
+    const intersection = new Set([...s1].filter(x => s2.has(x)));
+    const union = new Set([...s1, ...s2]);
+    
+    if (union.size === 0) return 0.5; // Both empty - neutral score
+    
+    const jaccardScore = intersection.size / union.size;
+    
+    // Boost score for having any common interests
+    if (intersection.size > 0) {
+        return Math.min(1.0, jaccardScore + 0.2); // Bonus for having any overlap
+    }
+    
+    return jaccardScore;
+};
+
+const calculateBudgetScore = (budget1: number, budget2: number): number => {
+    // Edge Case: Prevent division by zero if both budgets are 0.
+    if (Math.max(budget1, budget2) === 0) return 1;
+    
+    const budgetDiff = Math.abs(budget1 - budget2);
+    const maxBudget = Math.max(budget1, budget2);
+    const ratio = budgetDiff / maxBudget;
+    
+    // More flexible budget scoring
+    if (ratio <= 0.1) return 1.0; // Very similar budgets
+    if (ratio <= 0.25) return 0.8; // Similar budgets
+    if (ratio <= 0.5) return 0.6; // Moderately different
+    if (ratio <= 1.0) return 0.4; // Different but manageable
+    if (ratio <= 2.0) return 0.2; // Very different but possible
+    
+    return 0.1; // Extremely different but still some compatibility
+};
+
+const calculateReligionScore = (r1?: string, r2?: string): number => {
+    // Fallback: If religion is missing, return a neutral score.
+    if (!r1 || !r2) return 0.5;
+    const neutralReligions = ['agnostic', 'prefer_not_to_say', 'none'];
+    if (r1.toLowerCase() === r2.toLowerCase()) return 1.0;
+    if (neutralReligions.includes(r1.toLowerCase()) || neutralReligions.includes(r2.toLowerCase())) return 0.5;
+    return 0;
+};
+
+const calculateLocationOriginScore = (loc1?: { lat: number, lon: number }, loc2?: { lat: number, lon: number }): number => {
+    // Fallback: If home location is missing, return a neutral score.
+    if (!loc1 || !loc2) return 0.5;
+    
+    const distance = getHaversineDistance(loc1.lat, loc1.lon, loc2.lat, loc2.lon);
+    
+    // Optimized for finding people from similar regions
+    if (distance <= 25) return 1.0; // Same city
+    if (distance <= 100) return 0.8; // Same metropolitan area
+    if (distance <= 200) return 0.6; // Same region (within geocoding range)
+    if (distance <= 500) return 0.4; // Same state/province
+    if (distance <= 1000) return 0.2; // Same country
+    
+    return 0.1; // Different country
+};
+
+const calculateAgeScore = (age1: number, age2: number): number => {
+    if (Math.max(age1, age2) === 0) return 1;
+    
+    const ageDiff = Math.abs(age1 - age2);
+    
+    // More flexible age scoring with reasonable ranges
+    if (ageDiff <= 2) return 1.0; // Very close in age
+    if (ageDiff <= 5) return 0.9; // Close in age
+    if (ageDiff <= 10) return 0.7; // Similar age group
+    if (ageDiff <= 15) return 0.5; // Different but compatible age
+    if (ageDiff <= 25) return 0.3; // Different age groups but possible
+    if (ageDiff <= 40) return 0.1; // Large age difference but still compatible
+    
+    return 0.05; // Very large age difference but not impossible
+};
+
+const calculateLifestyleScore = (attrs1: StaticAttributes, attrs2: StaticAttributes): number => {
+    const smokingMatch = attrs1.smoking === attrs2.smoking ? 1 : 0;
+    const drinkingMatch = attrs1.drinking === attrs2.drinking ? 1 : 0;
+    return (smokingMatch + drinkingMatch) / 2;
+};
+
+
+// --- Main Compatibility Score Calculation ---
+// This function combines all individual scores using the defined weights.
+// Priority order (descending): destination > dateOverlap > budget > interests > age > personality > locationOrigin > lifestyle > religion
+
+export const calculateFinalCompatibilityScore = (userSession: SoloSession, matchSession: SoloSession): { score: number, breakdown: any, budgetDifference: string } => {
+    const weights = {
+        destination: 0.25,    // Highest priority - where they want to go
+        dateOverlap: 0.20,    // Second priority - when they want to go (with 2-day minimum)
+        budget: 0.15,         // Third priority - spending capacity
+        interests: 0.15,      // Fourth priority - common interests
+        age: 0.10,            // Fifth priority - age compatibility
+        personality: 0.05,    // Sixth priority - personality match
+        locationOrigin: 0.05, // Seventh priority - home location
+        lifestyle: 0.03,      // Eighth priority - lifestyle choices
+        religion: 0.02,       // Lowest priority - personal preference
+    };
+
+    const userAttrs = userSession.static_attributes;
+    const matchAttrs = matchSession.static_attributes;
+
+    // Calculate budget difference for display
+    const budgetDiff = matchSession.budget - userSession.budget;
+    const budgetDifference = formatBudgetDifference(budgetDiff);
+
+    const scores = {
+        destinationScore: calculateDestinationScore(userSession.destination, matchSession.destination),
+        dateOverlapScore: calculateDateOverlapScore(userSession.startDate, userSession.endDate, matchSession.startDate, matchSession.endDate),
+        personalityScore: getPersonalityCompatibility(userAttrs.personality, matchAttrs.personality),
+        interestScore: calculateJaccardSimilarity(userAttrs.interests, matchAttrs.interests),
+        budgetScore: calculateBudgetScore(userSession.budget, matchSession.budget),
+        religionScore: calculateReligionScore(userAttrs.religion, matchAttrs.religion),
+        locationOriginScore: calculateLocationOriginScore(userAttrs.location, matchAttrs.location),
+        ageScore: calculateAgeScore(userAttrs.age, matchAttrs.age),
+        lifestyleScore: calculateLifestyleScore(userAttrs, matchAttrs)
+    };
+
+    const finalScore =
+        (scores.destinationScore * weights.destination) +
+        (scores.dateOverlapScore * weights.dateOverlap) +
+        (scores.personalityScore * weights.personality) +
+        (scores.interestScore * weights.interests) +
+        (scores.budgetScore * weights.budget) +
+        (scores.religionScore * weights.religion) +
+        (scores.locationOriginScore * weights.locationOrigin) +
+        (scores.ageScore * weights.age) +
+        (scores.lifestyleScore * weights.lifestyle);
+
+    return { score: finalScore, breakdown: scores, budgetDifference };
+};
+
+// Helper function to format budget difference as "+5k" or "-5k INR"
+const formatBudgetDifference = (difference: number): string => {
+    if (difference === 0) return "Same budget";
+    
+    const absDiff = Math.abs(difference);
+    const sign = difference > 0 ? "+" : "-";
+    
+    // Since we're filtering to ±5k range, use simpler formatting
+    // FIX: Use backticks (`) for template literals
+    if (absDiff >= 1000) {
+        return `${sign}${(absDiff / 1000).toFixed(0)}k`;
+    } else {
+        return `${sign}${absDiff.toFixed(0)}`;
+    }
+};

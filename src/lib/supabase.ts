@@ -73,7 +73,8 @@ export const getUserProfile = async (clerkId: string): Promise<UserProfile | nul
   const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', supabaseUuid) // Use the mapped UUID
+      // FIX: Query against the `user_id` foreign key column, not the `id` primary key.
+      .eq('user_id', supabaseUuid)
       .single();
 
   if (error) {
