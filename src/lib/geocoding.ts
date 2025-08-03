@@ -53,8 +53,8 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
                 lon: parseFloat(data[0].lon),
             };
 
-            // Cache the result for 30 days (2592000 seconds)
-            await redis.set(cacheKey, JSON.stringify(coords), { EX: 2592000 });
+            // FIX: Use setEx (Redis v4+) instead of setex (deprecated)
+            await redis.setEx(cacheKey, 2592000, JSON.stringify(coords)); // 2592000 seconds = 30 days
             
             return coords;
         } else {
@@ -66,48 +66,6 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
     } catch (error) {
         // Handle network errors or other exceptions
         console.error("An error occurred during geocoding:", error);
-        return null;
-    }
-};
-
-/**
- * Gets the user's current location coordinates using browser geolocation API.
- * This is used for finding users from the same region.
- * @returns A promise that resolves to coordinates or null if not available.
- */
-export const getUserLocationCoordinates = async (): Promise<Coordinates | null> => {
-    if (typeof window === 'undefined') {
-        // Server-side rendering - return null
-        return null;
-    }
-
-    if (!navigator.geolocation) {
-        console.warn('Geolocation is not supported by this browser');
-        return null;
-    }
-
-    try {
-        return new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve({
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
-                    });
-                },
-                (error) => {
-                    console.warn('Error getting user location:', error.message);
-                    resolve(null);
-                },
-                {
-                    enableHighAccuracy: false,
-                    timeout: 10000,
-                    maximumAge: 300000 // 5 minutes cache
-                }
-            );
-        });
-    } catch (error) {
-        console.error('Error in getUserLocationCoordinates:', error);
         return null;
     }
 };
