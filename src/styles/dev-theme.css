@@ -155,3 +155,51 @@ body {
 }
 
 @import "./new-title.css";
+
+/* GitHub-style Heatmap Custom Classes */
+@layer utilities {
+  .bg-gh-heatmap-inactive {
+    background-color: #e5e7eb; /* Tailwind gray-200 */
+    transition: background-color 0.3s;
+  }
+  .bg-gh-heatmap-green-1 {
+    background-color: #166534; /* Tailwind green-800 */
+    transition: background-color 0.3s;
+  }
+  .bg-gh-heatmap-green-2 {
+    background-color: #15803d; /* Tailwind green-700 */
+    transition: background-color 0.3s;
+  }
+  .bg-gh-heatmap-green-3 {
+    background-color: #16a34a; /* Tailwind green-600 */
+    transition: background-color 0.3s;
+  }
+  .bg-gh-heatmap-green-4 {
+    background-color: #22c55e; /* Tailwind green-500 */
+    transition: background-color 0.3s;
+  }
+  .bg-gh-card-bg {
+    background-color: #18181b; /* Tailwind zinc-900 or custom dark */
+  }
+}
+
+/* Dark mode support for heatmap */
+.dark .bg-gh-heatmap-inactive {
+  background-color: #374151; /* Tailwind gray-700 */
+}
+
+.dark .bg-gh-heatmap-green-1 {
+  background-color: #14532d; /* Tailwind green-900 */
+}
+
+.dark .bg-gh-heatmap-green-2 {
+  background-color: #166534; /* Tailwind green-800 */
+}
+
+.dark .bg-gh-heatmap-green-3 {
+  background-color: #15803d; /* Tailwind green-700 */
+}
+
+.dark .bg-gh-heatmap-green-4 {
+  background-color: #16a34a; /* Tailwind green-600 */
+}
