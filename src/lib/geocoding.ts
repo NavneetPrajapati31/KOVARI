@@ -54,7 +54,7 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
             };
 
             // Cache the result for 30 days (2592000 seconds)
-            await redis.setex(cacheKey, 2592000, JSON.stringify(coords));
+            await redis.set(cacheKey, JSON.stringify(coords), { EX: 2592000 });
             
             return coords;
         } else {
