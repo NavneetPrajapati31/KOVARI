@@ -299,7 +299,7 @@ export function EventCalendar({
                 <ChevronRightIcon size={16} aria-hidden="true" />
               </Button>
             </div>
-            <h2 className="text-xs font-semibold">{viewTitle}</h2>
+            <h2 className="text-xs font-medium">{viewTitle}</h2>
           </div>
           <div className="flex items-center gap-2">
             {/* <DropdownMenu>

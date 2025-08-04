@@ -8,7 +8,20 @@ import {
 } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
-import { Check, X, Clock, Users, EllipsisVerticalIcon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/components/ui/popover";
+import {
+  Check,
+  X,
+  Clock,
+  Users,
+  EllipsisVerticalIcon,
+  UserMinus,
+  Flag,
+} from "lucide-react";
 import { cn } from "@/shared/utils/utils";
 
 interface ConnectionRequest {
@@ -106,6 +119,7 @@ interface ConnectionRequestCardProps {
   request: ConnectionRequest;
   onAccept: (id: string) => void;
   onDecline: (id: string) => void;
+  onReport: (id: string) => void;
   className?: string;
 }
 
@@ -113,8 +127,17 @@ function ConnectionRequestCard({
   request,
   onAccept,
   onDecline,
+  onReport,
   className,
 }: ConnectionRequestCardProps) {
+  const handleRemove = () => {
+    onDecline(request.id);
+  };
+
+  const handleReport = () => {
+    onReport(request.id);
+  };
+
   return (
     <Card
       className={cn(
@@ -150,14 +173,43 @@ function ConnectionRequestCard({
         >
           <span className="text-[10px]">Accept</span>
         </button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-6 w-6 p-0 flex-shrink-0"
-          onClick={() => onDecline(request.id)}
-        >
-          <EllipsisVerticalIcon className="h-3 w-3 !text-muted-foreground" />
-        </Button>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 w-6 p-0 flex-shrink-0"
+            >
+              <EllipsisVerticalIcon className="h-3 w-3 !text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-40 p-1 shadow-sm"
+            align="end"
+            side="bottom"
+          >
+            <div className="flex flex-col space-y-0">
+              <Button
+                size="sm"
+                className="bg-transparent text-foreground justify-start h-8 text-xs"
+                onClick={handleRemove}
+              >
+                <UserMinus className="h-3 w-3 mr-2 text-muted-foreground" />
+                Remove Request
+              </Button>
+
+              <Button
+                size="sm"
+                className="bg-transparent !text-destructive justify-start h-8 text-xs hover:text-destructive"
+                onClick={handleReport}
+              >
+                <Flag className="h-3 w-3 mr-2 text-destructive" />
+                Report User
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </Card>
   );
@@ -182,6 +234,14 @@ export const ConnectionRequestsCard = () => {
         req.id === id ? { ...req, status: "declined" as const } : req
       )
     );
+  };
+
+  const handleReport = (id: string) => {
+    // Handle report logic here
+    console.log(`Reporting user with ID: ${id}`);
+    // You can implement the actual report functionality here
+    // For now, we'll just decline the request
+    handleDecline(id);
   };
 
   const pendingRequests = requests.filter((req) => req.status === "pending");
@@ -216,6 +276,7 @@ export const ConnectionRequestsCard = () => {
                 request={request}
                 onAccept={handleAccept}
                 onDecline={handleDecline}
+                onReport={handleReport}
               />
             ))
           )}

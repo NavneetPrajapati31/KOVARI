@@ -89,7 +89,7 @@ export function TopDestinationCard({
           }}
         >
           {/* Content section - keeping your exact structure */}
-          <div className="flex flex-row px-4 py-3">
+          <div className="flex flex-row px-3 py-3">
             {/* Creator avatar and name */}
             <div className="flex flex-col w-full">
               <div className="flex flex-row justify-between items-center">
@@ -98,7 +98,7 @@ export function TopDestinationCard({
                 </span>
               </div>
               <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate">
-                Seoul
+                {name}
               </span>
             </div>
             <div className="flex justify-end items-end flex-shrink-0">

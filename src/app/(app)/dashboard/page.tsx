@@ -17,6 +17,14 @@ const TravelHeatmap = dynamic(
   { ssr: false }
 );
 
+const UpcomingTripCard = dynamic(
+  () =>
+    import("@/features/dashboard/UpcomingTripCard").then((mod) => ({
+      default: mod.UpcomingTripCard,
+    })),
+  { ssr: false }
+);
+
 import { useUserGroups } from "@/shared/hooks/useUserGroups";
 import { useUserTrips } from "@/shared/hooks/useUserTrips";
 import { usePendingInvites } from "@/shared/hooks/usePendingInvites";
@@ -30,7 +38,6 @@ import {
 
 import { isBefore, isAfter } from "date-fns";
 import { Card, CardContent } from "@/shared/components/ui/card";
-import { UpcomingTripCard } from "@/features/dashboard/UpcomingTripCard";
 import { GroupCard } from "@/features/dashboard/GroupCard";
 import Component from "@/shared/components/comp-531";
 import { GalleryCard } from "@/features/dashboard/GalleryCard";
@@ -234,6 +241,10 @@ export default function Dashboard() {
     selectedGroup?.group?.destination || undefined
   );
 
+  // Get trip dates from the selected group
+  const startDate = selectedGroup?.group?.start_date || undefined;
+  const endDate = selectedGroup?.group?.end_date || undefined;
+
   const handleExplore = () => {
     if (!name) return;
     const query = encodeURIComponent(name);
@@ -260,6 +271,8 @@ export default function Dashboard() {
                       <UpcomingTripCard
                         name={name}
                         country={country}
+                        startDate={startDate}
+                        endDate={endDate}
                         imageUrl="https://images.pexels.com/photos/8776666/pexels-photo-8776666.jpeg"
                         onExplore={handleExplore}
                       />
@@ -269,7 +282,6 @@ export default function Dashboard() {
                 <div className="w-1/3 h-full">
                   <div className="h-full">
                     <TopDestinationCard
-                      key={1}
                       name={name}
                       country={country}
                       imageUrl="https://images.pexels.com/photos/1486222/pexels-photo-1486222.jpeg"

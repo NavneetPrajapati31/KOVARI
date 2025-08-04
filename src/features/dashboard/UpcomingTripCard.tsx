@@ -11,6 +11,8 @@ interface DestinationCardProps {
   imageUrl?: string;
   name: string;
   country: string;
+  startDate?: string;
+  endDate?: string;
   onExplore: () => void;
   forMobile?: boolean;
   forTablet?: boolean;
@@ -47,6 +49,8 @@ export function UpcomingTripCard({
   name,
   country,
   imageUrl,
+  startDate,
+  endDate,
   onExplore,
   forMobile = false,
   forTablet = false,
@@ -54,6 +58,52 @@ export function UpcomingTripCard({
   const [actionLoading, setActionLoading] = useState(false);
 
   const router = useRouter();
+
+  // Format dates for display
+  const formatTripDates = (start?: string, end?: string): string => {
+    if (!start) return "Dates TBD";
+
+    try {
+      const startDate = new Date(start);
+      const endDate = end ? new Date(end) : null;
+
+      const formatDate = (date: Date) => {
+        const month = date.toLocaleDateString("en-US", { month: "short" });
+        const day = date.getDate();
+        const year = date.getFullYear();
+        return `${month} ${day}, ${year}`;
+      };
+
+      if (endDate && startDate.getTime() !== endDate.getTime()) {
+        // Check if same year, if so omit year from start date
+        if (startDate.getFullYear() === endDate.getFullYear()) {
+          const startMonth = startDate.toLocaleDateString("en-US", {
+            month: "short",
+          });
+          const startDay = startDate.getDate();
+          const endMonth = endDate.toLocaleDateString("en-US", {
+            month: "short",
+          });
+          const endDay = endDate.getDate();
+          const year = startDate.getFullYear();
+
+          if (startDate.getMonth() === endDate.getMonth()) {
+            return `${startMonth} ${startDay}-${endDay}, ${year}`;
+          } else {
+            return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+          }
+        } else {
+          return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+        }
+      } else {
+        return formatDate(startDate);
+      }
+    } catch (error) {
+      return "Dates TBD";
+    }
+  };
+
+  const tripDates = formatTripDates(startDate, endDate);
 
   return (
     <Card
@@ -81,14 +131,14 @@ export function UpcomingTripCard({
           }}
         >
           {/* Content section - keeping your exact structure */}
-          <div className="flex flex-row gap-1 px-4 py-3">
+          <div className="flex flex-row gap-1 px-3 py-3">
             {/* Creator avatar and name */}
             <div className="flex flex-col items-start flex-1">
               <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
                 {name}, {country}
               </span>
               <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
-                Oct 15-22, 2025
+                {tripDates}
               </span>
             </div>
             <div className="flex justify-end items-end flex-shrink-0">
