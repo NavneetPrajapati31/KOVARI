@@ -41,6 +41,7 @@ import { TravelDaysCard } from "@/features/dashboard/TravelDaysCard";
 import type { UserProfile as UserProfileType } from "@/features/profile/components/user-profile";
 import { InviteCard } from "@/features/dashboard/InviteCard";
 import { UserConnect } from "@/features/dashboard/UserConnect";
+import Comp542 from "@/shared/components/comp-542";
 
 interface ItineraryEvent {
   id: string;
@@ -423,7 +424,7 @@ export default function Dashboard() {
             <div className="h-full">
               <TodoChecklist />
             </div>
-            <Component />
+            <Comp542 />
           </div>
         </>
       )}
