@@ -9,7 +9,7 @@ export function GroupList({ title = "Groups" }: GroupListProps) {
   const { groups, loading } = useUserGroups();
 
   return (
-    <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto hide-scrollbar h-[330px]">
+    <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto hide-scrollbar h-full">
       <div className="space-y-3">
         {loading ? (
           <div className="text-foreground">Loading...</div>

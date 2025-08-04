@@ -57,7 +57,7 @@ export function UpcomingTripCard({
 
   return (
     <Card
-      className={`relative w-[225px] h-[160px] rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-sm border-none border-card overflow-hidden flex flex-col bg-card text-card-foreground`}
+      className={`relative w-full h-full rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-none border-none overflow-hidden flex flex-col bg-card text-card-foreground`}
     >
       {/* Background Image - now covers full card */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl">

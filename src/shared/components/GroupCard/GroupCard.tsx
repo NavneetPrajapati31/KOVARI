@@ -46,7 +46,7 @@ export function GroupCard({ group, className }: GroupCardProps) {
             {group.destination}
           </p>
         </div>
-        <div className="flex items-center justify-between mt-1 w-full">
+        <div className="flex items-center justify-between mt-0.5 w-full">
           <p className="text-xs text-foreground truncate">
             {group.members} Members
           </p>

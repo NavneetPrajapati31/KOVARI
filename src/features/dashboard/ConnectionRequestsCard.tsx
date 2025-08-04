@@ -118,7 +118,7 @@ function ConnectionRequestCard({
   return (
     <Card
       className={cn(
-        "flex flex-row items-center gap-x-2 py-0 bg-white text-black shadow-none border-none",
+        "flex flex-row items-center gap-x-2 py-0 bg-card text-foreground shadow-none border-none",
         className
       )}
     >
@@ -134,27 +134,26 @@ function ConnectionRequestCard({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between w-full gap-6">
+        <div className="flex flex-col min-w-0">
           <h3 className="font-semibold text-xs truncate">{request.name}</h3>
-        </div>
-        <div className="flex items-center justify-between mt-1 w-full">
-          <p className="text-xs text-foreground truncate">{request.location}</p>
+          <p className="text-xs text-foreground truncate mt-0.5">
+            {request.location}
+          </p>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex space-x-1 ml-2">
+      <div className="flex items-center space-x-1 flex-shrink-0">
         <button
-          className="bg-primary text-primary-foreground text-xs p-1 px-3 rounded-md"
+          className="bg-primary text-primary-foreground text-xs p-1 px-2 rounded-md whitespace-nowrap"
           onClick={() => onAccept(request.id)}
         >
-          {/* <Check className="h-3 w-3 text-white" /> */}
-          <span className="text-[11px]">Accept</span>
+          <span className="text-[10px]">Accept</span>
         </button>
         <Button
           size="sm"
           variant="outline"
-          className="h-6 w-6 p-0"
+          className="h-6 w-6 p-0 flex-shrink-0"
           onClick={() => onDecline(request.id)}
         >
           <EllipsisVerticalIcon className="h-3 w-3 !text-muted-foreground" />
@@ -188,8 +187,8 @@ export const ConnectionRequestsCard = () => {
   const pendingRequests = requests.filter((req) => req.status === "pending");
 
   return (
-    <div className="flex-shrink-0 w-1/4 bg-card border border-border rounded-xl h-[420px]">
-      <div className="mb-3 p-4 border-b border-border">
+    <div className="w-full bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
+      <div className="mb-3 p-4 border-b border-border flex-shrink-0">
         <h2 className="text-foreground font-semibold text-xs truncate">
           Connection Requests
         </h2>
@@ -198,7 +197,7 @@ export const ConnectionRequestsCard = () => {
         </p>
       </div>
 
-      <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto px-4 hide-scrollbar h-[330px]">
+      <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto px-4 hide-scrollbar flex-1">
         <div className="space-y-3">
           {pendingRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">

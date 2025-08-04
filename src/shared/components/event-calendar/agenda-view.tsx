@@ -40,7 +40,7 @@ export function AgendaView({
   );
 
   return (
-    <div className="bg-card border-border/70 rounded-b-2xl h-[50vh] overflow-y-auto hide-scrollbar border-t px-4">
+    <div className="bg-card border-border/70 rounded-b-2xl h-screen overflow-y-auto hide-scrollbar border-t px-4">
       {!hasEvents ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <RiCalendarEventLine

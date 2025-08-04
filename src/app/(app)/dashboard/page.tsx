@@ -9,7 +9,6 @@ import DashboardCard from "@/shared/components/ui/DashboardCard";
 import DoneTripsCard from "@/shared/components/DoneTripsCard/DoneTripsCard";
 import { GroupList } from "@/shared/components/GroupCard/GroupCard-list";
 import TodoChecklist from "@/shared/components/Todo-Checklist/Todo-checklist";
-import ItineraryUI from "@/shared/components/Itinerary/Itinerary-ui";
 import TripsBarChart from "@/shared/components/charts/TripsBarChart";
 import dynamic from "next/dynamic";
 
@@ -42,7 +41,9 @@ import type { UserProfile as UserProfileType } from "@/features/profile/componen
 import { InviteCard } from "@/features/dashboard/InviteCard";
 import { UserConnect } from "@/features/dashboard/UserConnect";
 import { ConnectionRequestsCard } from "@/features/dashboard/ConnectionRequestsCard";
-import Comp542 from "@/shared/components/comp-542";
+
+import { ChartLineDots } from "@/features/dashboard/ImpressionsChart";
+import ItineraryUI from "@/shared/components/comp-542";
 
 interface ItineraryEvent {
   id: string;
@@ -246,180 +247,82 @@ export default function Dashboard() {
         <SkeletonDemo />
       ) : (
         <>
-          <div className="flex flex-row gap-3">
-            {/* Profile Information Section */}
-            {/* <Card className="rounded-none border-none shadow-none bg-transparent p-0">
-              <CardContent className="p-0">
-                <div className="flex flex-row items-stretch gap-3"> */}
-            {/* <Card className="flex flex-col rounded-xl bg-transparent border border-border shadow-none p-6 py-5 gap-0 items-start justify-start flex-1 min-w-0">
-                    <div className="flex flex-row items-center gap-x-10 w-full">
-                      <div className="flex flex-col flex-1 min-w-0 gap-x-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h1 className="text-md font-extrabold text-foreground leading-tight">
-                            {user?.fullName || user?.firstName || "User"}
-                          </h1>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-medium mb-2">
-                          @
-                          {(
-                            user?.username ||
-                            user?.emailAddresses?.[0]?.emailAddress ||
-                            ""
-                          ).length > 30
-                            ? `${(user?.username || user?.emailAddresses?.[0]?.emailAddress || "").substring(0, 30)}...`
-                            : user?.username ||
-                              user?.emailAddresses?.[0]?.emailAddress ||
-                              ""}
-                        </p>
-                      </div>
+          <div className="flex flex-row gap-3 h-full">
+            <div className="flex flex-col w-1/2 gap-3 h-full">
+              <div className="flex flex-row gap-3 h-[160px]">
+                <div className="w-1/3 h-full">
+                  {groupsLoading ? (
+                    <>
+                      <Skeleton className="w-full h-full rounded-xl" />
+                    </>
+                  ) : (
+                    <div className="h-full">
+                      <UpcomingTripCard
+                        name={name}
+                        country={country}
+                        imageUrl="https://images.pexels.com/photos/8776666/pexels-photo-8776666.jpeg"
+                        onExplore={handleExplore}
+                      />
                     </div>
-                    <div className="text-sm text-muted-foreground font-medium mt-1">
-                      Traveler
-                    </div>
-                    <div className="text-sm text-muted-foreground font-medium mt-1 line-clamp-3">
-                      Exploring the world one trip at a time
-                    </div>
-                  </Card> */}
-            {/* </div>
-              </CardContent>
-            </Card> */}
-            <div className="flex-shrink-0">
-              {groupsLoading ? (
-                <>
-                  <Skeleton className="w-[260px] h-[180px] rounded-xl" />
-                </>
-              ) : (
-                <UpcomingTripCard
-                  name={name}
-                  country={country}
-                  imageUrl="https://images.pexels.com/photos/8776666/pexels-photo-8776666.jpeg"
-                  onExplore={handleExplore}
-                />
-              )}
-            </div>
-            <div className="flex-shrink-0">
-              <TopDestinationCard
-                key={1}
-                name={name}
-                country={country}
-                imageUrl="https://images.pexels.com/photos/1486222/pexels-photo-1486222.jpeg"
-                onExplore={handleExplore}
-              />
-            </div>
-            {/* <div className="flex-shrink-0">
-              <InviteCard
-                key={1}
-                name={"Jenna Smith"}
-                country={country}
-                imageUrl="https://images.pexels.com/photos/3884492/pexels-photo-3884492.jpeg"
-                onExplore={handleExplore}
-              />
-            </div>
-            <div className="flex-1">
-              <div className="grid grid-cols-3 grid-rows-1 gap-0">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <UserConnect
-                    key={index}
-                    name={"Jenna Smith"}
-                    country={country}
-                    imageUrl="https://images.pexels.com/photos/11608681/pexels-photo-11608681.jpeg"
-                    onExplore={handleExplore}
-                  />
-                ))}
-              </div>
-            </div> */}
-            {/* <div className="shadow-none border-none flex-shrink-0 gap-2 flex flex-col">
-              <div className="">
-                <DashboardCard
-                  title="Total Travel Days"
-                  value={`${totalDays} days`}
-                  loading={groupsLoading}
-                />
-              </div>
-            </div> */}
-            {/* <div className="flex-1 min-w-0">
-              <div className="w-full h-full overflow-hidden">
-                <Heatmap data={[]} />
-              </div>
-            </div> */}
-          </div>
-          <div className="flex flex-row gap-3">
-            <div className="flex-shrink-0 w-1/4 bg-card border border-border rounded-xl h-[420px]">
-              <div className="mb-3 p-4 border-b border-border">
-                <h2 className="text-foreground font-semibold text-xs truncate">
-                  Travel Groups
-                </h2>
-                <p className="mt-0.5 text-muted-foreground text-xs">
-                  Manage your collaborative travel experiences
-                </p>
-              </div>
-              {/* {groupsLoading ? (
-                <div className="grid grid-cols-2 grid-rows-2 gap-3 mt-6">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton
-                      key={index}
-                      className="w-[260px] h-[200px] rounded-xl"
-                    />
-                  ))}
+                  )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 grid-rows-2 gap-3 mt-6">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <GroupCard
-                      key={index}
+                <div className="w-1/3 h-full">
+                  <div className="h-full">
+                    <TopDestinationCard
+                      key={1}
                       name={name}
                       country={country}
-                      imageUrl="https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg"
+                      imageUrl="https://images.pexels.com/photos/1486222/pexels-photo-1486222.jpeg"
                       onExplore={handleExplore}
                     />
-                  ))}
+                  </div>
                 </div>
-              )} */}
-              <div className="px-4">
-                <GroupList title="My Groups" />
+                <div className="w-1/3 flex flex-col gap-3 h-full">
+                  <div className="flex-1">
+                    <DashboardCard
+                      title="Total Travel Days"
+                      value={`${totalDays} days`}
+                      loading={groupsLoading}
+                      subtitle="Total travel days across all groups"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <DashboardCard
+                      title="Profile Impressions"
+                      value={`128 impressions`}
+                      loading={groupsLoading}
+                      subtitle="Total profile impressions"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-row gap-3 flex-1">
+                <div className="w-1/2 bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
+                  <div className="mb-3 p-4 border-b border-border flex-shrink-0">
+                    <h2 className="text-foreground font-semibold text-xs truncate">
+                      Travel Groups
+                    </h2>
+                    <p className="mt-0.5 text-muted-foreground text-xs">
+                      Manage your collaborative travel experiences
+                    </p>
+                  </div>
+                  <div className="px-4 flex-1 overflow-hidden">
+                    <GroupList title="My Groups" />
+                  </div>
+                </div>
+                <div className="w-1/2 h-full flex flex-col">
+                  <div className="flex-1 min-h-0">
+                    <ConnectionRequestsCard />
+                  </div>
+                </div>
               </div>
             </div>
-            <ConnectionRequestsCard />
-            <Comp542 />
-
-            {/* <div className="flex-shrink-0 bg-card border border-border rounded-xl p-4">
-              <div className="mb-3">
-                <h2 className="text-foreground font-semibold text-sm truncate">
-                  Past Trips
-                </h2>
-                <p className="mt-0.5 text-muted-foreground text-xs">
-                  Manage your past travel experiences
-                </p>
+            <div className="flex flex-col w-1/2 h-full">
+              <div className="h-full overflow-hidden">
+                <ItineraryUI />
               </div>
-              {groupsLoading ? (
-                <div className="grid grid-cols-2 grid-rows-2 gap-3 mt-6">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton
-                      key={index}
-                      className="w-[260px] h-[200px] rounded-xl"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 grid-rows-1 gap-3 mt-6">
-                  {Array.from({ length: 3 }).map((_, index) => (
-                    <GalleryCard
-                      key={index}
-                      name={name}
-                      country={country}
-                      imageUrl="https://images.pexels.com/photos/2689619/pexels-photo-2689619.jpeg"
-                      onExplore={handleExplore}
-                    />
-                  ))}
-                </div>
-              )}
-            </div> */}
+            </div>
           </div>
-          {/* <div className="flex flex-row gap-3">
-            <div className="h-full">
-              <TodoChecklist />
-            </div>
-          </div> */}
         </>
       )}
     </div>

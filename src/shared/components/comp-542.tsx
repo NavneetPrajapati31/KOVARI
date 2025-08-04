@@ -130,7 +130,7 @@ const sampleEvents: CalendarEvent[] = [
   },
 ];
 
-export default function Comp542() {
+export default function ItineraryUI() {
   const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents);
 
   const handleEventAdd = (event: CalendarEvent) => {
