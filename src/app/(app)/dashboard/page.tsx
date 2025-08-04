@@ -240,29 +240,17 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 flex flex-col gap-3">
+    <div className="h-full bg-background p-4 flex flex-col gap-3">
       {!isSignedIn ? (
         <SkeletonDemo />
       ) : (
         <>
-          <div className="flex flex-row gap-3 w-full overflow-hidden">
+          <div className="flex flex-row gap-3">
             {/* Profile Information Section */}
-            <Card className="rounded-none border-none shadow-none bg-transparent p-0">
+            {/* <Card className="rounded-none border-none shadow-none bg-transparent p-0">
               <CardContent className="p-0">
-                <div className="flex flex-row items-stretch gap-3">
-                  {/* Profile Avatar Overlay - Stretches to match second card height */}
-                  <Card className="w-[160px] h-[160px] min-[840px]:h-[160px] min-[840px]:w-[160px] p-0 bg-muted border-none shadow-none xl overflow-hidden flex-shrink-0">
-                    <img
-                      src={
-                        user?.imageUrl ||
-                        "https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
-                      }
-                      alt="Profile"
-                      className="w-full h-full object-cover rounded-xl"
-                    />
-                  </Card>
-
-                  {/* <Card className="flex flex-col rounded-xl bg-transparent border border-border shadow-none p-6 py-5 gap-0 items-start justify-start flex-1 min-w-0">
+                <div className="flex flex-row items-stretch gap-3"> */}
+            {/* <Card className="flex flex-col rounded-xl bg-transparent border border-border shadow-none p-6 py-5 gap-0 items-start justify-start flex-1 min-w-0">
                     <div className="flex flex-row items-center gap-x-10 w-full">
                       <div className="flex flex-col flex-1 min-w-0 gap-x-3">
                         <div className="flex items-center gap-2 mb-1">
@@ -291,9 +279,9 @@ export default function Dashboard() {
                       Exploring the world one trip at a time
                     </div>
                   </Card> */}
-                </div>
+            {/* </div>
               </CardContent>
-            </Card>
+            </Card> */}
             <div className="flex-shrink-0">
               {groupsLoading ? (
                 <>
@@ -317,7 +305,7 @@ export default function Dashboard() {
                 onExplore={handleExplore}
               />
             </div>
-            <div className="flex-shrink-0">
+            {/* <div className="flex-shrink-0">
               <InviteCard
                 key={1}
                 name={"Jenna Smith"}
@@ -338,7 +326,7 @@ export default function Dashboard() {
                   />
                 ))}
               </div>
-            </div>
+            </div> */}
             {/* <div className="shadow-none border-none flex-shrink-0 gap-2 flex flex-col">
               <div className="">
                 <DashboardCard
@@ -355,16 +343,16 @@ export default function Dashboard() {
             </div> */}
           </div>
           <div className="flex flex-row gap-3">
-            <div className="flex-shrink-0 bg-card shadow-sm rounded-xl p-4">
-              <div className="mb-3">
-                <h2 className="text-foreground font-semibold text-sm truncate">
+            <div className="flex-shrink-0 w-1/2 bg-card border border-border rounded-xl h-[420px]">
+              <div className="mb-3 p-4 border-b border-border">
+                <h2 className="text-foreground font-semibold text-xs truncate">
                   Travel Groups
                 </h2>
                 <p className="mt-0.5 text-muted-foreground text-xs">
                   Manage your collaborative travel experiences
                 </p>
               </div>
-              {groupsLoading ? (
+              {/* {groupsLoading ? (
                 <div className="grid grid-cols-2 grid-rows-2 gap-3 mt-6">
                   {Array.from({ length: 4 }).map((_, index) => (
                     <Skeleton
@@ -385,9 +373,14 @@ export default function Dashboard() {
                     />
                   ))}
                 </div>
-              )}
+              )} */}
+              <div className="px-4">
+                <GroupList title="My Groups" />
+              </div>
             </div>
-            <div className="flex-shrink-0 bg-card shadow-sm rounded-xl p-4">
+            <Comp542 />
+
+            {/* <div className="flex-shrink-0 bg-card border border-border rounded-xl p-4">
               <div className="mb-3">
                 <h2 className="text-foreground font-semibold text-sm truncate">
                   Past Trips
@@ -418,14 +411,13 @@ export default function Dashboard() {
                   ))}
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
-          <div className="flex flex-row gap-3">
+          {/* <div className="flex flex-row gap-3">
             <div className="h-full">
               <TodoChecklist />
             </div>
-            <Comp542 />
-          </div>
+          </div> */}
         </>
       )}
     </div>

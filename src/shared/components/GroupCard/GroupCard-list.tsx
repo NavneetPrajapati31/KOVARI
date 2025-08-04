@@ -1,19 +1,18 @@
-import { GroupCard } from "./GroupCard"
-import { useUserGroups } from "@/shared/hooks/useUserGroups"
+import { GroupCard } from "./GroupCard";
+import { useUserGroups } from "@/shared/hooks/useUserGroups";
 
 interface GroupListProps {
-  title?: string
+  title?: string;
 }
 
 export function GroupList({ title = "Groups" }: GroupListProps) {
   const { groups, loading } = useUserGroups();
 
   return (
-    <div className="w-full max-w-md mx-auto p-4 bg-white rounded-xl shadow-2xl h-[400px] overflow-y-auto hide-scrollbar">
-      <h2 className="text-2xl font-bold text-black mb-4 sm:text-3xl">{title}</h2>
+    <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto hide-scrollbar h-[330px]">
       <div className="space-y-3">
         {loading ? (
-          <div className="text-white">Loading...</div>
+          <div className="text-foreground">Loading...</div>
         ) : (
           groups.map((g) =>
             g.group ? (
@@ -33,5 +32,5 @@ export function GroupList({ title = "Groups" }: GroupListProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
