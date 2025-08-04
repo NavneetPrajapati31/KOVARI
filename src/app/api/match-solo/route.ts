@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
                 if (!matchSession.destination || !matchSession.static_attributes?.location) {
                     return null;
                 }
-                const { score, breakdown } = calculateFinalCompatibilityScore(searchingUserSession, matchSession);
+                const { score, breakdown, budgetDifference } = calculateFinalCompatibilityScore(searchingUserSession, matchSession);
                 if (breakdown.destinationScore === 0 || breakdown.dateOverlapScore === 0) {
                     return null;
                 }
@@ -79,7 +79,8 @@ export async function GET(request: NextRequest) {
                     user: { userId: matchSession.userId, ...matchSession.static_attributes },
                     score,
                     destination: matchSession.destination.name,
-                    breakdown
+                    breakdown,
+                    budgetDifference
                 };
             })
             .filter(match => match !== null);
