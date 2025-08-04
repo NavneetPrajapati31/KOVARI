@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
-import { matchGroupsWeighted, Traveler, Group } from "@/matching/matchGroup";
+import { matchGroupsWeighted, Traveler, Group } from "";
 
 export async function POST(req: NextRequest) {
   try {
