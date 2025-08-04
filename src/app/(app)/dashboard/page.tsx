@@ -41,6 +41,7 @@ import { TravelDaysCard } from "@/features/dashboard/TravelDaysCard";
 import type { UserProfile as UserProfileType } from "@/features/profile/components/user-profile";
 import { InviteCard } from "@/features/dashboard/InviteCard";
 import { UserConnect } from "@/features/dashboard/UserConnect";
+import { ConnectionRequestsCard } from "@/features/dashboard/ConnectionRequestsCard";
 import Comp542 from "@/shared/components/comp-542";
 
 interface ItineraryEvent {
@@ -343,7 +344,7 @@ export default function Dashboard() {
             </div> */}
           </div>
           <div className="flex flex-row gap-3">
-            <div className="flex-shrink-0 w-1/2 bg-card border border-border rounded-xl h-[420px]">
+            <div className="flex-shrink-0 w-1/4 bg-card border border-border rounded-xl h-[420px]">
               <div className="mb-3 p-4 border-b border-border">
                 <h2 className="text-foreground font-semibold text-xs truncate">
                   Travel Groups
@@ -378,6 +379,7 @@ export default function Dashboard() {
                 <GroupList title="My Groups" />
               </div>
             </div>
+            <ConnectionRequestsCard />
             <Comp542 />
 
             {/* <div className="flex-shrink-0 bg-card border border-border rounded-xl p-4">
