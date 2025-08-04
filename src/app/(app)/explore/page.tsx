@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs"; // 👈 Import Clerk user hook
 import { ExploreHeader } from "@/features/explore/components/ExploreHeader";
 import { GroupCard } from "@/features/explore/components/GroupCard";
+import { SoloMatchCard } from "@/features/explore/components/SoloMatchCard";
 import { Spinner } from "@heroui/react";
 
 
@@ -82,7 +83,7 @@ export default function ExplorePage() {
     };
   }, [isPageLoading]);
 
-  // ✅ Search handler that stores enhanced session + fetches groups
+  // ✅ Search handler that handles both solo and group matching based on active tab
   const handleSearch = async (searchData: {
     destination: string;
     budget: number;
@@ -94,11 +95,15 @@ export default function ExplorePage() {
     setMatchedGroups([]);
 
     try {
-      // Step 1: Store enhanced dynamic session (for solo matching)
       const userId = user?.id;
-      if (userId) {
-        // Session creation is now handled by the API with geocoding
+      
+      if (activeTab === 0) {
+        // SOLO TRAVEL MODE - Only search for solo travelers
+        if (!userId) {
+          throw new Error("Please sign in to search for solo travelers");
+        }
 
+        // Step 1: Store enhanced dynamic session (for solo matching)
         await fetch("/api/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -111,33 +116,51 @@ export default function ExplorePage() {
           }),
         });    
 
-        // Step 1.5: Get solo matches using enhanced matching
+        // Step 2: Get solo matches using enhanced matching
         const soloMatchesRes = await fetch(`/api/match-solo?userId=${userId}`);
         if (soloMatchesRes.ok) {
           const soloMatches = await soloMatchesRes.json();
           console.log("Solo matches found:", soloMatches.length);
-          // TODO: Display solo matches in the UI
+          
+          // Convert solo matches to group-like format for display
+          const soloMatchesAsGroups = soloMatches.map((match: any, index: number) => ({
+            id: `solo-${index}`,
+            name: `${match.user.full_name || 'Traveler'} - ${match.destination}`,
+            destination: match.destination,
+            budget: match.user.budget || 'Not specified',
+            start_date: searchData.startDate,
+            end_date: searchData.endDate,
+            compatibility_score: Math.round(match.score * 100),
+            budget_difference: match.budgetDifference,
+            user: match.user,
+            is_solo_match: true // Flag to identify solo matches
+          }));
+          
+          setMatchedGroups(soloMatchesAsGroups);
+          setCurrentGroupIndex(0);
+        } else {
+          throw new Error("Failed to fetch solo matches");
         }
+      } else {
+        // GROUP TRAVEL MODE - Only search for groups
+        const res = await fetch("/api/match-groups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            destination: searchData.destination,
+            budget: searchData.budget,
+            startDate: searchData.startDate,
+            endDate: searchData.endDate,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
+
+        // Store all matched groups and start with the first one (highest score)
+        setMatchedGroups(data.groups || []);
+        setCurrentGroupIndex(0);
       }
-
-      // Step 2: Group match search (Kaju's original logic)
-      const res = await fetch("/api/match-groups", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          destination: searchData.destination,
-          budget: searchData.budget,
-          startDate: searchData.startDate,
-          endDate: searchData.endDate,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
-
-      // Store all matched groups and start with the first one (highest score)
-      setMatchedGroups(data.groups || []);
-      setCurrentGroupIndex(0);
     } catch (err: any) {
       setSearchError(err.message || "Unknown error");
     } finally {
@@ -216,26 +239,41 @@ export default function ExplorePage() {
                  </>
                )}
                
-               {/* Current group */}
-               <GroupCard
-                 key={matchedGroups[currentGroupIndex].id}
-                 group={matchedGroups[currentGroupIndex]}
-                 onAction={async () => {}}
-               />
+               {/* Current match - either group or solo */}
+               {matchedGroups[currentGroupIndex].is_solo_match ? (
+                 <SoloMatchCard
+                   key={matchedGroups[currentGroupIndex].id}
+                   match={matchedGroups[currentGroupIndex]}
+                   onConnect={async (matchId) => {
+                     console.log("Connecting with solo traveler:", matchId);
+                     // TODO: Implement connection logic
+                   }}
+                   onViewProfile={(userId) => {
+                     console.log("Viewing profile:", userId);
+                     // TODO: Navigate to user profile
+                   }}
+                 />
+               ) : (
+                 <GroupCard
+                   key={matchedGroups[currentGroupIndex].id}
+                   group={matchedGroups[currentGroupIndex]}
+                   onAction={async () => {}}
+                 />
+               )}
                
-               {/* Group counter */}
+               {/* Match counter */}
                {matchedGroups.length > 1 && (
                  <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
                    <span>{currentGroupIndex + 1}</span>
                    <span>of</span>
                    <span>{matchedGroups.length}</span>
-                   <span>matches</span>
+                   <span>{activeTab === 0 ? 'travelers' : 'groups'}</span>
                  </div>
                )}
              </div>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-lg">
-              No matching groups found. Try adjusting your search criteria.
+              No matching {activeTab === 0 ? 'travelers' : 'groups'} found. Try adjusting your search criteria.
             </div>
           )}
         </div>

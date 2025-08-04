@@ -1,3 +1,4 @@
+import { Globe } from "lucide-react";
 import React from "react";
 
 interface DashboardCardProps {
@@ -16,17 +17,20 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
   emptyText = "No data available",
 }) => {
   return (
-    <div className="bg-white rounded-xl p-5 shadow-md hover:shadow-lg transition">
-      <h2 className="text-lg font-medium mb-2 text-black">{title}</h2>
+    <div className="bg-card rounded-xl p-3 shadow-sm transition min-w-[200px]">
+      {/* <div className="w-8 h-8 bg-card rounded-lg border-border border flex items-center justify-center mb-2">
+        <Globe className="h-4 w-4 text-foreground" />
+      </div> */}
+      <h2 className="text-xs font-medium mb-0.5 text-foreground">{title}</h2>
 
       {loading ? (
-        <div className="h-6 w-20 bg-black/10 rounded animate-pulse" />
+        <div className="h-6 w-20 bg-muted-foreground rounded animate-pulse" />
       ) : value !== undefined ? (
-        <p className="text-4xl font-bold text-black">{value}</p>
+        <p className="text-sm font-bold text-foreground">{value}</p>
       ) : count !== undefined ? (
-        <p className="text-4xl font-bold text-black">{count}</p>
+        <p className="text-sm font-bold text-foreground">{count}</p>
       ) : (
-        <p className="text-sm text-black/60">{emptyText}</p>
+        <p className="text-sm text-muted-foreground">{emptyText}</p>
       )}
     </div>
   );

@@ -245,7 +245,7 @@ const formatBudgetDifference = (difference: number): string => {
     // Since we're filtering to ±5k range, use simpler formatting
     // FIX: Use backticks (`) for template literals
     if (absDiff >= 1000) {
-        return `${sign}${(absDiff / 1000).toFixed(0)}`;
+        return `${sign}${(absDiff / 1000).toFixed(0)}k`;
     } else {
         return `${sign}${absDiff.toFixed(0)}`;
     }
