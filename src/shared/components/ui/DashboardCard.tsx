@@ -30,7 +30,9 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
         <div className="h-6 w-20 bg-muted-foreground rounded animate-pulse" />
       ) : value !== undefined ? (
         <div className="flex flex-row justify-between">
-          <p className="text-sm font-extrabold text-foreground">{value}</p>
+          <p className="text-sm font-extrabold text-foreground truncate mr-2">
+            {value}
+          </p>
           {title === "Profile Impressions" && (
             <div className="flex flex-row items-center gap-1">
               <TrendingUp className="h-4 w-4 text-primary" />

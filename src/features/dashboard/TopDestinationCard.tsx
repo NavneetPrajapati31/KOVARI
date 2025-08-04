@@ -80,7 +80,7 @@ export function TopDestinationCard({
       {/* Glassmorphism content overlay */}
       <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl">
         <div
-          className="backdrop-blur-md w-full rounded-b-3xl sm:rounded-b-3xl md:rounded-b-xl lg:rounded-b-xl"
+          className="backdrop-blur-md w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl"
           style={{
             maskImage:
               "linear-gradient(to top, black 0%, black 85%, transparent 100%)",

@@ -258,10 +258,10 @@ export default function Dashboard() {
         <SkeletonDemo />
       ) : (
         <>
-          <div className="flex flex-row gap-3 h-full">
-            <div className="flex flex-col w-1/2 gap-3 h-full">
-              <div className="flex flex-row gap-3 h-[160px]">
-                <div className="w-1/3 h-full">
+          <div className="flex flex-col lg:flex-row gap-3 h-full">
+            <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
+              <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
+                <div className="w-full md:w-1/3 h-[180px] md:h-full">
                   {groupsLoading ? (
                     <>
                       <Skeleton className="w-full h-full rounded-xl" />
@@ -279,7 +279,7 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-                <div className="w-1/3 h-full">
+                <div className="w-full md:w-1/3 h-[180px] md:h-full">
                   <div className="h-full">
                     <TopDestinationCard
                       name={name}
@@ -289,7 +289,7 @@ export default function Dashboard() {
                     />
                   </div>
                 </div>
-                <div className="w-1/3 flex flex-col gap-3 h-full">
+                <div className="w-full md:w-1/3 flex flex-col gap-3 h-full">
                   <div className="flex-1">
                     <DashboardCard
                       title="Total Travel Days"
@@ -308,8 +308,8 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-row gap-3 flex-1">
-                <div className="w-1/2 bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
+              <div className="flex flex-col md:flex-row gap-3 flex-1">
+                <div className="w-full lg:w-1/2 bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
                   <div className="mb-3 p-4 border-b border-border flex-shrink-0">
                     <h2 className="text-foreground font-semibold text-xs truncate">
                       Travel Groups
@@ -322,14 +322,14 @@ export default function Dashboard() {
                     <GroupList title="My Groups" />
                   </div>
                 </div>
-                <div className="w-1/2 h-full flex flex-col">
+                <div className="w-full lg:w-1/2 h-full flex flex-col">
                   <div className="flex-1 min-h-0">
                     <ConnectionRequestsCard />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col w-1/2 h-full">
+            <div className="flex flex-col w-full lg:w-1/2 h-full">
               <div className="h-full overflow-hidden">
                 <ItineraryUI />
               </div>
