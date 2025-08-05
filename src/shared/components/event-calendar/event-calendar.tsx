@@ -335,7 +335,7 @@ export function EventCalendar({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu> */}
-            <button
+            {/* <button
               className="flex flex-row items-center gap-1 ml-4 max-[479px]:aspect-square max-[479px]:p-0! !text-xs p-1.5 px-2 rounded-md bg-primary text-primary-foreground"
               onClick={() => {
                 setSelectedEvent(null); // Ensure we're creating a new event
@@ -344,7 +344,7 @@ export function EventCalendar({
             >
               <PlusIcon className="sm:-ms-1" size={14} aria-hidden="true" />
               <span className="max-sm:sr-only !text-xs">New event</span>
-            </button>
+            </button> */}
           </div>
         </div>
 
