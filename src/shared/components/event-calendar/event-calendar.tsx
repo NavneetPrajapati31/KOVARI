@@ -55,7 +55,7 @@ export function EventCalendar({
   onEventUpdate,
   onEventDelete,
   className,
-  initialView = "month",
+  initialView = "agenda",
 }: EventCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>(initialView);
@@ -256,7 +256,7 @@ export function EventCalendar({
 
   return (
     <div
-      className="flex flex-col rounded-lg border has-data-[slot=month-view]:flex-1"
+      className="bg-card flex flex-col rounded-xl border has-data-[slot=month-view]:flex-1 w-full"
       style={
         {
           "--event-height": `${24}px`,
@@ -267,15 +267,11 @@ export function EventCalendar({
     >
       <CalendarDndProvider onEventUpdate={handleEventUpdate}>
         <div
-          className={cn(
-            "flex items-center justify-between p-2 sm:p-4",
-            className
-          )}
+          className={cn("flex items-center justify-between p-3.5", className)}
         >
           <div className="flex items-center gap-1 sm:gap-4">
-            <Button
-              variant="outline"
-              className="max-[479px]:aspect-square max-[479px]:p-0!"
+            <button
+              className="bg-card max-[479px]:aspect-square max-[479px]:p-0! text-foreground !text-xs p-1.5 rounded-md border border-border"
               onClick={handleToday}
             >
               <RiCalendarCheckLine
@@ -283,32 +279,30 @@ export function EventCalendar({
                 size={16}
                 aria-hidden="true"
               />
-              <span className="max-[479px]:sr-only">Today</span>
-            </Button>
+              <span className="max-[479px]:sr-only !text-xs">Today</span>
+            </button>
             <div className="flex items-center sm:gap-2">
               <Button
-                variant="ghost"
                 size="icon"
+                className="bg-card text-foreground"
                 onClick={handlePrevious}
                 aria-label="Previous"
               >
                 <ChevronLeftIcon size={16} aria-hidden="true" />
               </Button>
               <Button
-                variant="ghost"
                 size="icon"
+                className="bg-card text-foreground"
                 onClick={handleNext}
                 aria-label="Next"
               >
                 <ChevronRightIcon size={16} aria-hidden="true" />
               </Button>
             </div>
-            <h2 className="text-sm font-semibold sm:text-lg md:text-xl">
-              {viewTitle}
-            </h2>
+            <h2 className="text-xs font-medium">{viewTitle}</h2>
           </div>
           <div className="flex items-center gap-2">
-            <DropdownMenu>
+            {/* <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-1.5 max-[479px]:h-8">
                   <span>
@@ -340,22 +334,17 @@ export function EventCalendar({
                   Agenda <DropdownMenuShortcut>A</DropdownMenuShortcut>
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              className="max-[479px]:aspect-square max-[479px]:p-0!"
-              size="sm"
+            </DropdownMenu> */}
+            <button
+              className="flex flex-row items-center gap-1 ml-4 max-[479px]:aspect-square max-[479px]:p-0! !text-xs p-1.5 px-2 rounded-md bg-primary text-primary-foreground"
               onClick={() => {
                 setSelectedEvent(null); // Ensure we're creating a new event
                 setIsEventDialogOpen(true);
               }}
             >
-              <PlusIcon
-                className="opacity-60 sm:-ms-1"
-                size={16}
-                aria-hidden="true"
-              />
-              <span className="max-sm:sr-only">New event</span>
-            </Button>
+              <PlusIcon className="sm:-ms-1" size={14} aria-hidden="true" />
+              <span className="max-sm:sr-only !text-xs">New event</span>
+            </button>
           </div>
         </div>
 

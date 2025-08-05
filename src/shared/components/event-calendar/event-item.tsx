@@ -234,7 +234,7 @@ export function EventItem({
       {...dndListeners}
       {...dndAttributes}
     >
-      <div className="text-sm font-medium">{event.title}</div>
+      <div className="text-xs font-medium">{event.title}</div>
       <div className="text-xs opacity-70">
         {event.allDay ? (
           <span>All day</span>

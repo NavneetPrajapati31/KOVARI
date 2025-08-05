@@ -40,9 +40,9 @@ export function AgendaView({
   );
 
   return (
-    <div className="border-border/70 border-t px-4">
+    <div className="bg-card border-border/70 rounded-b-2xl h-screen overflow-y-auto hide-scrollbar border-t px-4">
       {!hasEvents ? (
-        <div className="flex min-h-[70svh] flex-col items-center justify-center py-16 text-center">
+        <div className="flex flex-col items-center justify-center py-16 text-center">
           <RiCalendarEventLine
             size={32}
             className="text-muted-foreground/50 mb-2"
@@ -61,10 +61,10 @@ export function AgendaView({
           return (
             <div
               key={day.toString()}
-              className="border-border/70 relative my-12 border-t"
+              className="border-border/70 relative my-6 border-t"
             >
               <span
-                className="bg-background absolute -top-3 left-0 flex h-6 items-center pe-4 text-[10px] uppercase data-today:font-medium sm:pe-4 sm:text-xs"
+                className="bg-card absolute -top-3 left-0 flex h-6 items-center pe-4 text-[10px] uppercase data-today:font-medium sm:pe-4 sm:text-xs"
                 data-today={isToday(day) || undefined}
               >
                 {format(day, "d MMM, EEEE")}

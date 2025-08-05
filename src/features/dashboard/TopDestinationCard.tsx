@@ -9,6 +9,7 @@ import {
   Loader2,
   ArrowUpRight,
   TrendingUp,
+  ArrowUp,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
@@ -64,7 +65,7 @@ export function TopDestinationCard({
 
   return (
     <Card
-      className={`relative w-[220px] h-[160px] rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-md border-none overflow-hidden flex flex-col bg-card text-card-foreground`}
+      className={`relative w-full h-full rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-none border-none overflow-hidden flex flex-col bg-card text-card-foreground`}
     >
       {/* Background Image - now covers full card */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl">
@@ -79,7 +80,7 @@ export function TopDestinationCard({
       {/* Glassmorphism content overlay */}
       <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl">
         <div
-          className="backdrop-blur-md w-full rounded-b-3xl sm:rounded-b-3xl md:rounded-b-xl lg:rounded-b-xl"
+          className="backdrop-blur-md w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl"
           style={{
             maskImage:
               "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
@@ -88,7 +89,7 @@ export function TopDestinationCard({
           }}
         >
           {/* Content section - keeping your exact structure */}
-          <div className="flex flex-row px-4 py-3">
+          <div className="flex flex-row px-3 py-3">
             {/* Creator avatar and name */}
             <div className="flex flex-col w-full">
               <div className="flex flex-row justify-between items-center">
@@ -97,7 +98,7 @@ export function TopDestinationCard({
                 </span>
               </div>
               <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate">
-                Seoul
+                {name}
               </span>
             </div>
             <div className="flex justify-end items-end flex-shrink-0">
@@ -107,7 +108,7 @@ export function TopDestinationCard({
                 className="bg-transparent !text-[11px] p-1 px-5 text-white border-white rounded-full hover:text-white hover:bg-white/20"
                 onClick={onExplore}
               >
-                <TrendingUp className="w-4 h-4" />
+                <ArrowUp className="w-4 h-4" />
               </Button>
             </div>
           </div>
