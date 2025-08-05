@@ -151,7 +151,7 @@ export function EventItem({
         isFirstDay={isFirstDay}
         isLastDay={isLastDay}
         isDragging={isDragging}
-        onClick={onClick}
+        // onClick={onClick}
         className={cn(
           "mt-[var(--event-gap)] h-[var(--event-height)] items-center text-[10px] sm:text-xs",
           className
@@ -228,13 +228,13 @@ export function EventItem({
         className
       )}
       data-past-event={isPast(new Date(event.end)) || undefined}
-      onClick={onClick}
-      onMouseDown={onMouseDown}
-      onTouchStart={onTouchStart}
+      // onClick={onClick}
+      // onMouseDown={onMouseDown}
+      // onTouchStart={onTouchStart}
       {...dndListeners}
       {...dndAttributes}
     >
-      <div className="text-sm font-medium">{event.title}</div>
+      <div className="text-xs font-medium">{event.title}</div>
       <div className="text-xs opacity-70">
         {event.allDay ? (
           <span>All day</span>
@@ -252,7 +252,7 @@ export function EventItem({
         )}
       </div>
       {event.description && (
-        <div className="my-1 text-xs opacity-90">{event.description}</div>
+        <div className="mt-1 text-xs opacity-90">{event.description}</div>
       )}
     </button>
   );

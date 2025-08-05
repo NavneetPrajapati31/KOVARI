@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
+import * as React from "react";
+import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 
-import { cn } from "@/shared/components/event-calendar/utils"
+import { cn } from "@/shared/components/event-calendar/utils";
 
 function RadioGroup({
   className,
@@ -12,10 +12,10 @@ function RadioGroup({
   return (
     <RadioGroupPrimitive.Root
       data-slot="radio-group"
-      className={cn("grid gap-3", className)}
+      className={cn("gap-3 flex flex-row", className)}
       {...props}
     />
-  )
+  );
 }
 
 function RadioGroupItem({
@@ -31,7 +31,7 @@ function RadioGroupItem({
       )}
       {...props}
     >
-      <RadioGroupPrimitive.Indicator className="flex items-center justify-center text-current">
+      <RadioGroupPrimitive.Indicator className="flex flex-row items-center justify-center text-current">
         <svg
           width="6"
           height="6"
@@ -43,7 +43,7 @@ function RadioGroupItem({
         </svg>
       </RadioGroupPrimitive.Indicator>
     </RadioGroupPrimitive.Item>
-  )
+  );
 }
 
-export { RadioGroup, RadioGroupItem }
+export { RadioGroup, RadioGroupItem };

@@ -1,153 +1,191 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { addDays, setHours, setMinutes, subDays } from "date-fns";
 
 import { EventCalendar } from "@/shared/components/event-calendar/event-calendar";
 import type { CalendarEvent } from "@/shared/components/event-calendar/types";
 
-// Sample events data with hardcoded times
-const sampleEvents: CalendarEvent[] = [
-  {
-    id: "1",
-    title: "Annual Planning",
-    description: "Strategic planning for next year",
-    start: subDays(new Date(), 24), // 24 days before today
-    end: subDays(new Date(), 23), // 23 days before today
-    allDay: true,
-    color: "sky",
-    location: "Main Conference Hall",
-  },
-  {
-    id: "2",
-    title: "Project Deadline",
-    description: "Submit final deliverables",
-    start: setMinutes(setHours(subDays(new Date(), 9), 13), 0), // 1:00 PM, 9 days before
-    end: setMinutes(setHours(subDays(new Date(), 9), 15), 30), // 3:30 PM, 9 days before
-    color: "amber",
-    location: "Office",
-  },
-  {
-    id: "3",
-    title: "Quarterly Budget Review",
-    description: "Strategic planning for next year",
-    start: subDays(new Date(), 13), // 13 days before today
-    end: subDays(new Date(), 13), // 13 days before today
-    allDay: true,
-    color: "orange",
-    location: "Main Conference Hall",
-  },
-  {
-    id: "4",
-    title: "Team Meeting",
-    description: "Weekly team sync",
-    start: setMinutes(setHours(new Date(), 10), 0), // 10:00 AM today
-    end: setMinutes(setHours(new Date(), 11), 0), // 11:00 AM today
-    color: "sky",
-    location: "Conference Room A",
-  },
-  {
-    id: "5",
-    title: "Lunch with Client",
-    description: "Discuss new project requirements",
-    start: setMinutes(setHours(addDays(new Date(), 1), 12), 0), // 12:00 PM, 1 day from now
-    end: setMinutes(setHours(addDays(new Date(), 1), 13), 15), // 1:15 PM, 1 day from now
-    color: "emerald",
-    location: "Downtown Cafe",
-  },
-  {
-    id: "6",
-    title: "Product Launch",
-    description: "New product release",
-    start: addDays(new Date(), 3), // 3 days from now
-    end: addDays(new Date(), 6), // 6 days from now
-    allDay: true,
-    color: "violet",
-  },
-  {
-    id: "7",
-    title: "Sales Conference",
-    description: "Discuss about new clients",
-    start: setMinutes(setHours(addDays(new Date(), 4), 14), 30), // 2:30 PM, 4 days from now
-    end: setMinutes(setHours(addDays(new Date(), 5), 14), 45), // 2:45 PM, 5 days from now
-    color: "rose",
-    location: "Downtown Cafe",
-  },
-  {
-    id: "8",
-    title: "Team Meeting",
-    description: "Weekly team sync",
-    start: setMinutes(setHours(addDays(new Date(), 5), 9), 0), // 9:00 AM, 5 days from now
-    end: setMinutes(setHours(addDays(new Date(), 5), 10), 30), // 10:30 AM, 5 days from now
-    color: "orange",
-    location: "Conference Room A",
-  },
-  {
-    id: "9",
-    title: "Review contracts",
-    description: "Weekly team sync",
-    start: setMinutes(setHours(addDays(new Date(), 5), 14), 0), // 2:00 PM, 5 days from now
-    end: setMinutes(setHours(addDays(new Date(), 5), 15), 30), // 3:30 PM, 5 days from now
-    color: "sky",
-    location: "Conference Room A",
-  },
-  {
-    id: "10",
-    title: "Team Meeting",
-    description: "Weekly team sync",
-    start: setMinutes(setHours(addDays(new Date(), 5), 9), 45), // 9:45 AM, 5 days from now
-    end: setMinutes(setHours(addDays(new Date(), 5), 11), 0), // 11:00 AM, 5 days from now
-    color: "amber",
-    location: "Conference Room A",
-  },
-  {
-    id: "11",
-    title: "Marketing Strategy Session",
-    description: "Quarterly marketing planning",
-    start: setMinutes(setHours(addDays(new Date(), 9), 10), 0), // 10:00 AM, 9 days from now
-    end: setMinutes(setHours(addDays(new Date(), 9), 15), 30), // 3:30 PM, 9 days from now
-    color: "emerald",
-    location: "Marketing Department",
-  },
-  {
-    id: "12",
-    title: "Annual Shareholders Meeting",
-    description: "Presentation of yearly results",
-    start: addDays(new Date(), 17), // 17 days from now
-    end: addDays(new Date(), 17), // 17 days from now
-    allDay: true,
-    color: "sky",
-    location: "Grand Conference Center",
-  },
-  {
-    id: "13",
-    title: "Product Development Workshop",
-    description: "Brainstorming for new features",
-    start: setMinutes(setHours(addDays(new Date(), 26), 9), 0), // 9:00 AM, 26 days from now
-    end: setMinutes(setHours(addDays(new Date(), 27), 17), 0), // 5:00 PM, 27 days from now
-    color: "rose",
-    location: "Innovation Lab",
-  },
+// Type for itinerary item from API
+interface ItineraryItem {
+  id: string;
+  group_id: string;
+  title: string;
+  description?: string;
+  datetime: string;
+  status?: string;
+  location?: string;
+  priority?: string;
+  notes?: string;
+  assigned_to?: string;
+  image_url?: string;
+  external_link?: string;
+  created_at: string;
+  is_archived?: boolean;
+  duration?: string;
+}
+
+// Hook to fetch itinerary events
+const useItineraryEvents = (groupId?: string) => {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!groupId) {
+      setEvents([]);
+      return;
+    }
+
+    const fetchEvents = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/Itinerary?groupId=${groupId}`);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch itinerary: ${response.status}`);
+        }
+
+        const data: ItineraryItem[] = await response.json();
+
+        // Transform itinerary data to CalendarEvent format
+        console.log("Raw itinerary data:", data);
+
+        const transformedEvents: CalendarEvent[] = data
+          .filter((item: ItineraryItem) => {
+            // Filter out items with invalid dates
+            const startDate = new Date(item.datetime);
+            return !isNaN(startDate.getTime());
+          })
+          .map((item: ItineraryItem) => {
+            const startDate = new Date(item.datetime);
+            // Calculate end date based on duration or default to 1 hour
+            let endDate: Date;
+            if (item.duration) {
+              // If duration is in minutes, convert to milliseconds
+              const durationMs = parseInt(item.duration) * 60 * 1000;
+              endDate = new Date(startDate.getTime() + durationMs);
+            } else {
+              // Default to 1 hour if no duration specified
+              endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+            }
+
+            return {
+              id: item.id,
+              title: item.title,
+              description: item.description || "",
+              start: startDate,
+              end: endDate,
+              allDay: false, // Since there's no type field, default to false
+              color: getRandomEventColor(),
+              location: item.location || "",
+            };
+          });
+
+        console.log("Transformed events:", transformedEvents);
+        setEvents(transformedEvents);
+      } catch (err) {
+        console.error("Error fetching itinerary events:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch events");
+        setEvents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [groupId]);
+
+  return { events, loading, error };
+};
+
+// Available colors for events
+const eventColors: CalendarEvent["color"][] = [
+  "sky",
+  "amber",
+  "violet",
+  "rose",
+  "emerald",
+  "orange",
 ];
 
-export default function Comp542() {
-  const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents);
+// Helper function to assign random colors to events
+const getRandomEventColor = (): CalendarEvent["color"] => {
+  const randomIndex = Math.floor(Math.random() * eventColors.length);
+  return eventColors[randomIndex];
+};
+
+interface ItineraryUIProps {
+  groupId?: string;
+}
+
+export default function ItineraryUI({ groupId }: ItineraryUIProps) {
+  const { events, loading, error } = useItineraryEvents(groupId);
 
   const handleEventAdd = (event: CalendarEvent) => {
-    setEvents([...events, event]);
+    // This would need to be implemented to add events to the backend
+    console.log("Add event:", event);
   };
 
   const handleEventUpdate = (updatedEvent: CalendarEvent) => {
-    setEvents(
-      events.map((event) =>
-        event.id === updatedEvent.id ? updatedEvent : event
-      )
-    );
+    // This would need to be implemented to update events in the backend
+    console.log("Update event:", updatedEvent);
   };
 
   const handleEventDelete = (eventId: string) => {
-    setEvents(events.filter((event) => event.id !== eventId));
+    // This would need to be implemented to delete events from the backend
+    console.log("Delete event:", eventId);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Loading itinerary events...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-sm text-red-600 mb-2">Error loading events</p>
+          <p className="text-xs text-gray-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!groupId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-sm text-gray-600">No group selected</p>
+          <p className="text-xs text-gray-500">
+            Select a group to view itinerary events
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (events.length === 0 && !loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-sm text-gray-600">No itinerary events found</p>
+          <p className="text-xs text-gray-500">
+            Create some events in your group's itinerary to see them here
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <EventCalendar
