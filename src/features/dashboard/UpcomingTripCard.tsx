@@ -13,6 +13,7 @@ interface DestinationCardProps {
   country: string;
   startDate?: string;
   endDate?: string;
+  groupId: string;
   onExplore: () => void;
   forMobile?: boolean;
   forTablet?: boolean;
@@ -51,6 +52,7 @@ export function UpcomingTripCard({
   imageUrl,
   startDate,
   endDate,
+  groupId,
   onExplore,
   forMobile = false,
   forTablet = false,
@@ -146,7 +148,7 @@ export function UpcomingTripCard({
                 variant={"outline"}
                 size={"sm"}
                 className="bg-transparent !text-[11px] p-1 px-2 text-white border-white rounded-full hover:text-white hover:bg-white/20"
-                onClick={onExplore}
+                onClick={() => router.push(`/groups/${groupId}/home`)}
               >
                 Upcoming
               </Button>

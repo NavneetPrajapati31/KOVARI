@@ -269,6 +269,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="h-full">
                       <UpcomingTripCard
+                        groupId={selectedGroupId || ""}
                         name={name}
                         country={country}
                         startDate={startDate}
@@ -331,7 +332,7 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-col w-full lg:w-1/2 h-full">
               <div className="h-full overflow-hidden">
-                <ItineraryUI />
+                <ItineraryUI groupId={selectedGroupId} />
               </div>
             </div>
           </div>
