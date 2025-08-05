@@ -193,8 +193,8 @@ export const calculateFinalCompatibilityScore = (userSession: SoloSession, match
     const weights = {
         destination: 0.25,    // Highest priority - where they want to go
         dateOverlap: 0.20,    // Second priority - when they want to go (with 2-day minimum)
-        budget: 0.15,         // Third priority - spending capacity
-        interests: 0.15,      // Fourth priority - common interests
+        budget: 0.20,         // Third priority - spending capacity
+        interests: 0.10,      // Fourth priority - common interests
         age: 0.10,            // Fifth priority - age compatibility
         personality: 0.05,    // Sixth priority - personality match
         locationOrigin: 0.05, // Seventh priority - home location
@@ -242,10 +242,15 @@ const formatBudgetDifference = (difference: number): string => {
     const absDiff = Math.abs(difference);
     const sign = difference > 0 ? "+" : "-";
     
-    // Since we're filtering to ±5k range, use simpler formatting
-    // FIX: Use backticks (`) for template literals
+    // More precise formatting for better user experience
     if (absDiff >= 1000) {
-        return `${sign}${(absDiff / 1000).toFixed(0)}k`;
+        const kValue = absDiff / 1000;
+        // Show decimal for values like 9.5k, but not for whole numbers like 10k
+        if (kValue % 1 === 0) {
+            return `${sign}${kValue.toFixed(0)}k`;
+        } else {
+            return `${sign}${kValue.toFixed(1)}k`;
+        }
     } else {
         return `${sign}${absDiff.toFixed(0)}`;
     }

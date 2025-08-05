@@ -76,7 +76,11 @@ export async function GET(request: NextRequest) {
                     return null;
                 }
                 return {
-                    user: { userId: matchSession.userId, ...matchSession.static_attributes },
+                    user: { 
+                        userId: matchSession.userId, 
+                        budget: matchSession.budget,
+                        ...matchSession.static_attributes 
+                    },
                     score,
                     destination: matchSession.destination.name,
                     breakdown,
