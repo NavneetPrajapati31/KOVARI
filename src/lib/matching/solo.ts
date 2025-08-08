@@ -65,9 +65,9 @@ const calculateDateOverlapScore = (start1: string, end1: string, start2: string,
     // Convert duration from milliseconds to days
     const overlapDays = overlapDuration / (1000 * 60 * 60 * 24);
     
-    // Minimum 2-day overlap requirement
-    if (overlapDays < 2) {
-        return 0; // No compatibility if less than 2 days overlap
+    // FIXED: More flexible date overlap - minimum 1-day overlap instead of 2
+    if (overlapDays < 1) {
+        return 0; // No compatibility if less than 1 day overlap
     }
 
     const searchingUserTripDuration = e1 - s1;
@@ -77,14 +77,39 @@ const calculateDateOverlapScore = (start1: string, end1: string, start2: string,
     const totalDays = searchingUserTripDuration / (1000 * 60 * 60 * 24);
     const overlapRatio = overlapDays / totalDays;
     
-    // Scoring based on overlap ratio with minimum 2-day requirement
+    // Scoring based on overlap ratio with minimum 1-day requirement
     if (overlapRatio >= 0.8) return 1.0; // Almost complete overlap
     if (overlapRatio >= 0.5) return 0.9; // Good overlap
     if (overlapRatio >= 0.3) return 0.7; // Moderate overlap
     if (overlapRatio >= 0.2) return 0.5; // Some overlap
     if (overlapRatio >= 0.1) return 0.3; // Minimal overlap
     
-    return 0.1; // Very minimal overlap but meets 2-day minimum
+    return 0.1; // Very minimal overlap but meets 1-day minimum
+};
+
+// NEW: Check if source and destination are the same
+const isSameSourceDestination = (userSession: SoloSession, matchSession: SoloSession): boolean => {
+    const userSource = userSession.static_attributes?.location;
+    const userDest = userSession.destination;
+    const matchSource = matchSession.static_attributes?.location;
+    const matchDest = matchSession.destination;
+    
+    if (!userSource || !userDest || !matchSource || !matchDest) return false;
+    
+    // FIXED: Check if user's home location matches their destination (traveling to own city)
+    const userHomeToUserDest = getHaversineDistance(
+        userSource.lat, userSource.lon, 
+        userDest.lat, userDest.lon
+    );
+    
+    // FIXED: Check if match's home location matches their destination (traveling to own city)
+    const matchHomeToMatchDest = getHaversineDistance(
+        matchSource.lat, matchSource.lon, 
+        matchDest.lat, matchDest.lon
+    );
+    
+    // If either user is traveling to their own city, it's not a valid match
+    return userHomeToUserDest <= 25 || matchHomeToMatchDest <= 25;
 };
 
 const getPersonalityCompatibility = (p1?: string, p2?: string): number => {
@@ -192,7 +217,7 @@ const calculateLifestyleScore = (attrs1: StaticAttributes, attrs2: StaticAttribu
 export const calculateFinalCompatibilityScore = (userSession: SoloSession, matchSession: SoloSession): { score: number, breakdown: any, budgetDifference: string } => {
     const weights = {
         destination: 0.25,    // Highest priority - where they want to go
-        dateOverlap: 0.20,    // Second priority - when they want to go (with 2-day minimum)
+        dateOverlap: 0.20,    // Second priority - when they want to go (with 1-day minimum)
         budget: 0.20,         // Third priority - spending capacity
         interests: 0.10,      // Fourth priority - common interests
         age: 0.10,            // Fifth priority - age compatibility
@@ -233,6 +258,28 @@ export const calculateFinalCompatibilityScore = (userSession: SoloSession, match
         (scores.lifestyleScore * weights.lifestyle);
 
     return { score: finalScore, breakdown: scores, budgetDifference };
+};
+
+// NEW: Enhanced compatibility check with source/destination validation
+export const isCompatibleMatch = (userSession: SoloSession, matchSession: SoloSession): boolean => {
+    // Check if source and destination are the same (should be avoided)
+    if (isSameSourceDestination(userSession, matchSession)) {
+        return false;
+    }
+    
+    // Check date overlap (minimum 1 day)
+    const dateOverlapScore = calculateDateOverlapScore(
+        userSession.startDate, userSession.endDate, 
+        matchSession.startDate, matchSession.endDate
+    );
+    
+    // Check destination compatibility (should be same or nearby)
+    const destinationScore = calculateDestinationScore(
+        userSession.destination, matchSession.destination
+    );
+    
+    // Both conditions must be met for compatibility
+    return dateOverlapScore > 0 && destinationScore > 0;
 };
 
 // Helper function to format budget difference as "+5k" or "-5k INR"

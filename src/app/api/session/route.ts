@@ -50,123 +50,6 @@ const mockUsers = {
         nationality: 'indian',
         profession: 'teacher'
     },
-    'user_4': {
-        age: 26,
-        gender: 'male',
-        personality: 'extrovert',
-        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
-        smoking: 'yes',
-        drinking: 'yes',
-        religion: 'christian',
-        interests: ['travel', 'music', 'nightlife'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'marketing'
-    },
-    'user_debug': {
-        age: 27,
-        gender: 'male',
-        personality: 'ambivert',
-        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
-        smoking: 'no',
-        drinking: 'socially',
-        religion: 'agnostic',
-        interests: ['travel', 'photography', 'adventure'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'developer'
-    },
-    'user_test1': {
-        age: 25,
-        gender: 'female',
-        personality: 'extrovert',
-        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
-        smoking: 'no',
-        drinking: 'socially',
-        religion: 'hindu',
-        interests: ['travel', 'photography', 'food'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'software_engineer'
-    },
-    'user_test2': {
-        age: 28,
-        gender: 'male',
-        personality: 'ambivert',
-        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
-        smoking: 'no',
-        drinking: 'socially',
-        religion: 'agnostic',
-        interests: ['travel', 'photography', 'adventure'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'designer'
-    },
-    'test_redis_user': {
-        age: 25,
-        gender: 'female',
-        personality: 'extrovert',
-        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
-        smoking: 'no',
-        drinking: 'socially',
-        religion: 'hindu',
-        interests: ['travel', 'photography', 'food'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'software_engineer'
-    },
-    'user_redis_test': {
-        age: 25,
-        gender: 'female',
-        personality: 'extrovert',
-        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
-        smoking: 'no',
-        drinking: 'socially',
-        religion: 'hindu',
-        interests: ['travel', 'photography', 'food'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'software_engineer'
-    },
-    'user_match1': {
-        age: 25,
-        gender: 'female',
-        personality: 'extrovert',
-        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
-        smoking: 'no',
-        drinking: 'socially',
-        religion: 'hindu',
-        interests: ['travel', 'photography', 'food'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'software_engineer'
-    },
-    'user_match2': {
-        age: 28,
-        gender: 'male',
-        personality: 'ambivert',
-        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
-        smoking: 'no',
-        drinking: 'socially',
-        religion: 'agnostic',
-        interests: ['travel', 'photography', 'adventure'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'designer'
-    },
-    'user_match3': {
-        age: 30,
-        gender: 'female',
-        personality: 'introvert',
-        location: { lat: 28.7041, lon: 77.1025 }, // Delhi
-        smoking: 'no',
-        drinking: 'no',
-        religion: 'hindu',
-        interests: ['travel', 'culture', 'history'],
-        language: 'english',
-        nationality: 'indian',
-        profession: 'teacher'
-    },
     'user_basic_test': {
         age: 25,
         gender: 'female',
@@ -189,6 +72,152 @@ const mockUsers = {
         drinking: 'socially',
         religion: 'hindu',
         interests: ['travel', 'photography', 'food'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'software_engineer'
+    },
+    // NEW: Add test users for the fixes
+    'user_test_fix_1': {
+        age: 25,
+        gender: 'male',
+        personality: 'extrovert',
+        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'hindu',
+        interests: ['travel', 'adventure', 'food'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'software_engineer'
+    },
+    'user_test_fix_2': {
+        age: 28,
+        gender: 'female',
+        personality: 'ambivert',
+        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'christian',
+        interests: ['travel', 'culture', 'photography'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'designer'
+    },
+    'user_test_fix_3': {
+        age: 30,
+        gender: 'male',
+        personality: 'introvert',
+        location: { lat: 28.7041, lon: 77.1025 }, // Delhi
+        smoking: 'no',
+        drinking: 'no',
+        religion: 'hindu',
+        interests: ['travel', 'history', 'museums'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'teacher'
+    },
+    'user_test_no_overlap': {
+        age: 27,
+        gender: 'female',
+        personality: 'extrovert',
+        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'hindu',
+        interests: ['travel', 'nightlife', 'shopping'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'marketing'
+    },
+    // NEW: Add real user for testing
+    'user_real_test': {
+        age: 25,
+        gender: 'male',
+        personality: 'extrovert',
+        location: { lat: 28.7041, lon: 77.1025 }, // Delhi - user's home location
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'hindu',
+        interests: ['travel', 'adventure', 'food'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'software_engineer'
+    },
+    'user_test_overlap': {
+        age: 28,
+        gender: 'female',
+        personality: 'ambivert',
+        location: { lat: 19.0760, lon: 72.8777 }, // Mumbai - different home location
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'christian',
+        interests: ['travel', 'culture', 'photography'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'designer'
+    },
+    // NEW: Add August test users
+    'user_august_1': {
+        age: 26,
+        gender: 'male',
+        personality: 'extrovert',
+        location: { lat: 12.9716, lon: 77.5946 }, // Bangalore
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'hindu',
+        interests: ['travel', 'adventure', 'food'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'software_engineer'
+    },
+    'user_august_2': {
+        age: 24,
+        gender: 'female',
+        personality: 'ambivert',
+        location: { lat: 13.0827, lon: 80.2707 }, // Chennai
+        smoking: 'no',
+        drinking: 'no',
+        religion: 'hindu',
+        interests: ['travel', 'culture', 'photography'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'designer'
+    },
+    'user_august_3': {
+        age: 29,
+        gender: 'male',
+        personality: 'introvert',
+        location: { lat: 17.3850, lon: 78.4867 }, // Hyderabad
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'muslim',
+        interests: ['travel', 'history', 'museums'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'teacher'
+    },
+    'user_august_4': {
+        age: 27,
+        gender: 'female',
+        personality: 'extrovert',
+        location: { lat: 15.2993, lon: 74.1240 }, // Goa
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'christian',
+        interests: ['travel', 'beach', 'nightlife'],
+        language: 'english',
+        nationality: 'indian',
+        profession: 'marketing'
+    },
+    'user_real_august': {
+        age: 25,
+        gender: 'male',
+        personality: 'extrovert',
+        location: { lat: 28.7041, lon: 77.1025 }, // Delhi - user's home location
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'hindu',
+        interests: ['travel', 'adventure', 'food'],
         language: 'english',
         nationality: 'indian',
         profession: 'software_engineer'
