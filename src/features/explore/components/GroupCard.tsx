@@ -54,21 +54,27 @@ export function GroupCard({
   const [userStatus, setUserStatus] = useState(group.userStatus);
 
   const formatDateRange = () => {
+    if (!group.dateRange || !group.dateRange.start) return "Dates not available";
+  
     if (group.dateRange.isOngoing) return "Ongoing";
-    const startDate = group.dateRange.start.toLocaleDateString("en-US", {
+  
+    const startDate = new Date(group.dateRange.start).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
+  
     if (!group.dateRange.end) return startDate;
-    const endDate = group.dateRange.end.toLocaleDateString("en-US", {
+  
+    const endDate = new Date(group.dateRange.end).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
+  
     return `${startDate} - ${endDate}`;
   };
-
+  
   const formatMemberCount = () => {
     if (group.memberCount === 0) return "No members yet";
     if (group.memberCount === 1) return "1 member";
@@ -141,7 +147,7 @@ export function GroupCard({
   };
 
   return (
-    <Card className="w-full max-w-[600px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[400px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
       {/* Top image section */}
       <div className="relative w-full h-[160px] overflow-hidden bg-muted">
         <Image
@@ -181,18 +187,23 @@ export function GroupCard({
           <span>{group.destination}</span>
         </div>
         {/* Creator avatar and name */}
-        <div className="flex items-center gap-2">
-          <Avatar
-            src={group.creator.avatar}
-            alt={group.creator.name}
-            className="w-6 h-6"
-            aria-label={`Avatar of ${group.creator.name}`}
-          />
-          <span className="text-muted-foreground font-medium text-xs truncate">
-            Created by {`@${group.creator.username}` || "Unknown Creator"}
-          </span>
+        {group.creator ? (
+    <div className="flex items-center gap-2">
+    <Avatar
+      src={group.creator.avatar || ""}
+      alt={group.creator.name || "Creator"}
+      className="w-6 h-6"
+      aria-label={`Avatar of ${group.creator.username || "Unknown"}`}
+    />
+    <span className="text-muted-foreground font-medium text-xs truncate">
+      Created by {`@${group.creator.username || "unknown"}`}
+    </span>
+    </div>
+    ) : (
+    <div className="text-muted-foreground text-xs">Created by Unknown</div>
+  )}
+
         </div>
-      </div>
       {/* Action button(s) at the bottom */}
       <div className="px-5 pb-5 mt-auto">
         {userStatus === "member" ? (
