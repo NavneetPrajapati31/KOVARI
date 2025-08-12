@@ -19,7 +19,6 @@ interface UserProfile {
   interests: string[];
   smoking: boolean;
   drinking: boolean;
-  profession: string;
   nationality: string;
 }
 
@@ -36,7 +35,6 @@ interface GroupProfile {
   topInterests: string[];
   smokingPolicy: 'Smokers Welcome' | 'Mixed' | 'Non-Smoking';
   drinkingPolicy: 'Drinkers Welcome' | 'Mixed' | 'Non-Drinking';
-  topProfessions: string[];
   dominantNationalities: string[];
 }
 
@@ -126,12 +124,11 @@ const calculateLifestyleScore = (user: UserProfile, group: GroupProfile): number
 };
 
 /**
- * SCORE: Calculates background compatibility (profession & nationality).
+ * SCORE: Calculates background compatibility (nationality only).
  */
 const calculateBackgroundScore = (user: UserProfile, group: GroupProfile): number => {
-    const professionScore = group.topProfessions.includes(user.profession) ? 1.0 : 0.0;
     const nationalityScore = group.dominantNationalities.includes(user.nationality) ? 1.0 : 0.0;
-    return (professionScore + nationalityScore) / 2;
+    return nationalityScore;
 };
 
 

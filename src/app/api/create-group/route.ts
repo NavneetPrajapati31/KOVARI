@@ -10,8 +10,10 @@ const GroupSchema = z.object({
   start_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/),
   end_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/),
   is_public: z.boolean(),
-  description: z.string().max(500).optional(),
-  cover_image: z.string().optional(),
+  description: z.string().max(500).optional().nullable(),
+  cover_image: z.string().optional().nullable(),
+  non_smokers: z.string().optional().nullable(),
+  non_drinkers: z.string().optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -35,6 +37,8 @@ export async function POST(req: Request) {
           formData.get("cover_image") instanceof File
             ? (formData.get("cover_image") as File).name // You may want to upload the file to storage and get a URL here
             : formData.get("cover_image") || undefined,
+        non_smokers: formData.get("non_smokers") || null,
+        non_drinkers: formData.get("non_drinkers") || null,
       };
       parsed = GroupSchema.safeParse(body);
     } else {
@@ -91,6 +95,8 @@ export async function POST(req: Request) {
       creator_id: userRow.id,
       ...parsed.data,
       cover_image: parsed.data.cover_image || null,
+      non_smokers: parsed.data.non_smokers || null,
+      non_drinkers: parsed.data.non_drinkers || null,
     };
 
     console.log("Attempting to insert payload:", payload);
@@ -115,24 +121,97 @@ export async function POST(req: Request) {
       });
     }
 
-    const { error: membershipError } = await supabase
+    // Try to create group membership with multiple fallback approaches
+    const membershipPayload = {
+      group_id: groupData.id,
+      user_id: userRow.id,
+      status: "accepted",
+      joined_at: new Date().toISOString(),
+      role: "admin",
+    };
+
+    console.log("Attempting to insert membership payload:", membershipPayload);
+
+    // First attempt: Standard insertion
+    let { error: membershipError } = await supabase
       .from("group_memberships")
-      .insert({
+      .insert(membershipPayload);
+
+    if (membershipError) {
+      console.error("First attempt failed:", membershipError);
+      
+      // Second attempt: Try without joined_at timestamp
+      const fallbackPayload = {
         group_id: groupData.id,
         user_id: userRow.id,
         status: "accepted",
-        joined_at: new Date().toISOString(),
         role: "admin",
-      });
-
-    if (membershipError) {
-      console.error("Error creating group membership:", membershipError);
-      // Rollback group creation if membership fails
-      await supabase.from("groups").delete().eq("id", groupData.id);
-      return new Response(
-        `Failed to create group membership: ${JSON.stringify(membershipError)}`,
-        { status: 500 }
-      );
+      };
+      
+      console.log("Trying fallback approach without joined_at:", fallbackPayload);
+      
+      const { error: fallbackError } = await supabase
+        .from("group_memberships")
+        .insert(fallbackPayload);
+      
+      if (fallbackError) {
+        console.error("Fallback attempt also failed:", fallbackError);
+        
+        // Third attempt: Try with minimal required fields only
+        const minimalPayload = {
+          group_id: groupData.id,
+          user_id: userRow.id,
+        };
+        
+        console.log("Trying minimal payload:", minimalPayload);
+        
+        const { error: minimalError } = await supabase
+          .from("group_memberships")
+          .insert(minimalPayload);
+        
+        if (minimalError) {
+          console.error("All attempts failed. Rolling back group creation.");
+          
+          // Rollback group creation
+          await supabase.from("groups").delete().eq("id", groupData.id);
+          
+          // Check if this is the specific date_of_birth error
+          if (minimalError.message && minimalError.message.includes('date_of_birth')) {
+            return new Response(
+              JSON.stringify({
+                error: "Database schema issue: Missing date_of_birth column",
+                details: "The database is missing a required column. Please run the following SQL in your Supabase dashboard: ALTER TABLE users ADD COLUMN date_of_birth DATE;",
+                code: "MISSING_DATE_OF_BIRTH_COLUMN",
+                originalError: minimalError.message,
+                fix: "Run this SQL command in Supabase SQL Editor: ALTER TABLE users ADD COLUMN date_of_birth DATE;"
+              }),
+              { 
+                status: 500,
+                headers: { "Content-Type": "application/json" }
+              }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify({
+              error: "Database schema issue prevents group creation",
+              details: "The database has a constraint that references a missing column. Please contact support.",
+              code: "SCHEMA_ERROR",
+              originalError: membershipError.message
+            }),
+            { 
+              status: 500,
+              headers: { "Content-Type": "application/json" }
+            }
+          );
+        } else {
+          console.log("Minimal payload succeeded");
+        }
+      } else {
+        console.log("Fallback approach succeeded");
+      }
+    } else {
+      console.log("Standard membership creation succeeded");
     }
 
     console.log("Group and membership created successfully:", groupData);
@@ -144,4 +223,4 @@ export async function POST(req: Request) {
     console.error("Unexpected error:", error);
     return new Response("Internal server error", { status: 500 });
   }
-}
+}   

@@ -157,8 +157,29 @@ export default function ExplorePage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
 
+        // Transform the API response to match GroupCard's expected format
+        const transformedGroups = (data.groups || []).map((group: any) => ({
+          id: group.id,
+          name: group.name,
+          privacy: "public" as const, // Default to public for matched groups
+          destination: group.destination,
+          dateRange: {
+            start: group.startDate ? new Date(group.startDate) : new Date(),
+            end: group.endDate ? new Date(group.endDate) : undefined,
+            isOngoing: !group.endDate,
+          },
+          memberCount: group.members || 0,
+          userStatus: null as const, // User is not a member yet
+          creator: {
+            name: group.creator?.name || "Unknown",
+            username: group.creator?.username || "unknown",
+            avatar: group.creator?.avatar || undefined,
+          },
+          cover_image: undefined, // No cover image in matching results
+        }));
+
         // Store all matched groups and start with the first one (highest score)
-        setMatchedGroups(data.groups || []);
+        setMatchedGroups(transformedGroups);
         setCurrentGroupIndex(0);
       }
     } catch (err: any) {

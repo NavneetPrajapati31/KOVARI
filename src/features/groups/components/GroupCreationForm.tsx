@@ -77,6 +77,8 @@ const formSchema = z
       .max(500, "Description cannot exceed 500 characters")
       .optional(),
     coverImage: z.union([z.instanceof(File), z.string()]).optional(),
+    nonSmokers: z.string().optional(),
+    nonDrinkers: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -217,6 +219,8 @@ export function GroupCreationForm() {
           formData.append("description", data.description);
         }
         formData.append("cover_image", data.coverImage);
+        formData.append("non_smokers", data.nonSmokers || "");
+        formData.append("non_drinkers", data.nonDrinkers || "");
 
         response = await fetch("/api/create-group", {
           method: "POST",
@@ -232,6 +236,8 @@ export function GroupCreationForm() {
           is_public: data.isPublic,
           description: data.description || undefined,
           cover_image: data.coverImage,
+          non_smokers: data.nonSmokers || null,
+          non_drinkers: data.nonDrinkers || null,
         };
         response = await fetch("/api/create-group", {
           method: "POST",
@@ -244,7 +250,21 @@ export function GroupCreationForm() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create group");
+        
+        // Handle specific database schema errors
+        if (errorData.code === "SCHEMA_ERROR") {
+          setError("Database configuration issue detected. Please contact support. The system is missing a required database column.");
+          toast.error("Database configuration issue. Please contact support.");
+          return;
+        }
+        
+        if (errorData.code === "MISSING_DATE_OF_BIRTH_COLUMN") {
+          setError("Database schema issue: Missing date_of_birth column. Please run this SQL command in your Supabase dashboard: ALTER TABLE users ADD COLUMN date_of_birth DATE;");
+          toast.error("Database schema issue. Please add the missing column.");
+          return;
+        }
+        
+        throw new Error(errorData.error || errorData.message || "Failed to create group");
       }
 
       const responseData = await response.json();
@@ -258,7 +278,18 @@ export function GroupCreationForm() {
       router.push(`/groups/${groupId}/home`);
     } catch (err) {
       console.error("Error creating group:", err);
-      setError(err instanceof Error ? err.message : "Failed to create group");
+      
+      // Handle specific error types
+      if (err instanceof Error) {
+        if (err.message.includes("date_of_birth")) {
+          setError("Database schema issue: Missing date_of_birth column. Please run this SQL command in your Supabase dashboard: ALTER TABLE users ADD COLUMN date_of_birth DATE;");
+          toast.error("Database schema issue. Please add the missing column.");
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("Failed to create group");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -502,6 +533,38 @@ export function GroupCreationForm() {
                   {errors.description.message}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Strictly non-smokers only
+                </Label>
+                <Switch
+                  size="sm"
+                  checked={watchedValues.nonSmokers === 'true'}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setValue("nonSmokers", e.target.checked ? 'true' : 'false');
+                    trigger("nonSmokers");
+                  }}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+
+              <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Strictly non-drinkers only
+                </Label>
+                <Switch
+                  size="sm"
+                  checked={watchedValues.nonDrinkers === 'true'}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setValue("nonDrinkers", e.target.checked ? 'true' : 'false');
+                    trigger("nonDrinkers");
+                  }}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
