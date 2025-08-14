@@ -18,7 +18,7 @@ import { DatePicker } from "@heroui/react";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Switch } from "@heroui/switch";
+import { Switch } from "@heroui/react";
 import { ImageUpload } from "@/shared/components/image-upload";
 
 const destinations = [
@@ -77,8 +77,6 @@ const formSchema = z
       .max(500, "Description cannot exceed 500 characters")
       .optional(),
     coverImage: z.union([z.instanceof(File), z.string()]).optional(),
-    nonSmokers: z.string().optional(),
-    nonDrinkers: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -99,7 +97,7 @@ const formSchema = z
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function GroupCreationForm() {
+export function GroupCreationForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -202,10 +200,10 @@ export default function GroupCreationForm() {
   };
 
   const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    setError("");
-
     try {
+      setIsSubmitting(true);
+      setError(null);
+
       let response;
       // If coverImage is a File, use FormData
       if (data.coverImage instanceof File) {
@@ -219,8 +217,6 @@ export default function GroupCreationForm() {
           formData.append("description", data.description);
         }
         formData.append("cover_image", data.coverImage);
-        formData.append("non_smokers", data.nonSmokers || "");
-        formData.append("non_drinkers", data.nonDrinkers || "");
 
         response = await fetch("/api/create-group", {
           method: "POST",
@@ -236,8 +232,6 @@ export default function GroupCreationForm() {
           is_public: data.isPublic,
           description: data.description || undefined,
           cover_image: data.coverImage,
-          non_smokers: data.nonSmokers || null,
-          non_drinkers: data.nonDrinkers || null,
         };
         response = await fetch("/api/create-group", {
           method: "POST",
@@ -250,21 +244,7 @@ export default function GroupCreationForm() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        
-        // Handle specific database schema errors
-        if (errorData.code === "SCHEMA_ERROR") {
-          setError("Database configuration issue detected. Please contact support. The system is missing a required database column.");
-          toast.error("Database configuration issue. Please contact support.");
-          return;
-        }
-        
-        if (errorData.code === "MISSING_DATE_OF_BIRTH_COLUMN") {
-          setError("Database schema issue: Missing date_of_birth column. Please run this SQL command in your Supabase dashboard: ALTER TABLE users ADD COLUMN date_of_birth DATE;");
-          toast.error("Database schema issue. Please add the missing column.");
-          return;
-        }
-        
-        throw new Error(errorData.error || errorData.message || "Failed to create group");
+        throw new Error(errorData.message || "Failed to create group");
       }
 
       const responseData = await response.json();
@@ -278,18 +258,7 @@ export default function GroupCreationForm() {
       router.push(`/groups/${groupId}/home`);
     } catch (err) {
       console.error("Error creating group:", err);
-      
-      // Handle specific error types
-      if (err instanceof Error) {
-        if (err.message.includes("date_of_birth")) {
-          setError("Database schema issue: Missing date_of_birth column. Please run this SQL command in your Supabase dashboard: ALTER TABLE users ADD COLUMN date_of_birth DATE;");
-          toast.error("Database schema issue. Please add the missing column.");
-        } else {
-          setError(err.message);
-        }
-      } else {
-        setError("Failed to create group");
-      }
+      setError(err instanceof Error ? err.message : "Failed to create group");
     } finally {
       setIsSubmitting(false);
     }
@@ -533,38 +502,6 @@ export default function GroupCreationForm() {
                   {errors.description.message}
                 </p>
               )}
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Strictly non-smokers only
-                </Label>
-                <Switch
-                  size="sm"
-                  checked={watchedValues.nonSmokers === 'true'}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setValue("nonSmokers", e.target.checked ? 'true' : 'false');
-                    trigger("nonSmokers");
-                  }}
-                  className="data-[state=checked]:bg-primary"
-                />
-              </div>
-
-              <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Strictly non-drinkers only
-                </Label>
-                <Switch
-                  size="sm"
-                  checked={watchedValues.nonDrinkers === 'true'}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setValue("nonDrinkers", e.target.checked ? 'true' : 'false');
-                    trigger("nonDrinkers");
-                  }}
-                  className="data-[state=checked]:bg-primary"
-                />
-              </div>
             </div>
 
             <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
