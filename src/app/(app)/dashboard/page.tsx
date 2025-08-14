@@ -332,7 +332,7 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-col w-full lg:w-1/2 h-full">
               <div className="h-full overflow-hidden">
-                <ItineraryUI groupId={selectedGroupId} />
+                <ItineraryUI />
               </div>
             </div>
           </div>
