@@ -4,7 +4,7 @@
 // Location: /app/api/match-solo/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { calculateFinalCompatibilityScore } from '../../../lib/matching/solo';
+import { calculateFinalCompatibilityScore, isCompatibleMatch } from '../../../lib/matching/solo';
 import { SoloSession } from '../../../types';
 // FIX: Add missing import for redis client
 import redis from '../../../lib/redis';
@@ -64,19 +64,32 @@ export async function GET(request: NextRequest) {
 
         const allSessions: SoloSession[] = validSessionsJSON.map((s: string) => JSON.parse(s));
 
-        // 3. Score all sessions and perform filtering
+        // 3. Score all sessions and perform filtering with enhanced compatibility check
         console.log(`🔍 Calculating compatibility scores...`);
         const scoredMatches = allSessions
             .map(matchSession => {
                 if (!matchSession.destination || !matchSession.static_attributes?.location) {
                     return null;
                 }
-                const { score, breakdown, budgetDifference } = calculateFinalCompatibilityScore(searchingUserSession, matchSession);
-                if (breakdown.destinationScore === 0 || breakdown.dateOverlapScore === 0) {
+                
+                // NEW: Use enhanced compatibility check
+                if (!isCompatibleMatch(searchingUserSession, matchSession)) {
                     return null;
                 }
+                
+                const { score, breakdown, budgetDifference } = calculateFinalCompatibilityScore(searchingUserSession, matchSession);
+                
+                // Only include matches with reasonable scores (above 0.1)
+                if (score < 0.1) {
+                    return null;
+                }
+                
                 return {
-                    user: { userId: matchSession.userId, ...matchSession.static_attributes },
+                    user: { 
+                        userId: matchSession.userId, 
+                        budget: matchSession.budget,
+                        ...matchSession.static_attributes 
+                    },
                     score,
                     destination: matchSession.destination.name,
                     breakdown,
