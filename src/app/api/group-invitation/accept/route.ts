@@ -7,11 +7,17 @@ export async function POST(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return new Response("Unauthorized", { status: 401 });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { 
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     const { token } = await req.json();
     if (!token) {
-      return new Response("Missing token", { status: 400 });
+      return new Response(JSON.stringify({ error: "Missing token" }), { 
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -40,11 +46,17 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (inviteError) {
       console.error("Error fetching invite:", inviteError);
-      return new Response("Database error", { status: 500 });
+      return new Response(JSON.stringify({ error: "Database error" }), { 
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     if (!invite || invite.status !== "pending") {
       console.error("Invalid or expired invitation", { invite });
-      return new Response("Invalid or expired invitation", { status: 400 });
+      return new Response(JSON.stringify({ error: "Invalid or expired invitation" }), { 
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     // Get user UUID from Clerk userId
     const { data: userRow, error: userError } = await supabase
@@ -54,7 +66,10 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (userError || !userRow) {
       console.error("User not found", { userError, userRow });
-      return new Response("User not found", { status: 404 });
+      return new Response(JSON.stringify({ error: "User not found" }), { 
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // Check if group is full (10 members limit)
@@ -66,12 +81,16 @@ export async function POST(req: Request) {
 
     if (countError) {
       console.error("Error checking member count:", countError);
-      return new Response("Failed to check member count", { status: 500 });
+      return new Response(JSON.stringify({ error: "Failed to check member count" }), { 
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     if (memberCount && memberCount.length >= 10) {
-      return new Response("Group is full (maximum 10 members)", {
+      return new Response(JSON.stringify({ error: "Group is full (maximum 10 members)" }), {
         status: 400,
+        headers: { "Content-Type": "application/json" }
       });
     }
 
@@ -93,7 +112,10 @@ export async function POST(req: Request) {
         });
       if (insertError) {
         console.error("Error adding user to group:", insertError);
-        return new Response("Failed to join group", { status: 500 });
+        return new Response(JSON.stringify({ error: "Failed to join group" }), { 
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        });
       }
     }
     // Mark invitation as accepted
@@ -103,7 +125,10 @@ export async function POST(req: Request) {
       .eq("token", token);
     if (updateError) {
       console.error("Error updating invitation status:", updateError);
-      return new Response("Failed to update invitation", { status: 500 });
+      return new Response(JSON.stringify({ error: "Failed to update invitation" }), { 
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
@@ -111,9 +136,11 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("[ACCEPT_INVITE_POST]", error);
-    return new Response(
-      error instanceof Error ? error.message : String(error),
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : String(error) 
+    }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }

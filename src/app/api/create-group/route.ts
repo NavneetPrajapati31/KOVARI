@@ -19,7 +19,10 @@ const GroupSchema = z.object({
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
-    if (!userId) return new Response("Unauthorized", { status: 401 });
+    if (!userId) return new Response(JSON.stringify({ error: "Unauthorized" }), { 
+      status: 401,
+      headers: { "Content-Type": "application/json" }
+    });
 
     let body: any;
     let parsed;
@@ -48,8 +51,12 @@ export async function POST(req: Request) {
 
     if (!parsed.success) {
       console.error("Validation error:", parsed.error);
-      return new Response(JSON.stringify(parsed.error.flatten()), {
+      return new Response(JSON.stringify({ 
+        error: "Validation failed",
+        details: parsed.error.flatten()
+      }), {
         status: 400,
+        headers: { "Content-Type": "application/json" }
       });
     }
 
@@ -81,14 +88,28 @@ export async function POST(req: Request) {
 
     if (userError) {
       console.error("User fetch error:", userError);
-      return new Response("Database error while fetching user", {
+      console.error("Clerk user ID:", userId);
+      return new Response(JSON.stringify({ 
+        error: "Database error while fetching user",
+        details: userError.message,
+        clerkUserId: userId
+      }), {
         status: 500,
+        headers: { "Content-Type": "application/json" }
       });
     }
 
     if (!userRow) {
       console.error("User not found for clerk_user_id:", userId);
-      return new Response("User not found", { status: 404 });
+      console.error("This usually means the user hasn't been synced to Supabase yet");
+      return new Response(JSON.stringify({ 
+        error: "User not found in database",
+        details: "User account not synchronized. Please try refreshing the page or contact support.",
+        clerkUserId: userId
+      }), { 
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     const payload = {
@@ -109,15 +130,19 @@ export async function POST(req: Request) {
 
     if (insertError) {
       console.error("Raw insert error:", insertError);
-      return new Response(
-        `Failed to create group: ${JSON.stringify(insertError)}`,
-        { status: 500 }
-      );
+      return new Response(JSON.stringify({
+        error: "Failed to create group",
+        details: insertError
+      }), { 
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     if (!groupData) {
-      return new Response("Failed to create group, no data returned.", {
+      return new Response(JSON.stringify({ error: "Failed to create group, no data returned" }), {
         status: 500,
+        headers: { "Content-Type": "application/json" }
       });
     }
 
@@ -221,6 +246,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Unexpected error:", error);
-    return new Response("Internal server error", { status: 500 });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }   

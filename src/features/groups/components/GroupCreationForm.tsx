@@ -99,7 +99,7 @@ const formSchema = z
 
 type FormData = z.infer<typeof formSchema>;
 
-export function GroupCreationForm() {
+export default function GroupCreationForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -202,10 +202,10 @@ export function GroupCreationForm() {
   };
 
   const onSubmit = async (data: FormData) => {
-    try {
-      setIsSubmitting(true);
-      setError(null);
+    setIsSubmitting(true);
+    setError("");
 
+    try {
       let response;
       // If coverImage is a File, use FormData
       if (data.coverImage instanceof File) {
