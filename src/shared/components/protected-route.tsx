@@ -1,10 +1,8 @@
 "use client";
 
-import type React from "react";
-
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { Spinner } from "@heroui/react";
 import { useSyncUserToSupabase } from "@/lib/syncUserToSupabase";
@@ -18,6 +16,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
   const { syncUser } = useSyncUserToSupabase();
   const [isSyncing, setIsSyncing] = useState(false);
+  const hasSyncedRef = useRef(false);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -26,20 +25,20 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      const syncUserAccount = async () => {
-        setIsSyncing(true);
-        try {
-          await syncUser();
-        } catch (error) {
-          console.error("Failed to sync user:", error);
-        } finally {
-          setIsSyncing(false);
-        }
-      };
-      
-      syncUserAccount();
-    }
+    if (!isLoaded || !isSignedIn) return;
+    if (hasSyncedRef.current) return;
+    hasSyncedRef.current = true;
+    const run = async () => {
+      setIsSyncing(true);
+      try {
+        await syncUser();
+      } catch (error) {
+        console.error("Failed to sync user:", error);
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+    run();
   }, [isLoaded, isSignedIn, syncUser]);
 
   if (!isLoaded || isSyncing) {

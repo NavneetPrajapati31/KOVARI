@@ -35,7 +35,7 @@ export default function ExplorePage() {
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  
+
   // NEW: Track last search data to prevent unnecessary re-searches
   const [lastSearchData, setLastSearchData] = useState<SearchData | null>(null);
 
@@ -95,11 +95,12 @@ export default function ExplorePage() {
   // NEW: Helper function to check if search data has changed
   const hasSearchDataChanged = (newSearchData: SearchData): boolean => {
     if (!lastSearchData) return true;
-    
+
     return (
       newSearchData.destination !== lastSearchData.destination ||
       newSearchData.budget !== lastSearchData.budget ||
-      newSearchData.startDate.getTime() !== lastSearchData.startDate.getTime() ||
+      newSearchData.startDate.getTime() !==
+        lastSearchData.startDate.getTime() ||
       newSearchData.endDate.getTime() !== lastSearchData.endDate.getTime()
     );
   };
@@ -119,7 +120,7 @@ export default function ExplorePage() {
 
     try {
       const userId = user?.id;
-      
+
       if (activeTab === 0) {
         // SOLO TRAVEL MODE - Only search for solo travelers
         if (!userId) {
@@ -134,8 +135,8 @@ export default function ExplorePage() {
             userId,
             destinationName: searchData.destination,
             budget: searchData.budget,
-            startDate: searchData.startDate.toISOString().split('T')[0],
-            endDate: searchData.endDate.toISOString().split('T')[0]
+            startDate: searchData.startDate.toISOString().split("T")[0],
+            endDate: searchData.endDate.toISOString().split("T")[0],
           }),
         });
 
@@ -148,24 +149,26 @@ export default function ExplorePage() {
         if (soloMatchesRes.ok) {
           const soloMatches = await soloMatchesRes.json();
           console.log("Solo matches found:", soloMatches.length);
-          
+
           // Convert solo matches to group-like format for display
-          const soloMatchesAsGroups = soloMatches.map((match: any, index: number) => ({
-            id: `solo-${index}`,
-            name: `${match.user.name || match.user.full_name || 'Traveler'} - ${match.destination}`,
-            destination: match.destination,
-            budget: match.user.budget || 'Not specified',
-            start_date: searchData.startDate,
-            end_date: searchData.endDate,
-            compatibility_score: Math.round(match.score * 100),
-            budget_difference: match.budgetDifference,
-            user: match.user,
-            is_solo_match: true // Flag to identify solo matches
-          }));
-          
+          const soloMatchesAsGroups = soloMatches.map(
+            (match: any, index: number) => ({
+              id: `solo-${index}`,
+              name: `${match.user.name || match.user.full_name || "Traveler"} - ${match.destination}`,
+              destination: match.destination,
+              budget: match.user.budget || "Not specified",
+              start_date: searchData.startDate,
+              end_date: searchData.endDate,
+              compatibility_score: Math.round(match.score * 100),
+              budget_difference: match.budgetDifference,
+              user: match.user,
+              is_solo_match: true, // Flag to identify solo matches
+            })
+          );
+
           setMatchedGroups(soloMatchesAsGroups);
           setCurrentGroupIndex(0);
-          
+
           // NEW: Store the search data
           setLastSearchData(searchData);
         } else {
@@ -200,7 +203,7 @@ export default function ExplorePage() {
             isOngoing: !group.endDate,
           },
           memberCount: group.members || 0,
-          userStatus: null as const, // User is not a member yet
+          userStatus: null, // User is not a member yet
           creator: {
             name: group.creator?.name || "Unknown",
             username: group.creator?.username || "unknown",
@@ -212,7 +215,7 @@ export default function ExplorePage() {
         // Store all matched groups and start with the first one (highest score)
         setMatchedGroups(transformedGroups);
         setCurrentGroupIndex(0);
-        
+
         // NEW: Store the search data
         setLastSearchData(searchData);
       }
@@ -300,7 +303,7 @@ export default function ExplorePage() {
                 </button>
               </>
             )}
-            
+
             {/* Current match - either group or solo */}
             {activeTab === 0 ? (
               // Solo Travelers
@@ -327,47 +330,62 @@ export default function ExplorePage() {
                 }}
               />
             )}
-            
+
             {/* Match counter */}
             {matchedGroups.length > 1 && (
               <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
                 <span>{currentGroupIndex + 1}</span>
                 <span>of</span>
                 <span>{matchedGroups.length}</span>
-                <span>{activeTab === 0 ? 'travelers' : 'groups'}</span>
+                <span>{activeTab === 0 ? "travelers" : "groups"}</span>
               </div>
             )}
           </div>
         )}
 
         {/* No Results Message */}
-        {!searchLoading && !searchError && matchedGroups.length === 0 && lastSearchData && (
-          <div className="flex-1 flex flex-col items-center justify-center p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No matches found</h3>
-              <p className="text-gray-600 mb-4">
-                Try adjusting your search criteria or dates to find more travel companions.
-              </p>
-              <div className="text-sm text-gray-500">
-                <p>Destination: {lastSearchData.destination}</p>
-                <p>Budget: ₹{lastSearchData.budget.toLocaleString()}</p>
-                <p>Dates: {lastSearchData.startDate.toLocaleDateString()} - {lastSearchData.endDate.toLocaleDateString()}</p>
+        {!searchLoading &&
+          !searchError &&
+          matchedGroups.length === 0 &&
+          lastSearchData && (
+            <div className="flex-1 flex flex-col items-center justify-center p-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No matches found
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Try adjusting your search criteria or dates to find more
+                  travel companions.
+                </p>
+                <div className="text-sm text-gray-500">
+                  <p>Destination: {lastSearchData.destination}</p>
+                  <p>Budget: ₹{lastSearchData.budget.toLocaleString()}</p>
+                  <p>
+                    Dates: {lastSearchData.startDate.toLocaleDateString()} -{" "}
+                    {lastSearchData.endDate.toLocaleDateString()}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Initial State */}
-        {!searchLoading && !searchError && matchedGroups.length === 0 && !lastSearchData && (
-          <div className="flex-1 flex flex-col items-center justify-center p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Start your search</h3>
-              <p className="text-gray-600">
-                Enter your travel details above to find compatible travel companions.
-              </p>
+        {!searchLoading &&
+          !searchError &&
+          matchedGroups.length === 0 &&
+          !lastSearchData && (
+            <div className="flex-1 flex flex-col items-center justify-center p-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Start your search
+                </h3>
+                <p className="text-gray-600">
+                  Enter your travel details above to find compatible travel
+                  companions.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
     </>
   );
