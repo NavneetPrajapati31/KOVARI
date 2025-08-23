@@ -8,6 +8,43 @@ import { calculateFinalCompatibilityScore, isCompatibleMatch } from '../../../li
 import { SoloSession } from '../../../types';
 // FIX: Add missing import for redis client
 import redis from '../../../lib/redis';
+import { createRouteHandlerSupabaseClient } from '../../../lib/supabase';
+
+// Helper: get interests from travel_preferences by Clerk user id (fallback)
+const getTravelInterestsByClerkId = async (clerkUserId: string): Promise<string[]> => {
+    try {
+        const supabase = createRouteHandlerSupabaseClient();
+        const { data: userRow, error: userErr } = await supabase
+            .from('users')
+            .select('id')
+            .eq('clerk_user_id', clerkUserId)
+            .single();
+        if (userErr || !userRow) {
+            return [];
+        }
+        const { data: prefsRow, error: prefsErr } = await supabase
+            .from('travel_preferences')
+            .select('interests')
+            .eq('user_id', userRow.id)
+            .single();
+        if (prefsErr || !prefsRow) {
+            return [];
+        }
+        return Array.isArray(prefsRow.interests) ? prefsRow.interests as string[] : [];
+    } catch {
+        return [];
+    }
+};
+
+const computeCommonInterests = (a?: string[], b?: string[]): string[] => {
+    const norm = (arr?: string[]) => (arr || []).map(s => String(s).trim().toLowerCase()).filter(Boolean);
+    const aNorm = norm(a);
+    const bNorm = norm(b);
+    if (aNorm.length === 0 || bNorm.length === 0) return [];
+    const bSet = new Set(bNorm);
+    const common = Array.from(new Set(aNorm.filter(x => bSet.has(x))));
+    return common;
+};
 
 export async function GET(request: NextRequest) {
     try {
@@ -66,37 +103,45 @@ export async function GET(request: NextRequest) {
 
         // 3. Score all sessions and perform filtering with enhanced compatibility check
         console.log(`🔍 Calculating compatibility scores...`);
-        const scoredMatches = allSessions
-            .map(matchSession => {
-                if (!matchSession.destination || !matchSession.static_attributes?.location) {
-                    return null;
-                }
-                
-                // NEW: Use enhanced compatibility check
-                if (!isCompatibleMatch(searchingUserSession, matchSession)) {
-                    return null;
-                }
-                
-                const { score, breakdown, budgetDifference } = calculateFinalCompatibilityScore(searchingUserSession, matchSession);
-                
-                // Only include matches with reasonable scores (above 0.1)
-                if (score < 0.1) {
-                    return null;
-                }
-                
-                return {
-                    user: { 
-                        userId: matchSession.userId, 
-                        budget: matchSession.budget,
-                        ...matchSession.static_attributes 
-                    },
-                    score,
-                    destination: matchSession.destination.name,
-                    breakdown,
-                    budgetDifference
-                };
-            })
-            .filter(match => match !== null);
+        const scoredMatches = (await Promise.all(allSessions.map(async (matchSession) => {
+            if (!matchSession.destination || !matchSession.static_attributes?.location) {
+                return null;
+            }
+            // NEW: Use enhanced compatibility check
+            if (!isCompatibleMatch(searchingUserSession, matchSession)) {
+                return null;
+            }
+
+            const { score, breakdown, budgetDifference } = calculateFinalCompatibilityScore(searchingUserSession, matchSession);
+            // Only include matches with reasonable scores (above 0.1)
+            if (score < 0.1) {
+                return null;
+            }
+
+            // Compute common interests (fallback to travel_preferences if not in session)
+            const searchingInterests = searchingUserSession.static_attributes?.interests;
+            const matchInterests = matchSession.static_attributes?.interests;
+            const resolvedSearchingInterests = (searchingInterests && searchingInterests.length > 0)
+                ? searchingInterests
+                : (searchingUserSession.userId ? await getTravelInterestsByClerkId(searchingUserSession.userId) : []);
+            const resolvedMatchInterests = (matchInterests && matchInterests.length > 0)
+                ? matchInterests
+                : (matchSession.userId ? await getTravelInterestsByClerkId(matchSession.userId) : []);
+            const commonInterests = computeCommonInterests(resolvedSearchingInterests, resolvedMatchInterests);
+
+            return {
+                user: {
+                    userId: matchSession.userId,
+                    budget: matchSession.budget,
+                    ...matchSession.static_attributes
+                },
+                score,
+                destination: matchSession.destination.name,
+                breakdown,
+                budgetDifference,
+                commonInterests,
+            };
+        }))).filter(match => match !== null);
 
         // 4. Sort by score and return top 10
         console.log(`✅ Found ${scoredMatches.length} compatible matches`);
