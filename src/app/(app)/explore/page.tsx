@@ -267,11 +267,11 @@ export default function ExplorePage() {
       {activeTab === 0 ? (
         // Solo Travel Mode - Use new SoloExploreUI
         <SoloExploreUI
-          onSearch={handleSearch}
+          onSearchAction={handleSearch}
           matchedGroups={matchedGroups}
           currentGroupIndex={currentGroupIndex}
-          onPreviousGroup={handlePreviousGroup}
-          onNextGroup={handleNextGroup}
+          onPreviousGroupAction={handlePreviousGroup}
+          onNextGroupAction={handleNextGroup}
           searchLoading={searchLoading}
           searchError={searchError}
           lastSearchData={lastSearchData}

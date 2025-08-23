@@ -26,22 +26,22 @@ interface SearchData {
 }
 
 interface SoloExploreUIProps {
-  onSearch: (searchData: SearchData) => void;
+  onSearchAction: (searchData: SearchData) => void;
   matchedGroups: any[];
   currentGroupIndex: number;
-  onPreviousGroup: () => void;
-  onNextGroup: () => void;
+  onPreviousGroupAction: () => void;
+  onNextGroupAction: () => void;
   searchLoading: boolean;
   searchError: string | null;
   lastSearchData: SearchData | null;
 }
 
 export function SoloExploreUI({
-  onSearch,
+  onSearchAction,
   matchedGroups,
   currentGroupIndex,
-  onPreviousGroup,
-  onNextGroup,
+  onPreviousGroupAction,
+  onNextGroupAction,
   searchLoading,
   searchError,
   lastSearchData
@@ -70,7 +70,7 @@ export function SoloExploreUI({
   });
 
   const handleSearch = () => {
-    onSearch(searchData);
+    onSearchAction(searchData);
   };
 
   const handleFilterChange = (key: string, value: any) => {
@@ -552,7 +552,7 @@ export function SoloExploreUI({
           onPass={async (matchId) => {
             console.log("Passing on solo traveler:", matchId);
             // TODO: Implement pass logic - move to next match
-            onNextGroup();
+            onNextGroupAction();
           }}
           onComment={async (matchId, attribute, comment) => {
             console.log("Commenting on", attribute, "for traveler:", matchId, "Comment:", comment);
@@ -566,27 +566,27 @@ export function SoloExploreUI({
       );
     } else {
       return (
-        <GroupMatchCard
-          key={matchedGroups[currentGroupIndex]?.id}
-          group={matchedGroups[currentGroupIndex]}
-          onJoinGroup={async (groupId) => {
-            console.log("Joining group:", groupId);
-            // TODO: Implement join group logic
-          }}
-          onRequestJoin={async (groupId) => {
-            console.log("Requesting to join group:", groupId);
-            // TODO: Implement request join logic
-          }}
-          onPass={async (groupId) => {
-            console.log("Passing on group:", groupId);
-            // TODO: Implement pass logic - move to next group
-            onNextGroup();
-          }}
-          onViewGroup={(groupId) => {
-            console.log("Viewing group:", groupId);
-            // TODO: Navigate to group details
-          }}
-        />
+                      <GroupMatchCard
+                key={matchedGroups[currentGroupIndex]?.id}
+                group={matchedGroups[currentGroupIndex]}
+                onJoinGroupAction={async (groupId) => {
+                  console.log("Joining group:", groupId);
+                  // TODO: Implement join group logic
+                }}
+                onRequestJoinAction={async (groupId) => {
+                  console.log("Requesting to join group:", groupId);
+                  // TODO: Implement request join logic
+                }}
+                onPassAction={async (groupId) => {
+                  console.log("Passing on group:", groupId);
+                  // TODO: Implement pass logic - move to next group
+                  onNextGroupAction();
+                }}
+                onViewGroupAction={(groupId) => {
+                  console.log("Viewing group:", groupId);
+                  // TODO: Navigate to group details
+                }}
+              />
       );
     }
   };
@@ -641,7 +641,7 @@ export function SoloExploreUI({
             {matchedGroups.length > 1 && (
               <>
                 <button
-                  onClick={onPreviousGroup}
+                  onClick={onPreviousGroupAction}
                   disabled={currentGroupIndex === 0}
                   className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/40 backdrop-blur-sm border border-gray-200/50 rounded-full p-3 hover:bg-background/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
                   aria-label="Previous match"
@@ -660,7 +660,7 @@ export function SoloExploreUI({
                   </svg>
                 </button>
                 <button
-                  onClick={onNextGroup}
+                  onClick={onNextGroupAction}
                   disabled={currentGroupIndex === matchedGroups.length - 1}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/40 backdrop-blur-sm border border-gray-200/50 rounded-full p-3 hover:bg-background/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
                   aria-label="Next match"

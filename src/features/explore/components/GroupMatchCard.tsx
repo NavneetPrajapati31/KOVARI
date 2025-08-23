@@ -42,18 +42,18 @@ import {
 
 interface GroupMatchCardProps {
   group: any;
-  onJoinGroup: (groupId: string) => Promise<void>;
-  onRequestJoin: (groupId: string) => Promise<void>;
-  onPass: (groupId: string) => Promise<void>;
-  onViewGroup: (groupId: string) => void;
+  onJoinGroupAction: (groupId: string) => Promise<void>;
+  onRequestJoinAction: (groupId: string) => Promise<void>;
+  onPassAction: (groupId: string) => Promise<void>;
+  onViewGroupAction: (groupId: string) => void;
 }
 
 export function GroupMatchCard({
   group,
-  onJoinGroup,
-  onRequestJoin,
-  onPass,
-  onViewGroup
+  onJoinGroupAction,
+  onRequestJoinAction,
+  onPassAction,
+  onViewGroupAction
 }: GroupMatchCardProps) {
   const [isJoining, setIsJoining] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
@@ -62,7 +62,7 @@ export function GroupMatchCard({
   const handleJoinGroup = async () => {
     setIsJoining(true);
     try {
-      await onJoinGroup(group.id);
+      await onJoinGroupAction(group.id);
     } finally {
       setIsJoining(false);
     }
@@ -71,7 +71,7 @@ export function GroupMatchCard({
   const handleRequestJoin = async () => {
     setIsRequesting(true);
     try {
-      await onRequestJoin(group.id);
+      await onRequestJoinAction(group.id);
     } finally {
       setIsRequesting(false);
     }
@@ -80,14 +80,14 @@ export function GroupMatchCard({
   const handlePass = async () => {
     setIsPassing(true);
     try {
-      await onPass(group.id);
+      await onPassAction(group.id);
     } finally {
       setIsPassing(false);
     }
   };
 
   const handleViewGroup = () => {
-    onViewGroup(group.id);
+    onViewGroupAction(group.id);
   };
 
   const formatDateRange = () => {
