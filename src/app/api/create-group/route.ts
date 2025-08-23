@@ -12,8 +12,8 @@ const GroupSchema = z.object({
   is_public: z.boolean(),
   description: z.string().max(500).optional().nullable(),
   cover_image: z.string().optional().nullable(),
-  non_smokers: z.string().optional().nullable(),
-  non_drinkers: z.string().optional().nullable(),
+  non_smokers: z.boolean().optional().nullable(),
+  non_drinkers: z.boolean().optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -40,8 +40,8 @@ export async function POST(req: Request) {
           formData.get("cover_image") instanceof File
             ? (formData.get("cover_image") as File).name // You may want to upload the file to storage and get a URL here
             : formData.get("cover_image") || undefined,
-        non_smokers: formData.get("non_smokers") || null,
-        non_drinkers: formData.get("non_drinkers") || null,
+        non_smokers: String(formData.get("non_smokers")) === "true",
+        non_drinkers: String(formData.get("non_drinkers")) === "true",
       };
       parsed = GroupSchema.safeParse(body);
     } else {

@@ -72,6 +72,8 @@ const formSchema = z
       required_error: "End date is required",
     }),
     isPublic: z.boolean(),
+    strictlyNonSmoking: z.boolean(),
+    strictlyNonDrinking: z.boolean(),
     description: z
       .string()
       .max(500, "Description cannot exceed 500 characters")
@@ -122,6 +124,8 @@ export function GroupCreationForm() {
     mode: "onChange",
     defaultValues: {
       isPublic: true,
+      strictlyNonSmoking: false,
+      strictlyNonDrinking: false,
       startDate: todayJs,
       endDate: tomorrowJs,
       budget: 10000,
@@ -213,6 +217,8 @@ export function GroupCreationForm() {
         formData.append("start_date", format(data.startDate, "yyyy-MM-dd"));
         formData.append("end_date", format(data.endDate, "yyyy-MM-dd"));
         formData.append("is_public", String(data.isPublic));
+        formData.append("non_smokers", String(data.strictlyNonSmoking));
+        formData.append("non_drinkers", String(data.strictlyNonDrinking));
         if (data.description) {
           formData.append("description", data.description);
         }
@@ -230,6 +236,8 @@ export function GroupCreationForm() {
           start_date: format(data.startDate, "yyyy-MM-dd"),
           end_date: format(data.endDate, "yyyy-MM-dd"),
           is_public: data.isPublic,
+          non_smokers: data.strictlyNonSmoking,
+          non_drinkers: data.strictlyNonDrinking,
           description: data.description || undefined,
           cover_image: data.coverImage,
         };
@@ -514,6 +522,36 @@ export function GroupCreationForm() {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   setValue("isPublic", e.target.checked);
                   trigger("isPublic");
+                }}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+
+            <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Strictly non-smoking group
+              </Label>
+              <Switch
+                size="sm"
+                checked={watchedValues.strictlyNonSmoking}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setValue("strictlyNonSmoking", e.target.checked);
+                  trigger("strictlyNonSmoking");
+                }}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+
+            <div className="flex items-center justify-between bg-transparent rounded-md border-1 border-border p-2.5">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Strictly non-drinking group
+              </Label>
+              <Switch
+                size="sm"
+                checked={watchedValues.strictlyNonDrinking}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setValue("strictlyNonDrinking", e.target.checked);
+                  trigger("strictlyNonDrinking");
                 }}
                 className="data-[state=checked]:bg-primary"
               />
