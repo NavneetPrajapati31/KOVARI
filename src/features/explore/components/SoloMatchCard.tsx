@@ -6,7 +6,11 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar, Card, Badge } from "@heroui/react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { Textarea } from "@/shared/components/ui/textarea";
 import { 
   MapPin, 
   Calendar, 
@@ -22,7 +26,6 @@ import {
   ThumbsDown,
   ThumbsUp,
   MessageSquare,
-  X,
   Sparkles,
   Moon,
   Scale,
@@ -30,7 +33,9 @@ import {
   Ban,
   Beer,
   Wine,
-  Coffee as CoffeeIcon
+  Coffee as CoffeeIcon,
+  Plane,
+  Cigarette
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
@@ -141,11 +146,7 @@ export function SoloMatchCard({
     }
   };
 
-  const handleCloseCommentModal = () => {
-    setShowCommentModal(false);
-    setCommentText('');
-    setSelectedAttribute('');
-  };
+
 
   const formatDateRange = () => {
     const startDate = new Date(match.start_date).toLocaleDateString("en-US", {
@@ -191,10 +192,23 @@ export function SoloMatchCard({
   };
 
   const getSmokingIcon = (smoking?: string) => {
-    switch (smoking?.toLowerCase()) {
-      case 'yes': return <CoffeeIcon className="w-4 h-4" />;
-      case 'no': return <Ban className="w-4 h-4" />;
-      default: return <UserIcon className="w-4 h-4" />;
+    if (!smoking) {
+      return <UserIcon className="w-4 h-4 text-gray-600" />;
+    }
+    
+    const smokingLower = smoking.toLowerCase();
+    
+    switch (smokingLower) {
+      case 'yes':
+      case 'true':
+      case '1':
+        return <Cigarette className="w-4 h-4 text-red-600" />;
+      case 'no':
+      case 'false':
+      case '0':
+        return <Cigarette className="w-4 h-4 text-gray-400" />; // Cigarette icon in gray for non-smokers
+      default:
+        return <UserIcon className="w-4 h-4 text-gray-600" />;
     }
   };
 
@@ -232,58 +246,76 @@ export function SoloMatchCard({
     return (
     <div className="w-full h-full flex flex-col">
       {/* Full-screen card container */}
-      <Card className="w-full h-full flex flex-col p-3 space-y-2 shadow-xl overflow-hidden">
+      <Card className="w-full h-full flex flex-col shadow-xl overflow-hidden">
+        <CardContent className="p-3 space-y-2">
         
 
                                                                                                                                                {/* Header Section - User Info */}
-           <div className="flex items-start justify-between pb-2 border-b border-gray-200">
-             {/* User Basic Info - Left Side with Avatar */}
-             <div className="flex items-start gap-4">
-               <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
-                 {match.user.avatar ? (
-                   <img
-                     src={match.user.avatar}
-                     alt={match.user.full_name || "Traveler"}
-                     className="w-full h-full object-cover"
-                   />
-                 ) : (
-                   <Avatar
-                     name={match.user.full_name || "Traveler"}
-                     className="w-20 h-20 text-xl rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white"
-                   />
-                 )}
+           <div className="flex items-start gap-4 pb-2 border-b border-gray-200">
+             {/* User Avatar - Stays on the left */}
+             <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+               {match.user.avatar ? (
+                 <img
+                   src={match.user.avatar}
+                   alt={match.user.full_name || "Traveler"}
+                   className="w-full h-full object-cover"
+                 />
+               ) : (
+                 <Avatar className="w-20 h-20 text-xl rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                   <AvatarImage src="" alt={match.user.full_name || "Traveler"} />
+                   <AvatarFallback className="text-white font-semibold">
+                     {match.user.full_name ? match.user.full_name.charAt(0).toUpperCase() : "T"}
+                   </AvatarFallback>
+                 </Avatar>
+               )}
+             </div>
+
+             {/* Main Content Area - A single column for all text info */}
+             <div className="flex-1 flex flex-col justify-start space-y-0.5 min-h-0">
+               
+               {/* --- ROW 1: Name and Badge --- */}
+               <div className="flex items-center gap-2 flex-wrap">
+                 <h1 className="text-xl font-bold text-gray-900">
+                   {match.user.full_name || "Traveler"}{match.user.age ? `, ${match.user.age}` : ''}
+                 </h1>
+                 <Badge variant="default" className={`text-xs ${
+                   match.compatibility_score >= 80 ? 'bg-green-100 text-green-800' :
+                   match.compatibility_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                   'bg-blue-100 text-blue-800'
+                 }`}>
+                   {match.compatibility_score}% trip overlap
+                 </Badge>
                </div>
-               <div className="space-y-1">
-                 <div className="flex items-center gap-2 flex-wrap">
-                   <h1 className="text-xl font-bold text-gray-900">
-                     {match.user.full_name || "Traveler"}{match.user.age ? `, ${match.user.age}` : ''}
-                   </h1>
-                   <Badge color={getCompatibilityColor(match.compatibility_score)} variant="flat" className="text-xs">
-                     {match.compatibility_score}% trip overlap
-                   </Badge>
-                 </div>
+
+               {/* --- ROW 2: Gender/Nationality aligned with Destination --- */}
+               <div className="flex items-center justify-between w-full">
+                 {/* Left side of row 2 */}
                  <div className="flex items-center space-x-3 text-sm text-gray-600">
                    {match.user.gender && <span className="capitalize">{match.user.gender}</span>}
                    {match.user.gender && <span>•</span>}
                    <span className="capitalize">{match.user.nationality || 'Indian'}</span>
                  </div>
+                 {/* Right side of row 2 */}
+                 <div className="text-sm font-medium text-gray-800 flex items-center gap-1">
+                   <MapPin className="w-3 h-3" />
+                   {match.destination}
+                 </div>
+               </div>
+
+               {/* --- ROW 3: Personality aligned with Dates --- */}
+               <div className="flex items-center justify-between w-full">
+                  {/* Left side of row 3 */}
                  <div className="flex items-center space-x-2">
                    <span className="text-gray-600">{getPersonalityIcon(match.user.personality)}</span>
                    <span className="text-sm capitalize text-gray-700">{match.user.personality}</span>
                  </div>
+                 {/* Right side of row 3 */}
+                 <div className="text-xs text-gray-600 flex items-center gap-1">
+                   <Calendar className="w-3 h-3" />
+                   {formatDateRange()}
+                 </div>
                </div>
-             </div>
-             
-             {/* Travel Details - Right Side */}
-             <div className="text-right space-y-1">
-               <div className="text-sm font-medium text-gray-800">
-                 <MapPin className="w-3 h-3 inline mr-1" />
-                 {match.destination}
-               </div>
-               <div className="text-xs text-gray-600">
-                 <Calendar className="w-3 h-3 inline mr-1" />
-                 {formatDateRange()}
-               </div>
+
              </div>
            </div>
 
@@ -292,7 +324,9 @@ export function SoloMatchCard({
            {/* Trip Summary */}
            <div className="rounded-xl border border-gray-200 p-3">
              <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-2">
-               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-700">✈️</span>
+               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-700">
+                 <Plane className="w-4 h-4" />
+               </span>
                Trip Summary
              </h2>
              <div className="grid grid-cols-3 gap-3 text-sm">
@@ -352,20 +386,25 @@ export function SoloMatchCard({
              </div>
            </div>
 
-           {/* Lifestyle */}
-           <div>
-             <h3 className="text-base font-semibold text-gray-900 mb-1">Lifestyle</h3>
-             <div className="flex items-center gap-3 text-sm">
-               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-800">
-                 <span className="text-gray-600">{getSmokingIcon(match.user.smoking)}</span>
-                 <span className="capitalize">{match.user.smoking || 'unknown'}</span>
-               </span>
-               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-800">
-                 <span className="text-gray-600">{getDrinkingIcon(match.user.drinking)}</span>
-                 <span className="capitalize">{match.user.drinking || 'unknown'}</span>
-               </span>
-             </div>
-           </div>
+                       {/* Lifestyle */}
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Lifestyle</h3>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-800">
+                  <span className="text-gray-600 flex items-center justify-center w-4 h-4">
+                    {getSmokingIcon(match.user.smoking)}
+                  </span>
+                  <span className="capitalize">{match.user.smoking || 'unknown'}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-800">
+                  <span className="text-gray-600 flex items-center justify-center w-4 h-4">
+                    {getDrinkingIcon(match.user.drinking)}
+                  </span>
+                  <span className="capitalize">{match.user.drinking || 'unknown'}</span>
+                </span>
+              </div>
+              
+            </div>
 
            {/* Shared Interests */}
            <div>
@@ -415,7 +454,7 @@ export function SoloMatchCard({
           </Button>
 
           <Button
-            color="primary"
+            variant="default"
             size="sm"
             onClick={handleConnect}
             disabled={isConnecting}
@@ -424,33 +463,28 @@ export function SoloMatchCard({
             {isConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
           </Button>
         </div>
+        </CardContent>
       </Card>
 
        {/* Comment Modal */}
-       {showCommentModal && (
-         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-             <div className="flex items-center justify-between mb-4">
-               <h3 className="text-lg font-semibold text-gray-900">
-                 Comment on {selectedAttribute.replace('_', ' ')}
-               </h3>
-               <button
-                 onClick={handleCloseCommentModal}
-                 className="text-gray-400 hover:text-gray-600 text-xl"
-               >
-                 <X className="w-5 h-5" />
-               </button>
-             </div>
-             
-             <div className="mb-4">
+       <Dialog open={showCommentModal} onOpenChange={setShowCommentModal}>
+         <DialogContent className="sm:max-w-md">
+           <DialogHeader>
+             <DialogTitle>
+               Comment on {selectedAttribute.replace('_', ' ')}
+             </DialogTitle>
+           </DialogHeader>
+           
+           <div className="space-y-4">
+             <div>
                <label className="block text-sm font-medium text-gray-700 mb-2">
                  Your Comment
                </label>
-               <textarea
+               <Textarea
                  value={commentText}
                  onChange={(e) => setCommentText(e.target.value)}
                  placeholder={`Share your thoughts about ${selectedAttribute.replace('_', ' ')}...`}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                 className="resize-none"
                  rows={4}
                  maxLength={200}
                />
@@ -462,7 +496,11 @@ export function SoloMatchCard({
              <div className="flex space-x-3">
                <Button
                  variant="outline"
-                 onClick={handleCloseCommentModal}
+                 onClick={() => {
+                   setShowCommentModal(false);
+                   setCommentText('');
+                   setSelectedAttribute('');
+                 }}
                  className="flex-1"
                >
                  Cancel
@@ -476,8 +514,8 @@ export function SoloMatchCard({
                </Button>
              </div>
            </div>
-         </div>
-       )}
+         </DialogContent>
+       </Dialog>
      </div>
    );
  }
