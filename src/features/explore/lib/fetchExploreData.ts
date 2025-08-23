@@ -54,6 +54,12 @@ export interface FiltersState {
   ageMax: number;
   gender: string;
   interests: string[];
+  personality: string;
+  smoking: string;
+  drinking: string;
+  budgetRange: string;
+  nationality: string;
+  languages: string[];
 }
 
 /**

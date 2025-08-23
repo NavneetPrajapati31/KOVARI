@@ -221,6 +221,82 @@ const mockUsers = {
         language: 'english',
         nationality: 'indian',
         profession: 'software_engineer'
+    },
+    // Test users for Mumbai solo matching - all traveling TO Mumbai from different cities
+    'user_mumbai_1': {
+        age: 28,
+        gender: 'female',
+        personality: 'ambivert',
+        location: { lat: 28.7041, lon: 77.1025 }, // Delhi - traveling TO Mumbai
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'christian',
+        interests: ['culture', 'photography', 'art'],
+        language: 'english',
+        languages: ['english', 'hindi'],
+        nationality: 'indian',
+        profession: 'ui_ux_designer',
+        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
+    },
+    'user_mumbai_2': {
+        age: 30,
+        gender: 'male',
+        personality: 'introvert',
+        location: { lat: 12.9716, lon: 77.5946 }, // Bangalore - traveling TO Mumbai
+        smoking: 'no',
+        drinking: 'no',
+        religion: 'hindu',
+        interests: ['history', 'culture', 'architecture'],
+        language: 'english',
+        languages: ['english', 'hindi', 'kannada'],
+        nationality: 'indian',
+        profession: 'history_teacher',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
+    },
+    'user_mumbai_3': {
+        age: 26,
+        gender: 'female',
+        personality: 'extrovert',
+        location: { lat: 13.0827, lon: 80.2707 }, // Chennai - traveling TO Mumbai
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'hindu',
+        interests: ['food', 'nightlife', 'shopping'],
+        language: 'english',
+        languages: ['english', 'hindi', 'tamil'],
+        nationality: 'indian',
+        profession: 'marketing_manager',
+        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
+    },
+    'user_mumbai_4': {
+        age: 27,
+        gender: 'male',
+        personality: 'ambivert',
+        location: { lat: 17.3850, lon: 78.4867 }, // Hyderabad - traveling TO Mumbai
+        smoking: 'no',
+        drinking: 'socially',
+        religion: 'agnostic',
+        interests: ['nature', 'photography', 'hiking'],
+        language: 'english',
+        languages: ['english', 'hindi', 'telugu'],
+        nationality: 'indian',
+        profession: 'full_stack_developer',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+    },
+    'user_mumbai_5': {
+        age: 29,
+        gender: 'female',
+        personality: 'introvert',
+        location: { lat: 15.2993, lon: 74.1240 }, // Goa - traveling TO Mumbai
+        smoking: 'no',
+        drinking: 'no',
+        religion: 'christian',
+        interests: ['architecture', 'art', 'design'],
+        language: 'english',
+        languages: ['english', 'hindi', 'konkani'],
+        nationality: 'indian',
+        profession: 'architect',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
     }
 };
 
@@ -259,9 +335,11 @@ export async function POST(request: NextRequest) {
             drinking: (userProfile as any).drinking,
             religion: (userProfile as any).religion,
             interests: (userProfile as any).interests,
-            language: (userProfile as any).language,
+            language: (userProfile as any).language ?? ((userProfile as any).languages?.[0] ?? undefined),
+            languages: (userProfile as any).languages,
             nationality: (userProfile as any).nationality,
-            profession: (userProfile as any).profession,
+            profession: (userProfile as any).profession ?? (userProfile as any).job,
+            avatar: (userProfile as any).avatar ?? (userProfile as any).profile_photo,
         };
 
         const sessionData: SoloSession = {

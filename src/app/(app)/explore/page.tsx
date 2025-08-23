@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs"; // 👈 Import Clerk user hook
 import { ExploreHeader } from "@/features/explore/components/ExploreHeader";
 import { GroupCard } from "@/features/explore/components/GroupCard";
 import { SoloMatchCard } from "@/features/explore/components/SoloMatchCard";
+import { SoloExploreUI } from "@/features/explore/components/SoloExploreUI";
 import { Spinner } from "@heroui/react";
 
 // Define the search data interface
@@ -151,21 +152,25 @@ export default function ExplorePage() {
           console.log("Solo matches found:", soloMatches.length);
 
           // Convert solo matches to group-like format for display
-          const soloMatchesAsGroups = soloMatches.map(
-            (match: any, index: number) => ({
-              id: `solo-${index}`,
-              name: `${match.user.name || match.user.full_name || "Traveler"} - ${match.destination}`,
-              destination: match.destination,
-              budget: match.user.budget || "Not specified",
-              start_date: searchData.startDate,
-              end_date: searchData.endDate,
-              compatibility_score: Math.round(match.score * 100),
-              budget_difference: match.budgetDifference,
-              user: match.user,
-              is_solo_match: true, // Flag to identify solo matches
-            })
-          );
-
+          const soloMatchesAsGroups = soloMatches.map((match: any, index: number) => ({
+            id: `solo-${index}`,
+            name: `${match.user.name || match.user.full_name || 'Traveler'} - ${match.destination}`,
+            destination: match.destination,
+            budget: match.user.budget || 'Not specified',
+            start_date: searchData.startDate,
+            end_date: searchData.endDate,
+            compatibility_score: Math.round(match.score * 100),
+            budget_difference: match.budgetDifference,
+            user: {
+              ...match.user,
+              // Prefer API-provided commonInterests for shared display
+              interests: Array.isArray(match.commonInterests) && match.commonInterests.length > 0
+                ? match.commonInterests
+                : match.user?.interests
+            },
+            is_solo_match: true // Flag to identify solo matches
+          }));
+          
           setMatchedGroups(soloMatchesAsGroups);
           setCurrentGroupIndex(0);
 
@@ -242,85 +247,84 @@ export default function ExplorePage() {
           <Spinner variant="spinner" size="md" color="primary" />
         </div>
       )}
-      <div className="flex flex-col w-full min-h-screen relative">
-        <ExploreHeader
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          onDropdownOpenChange={memoizedOnDropdownOpenChange}
+      {/* Conditional rendering based on active tab */}
+      {activeTab === 0 ? (
+        // Solo Travel Mode - Use new SoloExploreUI
+        <SoloExploreUI
           onSearch={handleSearch}
+          matchedGroups={matchedGroups}
+          currentGroupIndex={currentGroupIndex}
+          onPreviousGroup={handlePreviousGroup}
+          onNextGroup={handleNextGroup}
+          searchLoading={searchLoading}
+          searchError={searchError}
+          lastSearchData={lastSearchData}
         />
+      ) : (
+        // Group Travel Mode - Use existing layout
+        <div className="flex flex-col w-full min-h-screen relative">
+          <ExploreHeader
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            onDropdownOpenChange={memoizedOnDropdownOpenChange}
+            onSearch={handleSearch}
+          />
 
-        {/* Error Display */}
-        {searchError && (
-          <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{searchError}</p>
-          </div>
-        )}
+          {/* Error Display */}
+          {searchError && (
+            <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{searchError}</p>
+            </div>
+          )}
 
-        {/* Results Display */}
-        {matchedGroups.length > 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
-            {/* Navigation arrows */}
-            {matchedGroups.length > 1 && (
-              <>
-                <button
-                  onClick={handlePreviousGroup}
-                  disabled={currentGroupIndex === 0}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-3 hover:bg-background/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                  aria-label="Previous match"
-                >
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+          {/* Results Display */}
+          {matchedGroups.length > 0 && (
+            <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
+              {/* Navigation arrows */}
+              {matchedGroups.length > 1 && (
+                <>
+                  <button
+                    onClick={handlePreviousGroup}
+                    disabled={currentGroupIndex === 0}
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-3 hover:bg-background/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    aria-label="Previous match"
                   >
-                    <path d="m15 18-6-6 6-6" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleNextGroup}
-                  disabled={currentGroupIndex === matchedGroups.length - 1}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-3 hover:bg-background/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                  aria-label="Next match"
-                >
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m15 18-6-6 6-6" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleNextGroup}
+                    disabled={currentGroupIndex === matchedGroups.length - 1}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-3 hover:bg-background/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    aria-label="Next match"
                   >
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </button>
-              </>
-            )}
-
-            {/* Current match - either group or solo */}
-            {activeTab === 0 ? (
-              // Solo Travelers
-              <SoloMatchCard
-                key={matchedGroups[currentGroupIndex].id}
-                match={matchedGroups[currentGroupIndex]}
-                onConnect={async (matchId) => {
-                  console.log("Connecting with solo traveler:", matchId);
-                  // TODO: Implement connection logic
-                }}
-                onViewProfile={(userId) => {
-                  console.log("Viewing profile:", userId);
-                  // TODO: Navigate to user profile
-                }}
-              />
-            ) : (
-              // Groups
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </button>
+                </>
+              )}
+              
+              {/* Groups */}
               <GroupCard
                 key={matchedGroups[currentGroupIndex].id}
                 group={matchedGroups[currentGroupIndex]}
@@ -329,64 +333,49 @@ export default function ExplorePage() {
                   // TODO: Implement group action logic
                 }}
               />
-            )}
+              
+              {/* Match counter */}
+              {matchedGroups.length > 1 && (
+                <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+                  <span>{currentGroupIndex + 1}</span>
+                  <span>of</span>
+                  <span>{matchedGroups.length}</span>
+                  <span>groups</span>
+                </div>
+              )}
+            </div>
+          )}
 
-            {/* Match counter */}
-            {matchedGroups.length > 1 && (
-              <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-                <span>{currentGroupIndex + 1}</span>
-                <span>of</span>
-                <span>{matchedGroups.length}</span>
-                <span>{activeTab === 0 ? "travelers" : "groups"}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* No Results Message */}
-        {!searchLoading &&
-          !searchError &&
-          matchedGroups.length === 0 &&
-          lastSearchData && (
+          {/* No Results Message */}
+          {!searchLoading && !searchError && matchedGroups.length === 0 && lastSearchData && (
             <div className="flex-1 flex flex-col items-center justify-center p-4">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No matches found
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No matches found</h3>
                 <p className="text-gray-600 mb-4">
-                  Try adjusting your search criteria or dates to find more
-                  travel companions.
+                  Try adjusting your search criteria or dates to find more travel companions.
                 </p>
                 <div className="text-sm text-gray-500">
                   <p>Destination: {lastSearchData.destination}</p>
                   <p>Budget: ₹{lastSearchData.budget.toLocaleString()}</p>
-                  <p>
-                    Dates: {lastSearchData.startDate.toLocaleDateString()} -{" "}
-                    {lastSearchData.endDate.toLocaleDateString()}
-                  </p>
+                  <p>Dates: {lastSearchData.startDate.toLocaleDateString()} - {lastSearchData.endDate.toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
           )}
 
-        {/* Initial State */}
-        {!searchLoading &&
-          !searchError &&
-          matchedGroups.length === 0 &&
-          !lastSearchData && (
+          {/* Initial State */}
+          {!searchLoading && !searchError && matchedGroups.length === 0 && !lastSearchData && (
             <div className="flex-1 flex flex-col items-center justify-center p-4">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Start your search
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Start your search</h3>
                 <p className="text-gray-600">
-                  Enter your travel details above to find compatible travel
-                  companions.
+                  Enter your travel details above to find compatible travel companions.
                 </p>
+                </div>
               </div>
-            </div>
-          )}
-      </div>
+            )}
+          </div>
+        )}
     </>
   );
 }
