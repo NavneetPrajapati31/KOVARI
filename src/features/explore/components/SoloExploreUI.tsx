@@ -53,6 +53,8 @@ export function SoloExploreUI({
     travelMode: "solo",
   });
 
+  const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
+
   const [filters, setFilters] = useState({
     ageRange: [18, 65],
     gender: "Any",
@@ -97,6 +99,177 @@ export function SoloExploreUI({
     "Thai", "Vietnamese", "Indonesian", "Malay", "Tagalog", "Other"
   ];
 
+  const DESTINATION_OPTIONS = [
+    // Popular Indian Cities
+    "Mumbai, Maharashtra", "Delhi, India", "Bangalore, Karnataka", "Chennai, Tamil Nadu", "Kolkata, West Bengal",
+    "Hyderabad, Telangana", "Pune, Maharashtra", "Ahmedabad, Gujarat", "Jaipur, Rajasthan", "Lucknow, Uttar Pradesh",
+    
+    // Popular International Cities
+    "Tokyo, Japan", "Bangkok, Thailand", "Singapore", "Seoul, South Korea", "Hong Kong", "Bali, Indonesia",
+    "Paris, France", "London, UK", "Rome, Italy", "Barcelona, Spain", "New York City, USA", "Los Angeles, USA",
+    
+    // Underrated Indian Hill Stations & Offbeat Places
+    "Spiti Valley, Himachal Pradesh", "Saputara, Gujarat", "Matheran, Maharashtra", "Lonavala, Maharashtra", "Khandala, Maharashtra",
+    "Mahabaleshwar, Maharashtra", "Panchgani, Maharashtra", "Bhandardara, Maharashtra", "Igatpuri, Maharashtra", "Amboli, Maharashtra",
+    "Chikhaldara, Maharashtra", "Toranmal, Maharashtra", "Panhala, Maharashtra", "Rajgad, Maharashtra", "Sinhagad, Maharashtra",
+    "Lavasa, Maharashtra", "Tamhini Ghat, Maharashtra", "Karnala, Maharashtra", "Tungareshwar, Maharashtra", "Bhimashankar, Maharashtra",
+    "Malshej Ghat, Maharashtra", "Harishchandragad, Maharashtra", "Ratangad, Maharashtra", "Kalsubai, Maharashtra", "Sandhan Valley, Maharashtra",
+    
+    // Himachal Pradesh Offbeat
+    "Kalpa, Himachal Pradesh", "Chitkul, Himachal Pradesh", "Tabo, Himachal Pradesh", "Dhankar, Himachal Pradesh",
+    "Kaza, Himachal Pradesh", "Keylong, Himachal Pradesh", "Udaipur, Himachal Pradesh", "Tirthan Valley, Himachal Pradesh",
+    "Jibhi, Himachal Pradesh", "Shoja, Himachal Pradesh", "Kullu Valley, Himachal Pradesh", "Manikaran, Himachal Pradesh",
+    "Kasol, Himachal Pradesh", "Malana, Himachal Pradesh", "Tosh, Himachal Pradesh", "Pulga, Himachal Pradesh",
+    "Grahan, Himachal Pradesh", "Kheerganga, Himachal Pradesh", "Pin Parvati Pass, Himachal Pradesh", "Hamta Pass, Himachal Pradesh",
+    
+    // Uttarakhand Offbeat
+    "Chopta, Uttarakhand", "Tungnath, Uttarakhand", "Chandrashila, Uttarakhand", "Deoria Tal, Uttarakhand",
+    "Kedarkantha, Uttarakhand", "Har Ki Dun, Uttarakhand", "Valley of Flowers, Uttarakhand", "Hemkund Sahib, Uttarakhand",
+    "Auli, Uttarakhand", "Munsiyari, Uttarakhand", "Pithoragarh, Uttarakhand", "Binsar, Uttarakhand",
+    "Ranikhet, Uttarakhand", "Almora, Uttarakhand", "Kausani, Uttarakhand", "Bageshwar, Uttarakhand",
+    "Gangotri, Uttarakhand", "Yamunotri, Uttarakhand", "Badrinath, Uttarakhand", "Kedarnath, Uttarakhand",
+    
+    // Rajasthan Offbeat
+    "Bundi, Rajasthan", "Mandawa, Rajasthan", "Bikaner, Rajasthan", "Jaisalmer, Rajasthan", "Jodhpur, Rajasthan",
+    "Udaipur, Rajasthan", "Pushkar, Rajasthan", "Mount Abu, Rajasthan", "Chittorgarh, Rajasthan", "Ranthambore, Rajasthan",
+    "Sawai Madhopur, Rajasthan", "Alwar, Rajasthan", "Bharatpur, Rajasthan", "Kota, Rajasthan", "Ajmer, Rajasthan",
+    "Sikar, Rajasthan", "Jhunjhunu, Rajasthan", "Churu, Rajasthan", "Nagaur, Rajasthan", "Pali, Rajasthan",
+    
+    // Gujarat Offbeat
+    "Girnar, Gujarat", "Palitana, Gujarat", "Dwarka, Gujarat", "Somnath, Gujarat", "Rann of Kutch, Gujarat",
+    "Bhuj, Gujarat", "Mandvi, Gujarat", "Vadodara, Gujarat", "Surat, Gujarat",
+    "Valsad, Gujarat", "Vapi, Gujarat", "Silvassa, Dadra & Nagar Haveli", "Daman, Daman & Diu", "Diu, Daman & Diu",
+    
+    // Karnataka Offbeat
+    "Coorg, Karnataka", "Chikmagalur, Karnataka", "Sakleshpur, Karnataka", "Kodagu, Karnataka", "Mysore, Karnataka",
+    "Hampi, Karnataka", "Badami, Karnataka", "Pattadakal, Karnataka", "Aihole, Karnataka", "Bijapur, Karnataka",
+    "Bidar, Karnataka", "Gulbarga, Karnataka", "Raichur, Karnataka", "Bellary, Karnataka", "Hospet, Karnataka",
+    
+    // Tamil Nadu Offbeat
+    "Ooty, Tamil Nadu", "Kodaikanal, Tamil Nadu", "Yercaud, Tamil Nadu", "Coonoor, Tamil Nadu", "Kotagiri, Tamil Nadu",
+    "Valparai, Tamil Nadu", "Topslip, Tamil Nadu", "Pollachi, Tamil Nadu", "Dindigul, Tamil Nadu", "Madurai, Tamil Nadu",
+    "Thanjavur, Tamil Nadu", "Tiruchirappalli, Tamil Nadu", "Salem, Tamil Nadu", "Erode, Tamil Nadu", "Coimbatore, Tamil Nadu",
+    
+    // Kerala Offbeat
+    "Munnar, Kerala", "Thekkady, Kerala", "Wayanad, Kerala", "Varkala, Kerala", "Kovalam, Kerala",
+    "Alleppey, Kerala", "Kumarakom, Kerala", "Fort Kochi, Kerala", "Bekal, Kerala", "Kannur, Kerala",
+    "Calicut, Kerala", "Palakkad, Kerala", "Thrissur, Kerala", "Kottayam, Kerala", "Pathanamthitta, Kerala",
+    
+    // Goa Offbeat
+    "Anjuna, Goa", "Vagator, Goa", "Chapora, Goa", "Arambol, Goa", "Morjim, Goa",
+    "Ashwem, Goa", "Mandrem, Goa", "Palolem, Goa", "Agonda, Goa", "Cola, Goa",
+    "Galjibag, Goa", "Tilari, Goa", "Keri, Goa", "Terekhol, Goa", "Querim, Goa",
+    
+    // North East India
+    "Gangtok, Sikkim", "Lachung, Sikkim", "Lachen, Sikkim", "Pelling, Sikkim", "Ravangla, Sikkim",
+    "Darjeeling, West Bengal", "Kalimpong, West Bengal", "Kurseong, West Bengal", "Mirik, West Bengal", "Siliguri, West Bengal",
+    "Shillong, Meghalaya", "Cherrapunji, Meghalaya", "Mawsynram, Meghalaya", "Dawki, Meghalaya", "Nongpoh, Meghalaya",
+    "Guwahati, Assam", "Kaziranga, Assam", "Majuli, Assam", "Jorhat, Assam", "Tezpur, Assam",
+    "Imphal, Manipur", "Ukhrul, Manipur", "Senapati, Manipur", "Tamenglong, Manipur", "Churachandpur, Manipur",
+    "Aizawl, Mizoram", "Lunglei, Mizoram", "Champhai, Mizoram", "Serchhip, Mizoram", "Kolasib, Mizoram",
+    "Kohima, Nagaland", "Dimapur, Nagaland", "Mokokchung, Nagaland", "Tuensang, Nagaland", "Wokha, Nagaland",
+    "Agartala, Tripura", "Udaipur, Tripura", "Ambassa, Tripura", "Kailasahar, Tripura", "Dharmanagar, Tripura",
+    "Itanagar, Arunachal Pradesh", "Tawang, Arunachal Pradesh", "Bomdila, Arunachal Pradesh", "Ziro, Arunachal Pradesh", "Pasighat, Arunachal Pradesh",
+    
+    // Central India
+    "Bhopal, Madhya Pradesh", "Indore, Madhya Pradesh", "Gwalior, Madhya Pradesh", "Khajuraho, Madhya Pradesh", "Orchha, Madhya Pradesh",
+    "Mandu, Madhya Pradesh", "Sanchi, Madhya Pradesh", "Ujjain, Madhya Pradesh", "Omkareshwar, Madhya Pradesh", "Maheshwar, Madhya Pradesh",
+    "Chitrakoot, Madhya Pradesh", "Pachmarhi, Madhya Pradesh", "Amarkantak, Madhya Pradesh", "Bandhavgarh, Madhya Pradesh", "Kanha, Madhya Pradesh",
+    "Pench, Madhya Pradesh", "Satpura, Madhya Pradesh", "Panna, Madhya Pradesh", "Madhav, Madhya Pradesh", "Van Vihar, Madhya Pradesh",
+    
+    // International Offbeat Destinations
+    "Luang Prabang, Laos", "Vientiane, Laos", "Vang Vieng, Laos", "Pakse, Laos", "Champasak, Laos",
+    "Siem Reap, Cambodia", "Phnom Penh, Cambodia", "Battambang, Cambodia", "Kampot, Cambodia", "Kep, Cambodia",
+    "Yangon, Myanmar", "Bagan, Myanmar", "Mandalay, Myanmar", "Inle Lake, Myanmar", "Kalaw, Myanmar",
+    "Chiang Rai, Thailand", "Pai, Thailand", "Mae Hong Son, Thailand", "Kanchanaburi, Thailand", "Ayutthaya, Thailand",
+    "Hoi An, Vietnam", "Hue, Vietnam", "Sapa, Vietnam", "Mai Chau, Vietnam", "Ninh Binh, Vietnam",
+    "Yogyakarta, Indonesia", "Bandung, Indonesia", "Malang, Indonesia", "Surabaya, Indonesia", "Medan, Indonesia",
+    "Ipoh, Malaysia", "Malacca, Malaysia", "Langkawi, Malaysia", "Penang, Malaysia", "Kuching, Malaysia",
+    "Baguio, Philippines", "Vigan, Philippines", "Sagada, Philippines", "Banaue, Philippines", "Puerto Princesa, Philippines",
+    "Gyeongju, South Korea", "Busan, South Korea", "Jeju Island, South Korea", "Andong, South Korea", "Sokcho, South Korea",
+    "Takayama, Japan", "Kanazawa, Japan", "Nara, Japan", "Hiroshima, Japan", "Fukuoka, Japan",
+    "Tainan, Taiwan", "Taichung, Taiwan", "Hualien, Taiwan", "Taitung, Taiwan", "Pingtung, Taiwan",
+    
+    // European Offbeat
+    "Porto, Portugal", "Sintra, Portugal", "Coimbra, Portugal", "Evora, Portugal", "Faro, Portugal",
+    "Seville, Spain", "Granada, Spain", "Valencia, Spain", "Bilbao, Spain", "Santiago de Compostela, Spain",
+    "Lyon, France", "Marseille, France", "Nice, France", "Strasbourg, France", "Bordeaux, France",
+    "Florence, Italy", "Venice, Italy", "Milan, Italy", "Naples, Italy", "Palermo, Italy",
+    "Salzburg, Austria", "Innsbruck, Austria", "Graz, Austria", "Linz, Austria", "Klagenfurt, Austria",
+    "Munich, Germany", "Hamburg, Germany", "Cologne, Germany", "Dresden, Germany", "Leipzig, Germany",
+    "Edinburgh, UK", "Manchester, UK", "Liverpool, UK", "Birmingham, UK", "Newcastle, UK",
+    "Dublin, Ireland", "Cork, Ireland", "Galway, Ireland", "Limerick, Ireland", "Waterford, Ireland",
+    "Reykjavik, Iceland", "Akureyri, Iceland", "Husavik, Iceland", "Egilsstadir, Iceland", "Hofn, Iceland",
+    "Oslo, Norway", "Bergen, Norway", "Trondheim, Norway", "Tromso, Norway", "Stavanger, Norway",
+    "Stockholm, Sweden", "Gothenburg, Sweden", "Malmo, Sweden", "Uppsala, Sweden", "Vasteras, Sweden",
+    "Helsinki, Finland", "Tampere, Finland", "Turku, Finland", "Oulu, Finland", "Rovaniemi, Finland",
+    "Copenhagen, Denmark", "Aarhus, Denmark", "Odense, Denmark", "Aalborg, Denmark", "Esbjerg, Denmark",
+    "Amsterdam, Netherlands", "Rotterdam, Netherlands", "The Hague, Netherlands", "Utrecht, Netherlands", "Eindhoven, Netherlands",
+    "Brussels, Belgium", "Antwerp, Belgium", "Ghent, Belgium", "Bruges, Belgium", "Liege, Belgium",
+    "Zurich, Switzerland", "Geneva, Switzerland", "Bern, Switzerland", "Basel, Switzerland", "Lucerne, Switzerland",
+    "Vienna, Austria", "Innsbruck, Austria", "Graz, Austria", "Linz, Austria",
+    
+    // Americas Offbeat
+    "Quebec City, Canada", "Montreal, Canada", "Vancouver, Canada", "Toronto, Canada", "Calgary, Canada",
+    "Edmonton, Canada", "Winnipeg, Canada", "Halifax, Canada", "St. John's, Canada", "Victoria, Canada",
+    "Mexico City, Mexico", "Guadalajara, Mexico", "Monterrey, Mexico", "Puebla, Mexico", "Oaxaca, Mexico",
+    "Merida, Mexico", "San Miguel de Allende, Mexico", "Guanajuato, Mexico", "Queretaro, Mexico", "Morelia, Mexico",
+    "Buenos Aires, Argentina", "Cordoba, Argentina", "Rosario, Argentina", "Mendoza, Argentina", "Salta, Argentina",
+    "Rio de Janeiro, Brazil", "Sao Paulo, Brazil", "Brasilia, Brazil", "Salvador, Brazil", "Recife, Brazil",
+    "Lima, Peru", "Cusco, Peru", "Arequipa, Peru", "Trujillo, Peru", "Chiclayo, Peru",
+    "Santiago, Chile", "Valparaiso, Chile", "La Serena, Chile", "Antofagasta, Chile", "Iquique, Chile",
+    "Bogota, Colombia", "Medellin, Colombia", "Cali, Colombia", "Cartagena, Colombia", "Santa Marta, Colombia",
+    
+    // Africa Offbeat
+    "Cape Town, South Africa", "Johannesburg, South Africa", "Durban, South Africa", "Port Elizabeth, South Africa", "Bloemfontein, South Africa",
+    "Marrakech, Morocco", "Fez, Morocco", "Casablanca, Morocco", "Tangier, Morocco", "Agadir, Morocco",
+    "Cairo, Egypt", "Alexandria, Egypt", "Luxor, Egypt", "Aswan, Egypt", "Hurghada, Egypt",
+    "Nairobi, Kenya", "Mombasa, Kenya", "Kisumu, Kenya", "Nakuru, Kenya", "Eldoret, Kenya",
+    "Dar es Salaam, Tanzania", "Arusha, Tanzania", "Zanzibar, Tanzania", "Mwanza, Tanzania", "Mbeya, Tanzania",
+    "Kampala, Uganda", "Entebbe, Uganda", "Jinja, Uganda", "Mbarara, Uganda", "Gulu, Uganda",
+    "Kigali, Rwanda", "Butare, Rwanda", "Gisenyi, Rwanda", "Ruhengeri, Rwanda", "Kibuye, Rwanda",
+    "Addis Ababa, Ethiopia", "Dire Dawa, Ethiopia", "Gondar, Ethiopia", "Bahir Dar, Ethiopia", "Lalibela, Ethiopia",
+    
+    // Oceania Offbeat
+    "Sydney, Australia", "Melbourne, Australia", "Brisbane, Australia", "Perth, Australia", "Adelaide, Australia",
+    "Gold Coast, Australia", "Cairns, Australia", "Darwin, Australia", "Hobart, Australia", "Canberra, Australia",
+    "Auckland, New Zealand", "Wellington, New Zealand", "Christchurch, New Zealand", "Hamilton, New Zealand", "Tauranga, New Zealand",
+    "Rotorua, New Zealand", "Queenstown, New Zealand", "Dunedin, New Zealand", "Napier, New Zealand", "Palmerston North, New Zealand",
+    "Fiji Islands", "Bora Bora, French Polynesia", "Tahiti, French Polynesia", "Moore, French Polynesia", "Huahine, French Polynesia",
+    "Raiatea, French Polynesia", "Taha'a, French Polynesia", "Maupiti, French Polynesia", "Tikehau, French Polynesia", "Fakarava, French Polynesia",
+    
+    // Middle East Offbeat
+    "Dubai, UAE", "Abu Dhabi, UAE", "Sharjah, UAE", "Ajman, UAE", "Ras Al Khaimah, UAE",
+    "Doha, Qatar", "Al Wakrah, Qatar", "Al Khor, Qatar", "Al Rayyan, Qatar", "Umm Salal, Qatar",
+    "Kuwait City, Kuwait", "Salmiya, Kuwait", "Hawalli, Kuwait", "Jahra, Kuwait", "Fahaheel, Kuwait",
+    "Manama, Bahrain", "Muharraq, Bahrain", "Riffa, Bahrain", "Hamad Town, Bahrain", "Isa Town, Bahrain",
+    "Muscat, Oman", "Salalah, Oman", "Nizwa, Oman", "Sohar, Oman", "Sur, Oman",
+    "Sanaa, Yemen", "Aden, Yemen", "Taiz, Yemen", "Hodeidah, Yemen", "Ibb, Yemen",
+    "Amman, Jordan", "Zarqa, Jordan", "Irbid, Jordan", "Al Salt, Jordan", "Madaba, Jordan",
+    "Petra, Jordan", "Wadi Rum, Jordan", "Aqaba, Jordan", "Jerash, Jordan", "Ajloun, Jordan",
+    "Jerusalem, Israel", "Tel Aviv, Israel", "Haifa, Israel", "Beer Sheva, Israel", "Eilat, Israel",
+    "Nazareth, Israel", "Tiberias, Israel", "Safed, Israel", "Acre, Israel", "Bethlehem, Palestine",
+    "Beirut, Lebanon", "Tripoli, Lebanon", "Sidon, Lebanon", "Tyre, Lebanon", "Baalbek, Lebanon",
+    "Damascus, Syria", "Aleppo, Syria", "Homs, Syria", "Hama, Syria", "Latakia, Syria",
+    
+    // Popular Islands & Coastal Destinations
+    "Maldives", "Seychelles", "Mauritius", "Madagascar", "Comoros", "Reunion Island", "Mayotte, France",
+    "Hawaii, USA", "Puerto Rico, USA", "Jamaica", "Bahamas", "Cayman Islands", "Aruba", "Curacao",
+    "St. Lucia", "Antigua and Barbuda", "Barbados", "Grenada", "Trinidad and Tobago", "St. Kitts and Nevis",
+    "St. Vincent and the Grenadines", "Dominica", "St. Maarten", "Anguilla", "British Virgin Islands",
+    "US Virgin Islands", "Turks and Caicos", "Bermuda", "Cape Verde", "Sao Tome and Principe",
+    
+    // Adventure & Trekking Destinations
+    "Nepal", "Bhutan", "Tibet, China", "Mongolia", "Kazakhstan", "Uzbekistan", "Kyrgyzstan",
+    "Tajikistan", "Turkmenistan", "Azerbaijan", "Georgia", "Armenia", "Moldova", "Belarus",
+    "Ukraine", "Romania", "Bulgaria", "Serbia", "North Macedonia", "Albania", "Kosovo",
+    "Montenegro", "Bosnia and Herzegovina", "Slovenia", "Croatia", "Hungary", "Slovakia",
+    "Czech Republic", "Poland", "Lithuania", "Latvia", "Estonia", "Finland", "Sweden",
+    "Norway", "Denmark", "Iceland", "Ireland", "UK", "Netherlands", "Belgium", "Luxembourg",
+    "Switzerland", "Austria", "Germany", "France", "Spain", "Portugal", "Italy", "Greece",
+    "Turkey", "Cyprus", "Malta", "Croatia", "Slovenia", "Hungary", "Slovakia", "Czech Republic"
+  ];
+
   // Prevent body scrolling when component mounts
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -106,6 +279,19 @@ export function SoloExploreUI({
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
+  }, []);
+
+  // Close destination dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.destination-dropdown-container')) {
+        setShowDestinationDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -155,14 +341,86 @@ export function SoloExploreUI({
                 <MapPin className="w-4 h-4" />
                 Destination
               </Label>
-              <Input
-                id="destination"
-                type="text"
-                value={searchData.destination}
-                onChange={(e) => setSearchData(prev => ({ ...prev, destination: e.target.value }))}
-                placeholder="Where do you want to go?"
-                className="w-full"
-              />
+              <div className="relative destination-dropdown-container">
+                <Input
+                  id="destination"
+                  type="text"
+                  value={searchData.destination}
+                  onChange={(e) => setSearchData(prev => ({ ...prev, destination: e.target.value }))}
+                  onFocus={() => setShowDestinationDropdown(true)}
+                  placeholder="Where do you want to go?"
+                  className="w-full"
+                />
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                  <button
+                    onClick={() => {
+                      if (searchData.destination.trim()) {
+                        const searchQuery = encodeURIComponent(searchData.destination);
+                        window.open(`https://www.google.com/maps/search/${searchQuery}`, '_blank');
+                      }
+                    }}
+                    className="text-gray-400 hover:text-blue-600 transition-colors duration-200 p-1"
+                    title="Search on Google Maps"
+                  >
+                    <MapPin className="w-4 h-4" />
+                  </button>
+                </div>
+                {showDestinationDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className="p-2">
+                      <div className="text-xs font-medium text-gray-500 mb-2 px-2">Popular Destinations</div>
+                      {DESTINATION_OPTIONS.filter(dest => 
+                        dest.toLowerCase().includes(searchData.destination.toLowerCase())
+                      ).map((destination) => (
+                        <div
+                          key={destination}
+                          className="px-3 py-2 hover:bg-blue-50 cursor-pointer rounded-md text-sm flex items-center justify-between group"
+                          onClick={() => {
+                            setSearchData(prev => ({ ...prev, destination }));
+                            setShowDestinationDropdown(false);
+                          }}
+                        >
+                          <span>{destination}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const searchQuery = encodeURIComponent(destination);
+                              window.open(`https://www.google.com/maps/search/${searchQuery}`, '_blank');
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-600 hover:text-blue-800 text-xs px-2 py-1 rounded hover:bg-blue-100"
+                            title="Open in Google Maps"
+                          >
+                            <MapPin className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      
+                      {/* Custom Search Option */}
+                      {searchData.destination.trim() && !DESTINATION_OPTIONS.some(dest => 
+                        dest.toLowerCase().includes(searchData.destination.toLowerCase())
+                      ) && (
+                        <div className="border-t border-gray-200 mt-2 pt-2">
+                          <div className="px-3 py-2 text-sm text-gray-600">
+                            <div className="flex items-center justify-between">
+                              <span>Search "{searchData.destination}" on Google Maps</span>
+                              <button
+                                onClick={() => {
+                                  const searchQuery = encodeURIComponent(searchData.destination);
+                                  window.open(`https://www.google.com/maps/search/${searchQuery}`, '_blank');
+                                  setShowDestinationDropdown(false);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 text-xs px-3 py-1 rounded bg-blue-50 hover:bg-blue-100 transition-colors duration-200"
+                              >
+                                Search Maps
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Dates */}
