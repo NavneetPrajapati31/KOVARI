@@ -9,8 +9,17 @@ import { SoloMatchCard } from "@/features/explore/components/SoloMatchCard";
 import { SoloExploreUI } from "@/features/explore/components/SoloExploreUI";
 import { Spinner } from "@heroui/react";
 
-// Define the search data interface
+// Define the search data interface for SoloExploreUI
 interface SearchData {
+  destination: string;
+  budget: number;
+  startDate: Date;
+  endDate: Date;
+  travelMode: "solo" | "group";
+}
+
+// Define the search data interface for ExploreHeader
+interface HeaderSearchData {
   destination: string;
   budget: number;
   startDate: Date;
@@ -107,9 +116,15 @@ export default function ExplorePage() {
   };
 
   // ✅ Enhanced Search handler that handles both solo and group matching based on active tab
-  const handleSearch = async (searchData: SearchData) => {
+  const handleSearch = async (searchData: HeaderSearchData) => {
+    // Convert HeaderSearchData to SearchData by adding travelMode
+    const fullSearchData: SearchData = {
+      ...searchData,
+      travelMode: activeTab === 0 ? "solo" : "group"
+    };
+    
     // NEW: Check if search data has actually changed
-    if (!hasSearchDataChanged(searchData)) {
+    if (!hasSearchDataChanged(fullSearchData)) {
       console.log("Search data unchanged, skipping search");
       return;
     }
@@ -134,10 +149,11 @@ export default function ExplorePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId,
-            destinationName: searchData.destination,
-            budget: searchData.budget,
-            startDate: searchData.startDate.toISOString().split("T")[0],
-            endDate: searchData.endDate.toISOString().split("T")[0],
+            destinationName: fullSearchData.destination,
+            budget: fullSearchData.budget,
+            startDate: fullSearchData.startDate.toISOString().split("T")[0],
+            endDate: fullSearchData.endDate.toISOString().split("T")[0],
+            travelMode: fullSearchData.travelMode,
           }),
         });
 
@@ -175,7 +191,7 @@ export default function ExplorePage() {
           setCurrentGroupIndex(0);
 
           // NEW: Store the search data
-          setLastSearchData(searchData);
+          setLastSearchData(fullSearchData);
         } else {
           const errorData = await soloMatchesRes.json();
           throw new Error(errorData.message || "Failed to fetch solo matches");
@@ -222,7 +238,7 @@ export default function ExplorePage() {
         setCurrentGroupIndex(0);
 
         // NEW: Store the search data
-        setLastSearchData(searchData);
+        setLastSearchData(fullSearchData);
       }
     } catch (err: any) {
       setSearchError(err.message || "Unknown error");
