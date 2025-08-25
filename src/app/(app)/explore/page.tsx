@@ -263,135 +263,19 @@ export default function ExplorePage() {
           <Spinner variant="spinner" size="md" color="primary" />
         </div>
       )}
-      {/* Conditional rendering based on active tab */}
-      {activeTab === 0 ? (
-        // Solo Travel Mode - Use new SoloExploreUI
-        <SoloExploreUI
-          onSearchAction={handleSearch}
-          matchedGroups={matchedGroups}
-          currentGroupIndex={currentGroupIndex}
-          onPreviousGroupAction={handlePreviousGroup}
-          onNextGroupAction={handleNextGroup}
-          searchLoading={searchLoading}
-          searchError={searchError}
-          lastSearchData={lastSearchData}
-        />
-      ) : (
-        // Group Travel Mode - Use existing layout
-        <div className="flex flex-col w-full min-h-screen relative">
-          <ExploreHeader
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            onDropdownOpenChange={memoizedOnDropdownOpenChange}
-            onSearch={handleSearch}
-          />
-
-          {/* Error Display */}
-          {searchError && (
-            <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{searchError}</p>
-            </div>
-          )}
-
-          {/* Results Display */}
-          {matchedGroups.length > 0 && (
-            <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
-              {/* Navigation arrows */}
-              {matchedGroups.length > 1 && (
-                <>
-                  <button
-                    onClick={handlePreviousGroup}
-                    disabled={currentGroupIndex === 0}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-3 hover:bg-background/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                    aria-label="Previous match"
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="m15 18-6-6 6-6" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleNextGroup}
-                    disabled={currentGroupIndex === matchedGroups.length - 1}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-3 hover:bg-background/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                    aria-label="Next match"
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
-                  </button>
-                </>
-              )}
-              
-              {/* Groups */}
-              <GroupCard
-                key={matchedGroups[currentGroupIndex].id}
-                group={matchedGroups[currentGroupIndex]}
-                onAction={async (groupId, action) => {
-                  console.log("Group action:", action, "for group:", groupId);
-                  // TODO: Implement group action logic
-                }}
-              />
-              
-              {/* Match counter */}
-              {matchedGroups.length > 1 && (
-                <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-                  <span>{currentGroupIndex + 1}</span>
-                  <span>of</span>
-                  <span>{matchedGroups.length}</span>
-                  <span>groups</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* No Results Message */}
-          {!searchLoading && !searchError && matchedGroups.length === 0 && lastSearchData && (
-            <div className="flex-1 flex flex-col items-center justify-center p-4">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No matches found</h3>
-                <p className="text-gray-600 mb-4">
-                  Try adjusting your search criteria or dates to find more travel companions.
-                </p>
-                <div className="text-sm text-gray-500">
-                  <p>Destination: {lastSearchData.destination}</p>
-                  <p>Budget: ₹{lastSearchData.budget.toLocaleString()}</p>
-                  <p>Dates: {lastSearchData.startDate.toLocaleDateString()} - {lastSearchData.endDate.toLocaleDateString()}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Initial State */}
-          {!searchLoading && !searchError && matchedGroups.length === 0 && !lastSearchData && (
-            <div className="flex-1 flex flex-col items-center justify-center p-4">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Start your search</h3>
-                <p className="text-gray-600">
-                  Enter your travel details above to find compatible travel companions.
-                </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+      {/* Use unified SoloExploreUI for both solo and group travel modes */}
+      <SoloExploreUI
+        onSearchAction={handleSearch}
+        matchedGroups={matchedGroups}
+        currentGroupIndex={currentGroupIndex}
+        onPreviousGroupAction={handlePreviousGroup}
+        onNextGroupAction={handleNextGroup}
+        searchLoading={searchLoading}
+        searchError={searchError}
+        lastSearchData={lastSearchData}
+        // Pass the active tab to SoloExploreUI so it can show the correct mode
+        activeTab={activeTab}
+      />
     </>
   );
 }

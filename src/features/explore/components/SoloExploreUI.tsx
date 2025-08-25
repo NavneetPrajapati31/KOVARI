@@ -26,7 +26,7 @@ interface SearchData {
 }
 
 interface SoloExploreUIProps {
-  onSearchAction: (searchData: SearchData) => void;
+  onSearchAction: (searchData: SearchData) => Promise<void>;
   matchedGroups: any[];
   currentGroupIndex: number;
   onPreviousGroupAction: () => void;
@@ -34,6 +34,7 @@ interface SoloExploreUIProps {
   searchLoading: boolean;
   searchError: string | null;
   lastSearchData: SearchData | null;
+  activeTab: number; // Add this prop to support both modes
 }
 
 export function SoloExploreUI({
@@ -44,14 +45,15 @@ export function SoloExploreUI({
   onNextGroupAction,
   searchLoading,
   searchError,
-  lastSearchData
+  lastSearchData,
+  activeTab
 }: SoloExploreUIProps) {
   const [searchData, setSearchData] = useState<SearchData>({
     destination: "",
     budget: 20000,
     startDate: new Date(),
     endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // 4 days from now
-    travelMode: "solo",
+    travelMode: activeTab === 0 ? "solo" : "group", // Initialize based on activeTab
   });
 
   const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
@@ -160,6 +162,14 @@ export function SoloExploreUI({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Sync travelMode with activeTab when it changes
+  useEffect(() => {
+    setSearchData(prev => ({
+      ...prev,
+      travelMode: activeTab === 0 ? "solo" : "group"
+    }));
+  }, [activeTab]);
 
   // Shared Filters Component
   const SharedFilters = () => (
@@ -536,7 +546,7 @@ export function SoloExploreUI({
 
   // Conditional Match Card Component
   const MatchCardComponent = () => {
-    if (searchData.travelMode === "solo") {
+    if (activeTab === 0) {
       return (
         <SoloMatchCard
           key={matchedGroups[currentGroupIndex]?.id}
@@ -566,27 +576,27 @@ export function SoloExploreUI({
       );
     } else {
       return (
-                      <GroupMatchCard
-                key={matchedGroups[currentGroupIndex]?.id}
-                group={matchedGroups[currentGroupIndex]}
-                onJoinGroupAction={async (groupId) => {
-                  console.log("Joining group:", groupId);
-                  // TODO: Implement join group logic
-                }}
-                onRequestJoinAction={async (groupId) => {
-                  console.log("Requesting to join group:", groupId);
-                  // TODO: Implement request join logic
-                }}
-                onPassAction={async (groupId) => {
-                  console.log("Passing on group:", groupId);
-                  // TODO: Implement pass logic - move to next group
-                  onNextGroupAction();
-                }}
-                onViewGroupAction={(groupId) => {
-                  console.log("Viewing group:", groupId);
-                  // TODO: Navigate to group details
-                }}
-              />
+        <GroupMatchCard
+          key={matchedGroups[currentGroupIndex]?.id}
+          group={matchedGroups[currentGroupIndex]}
+          onJoinGroupAction={async (groupId) => {
+            console.log("Joining group:", groupId);
+            // TODO: Implement join group logic
+          }}
+          onRequestJoinAction={async (groupId) => {
+            console.log("Requesting to join group:", groupId);
+            // TODO: Implement request join logic
+          }}
+          onPassAction={async (groupId) => {
+            console.log("Passing on group:", groupId);
+            // TODO: Implement pass logic - move to next group
+            onNextGroupAction();
+          }}
+          onViewGroupAction={(groupId) => {
+            console.log("Viewing group:", groupId);
+            // TODO: Navigate to group details
+          }}
+        />
       );
     }
   };
@@ -599,26 +609,29 @@ export function SoloExploreUI({
         <div className="p-4 bg-background flex-shrink-0">
           <div className="flex bg-background rounded-lg p-1 shadow-sm border border-gray-200">
             <button
-              onClick={() => setSearchData(prev => ({ ...prev, travelMode: "solo" }))}
               className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                searchData.travelMode === "solo"
+                activeTab === 0
                   ? "bg-blue-600 text-white shadow-md"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
+              disabled
             >
               Solo Travel
             </button>
             <button
-              onClick={() => setSearchData(prev => ({ ...prev, travelMode: "group" }))}
               className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                searchData.travelMode === "group"
+                activeTab === 1
                   ? "bg-blue-600 text-white shadow-md"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
+              disabled
             >
               Group Travel
             </button>
           </div>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            {activeTab === 0 ? "Solo Travel Mode" : "Group Travel Mode"} - Use tabs above to switch
+          </p>
         </div>
 
         {/* Component 2: Shared Filters with Scrollbar */}
@@ -690,7 +703,7 @@ export function SoloExploreUI({
                 <span className="font-medium">{currentGroupIndex + 1}</span>
                 <span>of</span>
                 <span className="font-medium">{matchedGroups.length}</span>
-                <span>{searchData.travelMode === "solo" ? "travelers" : "groups"}</span>
+                <span>{activeTab === 0 ? "travelers" : "groups"}</span>
               </div>
             )}
           </div>
@@ -701,13 +714,13 @@ export function SoloExploreUI({
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">No matches found</h3>
                 <p className="text-gray-600 mb-6 max-w-md">
-                  Try adjusting your search criteria or dates to find more {searchData.travelMode === "solo" ? "travel companions" : "travel groups"}.
+                  Try adjusting your search criteria or dates to find more {activeTab === 0 ? "travel companions" : "travel groups"}.
                 </p>
                 <div className="bg-background rounded-lg p-4 text-sm text-gray-600">
                   <p><strong>Destination:</strong> {lastSearchData.destination}</p>
                   <p><strong>Budget:</strong> ₹{lastSearchData.budget.toLocaleString()}</p>
                   <p><strong>Dates:</strong> {lastSearchData.startDate.toLocaleDateString()} - {lastSearchData.endDate.toLocaleDateString()}</p>
-                  <p><strong>Mode:</strong> {lastSearchData.travelMode === "solo" ? "Solo Travel" : "Group Travel"}</p>
+                  <p><strong>Mode:</strong> {activeTab === 0 ? "Solo Travel" : "Group Travel"}</p>
                 </div>
               </div>
             ) : (
@@ -717,7 +730,7 @@ export function SoloExploreUI({
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">Start your search</h3>
                 <p className="text-gray-600 max-w-md">
-                  Enter your travel details in the sidebar to find compatible {searchData.travelMode === "solo" ? "travel companions" : "travel groups"}.
+                  Enter your travel details in the sidebar to find compatible {activeTab === 0 ? "travel companions" : "travel groups"}.
                 </p>
               </div>
             )}
