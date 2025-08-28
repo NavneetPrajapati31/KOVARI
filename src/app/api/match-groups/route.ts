@@ -72,7 +72,33 @@ const calculateDistance = (loc1: Location, loc2: Location): number => {
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    const { destination, budget, startDate, endDate, userId, age, languages, interests, smoking, drinking, nationality } = data;
+    const { 
+      destination, 
+      budget, 
+      startDate, 
+      endDate, 
+      userId, 
+      age, 
+      languages, 
+      interests, 
+      smoking, 
+      drinking, 
+      nationality 
+    } = data;
+    
+    console.log("Received request data:", {
+      destination,
+      budget,
+      startDate,
+      endDate,
+      userId,
+      age,
+      languages,
+      interests,
+      smoking,
+      drinking,
+      nationality
+    });
 
     if (!destination || !budget || !startDate || !endDate) {
       return NextResponse.json({ error: "Missing required fields: destination, budget, startDate, endDate" }, { status: 400 });
@@ -81,18 +107,22 @@ export async function POST(req: NextRequest) {
     // Get coordinates for user's destination
     let userDestinationCoords: Location;
     if (typeof destination === 'string') {
+      console.log("Getting coordinates for destination:", destination);
       const coords = await getCoordinatesForLocation(destination);
       if (!coords) {
+        console.error("Could not find coordinates for destination:", destination);
         return NextResponse.json({ error: "Could not find coordinates for the specified destination" }, { status: 400 });
       }
+      console.log("Found coordinates for destination:", coords);
       userDestinationCoords = coords;
     } else {
+      console.log("Destination is already coordinates:", destination);
       userDestinationCoords = destination;
     }
 
-    // Create a user profile with default values for missing fields
+    // Create a user profile with provided filter data or defaults
     const userProfile: UserProfile = {
-      userId: userId || 'anonymous', // Use anonymous if no userId provided
+      userId: userId || 'anonymous',
       destination: userDestinationCoords,
       budget: Number(budget),
       startDate,
@@ -104,10 +134,13 @@ export async function POST(req: NextRequest) {
       drinking: drinking || false,
       nationality: nationality || 'Unknown',
     };
+    
+    console.log("User profile for matching:", userProfile);
 
     const supabase = createRouteHandlerSupabaseClient();
 
     // Fetch groups with all necessary fields from the schema
+    console.log("Fetching groups from database...");
     const { data: groups, error } = await supabase
       .from('groups')
       .select(`
@@ -127,34 +160,50 @@ export async function POST(req: NextRequest) {
       `);
 
     if (error) {
+      console.error("Database error fetching groups:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     if (!groups || groups.length === 0) {
+      console.log("No groups found in database");
       return NextResponse.json({ groups: [] });
     }
+    
+    console.log(`Found ${groups.length} groups in database:`, groups);
 
     // Get coordinates for all group destinations and filter by distance
+    console.log("Processing group destinations for coordinates...");
     const groupsWithCoords: GroupWithCoords[] = [];
     for (const group of groups) {
       if (group.destination) {
+        console.log(`Getting coordinates for group ${group.id} destination: ${group.destination}`);
         const groupCoords = await getCoordinatesForLocation(group.destination);
         if (groupCoords) {
           const distance = calculateDistance(userDestinationCoords, groupCoords);
+          console.log(`Group ${group.id} is ${distance.toFixed(2)}km away`);
           if (distance <= 200) { // Only include groups within 200km
             groupsWithCoords.push({
               ...group,
               destinationCoords: groupCoords,
               distance
             });
+          } else {
+            console.log(`Group ${group.id} is too far (${distance.toFixed(2)}km > 200km)`);
           }
+        } else {
+          console.log(`Could not get coordinates for group ${group.id} destination: ${group.destination}`);
         }
+      } else {
+        console.log(`Group ${group.id} has no destination`);
       }
     }
 
     if (groupsWithCoords.length === 0) {
+      console.log("No groups found within 200km distance");
       return NextResponse.json({ groups: [] });
     }
+    
+    console.log(`Found ${groupsWithCoords.length} groups within distance limit:`, groupsWithCoords);
 
     // Get creator profiles for nationality information
     const creatorIds = [...new Set(groupsWithCoords.map(g => g.creator_id))];
@@ -173,7 +222,8 @@ export async function POST(req: NextRequest) {
       return acc;
     }, {});
 
-    // Transform groups into the expected format
+    // Transform groups into the expected format for matching
+    console.log("Transforming groups into profiles for matching...");
     const groupProfiles: GroupProfile[] = groupsWithCoords.map((group: any) => {
       const creator = profilesMap[group.creator_id];
       
@@ -212,10 +262,14 @@ export async function POST(req: NextRequest) {
         dominantNationalities: creator?.nationality ? [creator.nationality] : [],
       };
     });
+    
+    console.log(`Created ${groupProfiles.length} group profiles for matching:`, groupProfiles);
 
+    // Use the group matching algorithm to get scored matches
     const matches = findGroupMatchesForUser(userProfile, groupProfiles);
+    console.log(`Matching algorithm returned ${matches.length} matches:`, matches);
 
-    // Transform the results to include group details
+    // Transform the results to include group details and maintain distance info
     const safeMatches = matches.map((match) => {
       const originalGroup = groupsWithCoords.find(g => g.id === match.group.groupId);
       const creator = originalGroup ? profilesMap[originalGroup.creator_id] : null;
@@ -250,9 +304,11 @@ export async function POST(req: NextRequest) {
           username: creator?.username || "unknown",
           avatar: creator?.profile_photo || "",
         },
+        tags: match.group.topInterests || [],
       };
     });
 
+    console.log(`Returning ${safeMatches.length} final matches:`, safeMatches);
     return NextResponse.json({ groups: safeMatches });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });

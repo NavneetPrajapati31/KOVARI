@@ -95,6 +95,7 @@ export default function ExplorePage() {
   };
 
   const performSearch = async (fullSearchData: SearchData) => {
+    console.log("Starting search with data:", fullSearchData);
     setSearchLoading(true);
     setSearchError(null);
     setMatchedGroups([]);
@@ -160,41 +161,62 @@ export default function ExplorePage() {
           throw new Error(errorData.message || "Failed to fetch solo matches");
         }
       } else {
-        // GROUP TRAVEL MODE - Only search for groups
+        // GROUP TRAVEL MODE - Only search for groups with filter data
+        console.log("Searching for groups with filters:", filters);
+        const requestBody = {
+          destination: fullSearchData.destination,
+          budget: fullSearchData.budget,
+          startDate: fullSearchData.startDate.toISOString().split("T")[0],
+          endDate: fullSearchData.endDate.toISOString().split("T")[0],
+          userId: userId,
+          // Include filter data for better matching
+          age: filters.ageRange[0], // Use minimum age as default
+          languages: filters.languages,
+          interests: filters.interests,
+          smoking: filters.smoking === "Yes",
+          drinking: filters.drinking === "Yes",
+          nationality: filters.nationality !== "Any" ? filters.nationality : "Unknown",
+        };
+        
+        console.log("Request body for group search:", requestBody);
+        
         const res = await fetch("/api/match-groups", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            destination: fullSearchData.destination,
-            budget: fullSearchData.budget,
-            startDate: fullSearchData.startDate,
-            endDate: fullSearchData.endDate,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
+        console.log("Response status:", res.status);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
+        
+        console.log("API Response for groups:", data);
 
-        // Transform the API response to match GroupCard's expected format
+        // Transform the API response to match GroupMatchCard's expected format
         const transformedGroups = (data.groups || []).map((group: any) => ({
           id: group.id,
           name: group.name,
           privacy: "public" as const,
           destination: group.destination,
-          dateRange: {
-            start: group.startDate ? new Date(group.startDate) : new Date(),
-            end: group.endDate ? new Date(group.endDate) : undefined,
-            isOngoing: !group.endDate,
-          },
+          startDate: group.startDate,
+          endDate: group.endDate,
+          budget: group.budget,
           memberCount: group.members || 0,
-          userStatus: null,
+          userStatus: "Open",
           creator: {
             name: group.creator?.name || "Unknown",
             username: group.creator?.username || "unknown",
             avatar: group.creator?.avatar || undefined,
           },
           cover_image: undefined,
+          // Add matching score and breakdown for display
+          score: group.score,
+          breakdown: group.breakdown,
+          distance: group.distance,
+          tags: group.tags || [],
         }));
+        
+        console.log("Transformed groups:", transformedGroups);
 
         setMatchedGroups(transformedGroups);
         setCurrentGroupIndex(0);
