@@ -55,6 +55,20 @@ export function GroupMatchCard({
   onPassAction,
   onViewGroupAction
 }: GroupMatchCardProps) {
+  console.log("GroupMatchCard received group:", group);
+  
+  // Add error boundary for missing group data
+  if (!group) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No group data</h3>
+          <p className="text-gray-600">Please try searching again.</p>
+        </div>
+      </div>
+    );
+  }
+  
   const [isJoining, setIsJoining] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [isPassing, setIsPassing] = useState(false);
@@ -93,28 +107,62 @@ export function GroupMatchCard({
   const formatDateRange = () => {
     if (!group.startDate && !group.endDate) return "Dates TBD";
     
-    const startDate = group.startDate ? new Date(group.startDate).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }) : "TBD";
-    
-    const endDate = group.endDate ? new Date(group.endDate).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }) : "TBD";
-    
-    return `${startDate} - ${endDate}`;
+    try {
+      // Handle both string dates and Date objects
+      const startDate = group.startDate ? 
+        (typeof group.startDate === 'string' ? 
+          new Date(group.startDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }) : 
+          group.startDate.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        ) : "TBD";
+      
+      const endDate = group.endDate ? 
+        (typeof group.endDate === 'string' ? 
+          new Date(group.endDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }) : 
+          group.endDate.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        ) : "TBD";
+      
+      return `${startDate} - ${endDate}`;
+    } catch (error) {
+      console.error("Error formatting dates:", error);
+      return "Dates TBD";
+    }
   };
 
   const getTripLengthDays = () => {
     if (!group.startDate || !group.endDate) return null;
-    const start = new Date(group.startDate).getTime();
-    const end = new Date(group.endDate).getTime();
-    if (isNaN(start) || isNaN(end) || end < start) return null;
-    const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
-    return days;
+    
+    try {
+      // Handle both string dates and Date objects
+      const start = typeof group.startDate === 'string' ? 
+        new Date(group.startDate).getTime() : 
+        group.startDate.getTime();
+      const end = typeof group.endDate === 'string' ? 
+        new Date(group.endDate).getTime() : 
+        group.endDate.getTime();
+        
+      if (isNaN(start) || isNaN(end) || end < start) return null;
+      const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      return days;
+    } catch (error) {
+      console.error("Error calculating trip length:", error);
+      return null;
+    }
   };
 
   const getGroupTypeIcon = (privacy?: string) => {
@@ -241,6 +289,54 @@ export function GroupMatchCard({
                 </div>
               </div>
             </div> 
+
+            {/* Matching Score */}
+            {group.score !== undefined && (
+              <div className="rounded-xl border border-gray-200 p-3">
+                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700">
+                    <Star className="w-4 h-4" />
+                  </span>
+                  Match Score
+                </h2>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {Math.round(group.score * 100)}%
+                    </div>
+                    <div className="text-xs text-gray-500">Compatibility</div>
+                  </div>
+                  {group.distance !== undefined && (
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-gray-900">
+                        {Math.round(group.distance)}km away
+                      </div>
+                      <div className="text-xs text-gray-500">Distance</div>
+                    </div>
+                  )}
+                </div>
+                {group.breakdown && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Budget:</span>
+                      <span className="font-medium">{Math.round(group.breakdown.budget * 100)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Dates:</span>
+                      <span className="font-medium">{Math.round(group.breakdown.dates * 100)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Interests:</span>
+                      <span className="font-medium">{Math.round(group.breakdown.interests * 100)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Age:</span>
+                      <span className="font-medium">{Math.round(group.breakdown.age * 100)}%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* About */}
             <div>
