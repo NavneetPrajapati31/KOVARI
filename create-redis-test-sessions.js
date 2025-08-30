@@ -3,47 +3,71 @@ const http = require('http');
 
 const BASE_URL = 'http://localhost:3000/api';
 
-// Test users with overlapping Mumbai trips in August 2025
+// Test users with overlapping Mumbai trips in future dates (2025-2026)
 const testUsers = [
-    // User 1: Mumbai trip Aug 16-20 (overlaps with Aug 15-19)
+    // User 1: Mumbai trip Dec 15-20 (overlaps with Dec 18-25)
     {
         userId: 'user_mumbai_1',
         destinationName: 'Mumbai',
         budget: 25000,
-        startDate: '2025-08-21',
-        endDate: '2025-08-25'
+        startDate: '2025-12-15',
+        endDate: '2025-12-20'
     },
-    // User 2: Mumbai trip Aug 17-21 (overlaps with Aug 15-19)
+    // User 2: Mumbai trip Dec 18-25 (overlaps with Dec 18-25)
     {
         userId: 'user_mumbai_2',
         destinationName: 'Mumbai',
         budget: 18000,
-        startDate: '2025-08-21',
-        endDate: '2025-08-29'
+        startDate: '2025-12-18',
+        endDate: '2025-12-25'
     },
-    // User 3: Mumbai trip Aug 18-22 (overlaps with Aug 15-19)
+    // User 3: Mumbai trip Dec 20-28 (overlaps with Dec 18-25)
     {
         userId: 'user_mumbai_3',
         destinationName: 'Mumbai',
         budget: 30000,
-        startDate: '2025-08-21',
-        endDate: '2025-08-29'
+        startDate: '2025-12-20',
+        endDate: '2025-12-28'
     },
-    // User 4: Mumbai trip Aug 19-23 (overlaps with Aug 15-19)
+    // User 4: Mumbai trip Dec 22-30 (overlaps with Dec 18-25)
     {
         userId: 'user_mumbai_4',
         destinationName: 'Mumbai',
         budget: 22000,
-        startDate: '2025-08-24',
-        endDate: '2025-08-29'
+        startDate: '2025-12-22',
+        endDate: '2025-12-30'
     },
-    // User 5: Mumbai trip Aug 20-24 (overlaps with Aug 15-19)
+    // User 5: Mumbai trip Dec 25-31 (overlaps with Dec 18-25)
     {
         userId: 'user_mumbai_5',
         destinationName: 'Mumbai',
         budget: 28000,
-        startDate: '2025-08-20',
-        endDate: '2025-08-24'
+        startDate: '2025-12-25',
+        endDate: '2025-12-31'
+    },
+    // User 6: Goa trip Jan 10-15 (different destination)
+    {
+        userId: 'user_goa_1',
+        destinationName: 'Goa',
+        budget: 35000,
+        startDate: '2026-01-10',
+        endDate: '2026-01-15'
+    },
+    // User 7: Delhi trip Jan 15-22 (different destination)
+    {
+        userId: 'user_delhi_1',
+        destinationName: 'Delhi',
+        budget: 20000,
+        startDate: '2026-01-15',
+        endDate: '2026-01-22'
+    },
+    // User 8: Bangalore trip Feb 5-12 (different destination)
+    {
+        userId: 'user_bangalore_1',
+        destinationName: 'Bangalore',
+        budget: 15000,
+        startDate: '2026-02-05',
+        endDate: '2026-02-12'
     }
 ];
 

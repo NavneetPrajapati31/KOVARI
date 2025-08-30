@@ -272,6 +272,9 @@ export default function ExplorePage() {
           throw new Error("Failed to create session");
         }
 
+        // Add a small delay to ensure Redis session is fully committed
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         // Step 2: Get solo matches using enhanced matching
         const soloMatchesRes = await fetch(`/api/match-solo?userId=${userId}`);
         if (soloMatchesRes.ok) {
@@ -383,7 +386,7 @@ export default function ExplorePage() {
           onPass={async (matchId) => {
             console.log("Passing on solo traveler:", matchId);
             // TODO: Implement pass logic - move to next match
-            onNextGroupAction();
+            handleNextGroup();
           }}
           onComment={async (matchId, attribute, comment) => {
             console.log("Commenting on", attribute, "for traveler:", matchId, "Comment:", comment);
@@ -411,7 +414,7 @@ export default function ExplorePage() {
           onPassAction={async (groupId) => {
             console.log("Passing on group:", groupId);
             // TODO: Implement pass logic - move to next group
-            onNextGroupAction();
+            handleNextGroup();
           }}
           onViewGroupAction={(groupId) => {
             console.log("Viewing group:", groupId);

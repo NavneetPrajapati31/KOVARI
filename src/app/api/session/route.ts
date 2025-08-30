@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCoordinatesForLocation } from '../../../lib/geocoding';
 import { getUserProfile } from '../../../lib/supabase';
 import { SoloSession, StaticAttributes } from '../../../types';
-import redis from '../../../lib/redis';
+import redis, { ensureRedisConnection } from '../../../lib/redis';
 
 // Mock user data for testing
 const mockUsers = {
@@ -325,23 +325,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'User profile or home location not found.' }, { status: 404 });
         }
 
-        // 3. Construct the session object
-        const staticAttributes: StaticAttributes = {
-            age: (userProfile as any).age,
-            gender: (userProfile as any).gender,
-            personality: (userProfile as any).personality,
-            location: (userProfile as any).location,
-            smoking: (userProfile as any).smoking,
-            drinking: (userProfile as any).drinking,
-            religion: (userProfile as any).religion,
-            interests: (userProfile as any).interests,
-            language: (userProfile as any).language ?? ((userProfile as any).languages?.[0] ?? undefined),
-            languages: (userProfile as any).languages,
-            nationality: (userProfile as any).nationality,
-            profession: (userProfile as any).profession ?? (userProfile as any).job,
-            avatar: (userProfile as any).avatar ?? (userProfile as any).profile_photo,
-        };
-
+        // 3. Construct the session object - ONLY dynamic attributes in Redis
         const sessionData: SoloSession = {
             userId,
             destination: { name: destinationName, ...destinationCoords },
@@ -349,12 +333,13 @@ export async function POST(request: NextRequest) {
             startDate,
             endDate,
             mode: 'solo',
-            static_attributes: staticAttributes,
+            interests: (userProfile as any).interests || ['travel', 'exploration'],
+            // NO static_attributes here - they come from Supabase when needed
         };
 
-        // 4. Store in Redis
-        // FIX: Use setEx (Redis v4+) instead of setex (deprecated)
-        await redis.setEx(`session:${userId}`, 86400, JSON.stringify(sessionData));
+        // 4. Store in Redis with 7-day expiration
+        const redisClient = await ensureRedisConnection();
+        await redisClient.setEx(`session:${userId}`, 604800, JSON.stringify(sessionData)); // 7 days
 
         return NextResponse.json({ message: 'Session created successfully' }, { status: 200 });
 

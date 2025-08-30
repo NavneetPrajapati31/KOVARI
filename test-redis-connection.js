@@ -1,87 +1,57 @@
-const fetch = require('node-fetch');
+#!/usr/bin/env node
 
-const BASE_URL = 'http://localhost:3002/api';
+require('dotenv').config({ path: '.env.local' });
+const redis = require('redis');
 
-async function testRedisConnection() {
-    console.log('🔍 Testing Redis Connection...\n');
-    
-    // Test 1: Create a session (this should work)
-    console.log('1. Creating a test session...');
-    try {
-        const sessionResponse = await fetch(`${BASE_URL}/session`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: 'user_redis_test',
-                destinationName: 'Mumbai',
-                budget: 5000,
-                startDate: '2024-03-15',
-                endDate: '2024-03-20'
-            })
-        });
-        
-        console.log(`Session creation status: ${sessionResponse.status}`);
-        if (sessionResponse.ok) {
-            const result = await sessionResponse.json();
-            console.log('✅ Session created successfully:', result.message);
-        } else {
-            const error = await sessionResponse.text();
-            console.log('❌ Session creation failed:', error);
-        }
-    } catch (error) {
-        console.error('❌ Session creation error:', error.message);
-    }
-    
-    // Test 2: Try to get the specific session we just created
-    console.log('\n2. Testing direct session retrieval...');
-    try {
-        const sessionResponse = await fetch(`${BASE_URL}/session?userId=user_redis_test`);
-        console.log(`Direct session retrieval status: ${sessionResponse.status}`);
-        if (sessionResponse.ok) {
-            const result = await sessionResponse.json();
-            console.log('✅ Session retrieved successfully');
-        } else {
-            const error = await sessionResponse.text();
-            console.log('❌ Session retrieval failed:', error);
-        }
-    } catch (error) {
-        console.error('❌ Session retrieval error:', error.message);
-    }
-    
-    // Test 3: Test geocoding (should work regardless of Redis)
-    console.log('\n3. Testing geocoding...');
-    try {
-        const geoResponse = await fetch(`${BASE_URL}/test-geocoding?location=Mumbai`);
-        console.log(`Geocoding status: ${geoResponse.status}`);
-        if (geoResponse.ok) {
-            const result = await geoResponse.json();
-            console.log('✅ Geocoding working:', result.coordinates);
-        } else {
-            const error = await geoResponse.text();
-            console.log('❌ Geocoding failed:', error);
-        }
-    } catch (error) {
-        console.error('❌ Geocoding error:', error.message);
-    }
-    
-    // Test 4: Test matching functionality
-    console.log('\n4. Testing matching functionality...');
-    try {
-        const matchResponse = await fetch(`${BASE_URL}/match-solo?userId=user_redis_test`);
-        console.log(`Match request status: ${matchResponse.status}`);
-        if (matchResponse.ok) {
-            const matches = await matchResponse.json();
-            console.log(`✅ Matching working: Found ${matches.length} matches`);
-            if (matches.length > 0) {
-                console.log('First match:', matches[0]);
-            }
-        } else {
-            const error = await matchResponse.text();
-            console.log('❌ Matching failed:', error);
-        }
-    } catch (error) {
-        console.error('❌ Matching error:', error.message);
-    }
+console.log('🔍 Testing Redis Connection...\n');
+
+// Check environment variable
+console.log('Environment Check:');
+console.log('REDIS_URL:', process.env.REDIS_URL ? '✅ Set' : '❌ Not set');
+if (process.env.REDIS_URL) {
+  console.log('URL format check:');
+  console.log('  - Starts with redis://:', process.env.REDIS_URL.startsWith('redis://') ? '✅ Yes' : '❌ No');
+  console.log('  - Contains hostname:', process.env.REDIS_URL.includes('red-') ? '✅ Yes' : '❌ No');
+  console.log('  - Contains port:', process.env.REDIS_URL.includes(':6379') ? '✅ Yes' : '❌ No');
+  
+  // Show URL format (hide password for security)
+  const maskedUrl = process.env.REDIS_URL.replace(/:[^@]*@/, ':***@');
+  console.log('  - URL format:', maskedUrl);
 }
 
-testRedisConnection().catch(console.error); 
+console.log('\n🔌 Testing Connection...');
+
+async function testConnection() {
+  const client = redis.createClient({
+    url: process.env.REDIS_URL || 'redis://localhost:6380'
+  });
+  
+  try {
+    console.log('Attempting to connect...');
+    await client.connect();
+    console.log('✅ Connected successfully!');
+    
+    console.log('Testing ping...');
+    const pong = await client.ping();
+    console.log('✅ Ping response:', pong);
+    
+    console.log('Testing basic operations...');
+    await client.set('test_key', 'test_value');
+    const value = await client.get('test_key');
+    console.log('✅ Set/Get test:', value);
+    
+    await client.del('test_key');
+    console.log('✅ Delete test: successful');
+    
+  } catch (error) {
+    console.log('❌ Connection failed:');
+    console.log('Error message:', error.message);
+    console.log('Error code:', error.code);
+    console.log('Error stack:', error.stack);
+  } finally {
+    await client.disconnect();
+    console.log('Connection closed.');
+  }
+}
+
+testConnection(); 

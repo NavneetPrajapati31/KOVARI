@@ -35,7 +35,8 @@ import {
   Wine,
   Coffee as CoffeeIcon,
   Plane,
-  Cigarette
+  Cigarette,
+  Wine as Glass
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
@@ -52,6 +53,7 @@ interface SoloMatchCardProps {
     user: {
       userId: string;
       full_name?: string;
+      name?: string;
       age?: number;
       gender?: string;
       personality?: string;
@@ -215,8 +217,8 @@ export function SoloMatchCard({
   const getDrinkingIcon = (drinking?: string) => {
     switch (drinking?.toLowerCase()) {
       case 'yes': return <Beer className="w-4 h-4" />;
-      case 'no': return <Ban className="w-4 h-4" />;
-      case 'socially': return <Wine className="w-4 h-4" />;
+      case 'no': return <Glass className="w-4 h-4" />;
+      case 'socially': return <Glass className="w-4 h-4" />;
       default: return <UserIcon className="w-4 h-4" />;
     }
   };
@@ -251,20 +253,20 @@ export function SoloMatchCard({
         
 
                                                                                                                                                {/* Header Section - User Info */}
-           <div className="flex items-start gap-4 pb-2 border-b border-gray-200">
+           <div className="flex items-start gap-4 pb-2">
              {/* User Avatar - Stays on the left */}
              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
                {match.user.avatar ? (
                  <img
                    src={match.user.avatar}
-                   alt={match.user.full_name || "Traveler"}
+                   alt={match.user.full_name || match.user.name || "Traveler"}
                    className="w-full h-full object-cover"
                  />
                ) : (
                  <Avatar className="w-20 h-20 text-xl rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                   <AvatarImage src="" alt={match.user.full_name || "Traveler"} />
+                   <AvatarImage src="" alt={match.user.full_name || match.user.name || "Traveler"} />
                    <AvatarFallback className="text-white font-semibold">
-                     {match.user.full_name ? match.user.full_name.charAt(0).toUpperCase() : "T"}
+                     {(match.user.full_name || match.user.name) ? (match.user.full_name || match.user.name)!.charAt(0).toUpperCase() : "T"}
                    </AvatarFallback>
                  </Avatar>
                )}
@@ -276,7 +278,7 @@ export function SoloMatchCard({
                {/* --- ROW 1: Name and Badge --- */}
                <div className="flex items-center gap-2 flex-wrap">
                  <h1 className="text-xl font-bold text-gray-900">
-                   {match.user.full_name || "Traveler"}{match.user.age ? `, ${match.user.age}` : ''}
+                   {match.user.full_name || match.user.name || "Traveler"}{match.user.age ? `, ${match.user.age}` : ''}
                  </h1>
                  <Badge variant="default" className={`text-xs ${
                    match.compatibility_score >= 80 ? 'bg-green-100 text-green-800' :
@@ -322,7 +324,7 @@ export function SoloMatchCard({
          {/* Bumble-like sections */}
          <div className="space-y-3">
            {/* Trip Summary */}
-           <div className="rounded-xl border border-gray-200 p-3">
+           <div className="rounded-xl p-3">
              <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-2">
                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-700">
                  <Plane className="w-4 h-4" />
@@ -423,7 +425,7 @@ export function SoloMatchCard({
            </div>
 
         {/* Action Buttons - Bottom */}
-        <div className="flex space-x-2 pt-2 border-t border-gray-200">
+        <div className="flex space-x-2 pt-2">
           <Button
             variant="outline"
             size="sm"

@@ -7,8 +7,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { calculateFinalCompatibilityScore, isCompatibleMatch } from '../../../lib/matching/solo';
 import { SoloSession } from '../../../types';
 // FIX: Add missing import for redis client
-import redis from '../../../lib/redis';
+import redis, { ensureRedisConnection } from '../../../lib/redis';
 import { createRouteHandlerSupabaseClient } from '../../../lib/supabase';
+
+// Initialize Supabase client for this route
+const supabase = createRouteHandlerSupabaseClient();
 
 // Helper: get interests from travel_preferences by Clerk user id (fallback)
 const getTravelInterestsByClerkId = async (clerkUserId: string): Promise<string[]> => {
@@ -59,7 +62,8 @@ export async function GET(request: NextRequest) {
 
         // 1. Get the searching user's session from Redis
         console.log(`🔍 Getting session for user: ${userId}`);
-        const searchingUserSessionJSON = await redis.get(`session:${userId}`);
+        const redisClient = await ensureRedisConnection();
+        const searchingUserSessionJSON = await redisClient.get(`session:${userId}`);
         if (!searchingUserSessionJSON) {
             console.log(`❌ No session found for user: ${userId}`);
             return NextResponse.json({ message: 'Active session for user not found. Please start a new search.' }, { status: 404 });
@@ -69,14 +73,14 @@ export async function GET(request: NextRequest) {
         const searchingUserSession: SoloSession = JSON.parse(searchingUserSessionJSON);
 
         // Edge Case: Ensure the searching user's own session data is valid before proceeding
-        if (!searchingUserSession.destination || !searchingUserSession.static_attributes?.location) {
+        if (!searchingUserSession.destination) {
             console.log(`❌ Invalid session data for user: ${userId}`);
             return NextResponse.json({ message: 'Your session data is incomplete. Please start a new search.' }, { status: 400 });
         }
 
         // 2. Get all other active session keys and fetch their data
         console.log(`🔍 Getting all session keys...`);
-        const allSessionKeys = (await redis.keys('session:*')).filter(key => key !== `session:${userId}`);
+        const allSessionKeys = (await redisClient.keys('session:*')).filter(key => key !== `session:${userId}`);
         console.log(`✅ Found ${allSessionKeys.length} other sessions`);
         
         if (allSessionKeys.length === 0) {
@@ -85,7 +89,7 @@ export async function GET(request: NextRequest) {
         }
         
         console.log(`🔍 Getting session data for ${allSessionKeys.length} sessions...`);
-        const allSessionsJSON = await redis.mGet(allSessionKeys);
+        const allSessionsJSON = await redisClient.mGet(allSessionKeys);
 
         // FIX: Check if allSessionsJSON is not null and is an array before proceeding.
         if (!allSessionsJSON || !Array.isArray(allSessionsJSON)) {
@@ -104,7 +108,7 @@ export async function GET(request: NextRequest) {
         // 3. Score all sessions and perform filtering with enhanced compatibility check
         console.log(`🔍 Calculating compatibility scores...`);
         const scoredMatches = (await Promise.all(allSessions.map(async (matchSession) => {
-            if (!matchSession.destination || !matchSession.static_attributes?.location) {
+            if (!matchSession.destination) {
                 return null;
             }
             // NEW: Use enhanced compatibility check
@@ -129,11 +133,49 @@ export async function GET(request: NextRequest) {
                 : (matchSession.userId ? await getTravelInterestsByClerkId(matchSession.userId) : []);
             const commonInterests = computeCommonInterests(resolvedSearchingInterests, resolvedMatchInterests);
 
+            // Get static attributes from Supabase if not in Redis session
+            let staticAttributes = matchSession.static_attributes;
+            if (!staticAttributes) {
+                try {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('name, age, gender, personality, smoking, drinking, religion, job, languages, nationality, location')
+                        .eq('user_id', (await supabase
+                            .from('users')
+                            .select('id')
+                            .eq('clerk_user_id', matchSession.userId)
+                            .single()
+                        ).data?.id)
+                        .single();
+                    
+                    if (profile) {
+                        staticAttributes = {
+                            name: profile.name,
+                            age: profile.age,
+                            gender: profile.gender,
+                            personality: profile.personality,
+                            smoking: profile.smoking,
+                            drinking: profile.drinking,
+                            religion: profile.religion,
+                            profession: profile.job,
+                            languages: profile.languages,
+                            nationality: profile.nationality,
+                            location: profile.location || { lat: 0, lon: 0 },
+                            interests: [], // Default empty interests
+                            language: 'english' // Default language
+                        };
+                    }
+                } catch (error) {
+                    console.log(`⚠️ Could not fetch profile for ${matchSession.userId}:`, error);
+                }
+            }
+
             return {
                 user: {
                     userId: matchSession.userId,
                     budget: matchSession.budget,
-                    ...matchSession.static_attributes
+                    full_name: staticAttributes?.name,
+                    ...staticAttributes
                 },
                 score,
                 destination: matchSession.destination.name,
