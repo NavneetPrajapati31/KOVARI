@@ -1,190 +1,345 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import ExploreHeader from "@/features/explore/components/ExploreHeader";
-import ExploreResults from "@/features/explore/components/ExploreResults";
-import { Loader2 } from "lucide-react";
-import { Spinner } from "@heroui/react";
 
-interface FiltersState {
-  destination: string;
-  dateStart: Date | undefined;
-  dateEnd: Date | undefined;
-  ageMin: number;
-  ageMax: number;
-  gender: string;
-  interests: string[];
-}
-
-const DEFAULT_FILTERS: FiltersState = {
-  destination: "",
-  dateStart: undefined,
-  dateEnd: undefined,
-  ageMin: 18,
-  ageMax: 99,
-  gender: "Any",
-  interests: [],
-};
-
-// Helpers to serialize/deserialize filters to/from query params
-const parseFiltersFromSearchParams = (
-  searchParams: URLSearchParams
-): FiltersState => {
-  return {
-    destination: searchParams.get("destination") || "",
-    dateStart: searchParams.get("dateStart")
-      ? new Date(searchParams.get("dateStart")!)
-      : undefined,
-    dateEnd: searchParams.get("dateEnd")
-      ? new Date(searchParams.get("dateEnd")!)
-      : undefined,
-    ageMin: searchParams.get("ageMin")
-      ? parseInt(searchParams.get("ageMin")!)
-      : 18,
-    ageMax: searchParams.get("ageMax")
-      ? parseInt(searchParams.get("ageMax")!)
-      : 99,
-    gender: searchParams.get("gender") || "Any",
-    interests: searchParams.get("interests")
-      ? searchParams.get("interests")!.split(",").filter(Boolean)
-      : [],
-  };
-};
-
-const serializeFiltersToQuery = (
-  filters: FiltersState
-): Record<string, string> => {
-  const query: Record<string, string> = {};
-  if (filters.destination) query.destination = filters.destination;
-  if (filters.dateStart) query.dateStart = filters.dateStart.toISOString();
-  if (filters.dateEnd) query.dateEnd = filters.dateEnd.toISOString();
-  if (filters.ageMin !== 18) query.ageMin = String(filters.ageMin);
-  if (filters.ageMax !== 99) query.ageMax = String(filters.ageMax);
-  if (filters.gender && filters.gender !== "Any") query.gender = filters.gender;
-  if (filters.interests.length > 0)
-    query.interests = filters.interests.join(",");
-  return query;
-};
+import { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import { ExploreSidebar } from "@/features/explore/components/ExploreSidebar";
+import { ResultsDisplay } from "@/features/explore/components/ResultsDisplay";
+import { SearchData, Filters } from "@/features/explore/types";
 
 export default function ExplorePage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { user } = useUser();
 
-  // Helper to get tab index from searchParams
-  const getTabIndex = () => {
-    const tab = searchParams.get("tab");
-    if (tab === "groups") return 1;
-    return 0;
-  };
-
-  const [activeTab, setActiveTab] = useState(getTabIndex);
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  // State management
+  const [activeTab, setActiveTab] = useState(0);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [matchedGroups, setMatchedGroups] = useState<any[]>([]);
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [lastSearchData, setLastSearchData] = useState<SearchData | null>(null);
 
-  // Memoize parsed filters from searchParams
-  const parsedFilters = useMemo(
-    () => parseFiltersFromSearchParams(searchParams),
-    [searchParams]
-  );
-  const [filters, setFilters] = useState<FiltersState>(parsedFilters);
+  // Search form state
+  const [searchData, setSearchData] = useState<SearchData>({
+    destination: "",
+    budget: 20000,
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // 4 days from now
+    travelMode: "solo",
+  });
 
-  // Sync filters state with URL changes (e.g., browser navigation)
+  // Filters state
+  const [filters, setFilters] = useState<Filters>({
+    ageRange: [18, 65],
+    gender: "Any",
+    interests: [],
+    travelStyle: "Any",
+    budgetRange: [5000, 50000],
+    personality: "Any",
+    smoking: "No",
+    drinking: "No",
+    nationality: "Any",
+    languages: [],
+  });
+
+  // Page loading effect
   useEffect(() => {
-    if (
-      filters.destination !== parsedFilters.destination ||
-      filters.dateStart?.toISOString() !==
-        parsedFilters.dateStart?.toISOString() ||
-      filters.dateEnd?.toISOString() !== parsedFilters.dateEnd?.toISOString() ||
-      filters.ageMin !== parsedFilters.ageMin ||
-      filters.ageMax !== parsedFilters.ageMax ||
-      filters.gender !== parsedFilters.gender ||
-      filters.interests.join() !== parsedFilters.interests.join()
-    ) {
-      setFilters(parsedFilters);
-    }
-  }, [parsedFilters]);
-
-  // Sync activeTab with URL changes
-  useEffect(() => {
-    const tabIndex = getTabIndex();
-    if (activeTab !== tabIndex) {
-      setActiveTab(tabIndex);
-    }
-  }, [searchParams]);
-
-  const handleTabChange = (index: number) => {
-    if (index !== activeTab) {
-      setActiveTab(index);
-      let newTab = "travelers";
-      if (index === 1) newTab = "groups";
-      router.push(`/explore?tab=${newTab}`, { scroll: false });
-    }
-  };
-
-  const handleFilterChange = (newFilters: FiltersState) => {
-    setFilters(newFilters);
-    // Merge with current tab param
-    let tabParam = "travelers";
-    if (activeTab === 1) tabParam = "groups";
-    const query: Record<string, string> = {
-      ...serializeFiltersToQuery(newFilters),
-      tab: tabParam,
-    };
-    const queryString = Object.entries(query)
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-      .join("&");
-    router.push(`/explore?${queryString}`, { scroll: false });
-  };
-
-  const memoizedFilters = useMemo(() => filters, [filters]);
-  const memoizedOnFilterChange = useCallback(handleFilterChange, [
-    filters,
-    activeTab,
-    router,
-  ]);
-  const memoizedOnDropdownOpenChange = useCallback(setIsFilterDropdownOpen, []);
-
-  useEffect(() => {
-    if (isPageLoading) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    // Clean up on unmount
+    document.body.style.overflow = isPageLoading ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [isPageLoading]);
 
+  // Prevent body scrolling when component mounts
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
+
+  // Sync travelMode with activeTab when it changes
+  useEffect(() => {
+    setSearchData(prev => ({
+      ...prev,
+      travelMode: activeTab === 0 ? "solo" : "group"
+    }));
+  }, [activeTab]);
+
+  // Helper function to check if search data has changed
+  const hasSearchDataChanged = (newSearchData: SearchData): boolean => {
+    if (!lastSearchData) return true;
+
+    return (
+      newSearchData.destination !== lastSearchData.destination ||
+      newSearchData.budget !== lastSearchData.budget ||
+      newSearchData.startDate.getTime() !== lastSearchData.startDate.getTime() ||
+      newSearchData.endDate.getTime() !== lastSearchData.endDate.getTime()
+    );
+  };
+
+  const handleSearch = () => {
+    const fullSearchData: SearchData = {
+      ...searchData,
+      travelMode: activeTab === 0 ? "solo" : "group"
+    };
+    
+    if (!hasSearchDataChanged(fullSearchData)) {
+      console.log("Search data unchanged, skipping search");
+      return;
+    }
+
+    performSearch(fullSearchData);
+  };
+
+  const performSearch = async (fullSearchData: SearchData) => {
+    console.log("Starting search with data:", fullSearchData);
+    setSearchLoading(true);
+    setSearchError(null);
+    setMatchedGroups([]);
+    setCurrentGroupIndex(0);
+
+    try {
+      const userId = user?.id;
+
+      if (activeTab === 0) {
+        // SOLO TRAVEL MODE - Only search for solo travelers
+        if (!userId) {
+          throw new Error("Please sign in to search for solo travelers");
+        }
+
+        // Step 1: Store enhanced dynamic session (for solo matching)
+        const sessionResponse = await fetch("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            destinationName: fullSearchData.destination,
+            budget: fullSearchData.budget,
+            startDate: fullSearchData.startDate.toISOString().split("T")[0],
+            endDate: fullSearchData.endDate.toISOString().split("T")[0],
+            travelMode: fullSearchData.travelMode,
+          }),
+        });
+
+        if (!sessionResponse.ok) {
+          throw new Error("Failed to create session");
+        }
+
+        // Add a small delay to ensure Redis session is fully committed
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Step 2: Get solo matches using enhanced matching
+        const soloMatchesRes = await fetch(`/api/match-solo?userId=${userId}`);
+        if (soloMatchesRes.ok) {
+          const soloMatches = await soloMatchesRes.json();
+          console.log("Solo matches found:", soloMatches.length);
+
+          // Convert solo matches to group-like format for display
+          const soloMatchesAsGroups = soloMatches.map((match: any, index: number) => ({
+            id: `solo-${index}`,
+            name: `${match.user.name || match.user.full_name || 'Traveler'} - ${match.destination}`,
+            destination: match.destination,
+            budget: match.user.budget || 'Not specified',
+            start_date: fullSearchData.startDate,
+            end_date: fullSearchData.endDate,
+            compatibility_score: Math.round(match.score * 100),
+            budget_difference: match.budgetDifference,
+            user: {
+              ...match.user,
+              interests: Array.isArray(match.commonInterests) && match.commonInterests.length > 0
+                ? match.commonInterests
+                : match.user?.interests
+            },
+            is_solo_match: true
+          }));
+          
+          setMatchedGroups(soloMatchesAsGroups);
+          setCurrentGroupIndex(0);
+          setLastSearchData(fullSearchData);
+        } else {
+          const errorData = await soloMatchesRes.json();
+          throw new Error(errorData.message || "Failed to fetch solo matches");
+        }
+      } else {
+        // GROUP TRAVEL MODE - Only search for groups with filter data
+        console.log("Searching for groups with filters:", filters);
+        const requestBody = {
+          destination: fullSearchData.destination,
+          budget: fullSearchData.budget,
+          startDate: fullSearchData.startDate.toISOString().split("T")[0],
+          endDate: fullSearchData.endDate.toISOString().split("T")[0],
+          userId: userId,
+          // Include filter data for better matching
+          age: filters.ageRange[0], // Use minimum age as default
+          languages: filters.languages,
+          interests: filters.interests,
+          smoking: filters.smoking === "Yes",
+          drinking: filters.drinking === "Yes",
+          nationality: filters.nationality !== "Any" ? filters.nationality : "Unknown",
+        };
+        
+        console.log("Request body for group search:", requestBody);
+        
+        const res = await fetch("/api/match-groups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log("Response status:", res.status);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
+        
+        console.log("API Response for groups:", data);
+
+        // Transform the API response to match GroupMatchCard's expected format
+        const transformedGroups = (data.groups || []).map((group: any) => ({
+          id: group.id,
+          name: group.name,
+          privacy: "public" as const,
+          destination: group.destination,
+          startDate: group.startDate,
+          endDate: group.endDate,
+          budget: group.budget,
+          memberCount: group.members || 0,
+          userStatus: "Open",
+          creator: {
+            name: group.creator?.name || "Unknown",
+            username: group.creator?.username || "unknown",
+            avatar: group.creator?.avatar || undefined,
+          },
+          cover_image: undefined,
+          // Add matching score and breakdown for display
+          score: group.score,
+          breakdown: group.breakdown,
+          distance: group.distance,
+          tags: group.tags || [],
+        }));
+        
+        console.log("Transformed groups:", transformedGroups);
+
+        setMatchedGroups(transformedGroups);
+        setCurrentGroupIndex(0);
+        setLastSearchData(fullSearchData);
+      }
+    } catch (err: any) {
+      setSearchError(err.message || "Unknown error");
+      console.error("Search error:", err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Reset search data when tab changes
+  useEffect(() => {
+    setLastSearchData(null);
+    setMatchedGroups([]);
+    setCurrentGroupIndex(0);
+    setSearchError(null);
+  }, [activeTab]);
+
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Navigation functions
+  const handlePreviousGroup = () => {
+    if (currentGroupIndex > 0) {
+      setCurrentGroupIndex(currentGroupIndex - 1);
+    }
+  };
+
+  const handleNextGroup = () => {
+    if (currentGroupIndex < matchedGroups.length - 1) {
+      setCurrentGroupIndex(currentGroupIndex + 1);
+    }
+  };
+
+  // Action handlers
+  const handleConnect = async (matchId: string) => {
+    console.log("Connecting with solo traveler:", matchId);
+    // TODO: Implement connection logic
+  };
+
+  const handleSuperLike = async (matchId: string) => {
+    console.log("Super liking solo traveler:", matchId);
+    // TODO: Implement super like logic
+  };
+
+  const handlePass = async (matchId: string) => {
+    console.log("Passing on solo traveler:", matchId);
+    // TODO: Implement pass logic - move to next match
+    handleNextGroup();
+  };
+
+  const handleComment = async (matchId: string, attribute: string, comment: string) => {
+    console.log("Commenting on", attribute, "for traveler:", matchId, "Comment:", comment);
+    // TODO: Implement comment logic
+  };
+
+  const handleViewProfile = (userId: string) => {
+    console.log("Viewing profile:", userId);
+    // TODO: Navigate to user profile
+  };
+
+  const handleJoinGroup = async (groupId: string) => {
+    console.log("Joining group:", groupId);
+    // TODO: Implement join group logic
+  };
+
+  const handleRequestJoin = async (groupId: string) => {
+    console.log("Requesting to join group:", groupId);
+    // TODO: Implement request join logic
+  };
+
+  const handlePassGroup = async (groupId: string) => {
+    console.log("Passing on group:", groupId);
+    // TODO: Implement pass logic - move to next group
+    handleNextGroup();
+  };
+
+  const handleViewGroup = (groupId: string) => {
+    console.log("Viewing group:", groupId);
+    // TODO: Navigate to group details
+  };
+
   return (
-    <>
-      {isPageLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-card h-screen">
-          <Spinner variant="spinner" size="md" color="primary" />
-        </div>
-      )}
-      <div className="flex flex-col w-full min-h-screen relative">
-        <ExploreHeader
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          filters={memoizedFilters}
-          onFilterChange={memoizedOnFilterChange}
-          onDropdownOpenChange={memoizedOnDropdownOpenChange}
-        />
-        <div
-          className={`w-full flex-1 px-4 transition-[filter,opacity] duration-500 ease-in-out ${
-            isFilterDropdownOpen
-              ? "blur-md opacity-80 pointer-events-none select-none"
-              : "blur-0 opacity-100"
-          }`}
-        >
-          <ExploreResults
-            activeTab={activeTab}
-            filters={filters}
-            onShowLoading={() => setIsPageLoading(true)}
-          />
-        </div>
-      </div>
-    </>
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Left Sidebar */}
+      <ExploreSidebar
+        activeTab={activeTab}
+        searchData={searchData}
+        filters={filters}
+        searchLoading={searchLoading}
+        onTabChange={setActiveTab}
+        onSearchDataChange={setSearchData}
+        onSearch={handleSearch}
+        onFilterChange={handleFilterChange}
+      />
+
+      {/* Right Content Area */}
+      <ResultsDisplay
+        activeTab={activeTab}
+        matchedGroups={matchedGroups}
+        currentGroupIndex={currentGroupIndex}
+        searchLoading={searchLoading}
+        searchError={searchError}
+        lastSearchData={lastSearchData}
+        onPreviousGroup={handlePreviousGroup}
+        onNextGroup={handleNextGroup}
+        onConnect={handleConnect}
+        onSuperLike={handleSuperLike}
+        onPass={handlePass}
+        onComment={handleComment}
+        onViewProfile={handleViewProfile}
+        onJoinGroup={handleJoinGroup}
+        onRequestJoin={handleRequestJoin}
+        onPassGroup={handlePassGroup}
+        onViewGroup={handleViewGroup}
+      />
+    </div>
   );
 }

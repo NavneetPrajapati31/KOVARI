@@ -9,12 +9,19 @@ import DashboardCard from "@/shared/components/ui/DashboardCard";
 import DoneTripsCard from "@/shared/components/DoneTripsCard/DoneTripsCard";
 import { GroupList } from "@/shared/components/GroupCard/GroupCard-list";
 import TodoChecklist from "@/shared/components/Todo-Checklist/Todo-checklist";
-import ItineraryUI from "@/shared/components/Itinerary/Itinerary-ui";
 import TripsBarChart from "@/shared/components/charts/TripsBarChart";
 import dynamic from "next/dynamic";
 
 const TravelHeatmap = dynamic(
   () => import("@/shared/components/heatmap/TravelHeatmap"),
+  { ssr: false }
+);
+
+const UpcomingTripCard = dynamic(
+  () =>
+    import("@/features/dashboard/UpcomingTripCard").then((mod) => ({
+      default: mod.UpcomingTripCard,
+    })),
   { ssr: false }
 );
 
@@ -30,6 +37,20 @@ import {
 } from "@/shared/utils/analytics";
 
 import { isBefore, isAfter } from "date-fns";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { GroupCard } from "@/features/dashboard/GroupCard";
+import Component from "@/shared/components/comp-531";
+import { GalleryCard } from "@/features/dashboard/GalleryCard";
+import Heatmap from "@/features/dashboard/heatmap";
+import { TopDestinationCard } from "@/features/dashboard/TopDestinationCard";
+import { TravelDaysCard } from "@/features/dashboard/TravelDaysCard";
+import type { UserProfile as UserProfileType } from "@/features/profile/components/user-profile";
+import { InviteCard } from "@/features/dashboard/InviteCard";
+import { UserConnect } from "@/features/dashboard/UserConnect";
+import { ConnectionRequestsCard } from "@/features/dashboard/ConnectionRequestsCard";
+
+import { ChartLineDots } from "@/features/dashboard/ImpressionsChart";
+import ItineraryUI from "@/shared/components/comp-542";
 
 interface ItineraryEvent {
   id: string;
@@ -202,97 +223,117 @@ export default function Dashboard() {
   const coTravelers = getUniqueCoTravelers(groups);
   const tripsPerYear = useMemo(() => getTripsPerYear(groups), [groups]);
 
+  // Helper to extract name and country from destination
+  const getNameAndCountry = (
+    destination?: string
+  ): { name: string; country: string } => {
+    if (!destination) return { name: "", country: "" };
+    const parts = destination.split(",").map((part) => part.trim());
+    return {
+      name: parts[0] || "",
+      country: parts[1] || "",
+    };
+  };
+
+  // Get the most recent or upcoming group for destination card
+  const selectedGroup = upcoming[0] || past[0];
+  const { name, country } = getNameAndCountry(
+    selectedGroup?.group?.destination || undefined
+  );
+
+  // Get trip dates from the selected group
+  const startDate = selectedGroup?.group?.start_date || undefined;
+  const endDate = selectedGroup?.group?.end_date || undefined;
+
+  const handleExplore = () => {
+    if (!name) return;
+    const query = encodeURIComponent(name);
+    const url = `https://maps.apple.com/search?query=${query}`;
+    window.open(url, "_blank");
+  };
+
   return (
-    <div className="min-h-screen bg-white px-4 py-8">
+    <div className="h-full bg-background p-4 flex flex-col gap-3">
       {!isSignedIn ? (
         <SkeletonDemo />
       ) : (
         <>
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-black">Dashboard</h1>
-          </div>
-
-          {/* First Row: Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div className="min-h-[140px]">
-              <DashboardCard
-                title="Top Destination"
-                value={mostVisited || "N/A"}
-                loading={groupsLoading}
-              />
-            </div>
-            <div className="min-h-[140px]">
-              <DashboardCard
-                title="Total Travel Days"
-                value={`${totalDays} days`}
-                loading={groupsLoading}
-              />
-            </div>
-            <div className="min-h-[140px]">
-              <DashboardCard
-                title="Co-Travelers (est.)"
-                value={coTravelers}
-                loading={groupsLoading}
-              />
-            </div>
-            <div className="min-h-[140px]">
-              <DashboardCard
-                title="My Groups"
-                value={groups.length}
-                loading={groupsLoading}
-              />
-            </div>
-          </div>
-
-          {/* Second Row: Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-2xl p-4 min-h-[300px] flex flex-col justify-between">
-              <TripsBarChart data={tripsPerYear} />
-            </div>
-            <div className="bg-white rounded-2xl p-4 min-h-[300px] flex flex-col justify-between">
-              {formattedTravelDays.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  No travel data available.
+          <div className="flex flex-col lg:flex-row gap-3 h-full">
+            <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
+              <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
+                <div className="w-full md:w-1/3 h-[180px] md:h-full">
+                  {groupsLoading ? (
+                    <>
+                      <Skeleton className="w-full h-full rounded-xl" />
+                    </>
+                  ) : (
+                    <div className="h-full">
+                      <UpcomingTripCard
+                        groupId={selectedGroupId || ""}
+                        name={name}
+                        country={country}
+                        startDate={startDate}
+                        endDate={endDate}
+                        imageUrl="https://images.pexels.com/photos/8776666/pexels-photo-8776666.jpeg"
+                        onExplore={handleExplore}
+                      />
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <TravelHeatmap
-                  travelDays={formattedTravelDays}
-                  year={selectedYear}
-                  years={years}
-                  setSelectedYear={setSelectedYear}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Third Row: Tools */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="h-full">
-              <DoneTripsCard />
-            </div>
-            <div className="h-full">
-              <GroupList title="My Groups" />
-            </div>
-            <div className="h-full">
-              {selectedGroupId ? (
-                itineraryLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    Loading itinerary...
+                <div className="w-full md:w-1/3 h-[180px] md:h-full">
+                  <div className="h-full">
+                    <TopDestinationCard
+                      name={name}
+                      country={country}
+                      imageUrl="https://images.pexels.com/photos/1486222/pexels-photo-1486222.jpeg"
+                      onExplore={handleExplore}
+                    />
                   </div>
-                ) : itineraryError ? (
-                  <div className="text-red-500 text-center">
-                    {itineraryError}
+                </div>
+                <div className="w-full md:w-1/3 flex flex-col gap-3 h-full">
+                  <div className="flex-1">
+                    <DashboardCard
+                      title="Total Travel Days"
+                      value={`${totalDays} days`}
+                      loading={groupsLoading}
+                      subtitle="Total travel days across all groups"
+                    />
                   </div>
-                ) : (
-                  <ItineraryUI
-                    itineraryDays={itineraryDays}
-                    cardClassName="border-none shadow-md h-full"
-                  />
-                )
-              ) : null}
+                  <div className="flex-1">
+                    <DashboardCard
+                      title="Profile Impressions"
+                      value={`128 impressions`}
+                      loading={groupsLoading}
+                      subtitle="Total profile impressions"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col md:flex-row gap-3 flex-1">
+                <div className="w-full lg:w-1/2 bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
+                  <div className="mb-3 p-4 border-b border-border flex-shrink-0">
+                    <h2 className="text-foreground font-semibold text-xs truncate">
+                      Travel Groups
+                    </h2>
+                    <p className="mt-0.5 text-muted-foreground text-xs">
+                      Manage your collaborative travel experiences
+                    </p>
+                  </div>
+                  <div className="px-4 flex-1 overflow-hidden">
+                    <GroupList title="My Groups" />
+                  </div>
+                </div>
+                <div className="w-full lg:w-1/2 h-full flex flex-col">
+                  <div className="flex-1 min-h-0">
+                    <ConnectionRequestsCard />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="h-full">
-              <TodoChecklist />
+            <div className="flex flex-col w-full lg:w-1/2 h-full">
+              <div className="h-full overflow-hidden">
+                <ItineraryUI />
+              </div>
             </div>
           </div>
         </>
