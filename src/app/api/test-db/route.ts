@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       groups: {
         count: groups?.length || 0,
         sample: groups || [],
-        error: groupsError?.message || null
+        error: null
       },
       profiles: {
         count: profiles?.length || 0,

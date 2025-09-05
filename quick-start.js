@@ -39,6 +39,13 @@ function logInfo(message) {
 // Check if Redis is running and accessible
 async function checkRedis() {
   try {
+    // Check if REDIS_URL is set (cloud Redis)
+    if (process.env.REDIS_URL) {
+      logInfo('Using cloud Redis: ' + process.env.REDIS_URL.replace(/:[^@]*@/, ':***@'));
+    } else {
+      logWarning('No REDIS_URL found, falling back to local Redis');
+    }
+    
     const client = redis.createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6380'
     });
@@ -49,6 +56,7 @@ async function checkRedis() {
     
     return true;
   } catch (error) {
+    logError('Redis connection failed: ' + error.message);
     return false;
   }
 }
@@ -90,8 +98,15 @@ async function main() {
   
   if (!(await checkRedis())) {
     logError('Redis is not accessible!');
-    logWarning('Please run: node setup-dev.js');
-    logWarning('Or manually start Redis with: docker-compose up -d redis');
+    if (process.env.REDIS_URL) {
+      logWarning('Cloud Redis connection failed. Please check your REDIS_URL in .env.local');
+      logWarning('Make sure your cloud Redis instance is running and accessible');
+    } else {
+      logWarning('No REDIS_URL found. Please either:');
+      logWarning('1. Set up cloud Redis and add REDIS_URL to .env.local');
+      logWarning('2. Or run: node setup-dev.js for local Redis');
+      logWarning('3. Or manually start Redis with: docker-compose up -d redis');
+    }
     process.exit(1);
   }
   
