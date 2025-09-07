@@ -39,6 +39,7 @@ export async function GET(req: Request) {
     if (!groupId) {
       return new Response(JSON.stringify({ error: "Missing groupId" }), {
         status: 400,
+        headers: { "Content-Type": "application/json" }
       });
     }
     const cookieStore = await cookies();
@@ -70,6 +71,7 @@ export async function GET(req: Request) {
       console.error("Error fetching invite link:", linkError);
       return new Response(JSON.stringify({ error: "Database error" }), {
         status: 500,
+        headers: { "Content-Type": "application/json" }
       });
     }
     let token = linkRow?.token;
@@ -83,6 +85,7 @@ export async function GET(req: Request) {
         console.error("Error creating invite link:", insertError);
         return new Response(JSON.stringify({ error: "Database error" }), {
           status: 500,
+          headers: { "Content-Type": "application/json" }
         });
       }
     }
@@ -95,7 +98,10 @@ export async function GET(req: Request) {
     );
   } catch (error) {
     console.error("Error in GET group invitation API:", error);
-    return new Response("Internal server error", { status: 500 });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }
 
@@ -103,12 +109,18 @@ export async function POST(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return new Response("Unauthorized", { status: 401 });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     const body = await req.json();
     const { groupId, action, invites } = body;
     if (!groupId) {
-      return new Response("Invalid request: missing groupId", { status: 400 });
+      return new Response(JSON.stringify({ error: "Invalid request: missing groupId" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -138,10 +150,16 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (userLookupError) {
       console.error("Error looking up user UUID:", userLookupError);
-      return new Response("Failed to look up user UUID", { status: 500 });
+      return new Response(JSON.stringify({ error: "Failed to look up user UUID" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     if (!userRow || !userRow.id) {
-      return new Response("User not found in users table", { status: 404 });
+      return new Response(JSON.stringify({ error: "User not found in users table" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     const userUuid = userRow.id;
 
@@ -156,12 +174,16 @@ export async function POST(req: Request) {
 
       if (countError) {
         console.error("Error checking member count:", countError);
-        return new Response("Failed to check member count", { status: 500 });
+        return new Response(JSON.stringify({ error: "Failed to check member count" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        });
       }
 
       if (memberCount && memberCount.length >= 10) {
-        return new Response("Group is full (maximum 10 members)", {
+        return new Response(JSON.stringify({ error: "Group is full (maximum 10 members)" }), {
           status: 400,
+          headers: { "Content-Type": "application/json" }
         });
       }
 
@@ -178,7 +200,10 @@ export async function POST(req: Request) {
         .eq("status", "pending");
       if (updateError) {
         console.error("Error accepting invitation:", updateError);
-        return new Response("Failed to accept invitation", { status: 500 });
+        return new Response(JSON.stringify({ error: "Failed to accept invitation" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        });
       }
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -195,7 +220,10 @@ export async function POST(req: Request) {
         .eq("status", "pending");
       if (updateError) {
         console.error("Error declining invitation:", updateError);
-        return new Response("Failed to decline invitation", { status: 500 });
+        return new Response(JSON.stringify({ error: "Failed to decline invitation" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        });
       }
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -205,7 +233,10 @@ export async function POST(req: Request) {
 
     // Fallback: original invite logic
     if (!Array.isArray(invites) || invites.length === 0) {
-      return new Response("Invalid request: missing invites", { status: 400 });
+      return new Response(JSON.stringify({ error: "Invalid request: missing invites" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
     // For each invite, find user by email or username
     for (const invite of invites) {
@@ -334,6 +365,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Error in POST group invitation API:", error);
-    return new Response("Internal server error", { status: 500 });
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }

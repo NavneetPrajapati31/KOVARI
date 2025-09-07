@@ -4,7 +4,7 @@
 // Location: /lib/geocoding.ts
 // Purpose: To abstract the logic for converting location names into coordinates.
 
-import redis from './redis';
+import redis, { ensureRedisConnection } from './redis';
 
 interface Coordinates {
     lat: number;
@@ -20,8 +20,11 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
     const cacheKey = `geo:${locationName.toLowerCase().replace(/\s/g, '_')}`;
     
     try {
-        // 1. Check cache first
-        const cachedResult = await redis.get(cacheKey);
+        // 1. Ensure Redis is connected
+        const redisClient = await ensureRedisConnection();
+        
+        // 2. Check cache first
+        const cachedResult = await redisClient.get(cacheKey);
         if (cachedResult) {
             console.log(`Geocoding (Cache HIT): Found coordinates for ${locationName}`);
             return JSON.parse(cachedResult);
@@ -54,7 +57,7 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
             };
 
             // FIX: Use setEx (Redis v4+) instead of setex (deprecated)
-            await redis.setEx(cacheKey, 2592000, JSON.stringify(coords)); // 2592000 seconds = 30 days
+            await redisClient.setEx(cacheKey, 2592000, JSON.stringify(coords)); // 2592000 seconds = 30 days
             
             return coords;
         } else {
