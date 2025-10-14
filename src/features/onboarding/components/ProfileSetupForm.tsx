@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   UserRound,
-  Smartphone,
   Building2,
   Earth,
   MessageSquareText,
@@ -82,12 +81,6 @@ const step1Schema = z
       .regex(/^[a-zA-Z0-9_]+$/, {
         message: "Username can only contain letters, numbers, and underscores",
       }),
-    phoneNumber: z
-      .string()
-      .min(1, { message: "Please enter your phone number" })
-      .regex(/^\+?[0-9]{8,15}$/, {
-        message: "Please enter a valid phone number",
-      }),
     age: z.coerce
       .number()
       .min(18, { message: "You must be at least 18 years old" })
@@ -129,15 +122,22 @@ const step2Schema = z.object({
   interests: z
     .array(z.string())
     .min(1, { message: "Please select at least one interest" }),
+  religion: z.string().min(1, { message: "Please select your religion" }),
+  smoking: z.string().min(1, { message: "Please select smoking preference" }),
+  drinking: z.string().min(1, { message: "Please select drinking preference" }),
+  personality: z
+    .string()
+    .min(1, { message: "Please select your personality type" }),
+  foodPreference: z
+    .string()
+    .min(1, { message: "Please select food preference" }),
 });
 
 const step3Schema = z.object({
   destinations: z.string().min(1, "Please enter at least one destination"),
-  from: z.string().min(1, "Start date is required"),
-  to: z.string().min(1, "End date is required"),
-  mode: z.enum(["solo", "group"]).optional(),
-  interests: z.array(z.string()).min(1, "Please select at least one interest"),
-  activityDescription: z.string().optional(),
+  tripFocus: z
+    .array(z.string())
+    .min(1, "Please select at least one trip focus"),
   frequency: z.string().optional(),
 });
 
@@ -147,6 +147,7 @@ type Step3Data = z.infer<typeof step3Schema>;
 
 // Sample data for dropdowns
 const genderOptions = ["Male", "Female", "Other"];
+
 const languageOptions = [
   "English",
   "Spanish",
@@ -158,7 +159,10 @@ const languageOptions = [
   "Arabic",
   "Russian",
   "Portuguese",
+  "Hindi",
+  "Italian",
 ];
+
 const nationalityOptions = [
   "United States",
   "United Kingdom",
@@ -170,7 +174,11 @@ const nationalityOptions = [
   "China",
   "India",
   "Brazil",
+  "Mexico",
+  "Spain",
+  "Italy",
 ];
+
 const jobTypeOptions = [
   "Full-time",
   "Part-time",
@@ -179,6 +187,7 @@ const jobTypeOptions = [
   "Internship",
   "Student",
 ];
+
 const interestOptions = [
   { id: "1", label: "Technology" },
   { id: "2", label: "Travel" },
@@ -192,7 +201,51 @@ const interestOptions = [
   { id: "10", label: "Fitness" },
 ];
 
-const interestsList = [
+const religionOptions = [
+  "Christianity",
+  "Islam",
+  "Hinduism",
+  "Buddhism",
+  "Judaism",
+  "Sikhism",
+  "Atheist",
+  "Agnostic",
+  "Other",
+  "Prefer not to say",
+];
+
+const smokingOptions = [
+  "Non-smoker",
+  "Occasionally",
+  "Regularly",
+  "Prefer not to say",
+];
+
+const drinkingOptions = [
+  "Non-drinker",
+  "Socially",
+  "Regularly",
+  "Prefer not to say",
+];
+
+const personalityOptions = [
+  "Introvert",
+  "Extrovert",
+  "Ambivert",
+  "Prefer not to say",
+];
+
+const foodPreferenceOptions = [
+  "Vegetarian",
+  "Vegan",
+  "Non-vegetarian",
+  "Pescatarian",
+  "Halal",
+  "Kosher",
+  "No preference",
+];
+
+const tripFocusList = [
   "Hiking",
   "Photography",
   "Culture",
@@ -202,6 +255,8 @@ const interestsList = [
   "Adventure",
   "Nightlife",
   "Local Tours",
+  "Beach",
+  "Shopping",
 ];
 
 const tripFrequencies = [
@@ -215,7 +270,7 @@ export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 5;
+  const totalSteps = 4;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
@@ -223,9 +278,6 @@ export default function ProfileSetupForm() {
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
   const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<"solo" | "group" | null>(
-    null
-  );
   const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
   const [usernameCheckError, setUsernameCheckError] = useState<string | null>(
     null
@@ -247,7 +299,6 @@ export default function ProfileSetupForm() {
       firstName: "",
       lastName: "",
       username: "",
-      phoneNumber: "",
       age: 18,
       gender: "",
       birthday: undefined,
@@ -263,6 +314,11 @@ export default function ProfileSetupForm() {
       jobType: "",
       languages: [],
       interests: [],
+      religion: "",
+      smoking: "",
+      drinking: "",
+      personality: "",
+      foodPreference: "",
     },
   });
 
@@ -270,11 +326,7 @@ export default function ProfileSetupForm() {
     resolver: zodResolver(step3Schema),
     defaultValues: {
       destinations: "",
-      from: "",
-      to: "",
-      mode: undefined,
-      interests: [],
-      activityDescription: "",
+      tripFocus: [],
       frequency: "",
     },
   });
@@ -325,22 +377,10 @@ export default function ProfileSetupForm() {
   };
 
   // Handle step 3 submission
-  const onStep3Submit = (data: Step3Data) => {
+  const onStep3Submit = async (data: Step3Data) => {
     console.log("Step 3 data:", data);
     setStep3Data(data);
-    setStep(4);
-  };
-
-  const onStep4Submit = async () => {
-    if (!selectedMode) {
-      toast.error("Please select a travel style");
-      return;
-    }
-    if (step3Data) {
-      await submitProfileAndPreferences(step3Data);
-    } else {
-      setStep(5);
-    }
+    await submitProfileAndPreferences(data);
   };
 
   // Original step 3 submission logic moved to a separate function
@@ -363,15 +403,19 @@ export default function ProfileSetupForm() {
         languages: completeData.languages,
         nationality: completeData.nationality,
         job: completeData.jobType,
+        religion: completeData.religion,
+        smoking: completeData.smoking,
+        drinking: completeData.drinking,
+        personality: completeData.personality,
+        food_preference: completeData.foodPreference,
       };
 
       const travelPreferencesData = {
         destinations: completeData.destinations
           ? completeData.destinations.split(",").map((dest) => dest.trim())
           : [],
-        start_date: completeData.from,
-        end_date: completeData.to,
-        interests: completeData.interests,
+        trip_focus: completeData.tripFocus,
+        frequency: completeData.frequency,
       };
 
       if (!user) {
@@ -382,7 +426,6 @@ export default function ProfileSetupForm() {
       await user.update({
         unsafeMetadata: {
           imageUrl: completeData.profilePic || undefined,
-          phoneNumber: completeData.phoneNumber,
           age: completeData.age,
           gender: completeData.gender,
           birthday: completeData.birthday?.toISOString(),
@@ -391,6 +434,11 @@ export default function ProfileSetupForm() {
           jobType: completeData.jobType,
           languages: completeData.languages,
           interests: completeData.interests,
+          religion: completeData.religion,
+          smoking: completeData.smoking,
+          drinking: completeData.drinking,
+          personality: completeData.personality,
+          foodPreference: completeData.foodPreference,
           travel_preferences: travelPreferencesData,
         },
       });
@@ -408,20 +456,7 @@ export default function ProfileSetupForm() {
         return;
       }
 
-      // Step 4: Save travel mode
-      const travelModeRes = await fetch("/api/travel-mode", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ mode: selectedMode }),
-      });
-
-      if (!travelModeRes.ok) {
-        throw new Error("Failed to save travel mode");
-      }
-
-      // Step 5: Submit profile data to API
+      // Step 3: Submit profile data to API
       const profileRes = await fetch("/api/profile", {
         method: "POST",
         body: JSON.stringify(profileData),
@@ -440,7 +475,7 @@ export default function ProfileSetupForm() {
         throw new Error(errorMsg);
       }
 
-      // Step 6: Submit travel preferences data to API
+      // Step 4: Submit travel preferences data to API
       const preferencesRes = await fetch("/api/travel-preferences", {
         method: "POST",
         body: JSON.stringify(travelPreferencesData),
@@ -460,7 +495,7 @@ export default function ProfileSetupForm() {
       }
 
       toast.success("Profile saved successfully!");
-      setStep(5);
+      setStep(4);
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast.error(error.message || "Failed to save profile");
@@ -486,7 +521,7 @@ export default function ProfileSetupForm() {
           </span>
         </div>
         <div className="flex space-x-1">
-          {[1, 2, 3, 4, 5].map((stepNum) => (
+          {[1, 2, 3, 4].map((stepNum) => (
             <div key={stepNum} className="flex-1">
               <div
                 className={`h-1.5 rounded-full ${
@@ -608,30 +643,6 @@ export default function ProfileSetupForm() {
                 <FormMessage className="text-xs">
                   {usernameCheckError}
                 </FormMessage>
-              </FormItem>
-            )}
-          />
-
-          {/* Phone Number */}
-          <FormField
-            control={step1Form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Phone Number
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Smartphone className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="+91 999-999-9999"
-                      className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
@@ -1260,6 +1271,183 @@ export default function ProfileSetupForm() {
             )}
           />
 
+          {/* Religion and Personality */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField
+              control={step2Form.control}
+              name="religion"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
+                    Religion
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
+                        <SelectValue placeholder="Select religion" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {religionOptions.map((religion) => (
+                        <SelectItem
+                          key={religion}
+                          value={religion}
+                          className="text-sm"
+                        >
+                          {religion}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={step2Form.control}
+              name="personality"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
+                    Personality
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
+                        <SelectValue placeholder="Select personality" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {personalityOptions.map((personality) => (
+                        <SelectItem
+                          key={personality}
+                          value={personality}
+                          className="text-sm"
+                        >
+                          {personality}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Smoking and Drinking */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormField
+              control={step2Form.control}
+              name="smoking"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
+                    Smoking
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
+                        <SelectValue placeholder="Select preference" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {smokingOptions.map((option) => (
+                        <SelectItem
+                          key={option}
+                          value={option}
+                          className="text-sm"
+                        >
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={step2Form.control}
+              name="drinking"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium text-muted-foreground">
+                    Drinking
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
+                        <SelectValue placeholder="Select preference" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {drinkingOptions.map((option) => (
+                        <SelectItem
+                          key={option}
+                          value={option}
+                          className="text-sm"
+                        >
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Food Preference */}
+          <FormField
+            control={step2Form.control}
+            name="foodPreference"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Food Preference
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
+                      <SelectValue placeholder="Select food preference" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {foodPreferenceOptions.map((option) => (
+                      <SelectItem
+                        key={option}
+                        value={option}
+                        className="text-sm"
+                      >
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
           {/* Navigation Buttons */}
           <div className="flex space-x-4 pt-3">
             <Button
@@ -1331,63 +1519,6 @@ export default function ProfileSetupForm() {
             )}
           />
 
-          {/* Travel Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <FormField
-              control={step3Form.control}
-              name="from"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Start Date
-                  </FormLabel>
-                  <FormControl>
-                    <DatePicker
-                      startYear={new Date().getFullYear()}
-                      endYear={new Date().getFullYear() + 5}
-                      date={field.value ? new Date(field.value) : undefined}
-                      onDateChange={(date) =>
-                        field.onChange(date?.toISOString())
-                      }
-                      disabled={{
-                        before: new Date(),
-                        after: new Date(new Date().getFullYear() + 5, 11, 31),
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={step3Form.control}
-              name="to"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    End Date
-                  </FormLabel>
-                  <FormControl>
-                    <DatePicker
-                      startYear={new Date().getFullYear()}
-                      endYear={new Date().getFullYear() + 5}
-                      date={field.value ? new Date(field.value) : undefined}
-                      onDateChange={(date) =>
-                        field.onChange(date?.toISOString())
-                      }
-                      disabled={{
-                        before: new Date(),
-                        after: new Date(new Date().getFullYear() + 5, 11, 31),
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-          </div>
-
           {/* Travel Mode */}
           {/* <FormField
             control={step3Form.control}
@@ -1423,55 +1554,31 @@ export default function ProfileSetupForm() {
           {/* Trip Focus / Activities */}
           <FormField
             control={step3Form.control}
-            name="interests"
+            name="tripFocus"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Trip Focus / Activities
+                  Trip Focus
                 </FormLabel>
                 <div className="flex flex-wrap gap-2">
-                  {interestsList.map((interest) => (
+                  {tripFocusList.map((focus) => (
                     <Badge
-                      key={interest}
+                      key={focus}
                       variant={
-                        field.value?.includes(interest) ? "default" : "outline"
+                        field.value?.includes(focus) ? "default" : "outline"
                       }
                       className="cursor-pointer px-4 py-2 text-xs hover:bg-primary hover:text-white transition-colors"
                       onClick={() => {
-                        const newValue = field.value?.includes(interest)
-                          ? field.value.filter((h) => h !== interest)
-                          : [...(field.value || []), interest];
+                        const newValue = field.value?.includes(focus)
+                          ? field.value.filter((h) => h !== focus)
+                          : [...(field.value || []), focus];
                         field.onChange(newValue);
                       }}
                     >
-                      {interest}
+                      {focus}
                     </Badge>
                   ))}
                 </div>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-
-          {/* Activities Description */}
-          <FormField
-            control={step3Form.control}
-            name="activityDescription"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Describe what kind of activities you are looking for
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Lightbulb className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Textarea
-                      placeholder="Tell us about your ideal trip activities (optional)"
-                      className="pl-8 min-h-[80px] text-sm border-input focus:border-primary focus:ring-primary rounded-lg resize-none placeholder:text-muted-foreground"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
@@ -1527,102 +1634,8 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Render step 4 - Travel Mode Selection
+  // Render step 4 - Success
   const renderStep4 = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-4"
-    >
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">
-          Choose Your Travel Style
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Select how you prefer to travel and connect with others
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 min-[500px]:grid-cols-2 gap-4">
-        {/* Solo Traveler Card */}
-        <div
-          className={cn(
-            "relative h-[16rem] bg-card rounded-xl overflow-hidden group transition-colors cursor-pointer",
-            selectedMode === "solo" && "ring-4 ring-primary"
-          )}
-          onClick={() => setSelectedMode("solo")}
-        >
-          <div className="absolute inset-0 bg-primary hover:bg-primary-hover transition-all">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <h2 className="text-md font-semibold text-white mb-2">
-              Solo Traveler
-            </h2>
-            <p className="text-xs text-white/90 leading-relaxed mb-4">
-              Perfect for independent explorers who love the freedom to discover
-              at their own pace.
-            </p>
-          </div>
-        </div>
-
-        {/* Group Travel Card */}
-        <div
-          className={cn(
-            "relative h-[16rem] bg-card rounded-xl overflow-hidden group transition-colors cursor-pointer",
-            selectedMode === "group" && "ring-4 ring-primary"
-          )}
-          onClick={() => setSelectedMode("group")}
-        >
-          <div className="absolute inset-0 bg-primary hover:bg-primary-hover transition-all">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <h2 className="text-md font-semibold text-white mb-2">
-              Group Traveler
-            </h2>
-            <p className="text-xs text-white/90 leading-relaxed mb-4">
-              For groups who want to plan, coordinate, and share amazing
-              experiences together.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="text-center pt-3">
-        <p className="text-muted-foreground text-xs font-medium">
-          Don&apos;t worry, you can always switch between modes or create
-          different travel plans later
-        </p>
-      </div>
-
-      {/* Navigation Buttons */}
-      <div className="flex space-x-4 pt-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={goBack}
-          className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-          Back
-        </Button>
-        <Button
-          type="button"
-          onClick={onStep4Submit}
-          className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
-        >
-          Continue
-          <ChevronRight className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </motion.div>
-  );
-
-  // Render step 5 - Success
-  const renderStep5 = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -1688,10 +1701,7 @@ export default function ProfileSetupForm() {
             {step === 1 && <div key="step1">{renderStep1()}</div>}
             {step === 2 && <div key="step2">{renderStep2()}</div>}
             {step === 3 && <div key="step3">{renderStep3()}</div>}
-            {step === 4 && !syncUserError && (
-              <div key="step4">{renderStep4()}</div>
-            )}
-            {step === 5 && <div key="step5">{renderStep5()}</div>}
+            {step === 4 && <div key="step4">{renderStep4()}</div>}
           </AnimatePresence>
         </CardContent>
       </Card>

@@ -18,6 +18,11 @@ const schema = z.object({
   languages: z.array(z.string()),
   nationality: z.string(),
   job: z.string(),
+  religion: z.string().min(1),
+  smoking: z.string().min(1),
+  drinking: z.string().min(1),
+  personality: z.string().min(1),
+  food_preference: z.string().min(1),
 });
 
 export async function POST(req: Request) {
