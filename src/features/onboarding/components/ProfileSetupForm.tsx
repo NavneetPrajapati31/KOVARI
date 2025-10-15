@@ -114,6 +114,7 @@ const step2Schema = z.object({
     .max(300, { message: "Bio must be less than 300 characters" })
     .optional(),
   profilePic: z.any().optional(),
+  location: z.string().min(1, { message: "Please select your location" }),
   nationality: z.string().min(1, { message: "Please select your nationality" }),
   jobType: z.string().min(1, { message: "Please select your job type" }),
   languages: z
@@ -274,6 +275,10 @@ export default function ProfileSetupForm() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
   const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
@@ -310,6 +315,7 @@ export default function ProfileSetupForm() {
     defaultValues: {
       bio: "",
       profilePic: null,
+      location: "",
       nationality: "",
       jobType: "",
       languages: [],
@@ -376,6 +382,73 @@ export default function ProfileSetupForm() {
     setStep(3);
   };
 
+  // Location autocomplete (OpenStreetMap Nominatim)
+  useEffect(() => {
+    const controller = new AbortController();
+    const query = locationQuery.trim();
+    if (!query) {
+      setLocationSuggestions([]);
+      return () => controller.abort();
+    }
+    const timeout = setTimeout(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          query
+        )}&format=json&addressdetails=1&limit=5`;
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "Kovari/1.0 (onboarding@kovari.app)",
+          },
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as Array<any>;
+        const labels = data.map((d) => d.display_name as string);
+        setLocationSuggestions(labels);
+      } catch {}
+    }, 300);
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [locationQuery]);
+
+  const handleUseMyLocation = async () => {
+    if (!navigator.geolocation) return;
+    try {
+      setIsLocating(true);
+      await new Promise<void>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              const { latitude, longitude } = pos.coords;
+              const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`;
+              const res = await fetch(url, {
+                headers: {
+                  Accept: "application/json",
+                  "User-Agent": "Kovari/1.0 (onboarding@kovari.app)",
+                },
+              });
+              const data = await res.json();
+              const name = (data?.display_name as string) || "";
+              if (name) {
+                step2Form.setValue("location", name, { shouldValidate: true });
+                setLocationQuery("");
+                setLocationSuggestions([]);
+              }
+            } catch {}
+            resolve();
+          },
+          () => resolve(),
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      });
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
   // Handle step 3 submission
   const onStep3Submit = async (data: Step3Data) => {
     console.log("Step 3 data:", data);
@@ -392,6 +465,9 @@ export default function ProfileSetupForm() {
       console.log("Complete form data:", completeData);
 
       // Transform data to match API schema
+      const interestsLabels = (completeData.interests || [])
+        .map((id) => interestOptions.find((opt) => opt.id === id)?.label)
+        .filter(Boolean) as string[];
       const profileData = {
         name: `${completeData.firstName} ${completeData.lastName}`,
         username: completeData.username,
@@ -400,6 +476,7 @@ export default function ProfileSetupForm() {
         birthday: completeData.birthday?.toISOString(),
         bio: completeData.bio || "",
         profile_photo: completeData.profilePic || undefined,
+        location: completeData.location,
         languages: completeData.languages,
         nationality: completeData.nationality,
         job: completeData.jobType,
@@ -408,6 +485,7 @@ export default function ProfileSetupForm() {
         drinking: completeData.drinking,
         personality: completeData.personality,
         food_preference: completeData.foodPreference,
+        interests: interestsLabels,
       };
 
       const travelPreferencesData = {
@@ -432,8 +510,9 @@ export default function ProfileSetupForm() {
           bio: completeData.bio,
           nationality: completeData.nationality,
           jobType: completeData.jobType,
+          location: completeData.location,
           languages: completeData.languages,
-          interests: completeData.interests,
+          interests: interestsLabels,
           religion: completeData.religion,
           smoking: completeData.smoking,
           drinking: completeData.drinking,
@@ -817,6 +896,89 @@ export default function ProfileSetupForm() {
                     />
                   </div>
                 </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          {/* Location */}
+          <FormField
+            control={step2Form.control}
+            name="location"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Location
+                </FormLabel>
+                <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
+                          !field.value &&
+                            "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+                        )}
+                      >
+                        <div className="flex items-center text-muted-foreground">
+                          <Earth className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                          {field.value || "Select location"}
+                        </div>
+                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <div className="p-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Search city, state, country..."
+                          className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg"
+                          value={locationQuery}
+                          onChange={(e) => setLocationQuery(e.target.value)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 text-xs"
+                          onClick={handleUseMyLocation}
+                          disabled={isLocating}
+                          aria-label="Use my current location"
+                        >
+                          {isLocating ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ScanFace className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                      <div className="mt-2 max-h-56 overflow-auto rounded-md border">
+                        {locationSuggestions.length === 0 ? (
+                          <div className="p-2 text-xs text-muted-foreground">
+                            Start typing to search locations
+                          </div>
+                        ) : (
+                          locationSuggestions.map((suggestion) => (
+                            <div
+                              key={suggestion}
+                              className="px-2 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-gray-100"
+                              onClick={() => {
+                                field.onChange(suggestion);
+                                setLocationOpen(false);
+                                setLocationQuery("");
+                                setLocationSuggestions([]);
+                              }}
+                            >
+                              {suggestion}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
