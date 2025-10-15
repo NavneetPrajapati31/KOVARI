@@ -51,48 +51,22 @@ export async function PATCH(req: Request) {
       });
     }
 
-    // Handle interests field separately (stored in travel_preferences table)
+    // Directly handle interests by updating profiles.interests
     if (field === "interests") {
-      // Check if travel preferences record exists
-      const { data: existingPrefs } = await supabase
-        .from("travel_preferences")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { error: interestsUpdateError } = await supabase
+        .from("profiles")
+        .update({ interests: value })
+        .eq("user_id", user.id);
 
-      if (existingPrefs) {
-        // Update existing record
-        const { error: updateError } = await supabase
-          .from("travel_preferences")
-          .update({ interests: value })
-          .eq("user_id", user.id);
-
-        if (updateError) {
-          console.error("Error updating travel preferences:", updateError);
-          return new Response(
-            JSON.stringify({ error: "Failed to update interests" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-          );
-        }
-      } else {
-        // Create new record
-        const { error: insertError } = await supabase
-          .from("travel_preferences")
-          .insert({
-            user_id: user.id,
-            interests: value,
-            destinations: [], // Default empty array
-            start_date: new Date().toISOString(), // Default date
-            end_date: new Date().toISOString(), // Default date
-          });
-
-        if (insertError) {
-          console.error("Error creating travel preferences:", insertError);
-          return new Response(
-            JSON.stringify({ error: "Failed to create interests record" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-          );
-        }
+      if (interestsUpdateError) {
+        console.error(
+          "Error updating profile interests:",
+          interestsUpdateError
+        );
+        return new Response(
+          JSON.stringify({ error: "Failed to update interests" }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
       }
 
       return new Response(
@@ -116,6 +90,8 @@ export async function PATCH(req: Request) {
       profession: "job",
       languages: "languages",
       bio: "bio",
+      interests: "interests",
+      location: "location",
     };
 
     const dbField = fieldMapping[field];

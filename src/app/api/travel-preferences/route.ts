@@ -5,9 +5,8 @@ import { z } from "zod";
 
 const PreferencesSchema = z.object({
   destinations: z.array(z.string()).min(1),
-  start_date: z.string(), // ISO date
-  end_date: z.string(),
-  interests: z.array(z.string()).optional(),
+  trip_focus: z.array(z.string()).optional(),
+  frequency: z.string().optional(),
 });
 
 export async function POST(req: Request) {
