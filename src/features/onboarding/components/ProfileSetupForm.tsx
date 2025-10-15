@@ -81,10 +81,6 @@ const step1Schema = z
       .regex(/^[a-zA-Z0-9_]+$/, {
         message: "Username can only contain letters, numbers, and underscores",
       }),
-    age: z.coerce
-      .number()
-      .min(18, { message: "You must be at least 18 years old" })
-      .max(120),
     gender: z.string().min(1, { message: "Please select your gender" }),
     birthday: z.date({
       required_error: "Your date of birth is required.",
@@ -93,17 +89,14 @@ const step1Schema = z
   .refine(
     (data) => {
       const today = new Date();
-      const age = today.getFullYear() - data.birthday.getFullYear();
+      let age = today.getFullYear() - data.birthday.getFullYear();
       const monthDiff = today.getMonth() - data.birthday.getMonth();
       const dayDiff = today.getDate() - data.birthday.getDate();
-
-      const exactAge =
-        monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
-
-      return Math.abs(exactAge - data.age) <= 1;
+      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) age -= 1;
+      return age >= 18 && age <= 100;
     },
     {
-      message: "Birthday must match the entered age",
+      message: "You must be between 18 and 100 years old",
       path: ["birthday"],
     }
   );
@@ -271,7 +264,7 @@ export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 7;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
@@ -304,7 +297,6 @@ export default function ProfileSetupForm() {
       firstName: "",
       lastName: "",
       username: "",
-      age: 18,
       gender: "",
       birthday: undefined,
     },
@@ -363,16 +355,77 @@ export default function ProfileSetupForm() {
     }
   };
 
-  // Handle step 1 submission with async username check
-  const onStep1Submit = async (data: Step1Data) => {
-    setUsernameCheckError(null);
-    const isUnique = await checkUsernameUnique(data.username);
-    if (!isUnique) {
-      toast.error("Username is already taken");
+  // Step-scoped next navigation with partial validation
+  const handleNext = async () => {
+    if (step === 1) {
+      const valid = await step1Form.trigger(
+        ["firstName", "lastName", "username"],
+        { shouldFocus: true }
+      );
+      if (!valid) return;
+      const username = step1Form.getValues("username");
+      const isUnique = await checkUsernameUnique(username);
+      if (!isUnique) {
+        toast.error("Username is already taken");
+        return;
+      }
+      setStep(2);
       return;
     }
-    setStep1Data(data);
-    setStep(2);
+    if (step === 2) {
+      const valid = await step2Form.trigger(["profilePic", "bio"], {
+        shouldFocus: true,
+      });
+      if (!valid) return;
+      setStep(3);
+      return;
+    }
+    if (step === 3) {
+      const valid = await step1Form.trigger(["gender", "birthday"], {
+        shouldFocus: true,
+      });
+      if (!valid) return;
+      setStep1Data(step1Form.getValues());
+      setStep(4);
+      return;
+    }
+    if (step === 4) {
+      const valid = await step2Form.trigger(
+        ["location", "nationality", "jobType"],
+        { shouldFocus: true }
+      );
+      if (!valid) return;
+      setStep(5);
+      return;
+    }
+    if (step === 5) {
+      const valid = await step2Form.trigger(["languages", "interests"], {
+        shouldFocus: true,
+      });
+      if (!valid) return;
+      setStep(6);
+      return;
+    }
+    if (step === 6) {
+      const valid = await step2Form.trigger(
+        ["religion", "smoking", "drinking", "personality", "foodPreference"],
+        { shouldFocus: true }
+      );
+      if (!valid) return;
+      setStep2Data(step2Form.getValues());
+      setStep(7);
+      return;
+    }
+    if (step === 7) {
+      const valid = await step3Form.trigger(
+        ["destinations", "tripFocus", "frequency"],
+        { shouldFocus: true }
+      );
+      if (!valid) return;
+      const data = step3Form.getValues();
+      await onStep3Submit(data);
+      return;
+    }
   };
 
   // Handle step 2 submission
@@ -458,6 +511,41 @@ export default function ProfileSetupForm() {
 
   // Original step 3 submission logic moved to a separate function
   const submitProfileAndPreferences = async (data: Step3Data) => {
+    const readErrorMessage = async (res: Response) => {
+      const tryFormatZod = (payload: any) => {
+        const err = payload?.error ?? payload;
+        if (err && typeof err === "object" && err.fieldErrors) {
+          const fieldEntries = Object.entries(
+            err.fieldErrors as Record<string, string[]>
+          )
+            .filter(([, v]) => Array.isArray(v) && v.length > 0)
+            .slice(0, 5)
+            .map(([k, v]) => `${k}: ${v[0]}`);
+          if (fieldEntries.length)
+            return `Validation failed - ${fieldEntries.join(", ")}`;
+        }
+        return null;
+      };
+      try {
+        const json = await res.clone().json();
+        if (json && typeof json === "object") {
+          const zodMsg = tryFormatZod(json);
+          if (zodMsg) return zodMsg;
+          const errorVal = (json as any).error;
+          if (typeof errorVal === "string") return errorVal;
+          if (errorVal && typeof errorVal === "object")
+            return JSON.stringify(errorVal);
+          if (typeof (json as any).message === "string")
+            return (json as any).message;
+          return JSON.stringify(json);
+        }
+      } catch {}
+      try {
+        const text = await res.text();
+        if (text) return text;
+      } catch {}
+      return `${res.status} ${res.statusText}`;
+    };
     try {
       setIsSubmitting(true);
       setSyncUserError(null);
@@ -468,14 +556,28 @@ export default function ProfileSetupForm() {
       const interestsLabels = (completeData.interests || [])
         .map((id) => interestOptions.find((opt) => opt.id === id)?.label)
         .filter(Boolean) as string[];
+      const computeAge = (dob?: Date) => {
+        if (!dob) return 18;
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+        if (!Number.isFinite(age) || age < 0) return 18;
+        return age;
+      };
+      const numericAge = computeAge(completeData.birthday as Date | undefined);
       const profileData = {
         name: `${completeData.firstName} ${completeData.lastName}`,
         username: completeData.username,
-        age: completeData.age,
+        age: Number.isFinite(numericAge) ? numericAge : 18,
         gender: completeData.gender,
         birthday: completeData.birthday?.toISOString(),
         bio: completeData.bio || "",
-        profile_photo: completeData.profilePic || undefined,
+        profile_photo:
+          typeof completeData.profilePic === "string" &&
+          /^https?:\/\//i.test(completeData.profilePic)
+            ? (completeData.profilePic as string)
+            : undefined,
         location: completeData.location,
         languages: completeData.languages,
         nationality: completeData.nationality,
@@ -504,7 +606,7 @@ export default function ProfileSetupForm() {
       await user.update({
         unsafeMetadata: {
           imageUrl: completeData.profilePic || undefined,
-          age: completeData.age,
+          age: numericAge,
           gender: completeData.gender,
           birthday: completeData.birthday?.toISOString(),
           bio: completeData.bio,
@@ -543,15 +645,8 @@ export default function ProfileSetupForm() {
       });
 
       if (!profileRes.ok) {
-        let errorMsg = "Failed to save profile";
-        const contentType = profileRes.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const error = await profileRes.json();
-          errorMsg = error.error || errorMsg;
-        } else {
-          errorMsg = await profileRes.text();
-        }
-        throw new Error(errorMsg);
+        const errorMsg = await readErrorMessage(profileRes);
+        throw new Error(`Profile (${profileRes.status}): ${errorMsg}`);
       }
 
       // Step 4: Submit travel preferences data to API
@@ -562,19 +657,12 @@ export default function ProfileSetupForm() {
       });
 
       if (!preferencesRes.ok) {
-        let errorMsg = "Failed to save travel preferences";
-        const contentType = preferencesRes.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const error = await preferencesRes.json();
-          errorMsg = error.error || errorMsg;
-        } else {
-          errorMsg = await preferencesRes.text();
-        }
-        throw new Error(errorMsg);
+        const errorMsg = await readErrorMessage(preferencesRes);
+        throw new Error(`Preferences (${preferencesRes.status}): ${errorMsg}`);
       }
 
       toast.success("Profile saved successfully!");
-      setStep(4);
+      setStep(8);
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast.error(error.message || "Failed to save profile");
@@ -600,7 +688,7 @@ export default function ProfileSetupForm() {
           </span>
         </div>
         <div className="flex space-x-1">
-          {[1, 2, 3, 4].map((stepNum) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((stepNum) => (
             <div key={stepNum} className="flex-1">
               <div
                 className={`h-1.5 rounded-full ${
@@ -613,7 +701,7 @@ export default function ProfileSetupForm() {
       </div>
     ) : null;
 
-  // Render step 1 form - Basic Info
+  // Step 1 - Identity
   const renderStep1 = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -633,7 +721,10 @@ export default function ProfileSetupForm() {
 
       <Form {...step1Form}>
         <form
-          onSubmit={step1Form.handleSubmit(onStep1Submit)}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleNext();
+          }}
           className="space-y-4"
         >
           {/* Name Fields */}
@@ -726,90 +817,6 @@ export default function ProfileSetupForm() {
             )}
           />
 
-          {/* Age and Gender */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <FormField
-              control={step1Form.control}
-              name="age"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Age
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter your age"
-                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg !placeholder:text-muted-foreground"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={step1Form.control}
-              name="gender"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Gender
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground">
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {genderOptions.map((gender) => (
-                        <SelectItem
-                          key={gender}
-                          value={gender}
-                          className="text-sm"
-                        >
-                          {gender}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* Birthday */}
-          <FormField
-            control={step1Form.control}
-            name="birthday"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Date of Birth
-                </FormLabel>
-                <FormControl>
-                  <DatePicker
-                    startYear={1950}
-                    endYear={new Date().getFullYear()}
-                    date={field.value}
-                    onDateChange={field.onChange}
-                    disabled={{
-                      before: new Date(1900, 0, 1),
-                      after: new Date(),
-                    }}
-                  />
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-
           <Button
             type="submit"
             className="!mt-5 w-full h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
@@ -822,7 +829,7 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Render step 2 form - Profile Details
+  // Step 2 - Media & Bio
   const renderStep2 = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -833,16 +840,19 @@ export default function ProfileSetupForm() {
     >
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-1">
-          Complete your profile
+          Profile picture
         </h1>
         <p className="text-sm text-muted-foreground">
-          Add details to personalize your experience
+          Add a photo and short bio
         </p>
       </div>
 
       <Form {...step2Form}>
         <form
-          onSubmit={step2Form.handleSubmit(onStep2Submit)}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleNext();
+          }}
           className="space-y-4"
         >
           {/* Profile Picture */}
@@ -900,8 +910,158 @@ export default function ProfileSetupForm() {
               </FormItem>
             )}
           />
+          {/* Navigation Buttons */}
+          <div className="flex space-x-4 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+            >
+              Continue
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </motion.div>
+  );
 
-          {/* Location */}
+  // Step 3 - Demographics (gender, birthday)
+  const renderDemographics = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">About you</h1>
+        <p className="text-sm text-muted-foreground">Gender and birthday</p>
+      </div>
+
+      <Form {...step1Form}>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleNext();
+          }}
+          className="space-y-4"
+        >
+          <FormField
+            control={step1Form.control}
+            name="birthday"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Date of Birth
+                </FormLabel>
+                <FormControl>
+                  <DatePicker
+                    startYear={1950}
+                    endYear={new Date().getFullYear()}
+                    date={field.value}
+                    onDateChange={field.onChange}
+                    disabled={{
+                      before: new Date(1900, 0, 1),
+                      after: new Date(),
+                    }}
+                  />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={step1Form.control}
+            name="gender"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Gender
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full h-9 text-sm border-border focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {genderOptions.map((gender) => (
+                      <SelectItem
+                        key={gender}
+                        value={gender}
+                        className="text-sm"
+                      >
+                        {gender}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+          <div className="flex space-x-4 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+            >
+              Continue
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </motion.div>
+  );
+
+  // Step 4 - Location / Nationality / Job
+  const renderLocation = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Where are you based?
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Location, nationality and job type
+        </p>
+      </div>
+      <Form {...step2Form}>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleNext();
+          }}
+          className="space-y-4"
+        >
           <FormField
             control={step2Form.control}
             name="location"
@@ -983,8 +1143,6 @@ export default function ProfileSetupForm() {
               </FormItem>
             )}
           />
-
-          {/* Nationality and Job Type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <FormField
               control={step2Form.control}
@@ -1010,7 +1168,7 @@ export default function ProfileSetupForm() {
                             <Earth className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                             {field.value
                               ? nationalityOptions.find(
-                                  (nationality) => nationality === field.value
+                                  (n) => n === field.value
                                 )
                               : "Select nationality"}
                           </div>
@@ -1025,9 +1183,6 @@ export default function ProfileSetupForm() {
                           className="text-sm placeholder:text-muted-foreground"
                         />
                         <CommandList>
-                          {/* <CommandEmpty className="text-sm text-muted-foreground">
-                            No nationality found.
-                          </CommandEmpty> */}
                           <CommandGroup className="max-h-64 overflow-auto">
                             {nationalityOptions.map((nationality) => (
                               <div
@@ -1058,7 +1213,6 @@ export default function ProfileSetupForm() {
                 </FormItem>
               )}
             />
-
             <FormField
               control={step2Form.control}
               name="jobType"
@@ -1082,9 +1236,7 @@ export default function ProfileSetupForm() {
                           <div className="flex items-center text-muted-foreground">
                             <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                             {field.value
-                              ? jobTypeOptions.find(
-                                  (jobType) => jobType === field.value
-                                )
+                              ? jobTypeOptions.find((j) => j === field.value)
                               : "Select job type"}
                           </div>
                           <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0" />
@@ -1098,9 +1250,6 @@ export default function ProfileSetupForm() {
                           className="text-sm placeholder:text-muted-foreground"
                         />
                         <CommandList>
-                          {/* <CommandEmpty className="text-sm text-muted-foreground">
-                            No job type found.
-                          </CommandEmpty> */}
                           <CommandGroup className="max-h-64 overflow-auto">
                             {jobTypeOptions.map((jobType) => (
                               <div
@@ -1132,308 +1281,400 @@ export default function ProfileSetupForm() {
               )}
             />
           </div>
+          <div className="flex space-x-4 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+            >
+              Continue
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </motion.div>
+  );
 
+  // Step 5 - Languages & Interests
+  const renderLanguages = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Languages & interests
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Tell us what you speak and like
+        </p>
+      </div>
+      <Form {...step2Form}>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleNext();
+          }}
+          className="space-y-4"
+        >
           {/* Languages */}
-          <FormField
-            control={step2Form.control}
-            name="languages"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Languages
-                </FormLabel>
-                <Popover open={languageOpen} onOpenChange={setLanguageOpen}>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
-                          !field.value?.length &&
-                            "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                        )}
-                      >
-                        <div className="flex items-center text-muted-foreground">
-                          <MessageSquareText className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                          {field.value?.length
-                            ? `${field.value.length} language${
-                                field.value.length > 1 ? "s" : ""
-                              } selected`
-                            : "Select languages"}
-                        </div>
-                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput
-                        placeholder="Search languages..."
-                        className="text-sm placeholder:text-muted-foreground"
-                      />
-                      <CommandList>
-                        {/* <CommandEmpty className="text-sm text-muted-foreground">
-                          No language found.
-                        </CommandEmpty> */}
-                        <CommandGroup className="max-h-64 overflow-auto">
-                          {languageOptions.map((language) => (
-                            <div
-                              key={language}
-                              className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
-                              onClick={() => {
-                                const newValue = field.value?.includes(language)
-                                  ? field.value.filter((l) => l !== language)
-                                  : [...(field.value || []), language];
-                                field.onChange(newValue);
-                                // Keep popover open for multiple selections
-                                setLanguageOpen(true);
-                              }}
-                            >
-                              {field.value?.includes(language) && (
-                                <CheckIcon
-                                  fontSize="inherit"
-                                  className="mr-2 text-muted-foreground flex-shrink-0"
-                                />
-                              )}
-                              {!field.value?.includes(language) && (
-                                <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
-                              )}
-                              <span>{language}</span>
-                            </div>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                      {field.value?.length > 0 && (
-                        <div className="border-t p-2">
-                          <div className="flex flex-wrap gap-1">
-                            {field.value.map((language) => (
-                              <Badge
-                                key={language}
-                                variant="secondary"
-                                className="text-xs bg-primary text-white px-2 py-1"
-                              >
-                                {language}
-                                <button
-                                  type="button"
-                                  className="ml-1 text-white rounded-full"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    field.onChange(
-                                      field.value.filter((l) => l !== language)
-                                    );
-                                  }}
-                                  title={`Remove ${language}`}
-                                >
-                                  <X className="h-2.5 w-2.5" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div className="border-t p-2 flex justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs bg-white border-input hover:text-foreground"
-                          onClick={() => setLanguageOpen(false)}
-                        >
-                          Done
-                        </Button>
-                      </div>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {field.value?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {field.value.map((language) => (
-                      <Badge
-                        key={language}
-                        variant="secondary"
-                        className="text-xs bg-primary text-white"
-                      >
-                        {language}
-                        <button
-                          type="button"
-                          className="ml-1 text-white"
-                          onClick={() => {
-                            field.onChange(
-                              field.value.filter((l) => l !== language)
-                            );
-                          }}
-                          title={`Remove ${language}`}
-                        >
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-
-          {/* Interests */}
-          <FormField
-            control={step2Form.control}
-            name="interests"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Interests
-                </FormLabel>
-                <Popover open={interestOpen} onOpenChange={setInterestOpen}>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
-                          !field.value?.length &&
-                            "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                        )}
-                      >
-                        <div className="flex items-center text-muted-foreground">
-                          <Lightbulb className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                          {field.value?.length
-                            ? `${field.value.length} interest${
-                                field.value.length > 1 ? "s" : ""
-                              } selected`
-                            : "Select interests"}
-                        </div>
-                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput
-                        placeholder="Search interests..."
-                        className="text-sm placeholder:text-muted-foreground"
-                      />
-                      <CommandList>
-                        {/* <CommandEmpty className="text-sm text-muted-foreground">
-                          No interest found.
-                        </CommandEmpty> */}
-                        <CommandGroup className="max-h-64 overflow-auto">
-                          {interestOptions.map((interest) => (
-                            <div
-                              key={interest.id}
-                              className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
-                              onClick={() => {
-                                const newValue = field.value?.includes(
-                                  interest.id
-                                )
-                                  ? field.value.filter((i) => i !== interest.id)
-                                  : [...(field.value || []), interest.id];
-                                field.onChange(newValue);
-                                // Keep popover open for multiple selections
-                                setInterestOpen(true);
-                              }}
-                            >
-                              {field.value?.includes(interest.id) && (
-                                <CheckIcon
-                                  fontSize="inherit"
-                                  className="mr-2 text-muted-foreground flex-shrink-0"
-                                />
-                              )}
-                              {!field.value?.includes(interest.id) && (
-                                <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
-                              )}
-                              <span>{interest.label}</span>
-                            </div>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                      {field.value?.length > 0 && (
-                        <div className="border-t p-2">
-                          <div className="flex flex-wrap gap-1">
-                            {field.value.map((interestId) => {
-                              const interest = interestOptions.find(
-                                (opt) => opt.id === interestId
-                              );
-                              return interest ? (
-                                <Badge
-                                  key={interest.id}
-                                  variant="secondary"
-                                  className="text-xs bg-primary text-white px-2 py-1"
-                                >
-                                  {interest.label}
-                                  <button
-                                    type="button"
-                                    className="ml-1 text-white rounded-full"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      field.onChange(
-                                        field.value.filter(
-                                          (i) => i !== interestId
-                                        )
-                                      );
-                                    }}
-                                    title={`Remove ${interest.label}`}
-                                  >
-                                    <X className="h-2.5 w-2.5" />
-                                  </button>
-                                </Badge>
-                              ) : null;
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      <div className="border-t p-2 flex justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs bg-white border-input hover:text-foreground"
-                          onClick={() => setInterestOpen(false)}
-                        >
-                          Done
-                        </Button>
-                      </div>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {field.value?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {field.value.map((interestId) => {
-                      const interest = interestOptions.find(
-                        (opt) => opt.id === interestId
-                      );
-                      return interest ? (
-                        <Badge
-                          key={interest.id}
-                          variant="secondary"
-                          className="text-xs bg-primary text-white"
-                        >
-                          {interest.label}
-                          <button
-                            type="button"
-                            className="ml-1 text-white"
-                            onClick={() => {
-                              field.onChange(
-                                field.value.filter((i) => i !== interestId)
-                              );
-                            }}
-                            title={`Remove ${interest.label}`}
+          {(() => {
+            return (
+              <FormField
+                control={step2Form.control}
+                name="languages"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-muted-foreground">
+                      Languages
+                    </FormLabel>
+                    <Popover open={languageOpen} onOpenChange={setLanguageOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
+                              !field.value?.length &&
+                                "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+                            )}
                           >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
+                            <div className="flex items-center text-muted-foreground">
+                              <MessageSquareText className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                              {field.value?.length
+                                ? `${field.value.length} language${field.value.length > 1 ? "s" : ""} selected`
+                                : "Select languages"}
+                            </div>
+                            <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search languages..."
+                            className="text-sm placeholder:text-muted-foreground"
+                          />
+                          <CommandList>
+                            <CommandGroup className="max-h-64 overflow-auto">
+                              {languageOptions.map((language) => (
+                                <div
+                                  key={language}
+                                  className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                  onClick={() => {
+                                    const newValue = field.value?.includes(
+                                      language
+                                    )
+                                      ? field.value.filter(
+                                          (l) => l !== language
+                                        )
+                                      : [...(field.value || []), language];
+                                    field.onChange(newValue);
+                                    setLanguageOpen(true);
+                                  }}
+                                >
+                                  {field.value?.includes(language) ? (
+                                    <CheckIcon
+                                      fontSize="inherit"
+                                      className="mr-2 text-muted-foreground flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
+                                  )}
+                                  <span>{language}</span>
+                                </div>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                          {field.value?.length > 0 && (
+                            <div className="border-t p-2">
+                              <div className="flex flex-wrap gap-1">
+                                {field.value.map((language) => (
+                                  <Badge
+                                    key={language}
+                                    variant="secondary"
+                                    className="text-xs bg-primary text-white px-2 py-1"
+                                  >
+                                    {language}
+                                    <button
+                                      type="button"
+                                      className="ml-1 text-white rounded-full"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        field.onChange(
+                                          field.value.filter(
+                                            (l) => l !== language
+                                          )
+                                        );
+                                      }}
+                                      title={`Remove ${language}`}
+                                    >
+                                      <X className="h-2.5 w-2.5" />
+                                    </button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="border-t p-2 flex justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs bg-white border-input hover:text-foreground"
+                              onClick={() => setLanguageOpen(false)}
+                            >
+                              Done
+                            </Button>
+                          </div>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {field.value?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {field.value.map((language) => (
+                          <Badge
+                            key={language}
+                            variant="secondary"
+                            className="text-xs bg-primary text-white"
+                          >
+                            {language}
+                            <button
+                              type="button"
+                              className="ml-1 text-white"
+                              onClick={() => {
+                                field.onChange(
+                                  field.value.filter((l) => l !== language)
+                                );
+                              }}
+                              title={`Remove ${language}`}
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <FormMessage className="text-xs" />
+                  </FormItem>
                 )}
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
+              />
+            );
+          })()}
+          {/* Interests */}
+          {(() => {
+            return (
+              <FormField
+                control={step2Form.control}
+                name="interests"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-muted-foreground">
+                      Interests
+                    </FormLabel>
+                    <Popover open={interestOpen} onOpenChange={setInterestOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
+                              !field.value?.length &&
+                                "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+                            )}
+                          >
+                            <div className="flex items-center text-muted-foreground">
+                              <Lightbulb className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                              {field.value?.length
+                                ? `${field.value.length} interest${field.value.length > 1 ? "s" : ""} selected`
+                                : "Select interests"}
+                            </div>
+                            <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search interests..."
+                            className="text-sm placeholder:text-muted-foreground"
+                          />
+                          <CommandList>
+                            <CommandGroup className="max-h-64 overflow-auto">
+                              {interestOptions.map((interest) => (
+                                <div
+                                  key={interest.id}
+                                  className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                  onClick={() => {
+                                    const newValue = field.value?.includes(
+                                      interest.id
+                                    )
+                                      ? field.value.filter(
+                                          (i) => i !== interest.id
+                                        )
+                                      : [...(field.value || []), interest.id];
+                                    field.onChange(newValue);
+                                    setInterestOpen(true);
+                                  }}
+                                >
+                                  {field.value?.includes(interest.id) ? (
+                                    <CheckIcon
+                                      fontSize="inherit"
+                                      className="mr-2 text-muted-foreground flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
+                                  )}
+                                  <span>{interest.label}</span>
+                                </div>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                          {field.value?.length > 0 && (
+                            <div className="border-t p-2">
+                              <div className="flex flex-wrap gap-1">
+                                {field.value.map((interestId) => {
+                                  const interest = interestOptions.find(
+                                    (opt) => opt.id === interestId
+                                  );
+                                  return interest ? (
+                                    <Badge
+                                      key={interest.id}
+                                      variant="secondary"
+                                      className="text-xs bg-primary text-white px-2 py-1"
+                                    >
+                                      {interest.label}
+                                      <button
+                                        type="button"
+                                        className="ml-1 text-white rounded-full"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          field.onChange(
+                                            field.value.filter(
+                                              (i) => i !== interestId
+                                            )
+                                          );
+                                        }}
+                                        title={`Remove ${interest.label}`}
+                                      >
+                                        <X className="h-2.5 w-2.5" />
+                                      </button>
+                                    </Badge>
+                                  ) : null;
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          <div className="border-t p-2 flex justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs bg-white border-input hover:text-foreground"
+                              onClick={() => setInterestOpen(false)}
+                            >
+                              Done
+                            </Button>
+                          </div>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {field.value?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {field.value.map((interestId) => {
+                          const interest = interestOptions.find(
+                            (opt) => opt.id === interestId
+                          );
+                          return interest ? (
+                            <Badge
+                              key={interest.id}
+                              variant="secondary"
+                              className="text-xs bg-primary text-white"
+                            >
+                              {interest.label}
+                              <button
+                                type="button"
+                                className="ml-1 text-white"
+                                onClick={() => {
+                                  field.onChange(
+                                    field.value.filter((i) => i !== interestId)
+                                  );
+                                }}
+                                title={`Remove ${interest.label}`}
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            );
+          })()}
+          <div className="flex space-x-4 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+            >
+              Continue
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </motion.div>
+  );
 
-          {/* Religion and Personality */}
+  // Step 6 - Lifestyle
+  const renderLifestyle = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4"
+    >
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-1">Lifestyle</h1>
+        <p className="text-sm text-muted-foreground">
+          Religion, preferences and personality
+        </p>
+      </div>
+      <Form {...step2Form}>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleNext();
+          }}
+          className="space-y-4"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <FormField
               control={step2Form.control}
@@ -1468,7 +1709,6 @@ export default function ProfileSetupForm() {
                 </FormItem>
               )}
             />
-
             <FormField
               control={step2Form.control}
               name="personality"
@@ -1487,13 +1727,9 @@ export default function ProfileSetupForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {personalityOptions.map((personality) => (
-                        <SelectItem
-                          key={personality}
-                          value={personality}
-                          className="text-sm"
-                        >
-                          {personality}
+                      {personalityOptions.map((p) => (
+                        <SelectItem key={p} value={p} className="text-sm">
+                          {p}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1503,8 +1739,6 @@ export default function ProfileSetupForm() {
               )}
             />
           </div>
-
-          {/* Smoking and Drinking */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <FormField
               control={step2Form.control}
@@ -1539,7 +1773,6 @@ export default function ProfileSetupForm() {
                 </FormItem>
               )}
             />
-
             <FormField
               control={step2Form.control}
               name="drinking"
@@ -1574,8 +1807,6 @@ export default function ProfileSetupForm() {
               )}
             />
           </div>
-
-          {/* Food Preference */}
           <FormField
             control={step2Form.control}
             name="foodPreference"
@@ -1609,8 +1840,6 @@ export default function ProfileSetupForm() {
               </FormItem>
             )}
           />
-
-          {/* Navigation Buttons */}
           <div className="flex space-x-4 pt-3">
             <Button
               type="button"
@@ -1634,8 +1863,8 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Render step 3 form - Travel Preferences
-  const renderStep3 = () => (
+  // Step 7 - Travel Preferences
+  const renderTravel = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -1654,7 +1883,10 @@ export default function ProfileSetupForm() {
 
       <Form {...step3Form}>
         <form
-          onSubmit={step3Form.handleSubmit(onStep3Submit)}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleNext();
+          }}
           className="space-y-4"
         >
           {/* Preferred Destinations */}
@@ -1862,8 +2094,12 @@ export default function ProfileSetupForm() {
           <AnimatePresence mode="wait">
             {step === 1 && <div key="step1">{renderStep1()}</div>}
             {step === 2 && <div key="step2">{renderStep2()}</div>}
-            {step === 3 && <div key="step3">{renderStep3()}</div>}
-            {step === 4 && <div key="step4">{renderStep4()}</div>}
+            {step === 3 && <div key="step3">{renderDemographics()}</div>}
+            {step === 4 && <div key="step4">{renderLocation()}</div>}
+            {step === 5 && <div key="step5">{renderLanguages()}</div>}
+            {step === 6 && <div key="step6">{renderLifestyle()}</div>}
+            {step === 7 && <div key="step7">{renderTravel()}</div>}
+            {step === 8 && <div key="step8">{renderStep4()}</div>}
           </AnimatePresence>
         </CardContent>
       </Card>
