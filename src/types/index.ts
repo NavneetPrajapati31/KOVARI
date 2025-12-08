@@ -1,4 +1,10 @@
-export interface StaticAttributes {
+  // -----------------------------------------------------------------------------
+  //   File : Types
+  // -----------------------------------------------------------------------------
+  // Location: /src/types/index.ts
+
+  export interface StaticAttributes {
+  name?: string;
   age: number;
   gender: string;
   personality: string;
@@ -6,16 +12,18 @@ export interface StaticAttributes {
     lat: number;
     lon: number;
   };
-  smoking: boolean;
-  drinking: boolean;
+  smoking: string;
+  drinking: string;
   religion: string;
   interests: string[];
-  language: string[];
+  language: string;
+  languages?: string[];
   nationality: string;
   profession: string;
+  avatar?: string;
 }
 
-export interface SoloSession {
+  export interface SoloSession {
   userId?: string;
   destination: {
     name?: string;
@@ -26,5 +34,6 @@ export interface SoloSession {
   startDate: string;
   endDate: string;
   mode: string;
-  static_attributes: StaticAttributes;
+  interests?: string[];
+  static_attributes?: StaticAttributes; // Optional now - only for existing sessions
 } 
