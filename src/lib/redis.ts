@@ -1,4 +1,9 @@
 // lib/redis.ts
+import 'server-only';
+// Prevent accidental client-side imports
+if (typeof window !== 'undefined') {
+  throw new Error('Do not import lib/redis in client code. Use server APIs instead.');
+}
 import { createClient } from 'redis';
 
 // For Next.js, we need to ensure environment variables are loaded
