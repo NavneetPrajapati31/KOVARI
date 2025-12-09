@@ -44,6 +44,70 @@ const INTEREST_OPTIONS = [
   "Relaxation",
   "Shopping",
   "Sports",
+  "Photography",
+  "History",
+  "Beach",
+  "Mountains",
+  "Urban",
+  "Rural",
+  "Wellness",
+  "Education",
+];
+
+const PERSONALITY_OPTIONS = ["Any", "Extrovert", "Introvert", "Ambivert"];
+
+const SMOKING_OPTIONS = ["Any", "Yes", "No"];
+
+const DRINKING_OPTIONS = ["Any", "Yes", "No", "Socially"];
+
+const BUDGET_RANGE_OPTIONS = [
+  "Any",
+  "Budget (₹0-₹50,000)",
+  "Mid-range (₹50,000-₹1,00,000)",
+  "Luxury (₹1,00,000+)",
+];
+
+const NATIONALITY_OPTIONS = [
+  "Any",
+  "Indian",
+  "American",
+  "British",
+  "Canadian",
+  "Australian",
+  "German",
+  "French",
+  "Japanese",
+  "Chinese",
+  "Korean",
+  "Singaporean",
+  "Thai",
+  "Vietnamese",
+  "Indonesian",
+  "Malaysian",
+  "Filipino",
+  "Other",
+];
+
+const LANGUAGE_OPTIONS = [
+  "Any",
+  "English",
+  "Hindi",
+  "Spanish",
+  "French",
+  "German",
+  "Italian",
+  "Portuguese",
+  "Russian",
+  "Chinese",
+  "Japanese",
+  "Korean",
+  "Arabic",
+  "Thai",
+  "Vietnamese",
+  "Indonesian",
+  "Malay",
+  "Tagalog",
+  "Other",
 ];
 const DESTINATION_OPTIONS = [
   "Any",
@@ -74,6 +138,12 @@ interface FiltersState {
   ageMax: number;
   gender: string;
   interests: string[];
+  personality: string;
+  smoking: string;
+  drinking: string;
+  budgetRange: string;
+  nationality: string;
+  languages: string[];
 }
 
 const DEFAULT_FILTERS: FiltersState = {
@@ -84,6 +154,12 @@ const DEFAULT_FILTERS: FiltersState = {
   ageMax: 99,
   gender: "Any",
   interests: [],
+  personality: "Any",
+  smoking: "Any",
+  drinking: "Any",
+  budgetRange: "Any",
+  nationality: "Any",
+  languages: [],
 };
 
 const DEBOUNCE_MS = 300;
@@ -125,6 +201,12 @@ const filtersSchema = z
     ageMax: z.number().min(18, "Min age is 18").max(100, "Max age is 100"),
     gender: z.string(),
     interests: z.array(z.string()),
+    personality: z.string(),
+    smoking: z.string(),
+    drinking: z.string(),
+    budgetRange: z.string(),
+    nationality: z.string(),
+    languages: z.array(z.string()),
   })
   .refine((data) => data.ageMin <= data.ageMax, {
     message: "Minimum age must be less than or equal to maximum age.",
@@ -368,6 +450,36 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
       ? "Destination"
       : safeFilters.destination;
 
+  const getPersonalityLabel = () =>
+    !safeFilters.personality || safeFilters.personality === "Any"
+      ? "Personality"
+      : safeFilters.personality;
+
+  const getSmokingLabel = () =>
+    !safeFilters.smoking || safeFilters.smoking === "Any"
+      ? "Smoking"
+      : safeFilters.smoking;
+
+  const getDrinkingLabel = () =>
+    !safeFilters.drinking || safeFilters.drinking === "Any"
+      ? "Drinking"
+      : safeFilters.drinking;
+
+  const getBudgetRangeLabel = () =>
+    !safeFilters.budgetRange || safeFilters.budgetRange === "Any"
+      ? "Budget"
+      : safeFilters.budgetRange;
+
+  const getNationalityLabel = () =>
+    !safeFilters.nationality || safeFilters.nationality === "Any"
+      ? "Nationality"
+      : safeFilters.nationality;
+
+  const getLanguagesLabel = () =>
+    safeFilters.languages.length === 0
+      ? "Languages"
+      : safeFilters.languages.join(", ");
+
   // Build RangeCalendar value object conditionally
   const startCal = dateToCalendarDate(safeFilters.dateStart);
   const endCal = dateToCalendarDate(safeFilters.dateEnd);
@@ -390,6 +502,12 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
     if (safeFilters.ageMin !== 18 || safeFilters.ageMax !== 99) count++;
     if (safeFilters.gender && safeFilters.gender !== "Any") count++;
     if (safeFilters.interests.length > 0) count++;
+    if (safeFilters.personality && safeFilters.personality !== "Any") count++;
+    if (safeFilters.smoking && safeFilters.smoking !== "Any") count++;
+    if (safeFilters.drinking && safeFilters.drinking !== "Any") count++;
+    if (safeFilters.budgetRange && safeFilters.budgetRange !== "Any") count++;
+    if (safeFilters.nationality && safeFilters.nationality !== "Any") count++;
+    if (safeFilters.languages.length > 0) count++;
     return count;
   };
 
@@ -687,6 +805,207 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     >
                       {INTEREST_OPTIONS.map((interest) => (
                         <ListboxItem key={interest}>{interest}</ListboxItem>
+                      ))}
+                    </Listbox>
+                  </ListboxWrapper>
+                </div>
+
+                {/* Personality */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Personality
+                  </h3>
+                  <ButtonGroup className="w-full">
+                    {PERSONALITY_OPTIONS.filter((option) => option !== "Any").map(
+                      (option) => (
+                        <HeroButton
+                          key={option}
+                          variant={
+                            mobileFilters.personality === option
+                              ? "solid"
+                              : "bordered"
+                          }
+                          color={
+                            mobileFilters.personality === option
+                              ? "primary"
+                              : "default"
+                          }
+                          onPress={() =>
+                            setMobileFilters((prev) => ({
+                              ...prev,
+                              personality: option,
+                            }))
+                          }
+                          className="flex-1"
+                        >
+                          {option}
+                        </HeroButton>
+                      )
+                    )}
+                  </ButtonGroup>
+                </div>
+
+                {/* Smoking */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Smoking
+                  </h3>
+                  <ButtonGroup className="w-full">
+                    {SMOKING_OPTIONS.filter((option) => option !== "Any").map(
+                      (option) => (
+                        <HeroButton
+                          key={option}
+                          variant={
+                            mobileFilters.smoking === option
+                              ? "solid"
+                              : "bordered"
+                          }
+                          color={
+                            mobileFilters.smoking === option
+                              ? "primary"
+                              : "default"
+                          }
+                          onPress={() =>
+                            setMobileFilters((prev) => ({
+                              ...prev,
+                              smoking: option,
+                            }))
+                          }
+                          className="flex-1"
+                        >
+                          {option}
+                        </HeroButton>
+                      )
+                    )}
+                  </ButtonGroup>
+                </div>
+
+                {/* Drinking */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Drinking
+                  </h3>
+                  <ButtonGroup className="w-full">
+                    {DRINKING_OPTIONS.filter((option) => option !== "Any").map(
+                      (option) => (
+                        <HeroButton
+                          key={option}
+                          variant={
+                            mobileFilters.drinking === option
+                              ? "solid"
+                              : "bordered"
+                          }
+                          color={
+                            mobileFilters.drinking === option
+                              ? "primary"
+                              : "default"
+                          }
+                          onPress={() =>
+                            setMobileFilters((prev) => ({
+                              ...prev,
+                              drinking: option,
+                            }))
+                          }
+                          className="flex-1"
+                        >
+                          {option}
+                        </HeroButton>
+                      )
+                    )}
+                  </ButtonGroup>
+                </div>
+
+                {/* Budget Range */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Budget Range
+                  </h3>
+                  <ButtonGroup className="w-full">
+                    {BUDGET_RANGE_OPTIONS.filter((option) => option !== "Any").map(
+                      (option) => (
+                        <HeroButton
+                          key={option}
+                          variant={
+                            mobileFilters.budgetRange === option
+                              ? "solid"
+                              : "bordered"
+                          }
+                          color={
+                            mobileFilters.budgetRange === option
+                              ? "primary"
+                              : "default"
+                          }
+                          onPress={() =>
+                            setMobileFilters((prev) => ({
+                              ...prev,
+                              budgetRange: option,
+                            }))
+                          }
+                          className="flex-1"
+                        >
+                          {option}
+                        </HeroButton>
+                      )
+                    )}
+                  </ButtonGroup>
+                </div>
+
+                {/* Nationality */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Nationality
+                  </h3>
+                  <ButtonGroup className="w-full">
+                    {NATIONALITY_OPTIONS.filter((option) => option !== "Any").map(
+                      (option) => (
+                        <HeroButton
+                          key={option}
+                          variant={
+                            mobileFilters.nationality === option
+                              ? "solid"
+                              : "bordered"
+                          }
+                          color={
+                            mobileFilters.nationality === option
+                              ? "primary"
+                              : "default"
+                          }
+                          onPress={() =>
+                            setMobileFilters((prev) => ({
+                              ...prev,
+                              nationality: option,
+                            }))
+                          }
+                          className="flex-1"
+                        >
+                          {option}
+                        </HeroButton>
+                      )
+                    )}
+                  </ButtonGroup>
+                </div>
+
+                {/* Languages */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">
+                    Languages
+                  </h3>
+                  <ListboxWrapper>
+                    <Listbox
+                      disallowEmptySelection
+                      aria-label="Languages selection"
+                      selectedKeys={new Set(mobileFilters.languages)}
+                      selectionMode="multiple"
+                      variant="flat"
+                      onSelectionChange={(keys) => {
+                        setMobileFilters((prev) => ({
+                          ...prev,
+                          languages: Array.from(keys) as string[],
+                        }));
+                      }}
+                    >
+                      {LANGUAGE_OPTIONS.map((language) => (
+                        <ListboxItem key={language}>{language}</ListboxItem>
                       ))}
                     </Listbox>
                   </ListboxWrapper>
@@ -1051,6 +1370,289 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   }}
                 >
                   {interest}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Personality */}
+          <DropdownMenu
+            open={openDropdown === "personality"}
+            onOpenChange={(open) => setOpenDropdown(open ? "personality" : null)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "personality" ? "text-primary" : ""
+                } font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent`}
+                aria-label="Personality filter"
+              >
+                {getPersonalityLabel()}
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-3 min-w-[140px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+              {PERSONALITY_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option}
+                  className={
+                    "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                  }
+                  aria-pressed={safeFilters.personality === option}
+                  tabIndex={0}
+                  aria-label={option}
+                  onClick={() =>
+                    handleValidatedFilterChange({
+                      ...safeFilters,
+                      personality: option,
+                    })
+                  }
+                >
+                  {option}
+                  {safeFilters.personality === option && (
+                    <Check
+                      className="w-4 h-4 ml-auto text-primary"
+                      aria-hidden="true"
+                    />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Smoking */}
+          <DropdownMenu
+            open={openDropdown === "smoking"}
+            onOpenChange={(open) => setOpenDropdown(open ? "smoking" : null)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "smoking" ? "text-primary" : ""
+                } font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent`}
+                aria-label="Smoking filter"
+              >
+                {getSmokingLabel()}
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-3 min-w-[140px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+              {SMOKING_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option}
+                  className={
+                    "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                  }
+                  aria-pressed={safeFilters.smoking === option}
+                  tabIndex={0}
+                  aria-label={option}
+                  onClick={() =>
+                    handleValidatedFilterChange({
+                      ...safeFilters,
+                      smoking: option,
+                    })
+                  }
+                >
+                  {option}
+                  {safeFilters.smoking === option && (
+                    <Check
+                      className="w-4 h-4 ml-auto text-primary"
+                      aria-hidden="true"
+                    />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Drinking */}
+          <DropdownMenu
+            open={openDropdown === "drinking"}
+            onOpenChange={(open) => setOpenDropdown(open ? "drinking" : null)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "drinking" ? "text-primary" : ""
+                } font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent`}
+                aria-label="Drinking filter"
+              >
+                {getDrinkingLabel()}
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-3 min-w-[140px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+              {DRINKING_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option}
+                  className={
+                    "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                  }
+                  aria-pressed={safeFilters.drinking === option}
+                  tabIndex={0}
+                  aria-label={option}
+                  onClick={() =>
+                    handleValidatedFilterChange({
+                      ...safeFilters,
+                      drinking: option,
+                    })
+                  }
+                >
+                  {option}
+                  {safeFilters.drinking === option && (
+                    <Check
+                      className="w-4 h-4 ml-auto text-primary"
+                      aria-hidden="true"
+                    />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Budget Range */}
+          <DropdownMenu
+            open={openDropdown === "budgetRange"}
+            onOpenChange={(open) => setOpenDropdown(open ? "budgetRange" : null)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "budgetRange" ? "text-primary" : ""
+                } font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent`}
+                aria-label="Budget range filter"
+              >
+                {getBudgetRangeLabel()}
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-3 min-w-[200px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+              {BUDGET_RANGE_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option}
+                  className={
+                    "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                  }
+                  aria-pressed={safeFilters.budgetRange === option}
+                  tabIndex={0}
+                  aria-label={option}
+                  onClick={() =>
+                    handleValidatedFilterChange({
+                      ...safeFilters,
+                      budgetRange: option,
+                    })
+                  }
+                >
+                  {option}
+                  {safeFilters.budgetRange === option && (
+                    <Check
+                      className="w-4 h-4 ml-auto text-primary"
+                      aria-hidden="true"
+                    />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Nationality */}
+          <DropdownMenu
+            open={openDropdown === "nationality"}
+            onOpenChange={(open) => setOpenDropdown(open ? "nationality" : null)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "nationality" ? "text-primary" : ""
+                } font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent`}
+                aria-label="Nationality filter"
+              >
+                {getNationalityLabel()}
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-3 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+              {NATIONALITY_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option}
+                  className={
+                    "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                  }
+                  aria-pressed={safeFilters.nationality === option}
+                  tabIndex={0}
+                  aria-label={option}
+                  onClick={() =>
+                    handleValidatedFilterChange({
+                      ...safeFilters,
+                      nationality: option,
+                    })
+                  }
+                >
+                  {option}
+                  {safeFilters.nationality === option && (
+                    <Check
+                      className="w-4 h-4 ml-auto text-primary"
+                      aria-hidden="true"
+                    />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Languages */}
+          <DropdownMenu
+            open={openDropdown === "languages"}
+            onOpenChange={(open) => setOpenDropdown(open ? "languages" : null)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={`rounded-full border-primary/30 bg-card px-4 py-2 text-muted-foreground hover:text-primary  ${
+                  openDropdown === "languages" ? "text-primary" : ""
+                } font-medium flex items-center justify-between focus:outline-none focus:ring-0 focus:ring-transparent`}
+                aria-label="Languages filter"
+              >
+                {getLanguagesLabel()}
+                <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-3 min-w-[220px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-none">
+              {LANGUAGE_OPTIONS.map((language) => (
+                <DropdownMenuItem
+                  key={language}
+                  className={
+                    "w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground"
+                  }
+                  aria-pressed={safeFilters.languages.includes(language)}
+                  tabIndex={0}
+                  aria-label={language}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const languages = safeFilters.languages.includes(language)
+                      ? safeFilters.languages.filter((l) => l !== language)
+                      : [...safeFilters.languages, language];
+                    handleValidatedFilterChange({ ...safeFilters, languages });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      const languages = safeFilters.languages.includes(language)
+                        ? safeFilters.languages.filter((l) => l !== language)
+                        : [...safeFilters.languages, language];
+                      handleValidatedFilterChange({
+                        ...safeFilters,
+                        languages,
+                      });
+                    }
+                  }}
+                >
+                  {language}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

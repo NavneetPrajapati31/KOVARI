@@ -264,7 +264,7 @@ export default function ItineraryUI() {
         <div className="text-center">
           <p className="text-sm text-gray-600">No itinerary events found</p>
           <p className="text-xs text-gray-500">
-            Create some events in your groups' itineraries to see them here
+            Create some events in your groups&apos; itineraries to see them here
           </p>
         </div>
       </div>
