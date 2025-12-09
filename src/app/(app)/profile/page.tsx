@@ -1,3 +1,7 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 import { UserProfile } from "@/features/profile/components/user-profile";
 import type { UserProfile as UserProfileType } from "@/features/profile/components/user-profile";
 import { createServerClient } from "@supabase/ssr";
