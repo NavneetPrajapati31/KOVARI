@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node quick-start.js && next dev",
+    "dev:admin": "cd apps/admin && npm run dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
