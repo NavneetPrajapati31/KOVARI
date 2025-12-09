@@ -6,15 +6,24 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
 
   async function handleLogin() {
-    const res = await fetch("/api/admin/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (res.ok) {
-      window.location.href = "/dashboard";
-    } else {
-      alert("Invalid admin credentials");
+      if (res.ok) {
+        window.location.href = "/dashboard";
+      } else {
+        const data = await res.json();
+        alert(data.error || "Invalid admin credentials");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("An error occurred. Please try again.");
     }
   }
 
@@ -37,7 +46,7 @@ export default function AdminLogin() {
 
       <button
         onClick={handleLogin}
-        className="mt-4 px-4 py-2 bg-black text-white"
+        className="mt-4 px-4 py-2 bg-black text-white hover:cursor-pointer"
       >
         Login
       </button>

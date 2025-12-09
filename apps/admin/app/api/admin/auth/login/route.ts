@@ -1,29 +1,67 @@
 import { NextResponse } from "next/server";
-import redis from "@/lib/redis"; // use your existing redis wrapper
+import { randomUUID } from "crypto";
+import { ensureRedisConnection } from "@/lib/redis";
 
 export async function POST(req: Request) {
-  const { email, password } = await req.json();
+  try {
+    const { email, password } = await req.json();
 
-  const validAdmins = [
-    {
-      email: process.env.ADMIN_EMAIL,
-      password: process.env.ADMIN_PASSWORD,
-      role: "super_admin",
-    },
-  ];
+    // Check if environment variables are set
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
-  const admin = validAdmins.find(
-    (u) => u.email === email && u.password === password
-  );
+    if (!adminEmail || !adminPassword) {
+      console.error(
+        "ADMIN_EMAIL or ADMIN_PASSWORD not set in environment variables"
+      );
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
 
-  if (!admin) return NextResponse.json({ error: "Invalid" }, { status: 401 });
+    const validAdmins = [
+      {
+        email: adminEmail,
+        password: adminPassword,
+        role: "super_admin",
+      },
+    ];
 
-  // Store session
-  const sessionId = `admin:${crypto.randomUUID()}`;
-  await redis.setEx(sessionId, 60 * 60 * 6, JSON.stringify(admin));
+    const admin = validAdmins.find(
+      (u) => u.email === email && u.password === password
+    );
 
-  const res = NextResponse.json({ success: true });
-  res.cookies.set("admin_session", sessionId, { httpOnly: true });
+    if (!admin) {
+      console.log("Login attempt failed:", {
+        email,
+        providedPassword: password ? "***" : "missing",
+      });
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
 
-  return res;
+    // Store session
+    const redisClient = await ensureRedisConnection();
+    const sessionId = `admin:${randomUUID()}`;
+    await redisClient.setEx(sessionId, 60 * 60 * 6, JSON.stringify(admin));
+
+    const res = NextResponse.json({ success: true });
+    res.cookies.set("admin_session", sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return res;
+  } catch (error) {
+    console.error("Login route error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
