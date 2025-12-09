@@ -1,13 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { ExploreSidebar } from "@/features/explore/components/ExploreSidebar";
 import { ResultsDisplay } from "@/features/explore/components/ResultsDisplay";
 import { SearchData, Filters } from "@/features/explore/types";
 
 export default function ExplorePage() {
+  const searchParams = useSearchParams();
   const { user } = useUser();
+
+  // Get pre-filled destination from URL
+  const getPrefilledDestination = () => {
+    return searchParams.get("destination") || "";
+  };
 
   // State management
   const [activeTab, setActiveTab] = useState(0);
@@ -20,7 +27,7 @@ export default function ExplorePage() {
 
   // Search form state
   const [searchData, setSearchData] = useState<SearchData>({
-    destination: "",
+    destination: getPrefilledDestination(),
     budget: 20000,
     startDate: new Date(),
     endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // 4 days from now
@@ -40,6 +47,14 @@ export default function ExplorePage() {
     nationality: "Any",
     languages: [],
   });
+
+  // Update destination when URL changes
+  useEffect(() => {
+    const newDestination = getPrefilledDestination();
+    if (newDestination && newDestination !== searchData.destination) {
+      setSearchData(prev => ({ ...prev, destination: newDestination }));
+    }
+  }, [searchParams, searchData.destination]);
 
   // Page loading effect
   useEffect(() => {
