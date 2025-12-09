@@ -330,7 +330,7 @@ export default function App({
               className="bg-transparent duration-300 text-foreground p-0 m-0 rounded-full flex items-center self-start sm:self-center"
               aria-label="Inbox"
             >
-              <Plus className="h-5 w-5 md:h-6 md:w-6" />
+              <Plus className="h-5 w-5  sm:h-6 sm:w-6" />
             </div>
           </Link>
           <Link href="/chat" className="">
@@ -340,15 +340,15 @@ export default function App({
             >
               {totalUnreadCount > 0 ? (
                 <Badge color="primary" size="md" content={totalUnreadCount}>
-                  <Send className="h-4 w-4  md:h-5 md:w-5" />
+                  <Send className="h-4 w-4  sm:h-5 sm:w-5" />
                 </Badge>
               ) : (
-                <Send className="h-4 w-4  md:h-5 md:w-5" />
+                <Send className="h-4 w-4  sm:h-5 sm:w-5" />
               )}
             </div>
           </Link>
           {!isLoaded || profilePhotoLoading ? (
-            <User className="h-5 w-5  md:h-6 md:w-6" />
+            <User className="h-5 w-5  sm:h-6 sm:w-6" />
           ) : isSignedIn ? (
             <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
               <DropdownMenuTrigger asChild>
@@ -364,7 +364,7 @@ export default function App({
                   src={profilePhotohref || user?.imageUrl}
                 /> */}
                 <div className="hover:cursor-pointer">
-                  <User className="h-5 w-5  md:h-6 md:w-6" />
+                  <User className="h-5 w-5  sm:h-6 sm:w-6" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-sm transition-all duration-300 ease-in-out border-border mr-8">
