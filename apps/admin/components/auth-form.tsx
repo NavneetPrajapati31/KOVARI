@@ -73,7 +73,7 @@ export default function AuthForm() {
   };
 
   return (
-    <div className="w-full px-7 mx-auto max-w-md space-y-4 py-7 sm:px-7 sm:max-w-md md:max-w-lg lg:max-w-xl custom-autofill border-1 border-border rounded-lg bg-card shadow-none">
+    <div className="w-full px-7 mx-auto max-w-md space-y-4 py-7 sm:px-7 sm:max-w-md md:max-w-lg lg:max-w-xl custom-autofill border border-border rounded-lg bg-card shadow-none">
       {/* Header */}
       <div className="space-y-0.5">
         <h1 className="text-xl font-bold text-foreground">

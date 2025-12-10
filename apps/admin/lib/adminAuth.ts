@@ -14,7 +14,7 @@ export async function requireAdmin() {
   const supabase = createRouteHandlerSupabaseClient();
   const { data: adminData, error } = await supabase
     .from("admins")
-    .select("email")
+    .select("id, email")
     .eq("email", email.toLowerCase())
     .maybeSingle();
 
@@ -27,5 +27,5 @@ export async function requireAdmin() {
     redirect("/not-authorized");
   }
 
-  return { userId, email };
+  return { adminId: adminData.id, email: adminData.email };
 }
