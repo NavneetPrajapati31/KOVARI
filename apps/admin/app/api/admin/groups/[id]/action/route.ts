@@ -5,7 +5,7 @@ import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 type GroupAction = "approve" | "reject" | "remove";
@@ -13,7 +13,8 @@ type GroupAction = "approve" | "reject" | "remove";
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { adminId } = await requireAdmin();
-    const groupId = params.id;
+    const { id } = await params;
+    const groupId = id;
     const body = await req.json();
     const action: GroupAction = body.action;
     const reason: string | undefined = body.reason;

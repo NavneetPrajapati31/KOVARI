@@ -5,7 +5,7 @@ import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 type FlagAction =
@@ -18,7 +18,8 @@ type FlagAction =
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { adminId } = await requireAdmin();
-    const flagId = params.id;
+    const { id } = await params;
+    const flagId = id;
     const body = await req.json();
     const action: FlagAction = body.action;
     const reason: string | undefined = body.reason;

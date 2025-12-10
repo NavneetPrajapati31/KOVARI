@@ -4,13 +4,14 @@ import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     await requireAdmin();
-    const profileId = params.id;
+    const { id } = await params;
+    const profileId = id;
 
     // Get profile + banned state
     const { data: profile, error: profileError } = await supabaseAdmin

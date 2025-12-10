@@ -5,7 +5,7 @@ import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 type UserAction = "verify" | "ban" | "suspend" | "unban";
@@ -13,7 +13,8 @@ type UserAction = "verify" | "ban" | "suspend" | "unban";
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { adminId } = await requireAdmin();
-    const profileId = params.id;
+    const { id } = await params;
+    const profileId = id;
     const body = await req.json();
     const action: UserAction = body.action;
     const reason: string | undefined = body.reason;

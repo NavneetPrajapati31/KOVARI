@@ -4,13 +4,14 @@ import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 
 interface Params {
-  params: { key: string };
+  params: Promise<{ key: string }>;
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { adminId } = await requireAdmin();
-    const sessionKey = decodeURIComponent(params.key); // key comes URL-encoded
+    const { key } = await params;
+    const sessionKey = decodeURIComponent(key); // key comes URL-encoded
     const body = await req.json().catch(() => ({}));
     const confirm = !!body.confirm;
 
