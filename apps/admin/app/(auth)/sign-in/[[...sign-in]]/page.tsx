@@ -5,7 +5,7 @@ export default function SignInPage() {
     <div className="h-screen flex items-center">
       <div className="flex-1 flex items-center justify-center h-full">
         <div className="w-full p-6 flex items-center justify-center">
-          <AuthForm mode="sign-in" />
+          <AuthForm />
         </div>
       </div>
     </div>
