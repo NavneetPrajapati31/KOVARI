@@ -22,6 +22,8 @@
     "baseUrl": ".",
     "paths": {
       "@/lib/*": ["../../src/lib/*"],
+      "@/admin-lib/*": ["./lib/*"],
+      "@/shared/*": ["../../src/shared/*"],
       "@/*": ["./*"]
     }
   },
