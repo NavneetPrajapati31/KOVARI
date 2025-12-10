@@ -119,3 +119,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+.custom-autofill input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px var(--card) inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+}
+
+.custom-autofill input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px var(--card) inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+}

@@ -14,14 +14,8 @@ export default function NotAuthorizedPage() {
           administrator for access.
         </p>
         <div className="flex flex-col items-center gap-2 pt-2">
-          <a
-            href="/sign-in"
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
-          >
-            Switch account
-          </a>
           <SignOutButton redirectUrl="/sign-in">
-            <button className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition hover:bg-muted hover:cursor-pointer">
+            <button className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-foreground px-4 text-sm font-medium text-background transition hover:cursor-pointer">
               Sign out
             </button>
           </SignOutButton>
