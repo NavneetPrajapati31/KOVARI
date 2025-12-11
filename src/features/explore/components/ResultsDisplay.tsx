@@ -90,7 +90,7 @@ export const ResultsDisplay = ({
   };
 
   return (
-    <div className="flex-1 bg-background overflow-hidden">
+    <div className="flex-1 bg-background overflow-y-auto">
       {/* Loading Overlay */}
       {searchLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-card h-screen">
