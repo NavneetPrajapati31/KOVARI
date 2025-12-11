@@ -46,6 +46,8 @@ interface GroupWithCoords {
   start_date: string;
   end_date: string;
   creator_id: string;
+  destination_lat: number | null;
+  destination_lon: number | null;
   non_smokers: boolean | null;
   non_drinkers: boolean | null;
   dominant_languages: string[] | null;
@@ -151,6 +153,8 @@ export async function POST(req: NextRequest) {
         start_date,
         end_date,
         creator_id,
+        destination_lat,
+        destination_lon,
         non_smokers,
         non_drinkers,
         dominant_languages,
@@ -176,22 +180,40 @@ export async function POST(req: NextRequest) {
     const groupsWithCoords: GroupWithCoords[] = [];
     for (const group of groups) {
       if (group.destination) {
-        console.log(`Getting coordinates for group ${group.id} destination: ${group.destination}`);
-        const groupCoords = await getCoordinatesForLocation(group.destination);
-        if (groupCoords) {
-          const distance = calculateDistance(userDestinationCoords, groupCoords);
-          console.log(`Group ${group.id} is ${distance.toFixed(2)}km away`);
-          if (distance <= 200) { // Only include groups within 200km
-            groupsWithCoords.push({
-              ...group,
-              destinationCoords: groupCoords,
-              distance
-            });
-          } else {
-            console.log(`Group ${group.id} is too far (${distance.toFixed(2)}km > 200km)`);
-          }
-        } else {
+        const hasStoredCoords =
+          typeof group.destination_lat === "number" &&
+          typeof group.destination_lon === "number";
+
+        const groupCoords = hasStoredCoords
+          ? { lat: group.destination_lat as number, lon: group.destination_lon as number }
+          : await getCoordinatesForLocation(group.destination);
+
+        if (!groupCoords) {
           console.log(`Could not get coordinates for group ${group.id} destination: ${group.destination}`);
+          continue;
+        }
+
+        if (!hasStoredCoords) {
+          // Persist coordinates so future searches can reuse them
+          await supabase
+            .from("groups")
+            .update({
+              destination_lat: groupCoords.lat,
+              destination_lon: groupCoords.lon,
+            })
+            .eq("id", group.id);
+        }
+
+        const distance = calculateDistance(userDestinationCoords, groupCoords);
+        console.log(`Group ${group.id} is ${distance.toFixed(2)}km away`);
+        if (distance <= 200) {
+          groupsWithCoords.push({
+            ...group,
+            destinationCoords: groupCoords,
+            distance,
+          });
+        } else {
+          console.log(`Group ${group.id} is too far (${distance.toFixed(2)}km > 200km)`);
         }
       } else {
         console.log(`Group ${group.id} has no destination`);
