@@ -84,6 +84,13 @@ export default function ExplorePage() {
     setMatchedGroups([]);
     setCurrentGroupIndex(0);
 
+    // Validate destination before making API call
+    if (!fullSearchData.destination || !fullSearchData.destination.trim()) {
+      setSearchError("Please enter a destination");
+      setSearchLoading(false);
+      return;
+    }
+
     try {
       const userId = user?.id;
 
@@ -173,8 +180,24 @@ export default function ExplorePage() {
         });
 
         console.log("Response status:", res.status);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
+        
+        // Parse response, handling both success and error cases
+        let data;
+        try {
+          data = await res.json();
+        } catch (parseError) {
+          console.error("Failed to parse API response:", parseError);
+          throw new Error(`Failed to parse server response. Status: ${res.status}`);
+        }
+
+        if (!res.ok) {
+          // Include details if available for better error messages
+          const errorMessage = data?.details 
+            ? `${data.error || "Error"}: ${data.details}` 
+            : data?.error || `Failed to fetch groups (Status: ${res.status})`;
+          console.error("API error response:", { status: res.status, data });
+          throw new Error(errorMessage);
+        }
         
         console.log("API Response for groups:", data);
 
@@ -209,8 +232,9 @@ export default function ExplorePage() {
         setLastSearchData(fullSearchData);
       }
     } catch (err: any) {
-      setSearchError(err.message || "Unknown error");
+      const errorMessage = err?.message || err?.toString() || "An unknown error occurred";
       console.error("Search error:", err);
+      setSearchError(errorMessage);
     } finally {
       setSearchLoading(false);
     }
