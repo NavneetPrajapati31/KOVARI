@@ -45,6 +45,35 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const userId = profile.user_id as string;
 
+    // Rate limit dangerous actions (ban, suspend, unban)
+    const dangerousActions: UserAction[] = ["ban", "suspend", "unban"];
+    if (dangerousActions.includes(action)) {
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+      const { data: recent } = await supabaseAdmin
+        .from("admin_actions")
+        .select("id")
+        .eq("admin_id", adminId)
+        .eq("target_id", userId)
+        .eq("target_type", "user")
+        .eq(
+          "action",
+          action === "ban"
+            ? "ban_user"
+            : action === "suspend"
+              ? "suspend_user"
+              : "unban_user"
+        )
+        .gt("created_at", oneMinuteAgo)
+        .limit(1);
+
+      if (recent && recent.length > 0) {
+        return NextResponse.json(
+          { error: "Please wait before repeating this action" },
+          { status: 429 }
+        );
+      }
+    }
+
     if (action === "verify") {
       const { error } = await supabaseAdmin
         .from("profiles")
