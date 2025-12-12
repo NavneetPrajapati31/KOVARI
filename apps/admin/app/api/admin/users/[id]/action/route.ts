@@ -11,8 +11,19 @@ interface Params {
 type UserAction = "verify" | "ban" | "suspend" | "unban";
 
 export async function POST(req: NextRequest, { params }: Params) {
+  let adminId: string;
   try {
-    const { adminId } = await requireAdmin();
+    const admin = await requireAdmin();
+    adminId = admin.adminId;
+  } catch (error) {
+    // requireAdmin throws NextResponse for unauthorized/forbidden
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
     const { id } = await params;
     const profileId = id;
     const body = await req.json();
@@ -60,9 +71,24 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     if (action === "ban" || action === "suspend") {
+      // Require reason for ban and suspend actions
+      if (!reason || !reason.trim()) {
+        return NextResponse.json(
+          { error: "Reason is required for ban and suspend actions" },
+          { status: 400 }
+        );
+      }
+
       // Convert datetime-local format to ISO string for proper storage
       let banExpiresAt: string | null = null;
-      if (action === "suspend" && banUntil) {
+      if (action === "suspend") {
+        // Require banUntil for suspend action
+        if (!banUntil || !banUntil.trim()) {
+          return NextResponse.json(
+            { error: "Suspension expiry date is required" },
+            { status: 400 }
+          );
+        }
         // datetime-local gives format like "2024-01-01T12:00"
         // Convert to ISO string with timezone
         const date = new Date(banUntil);
@@ -79,7 +105,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         .from("users")
         .update({
           banned: true,
-          ban_reason: reason ?? `Admin ${action}`,
+          ban_reason: reason.trim(),
           ban_expires_at: banExpiresAt,
         })
         .eq("id", userId);

@@ -11,6 +11,15 @@ interface Params {
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     await requireAdmin();
+  } catch (error) {
+    // requireAdmin throws NextResponse for unauthorized/forbidden
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
     const { id } = await params;
     const profileId = id;
 
@@ -66,8 +75,19 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
+  let adminId: string;
   try {
-    const { adminId } = await requireAdmin();
+    const admin = await requireAdmin();
+    adminId = admin.adminId;
+  } catch (error) {
+    // requireAdmin throws NextResponse for unauthorized/forbidden
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
     const { id } = await params;
     const profileId = id;
     const body = await req.json();

@@ -10,6 +10,15 @@ interface Params {
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     await requireAdmin();
+  } catch (error) {
+    // requireAdmin throws NextResponse for unauthorized/forbidden
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
     const { id } = await params;
     const profileId = id;
 

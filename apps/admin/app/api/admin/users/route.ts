@@ -6,7 +6,15 @@ import { requireAdmin } from "@/admin-lib/adminAuth";
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
+  } catch (error) {
+    // requireAdmin throws NextResponse for unauthorized/forbidden
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
+  try {
     const { searchParams } = new URL(req.url);
     const query = (searchParams.get("query") || "").trim();
     const page = Number(searchParams.get("page") || "1");
