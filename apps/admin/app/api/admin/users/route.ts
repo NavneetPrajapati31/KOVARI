@@ -27,6 +27,8 @@ export async function GET(req: NextRequest) {
         deleted,
         smoking,
         drinking,
+        profile_photo,
+        created_at,
         users!profiles_user_id_fkey(
           banned,
           ban_reason,
@@ -49,10 +51,34 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Fetch flag counts for each user
+    const userIds = data?.map((user) => user.user_id).filter(Boolean) || [];
+    const flagCounts: Record<string, number> = {};
+
+    if (userIds.length > 0) {
+      const { data: flagsData } = await supabaseAdmin
+        .from("user_flags")
+        .select("user_id")
+        .in("user_id", userIds);
+
+      if (flagsData) {
+        flagsData.forEach((flag) => {
+          flagCounts[flag.user_id] = (flagCounts[flag.user_id] || 0) + 1;
+        });
+      }
+    }
+
+    // Add flag_count to each user
+    const usersWithFlags =
+      data?.map((user) => ({
+        ...user,
+        flag_count: flagCounts[user.user_id] || 0,
+      })) || [];
+
     return NextResponse.json({
       page,
       limit,
-      users: data,
+      users: usersWithFlags,
     });
   } catch (err: unknown) {
     console.error("Admin users GET error:", err);
