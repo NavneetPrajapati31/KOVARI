@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
+import { revokeExpiredSuspensions } from "@/admin-lib/revokeExpiredSuspensions";
 import { AdminUsersTable } from "../../components/AdminUsersTable";
 
 interface User {
@@ -103,6 +104,9 @@ export default async function UsersPage({
 }) {
   await requireAdmin();
 
+  // Check and revoke expired suspensions before loading users
+  await revokeExpiredSuspensions();
+
   const params = await searchParams;
   const page = Number(params.page) || 1;
   const limit = 20;
@@ -113,7 +117,7 @@ export default async function UsersPage({
   return (
     <main className="p-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Users</h1>
+        <h1 className="text-xl font-semibold">Users</h1>
         <p className="text-muted-foreground mt-1">
           Manage and monitor user accounts
         </p>

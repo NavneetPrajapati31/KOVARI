@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
+import { revokeExpiredSuspensionForUser } from "@/admin-lib/revokeExpiredSuspensions";
 import { UserDetail } from "@/components/UserDetail";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -140,6 +141,11 @@ async function getUserDetail(id: string): Promise<{
     }
   } catch (e) {
     console.error("Error fetching user sessions:", e);
+  }
+
+  // Check and revoke expired suspension for this user
+  if (profile.user_id) {
+    await revokeExpiredSuspensionForUser(profile.user_id);
   }
 
   // Transform users relationship from array to object

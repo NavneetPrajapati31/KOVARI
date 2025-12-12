@@ -60,7 +60,20 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     if (action === "ban" || action === "suspend") {
-      const banExpiresAt = action === "suspend" ? banUntil : null;
+      // Convert datetime-local format to ISO string for proper storage
+      let banExpiresAt: string | null = null;
+      if (action === "suspend" && banUntil) {
+        // datetime-local gives format like "2024-01-01T12:00"
+        // Convert to ISO string with timezone
+        const date = new Date(banUntil);
+        if (isNaN(date.getTime())) {
+          return NextResponse.json(
+            { error: "Invalid date format" },
+            { status: 400 }
+          );
+        }
+        banExpiresAt = date.toISOString();
+      }
 
       const { error } = await supabaseAdmin
         .from("users")
