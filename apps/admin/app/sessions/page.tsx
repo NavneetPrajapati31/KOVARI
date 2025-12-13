@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { ToastContainer, useToast } from "../../components/Toast";
+import { Button } from "../../components/ui/button";
 
 type SessionRow = {
   sessionKey: string;
@@ -12,12 +15,22 @@ type SessionRow = {
 };
 
 export default function SessionsPage() {
+  const { toasts, toast, removeToast } = useToast();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string>("0");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    sessionKey: string | null;
+    userId: string | null;
+  }>({
+    open: false,
+    sessionKey: null,
+    userId: null,
+  });
 
   async function fetchSessions(searchTerm?: string) {
     setLoading(true);
@@ -75,11 +88,17 @@ export default function SessionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function expireSession(sessionKey: string, userId: string | null) {
-    const confirmed = window.confirm(
-      `Are you sure you want to expire this session?\n\nSession: ${sessionKey}\nUser: ${userId || "Unknown"}\n\nThis action will be logged.`
-    );
-    if (!confirmed) return;
+  function handleExpireClick(sessionKey: string, userId: string | null) {
+    setConfirmDialog({
+      open: true,
+      sessionKey,
+      userId,
+    });
+  }
+
+  async function expireSession() {
+    const { sessionKey, userId } = confirmDialog;
+    if (!sessionKey) return;
 
     setIsDeleting(sessionKey);
     try {
@@ -97,19 +116,35 @@ export default function SessionsPage() {
       if (res.ok) {
         // Remove from local state immediately for better UX
         setSessions((prev) => prev.filter((s) => s.sessionKey !== sessionKey));
+        // Show success toast
+        toast({
+          title: "Session Expired",
+          description: `Session for user ${userId || "Unknown"} has been successfully expired.`,
+          variant: "success",
+        });
         // Refresh to get updated list
         await fetchSessions();
       } else {
-        setError(json.error || "Failed to expire session");
-        alert("Error: " + (json.error || "unknown"));
+        const errorMsg = json.error || "Failed to expire session";
+        setError(errorMsg);
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
       }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to expire session";
       setError(errorMessage);
-      alert("Error: " + errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsDeleting(null);
+      setConfirmDialog({ open: false, sessionKey: null, userId: null });
     }
   }
 
@@ -137,16 +172,49 @@ export default function SessionsPage() {
     : sessions;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-6 space-y-6">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title="Expire Session"
+        description="Are you sure you want to expire this session? This action will be logged in the admin audit trail."
+        confirmText="Expire Session"
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={expireSession}
+      >
+        {confirmDialog.sessionKey && (
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="font-medium">Session:</span>{" "}
+              <span className="font-mono text-xs break-all">
+                {confirmDialog.sessionKey}
+              </span>
+            </div>
+            <div>
+              <span className="font-medium">User:</span>{" "}
+              {confirmDialog.userId || "Unknown"}
+            </div>
+          </div>
+        )}
+      </ConfirmDialog>
+
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Active Sessions</h1>
-        <button
-          className="rounded bg-gray-200 px-3 py-1 text-sm font-medium hover:bg-gray-300"
+        <div>
+          <h1 className="text-2xl font-bold">Active Sessions</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage and monitor active user sessions
+          </p>
+        </div>
+        <Button
+          variant="outline"
           onClick={() => fetchSessions()}
           disabled={loading}
         >
           {loading ? "Loading…" : "Refresh"}
-        </button>
+        </Button>
       </div>
 
       {/* Search Bar */}
@@ -156,49 +224,51 @@ export default function SessionsPage() {
           placeholder="Search by session key, user ID, or destination..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
-        <button
-          type="submit"
-          className="rounded bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:bg-gray-400"
-          disabled={loading}
-        >
+        <Button type="submit" disabled={loading}>
           Search
-        </button>
+        </Button>
         {searchQuery && (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={handleClearSearch}
-            className="rounded bg-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-400"
             disabled={loading}
           >
             Clear
-          </button>
+          </Button>
         )}
       </form>
 
       {loading ? (
-        <p>Loading…</p>
+        <div className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground">Loading sessions…</p>
+        </div>
       ) : (
-        <div className="overflow-auto">
+        <div className="space-y-4">
           {error && (
-            <div className="mb-2 rounded bg-red-100 px-3 py-2 text-sm text-red-700">
+            <div className="rounded-lg border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
           {!error && filteredSessions.length === 0 && sessions.length === 0 && (
-            <div className="mb-2 text-sm text-gray-600">
-              No sessions found. Ensure Redis has session keys and you are
-              signed in as an admin.
+            <div className="rounded-lg border border-border bg-muted/50 px-4 py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                No sessions found. Ensure Redis has session keys and you are
+                signed in as an admin.
+              </p>
             </div>
           )}
           {!error && filteredSessions.length === 0 && sessions.length > 0 && (
-            <div className="mb-2 text-sm text-gray-600">
-              No sessions match your search query &quot;{searchQuery}&quot;.
+            <div className="rounded-lg border border-border bg-muted/50 px-4 py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                No sessions match your search query &quot;{searchQuery}&quot;.
+              </p>
             </div>
           )}
           {filteredSessions.length > 0 && (
-            <div className="mb-2 text-sm text-gray-600">
+            <div className="rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-muted-foreground">
               Showing {filteredSessions.length} {searchQuery ? "matching" : ""}{" "}
               session{filteredSessions.length !== 1 ? "s" : ""}
               {searchQuery &&
@@ -206,53 +276,93 @@ export default function SessionsPage() {
                 ` (filtered from ${sessions.length} total)`}
             </div>
           )}
-          <table className="min-w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-left bg-gray-100">
-                <th className="px-3 py-2 border-b">Session</th>
-                <th className="px-3 py-2 border-b">User</th>
-                <th className="px-3 py-2 border-b">Dest</th>
-                <th className="px-3 py-2 border-b">Budget</th>
-                <th className="px-3 py-2 border-b">TTL</th>
-                <th className="px-3 py-2 border-b">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSessions.map((s, index) => (
-                <tr
-                  key={`${s.sessionKey}-${index}`}
-                  className="border-t hover:bg-gray-50"
-                >
-                  <td
-                    className="px-3 py-2 truncate max-w-[240px]"
-                    title={s.sessionKey}
-                  >
-                    {s.sessionKey}
-                  </td>
-                  <td className="px-3 py-2">{s.userId ?? "—"}</td>
-                  <td className="px-3 py-2">{s.destination ?? "—"}</td>
-                  <td className="px-3 py-2">
-                    {s.budget !== null && typeof s.budget === "number"
-                      ? `₹${s.budget.toLocaleString()}`
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    {s.ttlSeconds !== null ? `${s.ttlSeconds}s` : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <button
-                      className="rounded bg-red-500 px-3 py-1 text-white text-xs hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                      onClick={() => expireSession(s.sessionKey, s.userId)}
-                      disabled={isDeleting === s.sessionKey || loading}
-                      title={`Delete session for user: ${s.userId || "Unknown"}`}
-                    >
-                      {isDeleting === s.sessionKey ? "Deleting..." : "Delete"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {filteredSessions.length > 0 && (
+            <div className="rounded-lg border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="px-4 py-3 text-left font-medium">
+                        Session
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium">User</th>
+                      <th className="px-4 py-3 text-left font-medium">
+                        Destination
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium">
+                        Budget
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium">TTL</th>
+                      <th className="px-4 py-3 text-left font-medium">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSessions.map((s, index) => (
+                      <tr
+                        key={`${s.sessionKey}-${index}`}
+                        className="border-b transition-colors hover:bg-muted/50"
+                      >
+                        <td
+                          className="px-4 py-3 truncate max-w-[240px] font-mono text-xs"
+                          title={s.sessionKey}
+                        >
+                          {s.sessionKey}
+                        </td>
+                        <td className="px-4 py-3">
+                          {s.userId ? (
+                            <span className="font-mono text-xs">
+                              {s.userId}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {s.destination ?? (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {s.budget !== null && typeof s.budget === "number" ? (
+                            <span className="font-medium">
+                              ₹{s.budget.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {s.ttlSeconds !== null ? (
+                            <span className="font-mono text-xs">
+                              {s.ttlSeconds}s
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              handleExpireClick(s.sessionKey, s.userId)
+                            }
+                            disabled={isDeleting === s.sessionKey || loading}
+                          >
+                            {isDeleting === s.sessionKey
+                              ? "Expiring..."
+                              : "Expire"}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
