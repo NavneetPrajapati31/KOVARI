@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
 
     const status = searchParams.get("status"); // optional
+    const query = searchParams.get("query"); // optional search by name or destination
     const page = Number(searchParams.get("page") || "1");
     const limit = Number(searchParams.get("limit") || "20");
     const from = (page - 1) * limit;
@@ -21,20 +22,21 @@ export async function GET(req: NextRequest) {
         id,
         name,
         destination,
-        start_date,
-        end_date,
-        is_public,
-        members_count,
-        budget,
+        creator_id,
         status,
         flag_count,
-        creator_id
+        created_at
       `
       )
       .order("created_at", { ascending: false });
 
     if (status) {
       base = base.eq("status", status);
+    }
+
+    // Search by name or destination
+    if (query) {
+      base = base.or(`name.ilike.%${query}%,destination.ilike.%${query}%`);
     }
 
     const { data, error } = await base.range(from, to);

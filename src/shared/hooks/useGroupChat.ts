@@ -28,6 +28,7 @@ export interface GroupInfo {
   description?: string;
   members_count?: number;
   cover_image?: string;
+  status?: "active" | "pending" | "removed";
 }
 
 export const useGroupChat = (groupId: string) => {

@@ -72,11 +72,26 @@ export default async function InvitePage({
   // 2. Lookup group info
   const { data: group, error: groupError } = await supabase
     .from("groups")
-    .select("id, name, destination, description, cover_image")
+    .select("id, name, destination, description, cover_image, status")
     .eq("id", groupId)
     .maybeSingle();
 
   if (groupError || !group) {
+    return (
+      <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-card rounded-xl shadow text-center">
+        <h1 className="text-md font-bold mb-2">Group Not Found</h1>
+        <p className="text-muted-foreground text-sm font-medium mb-4">
+          The group for this invite could not be found.
+        </p>
+        <Link href="/" className="text-primary text-sm  font-medium underline">
+          Go Home
+        </Link>
+      </div>
+    );
+  }
+
+  // Block access to removed groups
+  if (group.status === "removed") {
     return (
       <div className="max-w-xs md:max-w-md mx-auto mt-20 p-6 bg-card rounded-xl shadow text-center">
         <h1 className="text-md font-bold mb-2">Group Not Found</h1>

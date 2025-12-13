@@ -50,6 +50,22 @@ export async function POST(
       return new NextResponse("User not found", { status: 404 });
     }
 
+    // Check if group exists and is not removed
+    const { data: group, error: groupError } = await supabase
+      .from("groups")
+      .select("id, status")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return new NextResponse("Group not found", { status: 404 });
+    }
+
+    // Block access to removed groups
+    if (group.status === "removed") {
+      return new NextResponse("Group not found", { status: 404 });
+    }
+
     // Check if user is a member of the group
     const { data: membership, error: membershipError } = await supabase
       .from("group_memberships")
