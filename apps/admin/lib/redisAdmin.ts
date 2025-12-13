@@ -22,3 +22,29 @@ export function getRedisAdminClient() {
   }
   return client;
 }
+
+// Get the Redis client instance
+const redis = getRedisAdminClient();
+
+// Helper function to ensure Redis is connected
+export async function ensureRedisConnection() {
+  if (!redis.isOpen) {
+    await redis.connect();
+  }
+  return redis;
+}
+
+// Parse session value from Redis (handles JSON parsing safely)
+export function parseSessionValue(raw: string | null): any | null {
+  if (!raw || typeof raw !== "string") {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+// Default export: the Redis client
+export default redis;
