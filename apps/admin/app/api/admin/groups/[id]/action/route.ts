@@ -8,7 +8,7 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
-type GroupAction = "approve" | "reject" | "remove";
+type GroupAction = "approve" | "remove";
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
@@ -18,18 +18,55 @@ export async function POST(req: NextRequest, { params }: Params) {
     const body = await req.json();
     const action: GroupAction = body.action;
     const reason: string | undefined = body.reason;
+    const fromFlagFlow: boolean = body.fromFlagFlow || false; // Indicates if action comes from flag flow
 
-    let newStatus: string | null = null;
-    if (action === "approve") newStatus = "active";
-    if (action === "reject" || action === "remove") newStatus = "removed";
-
-    if (!newStatus) {
+    // Validate action
+    if (action !== "approve" && action !== "remove") {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    // Require reason for remove action
+    if (action === "remove" && (!reason || !reason.trim())) {
+      return NextResponse.json(
+        { error: "Reason is required for remove action" },
+        { status: 400 }
+      );
+    }
+
+    // Get current group data for metadata
+    const { data: currentGroup, error: fetchError } = await supabaseAdmin
+      .from("groups")
+      .select("name, status, flag_count, members_count, destination")
+      .eq("id", groupId)
+      .maybeSingle();
+
+    if (fetchError || !currentGroup) {
+      console.error("Group lookup error:", fetchError);
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    const previousStatus = currentGroup.status;
+    const previousFlagCount = currentGroup.flag_count || 0;
+
+    // Prepare update object
+    const updateData: Record<string, unknown> = {};
+
+    if (action === "approve") {
+      updateData.status = "active";
+    } else if (action === "remove") {
+      updateData.status = "removed";
+      updateData.removed_reason = reason?.trim() || null;
+      updateData.removed_at = new Date().toISOString();
+    }
+
+    // Increment flag_count if action comes from flag flow
+    if (fromFlagFlow) {
+      updateData.flag_count = previousFlagCount + 1;
     }
 
     const { error } = await supabaseAdmin
       .from("groups")
-      .update({ status: newStatus })
+      .update(updateData)
       .eq("id", groupId);
 
     if (error) {
@@ -40,12 +77,29 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
+    // Prepare metadata
+    const metadata: Record<string, unknown> = {
+      groupName: currentGroup.name,
+      previousStatus,
+      newStatus: updateData.status,
+      flagCount: previousFlagCount,
+      membersCount: currentGroup.members_count || 0,
+      destination: currentGroup.destination,
+    };
+
+    if (fromFlagFlow) {
+      metadata.fromFlagFlow = true;
+      metadata.newFlagCount = previousFlagCount + 1;
+    }
+
+    // Always log admin action
     await logAdminAction({
       adminId,
       targetType: "group",
       targetId: groupId,
       action: `group_${action}`,
       reason,
+      metadata,
     });
 
     return NextResponse.json({ success: true });
