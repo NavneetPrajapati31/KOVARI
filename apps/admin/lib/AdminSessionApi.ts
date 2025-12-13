@@ -50,13 +50,56 @@ export async function listSessions(options?: {
           const key = keys[i];
           const parsed = parseSessionValue(values[i]);
           const ttl = await redis.ttl(key);
+          
+          // Type guard: ensure parsed is an object
+          const parsedObj = parsed && typeof parsed === "object" && parsed !== null 
+            ? parsed as Record<string, unknown> 
+            : null;
+          
+          // Extract userId - check multiple possible locations
+          const staticObj = parsedObj?.static && typeof parsedObj.static === "object" 
+            ? parsedObj.static as Record<string, unknown> 
+            : null;
+          const userId = 
+            (staticObj?.clerkUserId && typeof staticObj.clerkUserId === "string" ? staticObj.clerkUserId : null) ??
+            (parsedObj?.userId && typeof parsedObj.userId === "string" ? parsedObj.userId : null) ??
+            null;
+          
+          // Extract destination - handle both object and string formats
+          let destination: string | null = null;
+          const travelObj = parsedObj?.travel && typeof parsedObj.travel === "object"
+            ? parsedObj.travel as Record<string, unknown>
+            : null;
+          const destObj = travelObj?.destination ?? parsedObj?.destination;
+          if (destObj) {
+            if (typeof destObj === "string") {
+              destination = destObj;
+            } else if (destObj && typeof destObj === "object") {
+              const dest = destObj as Record<string, unknown>;
+              destination = (dest?.name && typeof dest.name === "string") ? dest.name : null;
+            }
+          }
+          
+          // Extract budget
+          const budget = 
+            (travelObj?.budget !== undefined ? travelObj.budget : null) ??
+            (parsedObj?.budget !== undefined ? parsedObj.budget : null) ??
+            null;
+          const budgetNum = typeof budget === "number" ? budget : null;
+          
+          // Extract createdAt
+          const createdAt = 
+            (parsedObj?.createdAt && typeof parsedObj.createdAt === "string" ? parsedObj.createdAt : null) ??
+            (parsedObj?.created_at && typeof parsedObj.created_at === "string" ? parsedObj.created_at : null) ??
+            null;
+          
           sessions.push({
             sessionKey: key,
-            userId: parsed?.static?.clerkUserId ?? parsed?.userId ?? null,
-            createdAt: parsed?.createdAt ?? parsed?.created_at ?? null,
+            userId,
+            createdAt,
             ttlSeconds: typeof ttl === "number" && ttl >= 0 ? ttl : null,
-            destination: parsed?.travel?.destination ?? parsed?.destination ?? null,
-            budget: parsed?.travel?.budget ?? parsed?.budget ?? null,
+            destination,
+            budget: budgetNum,
             raw: parsed ?? null,
           });
         }
@@ -88,13 +131,56 @@ export async function listSessions(options?: {
       const raw = (result && Array.isArray(result) ? result[1] : null) as string | null;
       const parsed = parseSessionValue(raw);
       const ttl = await redis.ttl(key);
+      
+      // Type guard: ensure parsed is an object
+      const parsedObj = parsed && typeof parsed === "object" && parsed !== null 
+        ? parsed as Record<string, unknown> 
+        : null;
+      
+      // Extract userId - check multiple possible locations
+      const staticObj = parsedObj?.static && typeof parsedObj.static === "object" 
+        ? parsedObj.static as Record<string, unknown> 
+        : null;
+      const userId = 
+        (staticObj?.clerkUserId && typeof staticObj.clerkUserId === "string" ? staticObj.clerkUserId : null) ??
+        (parsedObj?.userId && typeof parsedObj.userId === "string" ? parsedObj.userId : null) ??
+        null;
+      
+      // Extract destination - handle both object and string formats
+      let destination: string | null = null;
+      const travelObj = parsedObj?.travel && typeof parsedObj.travel === "object"
+        ? parsedObj.travel as Record<string, unknown>
+        : null;
+      const destObj = travelObj?.destination ?? parsedObj?.destination;
+      if (destObj) {
+        if (typeof destObj === "string") {
+          destination = destObj;
+        } else if (destObj && typeof destObj === "object") {
+          const dest = destObj as Record<string, unknown>;
+          destination = (dest?.name && typeof dest.name === "string") ? dest.name : null;
+        }
+      }
+      
+      // Extract budget
+      const budget = 
+        (travelObj?.budget !== undefined ? travelObj.budget : null) ??
+        (parsedObj?.budget !== undefined ? parsedObj.budget : null) ??
+        null;
+      const budgetNum = typeof budget === "number" ? budget : null;
+      
+      // Extract createdAt
+      const createdAt = 
+        (parsedObj?.createdAt && typeof parsedObj.createdAt === "string" ? parsedObj.createdAt : null) ??
+        (parsedObj?.created_at && typeof parsedObj.created_at === "string" ? parsedObj.created_at : null) ??
+        null;
+      
       sessions.push({
         sessionKey: key,
-        userId: parsed?.static?.clerkUserId ?? parsed?.userId ?? null,
-        createdAt: parsed?.createdAt ?? parsed?.created_at ?? null,
+        userId,
+        createdAt,
         ttlSeconds: typeof ttl === "number" && ttl >= 0 ? ttl : null,
-        destination: parsed?.travel?.destination ?? parsed?.destination ?? null,
-        budget: parsed?.travel?.budget ?? parsed?.budget ?? null,
+        destination,
+        budget: budgetNum,
         raw: parsed ?? null,
       });
     }
@@ -114,13 +200,56 @@ export async function getSession(sessionKey: string): Promise<SessionSummary | n
   const raw = await redis.get(sessionKey);
   const parsed = parseSessionValue(raw);
   const ttl = await redis.ttl(sessionKey);
+  
+  // Type guard: ensure parsed is an object
+  const parsedObj = parsed && typeof parsed === "object" && parsed !== null 
+    ? parsed as Record<string, unknown> 
+    : null;
+  
+  // Extract userId - check multiple possible locations
+  const staticObj = parsedObj?.static && typeof parsedObj.static === "object" 
+    ? parsedObj.static as Record<string, unknown> 
+    : null;
+  const userId = 
+    (staticObj?.clerkUserId && typeof staticObj.clerkUserId === "string" ? staticObj.clerkUserId : null) ??
+    (parsedObj?.userId && typeof parsedObj.userId === "string" ? parsedObj.userId : null) ??
+    null;
+  
+  // Extract destination - handle both object and string formats
+  let destination: string | null = null;
+  const travelObj = parsedObj?.travel && typeof parsedObj.travel === "object"
+    ? parsedObj.travel as Record<string, unknown>
+    : null;
+  const destObj = travelObj?.destination ?? parsedObj?.destination;
+  if (destObj) {
+    if (typeof destObj === "string") {
+      destination = destObj;
+    } else if (destObj && typeof destObj === "object") {
+      const dest = destObj as Record<string, unknown>;
+      destination = (dest?.name && typeof dest.name === "string") ? dest.name : null;
+    }
+  }
+  
+  // Extract budget
+  const budget = 
+    (travelObj?.budget !== undefined ? travelObj.budget : null) ??
+    (parsedObj?.budget !== undefined ? parsedObj.budget : null) ??
+    null;
+  const budgetNum = typeof budget === "number" ? budget : null;
+  
+  // Extract createdAt
+  const createdAt = 
+    (parsedObj?.createdAt && typeof parsedObj.createdAt === "string" ? parsedObj.createdAt : null) ??
+    (parsedObj?.created_at && typeof parsedObj.created_at === "string" ? parsedObj.created_at : null) ??
+    null;
+  
   return {
     sessionKey,
-    userId: parsed?.static?.clerkUserId ?? parsed?.userId ?? null,
-    createdAt: parsed?.createdAt ?? parsed?.created_at ?? null,
+    userId,
+    createdAt,
     ttlSeconds: typeof ttl === "number" && ttl >= 0 ? ttl : null,
-    destination: parsed?.travel?.destination ?? parsed?.destination ?? null,
-    budget: parsed?.travel?.budget ?? parsed?.budget ?? null,
+    destination,
+    budget: budgetNum,
     raw: parsed ?? null,
   };
 }

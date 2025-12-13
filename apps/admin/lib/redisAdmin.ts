@@ -35,7 +35,7 @@ export async function ensureRedisConnection() {
 }
 
 // Parse session value from Redis (handles JSON parsing safely)
-export function parseSessionValue(raw: string | null): any | null {
+export function parseSessionValue(raw: string | null): unknown | null {
   if (!raw || typeof raw !== "string") {
     return null;
   }
