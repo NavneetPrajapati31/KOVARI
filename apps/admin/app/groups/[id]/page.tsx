@@ -91,20 +91,56 @@ async function getGroupDetail(id: string): Promise<GroupData | null> {
     // Get organizer profile
     let organizer = null;
     if (group.creator_id) {
+      // First try to get profile
       const { data: profile, error: profileError } = await supabaseAdmin
         .from("profiles")
         .select("id, name, email, verified, profile_photo")
         .eq("user_id", group.creator_id)
         .maybeSingle();
 
-      if (!profileError && profile) {
+      if (profileError) {
+        console.error("Error fetching organizer profile:", profileError);
+      }
+
+      if (profile) {
         organizer = {
           id: profile.id,
-          name: profile.name,
-          email: profile.email,
+          name: profile.name || "Unknown User",
+          email: profile.email || "No email",
           verified: profile.verified || false,
           profile_photo: profile.profile_photo,
         };
+      } else {
+        // If profile not found, try to get user info directly
+        // This handles cases where profile was deleted or never created
+        const { data: user, error: userError } = await supabaseAdmin
+          .from("users")
+          .select("id, clerk_user_id")
+          .eq("id", group.creator_id)
+          .maybeSingle();
+
+        if (userError) {
+          console.error(
+            `Error fetching organizer user (ID: ${group.creator_id}):`,
+            userError
+          );
+        }
+
+        // Create a fallback organizer entry if user exists
+        // Use user.id as profile id for the link (will need to handle this in UI)
+        if (user) {
+          organizer = {
+            id: user.id, // Use user.id - UI will need to handle this case
+            name: "User (Profile Missing)",
+            email: "No email available",
+            verified: false,
+            profile_photo: null,
+          };
+        } else {
+          console.warn(
+            `Organizer user not found for creator_id: ${group.creator_id}`
+          );
+        }
       }
     }
 

@@ -301,9 +301,9 @@ export function GroupDetail({
         </div>
 
         {/* Organizer Info */}
-        {organizer && (
-          <div className="rounded-md border p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Organizer</h2>
+        <div className="rounded-md border p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Organizer</h2>
+          {organizer ? (
             <div className="flex items-center gap-4">
               {organizer.profile_photo ? (
                 <img
@@ -326,19 +326,49 @@ export function GroupDetail({
                       Verified
                     </span>
                   )}
+                  {organizer.name === "User (Profile Missing)" && (
+                    <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
+                      Profile Missing
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {organizer.email}
                 </p>
+                {group.creator_id &&
+                  organizer.name === "User (Profile Missing)" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      User ID: {group.creator_id}
+                    </p>
+                  )}
               </div>
-              <Link href={`/users/${organizer.id}`}>
-                <Button variant="outline" size="sm">
-                  View Profile
+              {organizer.name !== "User (Profile Missing)" ? (
+                <Link href={`/users/${organizer.id}`}>
+                  <Button variant="outline" size="sm">
+                    View Profile
+                  </Button>
+                </Link>
+              ) : (
+                <Button variant="outline" size="sm" disabled>
+                  Profile Unavailable
                 </Button>
-              </Link>
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <span className="text-sm font-medium">?</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">
+                  {group.creator_id
+                    ? `Organizer profile not found (User ID: ${group.creator_id})`
+                    : "No organizer assigned"}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Members Overview */}
         <div className="rounded-md border p-6 space-y-4">
