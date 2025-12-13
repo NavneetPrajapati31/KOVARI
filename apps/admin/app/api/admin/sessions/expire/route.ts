@@ -42,9 +42,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Operation requires confirm: true" }, { status: 400 });
   }
 
-  // After all validations, we know rawSessionKey is definitely a string
-  // Use type assertion to ensure TypeScript recognizes it as string
-  const sessionKey = rawSessionKey as string;
+  // At this point, rawSessionKey is validated as a string
+  const sessionKey = rawSessionKey;
 
   try {
     await ensureRedisConnection();
@@ -52,9 +51,9 @@ export async function POST(req: Request) {
     const exists = (await redis.exists(sessionKey)) === 1;
     if (!exists) {
       await logAdminAction({
-        admin_id: admin.adminId,
-        target_type: "session",
-        target_id: sessionKey,
+        adminId: admin.adminId,
+        targetType: "session",
+        targetId: sessionKey,
         action: "expire_session_attempt_missing",
         reason: reason ?? null,
         metadata: { existed: false },
@@ -74,9 +73,9 @@ export async function POST(req: Request) {
     }
 
     await logAdminAction({
-      admin_id: admin.adminId,
-      target_type: "session",
-      target_id: sessionKey,
+      adminId: admin.adminId,
+      targetType: "session",
+      targetId: sessionKey,
       action: "expire_session",
       reason: reason ?? null,
       metadata: { deleted: delCount > 0 },

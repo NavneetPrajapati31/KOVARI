@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useEffect, useState } from "react";
 
@@ -28,13 +28,19 @@ export default function SessionsPage() {
       const url = query
         ? `/api/admin/sessions/search?query=${encodeURIComponent(query)}&limit=100`
         : `/api/admin/sessions?useIndex=true&limit=20&cursor=${cursor}`;
-      
+
       console.log("[SessionsPage] Fetching sessions:", { url, query });
       const res = await fetch(url);
-      console.log("[SessionsPage] Response status:", res.status, res.statusText);
+      console.log(
+        "[SessionsPage] Response status:",
+        res.status,
+        res.statusText
+      );
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        setError(json.error || `Failed to load sessions (status ${res.status})`);
+        setError(
+          json.error || `Failed to load sessions (status ${res.status})`
+        );
         setSessions([]);
         setLoading(false);
         return;
@@ -44,7 +50,7 @@ export default function SessionsPage() {
       console.log("[SessionsPage] Sessions array:", json.sessions);
       console.log("[SessionsPage] Sessions count:", json.sessions?.length || 0);
       console.log("[SessionsPage] First session sample:", json.sessions?.[0]);
-      
+
       if (json.sessions && Array.isArray(json.sessions)) {
         setSessions(json.sessions);
         setCursor(json.nextCursor || "0");
@@ -55,7 +61,8 @@ export default function SessionsPage() {
       }
     } catch (err: unknown) {
       console.error("[SessionsPage] Fetch error:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to load sessions";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load sessions";
       setError(errorMessage);
       setSessions([]);
     } finally {
@@ -73,7 +80,7 @@ export default function SessionsPage() {
       `Are you sure you want to expire this session?\n\nSession: ${sessionKey}\nUser: ${userId || "Unknown"}\n\nThis action will be logged.`
     );
     if (!confirmed) return;
-    
+
     setIsDeleting(sessionKey);
     try {
       const body = {
@@ -97,7 +104,8 @@ export default function SessionsPage() {
         alert("Error: " + (json.error || "unknown"));
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to expire session";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to expire session";
       setError(errorMessage);
       alert("Error: " + errorMessage);
     } finally {
@@ -180,7 +188,8 @@ export default function SessionsPage() {
           )}
           {!error && filteredSessions.length === 0 && sessions.length === 0 && (
             <div className="mb-2 text-sm text-gray-600">
-              No sessions found. Ensure Redis has session keys and you are signed in as an admin.
+              No sessions found. Ensure Redis has session keys and you are
+              signed in as an admin.
             </div>
           )}
           {!error && filteredSessions.length === 0 && sessions.length > 0 && (
@@ -190,8 +199,11 @@ export default function SessionsPage() {
           )}
           {filteredSessions.length > 0 && (
             <div className="mb-2 text-sm text-gray-600">
-              Showing {filteredSessions.length} {searchQuery ? "matching" : ""} session{filteredSessions.length !== 1 ? "s" : ""}
-              {searchQuery && sessions.length > filteredSessions.length && ` (filtered from ${sessions.length} total)`}
+              Showing {filteredSessions.length} {searchQuery ? "matching" : ""}{" "}
+              session{filteredSessions.length !== 1 ? "s" : ""}
+              {searchQuery &&
+                sessions.length > filteredSessions.length &&
+                ` (filtered from ${sessions.length} total)`}
             </div>
           )}
           <table className="min-w-full text-sm border-collapse">
@@ -206,15 +218,23 @@ export default function SessionsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredSessions.map((s) => (
-                <tr key={s.sessionKey} className="border-t hover:bg-gray-50">
-                  <td className="px-3 py-2 truncate max-w-[240px]" title={s.sessionKey}>
+              {filteredSessions.map((s, index) => (
+                <tr
+                  key={`${s.sessionKey}-${index}`}
+                  className="border-t hover:bg-gray-50"
+                >
+                  <td
+                    className="px-3 py-2 truncate max-w-[240px]"
+                    title={s.sessionKey}
+                  >
                     {s.sessionKey}
                   </td>
                   <td className="px-3 py-2">{s.userId ?? "—"}</td>
                   <td className="px-3 py-2">{s.destination ?? "—"}</td>
                   <td className="px-3 py-2">
-                    {s.budget !== null ? `₹${s.budget.toLocaleString()}` : "—"}
+                    {s.budget !== null && typeof s.budget === "number"
+                      ? `₹${s.budget.toLocaleString()}`
+                      : "—"}
                   </td>
                   <td className="px-3 py-2">
                     {s.ttlSeconds !== null ? `${s.ttlSeconds}s` : "—"}
@@ -238,4 +258,3 @@ export default function SessionsPage() {
     </div>
   );
 }
-
