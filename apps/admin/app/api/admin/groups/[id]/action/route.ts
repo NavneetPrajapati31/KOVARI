@@ -37,6 +37,26 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
+    // Rate limit destructive actions (remove, approve)
+    // Prevent rapid repeated actions on the same group
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { data: recent } = await supabaseAdmin
+      .from("admin_actions")
+      .select("id")
+      .eq("admin_id", adminId)
+      .eq("target_id", groupId)
+      .eq("target_type", "group")
+      .eq("action", action === "remove" ? "group_remove" : "group_approve")
+      .gt("created_at", oneMinuteAgo)
+      .limit(1);
+
+    if (recent && recent.length > 0) {
+      return NextResponse.json(
+        { error: "Please wait before repeating this action" },
+        { status: 429 }
+      );
+    }
+
     // Get current group data for metadata
     const { data: currentGroup, error: fetchError } = await supabaseAdmin
       .from("groups")
