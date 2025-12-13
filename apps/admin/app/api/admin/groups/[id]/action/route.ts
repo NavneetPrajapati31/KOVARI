@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
+import {
+  categorizeRemovalReason,
+  handleOrganizerTrustImpact,
+} from "@/admin-lib/groupSafetyHandler";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -36,7 +40,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     // Get current group data for metadata
     const { data: currentGroup, error: fetchError } = await supabaseAdmin
       .from("groups")
-      .select("name, status, flag_count, members_count, destination")
+      .select(
+        "name, status, flag_count, members_count, destination, creator_id"
+      )
       .eq("id", groupId)
       .maybeSingle();
 
@@ -47,6 +53,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const previousStatus = currentGroup.status;
     const previousFlagCount = currentGroup.flag_count || 0;
+    const organizerId = currentGroup.creator_id;
 
     // Prepare update object
     const updateData: Record<string, unknown> = {};
@@ -90,6 +97,16 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (fromFlagFlow) {
       metadata.fromFlagFlow = true;
       metadata.newFlagCount = previousFlagCount + 1;
+    }
+
+    // Handle safety & abuse logic for remove actions
+    if (action === "remove" && reason && organizerId) {
+      const severity = categorizeRemovalReason(reason);
+      metadata.removalSeverity = severity;
+      metadata.isHardRemove = severity === "hard-remove";
+
+      // Handle organizer trust impact
+      await handleOrganizerTrustImpact(organizerId, severity, adminId, groupId);
     }
 
     // Always log admin action

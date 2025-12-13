@@ -527,6 +527,43 @@ export function GroupDetail({
                               </span>
                             </p>
                           )}
+                          {(() => {
+                            const severity = action.metadata.removalSeverity;
+                            if (
+                              severity &&
+                              typeof severity === "string" &&
+                              (severity === "hard-remove" ||
+                                severity === "warn-review")
+                            ) {
+                              return (
+                                <p>
+                                  <span className="font-medium">
+                                    Removal Type:
+                                  </span>{" "}
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                                      severity === "hard-remove"
+                                        ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+                                    )}
+                                  >
+                                    {severity === "hard-remove"
+                                      ? "Hard Remove"
+                                      : "Warn/Review"}
+                                  </span>
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
+                          {action.metadata.autoFlagged === true && (
+                            <p>
+                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-100">
+                                ⚠️ Organizer auto-flagged for review
+                              </span>
+                            </p>
+                          )}
                         </div>
                       )}
                     {action.admins && (
