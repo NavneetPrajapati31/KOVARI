@@ -46,7 +46,7 @@ import { today, getLocalTimeZone, parseDate } from "@internationalized/date";
 import { cn } from "@/shared/utils/utils";
 import { DestinationCard } from "@/features/groups/components/DestinationCard";
 import { GroupCoverCard } from "@/features/groups/components/GroupCoverCard";
-import { Skeleton } from "@heroui/react";
+import { Skeleton, Spinner } from "@heroui/react";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +58,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/shared/components/ui/collapsible";
+import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
+import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -101,6 +104,7 @@ interface GroupInfo {
   notes: string;
   start_date: string;
   end_date: string;
+  status?: "active" | "pending" | "removed";
 }
 
 interface GroupMember {
@@ -147,6 +151,16 @@ const GroupHomePage = () => {
   const [itineraryItems, setItineraryItems] = useState<ItineraryItem[]>([]);
   const [itineraryLoading, setItineraryLoading] = useState(true);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
+
+  // Check user membership status
+  const {
+    membershipInfo,
+    loading: membershipLoading,
+    error: membershipError,
+    refetch: refetchMembership,
+  } = useGroupMembership(params.groupId || "");
+
+  const [isRejoining, setIsRejoining] = useState(false);
 
   useEffect(() => {
     const fetchGroupInfo = async () => {
@@ -215,11 +229,21 @@ const GroupHomePage = () => {
   }, [isEditing, noteText]);
 
   const handleEdit = () => {
+    // Block editing if group is pending
+    if (groupInfo?.status === "pending") {
+      toast.error("Cannot edit while group is under review");
+      return;
+    }
     setIsEditing(true);
     setNoteSaveError(null);
   };
 
   const handleSave = async () => {
+    // Block saving if group is pending
+    if (groupInfo?.status === "pending") {
+      toast.error("Cannot save changes while group is under review");
+      return;
+    }
     setNoteSaveLoading(true);
     setNoteSaveError(null);
     try {
@@ -260,6 +284,49 @@ const GroupHomePage = () => {
     }
   };
 
+  // Handle rejoining after being removed
+  const handleRejoinGroup = async () => {
+    setIsRejoining(true);
+    try {
+      const response = await fetch(
+        `/api/groups/${params.groupId}/join-request`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Join request sent successfully");
+        // Refetch membership info
+        await refetchMembership();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Failed to send join request");
+      }
+    } catch (err) {
+      console.error("Error sending join request:", err);
+      toast.error("Failed to send join request");
+    } finally {
+      setIsRejoining(false);
+    }
+  };
+
+  // Handle membership errors
+  useEffect(() => {
+    if (membershipError) {
+      if (membershipError.includes("Not a member")) {
+        toast.error("You are not a member of this group");
+      } else if (membershipError.includes("Group not found")) {
+        toast.error("Group not found");
+      } else {
+        toast.error(membershipError);
+      }
+    }
+  }, [membershipError]);
+
   // Helper to extract name and country from destination
   const getNameAndCountry = (
     destination?: string
@@ -280,6 +347,128 @@ const GroupHomePage = () => {
     const url = `https://maps.apple.com/search?query=${query}`;
     window.open(url, "_blank");
   };
+
+  // Membership check and error handling must be before any layout rendering
+  if (membershipLoading) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="flex items-center space-x-2">
+          <Spinner variant="spinner" size="sm" color="primary" />
+          <span className="text-primary text-sm">Checking membership...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if group is pending - disable interactions
+  const isPending = groupInfo?.status === "pending";
+  const isCreator = membershipInfo?.isCreator || false;
+
+  const isNotMember =
+    (!membershipLoading &&
+      membershipInfo &&
+      !membershipInfo.isMember &&
+      !membershipInfo.isCreator) ||
+    (membershipError && membershipError.includes("Not a member"));
+
+  const hasPendingRequest = membershipInfo?.hasPendingRequest || false;
+
+  if (isNotMember) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-8 flex flex-col items-center justify-center">
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Join the group to access this page
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            You need to be a member of this group to view this page.
+          </p>
+          <Button
+            onClick={handleRejoinGroup}
+            disabled={isRejoining}
+            className={`w-full mb-2 text-xs ${hasPendingRequest ? "pointer-events-none" : ""}`}
+            variant={hasPendingRequest ? "outline" : "default"}
+          >
+            {isRejoining ? (
+              <>
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  className="mr-1"
+                  classNames={{ spinnerBars: "bg-white" }}
+                />
+                Requesting...
+              </>
+            ) : hasPendingRequest ? (
+              "Request Pending"
+            ) : (
+              "Request to Join Group"
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (membershipError && membershipError.includes("Group not found")) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center mb-2">
+            <AlertCircle className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Group Not Found
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            The group you&apos;re looking for doesn&apos;t exist or has been
+            deleted.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if group is pending - show "under review" message for all users (including creators)
+  if (isPending) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center mb-2">
+            <AlertCircle className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Group Under Review
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            This group is currently pending admin approval and is not available
+            for viewing or interaction.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Ensure admins appear at the top
   const sortedMembers = [

@@ -26,6 +26,8 @@ interface GroupCardProps {
       avatar?: string;
     };
     cover_image?: string;
+    status?: "active" | "pending" | "removed";
+    creatorId?: string;
   };
   onAction: (
     groupId: string,
@@ -210,41 +212,59 @@ export function MyGroupCard({
           </div>
           {/* Action button(s) at the bottom - keeping your exact logic */}
           <div className="px-5 pb-5 mt-auto">
-            <div className="flex gap-2 justify-center items-center">
+            {group.status === "pending" ? (
               <Button
                 color="primary"
-                className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
-                aria-label="View Group"
+                className="w-full gap-2 text-xs font-semibold rounded-lg bg-white/20 text-white border-white/30 border-1"
+                aria-label="Under Review"
                 tabIndex={0}
-                disabled={actionLoading}
+                disabled={true}
               >
-                {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-                Itinerary
+                Under Review
               </Button>
-              <Button
-                color="primary"
-                className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
-                aria-label="View Group"
-                tabIndex={0}
-                disabled={actionLoading}
-              >
-                {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-                Chat
-              </Button>
+            ) : (
+              <div className="flex gap-2 justify-center items-center">
+                <Button
+                  color="primary"
+                  className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
+                  aria-label="View Group"
+                  tabIndex={0}
+                  disabled={actionLoading}
+                >
+                  {actionLoading && (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  )}
+                  Itinerary
+                </Button>
+                <Button
+                  color="primary"
+                  className="w-1/3 gap-2 text-xs font-semibold rounded-lg bg-white text-black"
+                  aria-label="View Group"
+                  tabIndex={0}
+                  disabled={actionLoading}
+                >
+                  {actionLoading && (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  )}
+                  Chat
+                </Button>
 
-              <Button
-                color="primary"
-                variant="outline"
-                className="border-white/30 bg-white/10 hover:bg-white/20 border-1 hover:text-white w-1/3 gap-2 text-xs font-semibold rounded-lg text-white"
-                aria-label="Request to Join"
-                tabIndex={0}
-                disabled={actionLoading}
-                onClick={() => router.push(`/groups/${group.id}/home`)}
-              >
-                {actionLoading && <Loader2 className="w-5 h-5 animate-spin" />}
-                View More
-              </Button>
-            </div>
+                <Button
+                  color="primary"
+                  variant="outline"
+                  className="border-white/30 bg-white/10 hover:bg-white/20 border-1 hover:text-white w-1/3 gap-2 text-xs font-semibold rounded-lg text-white"
+                  aria-label="Request to Join"
+                  tabIndex={0}
+                  disabled={actionLoading}
+                  onClick={() => router.push(`/groups/${group.id}/home`)}
+                >
+                  {actionLoading && (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  )}
+                  View More
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

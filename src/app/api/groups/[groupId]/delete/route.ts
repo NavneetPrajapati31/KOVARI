@@ -53,11 +53,16 @@ export async function DELETE(
     // Check if group exists and get creator info
     const { data: group, error: groupError } = await supabase
       .from("groups")
-      .select("id, creator_id, name")
+      .select("id, creator_id, name, status")
       .eq("id", groupId)
       .single();
 
     if (groupError || !group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Block access to removed groups (they're already removed, no need to delete again)
+    if (group.status === "removed") {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 

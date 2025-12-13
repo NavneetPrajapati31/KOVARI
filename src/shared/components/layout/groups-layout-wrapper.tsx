@@ -109,7 +109,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   );
 
   return (
-    <div className="flex bg-background text-foreground px-2 py-4 sm:p-4 overflow-x-hidden">
+    <div className="flex bg-background text-foreground px-2 py-4 sm:p-4 overflow-x-hidden scrollbar-hide">
       {/* Sidebar can go here */}
       <div className="flex-1 flex flex-col">
         <header>
