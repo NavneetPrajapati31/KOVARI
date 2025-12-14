@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { useToast } from "@/components/Toast";
-import { Settings, AlertTriangle, Clock, Sliders } from "lucide-react";
+import { ToastContainer, useToast } from "@/components/Toast";
+import { AlertTriangle, Clock, Sliders } from "lucide-react";
 
 interface SettingsData {
   session_ttl_hours: number;
@@ -26,14 +26,13 @@ export default function SettingsPage() {
     maintenance_mode: false,
     matching_preset: "BALANCED",
   });
-  const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [maintenanceDialogOpen, setMaintenanceDialogOpen] =
     React.useState(false);
   const [pendingMaintenanceMode, setPendingMaintenanceMode] =
     React.useState(false);
   const [sessionTtlChanged, setSessionTtlChanged] = React.useState(false);
-  const { toast } = useToast();
+  const { toasts, toast, removeToast } = useToast();
 
   React.useEffect(() => {
     loadSettings();
@@ -57,8 +56,6 @@ export default function SettingsPage() {
         description: "Failed to load settings",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -131,18 +128,6 @@ export default function SettingsPage() {
     BALANCED: "Current default matching behavior",
     STRICT: "Higher score threshold for matches",
   };
-
-  if (isLoading) {
-    return (
-      <main className="p-8 space-y-6">
-        <div className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          <h1 className="text-2xl font-semibold">Settings</h1>
-        </div>
-        <div className="text-muted-foreground">Loading settings...</div>
-      </main>
-    );
-  }
 
   return (
     <main className="p-8 space-y-6">
@@ -298,6 +283,9 @@ export default function SettingsPage() {
         }
         onConfirm={confirmMaintenanceChange}
       />
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </main>
   );
 }
