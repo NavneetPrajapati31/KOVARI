@@ -31,6 +31,10 @@ export default function SettingsPage() {
     React.useState(false);
   const [pendingMaintenanceMode, setPendingMaintenanceMode] =
     React.useState(false);
+  const [presetDialogOpen, setPresetDialogOpen] = React.useState(false);
+  const [pendingPreset, setPendingPreset] = React.useState<
+    "SAFE" | "BALANCED" | "STRICT"
+  >("BALANCED");
   const [sessionTtlChanged, setSessionTtlChanged] = React.useState(false);
   const { toasts, toast, removeToast } = useToast();
 
@@ -120,7 +124,13 @@ export default function SettingsPage() {
   const handleMatchingPresetChange = (
     value: "SAFE" | "BALANCED" | "STRICT"
   ) => {
-    saveSettings({ matching_preset: value });
+    setPendingPreset(value);
+    setPresetDialogOpen(true);
+  };
+
+  const confirmPresetChange = async () => {
+    await saveSettings({ matching_preset: pendingPreset });
+    setPresetDialogOpen(false);
   };
 
   const presetDescriptions = {
@@ -204,8 +214,8 @@ export default function SettingsPage() {
                   <SelectContent>
                     <SelectItem value="6">6 hours</SelectItem>
                     <SelectItem value="12">12 hours</SelectItem>
-                    <SelectItem value="24">24 hours (default)</SelectItem>
-                    <SelectItem value="168">7 days</SelectItem>
+                    <SelectItem value="24">24 hours</SelectItem>
+                    <SelectItem value="168">7 days (default)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -282,6 +292,17 @@ export default function SettingsPage() {
             : "Disable Maintenance Mode"
         }
         onConfirm={confirmMaintenanceChange}
+      />
+
+      {/* Matching Preset Confirmation Dialog */}
+      <ConfirmDialog
+        open={presetDialogOpen}
+        onOpenChange={setPresetDialogOpen}
+        title="Change Matching Preset?"
+        description={`You are changing the matching preset from ${settings.matching_preset} to ${pendingPreset}. This will affect the minimum score threshold and maximum distance for all future matches. Are you sure you want to continue?`}
+        variant="default"
+        confirmText={`Change to ${pendingPreset}`}
+        onConfirm={confirmPresetChange}
       />
 
       {/* Toast Container */}

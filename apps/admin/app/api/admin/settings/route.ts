@@ -56,7 +56,38 @@ export async function POST(req: NextRequest) {
     const { adminId } = await requireAdmin();
     const body = await req.json();
 
-    const sessionTtlHours = Number(body.sessionTtlHours ?? 24);
+    // Fetch current settings to capture old values for audit logging
+    const { data: currentSettings, error: fetchError } = await supabaseAdmin
+      .from("system_settings")
+      .select("key, value")
+      .in("key", ["maintenance_mode", "matching_preset", "session_ttl_hours"]);
+
+    if (fetchError) {
+      console.error("Error fetching current settings:", fetchError);
+    }
+
+    const settingsMap = new Map(
+      currentSettings?.map((item) => [item.key, item.value]) || []
+    );
+
+    // Extract old values
+    const oldMaintenanceValue = settingsMap.get("maintenance_mode") as
+      | { enabled: boolean }
+      | undefined;
+    const oldPresetValue = settingsMap.get("matching_preset") as
+      | { mode: string }
+      | undefined;
+    const oldTtlValue = settingsMap.get("session_ttl_hours") as
+      | { hours: number }
+      | undefined;
+
+    const oldValue = {
+      session_ttl_hours: oldTtlValue?.hours ?? 168,
+      maintenance_mode: oldMaintenanceValue?.enabled ?? false,
+      matching_preset: (oldPresetValue?.mode ?? "balanced").toUpperCase(),
+    };
+
+    const sessionTtlHours = Number(body.sessionTtlHours ?? 168);
     const maintenanceMode = !!body.maintenanceMode;
     const matchingPreset = (body.matchingPreset || "BALANCED").toUpperCase();
 
@@ -122,13 +153,17 @@ export async function POST(req: NextRequest) {
       matching_preset: matchingPreset,
     };
 
+    // Log admin action with old and new values
     await logAdminAction({
       adminId,
       targetType: "settings",
       targetId: null,
       action: "update_matching_settings",
       reason: body.reason ?? null,
-      metadata: newValue,
+      metadata: {
+        oldValue,
+        newValue,
+      },
     });
 
     return NextResponse.json({ success: true, value: newValue });
