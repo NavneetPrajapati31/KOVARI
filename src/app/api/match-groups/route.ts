@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { findGroupMatchesForUser } from "@/lib/matching/group";
 import { getCoordinatesForLocation } from "@/lib/geocoding";
+import { getSetting } from "@/lib/settings";
+import { getMatchingPresetConfig } from "@/lib/matching/config";
 
 // Define the types based on what the matching function expects
 interface Location {
@@ -75,6 +77,24 @@ const calculateDistance = (loc1: Location, loc2: Location): number => {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check maintenance mode
+    const maintenance = await getSetting("maintenance_mode");
+    if (maintenance && (maintenance as { enabled: boolean }).enabled) {
+      return NextResponse.json(
+        { error: "System under maintenance. Please try later." },
+        { status: 503 }
+      );
+    }
+
+    // Get matching preset configuration
+    const presetSetting = await getSetting("matching_preset");
+    const presetMode =
+      (presetSetting as { mode: string } | null)?.mode || "balanced";
+    const presetConfig = getMatchingPresetConfig(presetMode);
+    console.log(
+      `📊 Using matching preset: ${presetMode} (minScore: ${presetConfig.minScore}, maxDistance: ${presetConfig.maxDistanceKm}km)`
+    );
+
     const data = await req.json();
     const {
       destination,
@@ -205,8 +225,8 @@ export async function POST(req: NextRequest) {
             groupCoords
           );
           console.log(`Group ${group.id} is ${distance.toFixed(2)}km away`);
-          if (distance <= 200) {
-            // Only include groups within 200km
+          if (distance <= presetConfig.maxDistanceKm) {
+            // Only include groups within preset maxDistanceKm
             groupsWithCoords.push({
               ...group,
               destinationCoords: groupCoords,
@@ -228,7 +248,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (groupsWithCoords.length === 0) {
-      console.log("No groups found within 200km distance");
+      console.log(
+        `No groups found within ${presetConfig.maxDistanceKm}km distance`
+      );
       return NextResponse.json({ groups: [] });
     }
 
@@ -303,14 +325,26 @@ export async function POST(req: NextRequest) {
     );
 
     // Use the group matching algorithm to get scored matches
-    const matches = findGroupMatchesForUser(userProfile, groupProfiles);
+    const matches = findGroupMatchesForUser(
+      userProfile,
+      groupProfiles,
+      presetConfig.maxDistanceKm
+    );
     console.log(
       `Matching algorithm returned ${matches.length} matches:`,
       matches
     );
 
+    // Filter by preset minScore
+    const filteredMatches = matches.filter(
+      (match) => match.score >= presetConfig.minScore
+    );
+    console.log(
+      `After applying minScore filter (${presetConfig.minScore}): ${filteredMatches.length} matches remain`
+    );
+
     // Transform the results to include group details and maintain distance info
-    const safeMatches = matches.map((match) => {
+    const safeMatches = filteredMatches.map((match) => {
       const originalGroup = groupsWithCoords.find(
         (g) => g.id === match.group.groupId
       );

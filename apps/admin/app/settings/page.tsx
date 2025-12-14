@@ -22,7 +22,7 @@ interface SettingsData {
 
 export default function SettingsPage() {
   const [settings, setSettings] = React.useState<SettingsData>({
-    session_ttl_hours: 24,
+    session_ttl_hours: 168, // Default: 7 days
     maintenance_mode: false,
     matching_preset: "BALANCED",
   });
@@ -45,7 +45,7 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error("Failed to load settings");
       const data = await response.json();
       setSettings({
-        session_ttl_hours: data.session_ttl_hours ?? 24,
+        session_ttl_hours: data.session_ttl_hours ?? 168, // Default: 7 days
         maintenance_mode: data.maintenance_mode ?? false,
         matching_preset: data.matching_preset ?? "BALANCED",
       });

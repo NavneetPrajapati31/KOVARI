@@ -38,7 +38,7 @@ export async function GET(_req: NextRequest) {
       | undefined;
 
     return NextResponse.json({
-      session_ttl_hours: ttlValue?.hours ?? 24,
+      session_ttl_hours: ttlValue?.hours ?? 168, // Default: 7 days
       maintenance_mode: maintenanceValue?.enabled ?? false,
       matching_preset: (presetValue?.mode ?? "BALANCED").toUpperCase(),
     });
