@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import {
   Calendar as CalendarIcon,
   Copy,
@@ -42,7 +43,10 @@ interface AdminAction {
   reason: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
-  admins?: { email: string }[];
+  admins?:
+    | { id: string; email: string }
+    | { id: string; email: string }[]
+    | null;
 }
 
 interface AuditResponse {
@@ -116,7 +120,10 @@ export default function AuditPage() {
         const data: AuditResponse = await response.json();
         const uniqueAdmins = new Map<string, string>();
         data.actions.forEach((action) => {
-          const adminEmail = action.admins?.[0]?.email;
+          const admin = Array.isArray(action.admins)
+            ? action.admins[0]
+            : action.admins;
+          const adminEmail = admin?.email;
           const adminId = action.admin_id;
           if (adminEmail && adminId && !uniqueAdmins.has(adminId)) {
             uniqueAdmins.set(adminId, adminEmail);
@@ -189,6 +196,17 @@ export default function AuditPage() {
     fetchAuditLogs();
   }, [fetchAuditLogs]);
 
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setPage(1);
+  }, [
+    dateRange.from,
+    dateRange.to,
+    selectedAction,
+    selectedAdmin,
+    selectedTargetType,
+  ]);
+
   const handleDateRangePreset = (days: number) => {
     const to = new Date();
     const from = new Date();
@@ -256,33 +274,48 @@ export default function AuditPage() {
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return format(new Date(timestamp), "yyyy-MM-dd HH:mm:ss") + " UTC";
+    // Convert to IST (Asia/Kolkata timezone)
+    return (
+      formatInTimeZone(
+        new Date(timestamp),
+        "Asia/Kolkata",
+        "yyyy-MM-dd HH:mm:ss"
+      ) + " IST"
+    );
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Audit Logs</h1>
-        <Button onClick={handleExport} variant="outline">
+    <div className="container mx-auto max-w-full p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-2 border-b">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Audit Logs</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            View and filter all administrative actions
+          </p>
+        </div>
+        <Button onClick={handleExport} variant="outline" size="sm">
           <Download className="mr-2 h-4 w-4" />
           Export CSV
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg border p-4 space-y-4">
-        <h2 className="text-lg font-semibold">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Date Range */}
-          <div className="space-y-2">
-            <Label>Date Range</Label>
-            <div className="flex gap-2">
+      <div className="rounded-lg border bg-card shadow-sm">
+        <div className="p-5 border-b bg-muted/30">
+          <h2 className="text-sm font-semibold">Filters</h2>
+        </div>
+        <div className="p-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Date Range */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Date Range</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal h-9",
                       !dateRange.from && "text-muted-foreground"
                     )}
                   >
@@ -302,12 +335,13 @@ export default function AuditPage() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <div className="p-3 space-y-2">
-                    <div className="flex gap-2">
+                  <div className="p-4 space-y-3">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDateRangePreset(7)}
+                        className="text-xs"
                       >
                         Last 7 days
                       </Button>
@@ -315,6 +349,7 @@ export default function AuditPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDateRangePreset(30)}
+                        className="text-xs"
                       >
                         Last 30 days
                       </Button>
@@ -324,6 +359,7 @@ export default function AuditPage() {
                         onClick={() =>
                           setDateRange({ from: undefined, to: undefined })
                         }
+                        className="text-xs"
                       >
                         Clear
                       </Button>
@@ -334,8 +370,10 @@ export default function AuditPage() {
                         from: dateRange.from,
                         to: dateRange.to,
                       }}
-                      onSelect={(range) => {
-                        if (range && "from" in range && "to" in range) {
+                      onSelect={(
+                        range: { from?: Date; to?: Date } | undefined
+                      ) => {
+                        if (range) {
                           setDateRange({
                             from: range.from,
                             to: range.to,
@@ -350,92 +388,92 @@ export default function AuditPage() {
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
 
-          {/* Action Type */}
-          <div className="space-y-2">
-            <Label>Action Type</Label>
-            <Select
-              value={selectedAction || "all"}
-              onValueChange={(value) =>
-                setSelectedAction(value === "all" ? undefined : value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All actions" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All actions</SelectItem>
-                {ACTION_TYPES.map((action) => (
-                  <SelectItem key={action} value={action}>
-                    {action}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Action Type */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Action Type</Label>
+              <Select
+                value={selectedAction || "all"}
+                onValueChange={(value) => {
+                  setSelectedAction(value === "all" ? undefined : value);
+                }}
+              >
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="All actions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All actions</SelectItem>
+                  {ACTION_TYPES.map((action) => (
+                    <SelectItem key={action} value={action}>
+                      {action}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Admin */}
-          <div className="space-y-2">
-            <Label>Admin</Label>
-            <Select
-              value={selectedAdmin || "all"}
-              onValueChange={(value) =>
-                setSelectedAdmin(value === "all" ? undefined : value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All admins" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All admins</SelectItem>
-                {admins.map((admin) => (
-                  <SelectItem key={admin.id} value={admin.id}>
-                    {admin.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Admin */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Admin</Label>
+              <Select
+                value={selectedAdmin || "all"}
+                onValueChange={(value) => {
+                  setSelectedAdmin(value === "all" ? undefined : value);
+                }}
+              >
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="All admins" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All admins</SelectItem>
+                  {admins.map((admin) => (
+                    <SelectItem key={admin.id} value={admin.id}>
+                      {admin.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Target Type */}
-          <div className="space-y-2">
-            <Label>Target Type</Label>
-            <Select
-              value={selectedTargetType || "all"}
-              onValueChange={(value) =>
-                setSelectedTargetType(value === "all" ? undefined : value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                {TARGET_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Target Type */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Target Type</Label>
+              <Select
+                value={selectedTargetType || "all"}
+                onValueChange={(value) => {
+                  setSelectedTargetType(value === "all" ? undefined : value);
+                }}
+              >
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  {TARGET_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border">
+      <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Admin</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Target</TableHead>
-                <TableHead>Target ID</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+            <TableHeader className="sticky top-0 bg-muted/50 z-10 border-b">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="h-11 font-semibold">Timestamp</TableHead>
+                <TableHead className="h-11 font-semibold">Admin</TableHead>
+                <TableHead className="h-11 font-semibold">Action</TableHead>
+                <TableHead className="h-11 font-semibold">Target</TableHead>
+                <TableHead className="h-11 font-semibold">Target ID</TableHead>
+                <TableHead className="h-11 font-semibold">Reason</TableHead>
+                <TableHead className="h-11 w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -464,63 +502,95 @@ export default function AuditPage() {
                     <React.Fragment key={action.id}>
                       <TableRow
                         className={cn(
-                          "cursor-pointer",
-                          hasMetadata && "hover:bg-muted/50"
+                          hasMetadata && "cursor-pointer",
+                          hasMetadata && "hover:bg-muted/30 transition-colors"
                         )}
                         onClick={() =>
                           hasMetadata && toggleRowExpansion(action.id)
                         }
                       >
-                        <TableCell className="font-mono text-xs">
-                          {formatTimestamp(action.created_at)}
+                        <TableCell className="py-3">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {formatTimestamp(action.created_at)}
+                          </span>
                         </TableCell>
-                        <TableCell>
-                          {action.admins?.[0]?.email || "Unknown"}
+                        <TableCell className="py-3">
+                          <span className="text-sm">
+                            {(() => {
+                              const admin = Array.isArray(action.admins)
+                                ? action.admins[0]
+                                : action.admins;
+                              return (
+                                admin?.email || (
+                                  <span className="text-muted-foreground">
+                                    Unknown
+                                  </span>
+                                )
+                              );
+                            })()}
+                          </span>
                         </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
+                        <TableCell className="py-3">
+                          <span className="inline-flex items-center font-mono text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
                             {action.action}
                           </span>
                         </TableCell>
-                        <TableCell>{action.target_type}</TableCell>
-                        <TableCell>
+                        <TableCell className="py-3">
+                          <span className="text-sm capitalize">
+                            {action.target_type}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-3">
                           {action.target_id ? (
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs">
-                                {action.target_id.length > 20
-                                  ? `${action.target_id.substring(0, 20)}...`
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {action.target_id.length > 24
+                                  ? `${action.target_id.substring(0, 24)}...`
                                   : action.target_id}
                               </span>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6"
+                                className="h-7 w-7 opacity-60 hover:opacity-100"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   copyToClipboard(action.target_id!);
                                 }}
                               >
-                                <Copy className="h-3 w-3" />
+                                <Copy className="h-3.5 w-3.5" />
                               </Button>
                             </div>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-muted-foreground text-sm">
+                              —
+                            </span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3">
                           {action.reason ? (
-                            <span className="text-sm line-clamp-1">
-                              {action.reason}
+                            <span className="text-sm text-muted-foreground">
+                              {(() => {
+                                const words = action.reason.split(/\s+/);
+                                const maxWords = 5;
+                                if (words.length > maxWords) {
+                                  return (
+                                    words.slice(0, maxWords).join(" ") + "..."
+                                  );
+                                }
+                                return action.reason;
+                              })()}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-muted-foreground text-sm">
+                              —
+                            </span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-3">
                           {hasMetadata && (
                             <ChevronDown
                               className={cn(
-                                "h-4 w-4 transition-transform",
+                                "h-4 w-4 text-muted-foreground transition-transform",
                                 isExpanded && "transform rotate-180"
                               )}
                             />
@@ -529,8 +599,8 @@ export default function AuditPage() {
                       </TableRow>
                       {isExpanded && hasMetadata && (
                         <TableRow>
-                          <TableCell colSpan={7} className="bg-muted/30">
-                            <div className="p-4 space-y-2">
+                          <TableCell colSpan={7} className="bg-muted/20 p-0">
+                            <div className="p-4 space-y-3">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-semibold text-sm">
                                   Metadata
@@ -538,17 +608,18 @@ export default function AuditPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  className="h-8"
                                   onClick={() =>
                                     copyToClipboard(
                                       JSON.stringify(action.metadata, null, 2)
                                     )
                                   }
                                 >
-                                  <Copy className="h-3 w-3 mr-1" />
+                                  <Copy className="h-3.5 w-3.5 mr-1.5" />
                                   Copy JSON
                                 </Button>
                               </div>
-                              <pre className="text-xs bg-background p-3 rounded border overflow-x-auto">
+                              <pre className="text-xs bg-background/50 p-4 rounded-md border overflow-x-auto font-mono">
                                 {JSON.stringify(action.metadata, null, 2)}
                               </pre>
                             </div>
@@ -566,10 +637,17 @@ export default function AuditPage() {
 
       {/* Pagination */}
       {total > 0 && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-2 border-t">
           <div className="text-sm text-muted-foreground">
-            Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)}{" "}
-            of {total} logs
+            Showing{" "}
+            <span className="font-medium text-foreground">
+              {(page - 1) * limit + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-medium text-foreground">
+              {Math.min(page * limit, total)}
+            </span>{" "}
+            of <span className="font-medium text-foreground">{total}</span> logs
           </div>
           <div className="flex gap-2">
             <Button

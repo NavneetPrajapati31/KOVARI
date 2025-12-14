@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
         reason,
         metadata,
         created_at,
-        admins:admins!admin_actions_admin_id_fkey(
+        admins:admin_id (
+          id,
           email
         )
       `,
@@ -46,7 +47,10 @@ export async function GET(req: NextRequest) {
     if (to) query = query.lte("created_at", to);
     if (adminId) query = query.eq("admin_id", adminId);
     if (targetType) query = query.eq("target_type", targetType);
-    if (action) query = query.eq("action", action);
+    if (action) {
+      // Case-insensitive action matching using ilike
+      query = query.ilike("action", action);
+    }
 
     // For CSV we usually want "all" in range, not just paged.
     // MVP: use same pagination – you can change later.
@@ -88,21 +92,27 @@ export async function GET(req: NextRequest) {
       data?.map(
         (row: {
           created_at: string;
-          admins?: { email: string }[];
+          admins?:
+            | { id: string; email: string }
+            | { id: string; email: string }[]
+            | null;
           target_type: string;
           target_id: string;
           action: string;
           reason?: string;
           metadata?: Record<string, unknown>;
-        }) => [
-          row.created_at,
-          row.admins?.[0]?.email ?? "", // from join
-          row.target_type,
-          row.target_id,
-          row.action ?? "",
-          row.reason ?? "",
-          row.metadata ? JSON.stringify(row.metadata) : "",
-        ]
+        }) => {
+          const admin = Array.isArray(row.admins) ? row.admins[0] : row.admins;
+          return [
+            row.created_at,
+            admin?.email ?? "",
+            row.target_type,
+            row.target_id,
+            row.action ?? "",
+            row.reason ?? "",
+            row.metadata ? JSON.stringify(row.metadata) : "",
+          ];
+        }
       ) ?? ([] as string[][]);
 
     const csvString = toCsv(headers, rows as string[][]);
