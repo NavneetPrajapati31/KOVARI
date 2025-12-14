@@ -7,11 +7,11 @@ export async function GET(_req: NextRequest) {
   try {
     await requireAdmin();
 
+    // Fetch all three settings
     const { data, error } = await supabaseAdmin
-      .from("settings")
+      .from("system_settings")
       .select("key, value")
-      .eq("key", "matching")
-      .maybeSingle();
+      .in("key", ["maintenance_mode", "matching_preset", "session_ttl_hours"]);
 
     if (error) {
       console.error("Settings fetch error:", error);
@@ -21,12 +21,27 @@ export async function GET(_req: NextRequest) {
       );
     }
 
-    const value = data?.value || {
-      session_ttl_hours: 24,
-      maintenance_mode: false,
-    };
+    // Parse settings from the database format
+    const settingsMap = new Map(
+      data?.map((item) => [item.key, item.value]) || []
+    );
 
-    return NextResponse.json(value);
+    // Extract values with defaults
+    const maintenanceValue = settingsMap.get("maintenance_mode") as
+      | { enabled: boolean }
+      | undefined;
+    const presetValue = settingsMap.get("matching_preset") as
+      | { mode: string }
+      | undefined;
+    const ttlValue = settingsMap.get("session_ttl_hours") as
+      | { hours: number }
+      | undefined;
+
+    return NextResponse.json({
+      session_ttl_hours: ttlValue?.hours ?? 24,
+      maintenance_mode: maintenanceValue?.enabled ?? false,
+      matching_preset: (presetValue?.mode ?? "BALANCED").toUpperCase(),
+    });
   } catch (err: unknown) {
     console.error("Admin settings GET error:", err);
     return NextResponse.json(
@@ -43,30 +58,55 @@ export async function POST(req: NextRequest) {
 
     const sessionTtlHours = Number(body.sessionTtlHours ?? 24);
     const maintenanceMode = !!body.maintenanceMode;
+    const matchingPreset = (body.matchingPreset || "BALANCED").toUpperCase();
 
     if (
       Number.isNaN(sessionTtlHours) ||
       sessionTtlHours < 1 ||
-      sessionTtlHours > 72
+      sessionTtlHours > 168
     ) {
       return NextResponse.json(
-        { error: "sessionTtlHours must be between 1 and 72" },
+        { error: "sessionTtlHours must be between 1 and 168 (7 days)" },
         { status: 400 }
       );
     }
 
-    const newValue = {
-      session_ttl_hours: sessionTtlHours,
-      maintenance_mode: maintenanceMode,
-    };
+    const validPresets = ["SAFE", "BALANCED", "STRICT"];
+    if (!validPresets.includes(matchingPreset)) {
+      return NextResponse.json(
+        { error: "matchingPreset must be one of: SAFE, BALANCED, STRICT" },
+        { status: 400 }
+      );
+    }
 
-    const { error } = await supabaseAdmin.from("settings").upsert(
+    const now = new Date().toISOString();
+
+    // Update each setting as a separate row in system_settings
+    const updates = [
       {
-        key: "matching",
-        value: newValue,
+        key: "maintenance_mode",
+        value: { enabled: maintenanceMode },
+        updated_by: adminId,
+        updated_at: now,
       },
-      { onConflict: "key" }
-    );
+      {
+        key: "matching_preset",
+        value: { mode: matchingPreset.toLowerCase() },
+        updated_by: adminId,
+        updated_at: now,
+      },
+      {
+        key: "session_ttl_hours",
+        value: { hours: sessionTtlHours },
+        updated_by: adminId,
+        updated_at: now,
+      },
+    ];
+
+    // Upsert all settings
+    const { error } = await supabaseAdmin
+      .from("system_settings")
+      .upsert(updates, { onConflict: "key" });
 
     if (error) {
       console.error("Settings update error:", error);
@@ -75,6 +115,12 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    const newValue = {
+      session_ttl_hours: sessionTtlHours,
+      maintenance_mode: maintenanceMode,
+      matching_preset: matchingPreset,
+    };
 
     await logAdminAction({
       adminId,
