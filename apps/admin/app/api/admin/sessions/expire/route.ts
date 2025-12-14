@@ -62,7 +62,7 @@ export async function POST(req: Request) {
           adminId: admin.adminId,
           targetType: "session",
           targetId: null, // target_id is UUID type, session keys are strings
-          action: "expire_session_attempt_missing",
+          action: "EXPIRE_SESSION",
           reason: reason ?? null,
           metadata: {
             existed: false,
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
         adminId: admin.adminId,
         targetType: "session",
         targetId: null, // target_id is UUID type, session keys are strings
-        action: "expire_session",
+        action: "EXPIRE_SESSION",
         reason: reason ?? null,
         metadata: {
           deleted: delCount > 0,

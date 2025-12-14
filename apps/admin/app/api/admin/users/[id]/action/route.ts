@@ -58,10 +58,10 @@ export async function POST(req: NextRequest, { params }: Params) {
         .eq(
           "action",
           action === "ban"
-            ? "ban_user"
+            ? "BAN_USER"
             : action === "suspend"
-              ? "suspend_user"
-              : "unban_user"
+              ? "SUSPEND_USER"
+              : "UNBAN_USER"
         )
         .gt("created_at", oneMinuteAgo)
         .limit(1);
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         adminId,
         targetType: "user",
         targetId: userId,
-        action: "verify_user",
+        action: "VERIFY_USER",
         reason,
       });
 
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         adminId,
         targetType: "user",
         targetId: userId,
-        action: action === "ban" ? "ban_user" : "suspend_user",
+        action: action === "ban" ? "BAN_USER" : "SUSPEND_USER",
         reason,
         metadata: { ban_expires_at: banExpiresAt },
       });
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         adminId,
         targetType: "user",
         targetId: userId,
-        action: "unban_user",
+        action: "UNBAN_USER",
         reason,
       });
 

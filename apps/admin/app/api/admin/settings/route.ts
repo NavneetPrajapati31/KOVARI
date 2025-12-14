@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
       adminId,
       targetType: "settings",
       targetId: null,
-      action: "update_matching_settings",
+      action: "UPDATE_SETTINGS",
       reason: body.reason ?? null,
       metadata: {
         oldValue,

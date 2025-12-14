@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       .eq("admin_id", adminId)
       .eq("target_id", groupId)
       .eq("target_type", "group")
-      .eq("action", action === "remove" ? "group_remove" : "group_approve")
+      .eq("action", action === "remove" ? "REMOVE_GROUP" : "APPROVE_GROUP")
       .gt("created_at", oneMinuteAgo)
       .limit(1);
 
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       adminId,
       targetType: "group",
       targetId: groupId,
-      action: `group_${action}`,
+      action: action === "approve" ? "APPROVE_GROUP" : "REMOVE_GROUP",
       reason,
       metadata,
     });

@@ -58,7 +58,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         adminId,
         targetType: "user_flag",
         targetId: flagId,
-        action: action === "resolve" ? "resolve_flag" : "dismiss_flag",
+        action: action === "resolve" ? "RESOLVE_FLAG" : "DISMISS_FLAG",
         reason,
       });
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         adminId,
         targetType: "user",
         targetId: userId,
-        action: "warn_user",
+        action: "WARN_USER",
         reason,
       });
 
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         adminId,
         targetType: "user",
         targetId: userId,
-        action: action,
+        action: action === "ban_user" ? "BAN_USER" : "SUSPEND_USER",
         reason,
         metadata: { flagId, ban_expires_at: banExpiresAt },
       });

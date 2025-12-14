@@ -34,7 +34,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       adminId,
       targetType: "session",
       targetId: null,
-      action: "expire_session",
+      action: "EXPIRE_SESSION",
       reason: body.reason ?? null,
       metadata: { sessionKey },
     });
