@@ -5,14 +5,12 @@ import { useUser } from "@clerk/nextjs";
 import { ExploreSidebar } from "@/features/explore/components/ExploreSidebar";
 import { ResultsDisplay } from "@/features/explore/components/ResultsDisplay";
 import { SearchData, Filters } from "@/features/explore/types";
-import { Menu } from "lucide-react";
 
 export default function ExplorePage() {
   const { user } = useUser();
 
   // State management
   const [activeTab, setActiveTab] = useState(0);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [matchedGroups, setMatchedGroups] = useState<any[]>([]);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
@@ -42,6 +40,25 @@ export default function ExplorePage() {
     nationality: "Any",
     languages: [],
   });
+
+  // Page loading effect
+  useEffect(() => {
+    document.body.style.overflow = isPageLoading ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isPageLoading]);
+
+  // Prevent body scrolling when component mounts
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
 
   // Sync travelMode with activeTab when it changes
   useEffect(() => {
@@ -83,13 +100,6 @@ export default function ExplorePage() {
     setSearchError(null);
     setMatchedGroups([]);
     setCurrentGroupIndex(0);
-
-    // Validate destination before making API call
-    if (!fullSearchData.destination || !fullSearchData.destination.trim()) {
-      setSearchError("Please enter a destination");
-      setSearchLoading(false);
-      return;
-    }
 
     try {
       const userId = user?.id;
@@ -180,24 +190,8 @@ export default function ExplorePage() {
         });
 
         console.log("Response status:", res.status);
-        
-        // Parse response, handling both success and error cases
-        let data;
-        try {
-          data = await res.json();
-        } catch (parseError) {
-          console.error("Failed to parse API response:", parseError);
-          throw new Error(`Failed to parse server response. Status: ${res.status}`);
-        }
-
-        if (!res.ok) {
-          // Include details if available for better error messages
-          const errorMessage = data?.details 
-            ? `${data.error || "Error"}: ${data.details}` 
-            : data?.error || `Failed to fetch groups (Status: ${res.status})`;
-          console.error("API error response:", { status: res.status, data });
-          throw new Error(errorMessage);
-        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
         
         console.log("API Response for groups:", data);
 
@@ -232,9 +226,8 @@ export default function ExplorePage() {
         setLastSearchData(fullSearchData);
       }
     } catch (err: any) {
-      const errorMessage = err?.message || err?.toString() || "An unknown error occurred";
+      setSearchError(err.message || "Unknown error");
       console.error("Search error:", err);
-      setSearchError(errorMessage);
     } finally {
       setSearchLoading(false);
     }
@@ -251,9 +244,6 @@ export default function ExplorePage() {
   const handleFilterChange = (key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
-
-  const closeSidebar = () => setIsSidebarOpen(false);
-  const openSidebar = () => setIsSidebarOpen(true);
 
   // Navigation functions
   const handlePreviousGroup = () => {
@@ -317,81 +307,39 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background md:flex-row flex-col">
-      {/* Sidebar (mobile drawer + desktop static) */}
-      <div
-        className={`fixed inset-0 z-40 md:static md:z-auto transition-transform duration-200 md:translate-x-0 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-      >
-        <div className="h-full md:h-auto w-11/12 max-w-md md:w-80 bg-background border-r border-gray-200 shadow-lg md:shadow-none">
-          <ExploreSidebar
-            activeTab={activeTab}
-            searchData={searchData}
-            filters={filters}
-            searchLoading={searchLoading}
-            onTabChange={(tab) => {
-              setActiveTab(tab);
-              closeSidebar();
-            }}
-            onSearchDataChange={setSearchData}
-            onSearch={() => {
-              handleSearch();
-              closeSidebar();
-            }}
-            onFilterChange={handleFilterChange}
-            onCloseMobile={closeSidebar}
-          />
-        </div>
-        {/* Backdrop */}
-        <button
-          type="button"
-          onClick={closeSidebar}
-          className={`md:hidden absolute inset-0 bg-black/40 transition-opacity ${
-            isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-          aria-label="Close filters"
-        />
-      </div>
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Left Sidebar */}
+      <ExploreSidebar
+        activeTab={activeTab}
+        searchData={searchData}
+        filters={filters}
+        searchLoading={searchLoading}
+        onTabChange={setActiveTab}
+        onSearchDataChange={setSearchData}
+        onSearch={handleSearch}
+        onFilterChange={handleFilterChange}
+      />
 
       {/* Right Content Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between md:hidden">
-          <div>
-            <p className="text-sm text-gray-500">Explore</p>
-            <p className="text-lg font-semibold text-gray-900">Find your next trip</p>
-          </div>
-          <button
-            type="button"
-            onClick={openSidebar}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-900 shadow-sm"
-            aria-label="Open filters"
-          >
-            <Menu className="w-4 h-4" />
-            Filters
-          </button>
-        </div>
-
-        <ResultsDisplay
-          activeTab={activeTab}
-          matchedGroups={matchedGroups}
-          currentGroupIndex={currentGroupIndex}
-          searchLoading={searchLoading}
-          searchError={searchError}
-          lastSearchData={lastSearchData}
-          onPreviousGroup={handlePreviousGroup}
-          onNextGroup={handleNextGroup}
-          onConnect={handleConnect}
-          onSuperLike={handleSuperLike}
-          onPass={handlePass}
-          onComment={handleComment}
-          onViewProfile={handleViewProfile}
-          onJoinGroup={handleJoinGroup}
-          onRequestJoin={handleRequestJoin}
-          onPassGroup={handlePassGroup}
-          onViewGroup={handleViewGroup}
-        />
-      </div>
+      <ResultsDisplay
+        activeTab={activeTab}
+        matchedGroups={matchedGroups}
+        currentGroupIndex={currentGroupIndex}
+        searchLoading={searchLoading}
+        searchError={searchError}
+        lastSearchData={lastSearchData}
+        onPreviousGroup={handlePreviousGroup}
+        onNextGroup={handleNextGroup}
+        onConnect={handleConnect}
+        onSuperLike={handleSuperLike}
+        onPass={handlePass}
+        onComment={handleComment}
+        onViewProfile={handleViewProfile}
+        onJoinGroup={handleJoinGroup}
+        onRequestJoin={handleRequestJoin}
+        onPassGroup={handlePassGroup}
+        onViewGroup={handleViewGroup}
+      />
     </div>
   );
 }

@@ -46,8 +46,6 @@ interface GroupWithCoords {
   start_date: string;
   end_date: string;
   creator_id: string;
-  destination_lat: number | null;
-  destination_lon: number | null;
   non_smokers: boolean | null;
   non_drinkers: boolean | null;
   dominant_languages: string[] | null;
@@ -109,43 +107,17 @@ export async function POST(req: NextRequest) {
     // Get coordinates for user's destination
     let userDestinationCoords: Location;
     if (typeof destination === 'string') {
-      const destinationString = destination.trim();
-      if (!destinationString) {
-        return NextResponse.json({ 
-          error: "Invalid destination", 
-          details: "Destination cannot be empty" 
-        }, { status: 400 });
-      }
-
-      console.log("Getting coordinates for destination:", destinationString);
-      const coords = await getCoordinatesForLocation(destinationString);
+      console.log("Getting coordinates for destination:", destination);
+      const coords = await getCoordinatesForLocation(destination);
       if (!coords) {
-        console.error("Could not find coordinates for destination:", destinationString);
-        return NextResponse.json({ 
-          error: "Could not find coordinates for the specified destination", 
-          details: `The location "${destinationString}" could not be found. Please check the spelling or try a more specific location name (e.g., "Paris, France" instead of just "Paris").`,
-          destination: destinationString
-        }, { status: 400 });
+        console.error("Could not find coordinates for destination:", destination);
+        return NextResponse.json({ error: "Could not find coordinates for the specified destination" }, { status: 400 });
       }
       console.log("Found coordinates for destination:", coords);
       userDestinationCoords = coords;
-    } else if (destination && typeof destination === 'object' && 'lat' in destination && 'lon' in destination) {
-      // Validate coordinates object
-      const lat = Number(destination.lat);
-      const lon = Number(destination.lon);
-      if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-        return NextResponse.json({ 
-          error: "Invalid coordinates", 
-          details: "Provided coordinates are invalid. Latitude must be between -90 and 90, longitude must be between -180 and 180." 
-        }, { status: 400 });
-      }
-      console.log("Destination is already coordinates:", destination);
-      userDestinationCoords = { lat, lon };
     } else {
-      return NextResponse.json({ 
-        error: "Invalid destination format", 
-        details: "Destination must be either a string (location name) or an object with lat and lon properties." 
-      }, { status: 400 });
+      console.log("Destination is already coordinates:", destination);
+      userDestinationCoords = destination;
     }
 
     // Create a user profile with provided filter data or defaults
@@ -179,8 +151,6 @@ export async function POST(req: NextRequest) {
         start_date,
         end_date,
         creator_id,
-        destination_lat,
-        destination_lon,
         non_smokers,
         non_drinkers,
         dominant_languages,
@@ -206,40 +176,22 @@ export async function POST(req: NextRequest) {
     const groupsWithCoords: GroupWithCoords[] = [];
     for (const group of groups) {
       if (group.destination) {
-        const hasStoredCoords =
-          typeof group.destination_lat === "number" &&
-          typeof group.destination_lon === "number";
-
-        const groupCoords = hasStoredCoords
-          ? { lat: group.destination_lat as number, lon: group.destination_lon as number }
-          : await getCoordinatesForLocation(group.destination);
-
-        if (!groupCoords) {
-          console.log(`Could not get coordinates for group ${group.id} destination: ${group.destination}`);
-          continue;
-        }
-
-        if (!hasStoredCoords) {
-          // Persist coordinates so future searches can reuse them
-          await supabase
-            .from("groups")
-            .update({
-              destination_lat: groupCoords.lat,
-              destination_lon: groupCoords.lon,
-            })
-            .eq("id", group.id);
-        }
-
-        const distance = calculateDistance(userDestinationCoords, groupCoords);
-        console.log(`Group ${group.id} is ${distance.toFixed(2)}km away`);
-        if (distance <= 200) {
-          groupsWithCoords.push({
-            ...group,
-            destinationCoords: groupCoords,
-            distance,
-          });
+        console.log(`Getting coordinates for group ${group.id} destination: ${group.destination}`);
+        const groupCoords = await getCoordinatesForLocation(group.destination);
+        if (groupCoords) {
+          const distance = calculateDistance(userDestinationCoords, groupCoords);
+          console.log(`Group ${group.id} is ${distance.toFixed(2)}km away`);
+          if (distance <= 200) { // Only include groups within 200km
+            groupsWithCoords.push({
+              ...group,
+              destinationCoords: groupCoords,
+              distance
+            });
+          } else {
+            console.log(`Group ${group.id} is too far (${distance.toFixed(2)}km > 200km)`);
+          }
         } else {
-          console.log(`Group ${group.id} is too far (${distance.toFixed(2)}km > 200km)`);
+          console.log(`Could not get coordinates for group ${group.id} destination: ${group.destination}`);
         }
       } else {
         console.log(`Group ${group.id} has no destination`);

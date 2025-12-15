@@ -75,7 +75,7 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
 
             const coords: Coordinates = { lat, lon };
 
-            // Cache the result for 30 days
+            // FIX: Use setEx (Redis v4+) instead of setex (deprecated)
             await redisClient.setEx(cacheKey, 2592000, JSON.stringify(coords)); // 2592000 seconds = 30 days
             
             console.log(`Geocoding: Successfully found coordinates for "${sanitizedLocation}": ${lat}, ${lon}`);

@@ -113,28 +113,12 @@ export async function POST(req: Request) {
       });
     }
 
-    const destinationCoordinates = await getCoordinatesForLocation(parsed.data.destination);
-    if (!destinationCoordinates) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Could not determine destination coordinates",
-          details: `No coordinates found for ${parsed.data.destination}`
-        }),
-        { 
-          status: 400,
-          headers: { "Content-Type": "application/json" }
-        }
-      );
-    }
-
     const payload = {
       creator_id: userRow.id,
       ...parsed.data,
       cover_image: parsed.data.cover_image || null,
       non_smokers: parsed.data.non_smokers || null,
       non_drinkers: parsed.data.non_drinkers || null,
-      destination_lat: destinationCoordinates.lat,
-      destination_lon: destinationCoordinates.lon,
     };
 
     console.log("Attempting to insert payload:", payload);

@@ -11,23 +11,16 @@ export async function GET(
   const { userId } = await context.params;
   const supabase = createRouteHandlerSupabaseClient();
 
-  // 1. Fetch profile (remove interests from select)
+  // 1. Fetch profile (include interests from profiles)
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select(
-      `name, username, age, gender, nationality, bio, languages, profile_photo, job`
+      `name, username, age, gender, nationality, bio, languages, profile_photo, job, interests`
     )
     .eq("user_id", userId)
     .single();
 
-  // 2. Fetch travel preferences (for interests)
-  const { data: travelPrefData } = await supabase
-    .from("travel_preferences")
-    .select("interests")
-    .eq("user_id", userId)
-    .single();
-
-  const interests = travelPrefData?.interests || [];
+  const interests = profileData?.interests || [];
 
   // 3. Fetch posts from user_posts
   const { data: postsData } = await supabase
@@ -41,7 +34,7 @@ export async function GET(
   // Debugging output
   console.log("[DEBUG] userId:", userId);
   console.log("[DEBUG] profileData:", profileData);
-  console.log("[DEBUG] travelPrefData:", travelPrefData);
+  // removed travelPrefData debug
   console.log("[DEBUG] postsData:", postsData);
   console.error("[DEBUG] profileError:", profileError);
 

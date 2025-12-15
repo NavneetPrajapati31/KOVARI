@@ -33,7 +33,7 @@ export async function GET() {
       });
     }
 
-    // Get profile data
+    // Get profile data (including interests directly on profiles)
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
@@ -48,14 +48,7 @@ export async function GET() {
       );
     }
 
-    // Get travel preferences for interests
-    const { data: travelPrefData } = await supabase
-      .from("travel_preferences")
-      .select("interests")
-      .eq("user_id", user.id)
-      .single();
-
-    const interests = travelPrefData?.interests || [];
+    const interests = profile?.interests || [];
 
     // Transform data to match ProfileEditForm structure
     const profileData = {
