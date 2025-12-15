@@ -1,0 +1,10 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "no-console": ["warn"],
+    "@typescript-eslint/no-unused-vars": ["error"]
+  },
+  "scripts": {
+    "lint": "next lint"
+  }
+}
