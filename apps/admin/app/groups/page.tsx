@@ -69,7 +69,7 @@ export default async function GroupsPage({
   );
 
   return (
-    <main className="p-8 space-y-6">
+    <div className="p-6 space-y-6">
       <div>
         <h1 className="text-xl font-semibold">Groups</h1>
         <p className="text-muted-foreground mt-1">
@@ -84,6 +84,6 @@ export default async function GroupsPage({
         initialStatus={status}
         initialQuery={query}
       />
-    </main>
+    </div>
   );
 }
