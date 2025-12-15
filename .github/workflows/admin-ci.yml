@@ -18,8 +18,13 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install root dependencies
         run: npm install
+
+      - name: Install admin dependencies
+        run: |
+          cd apps/admin
+          npm install
 
       - name: Lint Admin
         run: |
@@ -29,7 +34,7 @@ jobs:
       - name: Test Admin
         run: |
           cd apps/admin
-          npm run test
+          npm run test:run
 
       - name: Build Admin
         run: |
