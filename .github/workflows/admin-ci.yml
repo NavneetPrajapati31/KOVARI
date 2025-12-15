@@ -44,6 +44,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key"
           REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_dummy"
+          CLERK_SECRET_KEY: "sk_test_dummy"
         run: |
           cd apps/admin
           npm run build
