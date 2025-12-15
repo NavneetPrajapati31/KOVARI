@@ -6,6 +6,7 @@ import redis, {
 } from "../../../../lib/redisAdmin";
 import { requireAdmin } from "../../../../lib/adminAuth";
 import * as Sentry from "@sentry/nextjs";
+import { incrementErrorCounter } from "../../../../lib/incrementErrorCounter";
 
 export async function GET(req: Request) {
   // verify admin
@@ -207,6 +208,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ sessions, nextCursor }, { status: 200 });
   } catch (error) {
+    await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
         scope: "admin-api",

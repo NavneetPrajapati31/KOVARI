@@ -3,6 +3,7 @@ import { requireAdmin } from "@/admin-lib/adminAuth";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
+import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
 
 export async function GET(_req: NextRequest) {
   try {
@@ -48,6 +49,7 @@ export async function GET(_req: NextRequest) {
       matching_preset: (presetValue?.mode ?? "BALANCED").toUpperCase(),
     });
   } catch (error) {
+    await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
         scope: "admin-api",
@@ -179,6 +181,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, value: newValue });
   } catch (error) {
+    await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
         scope: "admin-api",

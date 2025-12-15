@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import * as Sentry from "@sentry/nextjs";
+import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
 
 export async function GET(req: NextRequest) {
   try {
@@ -56,6 +57,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ page, limit, groups: data });
   } catch (error) {
+    await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
         scope: "admin-api",

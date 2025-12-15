@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { toCsv } from "@/admin-lib/toCsv";
 import * as Sentry from "@sentry/nextjs";
+import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
 
 export async function GET(req: NextRequest) {
   try {
@@ -134,6 +135,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
+    await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
         scope: "admin-api",

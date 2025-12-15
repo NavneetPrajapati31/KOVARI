@@ -4,6 +4,7 @@ import redis, { ensureRedisConnection } from "../../../../../lib/redisAdmin";
 import { requireAdmin } from "../../../../../lib/adminAuth";
 import { logAdminAction } from "../../../../../lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
+import { incrementErrorCounter } from "../../../../../lib/incrementErrorCounter";
 
 function isValidSessionKey(key: unknown): key is string {
   if (typeof key !== "string") return false;
@@ -126,6 +127,7 @@ export async function POST(req: Request) {
       { status: 200 }
     );
   } catch (error) {
+    await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
         scope: "admin-api",

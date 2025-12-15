@@ -4,6 +4,7 @@ import { findGroupMatchesForUser } from "@/lib/matching/group";
 import { getCoordinatesForLocation } from "@/lib/geocoding";
 import { getSetting } from "@/lib/settings";
 import { getMatchingPresetConfig } from "@/lib/matching/config";
+import redis, { ensureRedisConnection } from "@/lib/redis";
 
 // Define the types based on what the matching function expects
 interface Location {
@@ -387,6 +388,19 @@ export async function POST(req: NextRequest) {
     });
 
     console.log(`Returning ${safeMatches.length} final matches:`, safeMatches);
+
+    // Increment match generation counter for metrics
+    if (safeMatches.length > 0) {
+      try {
+        const redisClient = await ensureRedisConnection();
+        await redisClient.incr("metrics:matches:daily");
+        await redisClient.expire("metrics:matches:daily", 86400); // 24 hours TTL
+      } catch (e) {
+        console.warn("Failed to increment match counter:", e);
+        // Don't fail the request if metrics tracking fails
+      }
+    }
+
     return NextResponse.json({ groups: safeMatches });
   } catch (err: any) {
     return NextResponse.json(

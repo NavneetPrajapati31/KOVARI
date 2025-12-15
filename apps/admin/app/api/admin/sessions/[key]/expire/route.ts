@@ -3,6 +3,7 @@ import { requireAdmin } from "@/admin-lib/adminAuth";
 import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
+import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
 
 interface Params {
   params: Promise<{ key: string }>;
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
         scope: "admin-api",

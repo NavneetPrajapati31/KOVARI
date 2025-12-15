@@ -276,6 +276,17 @@ export async function GET(request: NextRequest) {
     const sortedMatches = scoredMatches.sort((a, b) => b!.score - a!.score);
     const topMatches = sortedMatches.slice(0, 10);
 
+    // Increment match generation counter for metrics
+    if (topMatches.length > 0) {
+      try {
+        await redisClient.incr("metrics:matches:daily");
+        await redisClient.expire("metrics:matches:daily", 86400); // 24 hours TTL
+      } catch (e) {
+        console.warn("Failed to increment match counter:", e);
+        // Don't fail the request if metrics tracking fails
+      }
+    }
+
     console.log(`✅ Returning ${topMatches.length} top matches`);
     return NextResponse.json(topMatches, { status: 200 });
   } catch (error) {

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
+import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -195,6 +196,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
+    await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
         scope: "admin-api",
