@@ -1,5 +1,6 @@
 import { requireAdminPage } from '@/admin-lib/adminAuth';
 import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { getRedisAdminClient } from '@/admin-lib/redisAdmin';
 import Link from 'next/link';
 import {
   Clock,
@@ -12,7 +13,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { headers } from 'next/headers';
 
 interface Metrics {
   sessionsActive: number;
@@ -38,50 +38,69 @@ interface AdminAction {
     | Array<{ email: string }>;
 }
 
-// Get base URL for internal API calls
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return 'http://localhost:3000';
-}
-
 async function getMetrics(): Promise<Metrics> {
+  let activeSessions = 0;
+  let matches24h = 0;
+  let pendingFlags = 0;
+
+  // Get pending flags (doesn't require Redis)
   try {
-    const headersList = await headers();
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/admin/metrics`, {
-      cache: 'no-store',
-      headers: {
-        cookie: headersList.get('cookie') || '',
-      },
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch metrics:', response.status);
-      return { sessionsActive: 0, pendingFlags: 0, matches24h: 0 };
-    }
-
-    // Check if response is actually JSON before parsing
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('Unexpected content type for metrics:', contentType);
-      return { sessionsActive: 0, pendingFlags: 0, matches24h: 0 };
-    }
-
-    const data = await response.json();
-    return {
-      sessionsActive: data.sessionsActive ?? 0,
-      pendingFlags: data.pendingFlags ?? 0,
-      matches24h: data.matches24h ?? 0,
-    };
+    const { count } = await supabaseAdmin
+      .from('user_flags')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    pendingFlags = count ?? 0;
   } catch (error) {
-    console.error('Error fetching metrics:', error);
-    return { sessionsActive: 0, pendingFlags: 0, matches24h: 0 };
+    console.error('Error fetching pending flags:', error);
   }
+
+  // Get Redis metrics (may fail if Redis is unavailable)
+  try {
+    const redis = getRedisAdminClient();
+
+    // Ensure Redis is connected (same pattern as API route)
+    if (!redis.isOpen) {
+      await redis.connect();
+    }
+
+    // Get active sessions count (same logic as API route)
+    try {
+      // Try to use sessions:index if it exists (faster)
+      const indexCount = await redis.sCard('sessions:index');
+      if (indexCount > 0) {
+        activeSessions = indexCount;
+      } else {
+        // Fallback: count session:* keys directly
+        const sessionKeys = await redis.keys('session:*');
+        activeSessions = sessionKeys.length;
+      }
+    } catch (e) {
+      // If sessions:index doesn't exist or fails, count keys directly
+      try {
+        const sessionKeys = await redis.keys('session:*');
+        activeSessions = sessionKeys.length;
+      } catch (e2) {
+        // Redis operation failed, but continue with other metrics
+      }
+    }
+
+    // Get matches generated (24h) - from Redis counter
+    try {
+      const count = await redis.get('metrics:matches:daily');
+      matches24h = count ? parseInt(count, 10) : 0;
+    } catch (e) {
+      // Silently fail - Redis may be unavailable, which is expected
+    }
+  } catch (error) {
+    // Redis connection failed - this is OK, we'll just return 0 for Redis metrics
+    // Silently fail - Redis may be unavailable, which is expected
+  }
+
+  return {
+    sessionsActive: activeSessions,
+    pendingFlags: pendingFlags,
+    matches24h: matches24h,
+  };
 }
 
 async function getTotalUsers(): Promise<number> {
@@ -105,30 +124,29 @@ async function getTotalUsers(): Promise<number> {
 
 async function getSettings(): Promise<Settings> {
   try {
-    const headersList = await headers();
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/admin/settings`, {
-      cache: 'no-store',
-      headers: {
-        cookie: headersList.get('cookie') || '',
-      },
-    });
+    // Fetch settings directly from database
+    const { data, error } = await supabaseAdmin
+      .from('system_settings')
+      .select('key, value')
+      .in('key', ['maintenance_mode', 'matching_preset', 'session_ttl_hours']);
 
-    if (!response.ok) {
-      console.error('Failed to fetch settings:', response.status);
+    if (error) {
+      console.error('Settings fetch error:', error);
       return { maintenance_mode: false };
     }
 
-    // Check if response is actually JSON before parsing
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('Unexpected content type for settings:', contentType);
-      return { maintenance_mode: false };
-    }
+    // Parse settings from the database format
+    const settingsMap = new Map(
+      data?.map((item) => [item.key, item.value]) || [],
+    );
 
-    const data = await response.json();
+    // Extract maintenance mode value with default
+    const maintenanceValue = settingsMap.get('maintenance_mode') as
+      | { enabled: boolean }
+      | undefined;
+
     return {
-      maintenance_mode: data.maintenance_mode ?? false,
+      maintenance_mode: maintenanceValue?.enabled ?? false,
     };
   } catch (error) {
     console.error('Error fetching settings:', error);
@@ -138,29 +156,33 @@ async function getSettings(): Promise<Settings> {
 
 async function getRecentActions(): Promise<AdminAction[]> {
   try {
-    const headersList = await headers();
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/admin/audit?limit=10`, {
-      cache: 'no-store',
-      headers: {
-        cookie: headersList.get('cookie') || '',
-      },
-    });
+    // Fetch recent actions directly from database
+    const { data, error } = await supabaseAdmin
+      .from('admin_actions')
+      .select(
+        `
+        id,
+        admin_id,
+        target_type,
+        target_id,
+        action,
+        reason,
+        created_at,
+        admins:admin_id (
+          id,
+          email
+        )
+      `,
+      )
+      .order('created_at', { ascending: false })
+      .limit(10);
 
-    if (!response.ok) {
-      console.error('Failed to fetch recent actions:', response.status);
+    if (error) {
+      console.error('Error fetching recent actions:', error);
       return [];
     }
 
-    // Check if response is actually JSON before parsing
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('Unexpected content type for recent actions:', contentType);
-      return [];
-    }
-
-    const data = await response.json();
-    return (data.actions || []).map(
+    return (data || []).map(
       (action: {
         id: string;
         action: string;

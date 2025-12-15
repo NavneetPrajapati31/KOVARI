@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/admin-lib/adminAuth";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
-import { logAdminAction } from "@/admin-lib/logAdminAction";
-import * as Sentry from "@sentry/nextjs";
-import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/admin-lib/adminAuth';
+import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { logAdminAction } from '@/admin-lib/logAdminAction';
+import * as Sentry from '@sentry/nextjs';
+import { incrementErrorCounter } from '@/admin-lib/incrementErrorCounter';
 
 export async function GET(_req: NextRequest) {
   try {
@@ -12,48 +12,56 @@ export async function GET(_req: NextRequest) {
       id: adminId,
       email: email,
     });
+  } catch (error) {
+    // requireAdmin throws NextResponse for unauthorized/forbidden
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
+  try {
     // Fetch all three settings
     const { data, error } = await supabaseAdmin
-      .from("system_settings")
-      .select("key, value")
-      .in("key", ["maintenance_mode", "matching_preset", "session_ttl_hours"]);
+      .from('system_settings')
+      .select('key, value')
+      .in('key', ['maintenance_mode', 'matching_preset', 'session_ttl_hours']);
 
     if (error) {
-      console.error("Settings fetch error:", error);
+      console.error('Settings fetch error:', error);
       return NextResponse.json(
-        { error: "Failed to fetch settings" },
-        { status: 500 }
+        { error: 'Failed to fetch settings' },
+        { status: 500 },
       );
     }
 
     // Parse settings from the database format
     const settingsMap = new Map(
-      data?.map((item) => [item.key, item.value]) || []
+      data?.map((item) => [item.key, item.value]) || [],
     );
 
     // Extract values with defaults
-    const maintenanceValue = settingsMap.get("maintenance_mode") as
+    const maintenanceValue = settingsMap.get('maintenance_mode') as
       | { enabled: boolean }
       | undefined;
-    const presetValue = settingsMap.get("matching_preset") as
+    const presetValue = settingsMap.get('matching_preset') as
       | { mode: string }
       | undefined;
-    const ttlValue = settingsMap.get("session_ttl_hours") as
+    const ttlValue = settingsMap.get('session_ttl_hours') as
       | { hours: number }
       | undefined;
 
     return NextResponse.json({
       session_ttl_hours: ttlValue?.hours ?? 168, // Default: 7 days
       maintenance_mode: maintenanceValue?.enabled ?? false,
-      matching_preset: (presetValue?.mode ?? "BALANCED").toUpperCase(),
+      matching_preset: (presetValue?.mode ?? 'BALANCED').toUpperCase(),
     });
   } catch (error) {
     await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
-        scope: "admin-api",
-        route: "GET /api/admin/settings",
+        scope: 'admin-api',
+        route: 'GET /api/admin/settings',
       },
     });
     throw error;
@@ -61,48 +69,62 @@ export async function GET(_req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  let adminId: string;
+  let email: string;
+
   try {
-    const { adminId, email } = await requireAdmin();
+    const adminData = await requireAdmin();
+    adminId = adminData.adminId;
+    email = adminData.email;
     Sentry.setUser({
       id: adminId,
       email: email,
     });
+  } catch (error) {
+    // requireAdmin throws NextResponse for unauthorized/forbidden
+    if (error instanceof NextResponse) {
+      return error;
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
     const body = await req.json();
 
     // Fetch current settings to capture old values for audit logging
     const { data: currentSettings, error: fetchError } = await supabaseAdmin
-      .from("system_settings")
-      .select("key, value")
-      .in("key", ["maintenance_mode", "matching_preset", "session_ttl_hours"]);
+      .from('system_settings')
+      .select('key, value')
+      .in('key', ['maintenance_mode', 'matching_preset', 'session_ttl_hours']);
 
     if (fetchError) {
-      console.error("Error fetching current settings:", fetchError);
+      console.error('Error fetching current settings:', fetchError);
     }
 
     const settingsMap = new Map(
-      currentSettings?.map((item) => [item.key, item.value]) || []
+      currentSettings?.map((item) => [item.key, item.value]) || [],
     );
 
     // Extract old values
-    const oldMaintenanceValue = settingsMap.get("maintenance_mode") as
+    const oldMaintenanceValue = settingsMap.get('maintenance_mode') as
       | { enabled: boolean }
       | undefined;
-    const oldPresetValue = settingsMap.get("matching_preset") as
+    const oldPresetValue = settingsMap.get('matching_preset') as
       | { mode: string }
       | undefined;
-    const oldTtlValue = settingsMap.get("session_ttl_hours") as
+    const oldTtlValue = settingsMap.get('session_ttl_hours') as
       | { hours: number }
       | undefined;
 
     const oldValue = {
       session_ttl_hours: oldTtlValue?.hours ?? 168,
       maintenance_mode: oldMaintenanceValue?.enabled ?? false,
-      matching_preset: (oldPresetValue?.mode ?? "balanced").toUpperCase(),
+      matching_preset: (oldPresetValue?.mode ?? 'balanced').toUpperCase(),
     };
 
     const sessionTtlHours = Number(body.sessionTtlHours ?? 168);
     const maintenanceMode = !!body.maintenanceMode;
-    const matchingPreset = (body.matchingPreset || "BALANCED").toUpperCase();
+    const matchingPreset = (body.matchingPreset || 'BALANCED').toUpperCase();
 
     if (
       Number.isNaN(sessionTtlHours) ||
@@ -110,16 +132,16 @@ export async function POST(req: NextRequest) {
       sessionTtlHours > 168
     ) {
       return NextResponse.json(
-        { error: "sessionTtlHours must be between 1 and 168 (7 days)" },
-        { status: 400 }
+        { error: 'sessionTtlHours must be between 1 and 168 (7 days)' },
+        { status: 400 },
       );
     }
 
-    const validPresets = ["SAFE", "BALANCED", "STRICT"];
+    const validPresets = ['SAFE', 'BALANCED', 'STRICT'];
     if (!validPresets.includes(matchingPreset)) {
       return NextResponse.json(
-        { error: "matchingPreset must be one of: SAFE, BALANCED, STRICT" },
-        { status: 400 }
+        { error: 'matchingPreset must be one of: SAFE, BALANCED, STRICT' },
+        { status: 400 },
       );
     }
 
@@ -128,19 +150,19 @@ export async function POST(req: NextRequest) {
     // Update each setting as a separate row in system_settings
     const updates = [
       {
-        key: "maintenance_mode",
+        key: 'maintenance_mode',
         value: { enabled: maintenanceMode },
         updated_by: adminId,
         updated_at: now,
       },
       {
-        key: "matching_preset",
+        key: 'matching_preset',
         value: { mode: matchingPreset.toLowerCase() },
         updated_by: adminId,
         updated_at: now,
       },
       {
-        key: "session_ttl_hours",
+        key: 'session_ttl_hours',
         value: { hours: sessionTtlHours },
         updated_by: adminId,
         updated_at: now,
@@ -149,14 +171,14 @@ export async function POST(req: NextRequest) {
 
     // Upsert all settings
     const { error } = await supabaseAdmin
-      .from("system_settings")
-      .upsert(updates, { onConflict: "key" });
+      .from('system_settings')
+      .upsert(updates, { onConflict: 'key' });
 
     if (error) {
-      console.error("Settings update error:", error);
+      console.error('Settings update error:', error);
       return NextResponse.json(
-        { error: "Failed to update settings" },
-        { status: 500 }
+        { error: 'Failed to update settings' },
+        { status: 500 },
       );
     }
 
@@ -169,9 +191,9 @@ export async function POST(req: NextRequest) {
     // Log admin action with old and new values
     await logAdminAction({
       adminId,
-      targetType: "settings",
+      targetType: 'settings',
       targetId: null,
-      action: "UPDATE_SETTINGS",
+      action: 'UPDATE_SETTINGS',
       reason: body.reason ?? null,
       metadata: {
         oldValue,
@@ -184,8 +206,8 @@ export async function POST(req: NextRequest) {
     await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
-        scope: "admin-api",
-        route: "POST /api/admin/settings",
+        scope: 'admin-api',
+        route: 'POST /api/admin/settings',
       },
     });
     throw error;
