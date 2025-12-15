@@ -51,5 +51,6 @@ export default function RootLayout({
   }
 
   // During build with dummy keys, render without ClerkProvider
+  // UserButton in AdminTopbar will render a placeholder instead
   return content;
 }
