@@ -49,3 +49,7 @@ next-env.d.ts
 .vscode
 # Sentry Config File
 .env.sentry-build-plugin"node_modules.zip" 
+
+# admin
+
+/apps/admin/*
