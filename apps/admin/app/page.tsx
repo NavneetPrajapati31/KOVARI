@@ -1,6 +1,6 @@
-import { requireAdminPage } from "@/admin-lib/adminAuth";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
-import Link from "next/link";
+import { requireAdminPage } from '@/admin-lib/adminAuth';
+import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import Link from 'next/link';
 import {
   Clock,
   Flag,
@@ -9,10 +9,10 @@ import {
   ArrowRight,
   Power,
   PowerOff,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { headers } from "next/headers";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { headers } from 'next/headers';
 
 interface Metrics {
   sessionsActive: number;
@@ -46,7 +46,7 @@ function getBaseUrl(): string {
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  return "http://localhost:3000";
+  return 'http://localhost:3000';
 }
 
 async function getMetrics(): Promise<Metrics> {
@@ -54,14 +54,21 @@ async function getMetrics(): Promise<Metrics> {
     const headersList = await headers();
     const baseUrl = getBaseUrl();
     const response = await fetch(`${baseUrl}/api/admin/metrics`, {
-      cache: "no-store",
+      cache: 'no-store',
       headers: {
-        cookie: headersList.get("cookie") || "",
+        cookie: headersList.get('cookie') || '',
       },
     });
 
     if (!response.ok) {
-      console.error("Failed to fetch metrics:", response.status);
+      console.error('Failed to fetch metrics:', response.status);
+      return { sessionsActive: 0, pendingFlags: 0, matches24h: 0 };
+    }
+
+    // Check if response is actually JSON before parsing
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('Unexpected content type for metrics:', contentType);
       return { sessionsActive: 0, pendingFlags: 0, matches24h: 0 };
     }
 
@@ -72,7 +79,7 @@ async function getMetrics(): Promise<Metrics> {
       matches24h: data.matches24h ?? 0,
     };
   } catch (error) {
-    console.error("Error fetching metrics:", error);
+    console.error('Error fetching metrics:', error);
     return { sessionsActive: 0, pendingFlags: 0, matches24h: 0 };
   }
 }
@@ -80,18 +87,18 @@ async function getMetrics(): Promise<Metrics> {
 async function getTotalUsers(): Promise<number> {
   try {
     const { count, error } = await supabaseAdmin
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("deleted", false);
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('deleted', false);
 
     if (error) {
-      console.error("Error fetching total users:", error);
+      console.error('Error fetching total users:', error);
       return 0;
     }
 
     return count ?? 0;
   } catch (error) {
-    console.error("Error fetching total users:", error);
+    console.error('Error fetching total users:', error);
     return 0;
   }
 }
@@ -101,14 +108,21 @@ async function getSettings(): Promise<Settings> {
     const headersList = await headers();
     const baseUrl = getBaseUrl();
     const response = await fetch(`${baseUrl}/api/admin/settings`, {
-      cache: "no-store",
+      cache: 'no-store',
       headers: {
-        cookie: headersList.get("cookie") || "",
+        cookie: headersList.get('cookie') || '',
       },
     });
 
     if (!response.ok) {
-      console.error("Failed to fetch settings:", response.status);
+      console.error('Failed to fetch settings:', response.status);
+      return { maintenance_mode: false };
+    }
+
+    // Check if response is actually JSON before parsing
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('Unexpected content type for settings:', contentType);
       return { maintenance_mode: false };
     }
 
@@ -117,7 +131,7 @@ async function getSettings(): Promise<Settings> {
       maintenance_mode: data.maintenance_mode ?? false,
     };
   } catch (error) {
-    console.error("Error fetching settings:", error);
+    console.error('Error fetching settings:', error);
     return { maintenance_mode: false };
   }
 }
@@ -127,14 +141,21 @@ async function getRecentActions(): Promise<AdminAction[]> {
     const headersList = await headers();
     const baseUrl = getBaseUrl();
     const response = await fetch(`${baseUrl}/api/admin/audit?limit=10`, {
-      cache: "no-store",
+      cache: 'no-store',
       headers: {
-        cookie: headersList.get("cookie") || "",
+        cookie: headersList.get('cookie') || '',
       },
     });
 
     if (!response.ok) {
-      console.error("Failed to fetch recent actions:", response.status);
+      console.error('Failed to fetch recent actions:', response.status);
+      return [];
+    }
+
+    // Check if response is actually JSON before parsing
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('Unexpected content type for recent actions:', contentType);
       return [];
     }
 
@@ -161,10 +182,10 @@ async function getRecentActions(): Promise<AdminAction[]> {
           Array.isArray(action.admins) && action.admins.length > 0
             ? action.admins[0]
             : action.admins,
-      })
+      }),
     );
   } catch (error) {
-    console.error("Error fetching recent actions:", error);
+    console.error('Error fetching recent actions:', error);
     return [];
   }
 }
@@ -283,7 +304,7 @@ export default async function DashboardPage() {
             </Button>
             <Button
               asChild
-              variant={settings.maintenance_mode ? "destructive" : "outline"}
+              variant={settings.maintenance_mode ? 'destructive' : 'outline'}
             >
               <Link href="/settings" className="flex items-center">
                 {settings.maintenance_mode ? (
@@ -322,10 +343,10 @@ export default async function DashboardPage() {
                   Array.isArray(action.admins) && action.admins.length > 0
                     ? action.admins[0].email
                     : action.admins &&
-                        typeof action.admins === "object" &&
-                        "email" in action.admins
+                        typeof action.admins === 'object' &&
+                        'email' in action.admins
                       ? action.admins.email
-                      : "Unknown";
+                      : 'Unknown';
                 return (
                   <div
                     key={action.id}
