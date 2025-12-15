@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:cloudinary-evidence": "npx tsx lib/test-cloudinaryEvidence.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.2",

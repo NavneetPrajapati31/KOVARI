@@ -5,7 +5,7 @@ import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const { adminId, email } = await requireAdmin();
     Sentry.setUser({
@@ -62,20 +62,34 @@ export async function GET(_req: NextRequest) {
     }
 
     // 2) Supabase Metrics
-    const [{ count: pendingFlags }, { count: bannedLast7d }] =
-      await Promise.all([
-        // Pending flags
-        supabaseAdmin
-          .from("user_flags")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "pending"),
-        // Banned users in last 7 days
-        supabaseAdmin
-          .from("users")
-          .select("*", { count: "exact", head: true })
-          .eq("banned", true)
-          .gte("updated_at", sevenDaysAgoISO),
-      ]);
+    const [
+      { count: pendingFlags }, 
+      { count: bannedLast7d },
+      { data: oldFlagsData }
+    ] = await Promise.all([
+      // PHASE 8: Pending flags
+      supabaseAdmin
+        .from("user_flags")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending"),
+      // Banned users in last 7 days
+      supabaseAdmin
+        .from("users")
+        .select("*", { count: "exact", head: true })
+        .eq("banned", true)
+        .gte("updated_at", sevenDaysAgoISO),
+      // PHASE 8: Flags older than 24 hours (for highlighting)
+      supabaseAdmin
+        .from("user_flags")
+        .select("id, created_at")
+        .eq("status", "pending"),
+    ]);
+
+    // PHASE 8: Count flags older than 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const oldFlagsCount = (oldFlagsData || []).filter(
+      (flag) => new Date(flag.created_at) < twentyFourHoursAgo
+    ).length;
 
     // 3) Matches generated (24h) - from Redis counter
     let matchesGenerated24h = 0;
@@ -184,6 +198,7 @@ export async function GET(_req: NextRequest) {
       sessionsExpiringSoon: sessionsExpiringSoon ?? 0,
       matches24h: matchesGenerated24h,
       pendingFlags: pendingFlags ?? 0,
+      oldFlagsCount: oldFlagsCount, // PHASE 8: Flags older than 24 hours
       bannedLast7d: bannedLast7d ?? 0,
       // Safety Signals
       safetySignals: safetySignals.length > 0 ? safetySignals : [],

@@ -59,8 +59,9 @@ import {
   CollapsibleTrigger,
 } from "@/shared/components/ui/collapsible";
 import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Flag } from "lucide-react";
 import { toast } from "sonner";
+import { ReportDialog } from "@/shared/components/ReportDialog";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -139,6 +140,7 @@ const GroupHomePage = () => {
   const [noteSaveError, setNoteSaveError] = useState<string | null>(null);
   const [displayDate, setDisplayDate] = useState("Jun 22, 2024");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
   const [groupInfoLoading, setGroupInfoLoading] = useState(true);
@@ -570,14 +572,35 @@ const GroupHomePage = () => {
                   </>
                 ) : (
                   <>
-                    <h2 className="text-sm font-bold mb-1 px-1">
-                      {groupInfo?.name}
-                    </h2>
-                    <p className="text-xs font-medium text-muted-foreground px-1 mb-3">
-                      {groupInfo?.description}
-                    </p>
+                    <div className="flex items-start justify-between gap-2 px-1 mb-1">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-sm font-bold">
+                          {groupInfo?.name}
+                        </h2>
+                        <p className="text-xs font-medium text-muted-foreground mt-1 mb-3">
+                          {groupInfo?.description}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsReportDialogOpen(true)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0 h-6 w-6 sm:h-auto sm:w-auto sm:px-2 sm:py-1 p-0"
+                        aria-label="Report group"
+                      >
+                        <Flag className="h-3.5 w-3.5 sm:mr-1.5" />
+                        <span className="hidden sm:inline text-xs">Report</span>
+                      </Button>
+                    </div>
                   </>
                 )}
+                <ReportDialog
+                  open={isReportDialogOpen}
+                  onOpenChange={setIsReportDialogOpen}
+                  targetType="group"
+                  targetId={params.groupId || ""}
+                  targetName={groupInfo?.name}
+                />
 
                 <Divider />
 
@@ -1304,18 +1327,39 @@ const GroupHomePage = () => {
                   </>
                 ) : (
                   <>
-                    <span
-                      className="text-md font-bold leading-tight truncate text-foreground"
-                      title={groupInfo?.name}
-                    >
-                      {groupInfo?.name}
-                    </span>
-                    <p className="text-sm font-medium">
-                      {groupInfo?.description}
-                    </p>
+                    <div className="flex items-start justify-between gap-2 w-full">
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className="text-md font-bold leading-tight truncate text-foreground block"
+                          title={groupInfo?.name}
+                        >
+                          {groupInfo?.name}
+                        </span>
+                        <p className="text-sm font-medium">
+                          {groupInfo?.description}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsReportDialogOpen(true)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0 h-6 w-6 sm:h-auto sm:w-auto sm:px-2 sm:py-1 p-0"
+                        aria-label="Report group"
+                      >
+                        <Flag className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1.5" />
+                        <span className="hidden sm:inline text-xs">Report</span>
+                      </Button>
+                    </div>
                   </>
                 )}
               </div>
+              <ReportDialog
+                open={isReportDialogOpen}
+                onOpenChange={setIsReportDialogOpen}
+                targetType="group"
+                targetId={params.groupId || ""}
+                targetName={groupInfo?.name}
+              />
               <CardHeader className="flex flex-col p-3 items-start">
                 <h2 className="text-sm font-semibold text-foreground mb-1">
                   {membersLoading ? (
