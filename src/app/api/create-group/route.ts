@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { getCoordinatesForLocation } from "@/lib/geocoding";
 
 // --- Schema validation ---
 const GroupSchema = z.object({
