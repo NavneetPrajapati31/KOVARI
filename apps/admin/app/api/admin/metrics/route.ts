@@ -23,9 +23,25 @@ export async function GET(_req: NextRequest) {
     // 1) Redis Metrics
     let activeSessions = 0;
     let sessionsExpiringSoon = 0;
+    let sessionKeys: string[] = []; // Store for reuse in safety signals
     try {
-      // Active sessions count
-      activeSessions = await redis.sCard("sessions:index");
+      // Active sessions count - count session:* keys directly
+      // Note: sessions:index set may not be maintained, so we count keys directly
+      try {
+        // Try to use sessions:index if it exists (faster)
+        const indexCount = await redis.sCard("sessions:index");
+        if (indexCount > 0) {
+          activeSessions = indexCount;
+        } else {
+          // Fallback: count session:* keys directly
+          sessionKeys = await redis.keys("session:*");
+          activeSessions = sessionKeys.length;
+        }
+      } catch {
+        // If sessions:index doesn't exist or fails, count keys directly
+        sessionKeys = await redis.keys("session:*");
+        activeSessions = sessionKeys.length;
+      }
 
       // Sessions expiring soon (next 1 hour) - optional
       // Note: This requires a sorted set "sessions:ttl" with TTL as score
@@ -75,7 +91,10 @@ export async function GET(_req: NextRequest) {
 
     // Safety Signal 1: Too many sessions by same user
     try {
-      const sessionKeys = await redis.keys("session:*");
+      // Reuse sessionKeys if already fetched, otherwise fetch them
+      if (sessionKeys.length === 0) {
+        sessionKeys = await redis.keys("session:*");
+      }
       const userSessionCounts: Record<string, number> = {};
 
       for (const key of sessionKeys) {
