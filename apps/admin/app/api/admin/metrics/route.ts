@@ -70,6 +70,95 @@ export async function GET(_req: NextRequest) {
       console.error("Failed to get match counter:", e);
     }
 
+    // 4) Safety Signals - Check for potential abuse patterns
+    const safetySignals: string[] = [];
+
+    // Safety Signal 1: Too many sessions by same user
+    try {
+      const sessionKeys = await redis.keys("session:*");
+      const userSessionCounts: Record<string, number> = {};
+
+      for (const key of sessionKeys) {
+        // Extract userId from session key (format: session:{userId})
+        const userId = key.replace("session:", "");
+        userSessionCounts[userId] = (userSessionCounts[userId] || 0) + 1;
+      }
+
+      // Check if any user has more than 10 active sessions (threshold)
+      const maxSessionsPerUser = Math.max(
+        ...Object.values(userSessionCounts),
+        0
+      );
+      if (maxSessionsPerUser > 10) {
+        const usersWithManySessions = Object.entries(userSessionCounts)
+          .filter(([, count]) => count > 10)
+          .map(([userId]) => userId);
+        safetySignals.push(
+          `Multiple sessions by same user detected: ${usersWithManySessions.length} user(s) with >10 sessions (max: ${maxSessionsPerUser})`
+        );
+      }
+    } catch (e) {
+      console.warn("Failed to check sessions per user:", e);
+    }
+
+    // Safety Signal 2: Sessions created too fast (check sessions created in last hour)
+    try {
+      let sessionsCreatedLastHour = 0;
+      try {
+        const count = await redis.get("metrics:sessions:created:1h");
+        sessionsCreatedLastHour = count ? parseInt(count, 10) : 0;
+      } catch {
+        // Counter may not exist yet
+      }
+
+      // Threshold: More than 50 sessions created in last hour
+      if (sessionsCreatedLastHour > 50) {
+        safetySignals.push(
+          `Sessions created too fast: ${sessionsCreatedLastHour} sessions created in last hour`
+        );
+      }
+    } catch (e) {
+      console.warn("Failed to check session creation rate:", e);
+    }
+
+    // Safety Signal 3: High flag rate
+    try {
+      const oneHourAgo = new Date();
+      oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+      const oneHourAgoISO = oneHourAgo.toISOString();
+
+      // Get total users count for rate calculation
+      const { count: totalUsers } = await supabaseAdmin
+        .from("users")
+        .select("*", { count: "exact", head: true });
+
+      // Check flags created in last hour
+      const { count: flagsLastHour } = await supabaseAdmin
+        .from("user_flags")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", oneHourAgoISO);
+
+      // Threshold: More than 20 flags per hour OR more than 5% of users flagged
+      const flagsPerHour = flagsLastHour ?? 0;
+      const userCount = totalUsers ?? 1;
+      const flagRate = (flagsPerHour / userCount) * 100;
+
+      if (flagsPerHour > 20 || flagRate > 5) {
+        safetySignals.push(
+          `High flag rate detected: ${flagsPerHour} flags in last hour (${flagRate.toFixed(2)}% of users)`
+        );
+      }
+    } catch (e) {
+      console.warn("Failed to check flag rate:", e);
+    }
+
+    // Safety Signal 4: High session volume (already have activeSessions)
+    if (activeSessions > 500) {
+      safetySignals.push(
+        `High session volume: ${activeSessions} active sessions`
+      );
+    }
+
     return NextResponse.json({
       // MVP Metrics (as per requirements)
       sessionsActive: activeSessions ?? 0,
@@ -77,6 +166,8 @@ export async function GET(_req: NextRequest) {
       matches24h: matchesGenerated24h,
       pendingFlags: pendingFlags ?? 0,
       bannedLast7d: bannedLast7d ?? 0,
+      // Safety Signals
+      safetySignals: safetySignals.length > 0 ? safetySignals : [],
       // Note: API error count comes from Sentry, not this API
     });
   } catch (error) {

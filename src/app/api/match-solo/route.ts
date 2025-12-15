@@ -14,6 +14,7 @@ import redis, { ensureRedisConnection } from "../../../lib/redis";
 import { createRouteHandlerSupabaseClient } from "../../../lib/supabase";
 import { getSetting } from "../../../lib/settings";
 import { getMatchingPresetConfig } from "../../../lib/matching/config";
+import * as Sentry from "@sentry/nextjs";
 
 // Initialize Supabase client for this route
 const supabase = createRouteHandlerSupabaseClient();
@@ -290,6 +291,13 @@ export async function GET(request: NextRequest) {
     console.log(`✅ Returning ${topMatches.length} top matches`);
     return NextResponse.json(topMatches, { status: 200 });
   } catch (error) {
+    // Capture error in Sentry for alerting
+    Sentry.captureException(error, {
+      tags: {
+        scope: "match-api",
+        route: "GET /api/match-solo",
+      },
+    });
     console.error("Error in /api/match-solo:", error);
     console.error(
       "Error stack:",

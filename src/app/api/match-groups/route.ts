@@ -5,6 +5,7 @@ import { getCoordinatesForLocation } from "@/lib/geocoding";
 import { getSetting } from "@/lib/settings";
 import { getMatchingPresetConfig } from "@/lib/matching/config";
 import redis, { ensureRedisConnection } from "@/lib/redis";
+import * as Sentry from "@sentry/nextjs";
 
 // Define the types based on what the matching function expects
 interface Location {
@@ -403,6 +404,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ groups: safeMatches });
   } catch (err: any) {
+    // Capture error in Sentry for alerting
+    Sentry.captureException(err, {
+      tags: {
+        scope: "match-api",
+        route: "POST /api/match-groups",
+      },
+    });
     return NextResponse.json(
       { error: err.message || "Unknown error" },
       { status: 500 }

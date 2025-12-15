@@ -376,6 +376,15 @@ export async function POST(request: NextRequest) {
       JSON.stringify(sessionData)
     );
 
+    // Track session creation for safety signals (non-blocking)
+    try {
+      await redisClient.incr("metrics:sessions:created:1h");
+      await redisClient.expire("metrics:sessions:created:1h", 3600); // 1 hour TTL
+    } catch (e) {
+      // Don't fail session creation if metrics tracking fails
+      console.warn("Failed to track session creation:", e);
+    }
+
     return NextResponse.json(
       { message: "Session created successfully" },
       { status: 200 }
