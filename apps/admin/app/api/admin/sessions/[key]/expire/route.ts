@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
+import * as Sentry from "@sentry/nextjs";
 
 interface Params {
   params: Promise<{ key: string }>;
@@ -9,7 +10,11 @@ interface Params {
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
-    const { adminId } = await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
     const { key } = await params;
     const sessionKey = decodeURIComponent(key); // key comes URL-encoded
     const body = await req.json().catch(() => ({}));
@@ -40,11 +45,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (err: unknown) {
-    console.error("Expire session error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "POST /api/admin/sessions/[key]/expire",
+      },
+    });
+    throw error;
   }
 }

@@ -5,11 +5,16 @@ import redis, {
   parseSessionValue,
 } from "../../../../lib/redisAdmin";
 import { requireAdmin } from "../../../../lib/adminAuth";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET(req: Request) {
   // verify admin
   try {
-    await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -201,11 +206,13 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ sessions, nextCursor }, { status: 200 });
-  } catch (err) {
-    console.error("GET /api/admin/sessions error:", err);
-    return NextResponse.json(
-      { error: "Failed to list sessions" },
-      { status: 500 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "GET /api/admin/sessions",
+      },
+    });
+    throw error;
   }
 }

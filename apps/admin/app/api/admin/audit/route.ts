@@ -3,10 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { toCsv } from "@/admin-lib/toCsv";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
 
     const { searchParams } = new URL(req.url);
 
@@ -15,7 +20,7 @@ export async function GET(req: NextRequest) {
     const limit = Number(searchParams.get("limit") || "50");
     const from = searchParams.get("from"); // ISO date string
     const to = searchParams.get("to");
-    const adminId = searchParams.get("adminId");
+    const filterAdminId = searchParams.get("adminId");
     const targetType = searchParams.get("targetType");
     const action = searchParams.get("action");
 
@@ -45,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     if (from) query = query.gte("created_at", from);
     if (to) query = query.lte("created_at", to);
-    if (adminId) query = query.eq("admin_id", adminId);
+    if (filterAdminId) query = query.eq("admin_id", filterAdminId);
     if (targetType) query = query.eq("target_type", targetType);
     if (action) {
       // Case-insensitive action matching using ilike
@@ -128,11 +133,13 @@ export async function GET(req: NextRequest) {
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
-  } catch (err: unknown) {
-    console.error("Admin audit error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "GET /api/admin/audit",
+      },
+    });
+    throw error;
   }
 }

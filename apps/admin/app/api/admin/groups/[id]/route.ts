@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
+import * as Sentry from "@sentry/nextjs";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -9,7 +10,11 @@ interface Params {
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
-    await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
   } catch (error) {
     if (error instanceof NextResponse) {
       return error;
@@ -212,11 +217,13 @@ export async function GET(req: NextRequest, { params }: Params) {
       flags: flags || [],
       admin_actions: adminActions || [],
     });
-  } catch (err: unknown) {
-    console.error("Admin group detail error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "GET /api/admin/groups/[id]",
+      },
+    });
+    throw error;
   }
 }

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
+import * as Sentry from "@sentry/nextjs";
 import {
   categorizeRemovalReason,
   handleOrganizerTrustImpact,
@@ -16,7 +17,11 @@ type GroupAction = "approve" | "remove";
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
-    const { adminId } = await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
     const { id } = await params;
     const groupId = id;
     const body = await req.json();
@@ -140,11 +145,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (err: unknown) {
-    console.error("Group action error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "POST /api/admin/groups/[id]/action",
+      },
+    });
+    throw error;
   }
 }

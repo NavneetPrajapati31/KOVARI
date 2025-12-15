@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import redis, { ensureRedisConnection } from "../../../../../lib/redisAdmin";
 import { requireAdmin } from "../../../../../lib/adminAuth";
 import { logAdminAction } from "../../../../../lib/logAdminAction";
+import * as Sentry from "@sentry/nextjs";
 
 function isValidSessionKey(key: unknown): key is string {
   if (typeof key !== "string") return false;
@@ -16,6 +17,10 @@ export async function POST(req: Request) {
   let admin;
   try {
     admin = await requireAdmin();
+    Sentry.setUser({
+      id: admin.adminId,
+      email: admin.email,
+    });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -120,11 +125,13 @@ export async function POST(req: Request) {
       { success: true, deleted: delCount > 0 },
       { status: 200 }
     );
-  } catch (err) {
-    console.error("Error expiring session", err);
-    return NextResponse.json(
-      { error: "Failed to expire session" },
-      { status: 500 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "POST /api/admin/sessions/expire",
+      },
+    });
+    throw error;
   }
 }

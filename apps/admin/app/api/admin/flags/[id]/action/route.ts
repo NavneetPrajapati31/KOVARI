@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
+import * as Sentry from "@sentry/nextjs";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -17,7 +18,11 @@ type FlagAction =
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
-    const { adminId } = await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
     const { id } = await params;
     const flagId = id;
     const body = await req.json();
@@ -115,11 +120,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  } catch (err: unknown) {
-    console.error("Flag action error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "POST /api/admin/flags/[id]/action",
+      },
+    });
+    throw error;
   }
 }

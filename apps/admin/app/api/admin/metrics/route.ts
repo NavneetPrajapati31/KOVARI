@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET(_req: NextRequest) {
   try {
-    await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
 
     const redis = getRedisAdminClient();
 
@@ -57,11 +62,13 @@ export async function GET(_req: NextRequest) {
       flaggedGroups: flaggedGroups ?? 0,
       activeSessions,
     });
-  } catch (err: unknown) {
-    console.error("Admin metrics error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "GET /api/admin/metrics",
+      },
+    });
+    throw error;
   }
 }

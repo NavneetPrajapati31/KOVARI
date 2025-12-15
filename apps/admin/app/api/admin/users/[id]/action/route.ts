@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
+import * as Sentry from "@sentry/nextjs";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -15,6 +16,10 @@ export async function POST(req: NextRequest, { params }: Params) {
   try {
     const admin = await requireAdmin();
     adminId = admin.adminId;
+    Sentry.setUser({
+      id: admin.adminId,
+      email: admin.email,
+    });
   } catch (error) {
     // requireAdmin throws NextResponse for unauthorized/forbidden
     if (error instanceof NextResponse) {
@@ -189,11 +194,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  } catch (err: unknown) {
-    console.error("Admin user action error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "POST /api/admin/users/[id]/action",
+      },
+    });
+    throw error;
   }
 }

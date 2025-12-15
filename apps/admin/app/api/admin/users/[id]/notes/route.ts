@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
+import * as Sentry from "@sentry/nextjs";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -10,7 +11,11 @@ interface Params {
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
-    await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
   } catch (error) {
     // requireAdmin throws NextResponse for unauthorized/forbidden
     if (error instanceof NextResponse) {
@@ -65,12 +70,14 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
 
     return NextResponse.json({ notes: notes || [] });
-  } catch (err: unknown) {
-    console.error("Admin notes GET error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "GET /api/admin/users/[id]/notes",
+      },
+    });
+    throw error;
   }
 }
 
@@ -79,6 +86,10 @@ export async function POST(req: NextRequest, { params }: Params) {
   try {
     const admin = await requireAdmin();
     adminId = admin.adminId;
+    Sentry.setUser({
+      id: admin.adminId,
+      email: admin.email,
+    });
   } catch (error) {
     // requireAdmin throws NextResponse for unauthorized/forbidden
     if (error instanceof NextResponse) {
@@ -118,11 +129,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (err: unknown) {
-    console.error("Admin notes POST error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "POST /api/admin/users/[id]/notes",
+      },
+    });
+    throw error;
   }
 }

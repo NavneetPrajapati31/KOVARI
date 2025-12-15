@@ -2,10 +2,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
   } catch (error) {
     // requireAdmin throws NextResponse for unauthorized/forbidden
     if (error instanceof NextResponse) {
@@ -88,11 +93,13 @@ export async function GET(req: NextRequest) {
       limit,
       users: usersWithFlags,
     });
-  } catch (err: unknown) {
-    console.error("Admin users GET error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "GET /api/admin/users",
+      },
+    });
+    throw error;
   }
 }

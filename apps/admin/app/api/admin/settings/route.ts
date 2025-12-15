@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET(_req: NextRequest) {
   try {
-    await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
 
     // Fetch all three settings
     const { data, error } = await supabaseAdmin
@@ -42,18 +47,24 @@ export async function GET(_req: NextRequest) {
       maintenance_mode: maintenanceValue?.enabled ?? false,
       matching_preset: (presetValue?.mode ?? "BALANCED").toUpperCase(),
     });
-  } catch (err: unknown) {
-    console.error("Admin settings GET error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "GET /api/admin/settings",
+      },
+    });
+    throw error;
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { adminId } = await requireAdmin();
+    const { adminId, email } = await requireAdmin();
+    Sentry.setUser({
+      id: adminId,
+      email: email,
+    });
     const body = await req.json();
 
     // Fetch current settings to capture old values for audit logging
@@ -167,11 +178,13 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, value: newValue });
-  } catch (err: unknown) {
-    console.error("Admin settings POST error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        scope: "admin-api",
+        route: "POST /api/admin/settings",
+      },
+    });
+    throw error;
   }
 }
