@@ -44,8 +44,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key"
           REDIS_URL: "redis://localhost:6379"
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_dummy"
-          CLERK_SECRET_KEY: "sk_test_dummy"
+          # Clerk publishable key (dummy value for build only)
+          # Note: CLERK_SECRET_KEY not needed since ClerkProvider is skipped during build
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_51AbCdEfGhIjKlMnOpQrStUvWxYz1234567890AbCdEfGhIjKlMnOpQrStUvWxYz1234567890"
         run: |
           cd apps/admin
           npm run build
