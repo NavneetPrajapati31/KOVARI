@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { randomUUID } from "crypto";
-import { ensureRedisConnection } from "@/lib/redis";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
-import { logAdminAction } from "@/admin-lib/logAdminAction";
+import { NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
+import { ensureRedisConnection } from '@/admin-lib/redisAdmin';
+import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { logAdminAction } from '@/admin-lib/logAdminAction';
 
 export async function POST(req: Request) {
   try {
@@ -14,11 +14,11 @@ export async function POST(req: Request) {
 
     if (!adminEmail || !adminPassword) {
       console.error(
-        "ADMIN_EMAIL or ADMIN_PASSWORD not set in environment variables"
+        'ADMIN_EMAIL or ADMIN_PASSWORD not set in environment variables',
       );
       return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
+        { error: 'Server configuration error' },
+        { status: 500 },
       );
     }
 
@@ -26,22 +26,22 @@ export async function POST(req: Request) {
       {
         email: adminEmail,
         password: adminPassword,
-        role: "super_admin",
+        role: 'super_admin',
       },
     ];
 
     const admin = validAdmins.find(
-      (u) => u.email === email && u.password === password
+      (u) => u.email === email && u.password === password,
     );
 
     if (!admin) {
-      console.log("Login attempt failed:", {
+      console.log('Login attempt failed:', {
         email,
-        providedPassword: password ? "***" : "missing",
+        providedPassword: password ? '***' : 'missing',
       });
       return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
+        { error: 'Invalid credentials' },
+        { status: 401 },
       );
     }
 
@@ -52,42 +52,42 @@ export async function POST(req: Request) {
 
     // Get adminId from Supabase admins table for logging
     const { data: adminData } = await supabaseAdmin
-      .from("admins")
-      .select("id")
-      .eq("email", email.toLowerCase())
+      .from('admins')
+      .select('id')
+      .eq('email', email.toLowerCase())
       .maybeSingle();
 
     // Log admin login action
     if (adminData?.id) {
       await logAdminAction({
         adminId: adminData.id,
-        targetType: "admin",
+        targetType: 'admin',
         targetId: adminData.id,
-        action: "LOGIN_ADMIN",
+        action: 'LOGIN_ADMIN',
         reason: null,
         metadata: {
           email: email.toLowerCase(),
         },
       }).catch((err) => {
         // Don't fail login if logging fails
-        console.error("Failed to log admin login:", err);
+        console.error('Failed to log admin login:', err);
       });
     }
 
     const res = NextResponse.json({ success: true });
-    res.cookies.set("admin_session", sessionId, {
+    res.cookies.set('admin_session', sessionId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
     });
 
     return res;
   } catch (error) {
-    console.error("Login route error:", error);
+    console.error('Login route error:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: 'Internal server error' },
+      { status: 500 },
     );
   }
 }

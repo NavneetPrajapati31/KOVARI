@@ -1,7 +1,7 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { NextResponse } from "next/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
+import { auth, clerkClient } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
 
 /**
  * Requires admin authentication. For use in API routes.
@@ -15,30 +15,29 @@ export async function requireAdmin(): Promise<{
 }> {
   const { userId } = await auth();
   if (!userId) {
-    throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    throw NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
   const email = user.emailAddresses[0].emailAddress.toLowerCase();
 
-  // Check if email exists in Supabase admins table
-  const supabase = createRouteHandlerSupabaseClient();
-  const { data: adminData, error } = await supabase
-    .from("admins")
-    .select("id, email")
-    .eq("email", email.toLowerCase())
+  // Check if email exists in Supabase admins table using service role key
+  const { data: adminData, error } = await supabaseAdmin
+    .from('admins')
+    .select('id, email')
+    .eq('email', email.toLowerCase())
     .maybeSingle();
 
   if (error) {
-    console.error("Error checking admin status:", error);
-    throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    console.error('Error checking admin status:', error);
+    throw NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   if (!adminData) {
     throw NextResponse.json(
-      { error: "Forbidden: Admin access required" },
-      { status: 403 }
+      { error: 'Forbidden: Admin access required' },
+      { status: 403 },
     );
   }
 
@@ -54,27 +53,26 @@ export async function requireAdminPage(): Promise<{
   email: string;
 }> {
   const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  if (!userId) redirect('/sign-in');
 
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
   const email = user.emailAddresses[0].emailAddress.toLowerCase();
 
-  // Check if email exists in Supabase admins table
-  const supabase = createRouteHandlerSupabaseClient();
-  const { data: adminData, error } = await supabase
-    .from("admins")
-    .select("id, email")
-    .eq("email", email.toLowerCase())
+  // Check if email exists in Supabase admins table using service role key
+  const { data: adminData, error } = await supabaseAdmin
+    .from('admins')
+    .select('id, email')
+    .eq('email', email.toLowerCase())
     .maybeSingle();
 
   if (error) {
-    console.error("Error checking admin status:", error);
-    redirect("/not-authorized");
+    console.error('Error checking admin status:', error);
+    redirect('/not-authorized');
   }
 
   if (!adminData) {
-    redirect("/not-authorized");
+    redirect('/not-authorized');
   }
 
   return { adminId: adminData.id, email: adminData.email };

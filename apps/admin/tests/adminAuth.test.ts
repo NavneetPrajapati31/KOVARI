@@ -8,13 +8,15 @@ vi.mock('@clerk/nextjs/server', () => ({
   clerkClient: vi.fn(),
 }));
 
-// Mock Supabase
-vi.mock('@/lib/supabase', () => ({
-  createRouteHandlerSupabaseClient: vi.fn(),
+// Mock Supabase Admin
+vi.mock('@/admin-lib/supabaseAdmin', () => ({
+  supabaseAdmin: {
+    from: vi.fn(),
+  },
 }));
 
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { createRouteHandlerSupabaseClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
 
 describe('requireAdmin', () => {
   beforeEach(() => {
@@ -67,7 +69,7 @@ describe('requireAdmin', () => {
         error: null,
       }),
     };
-    vi.mocked(createRouteHandlerSupabaseClient).mockReturnValue(
+    vi.mocked(supabaseAdmin.from).mockReturnValue(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockSupabase as any,
     );
@@ -112,7 +114,7 @@ describe('requireAdmin', () => {
         error: { message: 'Database error' },
       }),
     };
-    vi.mocked(createRouteHandlerSupabaseClient).mockReturnValue(
+    vi.mocked(supabaseAdmin.from).mockReturnValue(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockSupabase as any,
     );
@@ -162,7 +164,7 @@ describe('requireAdmin', () => {
         error: null,
       }),
     };
-    vi.mocked(createRouteHandlerSupabaseClient).mockReturnValue(
+    vi.mocked(supabaseAdmin.from).mockReturnValue(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockSupabase as any,
     );
