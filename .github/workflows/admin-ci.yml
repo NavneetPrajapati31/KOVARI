@@ -37,6 +37,13 @@ jobs:
           npm run test:run
 
       - name: Build Admin
+        env:
+          # Dummy values for build-time only (not used at runtime)
+          SUPABASE_URL: "https://dummy.supabase.co"
+          SUPABASE_SERVICE_ROLE_KEY: "dummy-service-role-key"
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key"
+          REDIS_URL: "redis://localhost:6379"
         run: |
           cd apps/admin
           npm run build
