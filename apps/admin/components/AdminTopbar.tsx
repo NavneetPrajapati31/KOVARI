@@ -1,8 +1,22 @@
-"use client";
+'use client';
 
-import { UserButton } from "@clerk/nextjs";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { AdminSearch } from "@/components/AdminSearch";
+import { UserButton, useClerk } from '@clerk/nextjs';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { AdminSearch } from '@/components/AdminSearch';
+
+function UserButtonOrPlaceholder() {
+  try {
+    const clerk = useClerk();
+    // If clerk is available, render UserButton
+    if (clerk) {
+      return <UserButton />;
+    }
+  } catch {
+    // ClerkProvider not available (e.g., during build)
+  }
+  // Fallback placeholder
+  return <div className="h-8 w-8 rounded-full bg-muted" />;
+}
 
 export function AdminTopbar() {
   return (
@@ -11,7 +25,7 @@ export function AdminTopbar() {
       <div className="flex flex-1 items-center justify-between gap-4">
         <AdminSearch />
         <div className="flex items-center">
-          <UserButton />
+          <UserButtonOrPlaceholder />
         </div>
       </div>
     </header>
