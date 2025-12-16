@@ -50,14 +50,24 @@ export async function GET(
       return new NextResponse("User not found", { status: 404 });
     }
 
-    // Get group info to check if user is creator
+    // Get group info to check if user is creator and if group is removed
     const { data: group, error: groupError } = await supabase
       .from("groups")
-      .select("id, creator_id")
+      .select("id, creator_id, status")
       .eq("id", groupId)
       .single();
 
     if (groupError || !group) {
+      return new NextResponse("Group not found", { status: 404 });
+    }
+
+    // Block access to removed groups
+    if (group.status === "removed") {
+      return new NextResponse("Group not found", { status: 404 });
+    }
+
+    // Block access to pending groups for non-creators
+    if (group.status === "pending" && group.creator_id !== user.id) {
       return new NextResponse("Group not found", { status: 404 });
     }
 

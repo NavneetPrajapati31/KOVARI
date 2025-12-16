@@ -72,10 +72,10 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if group exists and is public
+    // Check if group exists, is public, and is active (approved)
     const { data: group, error: groupError } = await supabase
       .from("groups")
-      .select("id, is_public")
+      .select("id, is_public, status")
       .eq("id", groupId)
       .single();
     console.log("[JOIN_REQUEST_POST] group lookup:", group, groupError);
@@ -83,6 +83,22 @@ export async function POST(
     if (groupError || !group) {
       console.error("[JOIN_REQUEST_POST] Error finding group:", groupError);
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Block removed groups explicitly
+    if (group.status === "removed") {
+      console.log("[JOIN_REQUEST_POST] Group is removed");
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    if (group.status !== "active") {
+      console.log(
+        "[JOIN_REQUEST_POST] Group is not active (pending or removed)"
+      );
+      return NextResponse.json(
+        { error: "This group is not available for joining" },
+        { status: 403 }
+      );
     }
 
     if (!group.is_public) {

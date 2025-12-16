@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { findGroupMatchesForUser } from "@/lib/matching/group";
 import { getCoordinatesForLocation } from "@/lib/geocoding";
+import { getSetting } from "@/lib/settings";
+import { getMatchingPresetConfig } from "@/lib/matching/config";
+import redis, { ensureRedisConnection } from "@/lib/redis";
+import * as Sentry from "@sentry/nextjs";
 
 // Define the types based on what the matching function expects
 interface Location {
@@ -33,8 +37,8 @@ interface GroupProfile {
   averageAge: number;
   dominantLanguages: string[];
   topInterests: string[];
-  smokingPolicy: 'Smokers Welcome' | 'Mixed' | 'Non-Smoking';
-  drinkingPolicy: 'Drinkers Welcome' | 'Mixed' | 'Non-Drinking';
+  smokingPolicy: "Smokers Welcome" | "Mixed" | "Non-Smoking";
+  drinkingPolicy: "Drinkers Welcome" | "Mixed" | "Non-Drinking";
   dominantNationalities: string[];
 }
 
@@ -63,29 +67,51 @@ const calculateDistance = (loc1: Location, loc2: Location): number => {
   const R = 6371; // Earth's radius in km
   const dLat = (loc2.lat - loc1.lat) * (Math.PI / 180);
   const dLon = (loc2.lon - loc1.lon) * (Math.PI / 180);
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + 
-            Math.cos(loc1.lat * (Math.PI / 180)) * Math.cos(loc2.lat * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(loc1.lat * (Math.PI / 180)) *
+      Math.cos(loc2.lat * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
 export async function POST(req: NextRequest) {
   try {
+    // Check maintenance mode
+    const maintenance = await getSetting("maintenance_mode");
+    if (maintenance && (maintenance as { enabled: boolean }).enabled) {
+      return NextResponse.json(
+        { error: "System under maintenance. Please try later." },
+        { status: 503 }
+      );
+    }
+
+    // Get matching preset configuration
+    const presetSetting = await getSetting("matching_preset");
+    const presetMode =
+      (presetSetting as { mode: string } | null)?.mode || "balanced";
+    const presetConfig = getMatchingPresetConfig(presetMode);
+    console.log(
+      `📊 Using matching preset: ${presetMode} (minScore: ${presetConfig.minScore}, maxDistance: ${presetConfig.maxDistanceKm}km)`
+    );
+
     const data = await req.json();
-    const { 
-      destination, 
-      budget, 
-      startDate, 
-      endDate, 
-      userId, 
-      age, 
-      languages, 
-      interests, 
-      smoking, 
-      drinking, 
-      nationality 
+    const {
+      destination,
+      budget,
+      startDate,
+      endDate,
+      userId,
+      age,
+      languages,
+      interests,
+      smoking,
+      drinking,
+      nationality,
     } = data;
-    
+
     console.log("Received request data:", {
       destination,
       budget,
@@ -97,21 +123,33 @@ export async function POST(req: NextRequest) {
       interests,
       smoking,
       drinking,
-      nationality
+      nationality,
     });
 
     if (!destination || !budget || !startDate || !endDate) {
-      return NextResponse.json({ error: "Missing required fields: destination, budget, startDate, endDate" }, { status: 400 });
+      return NextResponse.json(
+        {
+          error:
+            "Missing required fields: destination, budget, startDate, endDate",
+        },
+        { status: 400 }
+      );
     }
 
     // Get coordinates for user's destination
     let userDestinationCoords: Location;
-    if (typeof destination === 'string') {
+    if (typeof destination === "string") {
       console.log("Getting coordinates for destination:", destination);
       const coords = await getCoordinatesForLocation(destination);
       if (!coords) {
-        console.error("Could not find coordinates for destination:", destination);
-        return NextResponse.json({ error: "Could not find coordinates for the specified destination" }, { status: 400 });
+        console.error(
+          "Could not find coordinates for destination:",
+          destination
+        );
+        return NextResponse.json(
+          { error: "Could not find coordinates for the specified destination" },
+          { status: 400 }
+        );
       }
       console.log("Found coordinates for destination:", coords);
       userDestinationCoords = coords;
@@ -122,19 +160,19 @@ export async function POST(req: NextRequest) {
 
     // Create a user profile with provided filter data or defaults
     const userProfile: UserProfile = {
-      userId: userId || 'anonymous',
+      userId: userId || "anonymous",
       destination: userDestinationCoords,
       budget: Number(budget),
       startDate,
       endDate,
       age: age || 25,
-      languages: languages || ['English'],
+      languages: languages || ["English"],
       interests: interests || [],
       smoking: smoking || false,
       drinking: drinking || false,
-      nationality: nationality || 'Unknown',
+      nationality: nationality || "Unknown",
     };
-    
+
     console.log("User profile for matching:", userProfile);
 
     const supabase = createRouteHandlerSupabaseClient();
@@ -142,8 +180,9 @@ export async function POST(req: NextRequest) {
     // Fetch groups with all necessary fields from the schema
     console.log("Fetching groups from database...");
     const { data: groups, error } = await supabase
-      .from('groups')
-      .select(`
+      .from("groups")
+      .select(
+        `
         id,
         name,
         destination,
@@ -157,7 +196,9 @@ export async function POST(req: NextRequest) {
         top_interests,
         average_age,
         members_count
-      `);
+      `
+      )
+      .eq("status", "active"); // Only match approved groups
 
     if (error) {
       console.error("Database error fetching groups:", error);
@@ -168,7 +209,7 @@ export async function POST(req: NextRequest) {
       console.log("No groups found in database");
       return NextResponse.json({ groups: [] });
     }
-    
+
     console.log(`Found ${groups.length} groups in database:`, groups);
 
     // Get coordinates for all group destinations and filter by distance
@@ -176,22 +217,32 @@ export async function POST(req: NextRequest) {
     const groupsWithCoords: GroupWithCoords[] = [];
     for (const group of groups) {
       if (group.destination) {
-        console.log(`Getting coordinates for group ${group.id} destination: ${group.destination}`);
+        console.log(
+          `Getting coordinates for group ${group.id} destination: ${group.destination}`
+        );
         const groupCoords = await getCoordinatesForLocation(group.destination);
         if (groupCoords) {
-          const distance = calculateDistance(userDestinationCoords, groupCoords);
+          const distance = calculateDistance(
+            userDestinationCoords,
+            groupCoords
+          );
           console.log(`Group ${group.id} is ${distance.toFixed(2)}km away`);
-          if (distance <= 200) { // Only include groups within 200km
+          if (distance <= presetConfig.maxDistanceKm) {
+            // Only include groups within preset maxDistanceKm
             groupsWithCoords.push({
               ...group,
               destinationCoords: groupCoords,
-              distance
+              distance,
             });
           } else {
-            console.log(`Group ${group.id} is too far (${distance.toFixed(2)}km > 200km)`);
+            console.log(
+              `Group ${group.id} is too far (${distance.toFixed(2)}km > 200km)`
+            );
           }
         } else {
-          console.log(`Could not get coordinates for group ${group.id} destination: ${group.destination}`);
+          console.log(
+            `Could not get coordinates for group ${group.id} destination: ${group.destination}`
+          );
         }
       } else {
         console.log(`Group ${group.id} has no destination`);
@@ -199,18 +250,23 @@ export async function POST(req: NextRequest) {
     }
 
     if (groupsWithCoords.length === 0) {
-      console.log("No groups found within 200km distance");
+      console.log(
+        `No groups found within ${presetConfig.maxDistanceKm}km distance`
+      );
       return NextResponse.json({ groups: [] });
     }
-    
-    console.log(`Found ${groupsWithCoords.length} groups within distance limit:`, groupsWithCoords);
+
+    console.log(
+      `Found ${groupsWithCoords.length} groups within distance limit:`,
+      groupsWithCoords
+    );
 
     // Get creator profiles for nationality information
-    const creatorIds = [...new Set(groupsWithCoords.map(g => g.creator_id))];
+    const creatorIds = [...new Set(groupsWithCoords.map((g) => g.creator_id))];
     const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('user_id, name, username, profile_photo, nationality')
-      .in('user_id', creatorIds);
+      .from("profiles")
+      .select("user_id, name, username, profile_photo, nationality")
+      .in("user_id", creatorIds);
 
     if (profilesError) {
       console.error("Error fetching creator profiles:", profilesError);
@@ -226,72 +282,96 @@ export async function POST(req: NextRequest) {
     console.log("Transforming groups into profiles for matching...");
     const groupProfiles: GroupProfile[] = groupsWithCoords.map((group: any) => {
       const creator = profilesMap[group.creator_id];
-      
+
       // Determine smoking policy based on group's non_smokers boolean field
-      let smokingPolicy: 'Smokers Welcome' | 'Mixed' | 'Non-Smoking';
+      let smokingPolicy: "Smokers Welcome" | "Mixed" | "Non-Smoking";
       if (group.non_smokers === true) {
-        smokingPolicy = 'Non-Smoking';
+        smokingPolicy = "Non-Smoking";
       } else if (group.non_smokers === false) {
-        smokingPolicy = 'Smokers Welcome';
+        smokingPolicy = "Smokers Welcome";
       } else {
-        smokingPolicy = 'Mixed'; // Default to mixed if null
+        smokingPolicy = "Mixed"; // Default to mixed if null
       }
-      
+
       // Determine drinking policy based on group's non_drinkers boolean field
-      let drinkingPolicy: 'Drinkers Welcome' | 'Mixed' | 'Non-Drinking';
+      let drinkingPolicy: "Drinkers Welcome" | "Mixed" | "Non-Drinking";
       if (group.non_drinkers === true) {
-        drinkingPolicy = 'Non-Drinking';
+        drinkingPolicy = "Non-Drinking";
       } else if (group.non_drinkers === false) {
-        drinkingPolicy = 'Drinkers Welcome';
+        drinkingPolicy = "Drinkers Welcome";
       } else {
-        drinkingPolicy = 'Mixed'; // Default to mixed if null
+        drinkingPolicy = "Mixed"; // Default to mixed if null
       }
-      
+
       return {
         groupId: group.id,
-        name: group.name || 'Unknown Group',
+        name: group.name || "Unknown Group",
         destination: group.destinationCoords,
         averageBudget: Number(group.budget) || 0,
-        startDate: group.start_date || '',
-        endDate: group.end_date || '',
+        startDate: group.start_date || "",
+        endDate: group.end_date || "",
         averageAge: Number(group.average_age) || 25,
-        dominantLanguages: group.dominant_languages || ['English'],
+        dominantLanguages: group.dominant_languages || ["English"],
         topInterests: group.top_interests || [],
         smokingPolicy,
         drinkingPolicy,
-        dominantNationalities: creator?.nationality ? [creator.nationality] : [],
+        dominantNationalities: creator?.nationality
+          ? [creator.nationality]
+          : [],
       };
     });
-    
-    console.log(`Created ${groupProfiles.length} group profiles for matching:`, groupProfiles);
+
+    console.log(
+      `Created ${groupProfiles.length} group profiles for matching:`,
+      groupProfiles
+    );
 
     // Use the group matching algorithm to get scored matches
-    const matches = findGroupMatchesForUser(userProfile, groupProfiles);
-    console.log(`Matching algorithm returned ${matches.length} matches:`, matches);
+    const matches = findGroupMatchesForUser(
+      userProfile,
+      groupProfiles,
+      presetConfig.maxDistanceKm
+    );
+    console.log(
+      `Matching algorithm returned ${matches.length} matches:`,
+      matches
+    );
+
+    // Filter by preset minScore
+    const filteredMatches = matches.filter(
+      (match) => match.score >= presetConfig.minScore
+    );
+    console.log(
+      `After applying minScore filter (${presetConfig.minScore}): ${filteredMatches.length} matches remain`
+    );
 
     // Transform the results to include group details and maintain distance info
-    const safeMatches = matches.map((match) => {
-      const originalGroup = groupsWithCoords.find(g => g.id === match.group.groupId);
-      const creator = originalGroup ? profilesMap[originalGroup.creator_id] : null;
-      
+    const safeMatches = filteredMatches.map((match) => {
+      const originalGroup = groupsWithCoords.find(
+        (g) => g.id === match.group.groupId
+      );
+      const creator = originalGroup
+        ? profilesMap[originalGroup.creator_id]
+        : null;
+
       // Format dates properly
       const formatDate = (dateString: string | null) => {
-        if (!dateString) return 'Not specified';
+        if (!dateString) return "Not specified";
         try {
-          return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+          return new Date(dateString).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
           });
         } catch {
-          return 'Invalid date';
+          return "Invalid date";
         }
       };
-      
+
       return {
         id: match.group.groupId,
         name: match.group.name,
-        destination: originalGroup?.destination || 'Unknown Destination',
+        destination: originalGroup?.destination || "Unknown Destination",
         budget: match.group.averageBudget,
         startDate: formatDate(originalGroup?.start_date || null),
         endDate: formatDate(originalGroup?.end_date || null),
@@ -309,8 +389,31 @@ export async function POST(req: NextRequest) {
     });
 
     console.log(`Returning ${safeMatches.length} final matches:`, safeMatches);
+
+    // Increment match generation counter for metrics
+    if (safeMatches.length > 0) {
+      try {
+        const redisClient = await ensureRedisConnection();
+        await redisClient.incr("metrics:matches:daily");
+        await redisClient.expire("metrics:matches:daily", 86400); // 24 hours TTL
+      } catch (e) {
+        console.warn("Failed to increment match counter:", e);
+        // Don't fail the request if metrics tracking fails
+      }
+    }
+
     return NextResponse.json({ groups: safeMatches });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
+    // Capture error in Sentry for alerting
+    Sentry.captureException(err, {
+      tags: {
+        scope: "match-api",
+        route: "POST /api/match-groups",
+      },
+    });
+    return NextResponse.json(
+      { error: err.message || "Unknown error" },
+      { status: 500 }
+    );
   }
 }

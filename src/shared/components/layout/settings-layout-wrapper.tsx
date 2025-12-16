@@ -237,6 +237,26 @@ export default function LayoutWrapper() {
   );
 
   const [isRejoining, setIsRejoining] = useState(false);
+  const [groupInfo, setGroupInfo] = useState<{
+    status?: "active" | "pending" | "removed";
+  } | null>(null);
+
+  // Fetch group info to check status
+  React.useEffect(() => {
+    const fetchGroupInfo = async () => {
+      try {
+        const response = await fetch(`/api/groups/${groupId}`);
+        if (!response.ok) throw new Error("Failed to fetch group info");
+        const data = await response.json();
+        setGroupInfo(data);
+      } catch (err) {
+        console.error("Failed to fetch group info:", err);
+      }
+    };
+    if (groupId) {
+      fetchGroupInfo();
+    }
+  }, [groupId]);
 
   // Handle rejoining after being removed
   const handleRejoinGroup = async () => {
@@ -379,6 +399,35 @@ export default function LayoutWrapper() {
           <p className="text-xs text-muted-foreground mb-6">
             The group you&apos;re looking for doesn&apos;t exist or has been
             deleted.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/groups")}
+            className="w-full text-xs"
+          >
+            Back to Groups
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if group is pending - show "under review" message for all users (including creators)
+  const isPending = groupInfo?.status === "pending";
+
+  if (isPending) {
+    return (
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+        <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center mb-2">
+            <AlertCircle className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h2 className="text-md font-semibold text-foreground mb-2">
+            Group Under Review
+          </h2>
+          <p className="text-xs text-muted-foreground mb-6">
+            This group is currently pending admin approval and is not available
+            for viewing or interaction.
           </p>
           <Button
             variant="outline"

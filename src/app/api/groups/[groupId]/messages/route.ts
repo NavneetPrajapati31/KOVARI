@@ -156,6 +156,30 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Check if group exists and is not removed
+    const { data: group, error: groupError } = await supabase
+      .from("groups")
+      .select("id, status")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Block access to removed groups
+    if (group.status === "removed") {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Block posting messages to pending groups (even for creators)
+    if (group.status === "pending") {
+      return NextResponse.json(
+        { error: "Cannot send messages while group is under review" },
+        { status: 403 }
+      );
+    }
+
     // Check if user is a member of the group
     const { data: membership, error: membershipError } = await supabase
       .from("group_memberships")

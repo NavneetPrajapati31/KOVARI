@@ -51,11 +51,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ travelDays: [] });
   }
 
-  // 4. Get all groups' start_date and end_date
+  // 4. Get all groups' start_date and end_date (exclude removed groups)
   const { data: groups, error: groupsError } = await supabase
     .from("groups")
     .select("start_date, end_date")
-    .in("id", groupIds);
+    .in("id", groupIds)
+    .neq("status", "removed");
 
   if (groupsError) {
     return NextResponse.json({ error: groupsError.message }, { status: 500 });
