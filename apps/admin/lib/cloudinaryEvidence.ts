@@ -75,10 +75,12 @@ export function generateSignedEvidenceUrl(
     height?: number;
     quality?: number;
     format?: string; // file format (jpg, png, pdf, etc.)
+    type?: 'upload' | 'private' | 'authenticated'; // Default to 'upload' (public)
   } = {},
 ): string {
   const expiresIn = options.expiresIn || 3600; // 1 hour default
   const format = options.format || 'auto'; // default to auto-detect
+  const type = options.type || 'upload'; // Default to public uploads
 
   // Build transformation array
   const transformations: Array<Record<string, string | number>> = [];
@@ -86,10 +88,21 @@ export function generateSignedEvidenceUrl(
   if (options.height) transformations.push({ height: options.height });
   if (options.quality) transformations.push({ quality: options.quality });
 
-  // Use cloudinary.url() with sign_url for transformations support
+  // For public images (type: 'upload'), we don't need signed URLs
+  // Just return optimized URL
+  if (type === 'upload') {
+    const baseUrl = cloudinary.url(publicId, {
+      resource_type: 'auto',
+      format: format === 'auto' ? undefined : format,
+      ...(transformations.length > 0 && { transformation: transformations }),
+    });
+    return baseUrl;
+  }
+
+  // For private/authenticated images, use signed URLs
   return cloudinary.url(publicId, {
     resource_type: 'auto',
-    type: 'private',
+    type: type,
     format: format === 'auto' ? undefined : format,
     sign_url: true,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
@@ -107,16 +120,36 @@ export function generateSignedThumbnailUrl(
     expiresIn?: number; // seconds (default: 1 hour)
     size?: number; // thumbnail size (default: 300px)
     format?: string; // file format (default: webp)
+    type?: 'upload' | 'private' | 'authenticated'; // Default to 'upload' (public)
   } = {},
 ): string {
   const size = options.size || 300;
   const expiresIn = options.expiresIn || 3600;
   const format = options.format || 'webp';
+  const type = options.type || 'upload'; // Default to public uploads
 
-  // Use cloudinary.url() with sign_url for transformations support
+  // For public images (type: 'upload'), we don't need signed URLs
+  // Just return optimized URL with transformations
+  if (type === 'upload') {
+    return cloudinary.url(publicId, {
+      resource_type: 'image',
+      format: format,
+      transformation: [
+        {
+          width: size,
+          height: size,
+          crop: 'fill',
+          quality: 80,
+          format: 'webp',
+        },
+      ],
+    });
+  }
+
+  // For private/authenticated images, use signed URLs
   return cloudinary.url(publicId, {
     resource_type: 'image',
-    type: 'private',
+    type: type,
     format: format,
     sign_url: true,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
