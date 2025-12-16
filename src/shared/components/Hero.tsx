@@ -111,51 +111,9 @@ export default function Hero() {
         </div>
       </section>
 
-      {/* Stats Strip */}
-      <section className="relative -mt-20 z-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="rounded-2xl shadow-md bg-white/95 backdrop-blur-sm hover:scale-105 transition-transform duration-300">
-              <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-2">10M+</div>
-                <div className="text-muted-foreground">Total Customers</div>
-              </CardContent>
-            </Card>
 
-            <Card className="rounded-2xl shadow-md bg-white/95 backdrop-blur-sm hover:scale-105 transition-transform duration-300">
-              <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-green-600 mb-2">09+</div>
-                <div className="text-muted-foreground">Years Of Experience</div>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl shadow-md bg-white/95 backdrop-blur-sm hover:scale-105 transition-transform duration-300">
-              <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-orange-600 mb-2">12K</div>
-                <div className="text-muted-foreground">Total Destinations</div>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl shadow-md bg-white/95 backdrop-blur-sm hover:scale-105 transition-transform duration-300">
-              <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-purple-600 mb-2">5.0</div>
-                <div className="text-muted-foreground">Average Rating</div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer Teaser Section */}
-      <section className="bg-muted py-20 mt-20">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-8">Best Location</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover Indonesia's most breathtaking destinations, from pristine beaches to ancient temples, each offering
-            unique experiences that will create memories to last a lifetime.
-          </p>
-        </div>
-      </section>
+     
+     
     </div>
   );
 }
