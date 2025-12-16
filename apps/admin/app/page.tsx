@@ -1,6 +1,7 @@
-import { requireAdminPage } from "@/admin-lib/adminAuth";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
-import Link from "next/link";
+import { requireAdminPage } from '@/admin-lib/adminAuth';
+import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { getRedisAdminClient } from '@/admin-lib/redisAdmin';
+import Link from 'next/link';
 import {
   Clock,
   Flag,
@@ -9,10 +10,9 @@ import {
   ArrowRight,
   Power,
   PowerOff,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { headers } from "next/headers";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Metrics {
   sessionsActive: number;
@@ -38,108 +38,151 @@ interface AdminAction {
     | Array<{ email: string }>;
 }
 
-// Get base URL for internal API calls
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return "http://localhost:3000";
-}
-
 async function getMetrics(): Promise<Metrics> {
-  try {
-    const headersList = await headers();
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/admin/metrics`, {
-      cache: "no-store",
-      headers: {
-        cookie: headersList.get("cookie") || "",
-      },
-    });
+  let activeSessions = 0;
+  let matches24h = 0;
+  let pendingFlags = 0;
 
-    if (!response.ok) {
-      console.error("Failed to fetch metrics:", response.status);
-      return { sessionsActive: 0, pendingFlags: 0, matches24h: 0 };
+  // Get pending flags (doesn't require Redis)
+  try {
+    const { count } = await supabaseAdmin
+      .from('user_flags')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    pendingFlags = count ?? 0;
+  } catch (error) {
+    console.error('Error fetching pending flags:', error);
+  }
+
+  // Get Redis metrics (may fail if Redis is unavailable)
+  try {
+    const redis = getRedisAdminClient();
+
+    // Ensure Redis is connected (same pattern as API route)
+    if (!redis.isOpen) {
+      await redis.connect();
     }
 
-    const data = await response.json();
-    return {
-      sessionsActive: data.sessionsActive ?? 0,
-      pendingFlags: data.pendingFlags ?? 0,
-      matches24h: data.matches24h ?? 0,
-    };
+    // Get active sessions count (same logic as API route)
+    try {
+      // Try to use sessions:index if it exists (faster)
+      const indexCount = await redis.sCard('sessions:index');
+      if (indexCount > 0) {
+        activeSessions = indexCount;
+      } else {
+        // Fallback: count session:* keys directly
+        const sessionKeys = await redis.keys('session:*');
+        activeSessions = sessionKeys.length;
+      }
+    } catch (e) {
+      // If sessions:index doesn't exist or fails, count keys directly
+      try {
+        const sessionKeys = await redis.keys('session:*');
+        activeSessions = sessionKeys.length;
+      } catch (e2) {
+        // Redis operation failed, but continue with other metrics
+      }
+    }
+
+    // Get matches generated (24h) - from Redis counter
+    try {
+      const count = await redis.get('metrics:matches:daily');
+      matches24h = count ? parseInt(count, 10) : 0;
+    } catch (e) {
+      // Silently fail - Redis may be unavailable, which is expected
+    }
   } catch (error) {
-    console.error("Error fetching metrics:", error);
-    return { sessionsActive: 0, pendingFlags: 0, matches24h: 0 };
+    // Redis connection failed - this is OK, we'll just return 0 for Redis metrics
+    // Silently fail - Redis may be unavailable, which is expected
   }
+
+  return {
+    sessionsActive: activeSessions,
+    pendingFlags: pendingFlags,
+    matches24h: matches24h,
+  };
 }
 
 async function getTotalUsers(): Promise<number> {
   try {
     const { count, error } = await supabaseAdmin
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("deleted", false);
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('deleted', false);
 
     if (error) {
-      console.error("Error fetching total users:", error);
+      console.error('Error fetching total users:', error);
       return 0;
     }
 
     return count ?? 0;
   } catch (error) {
-    console.error("Error fetching total users:", error);
+    console.error('Error fetching total users:', error);
     return 0;
   }
 }
 
 async function getSettings(): Promise<Settings> {
   try {
-    const headersList = await headers();
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/admin/settings`, {
-      cache: "no-store",
-      headers: {
-        cookie: headersList.get("cookie") || "",
-      },
-    });
+    // Fetch settings directly from database
+    const { data, error } = await supabaseAdmin
+      .from('system_settings')
+      .select('key, value')
+      .in('key', ['maintenance_mode', 'matching_preset', 'session_ttl_hours']);
 
-    if (!response.ok) {
-      console.error("Failed to fetch settings:", response.status);
+    if (error) {
+      console.error('Settings fetch error:', error);
       return { maintenance_mode: false };
     }
 
-    const data = await response.json();
+    // Parse settings from the database format
+    const settingsMap = new Map(
+      data?.map((item) => [item.key, item.value]) || [],
+    );
+
+    // Extract maintenance mode value with default
+    const maintenanceValue = settingsMap.get('maintenance_mode') as
+      | { enabled: boolean }
+      | undefined;
+
     return {
-      maintenance_mode: data.maintenance_mode ?? false,
+      maintenance_mode: maintenanceValue?.enabled ?? false,
     };
   } catch (error) {
-    console.error("Error fetching settings:", error);
+    console.error('Error fetching settings:', error);
     return { maintenance_mode: false };
   }
 }
 
 async function getRecentActions(): Promise<AdminAction[]> {
   try {
-    const headersList = await headers();
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/admin/audit?limit=10`, {
-      cache: "no-store",
-      headers: {
-        cookie: headersList.get("cookie") || "",
-      },
-    });
+    // Fetch recent actions directly from database
+    const { data, error } = await supabaseAdmin
+      .from('admin_actions')
+      .select(
+        `
+        id,
+        admin_id,
+        target_type,
+        target_id,
+        action,
+        reason,
+        created_at,
+        admins:admin_id (
+          id,
+          email
+        )
+      `,
+      )
+      .order('created_at', { ascending: false })
+      .limit(10);
 
-    if (!response.ok) {
-      console.error("Failed to fetch recent actions:", response.status);
+    if (error) {
+      console.error('Error fetching recent actions:', error);
       return [];
     }
 
-    const data = await response.json();
-    return (data.actions || []).map(
+    return (data || []).map(
       (action: {
         id: string;
         action: string;
@@ -161,10 +204,10 @@ async function getRecentActions(): Promise<AdminAction[]> {
           Array.isArray(action.admins) && action.admins.length > 0
             ? action.admins[0]
             : action.admins,
-      })
+      }),
     );
   } catch (error) {
-    console.error("Error fetching recent actions:", error);
+    console.error('Error fetching recent actions:', error);
     return [];
   }
 }
@@ -283,7 +326,7 @@ export default async function DashboardPage() {
             </Button>
             <Button
               asChild
-              variant={settings.maintenance_mode ? "destructive" : "outline"}
+              variant={settings.maintenance_mode ? 'destructive' : 'outline'}
             >
               <Link href="/settings" className="flex items-center">
                 {settings.maintenance_mode ? (
@@ -322,10 +365,10 @@ export default async function DashboardPage() {
                   Array.isArray(action.admins) && action.admins.length > 0
                     ? action.admins[0].email
                     : action.admins &&
-                        typeof action.admins === "object" &&
-                        "email" in action.admins
+                        typeof action.admins === 'object' &&
+                        'email' in action.admins
                       ? action.admins.email
-                      : "Unknown";
+                      : 'Unknown';
                 return (
                   <div
                     key={action.id}
