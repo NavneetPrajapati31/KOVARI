@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useState,
@@ -9,20 +9,20 @@ import {
   startTransition,
   useDeferredValue,
   memo,
-} from "react";
-import { useRouter } from "next/navigation";
-import { Search, Users, UsersRound, Clock, Flag, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from 'react';
+import { useRouter } from 'next/navigation';
+import { Search, Users, UsersRound, Clock, Flag, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import * as Sentry from "@sentry/nextjs";
+} from '@/components/ui/popover';
+import * as Sentry from '@sentry/nextjs';
 
 interface SearchResult {
-  type: "user" | "group" | "session" | "flag";
+  type: 'user' | 'group' | 'session' | 'flag';
   id: string;
   title: string;
   subtitle?: string;
@@ -67,8 +67,8 @@ const SearchResultItem = memo(
     onClick,
   }: {
     result: SearchResult;
-    iconMap: Record<SearchResult["type"], typeof Users>;
-    labelMap: Record<SearchResult["type"], string>;
+    iconMap: Record<SearchResult['type'], typeof Users>;
+    labelMap: Record<SearchResult['type'], string>;
     onClick: (result: SearchResult) => void;
   }) => {
     const Icon = iconMap[result.type];
@@ -100,13 +100,13 @@ const SearchResultItem = memo(
         </div>
       </Button>
     );
-  }
+  },
 );
 
-SearchResultItem.displayName = "SearchResultItem";
+SearchResultItem.displayName = 'SearchResultItem';
 
 export function AdminSearch() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -148,19 +148,19 @@ export function AdminSearch() {
             `/api/admin/users?query=${encodeURIComponent(searchQuery)}&limit=5`,
             {
               signal: abortController.signal,
-            }
+            },
           ),
           fetch(
             `/api/admin/groups?query=${encodeURIComponent(searchQuery)}&limit=5`,
             {
               signal: abortController.signal,
-            }
+            },
           ),
           fetch(
             `/api/admin/sessions/search?query=${encodeURIComponent(searchQuery)}&limit=5`,
             {
               signal: abortController.signal,
-            }
+            },
           ),
           fetch(`/api/admin/flags?status=pending&limit=50`, {
             signal: abortController.signal,
@@ -168,7 +168,7 @@ export function AdminSearch() {
         ]);
 
       // Process users
-      if (usersResponse.status === "fulfilled" && usersResponse.value.ok) {
+      if (usersResponse.status === 'fulfilled' && usersResponse.value.ok) {
         try {
           const usersData = await usersResponse.value.json();
           if (usersData.users && Array.isArray(usersData.users)) {
@@ -176,9 +176,9 @@ export function AdminSearch() {
               // Use profile id (not user_id) for the URL since the detail page uses profile.id
               const profileId = user.id;
               searchResults.push({
-                type: "user",
+                type: 'user',
                 id: profileId,
-                title: user.name || user.email || "Unknown User",
+                title: user.name || user.email || 'Unknown User',
                 subtitle: user.email,
                 url: `/users/${profileId}`,
               });
@@ -187,22 +187,22 @@ export function AdminSearch() {
         } catch (error) {
           if (!abortController.signal.aborted) {
             Sentry.captureException(error, {
-              tags: { scope: "admin-search", entity: "users" },
+              tags: { scope: 'admin-search', entity: 'users' },
             });
           }
         }
       }
 
       // Process groups
-      if (groupsResponse.status === "fulfilled" && groupsResponse.value.ok) {
+      if (groupsResponse.status === 'fulfilled' && groupsResponse.value.ok) {
         try {
           const groupsData = await groupsResponse.value.json();
           if (groupsData.groups && Array.isArray(groupsData.groups)) {
             groupsData.groups.forEach((group: GroupResponse) => {
               searchResults.push({
-                type: "group",
+                type: 'group',
                 id: group.id,
-                title: group.name || "Unnamed Group",
+                title: group.name || 'Unnamed Group',
                 subtitle: group.destination || undefined,
                 url: `/groups/${group.id}`,
               });
@@ -211,7 +211,7 @@ export function AdminSearch() {
         } catch (error) {
           if (!abortController.signal.aborted) {
             Sentry.captureException(error, {
-              tags: { scope: "admin-search", entity: "groups" },
+              tags: { scope: 'admin-search', entity: 'groups' },
             });
           }
         }
@@ -219,7 +219,7 @@ export function AdminSearch() {
 
       // Process sessions
       if (
-        sessionsResponse.status === "fulfilled" &&
+        sessionsResponse.status === 'fulfilled' &&
         sessionsResponse.value.ok
       ) {
         try {
@@ -227,9 +227,9 @@ export function AdminSearch() {
           if (sessionsData.sessions && Array.isArray(sessionsData.sessions)) {
             sessionsData.sessions.forEach((session: SessionResponse) => {
               searchResults.push({
-                type: "session",
-                id: session.sessionKey || session.id || "",
-                title: session.destination || "Session",
+                type: 'session',
+                id: session.sessionKey || session.id || '',
+                title: session.destination || 'Session',
                 subtitle: session.userId || undefined,
                 url: `/sessions`,
               });
@@ -238,14 +238,14 @@ export function AdminSearch() {
         } catch (error) {
           if (!abortController.signal.aborted) {
             Sentry.captureException(error, {
-              tags: { scope: "admin-search", entity: "sessions" },
+              tags: { scope: 'admin-search', entity: 'sessions' },
             });
           }
         }
       }
 
       // Process flags (client-side filtering)
-      if (flagsResponse.status === "fulfilled" && flagsResponse.value.ok) {
+      if (flagsResponse.status === 'fulfilled' && flagsResponse.value.ok) {
         try {
           const flagsData = await flagsResponse.value.json();
           if (flagsData.flags && Array.isArray(flagsData.flags)) {
@@ -263,15 +263,15 @@ export function AdminSearch() {
                   ?.toLowerCase()
                   .includes(searchTerm);
                 return nameMatch || emailMatch || reasonMatch;
-              }
+              },
             );
 
             matchingFlags.slice(0, 5).forEach((flag: FlagResponse) => {
               const profile = flag.profiles;
               searchResults.push({
-                type: "flag",
+                type: 'flag',
                 id: flag.id,
-                title: profile?.name || profile?.email || "Flag",
+                title: profile?.name || profile?.email || 'Flag',
                 subtitle: flag.reason || undefined,
                 url: `/flags`,
               });
@@ -280,7 +280,7 @@ export function AdminSearch() {
         } catch (error) {
           if (!abortController.signal.aborted) {
             Sentry.captureException(error, {
-              tags: { scope: "admin-search", entity: "flags" },
+              tags: { scope: 'admin-search', entity: 'flags' },
             });
           }
         }
@@ -296,7 +296,7 @@ export function AdminSearch() {
     } catch (error) {
       if (!abortController.signal.aborted) {
         Sentry.captureException(error, {
-          tags: { scope: "admin-search", entity: "general" },
+          tags: { scope: 'admin-search', entity: 'general' },
         });
         startTransition(() => {
           setResults([]);
@@ -324,36 +324,36 @@ export function AdminSearch() {
   const handleResultClick = useCallback(
     (result: SearchResult) => {
       setIsOpen(false);
-      setQuery("");
+      setQuery('');
       router.push(result.url);
     },
-    [router]
+    [router],
   );
 
-  const iconMap = useMemo<Record<SearchResult["type"], typeof Users>>(
+  const iconMap = useMemo<Record<SearchResult['type'], typeof Users>>(
     () => ({
       user: Users,
       group: UsersRound,
       session: Clock,
       flag: Flag,
     }),
-    []
+    [],
   );
 
-  const labelMap = useMemo<Record<SearchResult["type"], string>>(
+  const labelMap = useMemo<Record<SearchResult['type'], string>>(
     () => ({
-      user: "User",
-      group: "Group",
-      session: "Session",
-      flag: "Flag",
+      user: 'User',
+      group: 'Group',
+      session: 'Session',
+      flag: 'Flag',
     }),
-    []
+    [],
   );
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <div className="relative w-full max-w-md">
+        <div className="relative w-full max-w-md" suppressHydrationWarning>
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none opacity-50" />
           <Input
             type="search"
@@ -381,11 +381,11 @@ export function AdminSearch() {
               });
             }}
             onKeyDown={(e) => {
-              if (e.key === "Escape") {
+              if (e.key === 'Escape') {
                 startTransition(() => {
                   setIsOpen(false);
                 });
-                setQuery("");
+                setQuery('');
               }
             }}
           />
