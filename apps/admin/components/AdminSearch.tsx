@@ -110,20 +110,10 @@ export function AdminSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  // Track if component is mounted on client to prevent hydration mismatch
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const abortControllerRef = useRef<AbortController | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   // Use deferred value only for rendering results, not for search
   const deferredResults = useDeferredValue(results);
-
-  // Set mounted to true only after client-side mount (using startTransition to avoid cascading renders)
-  useEffect(() => {
-    startTransition(() => {
-      setMounted(true);
-    });
-  }, []);
 
   const performSearch = useCallback(async (searchQuery: string) => {
     // Cancel previous request if still in flight
@@ -360,29 +350,12 @@ export function AdminSearch() {
     []
   );
 
-  // Render input without Popover during SSR to prevent hydration mismatch
-  if (!mounted) {
-    return (
-      <div className="relative w-full max-w-md">
-        <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none opacity-50" />
-        <Input
-          type="search"
-          placeholder="Search users, groups, sessions, flags..."
-          className="w-full pl-7"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
-    );
-  }
-
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <div className="relative w-full max-w-md">
-        <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none opacity-50 z-10" />
-        <PopoverTrigger asChild>
+      <PopoverTrigger asChild>
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none opacity-50" />
           <Input
-            ref={inputRef}
             type="search"
             placeholder="Search users, groups, sessions, flags..."
             className="w-full pl-7"
@@ -416,8 +389,8 @@ export function AdminSearch() {
               }
             }}
           />
-        </PopoverTrigger>
-      </div>
+        </div>
+      </PopoverTrigger>
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] max-w-md p-0"
         align="start"
