@@ -43,13 +43,20 @@ async function getMetrics(): Promise<Metrics> {
   let matches24h = 0;
   let pendingFlags = 0;
 
-  // Get pending flags (doesn't require Redis)
+  // Get pending flags from both user_flags and group_flags (doesn't require Redis)
   try {
-    const { count } = await supabaseAdmin
-      .from('user_flags')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
-    pendingFlags = count ?? 0;
+    const [{ count: userFlagsCount }, { count: groupFlagsCount }] =
+      await Promise.all([
+        supabaseAdmin
+          .from('user_flags')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending'),
+        supabaseAdmin
+          .from('group_flags')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending'),
+      ]);
+    pendingFlags = (userFlagsCount ?? 0) + (groupFlagsCount ?? 0);
   } catch (error) {
     console.error('Error fetching pending flags:', error);
   }

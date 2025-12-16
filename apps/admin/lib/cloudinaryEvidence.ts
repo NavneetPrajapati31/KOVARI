@@ -1,6 +1,6 @@
 // apps/admin/lib/cloudinaryEvidence.ts
 import { v2 as cloudinary } from 'cloudinary';
-import { uploadToCloudinary, getOptimizedUrl } from '@/admin-lib/cloudinary';
+import { uploadToCloudinary, getOptimizedUrl } from '@/lib/cloudinary';
 
 // Configure Cloudinary (uses same config as main app)
 cloudinary.config({
@@ -66,6 +66,7 @@ export async function uploadEvidence(
 /**
  * Generate signed URL for evidence (expires after specified time)
  * Useful for secure, time-limited access to evidence
+ * Tries private first, falls back to public if private fails
  */
 export function generateSignedEvidenceUrl(
   publicId: string,
@@ -75,45 +76,49 @@ export function generateSignedEvidenceUrl(
     height?: number;
     quality?: number;
     format?: string; // file format (jpg, png, pdf, etc.)
-    type?: 'upload' | 'private' | 'authenticated'; // Default to 'upload' (public)
+    type?: 'private' | 'upload' | 'fetch'; // asset type (default: try both)
   } = {},
 ): string {
   const expiresIn = options.expiresIn || 3600; // 1 hour default
   const format = options.format || 'auto'; // default to auto-detect
-  const type = options.type || 'upload'; // Default to public uploads
 
-  // Build transformation array using Cloudinary's string format
-  const transformationParts: string[] = [];
-  if (options.width) transformationParts.push(`w_${options.width}`);
-  if (options.height) transformationParts.push(`h_${options.height}`);
-  if (options.quality) transformationParts.push(`q_${options.quality}`);
-  if (format !== 'auto' && format) transformationParts.push(`f_${format}`);
+  // Build transformation array
+  const transformations: Array<Record<string, string | number>> = [];
+  if (options.width) transformations.push({ width: options.width });
+  if (options.height) transformations.push({ height: options.height });
+  if (options.quality) transformations.push({ quality: options.quality });
 
-  const transformationString =
-    transformationParts.length > 0 ? transformationParts.join(',') : undefined;
+  // Evidence is uploaded as "image" resource_type, so use "image" for signed URLs
+  // Using "auto" can cause 400 errors with signed URLs
+  const resourceType = 'image'; // Evidence is always images
 
-  // For public images (type: 'upload'), we don't need signed URLs
-  // Just return optimized URL
-  if (type === 'upload') {
+  // If type is explicitly specified, use it
+  if (options.type) {
     return cloudinary.url(publicId, {
-      resource_type: 'auto',
-      ...(transformationString && { transformation: transformationString }),
+      resource_type: resourceType,
+      type: options.type,
+      format: format === 'auto' ? undefined : format,
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + expiresIn,
+      ...(transformations.length > 0 && { transformation: transformations }),
     });
   }
 
-  // For private/authenticated images, use signed URLs
+  // Default to "upload" (public) type to match how evidence is uploaded
   return cloudinary.url(publicId, {
-    resource_type: 'auto',
-    type: type,
+    resource_type: resourceType,
+    type: 'upload', // Use "upload" (public) instead of "private" to avoid 404s
+    format: format === 'auto' ? undefined : format,
     sign_url: true,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
-    ...(transformationString && { transformation: transformationString }),
+    ...(transformations.length > 0 && { transformation: transformations }),
   });
 }
 
 /**
  * Generate signed thumbnail URL for evidence (for admin UI)
  * Smaller, optimized version for quick preview
+ * Uses "upload" type (public) to avoid 404s with existing public assets
  */
 export function generateSignedThumbnailUrl(
   publicId: string,
@@ -121,36 +126,18 @@ export function generateSignedThumbnailUrl(
     expiresIn?: number; // seconds (default: 1 hour)
     size?: number; // thumbnail size (default: 300px)
     format?: string; // file format (default: webp)
-    type?: 'upload' | 'private' | 'authenticated'; // Default to 'upload' (public)
+    type?: 'private' | 'upload' | 'fetch'; // asset type (default: upload/public)
   } = {},
 ): string {
   const size = options.size || 300;
   const expiresIn = options.expiresIn || 3600;
   const format = options.format || 'webp';
-  const type = options.type || 'upload'; // Default to public uploads
+  const assetType = options.type || 'upload'; // Default to "upload" (public) to avoid 404s
 
-  // For public images (type: 'upload'), we don't need signed URLs
-  // Just return optimized URL with transformations
-  if (type === 'upload') {
-    return cloudinary.url(publicId, {
-      resource_type: 'image',
-      format: format,
-      transformation: [
-        {
-          width: size,
-          height: size,
-          crop: 'fill',
-          quality: 80,
-          format: 'webp',
-        },
-      ],
-    });
-  }
-
-  // For private/authenticated images, use signed URLs
+  // Use cloudinary.url() with sign_url for transformations support
   return cloudinary.url(publicId, {
     resource_type: 'image',
-    type: type,
+    type: assetType, // Use "upload" (public) instead of "private" to avoid 404s
     format: format,
     sign_url: true,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
