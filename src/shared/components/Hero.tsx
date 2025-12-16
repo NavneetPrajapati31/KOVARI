@@ -1,128 +1,162 @@
 "use client";
 
-import React, { useCallback } from "react";
-import { Button } from "@heroui/react";
-import { Icon } from "@iconify/react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-
-const BUTTON_WIDTH = "w-[163px]";
-const BUTTON_HEIGHT = "h-10";
-const BUTTON_TEXT_SIZE = "text-small";
-
-const HERO_TITLE_GRADIENT =
-  "bg-hero-section-title bg-clip-text text-foreground";
-const HERO_SUBTITLE_GRADIENT =
-  "bg-gradient-to-b from-primary from-50% to-transparent to-100% bg-clip-text text-transparent";
-
-const HERO_DESCRIPTION =
-  "KOVARI helps you find travel companions, plan itineraries together, and discover local events. Join travel groups of people heading to the same destination.";
-
-const HERO_SECTION_CLASSES =
-  "z-20 flex flex-col items-center justify-center gap-[18px] sm:gap-6";
+import Image from "next/image";
+import { Menu } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@/shared/components/ui/navigation-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/shared/components/ui/sheet";
+import { Toggle } from "@/shared/components/ui/toggle";
 
 export default function Hero() {
-  const router = useRouter();
-
-  const handleStartPlanning = useCallback(() => {
-    router.push("/sign-up");
-  }, [router]);
-
-  const handleFindTravelers = useCallback(() => {
-    router.push("/explore");
-  }, [router]);
-
   return (
-    <div className="relative flex h-full sm:h-[90vh] w-full flex-col sm:overflow-hidden overflow-x-hidden bg-background">
-      <main className="container mx-auto flex flex-1 flex-col items-center justify-center overflow-hidden px-8 py-8 mt-6 sm:mt-0">
-        <section className={HERO_SECTION_CLASSES}>
-          <Button
-            className="h-9 overflow-hidden border-1 border-border shadow-sm px-[18px] py-2 text-small font-normal leading-5 text-default-500"
-            endContent={
-              <Icon
-                className="flex-none outline-none [&>path]:stroke-[2]"
-                icon="solar:arrow-right-linear"
-                width={20}
-                aria-label="Arrow right"
-              />
-            }
-            radius="full"
-            variant="bordered"
-            aria-label="Travel Together, Better"
-          >
-            Travel Together, Better
-          </Button>
-          <div className="text-center text-[clamp(40px,10vw,44px)] font-bold leading-[1.2] tracking-tighter sm:text-[64px]">
-            {/* 
-          NOTE: To use `bg-hero-section-title`, you need to add the following to your tailwind config.
-          ```
-          backgroundImage: {
-            "hero-section-title":
-              "linear-gradient(91deg, #FFF 32.88%, rgba(255, 255, 255, 0.40) 99.12%)",
-          },
-          ```
-        */}
-            <div className={HERO_TITLE_GRADIENT}>
-              Connect & Travel <br /> With{" "}
-              <span className={HERO_SUBTITLE_GRADIENT}>Like-Minded</span> People
+    <div className="min-h-screen">
+      {/* Navigation */}
+      <nav className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-6xl px-4">
+        <div className="backdrop-blur-md bg-white/20 rounded-full px-6 py-3 shadow-lg border border-white/30">
+          <div className="flex items-center justify-between">
+            {/* Brand */}
+            <div className="text-white font-bold text-xl">INDOTRAVI</div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#" className="text-white hover:text-white/80 transition-colors font-medium">
+                About
+              </a>
+              <a href="#" className="text-white hover:text-white/80 transition-colors font-medium">
+                Services
+              </a>
+              <a href="#" className="text-white hover:text-white/80 transition-colors font-medium">
+                Tour
+              </a>
+              <a href="#" className="text-white hover:text-white/80 transition-colors font-medium">
+                Contact
+              </a>
+            </div>
+
+            {/* Right Side */}
+            <div className="flex items-center space-x-4">
+              {/* Language Toggle */}
+              <div className="hidden md:flex items-center space-x-2">
+                <Toggle className="text-white hover:bg-white/20 rounded-full px-3 py-1.5 text-sm font-medium">
+                  De
+                </Toggle>
+                <Toggle pressed className="text-white bg-white/20 rounded-full px-3 py-1.5 text-sm font-medium">
+                  En
+                </Toggle>
+              </div>
+
+              {/* Login Button */}
+              <Button
+                variant="secondary"
+                className="hidden md:block bg-white/20 text-white border-white/30 hover:bg-white/30 rounded-full px-4 py-2"
+              >
+                Login
+              </Button>
+
+              {/* Mobile Menu */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden text-white">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="bg-white/95 backdrop-blur-md">
+                  <div className="flex flex-col space-y-4 mt-8">
+                    <a href="#" className="text-lg font-medium">
+                      About
+                    </a>
+                    <a href="#" className="text-lg font-medium">
+                      Services
+                    </a>
+                    <a href="#" className="text-lg font-medium">
+                      Tour
+                    </a>
+                    <a href="#" className="text-lg font-medium">
+                      Contact
+                    </a>
+                    <div className="flex items-center space-x-2 pt-4">
+                      <Toggle className="rounded-full px-3 py-1.5">De</Toggle>
+                      <Toggle pressed className="rounded-full px-3 py-1.5 bg-primary">En</Toggle>
+                    </div>
+                    <Button className="mt-4 rounded-full">Login</Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
-          <p className="text-center font-normal leading-7 text-default-500 sm:w-[466px] sm:text-[16px]">
-            {HERO_DESCRIPTION}
-          </p>
-          <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
-            <Link href="/sign-in">
-              <Button
-                className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} bg-primary px-[16px] py-[10px] ${BUTTON_TEXT_SIZE} font-medium leading-5 text-background`}
-                radius="full"
-                // onPress={handleStartPlanning}
-                aria-label="Start Planning"
-              >
-                Start Planning
-              </Button>
-            </Link>
-            <Link href="/explore">
-              <Button
-                className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} border-1 border-border shadow-sm px-[16px] py-[10px] ${BUTTON_TEXT_SIZE} font-medium leading-5`}
-                endContent={
-                  <span className="pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full">
-                    <Icon
-                      className="text-default-500 [&>path]:stroke-[1.5]"
-                      icon="solar:arrow-right-linear"
-                      width={16}
-                      aria-label="Arrow right"
-                    />
-                  </span>
-                }
-                radius="full"
-                variant="bordered"
-                // onPress={handleFindTravelers}
-                aria-label="Find Travelers"
-              >
-                Find Travelers
-              </Button>
-            </Link>
-          </div>
-        </section>
-        <div className="pointer-events-none absolute inset-0 top-[-25%] z-10 scale-150 select-none sm:scale-125">
-          {/**
-           * If using in a nextjs project, use next/image instead of <img> in <FadeInImage>.
-           * Also pass the following additional props to <FadeInImage>.
-           *
-           * ```tsx
-           * <FadeInImage
-           *   fill
-           *   priority
-           *   // existing code...
-           * />
-           * ```
-           */}
-          {/* <FadeInImage
-          alt="Gradient background"
-          src="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/backgrounds/bg-gradient.png"
-        /> */}
         </div>
-      </main>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative h-screen flex items-center justify-center">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image src="https://images.pexels.com/photos/33610936/pexels-photo-33610936.jpeg" alt="Mountain Lake" fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
+        </div>
+
+        {/* Hero Content */}
+        <div className="relative z-10 text-center px-4 max-w-4xl">
+          <h1 className="text-6xl md:text-7xl font-bold tracking-tight text-white mb-6">
+            <div>Extraordinary natural and</div>
+            <div>cultural charm</div>
+          </h1>
+          <p className="text-lg text-white/70 max-w-2xl mx-auto">Exploring Indonesia is an unforgettable adventure.</p>
+        </div>
+      </section>
+
+      {/* Stats Strip */}
+      <section className="relative -mt-20 z-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="rounded-2xl shadow-md bg-white/95 backdrop-blur-sm hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-blue-600 mb-2">10M+</div>
+                <div className="text-muted-foreground">Total Customers</div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl shadow-md bg-white/95 backdrop-blur-sm hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-green-600 mb-2">09+</div>
+                <div className="text-muted-foreground">Years Of Experience</div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl shadow-md bg-white/95 backdrop-blur-sm hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-orange-600 mb-2">12K</div>
+                <div className="text-muted-foreground">Total Destinations</div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl shadow-md bg-white/95 backdrop-blur-sm hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-purple-600 mb-2">5.0</div>
+                <div className="text-muted-foreground">Average Rating</div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer Teaser Section */}
+      <section className="bg-muted py-20 mt-20">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-8">Best Location</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Discover Indonesia's most breathtaking destinations, from pristine beaches to ancient temples, each offering
+            unique experiences that will create memories to last a lifetime.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
+
