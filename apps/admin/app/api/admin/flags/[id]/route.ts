@@ -367,29 +367,26 @@ export async function GET(req: NextRequest, { params }: Params) {
       }
     }
 
-    // PHASE 6: Generate signed URL for evidence (admin-only, time-limited)
-    let signedEvidenceUrl: string | null = null;
-    if (flag.evidence_public_id || flag.evidence_url) {
-      try {
-        const { generateSignedEvidenceUrl, getPublicIdFromEvidenceUrl } =
-          await import('@/admin-lib/cloudinaryEvidence');
-        const publicId =
-          flag.evidence_public_id ||
-          (flag.evidence_url
-            ? getPublicIdFromEvidenceUrl(flag.evidence_url)
-            : null);
+    // PHASE 6: Use original evidence URL if available
+    // For public images, the original URL from Cloudinary should work fine
+    // Only generate a new URL if we don't have the original URL but have a public_id
+    let signedEvidenceUrl: string | null = flag.evidence_url || null;
 
-        if (publicId) {
-          // Try generating URL for public images first (type: 'upload')
-          // This handles both public and private images correctly
-          signedEvidenceUrl = generateSignedEvidenceUrl(publicId, {
-            expiresIn: 3600, // 1 hour
-            type: 'upload', // Default to public uploads
-          });
-        }
+    // If we don't have a URL but have a public_id, try to construct one
+    // This should rarely happen, but handles edge cases
+    if (!signedEvidenceUrl && flag.evidence_public_id) {
+      try {
+        const { generateSignedEvidenceUrl } =
+          await import('@/admin-lib/cloudinaryEvidence');
+
+        // Generate URL for public images (type: 'upload')
+        // No transformations - just the base URL
+        signedEvidenceUrl = generateSignedEvidenceUrl(flag.evidence_public_id, {
+          type: 'upload', // Default to public uploads
+        });
       } catch (error) {
-        console.error('Error generating signed evidence URL:', error);
-        // Continue without signed URL - will use original URL as fallback
+        console.error('Error generating evidence URL from public_id:', error);
+        // Continue without URL - component will handle the error
       }
     }
 

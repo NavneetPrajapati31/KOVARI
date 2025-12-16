@@ -82,31 +82,32 @@ export function generateSignedEvidenceUrl(
   const format = options.format || 'auto'; // default to auto-detect
   const type = options.type || 'upload'; // Default to public uploads
 
-  // Build transformation array
-  const transformations: Array<Record<string, string | number>> = [];
-  if (options.width) transformations.push({ width: options.width });
-  if (options.height) transformations.push({ height: options.height });
-  if (options.quality) transformations.push({ quality: options.quality });
+  // Build transformation array using Cloudinary's string format
+  const transformationParts: string[] = [];
+  if (options.width) transformationParts.push(`w_${options.width}`);
+  if (options.height) transformationParts.push(`h_${options.height}`);
+  if (options.quality) transformationParts.push(`q_${options.quality}`);
+  if (format !== 'auto' && format) transformationParts.push(`f_${format}`);
+
+  const transformationString =
+    transformationParts.length > 0 ? transformationParts.join(',') : undefined;
 
   // For public images (type: 'upload'), we don't need signed URLs
   // Just return optimized URL
   if (type === 'upload') {
-    const baseUrl = cloudinary.url(publicId, {
+    return cloudinary.url(publicId, {
       resource_type: 'auto',
-      format: format === 'auto' ? undefined : format,
-      ...(transformations.length > 0 && { transformation: transformations }),
+      ...(transformationString && { transformation: transformationString }),
     });
-    return baseUrl;
   }
 
   // For private/authenticated images, use signed URLs
   return cloudinary.url(publicId, {
     resource_type: 'auto',
     type: type,
-    format: format === 'auto' ? undefined : format,
     sign_url: true,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
-    ...(transformations.length > 0 && { transformation: transformations }),
+    ...(transformationString && { transformation: transformationString }),
   });
 }
 

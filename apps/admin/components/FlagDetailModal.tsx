@@ -148,19 +148,22 @@ export function FlagDetailModal({
   const handleImageError = React.useCallback(async () => {
     if (!flagData?.flag?.evidenceUrl || !flagId) return;
 
-    try {
-      // Try to fetch signed URL from the evidence endpoint
-      const res = await fetch(`/api/admin/flags/${flagId}/evidence`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.signedUrl) {
-          setEvidenceImageUrl(data.signedUrl);
+    // Only try to fetch a new URL if we haven't already tried
+    if (evidenceImageUrl === flagData.flag.evidenceUrl) {
+      try {
+        // Try to fetch signed URL from the evidence endpoint
+        const res = await fetch(`/api/admin/flags/${flagId}/evidence`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.signedUrl && data.signedUrl !== evidenceImageUrl) {
+            setEvidenceImageUrl(data.signedUrl);
+          }
         }
+      } catch (error) {
+        console.error('Error fetching signed evidence URL:', error);
       }
-    } catch (error) {
-      console.error('Error fetching signed evidence URL:', error);
     }
-  }, [flagData, flagId]);
+  }, [flagData, flagId, evidenceImageUrl]);
 
   React.useEffect(() => {
     if (open && flagId) {
