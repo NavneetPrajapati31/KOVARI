@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { Label } from "./ui/label";
-import { ConfirmDialog } from "./ConfirmDialog";
-import { ToastContainer, useToast } from "./Toast";
-import { cn } from "../lib/utils";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from './ui/button';
+import { Label } from './ui/label';
+import { ConfirmDialog } from './ConfirmDialog';
+import { ToastContainer, useToast } from './Toast';
+import { cn } from '../lib/utils';
 
 interface Group {
   id: string;
@@ -93,37 +93,37 @@ export function GroupDetail({
   const [isLoading, setIsLoading] = React.useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = React.useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = React.useState(false);
-  const [removeReason, setRemoveReason] = React.useState("");
+  const [removeReason, setRemoveReason] = React.useState('');
 
   const handleApprove = async () => {
     setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/groups/${group.id}/action`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve" }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
       });
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to approve group");
+        throw new Error(error.error || 'Failed to approve group');
       }
 
       toast({
-        title: "Success",
-        description: "Group approved successfully",
-        variant: "success",
+        title: 'Success',
+        description: 'Group approved successfully',
+        variant: 'success',
       });
 
       setApproveDialogOpen(false);
       router.refresh();
     } catch (error) {
-      console.error("Error approving group:", error);
+      console.error('Error approving group:', error);
       toast({
-        title: "Error",
+        title: 'Error',
         description:
-          error instanceof Error ? error.message : "Failed to approve group",
-        variant: "destructive",
+          error instanceof Error ? error.message : 'Failed to approve group',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -136,34 +136,34 @@ export function GroupDetail({
     setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/groups/${group.id}/action`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: "remove",
+          action: 'remove',
           reason: removeReason.trim(),
         }),
       });
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to remove group");
+        throw new Error(error.error || 'Failed to remove group');
       }
 
       toast({
-        title: "Success",
-        description: "Group removed successfully",
+        title: 'Success',
+        description: 'Group removed successfully',
       });
 
       setRemoveDialogOpen(false);
-      setRemoveReason("");
+      setRemoveReason('');
       router.refresh();
     } catch (error) {
-      console.error("Error removing group:", error);
+      console.error('Error removing group:', error);
       toast({
-        title: "Error",
+        title: 'Error',
         description:
-          error instanceof Error ? error.message : "Failed to remove group",
-        variant: "destructive",
+          error instanceof Error ? error.message : 'Failed to remove group',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -171,37 +171,37 @@ export function GroupDetail({
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "—";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+    if (!dateString) return '—';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { bg: string; text: string }> = {
       active: {
-        bg: "bg-green-100 dark:bg-green-900",
-        text: "text-green-800 dark:text-green-100",
+        bg: 'bg-green-100 dark:bg-green-900',
+        text: 'text-green-800 dark:text-green-100',
       },
       pending: {
-        bg: "bg-yellow-100 dark:bg-yellow-900",
-        text: "text-yellow-800 dark:text-yellow-100",
+        bg: 'bg-yellow-100 dark:bg-yellow-900',
+        text: 'text-yellow-800 dark:text-yellow-100',
       },
       removed: {
-        bg: "bg-red-100 dark:bg-red-900",
-        text: "text-red-800 dark:text-red-100",
+        bg: 'bg-red-100 dark:bg-red-900',
+        text: 'text-red-800 dark:text-red-100',
       },
     };
 
@@ -210,9 +210,9 @@ export function GroupDetail({
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full px-3 py-1 text-sm font-medium",
+          'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
           variant.bg,
-          variant.text
+          variant.text,
         )}
       >
         {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -230,12 +230,12 @@ export function GroupDetail({
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-semibold">{group.name}</h1>
                 {getStatusBadge(group.status)}
-                {group.flag_count > 0 && (
+                {flags.length > 0 && (
                   <span
                     className="inline-flex items-center rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-100"
                     title="Flagged group"
                   >
-                    {group.flag_count} flag{group.flag_count !== 1 ? "s" : ""}
+                    {flags.length} flag{flags.length !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
@@ -271,7 +271,7 @@ export function GroupDetail({
                 Visibility
               </Label>
               <p className="text-sm font-medium">
-                {group.is_public ? "Public" : "Private"}
+                {group.is_public ? 'Public' : 'Private'}
               </p>
             </div>
             {group.description && (
@@ -326,7 +326,7 @@ export function GroupDetail({
                       Verified
                     </span>
                   )}
-                  {organizer.name === "User (Profile Missing)" && (
+                  {organizer.name === 'User (Profile Missing)' && (
                     <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
                       Profile Missing
                     </span>
@@ -336,13 +336,13 @@ export function GroupDetail({
                   {organizer.email}
                 </p>
                 {group.creator_id &&
-                  organizer.name === "User (Profile Missing)" && (
+                  organizer.name === 'User (Profile Missing)' && (
                     <p className="text-xs text-muted-foreground mt-1">
                       User ID: {group.creator_id}
                     </p>
                   )}
               </div>
-              {organizer.name !== "User (Profile Missing)" ? (
+              {organizer.name !== 'User (Profile Missing)' ? (
                 <Link href={`/users/${organizer.id}`}>
                   <Button variant="outline" size="sm">
                     View Profile
@@ -363,7 +363,7 @@ export function GroupDetail({
                 <p className="text-sm text-muted-foreground">
                   {group.creator_id
                     ? `Organizer profile not found (User ID: ${group.creator_id})`
-                    : "No organizer assigned"}
+                    : 'No organizer assigned'}
                 </p>
               </div>
             </div>
@@ -443,7 +443,7 @@ export function GroupDetail({
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="text-sm font-medium">
-                        {flag.reason || "No reason provided"}
+                        {flag.reason || 'No reason provided'}
                       </p>
                       {flag.evidence_url && (
                         <a
@@ -458,12 +458,12 @@ export function GroupDetail({
                     </div>
                     <span
                       className={cn(
-                        "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-                        flag.status === "pending"
-                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
-                          : flag.status === "resolved"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                            : "bg-muted text-muted-foreground"
+                        'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium',
+                        flag.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
+                          : flag.status === 'resolved'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                            : 'bg-muted text-muted-foreground',
                       )}
                     >
                       {flag.status}
@@ -482,7 +482,7 @@ export function GroupDetail({
         <div className="rounded-md border p-6 space-y-4">
           <h2 className="text-lg font-semibold">Admin Actions</h2>
           <div className="flex gap-2">
-            {group.status === "pending" && (
+            {group.status === 'pending' && (
               <Button
                 onClick={() => setApproveDialogOpen(true)}
                 disabled={isLoading}
@@ -490,7 +490,7 @@ export function GroupDetail({
                 Approve Group
               </Button>
             )}
-            {group.status !== "removed" && (
+            {group.status !== 'removed' && (
               <Button
                 variant="destructive"
                 onClick={() => setRemoveDialogOpen(true)}
@@ -525,16 +525,16 @@ export function GroupDetail({
                           {action.metadata.previousStatus != null &&
                             action.metadata.newStatus != null && (
                               <p>
-                                <span className="font-medium">Status:</span>{" "}
+                                <span className="font-medium">Status:</span>{' '}
                                 <span className="text-muted-foreground">
-                                  {String(action.metadata.previousStatus)} →{" "}
+                                  {String(action.metadata.previousStatus)} →{' '}
                                   {String(action.metadata.newStatus)}
                                 </span>
                               </p>
                             )}
                           {action.metadata.flagCount !== undefined && (
                             <p>
-                              <span className="font-medium">Flag Count:</span>{" "}
+                              <span className="font-medium">Flag Count:</span>{' '}
                               <span className="text-muted-foreground">
                                 {String(action.metadata.flagCount)}
                                 {action.metadata.newFlagCount !== undefined &&
@@ -544,7 +544,7 @@ export function GroupDetail({
                           )}
                           {action.metadata.membersCount !== undefined && (
                             <p>
-                              <span className="font-medium">Members:</span>{" "}
+                              <span className="font-medium">Members:</span>{' '}
                               <span className="text-muted-foreground">
                                 {String(action.metadata.membersCount)}
                               </span>
@@ -561,26 +561,26 @@ export function GroupDetail({
                             const severity = action.metadata.removalSeverity;
                             if (
                               severity &&
-                              typeof severity === "string" &&
-                              (severity === "hard-remove" ||
-                                severity === "warn-review")
+                              typeof severity === 'string' &&
+                              (severity === 'hard-remove' ||
+                                severity === 'warn-review')
                             ) {
                               return (
                                 <p>
                                   <span className="font-medium">
                                     Removal Type:
-                                  </span>{" "}
+                                  </span>{' '}
                                   <span
                                     className={cn(
-                                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                                      severity === "hard-remove"
-                                        ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+                                      'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                                      severity === 'hard-remove'
+                                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
+                                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100',
                                     )}
                                   >
-                                    {severity === "hard-remove"
-                                      ? "Hard Remove"
-                                      : "Warn/Review"}
+                                    {severity === 'hard-remove'
+                                      ? 'Hard Remove'
+                                      : 'Warn/Review'}
                                   </span>
                                 </p>
                               );

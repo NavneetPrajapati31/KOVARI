@@ -1,5 +1,5 @@
-import { requireAdmin } from "@/admin-lib/adminAuth";
-import { AdminGroupsTable } from "../../components/AdminGroupsTable";
+import { requireAdmin } from '@/admin-lib/adminAuth';
+import { AdminGroupsTable } from '../../components/AdminGroupsTable';
 
 interface Group {
   id: string;
@@ -15,17 +15,17 @@ async function getGroups(
   page: number = 1,
   limit: number = 20,
   status?: string,
-  query?: string
+  query?: string,
 ): Promise<{ groups: Group[]; page: number; limit: number }> {
-  const { supabaseAdmin } = await import("@/admin-lib/supabaseAdmin");
+  const { supabaseAdmin } = await import('@/admin-lib/supabaseAdmin');
 
   let base = supabaseAdmin
-    .from("groups")
-    .select("id, name, destination, creator_id, status, flag_count, created_at")
-    .order("created_at", { ascending: false });
+    .from('groups')
+    .select('id, name, destination, creator_id, status, flag_count, created_at')
+    .order('created_at', { ascending: false });
 
   if (status) {
-    base = base.eq("status", status);
+    base = base.eq('status', status);
   }
 
   if (query) {
@@ -38,13 +38,37 @@ async function getGroups(
   const { data, error } = await base.range(from, to);
 
   if (error) {
-    throw new Error("Failed to fetch groups");
+    throw new Error('Failed to fetch groups');
   }
+
+  // Fetch flag counts for each group
+  const groupIds = data?.map((group) => group.id).filter(Boolean) || [];
+  const flagCounts: Record<string, number> = {};
+
+  if (groupIds.length > 0) {
+    const { data: flagsData } = await supabaseAdmin
+      .from('group_flags')
+      .select('group_id')
+      .in('group_id', groupIds);
+
+    if (flagsData) {
+      flagsData.forEach((flag) => {
+        flagCounts[flag.group_id] = (flagCounts[flag.group_id] || 0) + 1;
+      });
+    }
+  }
+
+  // Add flag_count to each group (use actual count from flags table)
+  const groupsWithFlags =
+    data?.map((group) => ({
+      ...group,
+      flag_count: flagCounts[group.id] || 0,
+    })) || [];
 
   return {
     page,
     limit,
-    groups: data || [],
+    groups: groupsWithFlags,
   };
 }
 
@@ -58,14 +82,14 @@ export default async function GroupsPage({
   const params = await searchParams;
   const page = Number(params.page) || 1;
   const limit = 20;
-  const status = params.status || "";
-  const query = params.query || "";
+  const status = params.status || '';
+  const query = params.query || '';
 
   const { groups, page: currentPage } = await getGroups(
     page,
     limit,
     status || undefined,
-    query || undefined
+    query || undefined,
   );
 
   return (

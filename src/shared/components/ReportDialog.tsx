@@ -23,6 +23,7 @@ import {
 import { useToast } from "@/shared/hooks/use-toast";
 import { Flag, Loader2, X } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
+import * as Sentry from "@sentry/nextjs";
 
 interface ReportDialogProps {
   open: boolean;
@@ -66,7 +67,7 @@ export function ReportDialog({
   const evidencePreviewRef = useRef<string | null>(null);
   const evidenceUrlRef = useRef<string | null>(null);
   const evidencePublicIdRef = useRef<string | null>(null);
-  
+
   // State for UI updates (synced with refs)
   const [reason, setReason] = useState("");
   const [customReason, setCustomReason] = useState("");
@@ -83,17 +84,17 @@ export function ReportDialog({
   const wasOpenRef = useRef(false);
 
   const MAX_NOTES_LENGTH = 300;
-  
+
   // SessionStorage key for persisting evidence across component unmounts
   const STORAGE_KEY = `report-dialog-${targetType}-${targetId}`;
-  
+
   // Get current preview (use ref as fallback for Fast Refresh recovery)
   const currentPreview = evidencePreview || evidencePreviewRef.current;
   const currentEvidenceUrl = evidenceUrl || evidenceUrlRef.current;
-  
+
   // Restore from sessionStorage on mount (handles complete component recreation)
   useEffect(() => {
-    if (open && typeof window !== 'undefined') {
+    if (open && typeof window !== "undefined") {
       try {
         const stored = sessionStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -101,20 +102,31 @@ export function ReportDialog({
           console.log("🔄 Restoring from sessionStorage:", {
             hasEvidenceUrl: !!data.evidenceUrl,
             hasReason: !!data.reason,
-            hasPreview: !!data.evidencePreview
+            hasPreview: !!data.evidencePreview,
           });
-          
+
           // Always restore if stored data exists and current state is empty
           if (data.evidenceUrl && !evidenceUrl && !evidenceUrlRef.current) {
-            console.log("✅ Restoring evidenceUrl from sessionStorage:", data.evidenceUrl);
+            console.log(
+              "✅ Restoring evidenceUrl from sessionStorage:",
+              data.evidenceUrl
+            );
             setEvidenceUrl(data.evidenceUrl);
             evidenceUrlRef.current = data.evidenceUrl;
           }
-          if (data.evidencePublicId && !evidencePublicId && !evidencePublicIdRef.current) {
+          if (
+            data.evidencePublicId &&
+            !evidencePublicId &&
+            !evidencePublicIdRef.current
+          ) {
             setEvidencePublicId(data.evidencePublicId);
             evidencePublicIdRef.current = data.evidencePublicId;
           }
-          if (data.evidencePreview && !evidencePreview && !evidencePreviewRef.current) {
+          if (
+            data.evidencePreview &&
+            !evidencePreview &&
+            !evidencePreviewRef.current
+          ) {
             setEvidencePreview(data.evidencePreview);
             evidencePreviewRef.current = data.evidencePreview;
           }
@@ -126,7 +138,11 @@ export function ReportDialog({
             setCustomReason(data.customReason);
             customReasonRef.current = data.customReason;
           }
-          if (data.additionalNotes && !additionalNotes && !additionalNotesRef.current) {
+          if (
+            data.additionalNotes &&
+            !additionalNotes &&
+            !additionalNotesRef.current
+          ) {
             setAdditionalNotes(data.additionalNotes);
             additionalNotesRef.current = data.additionalNotes;
           }
@@ -136,10 +152,13 @@ export function ReportDialog({
       }
     }
   }, [open]); // Run whenever dialog opens (STORAGE_KEY is stable)
-  
+
   // Save to sessionStorage whenever evidence data changes
   useEffect(() => {
-    if (typeof window !== 'undefined' && (evidenceUrl || reason || additionalNotes)) {
+    if (
+      typeof window !== "undefined" &&
+      (evidenceUrl || reason || additionalNotes)
+    ) {
       try {
         const dataToStore = {
           evidenceUrl: evidenceUrl || evidenceUrlRef.current,
@@ -155,7 +174,15 @@ export function ReportDialog({
         console.error("Error saving to sessionStorage:", error);
       }
     }
-  }, [evidenceUrl, evidencePublicId, evidencePreview, reason, customReason, additionalNotes, STORAGE_KEY]);
+  }, [
+    evidenceUrl,
+    evidencePublicId,
+    evidencePreview,
+    reason,
+    customReason,
+    additionalNotes,
+    STORAGE_KEY,
+  ]);
 
   // Sync refs with state when state changes
   useEffect(() => {
@@ -186,25 +213,29 @@ export function ReportDialog({
       // Always restore from refs when dialog is open (handles remounts during Fast Refresh)
       const refUrl = evidenceUrlRef.current;
       const stateUrl = evidenceUrl;
-      const hasRefData = reasonRef.current || refUrl || additionalNotesRef.current;
+      const hasRefData =
+        reasonRef.current || refUrl || additionalNotesRef.current;
       const missingState = !reason || !stateUrl || !additionalNotes;
-      
+
       // More aggressive check: if refs have data, restore even if some state exists
-      if (hasRefData && (missingState || !wasOpenRef.current || (refUrl && !stateUrl))) {
+      if (
+        hasRefData &&
+        (missingState || !wasOpenRef.current || (refUrl && !stateUrl))
+      ) {
         console.log("🔄 Restoring state from refs (dialog open or remounted)");
         console.log("Refs have:", {
           reason: reasonRef.current,
           evidenceUrl: refUrl,
           evidencePublicId: evidencePublicIdRef.current,
-          evidencePreview: !!evidencePreviewRef.current
+          evidencePreview: !!evidencePreviewRef.current,
         });
         console.log("State has:", {
           reason: !!reason,
           evidenceUrl: !!stateUrl,
           evidencePreview: !!evidencePreview,
-          additionalNotes: !!additionalNotes
+          additionalNotes: !!additionalNotes,
         });
-        
+
         if (reasonRef.current && !reason) {
           console.log("✅ Restoring reason from ref");
           setReason(reasonRef.current);
@@ -227,39 +258,58 @@ export function ReportDialog({
           setEvidenceUrl(refUrl);
         }
         if (evidencePublicIdRef.current && !evidencePublicId) {
-          console.log("✅ Restoring evidencePublicId from ref:", evidencePublicIdRef.current);
+          console.log(
+            "✅ Restoring evidencePublicId from ref:",
+            evidencePublicIdRef.current
+          );
           setEvidencePublicId(evidencePublicIdRef.current);
         }
       }
     }
     wasOpenRef.current = open;
-  }, [open, reason, evidenceUrl, evidencePreview, customReason, additionalNotes, evidenceFile, evidencePublicId]);
+  }, [
+    open,
+    reason,
+    evidenceUrl,
+    evidencePreview,
+    customReason,
+    additionalNotes,
+    evidenceFile,
+    evidencePublicId,
+  ]);
 
   // Aggressive Fast Refresh recovery - check periodically if dialog is open
   useEffect(() => {
     if (!open) return;
-    
+
     // Immediate restoration check
     const restoreNow = () => {
       let restored = false;
       const refUrl = evidenceUrlRef.current;
       const stateUrl = evidenceUrl;
-      
+
       // Log current state for debugging
       if (refUrl && !stateUrl) {
-        console.log("🔄 Fast Refresh recovery - ref has URL but state is missing");
+        console.log(
+          "🔄 Fast Refresh recovery - ref has URL but state is missing"
+        );
         console.log("- ref URL:", refUrl);
         console.log("- state URL:", stateUrl);
       }
-      
+
       if (refUrl && !stateUrl) {
-        console.log("🔄 Fast Refresh recovery - restoring evidenceUrl from ref:", refUrl);
+        console.log(
+          "🔄 Fast Refresh recovery - restoring evidenceUrl from ref:",
+          refUrl
+        );
         setEvidenceUrl(refUrl);
         setEvidencePublicId(evidencePublicIdRef.current);
         restored = true;
       }
       if (evidencePreviewRef.current && !evidencePreview) {
-        console.log("🔄 Fast Refresh recovery - restoring evidencePreview from ref");
+        console.log(
+          "🔄 Fast Refresh recovery - restoring evidencePreview from ref"
+        );
         setEvidencePreview(evidencePreviewRef.current);
         restored = true;
       }
@@ -282,39 +332,66 @@ export function ReportDialog({
       if (restored) {
         console.log("✅ State restored from refs after Fast Refresh");
         console.log("- evidenceUrl restored:", evidenceUrlRef.current);
-        console.log("- evidencePublicId restored:", evidencePublicIdRef.current);
+        console.log(
+          "- evidencePublicId restored:",
+          evidencePublicIdRef.current
+        );
       }
     };
-    
+
     // Run immediately (catches Fast Refresh that already happened)
     restoreNow();
-    
+
     // Also check periodically (in case Fast Refresh happens after mount)
     // Use shorter interval for faster recovery
     const interval = setInterval(() => {
       restoreNow();
     }, 50); // Check every 50ms for faster recovery
-    
+
     return () => clearInterval(interval);
-  }, [open, evidenceUrl, evidencePreview, reason, customReason, additionalNotes, evidenceFile, evidencePublicId]);
+  }, [
+    open,
+    evidenceUrl,
+    evidencePreview,
+    reason,
+    customReason,
+    additionalNotes,
+    evidenceFile,
+    evidencePublicId,
+  ]);
 
   // Track if form has data to prevent accidental closes (check both state and refs)
   useEffect(() => {
-    const hasData = reason || reasonRef.current || 
-                   currentEvidenceUrl || 
-                   additionalNotes || additionalNotesRef.current || 
-                   customReason || customReasonRef.current || 
-                   evidenceFile || evidenceFileRef.current || 
-                   isUploadingEvidence;
+    const hasData =
+      reason ||
+      reasonRef.current ||
+      currentEvidenceUrl ||
+      additionalNotes ||
+      additionalNotesRef.current ||
+      customReason ||
+      customReasonRef.current ||
+      evidenceFile ||
+      evidenceFileRef.current ||
+      isUploadingEvidence;
     if (hasData) {
       hasFormData.current = true;
     }
-  }, [reason, currentEvidenceUrl, additionalNotes, customReason, evidenceFile, isUploadingEvidence]);
+  }, [
+    reason,
+    currentEvidenceUrl,
+    additionalNotes,
+    customReason,
+    evidenceFile,
+    isUploadingEvidence,
+  ]);
 
   // Prevent dialog from closing if upload/submission is in progress
   useEffect(() => {
     // If parent tries to close during upload/submission, force it to stay open
-    if (!open && (isUploadingEvidence || isSubmitting || uploadInProgressRef.current)) {
+    if (
+      !open &&
+      (isUploadingEvidence || isSubmitting || uploadInProgressRef.current)
+    ) {
       console.log("⚠️ FORCING dialog to stay open - operation in progress");
       onOpenChange(true);
     }
@@ -322,7 +399,12 @@ export function ReportDialog({
 
   // Reset form data tracking when dialog closes (but not during upload)
   useEffect(() => {
-    if (!open && !isUploadingEvidence && !isSubmitting && !uploadInProgressRef.current) {
+    if (
+      !open &&
+      !isUploadingEvidence &&
+      !isSubmitting &&
+      !uploadInProgressRef.current
+    ) {
       hasFormData.current = false;
     }
   }, [open, isUploadingEvidence, isSubmitting]);
@@ -333,8 +415,10 @@ export function ReportDialog({
     if (!newOpen && (isUploadingEvidence || isSubmitting)) {
       console.log("⚠️ BLOCKED dialog close - upload or submission in progress");
       toast({
-        title: isUploadingEvidence ? "Upload in progress" : "Submission in progress",
-        description: isUploadingEvidence 
+        title: isUploadingEvidence
+          ? "Upload in progress"
+          : "Submission in progress",
+        description: isUploadingEvidence
           ? "Please wait for the evidence upload to complete."
           : "Please wait for the report to be submitted.",
         variant: "default",
@@ -353,7 +437,7 @@ export function ReportDialog({
       });
       return;
     }
-    
+
     // Only close if no data or explicitly cancelled/submitted
     onOpenChange(newOpen);
   };
@@ -364,7 +448,7 @@ export function ReportDialog({
       console.log("No file selected");
       return;
     }
-    
+
     console.log("=== FILE SELECTED ===");
     console.log("File name:", file.name);
     console.log("File type:", file.type);
@@ -417,13 +501,13 @@ export function ReportDialog({
     console.log("Starting evidence upload to /api/flags/evidence");
     uploadInProgressRef.current = true;
     setIsUploadingEvidence(true);
-    
+
     // CRITICAL: Force dialog to stay open during upload
     if (!open) {
       console.log("⚠️ Dialog was closed, forcing it open for upload");
       onOpenChange(true);
     }
-    
+
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -450,7 +534,7 @@ export function ReportDialog({
       // CRITICAL: Set refs FIRST (they persist through Fast Refresh)
       evidenceUrlRef.current = data.evidenceUrl;
       evidencePublicIdRef.current = data.publicId || null;
-      
+
       // Ensure preview ref is set (it should already be set from file selection)
       if (!evidencePreviewRef.current && evidenceFileRef.current) {
         // Recreate preview from file if it was lost
@@ -462,13 +546,13 @@ export function ReportDialog({
         };
         reader.readAsDataURL(evidenceFileRef.current);
       }
-      
+
       // Set state (may be lost during Fast Refresh, but refs will restore it)
       setEvidenceUrl(data.evidenceUrl);
       setEvidencePublicId(data.publicId || null);
-      
+
       // CRITICAL: Also save to sessionStorage (persists across complete component unmounts)
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         try {
           const dataToStore = {
             evidenceUrl: data.evidenceUrl,
@@ -484,14 +568,17 @@ export function ReportDialog({
           console.error("Error saving to sessionStorage:", error);
         }
       }
-      
+
       console.log("✅ Evidence state set. Current values:");
       console.log("- evidenceUrl state:", data.evidenceUrl);
       console.log("- evidencePublicId state:", data.publicId);
       console.log("- evidenceUrl ref:", evidenceUrlRef.current);
       console.log("- evidencePublicId ref:", evidencePublicIdRef.current);
-      console.log("- evidencePreview ref exists:", !!evidencePreviewRef.current);
-      
+      console.log(
+        "- evidencePreview ref exists:",
+        !!evidencePreviewRef.current
+      );
+
       // Aggressive state restoration after upload (handles Fast Refresh)
       // Use a function that checks current state via closure
       const restoreState = () => {
@@ -501,7 +588,9 @@ export function ReportDialog({
           // Force state update using functional setter to get latest state
           setEvidenceUrl((prev) => {
             if (!prev && currentUrl) {
-              console.log("🔄 Restoring evidenceUrl from ref (Fast Refresh recovery)");
+              console.log(
+                "🔄 Restoring evidenceUrl from ref (Fast Refresh recovery)"
+              );
               return currentUrl;
             }
             return prev || currentUrl;
@@ -509,23 +598,27 @@ export function ReportDialog({
           setEvidencePublicId((prev) => {
             const currentId = evidencePublicIdRef.current;
             if (!prev && currentId) {
-              console.log("🔄 Restoring evidencePublicId from ref (Fast Refresh recovery)");
+              console.log(
+                "🔄 Restoring evidencePublicId from ref (Fast Refresh recovery)"
+              );
               return currentId;
             }
             return prev || currentId;
           });
           if (evidencePreviewRef.current) {
-            setEvidencePreview((prev) => prev || evidencePreviewRef.current || null);
+            setEvidencePreview(
+              (prev) => prev || evidencePreviewRef.current || null
+            );
           }
           if (evidenceFileRef.current) {
             setEvidenceFile((prev) => prev || evidenceFileRef.current);
           }
         }
       };
-      
+
       // Immediate check (in case Fast Refresh already happened)
       restoreState();
-      
+
       // Check multiple times because Fast Refresh timing is unpredictable
       // Use longer delays to catch Fast Refresh that happens after parent re-renders
       setTimeout(() => {
@@ -552,7 +645,7 @@ export function ReportDialog({
         console.log("🔄 Post-upload restoration check (3000ms)");
         restoreState();
       }, 3000);
-      
+
       toast({
         title: "Evidence uploaded",
         description: "Your evidence has been uploaded successfully.",
@@ -587,9 +680,9 @@ export function ReportDialog({
     evidencePreviewRef.current = null;
     evidenceUrlRef.current = null;
     evidencePublicIdRef.current = null;
-    
+
     // Update sessionStorage to remove evidence
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
         const stored = sessionStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -610,7 +703,8 @@ export function ReportDialog({
     if (isUploadingEvidence) {
       toast({
         title: "Please wait",
-        description: "Evidence is still uploading. Please wait for it to complete.",
+        description:
+          "Evidence is still uploading. Please wait for it to complete.",
         variant: "default",
       });
       return;
@@ -637,7 +731,8 @@ export function ReportDialog({
 
     // Combine reason with additional notes if provided
     // Use refs as fallback in case component remounted
-    const finalAdditionalNotes = additionalNotes || additionalNotesRef.current || "";
+    const finalAdditionalNotes =
+      additionalNotes || additionalNotesRef.current || "";
     let finalReasonWithNotes = finalReason;
     if (finalAdditionalNotes.trim()) {
       finalReasonWithNotes = `${finalReason}\n\nAdditional notes: ${finalAdditionalNotes.trim()}`;
@@ -646,7 +741,7 @@ export function ReportDialog({
     // Prevent submit if upload just completed (give it a moment to set state)
     if (uploadInProgressRef.current) {
       console.log("⚠️ Upload just completed, waiting for state to update...");
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     setIsSubmitting(true);
@@ -654,8 +749,14 @@ export function ReportDialog({
     console.log("=== SUBMITTING REPORT ===");
     console.log("Current state values:");
     console.log("- isUploadingEvidence:", isUploadingEvidence);
-    console.log("- evidenceFile (state):", evidenceFile ? evidenceFile.name : null);
-    console.log("- evidenceFile (ref):", evidenceFileRef.current ? evidenceFileRef.current.name : null);
+    console.log(
+      "- evidenceFile (state):",
+      evidenceFile ? evidenceFile.name : null
+    );
+    console.log(
+      "- evidenceFile (ref):",
+      evidenceFileRef.current ? evidenceFileRef.current.name : null
+    );
     console.log("- evidenceUrl (state):", evidenceUrl);
     console.log("- evidencePublicId (state):", evidencePublicId);
     console.log("- evidenceUrl (ref):", evidenceUrlRef.current);
@@ -663,20 +764,22 @@ export function ReportDialog({
     console.log("- reason:", finalReasonWithNotes);
     console.log("- targetType:", targetType);
     console.log("- targetId:", targetId);
-    
+
     // Use ref values if state values are null (component may have remounted due to Fast Refresh)
     // Also check sessionStorage as last resort (handles complete component recreation)
     let finalEvidenceUrl = evidenceUrl || evidenceUrlRef.current;
     let finalEvidencePublicId = evidencePublicId || evidencePublicIdRef.current;
-    
+
     // Fallback to sessionStorage if both state and refs are empty
-    if (!finalEvidenceUrl && typeof window !== 'undefined') {
+    if (!finalEvidenceUrl && typeof window !== "undefined") {
       try {
         const stored = sessionStorage.getItem(STORAGE_KEY);
         if (stored) {
           const data = JSON.parse(stored);
           if (data.evidenceUrl) {
-            console.log("🔄 Restoring evidence from sessionStorage during submit");
+            console.log(
+              "🔄 Restoring evidence from sessionStorage during submit"
+            );
             finalEvidenceUrl = data.evidenceUrl;
             finalEvidencePublicId = data.evidencePublicId || null;
           }
@@ -685,23 +788,30 @@ export function ReportDialog({
         console.error("Error reading from sessionStorage:", error);
       }
     }
-    
+
     console.log("✅ Final values to submit:");
     console.log("- finalEvidenceUrl:", finalEvidenceUrl);
     console.log("- finalEvidencePublicId:", finalEvidencePublicId);
-    
+
     if (finalEvidenceUrl) {
       console.log("✅ Evidence will be included in submission");
     } else {
       console.log("⚠️ No evidence URL available (neither state nor ref)");
     }
-    
+
     // Double-check: if there's a file but no URL, wait a bit and check again
-    if ((evidenceFile || evidenceFileRef.current) && !finalEvidenceUrl && !isUploadingEvidence) {
-      console.warn("⚠️ Evidence file exists but URL is missing - upload may have failed");
+    if (
+      (evidenceFile || evidenceFileRef.current) &&
+      !finalEvidenceUrl &&
+      !isUploadingEvidence
+    ) {
+      console.warn(
+        "⚠️ Evidence file exists but URL is missing - upload may have failed"
+      );
       toast({
         title: "Evidence upload issue",
-        description: "Evidence file was selected but upload may have failed. Please re-upload or submit without evidence.",
+        description:
+          "Evidence file was selected but upload may have failed. Please re-upload or submit without evidence.",
         variant: "destructive",
       });
       // Don't block submission, but warn user
@@ -734,23 +844,86 @@ export function ReportDialog({
       console.log("Response data:", data);
 
       if (!response.ok) {
-        console.error("❌ Report submission failed:", {
+        const errorInfo = {
           status: response.status,
           statusText: response.statusText,
-          data: data
-        });
-        
+          data: data,
+          targetType,
+          targetId,
+        };
+
+        // Use console.log for debugging instead of console.error to avoid Next.js error interception
+        // Expected errors (429, 501) are handled gracefully and shown to users via toast
+        console.log(
+          "⚠️ Report submission failed:",
+          JSON.stringify(errorInfo, null, 2)
+        );
+
         // Handle 429 (Too Many Requests) - duplicate report
         if (response.status === 429) {
-          const errorMessage = data.details 
+          const errorMessage = data.details
             ? data.details
-            : data.error || "You have already reported this user recently. Please wait 24 hours before reporting again.";
+            : data.error ||
+              "You have already reported this user recently. Please wait 24 hours before reporting again.";
+
+          // Capture expected error in Sentry with lower severity
+          Sentry.captureException(new Error(errorMessage), {
+            level: "warning",
+            tags: {
+              component: "ReportDialog",
+              targetType,
+              statusCode: response.status,
+              errorType: "rate_limit",
+            },
+            extra: errorInfo,
+          });
+
           throw new Error(errorMessage);
         }
-        
-        const errorMessage = data.details 
-          ? `${data.error}: ${data.details}`
-          : data.error || "Failed to submit report";
+
+        // Handle 501 (Not Implemented) - group flags not supported
+        if (response.status === 501) {
+          const errorMessage =
+            data.details ||
+            data.error ||
+            "Group flags are not supported yet. Please contact support.";
+
+          // Capture expected error in Sentry with lower severity
+          Sentry.captureException(new Error(errorMessage), {
+            level: "warning",
+            tags: {
+              component: "ReportDialog",
+              targetType,
+              statusCode: response.status,
+              errorType: "not_implemented",
+            },
+            extra: errorInfo,
+          });
+
+          throw new Error(errorMessage);
+        }
+
+        // Construct error message with proper fallback for other errors
+        let errorMessage = "Failed to submit report";
+        if (data.details) {
+          errorMessage = data.error
+            ? `${data.error}: ${data.details}`
+            : data.details;
+        } else if (data.error) {
+          errorMessage = data.error;
+        }
+
+        // Capture unexpected errors in Sentry with error level
+        Sentry.captureException(new Error(errorMessage), {
+          tags: {
+            component: "ReportDialog",
+            targetType,
+            statusCode: response.status,
+            errorType: "unexpected",
+          },
+          extra: errorInfo,
+        });
+
         throw new Error(errorMessage);
       }
 
@@ -782,7 +955,7 @@ export function ReportDialog({
       evidenceUrlRef.current = null;
       evidencePublicIdRef.current = null;
       // Clear sessionStorage on successful submission
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         try {
           sessionStorage.removeItem(STORAGE_KEY);
           console.log("🗑️ Cleared sessionStorage after successful submission");
@@ -790,10 +963,36 @@ export function ReportDialog({
           console.error("Error clearing sessionStorage:", error);
         }
       }
-      
+
       onOpenChange(false);
     } catch (error) {
-      console.error("Error submitting report:", error);
+      // Log error for debugging (API errors are already captured in Sentry before throwing)
+      // This catch block may also catch network errors or other unexpected errors
+      console.log("Error submitting report:", error);
+
+      // Only capture in Sentry if it's an unexpected error (not an API response error)
+      // API response errors (429, 501, etc.) are already captured before being thrown
+      const isExpectedError =
+        error instanceof Error &&
+        (error.message.includes("Failed to create flag") ||
+          error.message.includes("already reported") ||
+          error.message.includes("Group flags are not supported"));
+
+      if (error instanceof Error && !isExpectedError) {
+        Sentry.captureException(error, {
+          tags: {
+            component: "ReportDialog",
+            targetType,
+            action: "submit",
+            errorType: "unexpected",
+          },
+          extra: {
+            targetId,
+            hasEvidence: !!finalEvidenceUrl,
+          },
+        });
+      }
+
       toast({
         title: "Error",
         description:
@@ -810,7 +1009,7 @@ export function ReportDialog({
   const handleCancel = () => {
     // Reset form data tracking
     hasFormData.current = false;
-    
+
     setReason("");
     setCustomReason("");
     setAdditionalNotes("");
@@ -826,9 +1025,9 @@ export function ReportDialog({
     evidencePreviewRef.current = null;
     evidenceUrlRef.current = null;
     evidencePublicIdRef.current = null;
-    
+
     // Clear sessionStorage on cancel
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
         sessionStorage.removeItem(STORAGE_KEY);
         console.log("🗑️ Cleared sessionStorage on cancel");
@@ -836,16 +1035,13 @@ export function ReportDialog({
         console.error("Error clearing sessionStorage:", error);
       }
     }
-    
+
     onOpenChange(false);
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={handleDialogOpenChange}
-    >
-      <DialogContent 
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent
         className="sm:max-w-[500px]"
         onEscapeKeyDown={(e) => {
           // Prevent ESC from closing if form has data or upload in progress
@@ -892,9 +1088,7 @@ export function ReportDialog({
             Report {targetType === "user" ? "User" : "Group"}
           </DialogTitle>
           <DialogDescription>
-            {targetName && (
-              <span className="font-medium">{targetName}</span>
-            )}
+            {targetName && <span className="font-medium">{targetName}</span>}
             {targetName && <br />}
             Help us keep our community safe by reporting inappropriate behavior.
             All reports are reviewed by our moderation team.
@@ -952,7 +1146,9 @@ export function ReportDialog({
                 {isUploadingEvidence && (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Uploading...</span>
+                    <span className="text-xs text-muted-foreground">
+                      Uploading...
+                    </span>
                   </div>
                 )}
               </div>
@@ -988,7 +1184,9 @@ export function ReportDialog({
           {/* Additional Notes */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="additionalNotes">Additional notes (optional)</Label>
+              <Label htmlFor="additionalNotes">
+                Additional notes (optional)
+              </Label>
               <span className="text-xs text-muted-foreground">
                 {additionalNotes.length}/{MAX_NOTES_LENGTH}
               </span>

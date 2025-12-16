@@ -1,9 +1,9 @@
 // apps/admin/app/api/admin/flags/[id]/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
-import { requireAdmin } from "@/admin-lib/adminAuth";
-import * as Sentry from "@sentry/nextjs";
-import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { requireAdmin } from '@/admin-lib/adminAuth';
+import * as Sentry from '@sentry/nextjs';
+import { incrementErrorCounter } from '@/admin-lib/incrementErrorCounter';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -11,7 +11,7 @@ interface Params {
 
 /**
  * GET /api/admin/flags/:id
- * 
+ *
  * Returns full flag details including:
  * - Full flag info
  * - Target user/group profile snapshot
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     if (error instanceof NextResponse) {
       return error;
     }
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -51,57 +51,62 @@ export async function GET(req: NextRequest, { params }: Params) {
     };
 
     let flag: FlagData | null = null;
-    let targetType = "user";
+    let targetType = 'user';
     let targetId: string | null = null;
 
     const { data: userFlag, error: userFlagError } = await supabaseAdmin
-      .from("user_flags")
-      .select("*")
-      .eq("id", flagId)
+      .from('user_flags')
+      .select('*')
+      .eq('id', flagId)
       .maybeSingle();
 
     if (userFlagError) {
-      console.error("Error fetching flag from user_flags:", userFlagError);
+      console.error('Error fetching flag from user_flags:', userFlagError);
     }
 
     if (userFlag) {
       flag = userFlag as FlagData;
-      let flagTargetType = flag.type || "user"; // Default to "user" if type is null
-      
+      let flagTargetType = flag.type || 'user'; // Default to "user" if type is null
+
       // Normalize target type: only "group" is treated as group, everything else is "user"
       // This handles cases where type might be "test_flag", null, or other invalid values
-      if (flagTargetType !== "group") {
-        flagTargetType = "user";
+      if (flagTargetType !== 'group') {
+        flagTargetType = 'user';
       }
-      
+
       // Validate target type by checking what actually exists in the database
       // If type says "group" but no group exists, treat it as a user flag
-      if (flagTargetType === "group") {
+      if (flagTargetType === 'group') {
         const { data: group } = await supabaseAdmin
-          .from("groups")
-          .select("id")
-          .eq("id", flag.user_id)
+          .from('groups')
+          .select('id')
+          .eq('id', flag.user_id)
           .maybeSingle();
 
         if (!group) {
-          console.warn(`Flag ${flag.id} has type="group" but group ${flag.user_id} doesn't exist. Treating as user flag.`);
-          flagTargetType = "user";
+          console.warn(
+            `Flag ${flag.id} has type="group" but group ${flag.user_id} doesn't exist. Treating as user flag.`,
+          );
+          flagTargetType = 'user';
         }
       }
-      
+
       targetType = flagTargetType;
       targetId = flag.user_id;
     } else {
       // Try group_flags table
       try {
         const { data: groupFlag, error: groupFlagError } = await supabaseAdmin
-          .from("group_flags")
-          .select("*")
-          .eq("id", flagId)
+          .from('group_flags')
+          .select('*')
+          .eq('id', flagId)
           .maybeSingle();
 
         if (groupFlagError) {
-          console.error("Error fetching flag from group_flags:", groupFlagError);
+          console.error(
+            'Error fetching flag from group_flags:',
+            groupFlagError,
+          );
         }
 
         if (groupFlag) {
@@ -109,9 +114,9 @@ export async function GET(req: NextRequest, { params }: Params) {
           flag = {
             ...groupFlag,
             user_id: groupFlag.group_id,
-            type: "group",
+            type: 'group',
           } as FlagData;
-          targetType = "group";
+          targetType = 'group';
           targetId = groupFlag.group_id;
         }
       } catch {
@@ -120,7 +125,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
 
     if (!flag) {
-      return NextResponse.json({ error: "Flag not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Flag not found' }, { status: 404 });
     }
 
     // Get target profile snapshot
@@ -176,10 +181,10 @@ export async function GET(req: NextRequest, { params }: Params) {
     let targetProfile: TargetProfile | null = null;
     const recentSessions: SessionData[] = [];
 
-    if (targetType === "user") {
+    if (targetType === 'user') {
       // Get user profile snapshot
       const { data: profile, error: profileError } = await supabaseAdmin
-        .from("profiles")
+        .from('profiles')
         .select(
           `
           id,
@@ -200,13 +205,13 @@ export async function GET(req: NextRequest, { params }: Params) {
             ban_expires_at,
             created_at
           )
-        `
+        `,
         )
-        .eq("user_id", targetId)
+        .eq('user_id', targetId)
         .maybeSingle();
 
       if (profileError) {
-        console.error("Error fetching target profile:", profileError);
+        console.error('Error fetching target profile:', profileError);
       }
 
       if (profile) {
@@ -222,23 +227,32 @@ export async function GET(req: NextRequest, { params }: Params) {
           profilePhoto: profile.profile_photo,
           verified: profile.verified,
           deleted: profile.deleted,
-          banned: Array.isArray(profile.users) && profile.users[0]?.banned ? true : false,
-          banReason: Array.isArray(profile.users) ? profile.users[0]?.ban_reason : undefined,
-          banExpiresAt: Array.isArray(profile.users) ? profile.users[0]?.ban_expires_at : undefined,
-          accountCreatedAt: Array.isArray(profile.users) ? profile.users[0]?.created_at : undefined,
+          banned:
+            Array.isArray(profile.users) && profile.users[0]?.banned
+              ? true
+              : false,
+          banReason: Array.isArray(profile.users)
+            ? profile.users[0]?.ban_reason
+            : undefined,
+          banExpiresAt: Array.isArray(profile.users)
+            ? profile.users[0]?.ban_expires_at
+            : undefined,
+          accountCreatedAt: Array.isArray(profile.users)
+            ? profile.users[0]?.created_at
+            : undefined,
         };
       }
 
       // Get target's recent sessions (optional, nice-to-have)
       try {
-        const { getRedisAdminClient } = await import("@/admin-lib/redisAdmin");
+        const { getRedisAdminClient } = await import('@/admin-lib/redisAdmin');
         const redis = getRedisAdminClient();
 
         // Get clerk_user_id from users table
         const { data: userData } = await supabaseAdmin
-          .from("users")
-          .select("clerk_user_id")
-          .eq("id", targetId)
+          .from('users')
+          .select('clerk_user_id')
+          .eq('id', targetId)
           .maybeSingle();
 
         if (userData?.clerk_user_id) {
@@ -263,13 +277,13 @@ export async function GET(req: NextRequest, { params }: Params) {
           }
         }
       } catch (error) {
-        console.error("Error fetching target sessions:", error);
+        console.error('Error fetching target sessions:', error);
         // Continue without sessions - this is optional
       }
-    } else if (targetType === "group") {
+    } else if (targetType === 'group') {
       // Get group profile snapshot
       const { data: group, error: groupError } = await supabaseAdmin
-        .from("groups")
+        .from('groups')
         .select(
           `
           id,
@@ -286,13 +300,13 @@ export async function GET(req: NextRequest, { params }: Params) {
           cover_image,
           creator_id,
           members_count
-        `
+        `,
         )
-        .eq("id", targetId)
+        .eq('id', targetId)
         .maybeSingle();
 
       if (groupError) {
-        console.error("Error fetching target group:", groupError);
+        console.error('Error fetching target group:', groupError);
       }
 
       if (group) {
@@ -316,9 +330,9 @@ export async function GET(req: NextRequest, { params }: Params) {
         // Get organizer profile if available
         if (group.creator_id) {
           const { data: organizerProfile } = await supabaseAdmin
-            .from("profiles")
-            .select("id, name, email, profile_photo, verified")
-            .eq("user_id", group.creator_id)
+            .from('profiles')
+            .select('id, name, email, profile_photo, verified')
+            .eq('user_id', group.creator_id)
             .maybeSingle();
 
           if (organizerProfile) {
@@ -338,9 +352,9 @@ export async function GET(req: NextRequest, { params }: Params) {
     let reporterInfo: ReporterInfo | null = null;
     if (flag.reporter_id) {
       const { data: reporterProfile } = await supabaseAdmin
-        .from("profiles")
-        .select("id, name, email, profile_photo")
-        .eq("user_id", flag.reporter_id)
+        .from('profiles')
+        .select('id, name, email, profile_photo')
+        .eq('user_id', flag.reporter_id)
         .maybeSingle();
 
       if (reporterProfile) {
@@ -354,21 +368,54 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
 
     // PHASE 6: Generate signed URL for evidence (admin-only, time-limited)
+    // Prefer using stored evidence_public_id, fall back to extracting from URL
     let signedEvidenceUrl: string | null = null;
     if (flag.evidence_public_id || flag.evidence_url) {
       try {
-        const { generateSignedEvidenceUrl, getPublicIdFromEvidenceUrl } = await import("@/admin-lib/cloudinaryEvidence");
-        const publicId = flag.evidence_public_id || (flag.evidence_url ? getPublicIdFromEvidenceUrl(flag.evidence_url) : null);
-        
+        const { generateSignedEvidenceUrl, getPublicIdFromEvidenceUrl } =
+          await import('@/admin-lib/cloudinaryEvidence');
+
+        // Prefer stored evidence_public_id (most reliable)
+        let publicId = flag.evidence_public_id || null;
+
+        // If no stored public_id, try to extract from URL
+        if (!publicId && flag.evidence_url) {
+          publicId = getPublicIdFromEvidenceUrl(flag.evidence_url);
+          if (!publicId) {
+            console.warn(
+              `Could not extract public_id from evidence_url for flag ${flag.id}. Using original URL.`,
+            );
+          }
+        }
+
+        // Try to generate signed URL if we have a public_id
         if (publicId) {
-          // Generate signed URL that expires in 1 hour
-          signedEvidenceUrl = generateSignedEvidenceUrl(publicId, {
-            expiresIn: 3600, // 1 hour
-          });
+          try {
+            // Generate signed URL that expires in 1 hour
+            // Use "upload" type (public) to match how evidence is uploaded
+            signedEvidenceUrl = generateSignedEvidenceUrl(publicId, {
+              expiresIn: 3600, // 1 hour
+              type: 'upload', // Explicitly use "upload" (public) type to avoid 404s
+            });
+          } catch (signError) {
+            // If signed URL generation fails (e.g., asset is public not private),
+            // fall back to original URL
+            console.warn(
+              `Failed to generate signed URL for flag ${flag.id}, using original URL:`,
+              signError,
+            );
+          }
+        }
+
+        // If we still don't have a signed URL, use the original secure_url
+        // This handles cases where assets are public or signed URL generation fails
+        if (!signedEvidenceUrl && flag.evidence_url) {
+          signedEvidenceUrl = flag.evidence_url;
         }
       } catch (error) {
-        console.error("Error generating signed evidence URL:", error);
-        // Continue without signed URL - will use original URL as fallback
+        console.error('Error processing evidence URL:', error);
+        // Fall back to original URL
+        signedEvidenceUrl = flag.evidence_url || null;
       }
     }
 
@@ -394,8 +441,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
-        scope: "admin-api",
-        route: "GET /api/admin/flags/[id]",
+        scope: 'admin-api',
+        route: 'GET /api/admin/flags/[id]',
       },
     });
     throw error;

@@ -8,7 +8,7 @@ import * as Sentry from "@sentry/nextjs";
 /**
  * POST /api/flags
  * Public endpoint for creating flags (reports)
- * 
+ *
  * Payload:
  * {
  *   "targetType": "user" | "group",
@@ -20,12 +20,12 @@ import * as Sentry from "@sentry/nextjs";
 export async function POST(req: NextRequest) {
   console.log("=== FLAG API CALLED ===");
   console.log("Timestamp:", new Date().toISOString());
-  
+
   try {
     // Validate authentication
     const { userId: clerkUserId } = await auth();
     console.log("Clerk User ID:", clerkUserId);
-    
+
     if (!clerkUserId) {
       console.error("❌ Unauthorized - no Clerk user ID");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -34,13 +34,21 @@ export async function POST(req: NextRequest) {
     // Parse request body
     const body = await req.json();
     console.log("Request body:", JSON.stringify(body, null, 2));
-    const { targetType, targetId, reason, evidenceUrl, evidencePublicId } = body;
-    
+    const { targetType, targetId, reason, evidenceUrl, evidencePublicId } =
+      body;
+
+    // Normalize evidenceUrl: convert undefined, empty string, or whitespace to null
+    const normalizedEvidenceUrl =
+      evidenceUrl && typeof evidenceUrl === "string" && evidenceUrl.trim()
+        ? evidenceUrl.trim()
+        : null;
+
     console.log("Parsed values:");
     console.log("- targetType:", targetType);
     console.log("- targetId:", targetId);
     console.log("- reason:", reason);
-    console.log("- evidenceUrl:", evidenceUrl);
+    console.log("- evidenceUrl (raw):", evidenceUrl);
+    console.log("- evidenceUrl (normalized):", normalizedEvidenceUrl);
     console.log("- evidencePublicId:", evidencePublicId);
 
     // Validate required fields
@@ -114,31 +122,46 @@ export async function POST(req: NextRequest) {
     }
 
     // PHASE 7: Rate limiting - Check if user has exceeded daily limit (3 flags/day)
+    // Count flags from both user_flags and group_flags tables
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayStartISO = todayStart.toISOString();
 
-    const { count: todayFlagCount, error: rateLimitError } = await supabase
+    // Count user flags
+    const { count: userFlagCount, error: userRateLimitError } = await supabase
       .from("user_flags")
       .select("*", { count: "exact", head: true })
       .eq("reporter_id", reporterId)
       .gte("created_at", todayStartISO);
 
-    if (rateLimitError) {
-      console.error("Error checking rate limit:", rateLimitError);
-    } else if (todayFlagCount && todayFlagCount >= 3) {
+    // Count group flags
+    const { count: groupFlagCount, error: groupRateLimitError } = await supabase
+      .from("group_flags")
+      .select("*", { count: "exact", head: true })
+      .eq("reporter_id", reporterId)
+      .gte("created_at", todayStartISO);
+
+    const todayFlagCount = (userFlagCount || 0) + (groupFlagCount || 0);
+
+    if (userRateLimitError || groupRateLimitError) {
+      console.error(
+        "Error checking rate limit:",
+        userRateLimitError || groupRateLimitError
+      );
+    } else if (todayFlagCount >= 3) {
       return NextResponse.json(
-        { 
+        {
           error: "Rate limit exceeded",
-          details: "You have reached the daily limit of 3 reports. Please try again tomorrow.",
+          details:
+            "You have reached the daily limit of 3 reports. Please try again tomorrow.",
           limit: 3,
-          remaining: 0
+          remaining: 0,
         },
         { status: 429 }
       );
     }
 
-    // Validate target exists
+    // Validate target exists and prevent self-reporting for groups
     if (targetType === "user") {
       const { data: targetUser, error: targetError } = await supabase
         .from("users")
@@ -155,7 +178,7 @@ export async function POST(req: NextRequest) {
     } else if (targetType === "group") {
       const { data: targetGroup, error: targetError } = await supabase
         .from("groups")
-        .select("id")
+        .select("id, creator_id")
         .eq("id", targetId)
         .single();
 
@@ -165,17 +188,25 @@ export async function POST(req: NextRequest) {
           { status: 404 }
         );
       }
+
+      // Prevent group creators from reporting their own groups
+      if (targetGroup.creator_id === reporterId) {
+        return NextResponse.json(
+          { error: "Cannot report your own group" },
+          { status: 400 }
+        );
+      }
     }
 
     // PHASE 7: Check for duplicate flag (same reporter, same target, within last 24 hours)
     // Prevents spam reporting of the same target
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
+
     console.log("=== DUPLICATE CHECK ===");
     console.log("Checking for existing flags from:", oneDayAgo);
     console.log("Reporter ID:", reporterId);
     console.log("Target ID:", targetId);
-    
+
     if (targetType === "user") {
       const { data: existingFlag, error: duplicateCheckError } = await supabase
         .from("user_flags")
@@ -190,38 +221,57 @@ export async function POST(req: NextRequest) {
       console.log("- Check error:", duplicateCheckError);
 
       if (existingFlag) {
-        console.log("⚠️ DUPLICATE FOUND: User already reported this user within 24 hours");
+        console.log(
+          "⚠️ DUPLICATE FOUND: User already reported this user within 24 hours"
+        );
         console.log("Existing flag ID:", existingFlag.id);
         console.log("Existing flag created_at:", existingFlag.created_at);
         console.log("Existing flag status:", existingFlag.status);
-        
+
         return NextResponse.json(
-          { 
+          {
             error: "You have already reported this user recently",
             details: `You reported this user on ${new Date(existingFlag.created_at).toLocaleString()}. Please wait 24 hours before reporting again.`,
-            existingFlagId: existingFlag.id
+            existingFlagId: existingFlag.id,
           },
           { status: 429 }
         );
       }
-      
+
       console.log("✅ No duplicate found - proceeding with insert");
     } else {
-      // For groups, check group_flags table if it exists, otherwise use user_flags with type
-      const { data: existingFlag } = await supabase
+      // For groups, check group_flags table for duplicates
+      const { data: existingFlag, error: duplicateCheckError } = await supabase
         .from("group_flags")
-        .select("id")
+        .select("id, created_at, status")
         .eq("group_id", targetId)
         .eq("reporter_id", reporterId)
         .gte("created_at", oneDayAgo)
         .maybeSingle();
 
+      console.log("Duplicate check result for group:");
+      console.log("- Existing flag:", existingFlag);
+      console.log("- Check error:", duplicateCheckError);
+
       if (existingFlag) {
+        console.log(
+          "⚠️ DUPLICATE FOUND: User already reported this group within 24 hours"
+        );
+        console.log("Existing flag ID:", existingFlag.id);
+        console.log("Existing flag created_at:", existingFlag.created_at);
+        console.log("Existing flag status:", existingFlag.status);
+
         return NextResponse.json(
-          { error: "You have already reported this group recently" },
+          {
+            error: "You have already reported this group recently",
+            details: `You reported this group on ${new Date(existingFlag.created_at).toLocaleString()}. Please wait 24 hours before reporting again.`,
+            existingFlagId: existingFlag.id,
+          },
           { status: 429 }
         );
       }
+
+      console.log("✅ No duplicate found - proceeding with insert");
     }
 
     // Insert flag into appropriate table based on target type
@@ -233,14 +283,17 @@ export async function POST(req: NextRequest) {
         user_id: targetId,
         reporter_id: reporterId,
         reason: reason.trim(),
-        evidence_url: evidenceUrl || null,
+        evidence_url: normalizedEvidenceUrl,
         evidence_public_id: evidencePublicId || null,
         type: "user", // Optional but useful for filtering
         status: "pending", // Explicitly set (though it has a default)
       };
 
       console.log("=== FLAG INSERT DEBUG ===");
-      console.log("Inserting user flag with payload:", JSON.stringify(insertPayload, null, 2));
+      console.log(
+        "Inserting user flag with payload:",
+        JSON.stringify(insertPayload, null, 2)
+      );
       console.log("Reporter ID:", reporterId);
       console.log("Target ID:", targetId);
       console.log("Evidence URL:", evidenceUrl);
@@ -263,26 +316,27 @@ export async function POST(req: NextRequest) {
         console.error("❌ ERROR creating user flag:", insertError);
         console.error("Insert payload:", insertPayload);
         console.error("Full error:", JSON.stringify(insertError, null, 2));
-        
+
         // Check for specific error types
         if (insertError.code === "23503") {
           // Foreign key violation - user_id doesn't exist
           return NextResponse.json(
-            { 
-              error: "Failed to create flag", 
+            {
+              error: "Failed to create flag",
               details: "The reported user does not exist in the database",
               code: insertError.code,
             },
             { status: 404 }
           );
         }
-        
+
         if (insertError.code === "42501") {
           // Permission denied - RLS policy blocking
           return NextResponse.json(
-            { 
-              error: "Failed to create flag", 
-              details: "Permission denied. Please check Row Level Security policies.",
+            {
+              error: "Failed to create flag",
+              details:
+                "Permission denied. Please check Row Level Security policies.",
               code: insertError.code,
               hint: "RLS policy may be blocking the insert. Check Supabase dashboard.",
             },
@@ -291,8 +345,8 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json(
-          { 
-            error: "Failed to create flag", 
+          {
+            error: "Failed to create flag",
             details: insertError.message || "Database error occurred",
             code: insertError.code,
             hint: insertError.hint,
@@ -305,55 +359,135 @@ export async function POST(req: NextRequest) {
       console.log("✅ SUCCESS: User flag created successfully!");
       console.log("Flag ID:", flagResult.id);
       console.log("Flag data:", JSON.stringify(flagResult, null, 2));
-      
+
       // Verify the insert actually happened by querying the database
       const { data: verifyData, error: verifyError } = await supabase
         .from("user_flags")
         .select("*")
         .eq("id", flagResult.id)
         .single();
-      
+
       if (verifyError) {
-        console.error("⚠️ WARNING: Could not verify flag was inserted:", verifyError);
+        console.error(
+          "⚠️ WARNING: Could not verify flag was inserted:",
+          verifyError
+        );
       } else {
-        console.log("✅ VERIFIED: Flag exists in database:", JSON.stringify(verifyData, null, 2));
+        console.log(
+          "✅ VERIFIED: Flag exists in database:",
+          JSON.stringify(verifyData, null, 2)
+        );
       }
     } else {
-      // For groups, try group_flags table first, then fallback to user_flags
-      // Note: group_flags table may not exist, so we'll use user_flags as fallback
-      let insertError: any = null;
-      let flagData: any = null;
+      // Insert into group_flags table
+      // Schema: group_id (nullable), reporter_id (nullable), reason (nullable),
+      // evidence_url (nullable), evidence_public_id (nullable), status (default 'pending')
+      // Handle evidencePublicId: convert empty strings and undefined to null
+      const finalEvidencePublicId =
+        evidencePublicId &&
+        typeof evidencePublicId === "string" &&
+        evidencePublicId.trim()
+          ? evidencePublicId.trim()
+          : null;
 
-      // Try group_flags first (if it exists)
-      const { data: groupFlagData, error: groupFlagError } = await supabase
+      // Use normalized evidenceUrl from request parsing
+      const insertPayload = {
+        group_id: targetId,
+        reporter_id: reporterId,
+        reason: reason.trim(),
+        evidence_url: normalizedEvidenceUrl,
+        evidence_public_id: finalEvidencePublicId,
+        status: "pending", // Explicitly set (though it has a default)
+      };
+
+      console.log("=== GROUP FLAG INSERT DEBUG ===");
+      console.log(
+        "Inserting group flag with payload:",
+        JSON.stringify(insertPayload, null, 2)
+      );
+      console.log("Reporter ID:", reporterId);
+      console.log("Target ID:", targetId);
+      console.log("Evidence URL:", normalizedEvidenceUrl);
+      console.log("Evidence Public ID:", finalEvidencePublicId);
+      console.log("Evidence Public ID:", finalEvidencePublicId);
+
+      const { data, error: insertError } = await supabase
         .from("group_flags")
-        .insert({
-          group_id: targetId,
-          reporter_id: reporterId,
-          reason: reason.trim(),
-          evidence_url: evidenceUrl || null,
-          evidence_public_id: evidencePublicId || null,
-          status: "pending",
-        })
+        .insert(insertPayload)
         .select("id")
         .single();
 
-      if (!groupFlagError && groupFlagData) {
-        // Success - group_flags table exists
-        flagResult = groupFlagData;
-        console.log("Group flag created successfully in group_flags:", flagResult.id);
-      } else {
-        // group_flags doesn't exist or error - use user_flags as fallback
-        // Note: This is a workaround - user_flags.user_id has a foreign key to users table
-        // So we can't use it for groups. This will fail if group_flags doesn't exist.
-        console.warn("group_flags table not found, cannot create group flag");
+      console.log("=== INSERT RESULT ===");
+      console.log("Data:", data);
+      console.log("Error:", insertError);
+      console.log("Error code:", insertError?.code);
+      console.log("Error message:", insertError?.message);
+      console.log("Error details:", JSON.stringify(insertError, null, 2));
+
+      if (insertError) {
+        console.error("❌ ERROR creating group flag:", insertError);
+        console.error("Insert payload:", insertPayload);
+        console.error("Full error:", JSON.stringify(insertError, null, 2));
+
+        // Check for specific error types
+        if (insertError.code === "23503") {
+          // Foreign key violation - group_id doesn't exist
+          return NextResponse.json(
+            {
+              error: "Failed to create flag",
+              details: "The reported group does not exist in the database",
+              code: insertError.code,
+            },
+            { status: 404 }
+          );
+        }
+
+        if (insertError.code === "42501") {
+          // Permission denied - RLS policy blocking
+          return NextResponse.json(
+            {
+              error: "Failed to create flag",
+              details:
+                "Permission denied. Please check Row Level Security policies.",
+              code: insertError.code,
+              hint: "RLS policy may be blocking the insert. Check Supabase dashboard.",
+            },
+            { status: 403 }
+          );
+        }
+
         return NextResponse.json(
-          { 
-            error: "Failed to create flag", 
-            details: "Group flags are not supported yet. Please contact support.",
-            code: "NOT_IMPLEMENTED"
+          {
+            error: "Failed to create flag",
+            details: insertError.message || "Database error occurred",
+            code: insertError.code,
+            hint: insertError.hint,
           },
-          { status: 501 }
+          { status: 500 }
+        );
+      }
+
+      flagResult = data;
+      console.log("✅ SUCCESS: Group flag created successfully!");
+      console.log("Flag ID:", flagResult.id);
+      console.log("Flag data:", JSON.stringify(flagResult, null, 2));
+
+      // Verify the insert actually happened by querying the database
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("group_flags")
+        .select("*")
+        .eq("id", flagResult.id)
+        .single();
+
+      if (verifyError) {
+        console.error(
+          "⚠️ WARNING: Could not verify flag was inserted:",
+          verifyError
+        );
+      } else {
+        console.log(
+          "✅ VERIFIED: Flag exists in database:",
+          JSON.stringify(verifyData, null, 2)
         );
       }
     }
@@ -398,7 +532,7 @@ export async function POST(req: NextRequest) {
 
     console.log("=== FINAL SUCCESS RESPONSE ===");
     console.log("Flag ID:", flagResult.id);
-    
+
     // PHASE 6: Do not expose evidence URLs in public API response
     // Evidence URLs should only be accessible via admin API with signed URLs
     const response = {
@@ -407,28 +541,37 @@ export async function POST(req: NextRequest) {
       message: `Report submitted successfully. Thank you for helping keep our community safe.`,
       // Do not include evidenceUrl or evidencePublicId in response
     };
-    
+
     console.log("Returning response:", JSON.stringify(response, null, 2));
-    
+
     return NextResponse.json(response);
   } catch (error) {
     console.error("=== ❌ CATCH BLOCK ERROR ===");
     console.error("[FLAGS_ERROR]", error);
-    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
-    console.error("Error message:", error instanceof Error ? error.message : String(error));
-    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
-    
+    console.error(
+      "Error type:",
+      error instanceof Error ? error.constructor.name : typeof error
+    );
+    console.error(
+      "Error message:",
+      error instanceof Error ? error.message : String(error)
+    );
+    console.error(
+      "Error stack:",
+      error instanceof Error ? error.stack : "No stack trace"
+    );
+
     Sentry.captureException(error, {
       tags: {
         scope: "public-api",
         route: "POST /api/flags",
       },
     });
-    
+
     return NextResponse.json(
-      { 
+      {
         error: "Internal server error",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );
