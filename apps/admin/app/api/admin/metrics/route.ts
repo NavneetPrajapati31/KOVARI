@@ -28,6 +28,11 @@ export async function GET() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const sevenDaysAgoISO = sevenDaysAgo.toISOString();
 
+    // Calculate date for 24 hours ago
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    const twentyFourHoursAgoISO = twentyFourHoursAgo.toISOString();
+
     // 1) Redis Metrics
     let activeSessions = 0;
     let sessionsExpiringSoon = 0;
@@ -70,20 +75,28 @@ export async function GET() {
     }
 
     // 2) Supabase Metrics
-    const [{ count: pendingFlags }, { count: bannedLast7d }] =
-      await Promise.all([
-        // Pending flags
-        supabaseAdmin
-          .from('user_flags')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending'),
-        // Banned users in last 7 days
-        supabaseAdmin
-          .from('users')
-          .select('*', { count: 'exact', head: true })
-          .eq('banned', true)
-          .gte('updated_at', sevenDaysAgoISO),
-      ]);
+    const [
+      { count: pendingFlags },
+      { count: bannedLast7d },
+      { count: oldFlagsCount },
+    ] = await Promise.all([
+      // Pending flags
+      supabaseAdmin
+        .from('user_flags')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending'),
+      // Banned users in last 7 days
+      supabaseAdmin
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('banned', true)
+        .gte('updated_at', sevenDaysAgoISO),
+      // Flags older than 24 hours
+      supabaseAdmin
+        .from('user_flags')
+        .select('*', { count: 'exact', head: true })
+        .lt('created_at', twentyFourHoursAgoISO),
+    ]);
 
     // 3) Matches generated (24h) - from Redis counter
     let matchesGenerated24h = 0;
@@ -192,7 +205,7 @@ export async function GET() {
       sessionsExpiringSoon: sessionsExpiringSoon ?? 0,
       matches24h: matchesGenerated24h,
       pendingFlags: pendingFlags ?? 0,
-      oldFlagsCount: oldFlagsCount, // PHASE 8: Flags older than 24 hours
+      oldFlagsCount: oldFlagsCount ?? 0, // PHASE 8: Flags older than 24 hours
       bannedLast7d: bannedLast7d ?? 0,
       // Safety Signals
       safetySignals: safetySignals.length > 0 ? safetySignals : [],
