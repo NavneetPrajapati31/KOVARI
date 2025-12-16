@@ -1,6 +1,6 @@
 // apps/admin/lib/cloudinaryEvidence.ts
-import { v2 as cloudinary } from "cloudinary";
-import { uploadToCloudinary, getOptimizedUrl } from "@/lib/cloudinary";
+import { v2 as cloudinary } from 'cloudinary';
+import { uploadToCloudinary, getOptimizedUrl } from '@/admin-lib/cloudinary';
 
 // Configure Cloudinary (uses same config as main app)
 cloudinary.config({
@@ -30,16 +30,16 @@ export async function uploadEvidence(
     flagId?: string;
     reporterId?: string;
     fileName?: string;
-  } = {}
+  } = {},
 ): Promise<EvidenceUploadResult> {
-  const folder = `kovari-evidence/${options.flagId || "temp"}`;
+  const folder = `kovari-evidence/${options.flagId || 'temp'}`;
   const publicId = options.fileName
     ? `${folder}/${options.fileName}`
     : undefined;
 
   const uploadResult = await uploadToCloudinary(file, {
     folder,
-    resource_type: "auto", // Supports images, PDFs, etc.
+    resource_type: 'auto', // Supports images, PDFs, etc.
     public_id: publicId,
   });
 
@@ -48,7 +48,7 @@ export async function uploadEvidence(
     width: 300,
     height: 300,
     quality: 80,
-    format: "webp",
+    format: 'webp',
   });
 
   return {
@@ -75,25 +75,39 @@ export function generateSignedEvidenceUrl(
     height?: number;
     quality?: number;
     format?: string; // file format (jpg, png, pdf, etc.)
-  } = {}
+    type?: 'upload' | 'private' | 'authenticated'; // Default to 'upload' (public)
+  } = {},
 ): string {
   const expiresIn = options.expiresIn || 3600; // 1 hour default
-  const format = options.format || "auto"; // default to auto-detect
+  const format = options.format || 'auto'; // default to auto-detect
+  const type = options.type || 'upload'; // Default to public uploads
 
-  // Build transformation array
-  const transformations: Array<Record<string, string | number>> = [];
-  if (options.width) transformations.push({ width: options.width });
-  if (options.height) transformations.push({ height: options.height });
-  if (options.quality) transformations.push({ quality: options.quality });
+  // Build transformation array using Cloudinary's string format
+  const transformationParts: string[] = [];
+  if (options.width) transformationParts.push(`w_${options.width}`);
+  if (options.height) transformationParts.push(`h_${options.height}`);
+  if (options.quality) transformationParts.push(`q_${options.quality}`);
+  if (format !== 'auto' && format) transformationParts.push(`f_${format}`);
 
-  // Use cloudinary.url() with sign_url for transformations support
+  const transformationString =
+    transformationParts.length > 0 ? transformationParts.join(',') : undefined;
+
+  // For public images (type: 'upload'), we don't need signed URLs
+  // Just return optimized URL
+  if (type === 'upload') {
+    return cloudinary.url(publicId, {
+      resource_type: 'auto',
+      ...(transformationString && { transformation: transformationString }),
+    });
+  }
+
+  // For private/authenticated images, use signed URLs
   return cloudinary.url(publicId, {
-    resource_type: "auto",
-    type: "private",
-    format: format === "auto" ? undefined : format,
+    resource_type: 'auto',
+    type: type,
     sign_url: true,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
-    ...(transformations.length > 0 && { transformation: transformations }),
+    ...(transformationString && { transformation: transformationString }),
   });
 }
 
@@ -107,21 +121,41 @@ export function generateSignedThumbnailUrl(
     expiresIn?: number; // seconds (default: 1 hour)
     size?: number; // thumbnail size (default: 300px)
     format?: string; // file format (default: webp)
-  } = {}
+    type?: 'upload' | 'private' | 'authenticated'; // Default to 'upload' (public)
+  } = {},
 ): string {
   const size = options.size || 300;
   const expiresIn = options.expiresIn || 3600;
-  const format = options.format || "webp";
+  const format = options.format || 'webp';
+  const type = options.type || 'upload'; // Default to public uploads
 
-  // Use cloudinary.url() with sign_url for transformations support
+  // For public images (type: 'upload'), we don't need signed URLs
+  // Just return optimized URL with transformations
+  if (type === 'upload') {
+    return cloudinary.url(publicId, {
+      resource_type: 'image',
+      format: format,
+      transformation: [
+        {
+          width: size,
+          height: size,
+          crop: 'fill',
+          quality: 80,
+          format: 'webp',
+        },
+      ],
+    });
+  }
+
+  // For private/authenticated images, use signed URLs
   return cloudinary.url(publicId, {
-    resource_type: "image",
-    type: "private",
+    resource_type: 'image',
+    type: type,
     format: format,
     sign_url: true,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
     transformation: [
-      { width: size, height: size, crop: "fill", quality: 80, format: "webp" },
+      { width: size, height: size, crop: 'fill', quality: 80, format: 'webp' },
     ],
   });
 }
@@ -132,15 +166,15 @@ export function generateSignedThumbnailUrl(
  * Handles URLs with version numbers (v1234567890/)
  */
 export function getPublicIdFromEvidenceUrl(url: string): string | null {
-  if (!url || !url.includes("cloudinary.com")) {
+  if (!url || !url.includes('cloudinary.com')) {
     return null;
   }
 
   try {
     // Extract public_id from Cloudinary URL
     // Format: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{v{version}/}{transformations/}{public_id}.{format}
-    const urlParts = url.split("/");
-    const uploadIndex = urlParts.findIndex((part) => part === "upload");
+    const urlParts = url.split('/');
+    const uploadIndex = urlParts.findIndex((part) => part === 'upload');
 
     if (uploadIndex === -1 || uploadIndex + 1 >= urlParts.length) {
       return null;
@@ -151,28 +185,28 @@ export function getPublicIdFromEvidenceUrl(url: string): string | null {
     const pathParts: string[] = [];
     for (let i = uploadIndex + 1; i < urlParts.length; i++) {
       const part = urlParts[i];
-      
+
       // Skip version numbers (start with 'v' followed by digits)
       if (/^v\d+$/.test(part)) {
         continue;
       }
-      
-      const dotIndex = part.lastIndexOf(".");
+
+      const dotIndex = part.lastIndexOf('.');
       if (dotIndex !== -1) {
         // Found the file part with extension
         const publicId = part.substring(0, dotIndex);
         // Reconstruct full path
         if (pathParts.length > 0) {
-          return pathParts.join("/") + "/" + publicId;
+          return pathParts.join('/') + '/' + publicId;
         }
         return publicId;
       }
-      
+
       // This is a folder/path segment
       pathParts.push(part);
     }
   } catch (error) {
-    console.error("Error extracting public ID from evidence URL:", error);
+    console.error('Error extracting public ID from evidence URL:', error);
   }
 
   return null;
@@ -184,15 +218,15 @@ export function getPublicIdFromEvidenceUrl(url: string): string | null {
  */
 export async function deleteEvidence(
   publicId: string,
-  resourceType: "image" | "video" | "raw" = "image"
+  resourceType: 'image' | 'video' | 'raw' = 'image',
 ): Promise<void> {
   try {
     await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
     });
   } catch (error) {
-    console.error("Error deleting evidence from Cloudinary:", error);
-    throw new Error("Failed to delete evidence");
+    console.error('Error deleting evidence from Cloudinary:', error);
+    throw new Error('Failed to delete evidence');
   }
 }
 
@@ -202,15 +236,15 @@ export async function deleteEvidence(
  */
 export function getEvidenceDisplayUrl(
   evidenceUrl: string,
-  context: "thumbnail" | "preview" | "full" = "preview"
+  context: 'thumbnail' | 'preview' | 'full' = 'preview',
 ): string {
-  if (!evidenceUrl || !evidenceUrl.includes("cloudinary.com")) {
+  if (!evidenceUrl || !evidenceUrl.includes('cloudinary.com')) {
     return evidenceUrl; // Return original if not Cloudinary
   }
 
   const options = {
-    thumbnail: { width: 150, height: 150, quality: 70, format: "webp" },
-    preview: { width: 800, height: 800, quality: 85, format: "webp" },
+    thumbnail: { width: 150, height: 150, quality: 70, format: 'webp' },
+    preview: { width: 800, height: 800, quality: 85, format: 'webp' },
     full: { quality: 90 },
   };
 
