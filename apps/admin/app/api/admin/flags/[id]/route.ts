@@ -367,26 +367,55 @@ export async function GET(req: NextRequest, { params }: Params) {
       }
     }
 
-    // PHASE 6: Use original evidence URL if available
-    // For public images, the original URL from Cloudinary should work fine
-    // Only generate a new URL if we don't have the original URL but have a public_id
-    let signedEvidenceUrl: string | null = flag.evidence_url || null;
-
-    // If we don't have a URL but have a public_id, try to construct one
-    // This should rarely happen, but handles edge cases
-    if (!signedEvidenceUrl && flag.evidence_public_id) {
+    // PHASE 6: Generate signed URL for evidence (admin-only, time-limited)
+    // Prefer using stored evidence_public_id, fall back to extracting from URL
+    let signedEvidenceUrl: string | null = null;
+    if (flag.evidence_public_id || flag.evidence_url) {
       try {
-        const { generateSignedEvidenceUrl } =
+        const { generateSignedEvidenceUrl, getPublicIdFromEvidenceUrl } =
           await import('@/admin-lib/cloudinaryEvidence');
 
-        // Generate URL for public images (type: 'upload')
-        // No transformations - just the base URL
-        signedEvidenceUrl = generateSignedEvidenceUrl(flag.evidence_public_id, {
-          type: 'upload', // Default to public uploads
-        });
+        // Prefer stored evidence_public_id (most reliable)
+        let publicId = flag.evidence_public_id || null;
+
+        // If no stored public_id, try to extract from URL
+        if (!publicId && flag.evidence_url) {
+          publicId = getPublicIdFromEvidenceUrl(flag.evidence_url);
+          if (!publicId) {
+            console.warn(
+              `Could not extract public_id from evidence_url for flag ${flag.id}. Using original URL.`,
+            );
+          }
+        }
+
+        // Try to generate signed URL if we have a public_id
+        if (publicId) {
+          try {
+            // Generate signed URL that expires in 1 hour
+            // Use "upload" type (public) to match how evidence is uploaded
+            signedEvidenceUrl = generateSignedEvidenceUrl(publicId, {
+              expiresIn: 3600, // 1 hour
+              type: 'upload', // Explicitly use "upload" (public) type to avoid 404s
+            });
+          } catch (signError) {
+            // If signed URL generation fails (e.g., asset is public not private),
+            // fall back to original URL
+            console.warn(
+              `Failed to generate signed URL for flag ${flag.id}, using original URL:`,
+              signError,
+            );
+          }
+        }
+
+        // If we still don't have a signed URL, use the original secure_url
+        // This handles cases where assets are public or signed URL generation fails
+        if (!signedEvidenceUrl && flag.evidence_url) {
+          signedEvidenceUrl = flag.evidence_url;
+        }
       } catch (error) {
-        console.error('Error generating evidence URL from public_id:', error);
-        // Continue without URL - component will handle the error
+        console.error('Error processing evidence URL:', error);
+        // Fall back to original URL
+        signedEvidenceUrl = flag.evidence_url || null;
       }
     }
 

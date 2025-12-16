@@ -20,7 +20,9 @@ import {
   Ban,
   Clock,
   CheckCircle,
+  ExternalLink,
 } from 'lucide-react';
+import Link from 'next/link';
 
 interface FlagDetailModalProps {
   flagId: string;
@@ -100,9 +102,7 @@ export function FlagDetailModal({
   const [flagData, setFlagData] = React.useState<FlagData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isImageZoomed, setIsImageZoomed] = React.useState(false);
-  const [evidenceImageUrl, setEvidenceImageUrl] = React.useState<string | null>(
-    null,
-  );
+  const [evidenceUrl, setEvidenceUrl] = React.useState<string | null>(null);
   const [actionDialog, setActionDialog] = React.useState<{
     action: 'dismiss' | 'warn' | 'suspend' | 'ban';
     open: boolean;
@@ -131,9 +131,31 @@ export function FlagDetailModal({
       if (!res.ok) throw new Error('Failed to fetch flag details');
       const data = await res.json();
       setFlagData(data);
-      // Set initial evidence URL
+
+      // Fetch evidence URL from evidence endpoint to get fresh signed URL
       if (data.flag?.evidenceUrl) {
-        setEvidenceImageUrl(data.flag.evidenceUrl);
+        try {
+          const evidenceRes = await fetch(
+            `/api/admin/flags/${flagId}/evidence`,
+          );
+          if (evidenceRes.ok) {
+            const evidenceData = await evidenceRes.json();
+            setEvidenceUrl(
+              evidenceData.signedUrl ||
+                evidenceData.evidenceUrl ||
+                data.flag.evidenceUrl,
+            );
+          } else {
+            // Fallback to original URL if evidence endpoint fails
+            setEvidenceUrl(data.flag.evidenceUrl);
+          }
+        } catch (error) {
+          console.error('Error fetching evidence URL:', error);
+          // Fallback to original URL
+          setEvidenceUrl(data.flag.evidenceUrl);
+        }
+      } else {
+        setEvidenceUrl(null);
       }
 
       // Previous flags are now included in the API response
@@ -143,27 +165,6 @@ export function FlagDetailModal({
       setIsLoading(false);
     }
   }, [flagId]);
-
-  // Fetch signed URL if image fails to load
-  const handleImageError = React.useCallback(async () => {
-    if (!flagData?.flag?.evidenceUrl || !flagId) return;
-
-    // Only try to fetch a new URL if we haven't already tried
-    if (evidenceImageUrl === flagData.flag.evidenceUrl) {
-      try {
-        // Try to fetch signed URL from the evidence endpoint
-        const res = await fetch(`/api/admin/flags/${flagId}/evidence`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.signedUrl && data.signedUrl !== evidenceImageUrl) {
-            setEvidenceImageUrl(data.signedUrl);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching signed evidence URL:', error);
-      }
-    }
-  }, [flagData, flagId, evidenceImageUrl]);
 
   React.useEffect(() => {
     if (open && flagId) {
@@ -430,7 +431,7 @@ export function FlagDetailModal({
               </div>
 
               {/* Evidence */}
-              {flagData.flag.evidenceUrl && (
+              {(evidenceUrl || flagData.flag.evidenceUrl) && (
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Evidence</h3>
                   <div className="relative">
@@ -444,13 +445,24 @@ export function FlagDetailModal({
                       onClick={() => setIsImageZoomed(!isImageZoomed)}
                     >
                       <img
-                        src={evidenceImageUrl || flagData.flag.evidenceUrl!}
+                        src={evidenceUrl || flagData.flag.evidenceUrl!}
                         alt="Evidence"
                         className={cn(
                           'w-full h-auto object-contain',
                           isImageZoomed ? 'max-h-[calc(100vh-8rem)]' : '',
                         )}
-                        onError={handleImageError}
+                        onError={(e) => {
+                          // If signed URL fails, try original URL
+                          if (
+                            evidenceUrl &&
+                            evidenceUrl !== flagData.flag.evidenceUrl
+                          ) {
+                            console.warn(
+                              'Signed URL failed, trying original URL',
+                            );
+                            setEvidenceUrl(flagData.flag.evidenceUrl || null);
+                          }
+                        }}
                       />
                       {!isImageZoomed && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
@@ -548,25 +560,39 @@ export function FlagDetailModal({
                       )}
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <div className="font-medium">
-                        {flagData.targetProfile.name}
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 space-y-2">
+                          <div className="font-medium">
+                            {flagData.targetProfile.name}
+                          </div>
+                          {flagData.targetProfile.destination && (
+                            <div className="text-sm">
+                              Destination: {flagData.targetProfile.destination}
+                            </div>
+                          )}
+                          {flagData.targetProfile.description && (
+                            <div className="text-sm text-muted-foreground">
+                              {flagData.targetProfile.description}
+                            </div>
+                          )}
+                          {flagData.targetProfile.organizer && (
+                            <div className="text-sm">
+                              Organizer: {flagData.targetProfile.organizer.name}
+                            </div>
+                          )}
+                        </div>
+                        <Link href={`/groups/${flagData.flag.targetId}`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Manage Group
+                          </Button>
+                        </Link>
                       </div>
-                      {flagData.targetProfile.destination && (
-                        <div className="text-sm">
-                          Destination: {flagData.targetProfile.destination}
-                        </div>
-                      )}
-                      {flagData.targetProfile.description && (
-                        <div className="text-sm text-muted-foreground">
-                          {flagData.targetProfile.description}
-                        </div>
-                      )}
-                      {flagData.targetProfile.organizer && (
-                        <div className="text-sm">
-                          Organizer: {flagData.targetProfile.organizer.name}
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>

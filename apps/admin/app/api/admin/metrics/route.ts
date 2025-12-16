@@ -76,13 +76,19 @@ export async function GET() {
 
     // 2) Supabase Metrics
     const [
-      { count: pendingFlags },
+      { count: pendingUserFlags },
+      { count: pendingGroupFlags },
       { count: bannedLast7d },
       { count: oldFlagsCount },
     ] = await Promise.all([
-      // Pending flags
+      // Pending user flags
       supabaseAdmin
         .from('user_flags')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending'),
+      // Pending group flags
+      supabaseAdmin
+        .from('group_flags')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending'),
       // Banned users in last 7 days
@@ -97,6 +103,9 @@ export async function GET() {
         .select('*', { count: 'exact', head: true })
         .lt('created_at', twentyFourHoursAgoISO),
     ]);
+
+    // Combine user and group flags counts
+    const pendingFlags = (pendingUserFlags ?? 0) + (pendingGroupFlags ?? 0);
 
     // 3) Matches generated (24h) - from Redis counter
     let matchesGenerated24h = 0;
