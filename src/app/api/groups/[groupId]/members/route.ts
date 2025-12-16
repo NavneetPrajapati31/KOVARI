@@ -26,6 +26,27 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Check if group exists and is not removed
+    const { data: group, error: groupError } = await supabase
+      .from("groups")
+      .select("id, status, creator_id")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Block access to removed groups
+    if (group.status === "removed") {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Block access to pending groups for non-creators
+    if (group.status === "pending" && group.creator_id !== userRow.id) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
     // Check if user is a member of the group
     const { data: membership, error: membershipError } = await supabase
       .from("group_memberships")
@@ -208,11 +229,16 @@ export async function DELETE(
     // Check if current user is admin or the group creator
     const { data: group, error: groupError } = await supabase
       .from("groups")
-      .select("creator_id")
+      .select("creator_id, status")
       .eq("id", groupId)
       .single();
 
     if (groupError || !group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    // Block access to removed groups
+    if (group.status === "removed") {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 

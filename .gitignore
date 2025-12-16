@@ -51,5 +51,5 @@ next-env.d.ts
 .env.sentry-build-plugin"node_modules.zip" 
 
 # apps/admin
-
-/apps/*
+# Note: /apps/* only matches files directly in /apps/, not subdirectories
+# If you need to ignore specific apps, use: /apps/specific-app-name/

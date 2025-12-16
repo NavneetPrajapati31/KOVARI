@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "node quick-start.js && next dev",
+    "dev:admin": "cd apps/admin && npm run dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test:cloudinary": "npx tsx src/lib/test-cloudinary.ts",
+    "test:cloudinary-evidence": "npx tsx apps/admin/lib/test-cloudinaryEvidence.ts",
     "migrate:cloudinary": "npx tsx src/lib/migrate-local-to-cloudinary.ts",
     "setup": "node setup-dev.js",
     "quick-start": "node quick-start.js",

@@ -1,0 +1,52 @@
+name: Admin CI
+
+on:
+  pull_request:
+    branches:
+      - feature/admin-dashboard
+      - dev
+
+jobs:
+  admin-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install admin dependencies
+        run: |
+          cd apps/admin
+          npm install
+
+      - name: Lint Admin
+        run: |
+          cd apps/admin
+          npm run lint
+
+      - name: Test Admin
+        run: |
+          cd apps/admin
+          npm run test:run
+
+      - name: Build Admin
+        env:
+          # Dummy values for build-time only (not used at runtime)
+          SUPABASE_URL: "https://dummy.supabase.co"
+          SUPABASE_SERVICE_ROLE_KEY: "dummy-service-role-key"
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key"
+          REDIS_URL: "redis://localhost:6379"
+          # Clerk publishable key (dummy value for build only)
+          # Note: CLERK_SECRET_KEY not needed since ClerkProvider is skipped during build
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_51AbCdEfGhIjKlMnOpQrStUvWxYz1234567890AbCdEfGhIjKlMnOpQrStUvWxYz1234567890"
+        run: |
+          cd apps/admin
+          npm run build

@@ -8,7 +8,11 @@ export async function GET() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { cookies: cookieStore }
   );
-  const { data, error } = await supabase.from("groups").select("*").limit(10);
+  const { data, error } = await supabase
+    .from("groups")
+    .select("*")
+    .eq("status", "active") // Only show approved groups
+    .limit(10);
   if (error) return new Response("[]", { status: 500 });
   return new Response(JSON.stringify(data), { status: 200 });
 }
