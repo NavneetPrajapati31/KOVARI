@@ -33,6 +33,8 @@ interface GroupCardProps {
       avatar?: string;
     };
     cover_image?: string;
+    status?: "active" | "pending" | "removed";
+    creatorId?: string;
   };
   onAction: (
     groupId: string,
@@ -54,15 +56,19 @@ export function GroupCard({
   const [userStatus, setUserStatus] = useState(group.userStatus);
 
   const formatDateRange = () => {
-    if (!group.dateRange || !group.dateRange.start) return "Dates not available";
+    if (!group.dateRange || !group.dateRange.start)
+      return "Dates not available";
   
     if (group.dateRange.isOngoing) return "Ongoing";
   
-    const startDate = new Date(group.dateRange.start).toLocaleDateString("en-US", {
+    const startDate = new Date(group.dateRange.start).toLocaleDateString(
+      "en-US",
+      {
       month: "short",
       day: "numeric",
       year: "numeric",
-    });
+      }
+    );
   
     if (!group.dateRange.end) return startDate;
   
@@ -83,6 +89,15 @@ export function GroupCard({
   };
 
   const getActionButton = () => {
+    // Check if group is pending - show "Under Review" for all users (including creator)
+    if (group.status === "pending") {
+      return {
+        text: "Under Review",
+        variant: "secondary",
+        action: null,
+        disabled: true,
+      };
+    }
     if (userStatus === "member") {
       return { text: "View Group", variant: "default", action: "view" };
     }
@@ -200,13 +215,24 @@ export function GroupCard({
     </span>
     </div>
     ) : (
-    <div className="text-muted-foreground text-xs">Created by Unknown</div>
+          <div className="text-muted-foreground text-xs">
+            Created by Unknown
+          </div>
   )}
-
         </div>
       {/* Action button(s) at the bottom */}
       <div className="px-5 pb-5 mt-auto">
-        {userStatus === "member" ? (
+        {group.status === "pending" ? (
+          <Button
+            color="primary"
+            className="w-full gap-2 text-xs font-semibold rounded-lg"
+            aria-label="Under Review"
+            tabIndex={0}
+            disabled={true}
+          >
+            Under Review
+          </Button>
+        ) : userStatus === "member" ? (
           <Button
             color="primary"
             className="w-full gap-2 text-xs font-semibold rounded-lg"

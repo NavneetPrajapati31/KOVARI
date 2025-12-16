@@ -11,10 +11,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSidebar } from "@/shared/components/ui/sidebar";
-import { Camera, Heart, Plus } from "lucide-react";
+import { Camera, Heart, Plus, Flag } from "lucide-react";
 import ProfileImageModal from "./profile-image-modal";
 import { AnimatePresence } from "framer-motion";
 import CreatePostModal from "./create-post-modal";
+import { ReportDialog } from "@/shared/components/ReportDialog";
 
 export interface UserProfile {
   name: string;
@@ -67,6 +68,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     React.useState(false);
   const handleOpenCreatePostModal = () => setIsCreatePostModalOpen(true);
   const handleCloseCreatePostModal = () => setIsCreatePostModalOpen(false);
+
+  // Report dialog state
+  const [isReportDialogOpen, setIsReportDialogOpen] = React.useState(false);
 
   const [posts, setPosts] = React.useState(profile.posts);
 
@@ -388,7 +392,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-row gap-1.5 mt-4">
+                <div className="flex flex-row flex-wrap gap-1.5 mt-4">
                   {profile.isOwnProfile === true ? (
                     // Own profile buttons
                     <>
@@ -469,6 +473,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           Message
                         </Button>
                       </Link>
+                      <Button
+                        size={"sm"}
+                        variant="outline"
+                        onClick={() => setIsReportDialogOpen(true)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/50 font-semibold rounded-lg px-3 sm:px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
+                        aria-label="Report user"
+                        tabIndex={0}
+                      >
+                        <Flag className="h-3 w-3 sm:mr-1.5" />
+                        <span className="hidden sm:inline">Report</span>
+                      </Button>
+                      <ReportDialog
+                        open={isReportDialogOpen}
+                        onOpenChange={setIsReportDialogOpen}
+                        targetType="user"
+                        targetId={profile.userId || ""}
+                        targetName={profile.name}
+                      />
                     </>
                   )}
                 </div>
@@ -770,7 +792,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   {profile.bio}
                 </div>
                 {/* Action Buttons */}
-                <div className="flex flex-row gap-1.5 mt-4">
+                <div className="flex flex-row flex-wrap gap-1.5 mt-4">
                   {profile.isOwnProfile === true ? (
                     // Own profile buttons
                     <>
@@ -846,6 +868,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           Message
                         </Button>
                       </Link>
+                      <Button
+                        size={"sm"}
+                        variant="outline"
+                        onClick={() => setIsReportDialogOpen(true)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/50 font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
+                        aria-label="Report user"
+                        tabIndex={0}
+                      >
+                        <Flag className="h-3 w-3 mr-1.5" />
+                        Report
+                      </Button>
+                      <ReportDialog
+                        open={isReportDialogOpen}
+                        onOpenChange={setIsReportDialogOpen}
+                        targetType="user"
+                        targetId={profile.userId || ""}
+                        targetName={profile.name}
+                      />
                     </>
                   )}
                 </div>

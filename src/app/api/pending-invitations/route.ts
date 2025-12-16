@@ -70,7 +70,7 @@ export async function GET() {
 
     const groupIds = pendingMemberships.map((m) => m.group_id);
 
-    // Fetch the groups with creator information
+    // Fetch the groups with creator information (only active groups)
     const { data: groupsData, error: groupsError } = await supabase
       .from("groups")
       .select(
@@ -86,6 +86,7 @@ export async function GET() {
       `
       )
       .in("id", groupIds)
+      .eq("status", "active") // Only show invitations for approved groups
       .order("created_at", { ascending: false });
 
     if (groupsError) {

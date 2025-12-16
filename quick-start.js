@@ -38,6 +38,7 @@ function logInfo(message) {
 
 // Check if Redis is running and accessible
 async function checkRedis() {
+  let client = null;
   try {
     // Check if REDIS_URL is set (cloud Redis)
     if (process.env.REDIS_URL) {
@@ -46,36 +47,81 @@ async function checkRedis() {
       logWarning('No REDIS_URL found, falling back to local Redis');
     }
     
-    const client = redis.createClient({
+    client = redis.createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6380'
     });
     
-    await client.connect();
+    // Handle error events to prevent unhandled errors
+    client.on('error', (err) => {
+      // Error events are handled here, but we'll also catch in the try-catch
+      // This prevents unhandled error events from crashing the process
+    });
+    
+    // Set a connection timeout
+    const connectPromise = client.connect();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000);
+    });
+    
+    await Promise.race([connectPromise, timeoutPromise]);
     await client.ping();
-    await client.disconnect();
     
     return true;
   } catch (error) {
     logError('Redis connection failed: ' + error.message);
+    if (error.code === 'ECONNRESET' || error.code === 'ECONNREFUSED') {
+      logWarning('The Redis server closed the connection or is not accessible');
+      logWarning('This could mean:');
+      logWarning('  - The Redis server is down');
+      logWarning('  - Network connectivity issues');
+      logWarning('  - Incorrect REDIS_URL configuration');
+      logWarning('  - Firewall blocking the connection');
+    }
     return false;
+  } finally {
+    // Always try to disconnect, even if connection failed
+    if (client) {
+      try {
+        if (client.isOpen) {
+          await client.disconnect();
+        }
+      } catch (disconnectError) {
+        // Ignore disconnect errors
+      }
+    }
   }
 }
 
 // Check if test data exists
 async function checkTestData() {
+  let client = null;
   try {
-    const client = redis.createClient({
+    client = redis.createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6380'
+    });
+    
+    // Handle error events
+    client.on('error', () => {
+      // Error events handled silently for this check
     });
     
     await client.connect();
     const keys = await client.keys('*');
-    await client.disconnect();
     
     // Check if we have some test data (adjust this based on your data structure)
     return keys.length > 5; // Assuming you have more than 5 keys for test data
   } catch (error) {
     return false;
+  } finally {
+    if (client) {
+      try {
+        if (client.isOpen) {
+          await client.disconnect();
+        }
+      } catch (disconnectError) {
+        // Ignore disconnect errors
+      }
+    }
   }
 }
 

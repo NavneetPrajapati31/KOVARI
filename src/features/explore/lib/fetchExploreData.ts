@@ -43,6 +43,7 @@ export interface Group {
   creatorId: string;
   created_at: string;
   cover_image?: string;
+  status?: "active" | "pending" | "removed"; // Group status from database
 }
 
 // Add FiltersState type (should be moved to a shared types file in production)
@@ -266,6 +267,7 @@ export const fetchPublicGroups = async (
     `
     )
     .eq("is_public", true)
+    .eq("status", "active") // Only show approved groups
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -431,7 +433,7 @@ export const fetchMyGroups = async (
     return { data: [], nextCursor: null };
   }
 
-  // 3. Fetch the groups with those IDs.
+  // 3. Fetch the groups with those IDs (only active groups, or pending if user is creator)
   const { data: groupsData, error: groupsError } = await supabase
     .from("groups")
     .select(
@@ -444,10 +446,13 @@ export const fetchMyGroups = async (
       end_date,
       creator_id,
       created_at,
-      cover_image
+      cover_image,
+      status
     `
     )
     .in("id", groupIds)
+    .in("status", ["active", "pending"]) // Show active groups and pending groups (user can see their own pending groups)
+    .neq("status", "removed") // Explicitly exclude removed groups
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -519,6 +524,7 @@ export const fetchMyGroups = async (
       creatorId: group.creator_id,
       created_at: group.created_at,
       cover_image: group.cover_image,
+      status: group.status, // Include group status
     };
   });
 
