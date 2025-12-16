@@ -55,8 +55,12 @@ export function GroupMatchCard({
   onPassAction,
   onViewGroupAction
 }: GroupMatchCardProps) {
+  const [isJoining, setIsJoining] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [isPassing, setIsPassing] = useState(false);
+
   console.log("GroupMatchCard received group:", group);
-  
+
   // Add error boundary for missing group data
   if (!group) {
     return (
@@ -68,10 +72,6 @@ export function GroupMatchCard({
       </div>
     );
   }
-  
-  const [isJoining, setIsJoining] = useState(false);
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [isPassing, setIsPassing] = useState(false);
 
   const handleJoinGroup = async () => {
     setIsJoining(true);

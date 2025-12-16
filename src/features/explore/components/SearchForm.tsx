@@ -172,7 +172,9 @@ export const SearchForm = ({ searchData, onSearchDataChange, onSearch, isLoading
                   <div className="border-t border-gray-200 mt-2 pt-2">
                     <div className="px-3 py-2 text-sm text-gray-600">
                       <div className="flex items-center justify-between">
-                        <span>Search "{searchData.destination}" on Google Maps</span>
+                        <span>
+                          Search &quot;{searchData.destination}&quot; on Google Maps
+                        </span>
                         <button
                           onClick={() => {
                             const searchQuery = encodeURIComponent(searchData.destination);

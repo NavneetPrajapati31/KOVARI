@@ -162,7 +162,7 @@ export function ManageEventsModal({ isOpen, onClose, mode, events, onSave, onDel
           {selectedEventId && (
             <p className="text-sm text-red-600 mt-4">
               Are you sure you want to delete{" "}
-              <strong>"{events.find((e) => e.id === selectedEventId)?.description}"</strong>? This action cannot be
+              <strong>&quot;{events.find((e) => e.id === selectedEventId)?.description}&quot;</strong>? This action cannot be
               undone.
             </p>
           )}
