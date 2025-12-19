@@ -74,7 +74,7 @@ export default function Audience() {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <h3 className="text-lg font-semibold">{card.title}</h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       {card.description}
