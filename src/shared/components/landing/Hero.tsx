@@ -19,7 +19,7 @@ const HERO_DESCRIPTION =
   "KOVARI helps solo travelers, friends, and small groups match, plan trips together, and explore destinations safely — without chaos or guesswork.";
 
 const HERO_SECTION_CLASSES =
-  "z-20 flex flex-col items-center gap-[18px] sm:gap-6 sm:justify-center";
+  "z-20 flex flex-col items-center gap-[28px] sm:gap-6 sm:justify-center";
 
 export default function Hero() {
   const router = useRouter();
@@ -33,8 +33,8 @@ export default function Hero() {
   }, [router]);
 
   return (
-    <section className="relative w-full sm:h-[90vh] sm:flex sm:flex-col sm:overflow-hidden overflow-x-hidden bg-background">
-      <div className="container mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-20 md:py-24">
+    <section className="relative w-full sm:flex sm:flex-col sm:overflow-hidden overflow-x-hidden bg-background">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 pt-24 pb-16 sm:py-20 md:py-24">
         <div className={HERO_SECTION_CLASSES}>
           <Button
             className="h-7 bg-card overflow-hidden border-none shadow-sm px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground"
@@ -53,15 +53,6 @@ export default function Hero() {
             Plan Trips. Find People. Travel Together.
           </Button>
           <div className="text-center text-[clamp(40px,10vw,44px)] font-bold leading-[1.2] tracking-tighter sm:text-[64px]">
-            {/* 
-          NOTE: To use `bg-hero-section-title`, you need to add the following to your tailwind config.
-          ```
-          backgroundImage: {
-            "hero-section-title":
-              "linear-gradient(91deg, #FFF 32.88%, rgba(255, 255, 255, 0.40) 99.12%)",
-          },
-          ```
-        */}
             <div className={HERO_TITLE_GRADIENT}>
               Connect & Travel <br /> With the <span>Right</span> People
             </div>
@@ -103,21 +94,10 @@ export default function Hero() {
             </Link> */}
             <Link href="/waitlist">
               <Button
-                className={`${BUTTON_HEIGHT} ${BUTTON_WIDTH} bg-primary text-primary-foreground shadow-sm px-[20px] py-[20px] ${BUTTON_TEXT_SIZE} font-bold text-md leading-5`}
-                // endContent={
-                //   <span className="pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full">
-                //     <Icon
-                //       className="text-default-500 [&>path]:stroke-[1.5]"
-                //       icon="solar:arrow-right-linear"
-                //       width={16}
-                //       aria-label="Arrow right"
-                //     />
-                //   </span>
-                // }
+                className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold leading-5 w-full sm:w-auto"
                 radius="full"
                 variant="solid"
-                // onPress={handleFindTravelers}
-                aria-label="Join Waitlist"
+                aria-label="Join the Waitlist"
               >
                 Join the Waitlist
               </Button>
