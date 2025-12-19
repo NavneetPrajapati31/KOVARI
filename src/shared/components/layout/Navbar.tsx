@@ -11,9 +11,6 @@ import {
   Dropdown,
   // DropdownMenu,
   Avatar,
-  NavbarMenuToggle,
-  NavbarMenuItem,
-  NavbarMenu,
   Skeleton,
 } from "@heroui/react";
 import {
@@ -26,15 +23,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Compass,
-  MessageCircle,
-  Users,
-  LayoutDashboard,
-  Menu,
-} from "lucide-react";
+import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
+import SidebarMenu from "./sidebar-menu";
+import { motion } from "framer-motion";
 
 export const AcmeLogo = () => {
   return (
@@ -49,24 +42,6 @@ export const AcmeLogo = () => {
   );
 };
 
-// Custom Hamburger Icon
-const HamburgerIcon = () => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-label="Open menu"
-    role="img"
-    className="text-black"
-  >
-    <rect y="5" width="20" height="1.5" rx="1" fill="currentColor" />
-    <rect y="11" width="20" height="1.5" rx="1" fill="currentColor" />
-    <rect y="17" width="20" height="1.5" rx="1" fill="currentColor" />
-  </svg>
-);
-
 export default function App({
   onAvatarMenuOpenChange,
 }: {
@@ -74,6 +49,7 @@ export default function App({
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
@@ -206,13 +182,23 @@ export default function App({
 
   return (
     <>
+      {/* Sidebar Menu Overlay */}
+      <SidebarMenu
+        open={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        menuItems={navigationItems.map((item) => ({
+          label: item.name,
+          href: item.href,
+          icon: item.icon,
+        }))}
+      />
+
       {/* {isNavigating && <Spinner />} */}
       <Navbar
         height={"5rem"}
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}
-        isMenuOpen={isMenuOpen}
         className="backdrop-blur-3xl border-border"
         classNames={{
           wrapper: "max-w-full px-8",
@@ -303,39 +289,42 @@ export default function App({
             {/* Hamburger - visible on screens < 1300px (xl breakpoint) */}
             <button
               type="button"
-              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-              {...(isMenuOpen && { "aria-expanded": true })}
-              tabIndex={0}
-              className="w-10 h-10 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary xl:hidden"
-              onClick={() => setIsMenuOpen((open) => !open)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  setIsMenuOpen((open) => !open);
-                }
-              }}
+              onClick={() => setIsSidebarOpen(true)}
+              className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none xl:hidden"
+              aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
             >
-              {/* <Menu className="w-6 h-6 text-black" /> */}
-              <HamburgerIcon />
+              <div className="relative w-6 h-4 flex flex-col justify-center items-center">
+                {/* Top line */}
+                <motion.div
+                  className="w-4 h-[1.5px] bg-black absolute"
+                  animate={{
+                    rotate: isSidebarOpen ? 45 : 0,
+                    y: isSidebarOpen ? 0 : -2,
+                  }}
+                  transition={{
+                    duration: 0.3,
+                    ease: "easeInOut",
+                  }}
+                />
+                {/* Bottom line */}
+                <motion.div
+                  className="w-4 h-[1.5px] bg-black absolute"
+                  animate={{
+                    rotate: isSidebarOpen ? -45 : 0,
+                    y: isSidebarOpen ? 0 : 2,
+                  }}
+                  transition={{
+                    duration: 0.3,
+                    ease: "easeInOut",
+                  }}
+                />
+              </div>
+              <span className="sm:text-sm text-xs font-medium uppercase select-none">
+                MENU
+              </span>
             </button>
           </div>
         </NavbarContent>
-
-        <NavbarMenu className="xl:hidden">
-          {navigationItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <Link
-                className="w-full flex items-center gap-3"
-                color={"foreground"}
-                href={item.href}
-                onClick={() => handleNavigation(item.href)}
-                size="md"
-              >
-                {/* <item.icon className="w-4 h-4" /> */}
-                {item.name}
-              </Link>
-            </NavbarMenuItem>
-          ))}
-        </NavbarMenu>
       </Navbar>
     </>
   );

@@ -13,12 +13,19 @@ import React from "react";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 
+interface MenuItem {
+  label: string;
+  href: string;
+  icon?: React.ElementType;
+}
+
 interface SidebarMenuProps {
   open: boolean;
   onClose: () => void;
+  menuItems?: MenuItem[];
 }
 
-const menuItems = [
+const defaultMenuItems: MenuItem[] = [
   {
     label: "Home",
     href: "/",
@@ -56,7 +63,11 @@ const menuItems = [
   },
 ];
 
-const SidebarMenu: React.FC<SidebarMenuProps> = ({ open, onClose }) => {
+const SidebarMenu: React.FC<SidebarMenuProps> = ({
+  open,
+  onClose,
+  menuItems = defaultMenuItems,
+}) => {
   useEffect(() => {
     if (open) {
       document.body.classList.add("overflow-hidden");
@@ -82,7 +93,7 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ open, onClose }) => {
   const itemVariants = {
     hidden: {
       opacity: 0,
-      x: -20,
+      x: 20,
     },
     visible: {
       opacity: 1,
@@ -97,7 +108,7 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ open, onClose }) => {
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
-        side="left"
+        side="right"
         className="p-0 w-full max-w-[420px] bg-card flex flex-col h-screen"
         overlayClassName="backdrop-blur-sm"
         // Sidebar and overlay now cover the full viewport
@@ -121,11 +132,11 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ open, onClose }) => {
           {menuItems.map((item, index) => (
             <motion.div
               key={item.label}
-              initial={{ opacity: 0, x: -20, filter: "blur(8px)" }}
+              initial={{ opacity: 0, x: 20, filter: "blur(8px)" }}
               animate={
                 open
                   ? { opacity: 1, x: 0, filter: "blur(0px)" }
-                  : { opacity: 0, x: -20, filter: "blur(8px)" }
+                  : { opacity: 0, x: 20, filter: "blur(8px)" }
               }
               transition={{
                 opacity: {
