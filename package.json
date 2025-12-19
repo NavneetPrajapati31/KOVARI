@@ -105,6 +105,7 @@
     "react-image-crop": "^11.0.10",
     "react-leaflet": "^4.2.1",
     "react-loading-skeleton": "^3.5.0",
+    "react-snowfall": "^2.4.0",
     "recharts": "^3.0.2",
     "redis": "^5.6.1",
     "resend": "^4.6.0",

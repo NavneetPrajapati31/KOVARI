@@ -300,7 +300,7 @@ export default function App({
             <button
               type="button"
               aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-              aria-pressed={isMenuOpen}
+              {...(isMenuOpen && { "aria-expanded": true })}
               tabIndex={0}
               className="w-10 h-10 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
               onClick={() => setIsMenuOpen((open) => !open)}
