@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Hero from "@/shared/components/Hero";
+import Hero from "@/shared/components/landing/Hero";
 import Audience from "@/shared/components/landing/Audience";
 import HowItWorks from "@/shared/components/landing/HowItWorks";
 import Features from "@/shared/components/landing/Features";

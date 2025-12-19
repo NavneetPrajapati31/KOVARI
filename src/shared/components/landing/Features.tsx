@@ -27,9 +27,9 @@ export default function Features() {
   ];
 
   return (
-    <section className="py-24">
-      <div className="container mx-auto px-8">
-        <div className="text-center mb-16">
+    <section className="py-16 sm:py-20 md:py-24">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8">
+        <div className="text-center mb-12 sm:mb-14 md:mb-16">
           {/* Eyebrow label */}
           <Button
             className="h-7 bg-card overflow-hidden border-none shadow-sm px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground mb-3"
@@ -41,37 +41,37 @@ export default function Features() {
           </Button>
 
           {/* Main heading */}
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight mb-3 sm:mb-4 px-4">
             Why Choose KOVARI
           </h2>
 
           {/* Subheading */}
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto px-4">
             Built for travelers who want more than WhatsApp groups and shared
             docs.
           </p>
         </div>
 
         <div className="max-w-8xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div
                   key={index}
-                  className="group relative rounded-3xl bg-card p-8 flex flex-col h-full"
+                  className="group relative rounded-3xl bg-card p-6 sm:p-8 flex flex-col h-full"
                 >
                   {/* Icon container */}
-                  <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-light text-primary">
-                    <IconComponent className="h-5 w-5" />
+                  <div className="mb-4 sm:mb-6 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-primary-light text-primary">
+                    <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
 
                   {/* Title and Description */}
-                  <div className="flex-1 flex flex-col space-y-3">
-                    <h3 className="text-lg font-semibold leading-tight">
+                  <div className="flex-1 flex flex-col space-y-2 sm:space-y-3">
+                    <h3 className="text-base sm:text-lg font-semibold leading-tight">
                       {feature.title}
                     </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
+                    <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                       {feature.description}
                     </p>
                   </div>

@@ -19,7 +19,7 @@ const HERO_DESCRIPTION =
   "KOVARI helps solo travelers, friends, and small groups match, plan trips together, and explore destinations safely — without chaos or guesswork.";
 
 const HERO_SECTION_CLASSES =
-  "z-20 flex flex-col items-center justify-center gap-[18px] sm:gap-6";
+  "z-20 flex flex-col items-center gap-[18px] sm:gap-6 sm:justify-center";
 
 export default function Hero() {
   const router = useRouter();
@@ -33,9 +33,9 @@ export default function Hero() {
   }, [router]);
 
   return (
-    <div className="relative flex h-full sm:h-[90vh] w-full flex-col sm:overflow-hidden overflow-x-hidden bg-background">
-      <main className="container mx-auto flex flex-1 flex-col items-center justify-center overflow-hidden px-8 py-8 mt-6 sm:mt-0">
-        <section className={HERO_SECTION_CLASSES}>
+    <section className="relative w-full sm:h-[90vh] sm:flex sm:flex-col sm:overflow-hidden overflow-x-hidden bg-background">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-20 md:py-24">
+        <div className={HERO_SECTION_CLASSES}>
           <Button
             className="h-7 bg-card overflow-hidden border-none shadow-sm px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground"
             // endContent={
@@ -123,26 +123,8 @@ export default function Hero() {
               </Button>
             </Link>
           </div>
-        </section>
-        <div className="pointer-events-none absolute inset-0 top-[-25%] z-10 scale-150 select-none sm:scale-125">
-          {/**
-           * If using in a nextjs project, use next/image instead of <img> in <FadeInImage>.
-           * Also pass the following additional props to <FadeInImage>.
-           *
-           * ```tsx
-           * <FadeInImage
-           *   fill
-           *   priority
-           *   // existing code...
-           * />
-           * ```
-           */}
-          {/* <FadeInImage
-          alt="Gradient background"
-          src="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/backgrounds/bg-gradient.png"
-        /> */}
         </div>
-      </main>
-    </div>
+      </div>
+    </section>
   );
 }

@@ -32,9 +32,9 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section className="py-24 bg-muted/20">
-      <div className="container mx-auto px-8">
-        <div className="text-center mb-16">
+    <section className="py-16 sm:py-20 md:py-24 bg-muted/20">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8">
+        <div className="text-center mb-12 sm:mb-14 md:mb-16">
           {/* Eyebrow label */}
           <Button
             className="h-7 bg-card overflow-hidden border-none shadow-sm px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground mb-3"
@@ -46,12 +46,12 @@ export default function HowItWorks() {
           </Button>
 
           {/* Main heading */}
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight mb-3 sm:mb-4 px-4">
             Plan, Match, and Travel — Together
           </h2>
 
           {/* Subheading */}
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto px-4">
             A simple flow designed to help you find the right people and plan
             better trips.
           </p>
@@ -60,23 +60,23 @@ export default function HowItWorks() {
         <div className="max-w-8xl mx-auto">
           {/* Steps container with visual flow connection */}
           <div className="relative">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-4 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 relative">
               {steps.map((step, index) => (
                 <div
                   key={step.number}
-                  className="group relative rounded-3xl bg-card p-8 text-center flex flex-col h-full"
+                  className="group relative rounded-3xl bg-card p-6 sm:p-8 text-center flex flex-col h-full"
                 >
                   {/* Step number - circular container at top center */}
-                  <div className="mx-auto mb-6 flex h-8 w-8 items-center justify-center rounded-full bg-primary-light text-sm font-semibold text-primary">
+                  <div className="mx-auto mb-4 sm:mb-6 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-primary-light text-xs sm:text-sm font-semibold text-primary">
                     {step.number}
                   </div>
 
                   {/* Title and Description */}
-                  <div className="flex-1 flex flex-col space-y-3">
-                    <h3 className="text-lg font-semibold leading-tight">
+                  <div className="flex-1 flex flex-col space-y-2 sm:space-y-3">
+                    <h3 className="text-base sm:text-lg font-semibold leading-tight">
                       {step.title}
                     </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
+                    <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                       {step.description}
                     </p>
                   </div>
