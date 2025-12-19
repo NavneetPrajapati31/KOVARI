@@ -27,7 +27,7 @@ export default function Audience() {
   ];
 
   return (
-    <section className="relative py-16 sm:py-20 md:py-24 bg-muted/40">
+    <section className="relative py-16 sm:py-20 md:py-24">
       <div className="container mx-auto px-4 sm:px-6 md:px-8">
         <div className="text-center mb-12 sm:mb-14 md:mb-16">
           {/* Eyebrow label */}

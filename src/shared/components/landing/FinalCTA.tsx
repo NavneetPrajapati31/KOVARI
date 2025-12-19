@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function FinalCTA() {
   return (
-    <section className="py-20 sm:py-24 md:py-28 bg-muted/40">
+    <section className="py-20 sm:py-24 md:py-28">
       <div className="container mx-auto px-4 sm:px-6 md:px-8">
         <div className="max-w-2xl mx-auto text-center px-4">
           {/* Heading */}
