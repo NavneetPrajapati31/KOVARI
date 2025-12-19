@@ -208,14 +208,14 @@ export default function App({
     <>
       {/* {isNavigating && <Spinner />} */}
       <Navbar
-        height={"4rem"}
+        height={"5rem"}
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}
         isMenuOpen={isMenuOpen}
         className="backdrop-blur-3xl border-border"
         classNames={{
-          wrapper: "max-w-full px-4",
+          wrapper: "max-w-full px-6",
         }}
       >
         <NavbarBrand>
@@ -225,7 +225,9 @@ export default function App({
             onClick={() => handleNavigation("/")}
           >
             {/* <AcmeLogo /> */}
-            <p className="font-bold text-xl text-inherit">KOVARI</p>
+            <p className="font-clash tracking-widest font-medium sm:text-xl text-md">
+              KOVARI
+            </p>
           </Link>
         </NavbarBrand>
 
