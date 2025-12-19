@@ -215,23 +215,11 @@ export default function App({
         isMenuOpen={isMenuOpen}
         className="backdrop-blur-3xl border-border"
         classNames={{
-          wrapper: "max-w-full px-6",
+          wrapper: "max-w-full px-8",
         }}
       >
-        <NavbarBrand>
-          <Link
-            href="/"
-            className="text-foreground !opacity-100"
-            onClick={() => handleNavigation("/")}
-          >
-            {/* <AcmeLogo /> */}
-            <p className="font-clash tracking-widest font-medium sm:text-xl text-md">
-              KOVARI
-            </p>
-          </Link>
-        </NavbarBrand>
-
-        <NavbarContent className="hidden md:flex gap-8" justify="center">
+        {/* Navigation Links - only visible on xl screens (>=1280px, close to 1300px) */}
+        <NavbarContent className="hidden xl:flex gap-10" justify="start">
           {navigationItems.map((item) => (
             <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
               <Link
@@ -239,7 +227,7 @@ export default function App({
                 color={"foreground"}
                 href={item.href}
                 onClick={() => handleNavigation(item.href)}
-                className={`text-sm font-semibold transition-all duration-300 ease-in-out flex items-center gap-2 ${
+                className={`text-sm font-medium transition-all duration-300 ease-in-out flex items-center gap-2 ${
                   isActiveRoute(item.href)
                     ? "text-primary"
                     : "hover:text-primary"
@@ -253,56 +241,72 @@ export default function App({
           ))}
         </NavbarContent>
 
+        {/* Logo - centered on xl screens, left-aligned on smaller screens */}
+        <NavbarBrand className="xl:absolute xl:left-1/2 xl:transform xl:-translate-x-1/2">
+          <Link
+            href="/"
+            className="text-foreground !opacity-100"
+            onClick={() => handleNavigation("/")}
+          >
+            {/* <AcmeLogo /> */}
+            <p className="font-clash tracking-widest font-medium sm:text-xl text-lg">
+              KOVARI
+            </p>
+          </Link>
+        </NavbarBrand>
+
         <NavbarContent as="div" justify="end">
           <div className="flex items-center gap-x-2">
-            {/* Avatar */}
-            {!isLoaded || profilePhotoLoading ? (
-              <Skeleton className="w-8 h-8 rounded-full" />
-            ) : isSignedIn ? (
-              <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
-                <DropdownMenuTrigger asChild>
-                  <Avatar
-                    isBordered
-                    as="button"
-                    className={"transition-transform"}
-                    color="secondary"
-                    name={user?.fullName || user?.username || "User"}
-                    size="sm"
-                    src={profilePhotoUrl || user?.imageUrl}
-                  />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
-                  {menuItems.map((item) => (
-                    <Link
-                      key={item.key}
-                      href={item.href}
-                      className="flex flex-col"
-                    >
-                      <DropdownMenuItem
+            {/* Avatar/Sign Up - only visible on xl screens (>=1280px) */}
+            <div className="hidden xl:block">
+              {!isLoaded || profilePhotoLoading ? (
+                <Skeleton className="w-8 h-8 rounded-full" />
+              ) : isSignedIn ? (
+                <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
+                  <DropdownMenuTrigger asChild>
+                    <Avatar
+                      isBordered
+                      as="button"
+                      className={"transition-transform"}
+                      color="secondary"
+                      name={user?.fullName || user?.username || "User"}
+                      size="sm"
+                      src={profilePhotoUrl || user?.imageUrl}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
+                    {menuItems.map((item) => (
+                      <Link
                         key={item.key}
-                        onClick={item.onClick}
-                        className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                        href={item.href}
+                        className="flex flex-col"
                       >
-                        {item.label}
-                      </DropdownMenuItem>
-                    </Link>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link href="/sign-up">
-                <Button className="px-6 h-9 bg-primary text-background rounded-lg">
-                  Sign Up
-                </Button>
-              </Link>
-            )}
-            {/* Hamburger */}
+                        <DropdownMenuItem
+                          key={item.key}
+                          onClick={item.onClick}
+                          className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                        >
+                          {item.label}
+                        </DropdownMenuItem>
+                      </Link>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link href="/sign-up">
+                  <Button className="px-6 h-9 bg-primary text-background rounded-full">
+                    Sign Up
+                  </Button>
+                </Link>
+              )}
+            </div>
+            {/* Hamburger - visible on screens < 1300px (xl breakpoint) */}
             <button
               type="button"
               aria-label={isMenuOpen ? "Close menu" : "Open menu"}
               {...(isMenuOpen && { "aria-expanded": true })}
               tabIndex={0}
-              className="w-10 h-10 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
+              className="w-10 h-10 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary xl:hidden"
               onClick={() => setIsMenuOpen((open) => !open)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -316,7 +320,7 @@ export default function App({
           </div>
         </NavbarContent>
 
-        <NavbarMenu className="md:hidden">
+        <NavbarMenu className="xl:hidden">
           {navigationItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>
               <Link
