@@ -21,7 +21,11 @@ const HERO_DESCRIPTION =
 const HERO_SECTION_CLASSES =
   "z-20 flex flex-col items-center gap-[28px] sm:gap-6 sm:justify-center";
 
-export default function Hero() {
+interface HeroProps {
+  onJoinWaitlist?: () => void;
+}
+
+export default function Hero({ onJoinWaitlist }: HeroProps) {
   const router = useRouter();
 
   const handleStartPlanning = useCallback(() => {
@@ -31,6 +35,14 @@ export default function Hero() {
   const handleFindTravelers = useCallback(() => {
     router.push("/explore");
   }, [router]);
+
+  const handleJoinWaitlist = useCallback(() => {
+    if (onJoinWaitlist) {
+      onJoinWaitlist();
+    } else {
+      router.push("/waitlist");
+    }
+  }, [onJoinWaitlist, router]);
 
   return (
     <section className="relative w-full sm:flex sm:flex-col sm:overflow-hidden overflow-x-hidden bg-background">
@@ -92,16 +104,15 @@ export default function Hero() {
                 Find Travelers
               </Button>
             </Link> */}
-            <Link href="/waitlist">
-              <Button
-                className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold leading-5 w-full sm:w-auto"
-                radius="full"
-                variant="solid"
-                aria-label="Join the Waitlist"
-              >
-                Join the Waitlist
-              </Button>
-            </Link>
+            <Button
+              className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold leading-5 w-full sm:w-auto"
+              radius="full"
+              variant="solid"
+              aria-label="Join the Waitlist"
+              onPress={handleJoinWaitlist}
+            >
+              Join the Waitlist
+            </Button>
           </div>
         </div>
       </div>
