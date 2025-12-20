@@ -10,6 +10,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@heroui/react";
+import { toast } from "sonner";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -40,17 +41,35 @@ export default function WaitlistModal({
 
     setIsSubmitting(true);
     try {
-      // TODO: Implement API call to submit waitlist form
-      console.log("Submitting waitlist:", { email });
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle error responses
+        const errorMessage =
+          data.error || "Failed to join waitlist. Please try again.";
+        toast.error(errorMessage);
+        return;
+      }
+
+      // Success
+      toast.success("Successfully joined the waitlist!", {
+        description: "We'll notify you when KOVARI is ready.",
+      });
 
       // Close modal and reset form on success
       onOpenChange(false);
       setEmail("");
     } catch (error) {
       console.error("Error submitting waitlist:", error);
+      toast.error("An unexpected error occurred. Please try again later.");
     } finally {
       setIsSubmitting(false);
     }
