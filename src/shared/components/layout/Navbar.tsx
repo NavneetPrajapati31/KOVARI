@@ -304,11 +304,8 @@ export default function App({
                 </DropdownMenu>
               ) : (
                 <Link href="/sign-in">
-                  <Button
-                    variant="ghost"
-                    className="px-4 h-9 text-foreground hover:text-primary"
-                  >
-                    Sign In
+                  <Button variant="default" className="px-4 h-9 rounded-full">
+                    Log In
                   </Button>
                 </Link>
               )}
