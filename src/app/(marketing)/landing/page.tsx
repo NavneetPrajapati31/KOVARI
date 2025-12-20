@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import Hero from "@/shared/components/landing/Hero";
 import Audience from "@/shared/components/landing/Audience";
 import HowItWorks from "@/shared/components/landing/HowItWorks";
@@ -16,6 +17,20 @@ export default function HomePage() {
   // Get all top picks destinations
   const allDestinations = getAllDestinations();
   const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
+
+  // Track page view on mount
+  useEffect(() => {
+    Sentry.startSpan(
+      {
+        op: "navigation",
+        name: "Landing Page View",
+      },
+      (span) => {
+        span.setAttribute("page", "landing");
+        span.setAttribute("path", "/landing");
+      }
+    );
+  }, []);
 
   return (
     <div className="min-h-screen">

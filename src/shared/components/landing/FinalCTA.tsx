@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@heroui/react";
 
 interface FinalCTAProps {
@@ -8,6 +9,23 @@ interface FinalCTAProps {
 }
 
 export default function FinalCTA({ onJoinWaitlist }: FinalCTAProps) {
+  const handleJoinWaitlistClick = useCallback(() => {
+    Sentry.startSpan(
+      {
+        op: "ui.click",
+        name: "Join the Waitlist Button Click",
+      },
+      (span) => {
+        span.setAttribute("button_location", "final_cta");
+        span.setAttribute("action", "open_waitlist_modal");
+
+        if (onJoinWaitlist) {
+          onJoinWaitlist();
+        }
+      }
+    );
+  }, [onJoinWaitlist]);
+
   return (
     <section className="py-20 sm:py-24 md:py-28">
       <div className="container mx-auto px-4 sm:px-6 md:px-8">
@@ -28,7 +46,7 @@ export default function FinalCTA({ onJoinWaitlist }: FinalCTAProps) {
             radius="full"
             variant="solid"
             aria-label="Join the Waitlist"
-            onPress={onJoinWaitlist}
+            onPress={handleJoinWaitlistClick}
           >
             Join the Waitlist
           </Button>
