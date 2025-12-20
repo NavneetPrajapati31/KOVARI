@@ -45,7 +45,7 @@ export default function Audience() {
             variant="bordered"
             aria-label="Social Travel, Done Right"
           >
-            WHO IT'S FOR
+            WHO IT&apos;S FOR
           </Button>
 
           {/* Main heading */}
