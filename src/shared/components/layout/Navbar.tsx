@@ -11,9 +11,6 @@ import {
   Dropdown,
   // DropdownMenu,
   Avatar,
-  NavbarMenuToggle,
-  NavbarMenuItem,
-  NavbarMenu,
   Skeleton,
 } from "@heroui/react";
 import {
@@ -26,15 +23,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Compass,
-  MessageCircle,
-  Users,
-  LayoutDashboard,
-  Menu,
-} from "lucide-react";
+import { Compass, MessageCircle } from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
+import SidebarMenu from "./sidebar-menu";
+import { motion } from "framer-motion";
+import WaitlistModal from "../landing/WaitlistModal";
 
 export const AcmeLogo = () => {
   return (
@@ -49,24 +43,6 @@ export const AcmeLogo = () => {
   );
 };
 
-// Custom Hamburger Icon
-const HamburgerIcon = () => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-label="Open menu"
-    role="img"
-    className="text-black"
-  >
-    <rect y="5" width="20" height="1.5" rx="1" fill="currentColor" />
-    <rect y="11" width="20" height="1.5" rx="1" fill="currentColor" />
-    <rect y="17" width="20" height="1.5" rx="1" fill="currentColor" />
-  </svg>
-);
-
 export default function App({
   onAvatarMenuOpenChange,
 }: {
@@ -74,6 +50,8 @@ export default function App({
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
@@ -151,11 +129,10 @@ export default function App({
     return pathname === href;
   };
 
+  // MVP/Waitlist phase navigation - simplified for launch
   const navigationItems = [
+    { name: "How It Works", href: "#how-it-works", icon: MessageCircle },
     { name: "Features", href: "#features", icon: Compass },
-    { name: "How It Works", href: "#working", icon: MessageCircle },
-    { name: "Pricing", href: "/pricing", icon: Users },
-    { name: "About Us", href: "/about-us", icon: LayoutDashboard },
   ];
 
   const menuItems = [
@@ -204,32 +181,55 @@ export default function App({
     },
   ];
 
+  const handleJoinWaitlist = () => {
+    setIsWaitlistModalOpen(true);
+  };
+
+  // Prepare sidebar menu items for MVP
+  const sidebarMenuItems = [
+    ...navigationItems.map((item) => ({
+      label: item.name,
+      href: item.href,
+      icon: item.icon,
+    })),
+    {
+      label: "Join Waitlist",
+      href: "#",
+      onClick: () => {
+        setIsSidebarOpen(false);
+        handleJoinWaitlist();
+      },
+    },
+  ];
+
   return (
     <>
+      {/* Waitlist Modal */}
+      <WaitlistModal
+        open={isWaitlistModalOpen}
+        onOpenChange={setIsWaitlistModalOpen}
+      />
+
+      {/* Sidebar Menu Overlay */}
+      <SidebarMenu
+        open={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        menuItems={sidebarMenuItems}
+      />
+
       {/* {isNavigating && <Spinner />} */}
       <Navbar
-        height={"4rem"}
+        height={"5rem"}
         shouldHideOnScroll
         isBordered
         onMenuOpenChange={setIsMenuOpen}
-        isMenuOpen={isMenuOpen}
         className="backdrop-blur-3xl border-border"
         classNames={{
-          wrapper: "max-w-full px-4",
+          wrapper: "max-w-full px-8",
         }}
       >
-        <NavbarBrand>
-          <Link
-            href="/"
-            className="text-foreground !opacity-100"
-            onClick={() => handleNavigation("/")}
-          >
-            {/* <AcmeLogo /> */}
-            <p className="font-bold text-xl text-inherit">KOVARI</p>
-          </Link>
-        </NavbarBrand>
-
-        <NavbarContent className="hidden md:flex gap-8" justify="center">
+        {/* Navigation Links - only visible on xl screens (>=1280px, close to 1300px) */}
+        <NavbarContent className="hidden xl:flex gap-10" justify="start">
           {navigationItems.map((item) => (
             <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
               <Link
@@ -237,7 +237,7 @@ export default function App({
                 color={"foreground"}
                 href={item.href}
                 onClick={() => handleNavigation(item.href)}
-                className={`text-sm font-semibold transition-all duration-300 ease-in-out flex items-center gap-2 ${
+                className={`text-sm font-medium transition-all duration-300 ease-in-out flex items-center gap-2 ${
                   isActiveRoute(item.href)
                     ? "text-primary"
                     : "hover:text-primary"
@@ -251,85 +251,104 @@ export default function App({
           ))}
         </NavbarContent>
 
+        {/* Logo - centered on xl screens, left-aligned on smaller screens */}
+        <NavbarBrand className="xl:absolute xl:left-1/2 xl:transform xl:-translate-x-1/2">
+          <Link
+            href="/"
+            className="text-foreground !opacity-100"
+            onClick={() => handleNavigation("/")}
+          >
+            {/* <AcmeLogo /> */}
+            <p className="font-clash tracking-widest font-medium sm:text-xl text-lg">
+              KOVARI
+            </p>
+          </Link>
+        </NavbarBrand>
+
         <NavbarContent as="div" justify="end">
-          <div className="flex items-center gap-x-2">
-            {/* Avatar */}
-            {!isLoaded || profilePhotoLoading ? (
-              <Skeleton className="w-8 h-8 rounded-full" />
-            ) : isSignedIn ? (
-              <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
-                <DropdownMenuTrigger asChild>
-                  <Avatar
-                    isBordered
-                    as="button"
-                    className={"transition-transform"}
-                    color="secondary"
-                    name={user?.fullName || user?.username || "User"}
-                    size="sm"
-                    src={profilePhotoUrl || user?.imageUrl}
-                  />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
-                  {menuItems.map((item) => (
-                    <Link
-                      key={item.key}
-                      href={item.href}
-                      className="flex flex-col"
-                    >
-                      <DropdownMenuItem
+          <div className="flex items-center gap-x-3">
+            {/* Avatar/Sign In - only visible on xl screens (>=1280px) */}
+            <div className="hidden xl:flex items-center gap-x-3">
+              {!isLoaded || profilePhotoLoading ? (
+                <Skeleton className="w-8 h-8 rounded-full" />
+              ) : isSignedIn ? (
+                <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
+                  <DropdownMenuTrigger asChild>
+                    <Avatar
+                      isBordered
+                      as="button"
+                      className={"transition-transform"}
+                      color="secondary"
+                      name={user?.fullName || user?.username || "User"}
+                      size="sm"
+                      src={profilePhotoUrl || user?.imageUrl}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
+                    {menuItems.map((item) => (
+                      <Link
                         key={item.key}
-                        onClick={item.onClick}
-                        className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                        href={item.href}
+                        className="flex flex-col"
                       >
-                        {item.label}
-                      </DropdownMenuItem>
-                    </Link>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link href="/sign-up">
-                <Button className="px-6 h-9 bg-primary text-background rounded-lg">
-                  Sign Up
-                </Button>
-              </Link>
-            )}
-            {/* Hamburger */}
+                        <DropdownMenuItem
+                          key={item.key}
+                          onClick={item.onClick}
+                          className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                        >
+                          {item.label}
+                        </DropdownMenuItem>
+                      </Link>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link href="/sign-in">
+                  <Button variant="default" className="px-4 h-9 rounded-full">
+                    Log In
+                  </Button>
+                </Link>
+              )}
+            </div>
+            {/* Hamburger - visible on screens < 1300px (xl breakpoint) */}
             <button
               type="button"
-              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-              aria-pressed={isMenuOpen}
-              tabIndex={0}
-              className="w-10 h-10 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
-              onClick={() => setIsMenuOpen((open) => !open)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  setIsMenuOpen((open) => !open);
-                }
-              }}
+              onClick={() => setIsSidebarOpen(true)}
+              className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none xl:hidden"
+              aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
             >
-              {/* <Menu className="w-6 h-6 text-black" /> */}
-              <HamburgerIcon />
+              <div className="relative w-6 h-4 flex flex-col justify-center items-center">
+                {/* Top line */}
+                <motion.div
+                  className="w-4 h-[1.5px] bg-black absolute"
+                  animate={{
+                    rotate: isSidebarOpen ? 45 : 0,
+                    y: isSidebarOpen ? 0 : -2,
+                  }}
+                  transition={{
+                    duration: 0.3,
+                    ease: "easeInOut",
+                  }}
+                />
+                {/* Bottom line */}
+                <motion.div
+                  className="w-4 h-[1.5px] bg-black absolute"
+                  animate={{
+                    rotate: isSidebarOpen ? -45 : 0,
+                    y: isSidebarOpen ? 0 : 2,
+                  }}
+                  transition={{
+                    duration: 0.3,
+                    ease: "easeInOut",
+                  }}
+                />
+              </div>
+              <span className="sm:text-sm text-xs font-medium uppercase select-none">
+                MENU
+              </span>
             </button>
           </div>
         </NavbarContent>
-
-        <NavbarMenu className="md:hidden">
-          {navigationItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <Link
-                className="w-full flex items-center gap-3"
-                color={"foreground"}
-                href={item.href}
-                onClick={() => handleNavigation(item.href)}
-                size="md"
-              >
-                {/* <item.icon className="w-4 h-4" /> */}
-                {item.name}
-              </Link>
-            </NavbarMenuItem>
-          ))}
-        </NavbarMenu>
       </Navbar>
     </>
   );
