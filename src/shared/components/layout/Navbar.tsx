@@ -23,11 +23,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
-import { Compass, MessageCircle, Users, LayoutDashboard } from "lucide-react";
+import { Compass, MessageCircle } from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
 import SidebarMenu from "./sidebar-menu";
 import { motion } from "framer-motion";
+import WaitlistModal from "../landing/WaitlistModal";
 
 export const AcmeLogo = () => {
   return (
@@ -50,6 +51,7 @@ export default function App({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
@@ -127,11 +129,10 @@ export default function App({
     return pathname === href;
   };
 
+  // MVP/Waitlist phase navigation - simplified for launch
   const navigationItems = [
+    { name: "How It Works", href: "#how-it-works", icon: MessageCircle },
     { name: "Features", href: "#features", icon: Compass },
-    { name: "How It Works", href: "#working", icon: MessageCircle },
-    { name: "Pricing", href: "/pricing", icon: Users },
-    { name: "About Us", href: "/about-us", icon: LayoutDashboard },
   ];
 
   const menuItems = [
@@ -180,17 +181,40 @@ export default function App({
     },
   ];
 
+  const handleJoinWaitlist = () => {
+    setIsWaitlistModalOpen(true);
+  };
+
+  // Prepare sidebar menu items for MVP
+  const sidebarMenuItems = [
+    ...navigationItems.map((item) => ({
+      label: item.name,
+      href: item.href,
+      icon: item.icon,
+    })),
+    {
+      label: "Join Waitlist",
+      href: "#",
+      onClick: () => {
+        setIsSidebarOpen(false);
+        handleJoinWaitlist();
+      },
+    },
+  ];
+
   return (
     <>
+      {/* Waitlist Modal */}
+      <WaitlistModal
+        open={isWaitlistModalOpen}
+        onOpenChange={setIsWaitlistModalOpen}
+      />
+
       {/* Sidebar Menu Overlay */}
       <SidebarMenu
         open={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        menuItems={navigationItems.map((item) => ({
-          label: item.name,
-          href: item.href,
-          icon: item.icon,
-        }))}
+        menuItems={sidebarMenuItems}
       />
 
       {/* {isNavigating && <Spinner />} */}
@@ -242,9 +266,9 @@ export default function App({
         </NavbarBrand>
 
         <NavbarContent as="div" justify="end">
-          <div className="flex items-center gap-x-2">
-            {/* Avatar/Sign Up - only visible on xl screens (>=1280px) */}
-            <div className="hidden xl:block">
+          <div className="flex items-center gap-x-3">
+            {/* Avatar/Sign In - only visible on xl screens (>=1280px) */}
+            <div className="hidden xl:flex items-center gap-x-3">
               {!isLoaded || profilePhotoLoading ? (
                 <Skeleton className="w-8 h-8 rounded-full" />
               ) : isSignedIn ? (
@@ -279,9 +303,12 @@ export default function App({
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Link href="/sign-up">
-                  <Button className="px-6 h-9 bg-primary text-background rounded-full">
-                    Sign Up
+                <Link href="/sign-in">
+                  <Button
+                    variant="ghost"
+                    className="px-4 h-9 text-foreground hover:text-primary"
+                  >
+                    Sign In
                   </Button>
                 </Link>
               )}

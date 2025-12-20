@@ -17,6 +17,7 @@ interface MenuItem {
   label: string;
   href: string;
   icon?: React.ElementType;
+  onClick?: () => void;
 }
 
 interface SidebarMenuProps {
@@ -152,21 +153,29 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
                 },
               }}
             >
-              <Link
-                href={item.href}
-                tabIndex={0}
-                aria-label={item.label}
-                className={`text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 ${index !== menuItems.length - 1 ? "border-b border-border pb-4" : ""}`}
-                onClick={onClose}
-              >
-                {/* {item.icon && (
-                  <item.icon
-                    className="w-8 h-8 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                )} */}
-                {item.label}
-              </Link>
+              {item.onClick ? (
+                <button
+                  onClick={() => {
+                    item.onClick?.();
+                    onClose();
+                  }}
+                  tabIndex={0}
+                  aria-label={item.label}
+                  className={`text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 w-full text-left ${index !== menuItems.length - 1 ? "border-b border-border pb-4" : ""}`}
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <Link
+                  href={item.href}
+                  tabIndex={0}
+                  aria-label={item.label}
+                  className={`text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 ${index !== menuItems.length - 1 ? "border-b border-border pb-4" : ""}`}
+                  onClick={onClose}
+                >
+                  {item.label}
+                </Link>
+              )}
             </motion.div>
           ))}
         </motion.nav>
