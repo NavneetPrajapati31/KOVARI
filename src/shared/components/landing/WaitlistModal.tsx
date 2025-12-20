@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +59,19 @@ export default function WaitlistModal({
         toast.error(errorMessage);
         return;
       }
+
+      // Track successful waitlist submission
+      Sentry.startSpan(
+        {
+          op: "waitlist.submit",
+          name: "Waitlist Submission Success",
+        },
+        (span) => {
+          span.setAttribute("success", true);
+          span.setAttribute("email_domain", email.split("@")[1] || "unknown");
+          span.setAttribute("waitlist_id", data.data?.id || "unknown");
+        }
+      );
 
       // Success
       toast.success("Successfully joined the waitlist!", {

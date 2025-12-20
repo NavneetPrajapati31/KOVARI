@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
@@ -37,11 +38,22 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
   }, [router]);
 
   const handleJoinWaitlist = useCallback(() => {
-    if (onJoinWaitlist) {
-      onJoinWaitlist();
-    } else {
-      router.push("/waitlist");
-    }
+    Sentry.startSpan(
+      {
+        op: "ui.click",
+        name: "Join the Waitlist Button Click",
+      },
+      (span) => {
+        span.setAttribute("button_location", "hero");
+        span.setAttribute("action", "open_waitlist_modal");
+
+        if (onJoinWaitlist) {
+          onJoinWaitlist();
+        } else {
+          router.push("/waitlist");
+        }
+      }
+    );
   }, [onJoinWaitlist, router]);
 
   return (
