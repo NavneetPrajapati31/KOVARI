@@ -112,7 +112,6 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
         side="right"
         className="p-0 w-full max-w-[420px] bg-card flex flex-col h-screen"
         overlayClassName="backdrop-blur-sm"
-        // Sidebar and overlay now cover the full viewport
       >
         <SheetTitle className="sr-only">Main Menu</SheetTitle>
         {/* Header */}
