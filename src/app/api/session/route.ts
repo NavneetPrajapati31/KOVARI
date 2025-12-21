@@ -9,6 +9,7 @@ import { getUserProfile } from "../../../lib/supabase";
 import { SoloSession, StaticAttributes } from "../../../types";
 import redis, { ensureRedisConnection } from "../../../lib/redis";
 import { getSetting } from "../../../lib/settings";
+import * as Sentry from "@sentry/nextjs";
 
 // Mock user data for testing
 const mockUsers = {
@@ -340,13 +341,36 @@ export async function POST(request: NextRequest) {
     } else {
       // Get from Supabase for real users
       userProfile = await getUserProfile(userId);
-    }
 
-    if (!userProfile || !(userProfile as any).location) {
-      return NextResponse.json(
-        { message: "User profile or home location not found." },
-        { status: 404 }
-      );
+      // If user profile not found, provide helpful error message
+      if (!userProfile) {
+        console.error(`User profile not found for Clerk ID: ${userId}`);
+        return NextResponse.json(
+          {
+            message:
+              "User profile not found. Please complete your profile setup first.",
+            error: "PROFILE_NOT_FOUND",
+            hint: "Visit /onboarding to complete your profile",
+          },
+          { status: 404 }
+        );
+      }
+
+      // Check if user has required location data
+      if (!(userProfile as any).location) {
+        console.error(
+          `User profile found but missing location for Clerk ID: ${userId}`
+        );
+        return NextResponse.json(
+          {
+            message:
+              "User profile is incomplete. Please add your home location in your profile settings.",
+            error: "PROFILE_INCOMPLETE",
+            hint: "Visit /profile/edit to update your profile",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // 3. Construct the session object - ONLY dynamic attributes in Redis
@@ -391,8 +415,14 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error in /api/session:", error);
+    Sentry.captureException(error, {
+      tags: { endpoint: "/api/session", action: "session_creation" },
+    });
     return NextResponse.json(
-      { message: "Internal Server Error" },
+      {
+        message: "Internal Server Error",
+        error: "INTERNAL_ERROR",
+      },
       { status: 500 }
     );
   }

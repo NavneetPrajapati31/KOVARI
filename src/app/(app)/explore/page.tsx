@@ -52,7 +52,7 @@ export default function ExplorePage() {
   useEffect(() => {
     const newDestination = getPrefilledDestination();
     if (newDestination && newDestination !== searchData.destination) {
-      setSearchData(prev => ({ ...prev, destination: newDestination }));
+      setSearchData((prev) => ({ ...prev, destination: newDestination }));
     }
   }, [searchParams, searchData.destination]);
 
@@ -66,20 +66,20 @@ export default function ExplorePage() {
 
   // Prevent body scrolling when component mounts
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     };
   }, []);
 
   // Sync travelMode with activeTab when it changes
   useEffect(() => {
-    setSearchData(prev => ({
+    setSearchData((prev) => ({
       ...prev,
-      travelMode: activeTab === 0 ? "solo" : "group"
+      travelMode: activeTab === 0 ? "solo" : "group",
     }));
   }, [activeTab]);
 
@@ -90,7 +90,8 @@ export default function ExplorePage() {
     return (
       newSearchData.destination !== lastSearchData.destination ||
       newSearchData.budget !== lastSearchData.budget ||
-      newSearchData.startDate.getTime() !== lastSearchData.startDate.getTime() ||
+      newSearchData.startDate.getTime() !==
+        lastSearchData.startDate.getTime() ||
       newSearchData.endDate.getTime() !== lastSearchData.endDate.getTime()
     );
   };
@@ -98,9 +99,9 @@ export default function ExplorePage() {
   const handleSearch = () => {
     const fullSearchData: SearchData = {
       ...searchData,
-      travelMode: activeTab === 0 ? "solo" : "group"
+      travelMode: activeTab === 0 ? "solo" : "group",
     };
-    
+
     if (!hasSearchDataChanged(fullSearchData)) {
       console.log("Search data unchanged, skipping search");
       return;
@@ -140,11 +141,25 @@ export default function ExplorePage() {
         });
 
         if (!sessionResponse.ok) {
-          throw new Error("Failed to create session");
+          const errorData = await sessionResponse.json().catch(() => ({}));
+          const errorMessage = errorData.message || "Failed to create session";
+          const errorHint = errorData.hint || "";
+
+          // Provide helpful error message based on error type
+          if (
+            errorData.error === "PROFILE_NOT_FOUND" ||
+            errorData.error === "PROFILE_INCOMPLETE"
+          ) {
+            throw new Error(
+              `${errorMessage}${errorHint ? ` ${errorHint}` : ""}`
+            );
+          }
+
+          throw new Error(errorMessage);
         }
 
         // Add a small delay to ensure Redis session is fully committed
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         // Step 2: Get solo matches using enhanced matching
         const soloMatchesRes = await fetch(`/api/match-solo?userId=${userId}`);
@@ -153,24 +168,28 @@ export default function ExplorePage() {
           console.log("Solo matches found:", soloMatches.length);
 
           // Convert solo matches to group-like format for display
-          const soloMatchesAsGroups = soloMatches.map((match: any, index: number) => ({
-            id: `solo-${index}`,
-            name: `${match.user.name || match.user.full_name || 'Traveler'} - ${match.destination}`,
-            destination: match.destination,
-            budget: match.user.budget || 'Not specified',
-            start_date: fullSearchData.startDate,
-            end_date: fullSearchData.endDate,
-            compatibility_score: Math.round(match.score * 100),
-            budget_difference: match.budgetDifference,
-            user: {
-              ...match.user,
-              interests: Array.isArray(match.commonInterests) && match.commonInterests.length > 0
-                ? match.commonInterests
-                : match.user?.interests
-            },
-            is_solo_match: true
-          }));
-          
+          const soloMatchesAsGroups = soloMatches.map(
+            (match: any, index: number) => ({
+              id: `solo-${index}`,
+              name: `${match.user.name || match.user.full_name || "Traveler"} - ${match.destination}`,
+              destination: match.destination,
+              budget: match.user.budget || "Not specified",
+              start_date: fullSearchData.startDate,
+              end_date: fullSearchData.endDate,
+              compatibility_score: Math.round(match.score * 100),
+              budget_difference: match.budgetDifference,
+              user: {
+                ...match.user,
+                interests:
+                  Array.isArray(match.commonInterests) &&
+                  match.commonInterests.length > 0
+                    ? match.commonInterests
+                    : match.user?.interests,
+              },
+              is_solo_match: true,
+            })
+          );
+
           setMatchedGroups(soloMatchesAsGroups);
           setCurrentGroupIndex(0);
           setLastSearchData(fullSearchData);
@@ -193,11 +212,12 @@ export default function ExplorePage() {
           interests: filters.interests,
           smoking: filters.smoking === "Yes",
           drinking: filters.drinking === "Yes",
-          nationality: filters.nationality !== "Any" ? filters.nationality : "Unknown",
+          nationality:
+            filters.nationality !== "Any" ? filters.nationality : "Unknown",
         };
-        
+
         console.log("Request body for group search:", requestBody);
-        
+
         const res = await fetch("/api/match-groups", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -207,7 +227,7 @@ export default function ExplorePage() {
         console.log("Response status:", res.status);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
-        
+
         console.log("API Response for groups:", data);
 
         // Transform the API response to match GroupMatchCard's expected format
@@ -233,7 +253,7 @@ export default function ExplorePage() {
           distance: group.distance,
           tags: group.tags || [],
         }));
-        
+
         console.log("Transformed groups:", transformedGroups);
 
         setMatchedGroups(transformedGroups);
@@ -257,7 +277,7 @@ export default function ExplorePage() {
   }, [activeTab]);
 
   const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   // Navigation functions
@@ -290,8 +310,19 @@ export default function ExplorePage() {
     handleNextGroup();
   };
 
-  const handleComment = async (matchId: string, attribute: string, comment: string) => {
-    console.log("Commenting on", attribute, "for traveler:", matchId, "Comment:", comment);
+  const handleComment = async (
+    matchId: string,
+    attribute: string,
+    comment: string
+  ) => {
+    console.log(
+      "Commenting on",
+      attribute,
+      "for traveler:",
+      matchId,
+      "Comment:",
+      comment
+    );
     // TODO: Implement comment logic
   };
 
