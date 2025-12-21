@@ -1,14 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  KeyboardEvent,
+} from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { Button } from "@/shared/components/ui/button";
 import { ExploreSidebar } from "@/features/explore/components/ExploreSidebar";
 import { ResultsDisplay } from "@/features/explore/components/ResultsDisplay";
 import { SearchData, Filters } from "@/features/explore/types";
 
+const EXPLORE_TABS = [
+  { label: "Solo Travel", value: "solo" },
+  { label: "Group Travel", value: "groups" },
+] as const;
+
 export default function ExplorePage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { user } = useUser();
 
   // Get pre-filled destination from URL
@@ -16,8 +29,27 @@ export default function ExplorePage() {
     return searchParams.get("destination") || "";
   };
 
-  // State management
-  const [activeTab, setActiveTab] = useState(0);
+  // Get tab index from URL
+  const getTabIndex = useCallback(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "groups") return 1;
+    return 0; // Default to solo
+  }, [searchParams]);
+
+  // State management - initialize from URL
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "groups") return 1;
+    return 0;
+  });
+
+  // Sync activeTab with URL params
+  useEffect(() => {
+    const tabIndex = getTabIndex();
+    if (activeTab !== tabIndex) {
+      setActiveTab(tabIndex);
+    }
+  }, [searchParams, getTabIndex, activeTab]);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [matchedGroups, setMatchedGroups] = useState<any[]>([]);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
@@ -64,10 +96,10 @@ export default function ExplorePage() {
     };
   }, [isPageLoading]);
 
-  // Prevent body scrolling when component mounts
+  // Allow body scrolling for the new layout
   useEffect(() => {
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "auto";
+    document.documentElement.style.overflow = "auto";
 
     return () => {
       document.body.style.overflow = "";
@@ -82,6 +114,64 @@ export default function ExplorePage() {
       travelMode: activeTab === 0 ? "solo" : "group",
     }));
   }, [activeTab]);
+
+  // Handle tab change with URL sync
+  const handleTabChange = useCallback(
+    (index: number) => {
+      if (index !== activeTab) {
+        setActiveTab(index);
+        const tabValue = EXPLORE_TABS[index].value;
+        router.push(`/explore?tab=${tabValue}`, { scroll: false });
+      }
+    },
+    [activeTab, router]
+  );
+
+  // Keyboard navigation for tabs
+  const handleTabKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        handleTabChange((activeTab + 1) % EXPLORE_TABS.length);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        handleTabChange(
+          (activeTab - 1 + EXPLORE_TABS.length) % EXPLORE_TABS.length
+        );
+      } else if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleTabChange(index);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        handleTabChange(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        handleTabChange(EXPLORE_TABS.length - 1);
+      }
+    },
+    [activeTab, handleTabChange]
+  );
+
+  // Tab buttons with groups layout styling
+  const tabButtons = useMemo(
+    () =>
+      EXPLORE_TABS.map((tab, idx) => (
+        <Button
+          key={tab.value}
+          variant={"outline"}
+          className={`text-xs sm:text-sm ${
+            activeTab === idx
+              ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
+              : "text-foreground/80 font-semibold bg-transparent rounded-2xl hover:text-primary"
+          }`}
+          onClick={() => handleTabChange(idx)}
+          onKeyDown={(e) => handleTabKeyDown(e, idx)}
+        >
+          {tab.label}
+        </Button>
+      )),
+    [activeTab, handleTabChange, handleTabKeyDown]
+  );
 
   // Helper function to check if search data has changed
   const hasSearchDataChanged = (newSearchData: SearchData): boolean => {
@@ -353,39 +443,52 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* Left Sidebar */}
-      <ExploreSidebar
-        activeTab={activeTab}
-        searchData={searchData}
-        filters={filters}
-        searchLoading={searchLoading}
-        onTabChange={setActiveTab}
-        onSearchDataChange={setSearchData}
-        onSearch={handleSearch}
-        onFilterChange={handleFilterChange}
-      />
+    <div className="min-h-screen p-4">
+      <div className="max-w-[1920px] mx-auto flex flex-col gap-4">
+        {/* Tabs Header - Outside containers like groups layout */}
+        <header>
+          <div className="flex gap-2 flex-shrink-0">{tabButtons}</div>
+        </header>
 
-      {/* Right Content Area */}
-      <ResultsDisplay
-        activeTab={activeTab}
-        matchedGroups={matchedGroups}
-        currentGroupIndex={currentGroupIndex}
-        searchLoading={searchLoading}
-        searchError={searchError}
-        lastSearchData={lastSearchData}
-        onPreviousGroup={handlePreviousGroup}
-        onNextGroup={handleNextGroup}
-        onConnect={handleConnect}
-        onSuperLike={handleSuperLike}
-        onPass={handlePass}
-        onComment={handleComment}
-        onViewProfile={handleViewProfile}
-        onJoinGroup={handleJoinGroup}
-        onRequestJoin={handleRequestJoin}
-        onPassGroup={handlePassGroup}
-        onViewGroup={handleViewGroup}
-      />
+        {/* Main Content Area */}
+        <div className="flex-1 flex gap-3 h-[calc(100vh-8rem)] md:h-[calc(100vh-9rem)] lg:h-[calc(100vh-10rem)]">
+          {/* Left Sidebar - Rounded Container */}
+          <div className="w-full md:w-[400px] lg:w-[420px] flex-shrink-0 rounded-3xl bg-card border-1 border-border overflow-hidden flex flex-col">
+            <ExploreSidebar
+              activeTab={activeTab}
+              searchData={searchData}
+              filters={filters}
+              searchLoading={searchLoading}
+              onSearchDataChange={setSearchData}
+              onSearch={handleSearch}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+
+          {/* Right Content Area - Rounded Container */}
+          <div className="flex-1 bg-card rounded-3xl border-1 border-border overflow-hidden flex flex-col">
+            <ResultsDisplay
+              activeTab={activeTab}
+              matchedGroups={matchedGroups}
+              currentGroupIndex={currentGroupIndex}
+              searchLoading={searchLoading}
+              searchError={searchError}
+              lastSearchData={lastSearchData}
+              onPreviousGroup={handlePreviousGroup}
+              onNextGroup={handleNextGroup}
+              onConnect={handleConnect}
+              onSuperLike={handleSuperLike}
+              onPass={handlePass}
+              onComment={handleComment}
+              onViewProfile={handleViewProfile}
+              onJoinGroup={handleJoinGroup}
+              onRequestJoin={handleRequestJoin}
+              onPassGroup={handlePassGroup}
+              onViewGroup={handleViewGroup}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

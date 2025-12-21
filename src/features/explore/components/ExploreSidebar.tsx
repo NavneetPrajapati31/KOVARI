@@ -1,6 +1,5 @@
 "use client";
 
-import { TabSelector } from "./TabSelector";
 import { SearchForm } from "./SearchForm";
 import { FiltersPanel } from "./FiltersPanel";
 import { SearchData, Filters } from "../types";
@@ -10,7 +9,6 @@ interface ExploreSidebarProps {
   searchData: SearchData;
   filters: Filters;
   searchLoading: boolean;
-  onTabChange: (index: number) => void;
   onSearchDataChange: (data: SearchData) => void;
   onSearch: () => void;
   onFilterChange: (key: string, value: any) => void;
@@ -21,31 +19,32 @@ export const ExploreSidebar = ({
   searchData,
   filters,
   searchLoading,
-  onTabChange,
   onSearchDataChange,
   onSearch,
   onFilterChange,
 }: ExploreSidebarProps) => {
   return (
-    <div className="w-1/4 bg-background border-r border-gray-200 flex flex-col">
-      {/* Tab Selector */}
-      <TabSelector activeTab={activeTab} onTabChange={onTabChange} />
-
+    <div className="h-full flex flex-col">
       {/* Filters with Scrollbar */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+      <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-6">
+        <div className="mb-6 border-b border-border pb-4">
+          <h2 className="text-md text-foreground font-bold mb-1">
             Search & Filters
           </h2>
+          <p className="text-sm text-muted-foreground">
+            Find your perfect travel companion
+          </p>
         </div>
 
         {/* Search Form */}
-        <SearchForm
-          searchData={searchData}
-          onSearchDataChange={onSearchDataChange}
-          onSearch={onSearch}
-          isLoading={searchLoading}
-        />
+        <div className="mb-8">
+          <SearchForm
+            searchData={searchData}
+            onSearchDataChange={onSearchDataChange}
+            onSearch={onSearch}
+            isLoading={searchLoading}
+          />
+        </div>
 
         {/* Additional Filters */}
         <FiltersPanel filters={filters} onFilterChange={onFilterChange} />
