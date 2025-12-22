@@ -56,6 +56,8 @@ interface GroupWithCoords {
   top_interests: string[] | null;
   average_age: number | null;
   members_count: number;
+  cover_image: string | null;
+  description: string | null;
   destinationCoords: Location;
   distance: number;
 }
@@ -195,7 +197,9 @@ export async function POST(req: NextRequest) {
         dominant_languages,
         top_interests,
         average_age,
-        members_count
+        members_count,
+        cover_image,
+        description
       `
       )
       .eq("status", "active"); // Only match approved groups
@@ -379,6 +383,8 @@ export async function POST(req: NextRequest) {
         breakdown: match.breakdown,
         members: originalGroup?.members_count || 0,
         distance: originalGroup?.distance || 0,
+        cover_image: originalGroup?.cover_image || null,
+        description: originalGroup?.description || null,
         creator: {
           name: creator?.name || "Unknown",
           username: creator?.username || "unknown",

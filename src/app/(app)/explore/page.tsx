@@ -316,7 +316,8 @@ export default function ExplorePage() {
             username: group.creator?.username || "unknown",
             avatar: group.creator?.avatar || undefined,
           },
-          cover_image: undefined,
+          cover_image: group.cover_image || undefined,
+          description: group.description || undefined,
           // Add matching score and breakdown for display
           score: group.score,
           breakdown: group.breakdown,

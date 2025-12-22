@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
               const { data: profile } = await supabase
                 .from("profiles")
                 .select(
-                  "name, age, gender, personality, smoking, drinking, religion, job, languages, nationality, location"
+                  "name, age, gender, personality, smoking, drinking, religion, job, languages, nationality, location, bio, interests, profile_photo"
                 )
                 .eq(
                   "user_id",
@@ -243,7 +243,11 @@ export async function GET(request: NextRequest) {
                   languages: profile.languages,
                   nationality: profile.nationality,
                   location: profile.location || { lat: 0, lon: 0 },
-                  interests: [], // Default empty interests
+                  bio: profile.bio,
+                  interests: Array.isArray(profile.interests)
+                    ? profile.interests
+                    : [],
+                  avatar: profile.profile_photo || undefined,
                   language: "english", // Default language
                 };
               }

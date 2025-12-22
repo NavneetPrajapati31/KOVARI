@@ -96,8 +96,8 @@ export const ResultsDisplay = ({
   // If we're currently loading, show only the loading state and hide everything else
   if (searchLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-white overflow-hidden">
-        <div className="flex flex-col items-center gap-4">
+      <div className="h-full flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
           <Spinner variant="spinner" size="md" color="primary" />
           <p className="text-muted-foreground text-sm font-medium">
             Finding matches...
@@ -108,36 +108,40 @@ export const ResultsDisplay = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Error Display */}
       {searchError && (
-        <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-200 rounded-xl flex-shrink-0 shadow-sm">
-          <p className="text-red-700 text-sm font-medium">{searchError}</p>
+        <div className="px-6 pt-6 pb-0 flex-shrink-0">
+          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
+            <p className="text-destructive text-sm font-medium">
+              {searchError}
+            </p>
+          </div>
         </div>
       )}
 
       {/* Results Display */}
       {matchedGroups.length > 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8 lg:p-12 relative overflow-hidden">
+        <div className="flex-1 relative flex items-center justify-center p-6">
           {/* Navigation arrows */}
           {matchedGroups.length > 1 && (
             <>
               <button
                 onClick={onPreviousGroup}
                 disabled={currentGroupIndex === 0}
-                className="absolute left-4 md:left-6 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 backdrop-blur-md border border-gray-200 rounded-full p-3 md:p-4 hover:bg-white hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:scale-105"
+                className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 z-20 bg-background/95 backdrop-blur-sm border border-border rounded-full p-2.5 md:p-3 hover:bg-background hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:scale-105"
                 aria-label="Previous match"
               >
                 <svg
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-gray-700"
+                  className="text-foreground"
                 >
                   <path d="m15 18-6-6 6-6" />
                 </svg>
@@ -145,19 +149,19 @@ export const ResultsDisplay = ({
               <button
                 onClick={onNextGroup}
                 disabled={currentGroupIndex === matchedGroups.length - 1}
-                className="absolute right-4 md:right-6 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 backdrop-blur-md border border-gray-200 rounded-full p-3 md:p-4 hover:bg-white hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:scale-105"
+                className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 z-20 bg-background/95 backdrop-blur-sm border border-border rounded-full p-2.5 md:p-3 hover:bg-background hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:scale-105"
                 aria-label="Next match"
               >
                 <svg
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-gray-700"
+                  className="text-foreground"
                 >
                   <path d="m9 18 6-6-6-6" />
                 </svg>
@@ -165,22 +169,22 @@ export const ResultsDisplay = ({
             </>
           )}
 
-          {/* Conditional Match Card */}
-          <div className="w-full max-w-4xl">
+          {/* Match Card - Direct display without extra wrapper */}
+          <div className="w-full h-full">
             <MatchCardComponent />
           </div>
 
           {/* Match counter */}
           {matchedGroups.length > 1 && (
-            <div className="flex items-center gap-2 mt-8 px-4 py-2 bg-gray-50 rounded-full text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm border border-border rounded-full text-sm shadow-sm">
+              <span className="font-semibold text-foreground">
                 {currentGroupIndex + 1}
               </span>
-              <span className="text-gray-400">of</span>
-              <span className="font-semibold text-gray-900">
+              <span className="text-muted-foreground">of</span>
+              <span className="font-semibold text-foreground">
                 {matchedGroups.length}
               </span>
-              <span className="text-gray-500">
+              <span className="text-muted-foreground">
                 {activeTab === 0 ? "travelers" : "groups"}
               </span>
             </div>
@@ -188,63 +192,30 @@ export const ResultsDisplay = ({
         </div>
       ) : (
         /* No Results or Initial State */
-        <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8 lg:p-12 overflow-hidden">
-          {lastSearchData ? (
-            <div className="text-center max-w-2xl">
-              <h3 className="text-md font-bold text-foreground mb-3">
-                No matches found
-              </h3>
-              <p className="text-muted-foreground text-sm">
-                Try adjusting your search criteria or dates to find more{" "}
-                {activeTab === 0 ? "travel companions" : "travel groups"}.
-              </p>
-              {/* <div className="bg-gray-50 rounded-xl p-6 text-left space-y-3 border border-border">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-500">
-                    Destination
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {lastSearchData.destination}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-500">
-                    Budget
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    ₹{lastSearchData.budget.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-500">
-                    Dates
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {lastSearchData.startDate.toLocaleDateString()} -{" "}
-                    {lastSearchData.endDate.toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-500">
-                    Mode
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {activeTab === 0 ? "Solo Travel" : "Group Travel"}
-                  </span>
-                </div>
-              </div> */}
-            </div>
-          ) : (
-            <div className="text-center max-w-xl">
-              <h3 className="text-md font-bold text-foreground mb-3">
-                Start your search
-              </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Enter your travel details in the sidebar to find compatible{" "}
-                {activeTab === 0 ? "travel companions" : "travel groups"}.
-              </p>
-            </div>
-          )}
+        <div className="flex-1 flex items-center justify-center p-6 md:p-8 lg:p-12">
+          <div className="text-center max-w-lg">
+            {lastSearchData ? (
+              <>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  No matches found
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Try adjusting your search criteria or dates to find more{" "}
+                  {activeTab === 0 ? "travel companions" : "travel groups"}.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Start your search
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Enter your travel details in the sidebar to find compatible{" "}
+                  {activeTab === 0 ? "travel companions" : "travel groups"}.
+                </p>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
