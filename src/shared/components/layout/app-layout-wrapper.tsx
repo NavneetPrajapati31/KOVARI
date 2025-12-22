@@ -31,7 +31,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   return (
     <>
-      {/* {!hideLayout && <Navbar onAvatarMenuOpenChange={setIsAvatarMenuOpen} />} */}
+      {!hideLayout && <Navbar onAvatarMenuOpenChange={setIsAvatarMenuOpen} />}
       <div
         className={`h-full min-h-0 transition-[filter,opacity] duration-500 ease-in-out ${
           isAvatarMenuOpen && !isBlurException
