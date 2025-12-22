@@ -122,11 +122,11 @@ const ProfileLoading = () => {
   );
 };
 
-// Fetch current user's profile from the API route (SSR)
+// Fetch current user's profile directly from Supabase (SSR)
 const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
       redirect("/sign-in");
     }
 
@@ -154,7 +154,7 @@ const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
     const { data: userRow, error: userError } = await supabase
       .from("users")
       .select("id")
-      .eq("clerk_user_id", userId)
+      .eq("clerk_user_id", clerkUserId)
       .single();
 
     if (userError || !userRow) {
@@ -162,34 +162,76 @@ const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
       return null;
     }
 
-    // Use absolute URL for SSR fetch
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/profile/${userRow.id}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
+    const userId = userRow.id;
 
-    // Defensive: ensure all fields are present
+    // 1. Fetch profile (include interests from profiles)
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select(
+        `name, username, age, gender, nationality, bio, languages, profile_photo, job, interests`
+      )
+      .eq("user_id", userId)
+      .single();
+
+    if (profileError || !profileData) {
+      console.error("Error fetching profile:", profileError);
+      return null;
+    }
+
+    const interests = profileData?.interests || [];
+
+    // 2. Fetch posts from user_posts
+    const { data: postsData } = await supabase
+      .from("user_posts")
+      .select("id, image_url")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    const posts = Array.isArray(postsData) ? postsData : [];
+
+    // 3. Count followers
+    const { count: followersCount } = await supabase
+      .from("user_follows")
+      .select("id", { count: "exact", head: true })
+      .eq("following_id", userId);
+
+    // 4. Count following
+    const { count: followingCount } = await supabase
+      .from("user_follows")
+      .select("id", { count: "exact", head: true })
+      .eq("follower_id", userId);
+
+    // 5. Count posts and sum likes
+    const { count: postsCount, data: postsLikesData } = await supabase
+      .from("user_posts")
+      .select("likes", { count: "exact" })
+      .eq("user_id", userId);
+
+    const likesSum =
+      postsLikesData?.reduce((acc, post) => acc + (post.likes || 0), 0) || 0;
+
+    // 6. Map to UserProfileType
     return {
-      name: data.name || "",
-      username: data.username || "",
-      age: data.age || "",
-      gender: data.gender || "",
-      nationality: data.nationality || "",
-      profession: data.profession || "",
-      interests: Array.isArray(data.interests) ? data.interests : [],
-      languages: Array.isArray(data.languages) ? data.languages : [],
-      bio: data.bio || "",
-      followers: data.followers || "0",
-      following: data.following || "0",
-      likes: data.likes || "0",
+      name: profileData.name || "",
+      username: profileData.username || "",
+      age: profileData.age ? String(profileData.age) : "",
+      gender: profileData.gender || "",
+      nationality: profileData.nationality || "",
+      profession: profileData.job || "",
+      interests: Array.isArray(interests) ? interests : [],
+      languages: Array.isArray(profileData.languages)
+        ? profileData.languages
+        : [],
+      bio: profileData.bio || "",
+      followers: String(followersCount ?? 0),
+      following: String(followingCount ?? 0),
+      likes: String(likesSum),
       coverImage: "", // Not in DB, leave blank
-      profileImage: data.profileImage || "",
-      posts: Array.isArray(data.posts) ? data.posts : [],
-      isFollowing: data.isFollowing || false,
-      isOwnProfile: data.isOwnProfile || false,
-      userId: data.userId || "",
+      profileImage: profileData.profile_photo || "",
+      posts,
+      isFollowing: false, // Always false for own profile
+      isOwnProfile: true, // Always true for own profile
+      userId,
     };
   } catch (error) {
     console.error("Error fetching profile:", error);
