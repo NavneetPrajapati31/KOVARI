@@ -24,7 +24,7 @@ export const ExploreSidebar = ({
   onFilterChange,
 }: ExploreSidebarProps) => {
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-[90vh] flex flex-col">
       {/* Filters with Scrollbar */}
       <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-6">
         <div className="mb-6 border-b border-border pb-4">
@@ -37,7 +37,7 @@ export const ExploreSidebar = ({
         </div>
 
         {/* Search Form */}
-        <div className="mb-8">
+        <div>
           <SearchForm
             searchData={searchData}
             onSearchDataChange={onSearchDataChange}

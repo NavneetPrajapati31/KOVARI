@@ -65,21 +65,17 @@ const LANGUAGE_OPTIONS = [
   "Any",
   "English",
   "Hindi",
-  "Spanish",
-  "French",
-  "German",
-  "Italian",
-  "Portuguese",
-  "Russian",
-  "Chinese",
-  "Japanese",
-  "Korean",
-  "Arabic",
-  "Thai",
-  "Vietnamese",
-  "Indonesian",
-  "Malay",
-  "Tagalog",
+  "Bengali",
+  "Telugu",
+  "Marathi",
+  "Tamil",
+  "Urdu",
+  "Gujarati",
+  "Kannada",
+  "Malayalam",
+  "Odia",
+  "Punjabi",
+  "Sindhi",
   "Other",
 ];
 
@@ -89,14 +85,14 @@ export const FiltersPanel = ({
 }: FiltersPanelProps) => {
   return (
     <div className="pt-6 space-y-6">
-      <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-        <Filter className="w-5 h-5" />
+      <h3 className="text-md font-bold text-foreground flex items-center gap-2">
+        {/* <Filter className="w-5 h-5" /> */}
         Additional Filters
       </h3>
 
       {/* 1. Age Range */}
       <div className="space-y-2">
-        <Label className="text-base font-medium text-gray-900">
+        <Label className="text-sm font-medium text-foreground">
           Age Range: {filters.ageRange[0]} - {filters.ageRange[1]}
         </Label>
         <Slider
@@ -118,7 +114,7 @@ export const FiltersPanel = ({
 
       {/* 2. Gender */}
       <div className="space-y-2">
-        <Label htmlFor="gender" className="text-base font-medium text-gray-900">
+        <Label htmlFor="gender" className="text-sm font-medium text-foreground">
           Gender Preference
         </Label>
         <Select
@@ -142,7 +138,7 @@ export const FiltersPanel = ({
       <div className="space-y-2">
         <Label
           htmlFor="personality"
-          className="text-base font-medium text-gray-900"
+          className="text-sm font-medium text-foreground"
         >
           Personality
         </Label>
@@ -163,109 +159,11 @@ export const FiltersPanel = ({
         </Select>
       </div>
 
-      {/* 4. Interests */}
-      <div className="space-y-2">
-        <Label className="text-base font-medium text-gray-900">Interests</Label>
-        <div className="flex flex-wrap gap-2">
-          {INTEREST_OPTIONS.map((interest) => (
-            <Badge
-              key={interest}
-              variant={
-                filters.interests.includes(interest) ? "default" : "outline"
-              }
-              className="cursor-pointer hover:bg-blue-50 rounded-full px-3 py-1 transition-all duration-200 hover:scale-105"
-              onClick={() => {
-                const newInterests = filters.interests.includes(interest)
-                  ? filters.interests.filter((i) => i !== interest)
-                  : [...filters.interests, interest];
-                onFilterChange("interests", newInterests);
-              }}
-            >
-              {interest}
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      {/* 5. Languages */}
-      <div className="space-y-2">
-        <Label className="text-base font-medium text-gray-900">Languages</Label>
-        <div className="flex flex-wrap gap-2">
-          {LANGUAGE_OPTIONS.map((language) => (
-            <Badge
-              key={language}
-              variant={
-                filters.languages.includes(language) ? "default" : "outline"
-              }
-              className="cursor-pointer hover:bg-blue-50 rounded-full px-3 py-1 transition-all duration-200 hover:scale-105"
-              onClick={() => {
-                const newLanguages = filters.languages.includes(language)
-                  ? filters.languages.filter((l) => l !== language)
-                  : [...filters.languages, language];
-                onFilterChange("languages", newLanguages);
-              }}
-            >
-              {language}
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      {/* 6. Smoking */}
-      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50/50">
-        <div className="space-y-1">
-          <Label
-            htmlFor="smoking"
-            className="text-base font-medium text-gray-900"
-          >
-            Smoking
-          </Label>
-          <p className="text-sm text-gray-600">
-            {filters.smoking === "Yes"
-              ? "Comfortable with smokers"
-              : "Non-smoking preferred"}
-          </p>
-        </div>
-        <Switch
-          id="smoking"
-          checked={filters.smoking === "Yes"}
-          onCheckedChange={(checked) =>
-            onFilterChange("smoking", checked ? "Yes" : "No")
-          }
-          className="data-[state=checked]:bg-blue-600"
-        />
-      </div>
-
-      {/* 7. Drinking */}
-      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50/50">
-        <div className="space-y-1">
-          <Label
-            htmlFor="drinking"
-            className="text-base font-medium text-gray-900"
-          >
-            Drinking
-          </Label>
-          <p className="text-sm text-gray-600">
-            {filters.drinking === "Yes"
-              ? "Comfortable with drinkers"
-              : "Non-drinking preferred"}
-          </p>
-        </div>
-        <Switch
-          id="drinking"
-          checked={filters.drinking === "Yes"}
-          onCheckedChange={(checked) =>
-            onFilterChange("drinking", checked ? "Yes" : "No")
-          }
-          className="data-[state=checked]:bg-blue-600"
-        />
-      </div>
-
       {/* 8. Nationality */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label
           htmlFor="nationality"
-          className="text-base font-medium text-gray-900"
+          className="text-sm font-medium text-foreground"
         >
           Nationality
         </Label>
@@ -284,10 +182,105 @@ export const FiltersPanel = ({
             ))}
           </SelectContent>
         </Select>
+      </div> */}
+
+      {/* 4. Interests */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Interests</Label>
+        <div className="flex flex-wrap gap-2">
+          {INTEREST_OPTIONS.map((interest) => (
+            <Badge
+              key={interest}
+              variant={
+                filters.interests.includes(interest) ? "default" : "outline"
+              }
+              className="cursor-pointer rounded-full px-4 py-1.5"
+              onClick={() => {
+                const newInterests = filters.interests.includes(interest)
+                  ? filters.interests.filter((i) => i !== interest)
+                  : [...filters.interests, interest];
+                onFilterChange("interests", newInterests);
+              }}
+            >
+              {interest}
+            </Badge>
+          ))}
+        </div>
       </div>
 
-      {/* Bottom Spacing */}
-      <div className="h-10"></div>
+      {/* 5. Languages */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Languages</Label>
+        <div className="flex flex-wrap gap-2">
+          {LANGUAGE_OPTIONS.map((language) => (
+            <Badge
+              key={language}
+              variant={
+                filters.languages.includes(language) ? "default" : "outline"
+              }
+              className="cursor-pointer rounded-full px-4 py-1.5"
+              onClick={() => {
+                const newLanguages = filters.languages.includes(language)
+                  ? filters.languages.filter((l) => l !== language)
+                  : [...filters.languages, language];
+                onFilterChange("languages", newLanguages);
+              }}
+            >
+              {language}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* 6. Smoking */}
+      <div className="flex items-center justify-between p-4 border border-border rounded-xl">
+        <div className="space-y-1">
+          <Label
+            htmlFor="smoking"
+            className="text-sm font-medium text-foreground"
+          >
+            Smoking
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            {filters.smoking === "Yes"
+              ? "Comfortable with smokers"
+              : "Non-smoking preferred"}
+          </p>
+        </div>
+        <Switch
+          id="smoking"
+          checked={filters.smoking === "Yes"}
+          onCheckedChange={(checked) =>
+            onFilterChange("smoking", checked ? "Yes" : "No")
+          }
+          className="data-[state=checked]:bg-primary"
+        />
+      </div>
+
+      {/* 7. Drinking */}
+      <div className="flex items-center justify-between p-4 border border-border rounded-xl">
+        <div className="space-y-1">
+          <Label
+            htmlFor="drinking"
+            className="text-sm font-medium text-foreground"
+          >
+            Drinking
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            {filters.drinking === "Yes"
+              ? "Comfortable with drinkers"
+              : "Non-drinking preferred"}
+          </p>
+        </div>
+        <Switch
+          id="drinking"
+          checked={filters.drinking === "Yes"}
+          onCheckedChange={(checked) =>
+            onFilterChange("drinking", checked ? "Yes" : "No")
+          }
+          className="data-[state=checked]:bg-primary"
+        />
+      </div>
     </div>
   );
 };

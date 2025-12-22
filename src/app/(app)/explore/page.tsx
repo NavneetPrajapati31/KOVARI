@@ -50,7 +50,6 @@ export default function ExplorePage() {
       setActiveTab(tabIndex);
     }
   }, [searchParams, getTabIndex, activeTab]);
-  const [isPageLoading, setIsPageLoading] = useState(false);
   const [matchedGroups, setMatchedGroups] = useState<any[]>([]);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -87,25 +86,6 @@ export default function ExplorePage() {
       setSearchData((prev) => ({ ...prev, destination: newDestination }));
     }
   }, [searchParams, searchData.destination]);
-
-  // Page loading effect
-  useEffect(() => {
-    document.body.style.overflow = isPageLoading ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isPageLoading]);
-
-  // Allow body scrolling for the new layout
-  useEffect(() => {
-    document.body.style.overflow = "auto";
-    document.documentElement.style.overflow = "auto";
-
-    return () => {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    };
-  }, []);
 
   // Sync travelMode with activeTab when it changes
   useEffect(() => {
@@ -444,7 +424,7 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen p-4">
-      <div className="max-w-[1920px] mx-auto flex flex-col gap-4">
+      <div className="max-w-full mx-auto flex flex-col gap-4">
         {/* Tabs Header - Outside containers like groups layout */}
         <header>
           <div className="flex gap-2 flex-shrink-0">{tabButtons}</div>
