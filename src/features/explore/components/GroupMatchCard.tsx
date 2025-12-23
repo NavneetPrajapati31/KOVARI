@@ -42,26 +42,53 @@ import {
   Wine,
   Coffee as CoffeeIcon,
   Cigarette,
+  Flag,
+  AlertCircle,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+import {
+  createGroupInterest,
+  createSkipRecord,
+  createReportRecord,
+} from "../lib/matchingActions";
 
 interface GroupMatchCardProps {
   group: any;
-  onJoinGroupAction: (groupId: string) => Promise<void>;
-  onRequestJoinAction: (groupId: string) => Promise<void>;
-  onPassAction: (groupId: string) => Promise<void>;
-  onViewGroupAction: (groupId: string) => void;
+  destinationId: string;
+  currentUserId: string;
+  onInterested?: (groupId: string, destinationId: string) => Promise<void>;
+  onSkip?: (groupId: string, destinationId: string) => Promise<void>;
+  onViewGroup?: (groupId: string) => void;
+  onReport?: (groupId: string, reason: string) => Promise<void>;
 }
 
 export function GroupMatchCard({
   group,
-  onJoinGroupAction,
-  onRequestJoinAction,
-  onPassAction,
-  onViewGroupAction,
+  destinationId,
+  currentUserId,
+  onInterested,
+  onSkip,
+  onViewGroup,
+  onReport,
 }: GroupMatchCardProps) {
-  const [isJoining, setIsJoining] = useState(false);
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [isPassing, setIsPassing] = useState(false);
+  const [isInteresting, setIsInteresting] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [interestSent, setInterestSent] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState<string>("");
+  const [isReporting, setIsReporting] = useState(false);
 
   console.log("GroupMatchCard received group:", group);
 
@@ -80,34 +107,91 @@ export function GroupMatchCard({
   }
 
   const handleJoinGroup = async () => {
-    setIsJoining(true);
+    if (interestSent) return;
+
+    setIsInteresting(true);
     try {
-      await onJoinGroupAction(group.id);
+      // Use provided handler or fall back to default action
+      if (onInterested) {
+        await onInterested(group.id, destinationId);
+      } else {
+        const result = await createGroupInterest(
+          currentUserId,
+          group.id,
+          destinationId
+        );
+        if (!result.success) {
+          console.error("Failed to create interest:", result.error);
+          setIsInteresting(false);
+          return;
+        }
+      }
+      setInterestSent(true);
+    } catch (error) {
+      console.error("Error sending interest:", error);
     } finally {
-      setIsJoining(false);
+      setIsInteresting(false);
     }
   };
 
-  const handleRequestJoin = async () => {
-    setIsRequesting(true);
+  const handleSkip = async () => {
+    setIsSkipping(true);
     try {
-      await onRequestJoinAction(group.id);
+      // Use provided handler or fall back to default action
+      if (onSkip) {
+        await onSkip(group.id, destinationId);
+      } else {
+        const result = await createSkipRecord(
+          currentUserId,
+          group.id,
+          destinationId,
+          "group"
+        );
+        if (!result.success) {
+          console.error("Failed to skip:", result.error);
+        }
+      }
+    } catch (error) {
+      console.error("Error skipping group:", error);
     } finally {
-      setIsRequesting(false);
-    }
-  };
-
-  const handlePass = async () => {
-    setIsPassing(true);
-    try {
-      await onPassAction(group.id);
-    } finally {
-      setIsPassing(false);
+      setIsSkipping(false);
     }
   };
 
   const handleViewGroup = () => {
-    onViewGroupAction(group.id);
+    if (onViewGroup) {
+      onViewGroup(group.id);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!reportReason) return;
+
+    setIsReporting(true);
+    try {
+      // Use provided handler or fall back to default action
+      if (onReport) {
+        await onReport(group.id, reportReason);
+      } else {
+        const result = await createReportRecord(
+          currentUserId,
+          group.id,
+          reportReason,
+          "group"
+        );
+        if (!result.success) {
+          console.error("Failed to report:", result.error);
+          setIsReporting(false);
+          return;
+        }
+      }
+      setShowReportDialog(false);
+      setReportReason("");
+    } catch (error) {
+      console.error("Error reporting group:", error);
+    } finally {
+      setIsReporting(false);
+    }
   };
 
   const formatDateRange = () => {
@@ -411,11 +495,12 @@ export function GroupMatchCard({
           <Button
             variant="outline"
             size="sm"
-            onClick={handlePass}
-            disabled={isPassing}
+            onClick={handleSkip}
+            disabled={isSkipping}
             className="flex-1 h-10 border-destructive/20 text-destructive hover:bg-destructive/10 rounded-full"
+            title="Skip this group"
           >
-            {isPassing ? (
+            {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <ThumbsDown className="w-4 h-4" />
@@ -426,37 +511,107 @@ export function GroupMatchCard({
             size="sm"
             onClick={handleViewGroup}
             className="flex-1 h-10 rounded-full"
+            title="View group details"
           >
             <Eye className="w-4 h-4" />
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={handleRequestJoin}
-            disabled={isRequesting}
-            className="flex-1 h-10 border-blue-200 text-blue-600 hover:bg-blue-50 rounded-full"
+            onClick={() => setShowReportDialog(true)}
+            className="flex-1 h-10 border-yellow-200 text-yellow-600 hover:bg-yellow-50 rounded-full"
+            title="Report this group"
           >
-            {isRequesting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <MessageCircle className="w-4 h-4" />
-            )}
+            <Flag className="w-4 h-4" />
           </Button>
           <Button
             variant="default"
             size="sm"
             onClick={handleJoinGroup}
-            disabled={isJoining}
+            disabled={isInteresting || interestSent}
             className="flex-1 h-10 rounded-full"
+            title="Send interest"
           >
-            {isJoining ? (
+            {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : interestSent ? (
+              <>
+                <Heart className="w-4 h-4 fill-current" />
+                <span className="text-xs ml-1">Sent</span>
+              </>
             ) : (
-              <Users className="w-4 h-4" />
+              <>
+                <Heart className="w-4 h-4" />
+                <span className="text-xs ml-1">Interested</span>
+              </>
             )}
           </Button>
         </div>
       </div>
+
+      {/* Report Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              Report Group
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Help us keep KOVARI safe. Please select a reason for reporting
+              this group.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Reason
+              </label>
+              <Select value={reportReason} onValueChange={setReportReason}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fake_group">Fake group</SelectItem>
+                  <SelectItem value="inappropriate_content">
+                    Inappropriate content
+                  </SelectItem>
+                  <SelectItem value="spam">Spam</SelectItem>
+                  <SelectItem value="harassment">Harassment</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowReportDialog(false);
+                setReportReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReport}
+              disabled={!reportReason || isReporting}
+            >
+              {isReporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Reporting...
+                </>
+              ) : (
+                "Report"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

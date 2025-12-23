@@ -19,40 +19,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { Textarea } from "@/shared/components/ui/textarea";
 import {
   MapPin,
   Calendar,
   User,
   Heart,
-  MessageCircle,
   Loader2,
   Briefcase,
   Globe,
-  Coffee,
-  Star,
-  TrendingUp,
-  ThumbsDown,
-  ThumbsUp,
-  MessageSquare,
   Sparkles,
   Moon,
   Scale,
   User as UserIcon,
-  Ban,
   Beer,
   Wine,
-  Coffee as CoffeeIcon,
-  Plane,
   Cigarette,
   Wine as Glass,
-  Ruler,
-  Dumbbell,
-  Baby,
   Languages,
   DollarSign,
+  Flag,
+  AlertCircle,
+  ThumbsDown,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+import {
+  createSoloInterest,
+  createSkipRecord,
+  createReportRecord,
+} from "../lib/matchingActions";
 
 interface SoloMatchCardProps {
   match: {
@@ -84,40 +85,117 @@ interface SoloMatchCardProps {
     };
     is_solo_match: boolean;
   };
-  onConnect?: (matchId: string) => Promise<void>;
-  onSuperLike?: (matchId: string) => Promise<void>;
-  onPass?: (matchId: string) => Promise<void>;
-  onComment?: (
-    matchId: string,
-    attribute: string,
-    comment: string
-  ) => Promise<void>;
+  destinationId: string;
+  currentUserId: string;
+  onInterested?: (toUserId: string, destinationId: string) => Promise<void>;
+  onSkip?: (skippedUserId: string, destinationId: string) => Promise<void>;
   onViewProfile?: (userId: string) => void;
+  onReport?: (reportedUserId: string, reason: string) => Promise<void>;
 }
 
 export function SoloMatchCard({
   match,
-  onConnect,
-  onSuperLike,
-  onPass,
-  onComment,
+  destinationId,
+  currentUserId,
+  onInterested,
+  onSkip,
   onViewProfile,
+  onReport,
 }: SoloMatchCardProps) {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isSuperLiking, setIsSuperLiking] = useState(false);
-  const [isPassing, setIsPassing] = useState(false);
-  const [showCommentModal, setShowCommentModal] = useState(false);
-  const [selectedAttribute, setSelectedAttribute] = useState<string>("");
-  const [commentText, setCommentText] = useState("");
+  const [isInteresting, setIsInteresting] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [interestSent, setInterestSent] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState<string>("");
+  const [isReporting, setIsReporting] = useState(false);
 
-  const handleConnect = async () => {
-    if (onConnect) {
-      setIsConnecting(true);
-      try {
-        await onConnect(match.id);
-      } finally {
-        setIsConnecting(false);
+  const handleInterested = async () => {
+    if (interestSent) return;
+
+    setIsInteresting(true);
+    try {
+      // Validate required IDs
+      if (!currentUserId || !match.user?.userId) {
+        console.error(
+          "handleInterested: missing currentUserId or target userId",
+          {
+            currentUserId,
+            targetUserId: match.user?.userId,
+          }
+        );
+        setIsInteresting(false);
+        return;
       }
+
+      // Use provided handler or fall back to default action
+      if (onInterested) {
+        await onInterested(match.user.userId, destinationId);
+      } else {
+        const result = await createSoloInterest(
+          currentUserId,
+          match.user.userId,
+          destinationId
+        );
+        if (!result.success) {
+          console.error("Failed to create interest:", result.error);
+          setIsInteresting(false);
+          return;
+        }
+      }
+      setInterestSent(true);
+    } catch (error) {
+      console.error("Error sending interest:", error);
+    } finally {
+      setIsInteresting(false);
+    }
+  };
+
+  const handleSkip = async () => {
+    setIsSkipping(true);
+    try {
+      // Validate required IDs
+      if (!currentUserId || !match.user?.userId) {
+        console.error("handleSkip: missing currentUserId or target userId", {
+          currentUserId,
+          targetUserId: match.user?.userId,
+        });
+        setIsSkipping(false);
+        return;
+      }
+
+      console.log("handleSkip: Starting skip process", {
+        currentUserId,
+        targetUserId: match.user.userId,
+        destinationId,
+      });
+
+      // Create skip record
+      const result = await createSkipRecord(
+        currentUserId,
+        match.user.userId,
+        destinationId,
+        "solo"
+      );
+      if (!result.success) {
+        console.error("Failed to skip:", result.error);
+        setIsSkipping(false);
+        return;
+      }
+
+      console.log("handleSkip: Skip record created successfully");
+
+      // Call onSkip handler to move to next match
+      if (onSkip) {
+        console.log("handleSkip: Calling onSkip handler to move to next match");
+        await onSkip(match.user.userId, destinationId);
+        console.log("handleSkip: onSkip handler completed");
+      } else {
+        console.warn("handleSkip: No onSkip handler provided");
+      }
+    } catch (error) {
+      console.error("Error skipping match:", error);
+    } finally {
+      setIsSkipping(false);
     }
   };
 
@@ -127,43 +205,33 @@ export function SoloMatchCard({
     }
   };
 
-  const handleSuperLike = async () => {
-    if (onSuperLike) {
-      setIsSuperLiking(true);
-      try {
-        await onSuperLike(match.id);
-      } finally {
-        setIsSuperLiking(false);
-      }
-    }
-  };
+  const handleReport = async () => {
+    if (!reportReason) return;
 
-  const handlePass = async () => {
-    if (onPass) {
-      setIsPassing(true);
-      try {
-        await onPass(match.id);
-      } finally {
-        setIsPassing(false);
+    setIsReporting(true);
+    try {
+      // Use provided handler or fall back to default action
+      if (onReport) {
+        await onReport(match.user.userId, reportReason);
+      } else {
+        const result = await createReportRecord(
+          currentUserId,
+          match.user.userId,
+          reportReason,
+          "solo"
+        );
+        if (!result.success) {
+          console.error("Failed to report:", result.error);
+          setIsReporting(false);
+          return;
+        }
       }
-    }
-  };
-
-  const handleComment = (attribute: string) => {
-    setSelectedAttribute(attribute);
-    setShowCommentModal(true);
-  };
-
-  const handleSubmitComment = async () => {
-    if (onComment && commentText.trim()) {
-      try {
-        await onComment(match.id, selectedAttribute, commentText.trim());
-        setShowCommentModal(false);
-        setCommentText("");
-        setSelectedAttribute("");
-      } catch (error) {
-        console.error("Error submitting comment:", error);
-      }
+      setShowReportDialog(false);
+      setReportReason("");
+    } catch (error) {
+      console.error("Error reporting user:", error);
+    } finally {
+      setIsReporting(false);
     }
   };
 
@@ -503,11 +571,12 @@ export function SoloMatchCard({
           <Button
             variant="outline"
             size="sm"
-            onClick={handlePass}
-            disabled={isPassing}
+            onClick={handleSkip}
+            disabled={isSkipping}
             className="flex-1 h-10 border-destructive/20 text-destructive hover:bg-destructive/10 rounded-full"
+            title="Skip this match"
           >
-            {isPassing ? (
+            {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <ThumbsDown className="w-4 h-4" />
@@ -518,85 +587,104 @@ export function SoloMatchCard({
             size="sm"
             onClick={handleViewProfile}
             className="flex-1 h-10 rounded-full"
+            title="View full profile"
           >
             <User className="w-4 h-4" />
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSuperLike}
-            disabled={isSuperLiking}
-            className="flex-1 h-10 border-pink-200 text-pink-600 hover:bg-pink-50 rounded-full"
+            onClick={() => setShowReportDialog(true)}
+            className="flex-1 h-10 border-yellow-200 text-yellow-600 hover:bg-yellow-50 rounded-full"
+            title="Report this user"
           >
-            {isSuperLiking ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <ThumbsUp className="w-4 h-4" />
-            )}
+            <Flag className="w-4 h-4" />
           </Button>
           <Button
             variant="default"
             size="sm"
-            onClick={handleConnect}
-            disabled={isConnecting}
+            onClick={handleInterested}
+            disabled={isInteresting || interestSent}
             className="flex-1 h-10 rounded-full"
+            title="Send interest"
           >
-            {isConnecting ? (
+            {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : interestSent ? (
+              <>
+                <Heart className="w-4 h-4 fill-current" />
+                <span className="text-xs ml-1">Sent</span>
+              </>
             ) : (
-              <MessageCircle className="w-4 h-4" />
+              <>
+                <Heart className="w-4 h-4" />
+                <span className="text-xs ml-1">Interested</span>
+              </>
             )}
           </Button>
         </div>
       </div>
 
-      {/* Comment Modal */}
-      <Dialog open={showCommentModal} onOpenChange={setShowCommentModal}>
+      {/* Report Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              Comment on {selectedAttribute.replace("_", " ")}
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              Report User
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Help us keep KOVARI safe. Please select a reason for reporting
+              this user.
+            </p>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Comment
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Reason
               </label>
-              <Textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder={`Share your thoughts about ${selectedAttribute.replace("_", " ")}...`}
-                className="resize-none"
-                rows={4}
-                maxLength={200}
-              />
-              <div className="text-xs text-gray-500 text-right mt-1">
-                {commentText.length}/200
-              </div>
+              <Select value={reportReason} onValueChange={setReportReason}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fake_profile">Fake profile</SelectItem>
+                  <SelectItem value="inappropriate_content">
+                    Inappropriate content
+                  </SelectItem>
+                  <SelectItem value="spam">Spam</SelectItem>
+                  <SelectItem value="harassment">Harassment</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+          </div>
 
-            <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowCommentModal(false);
-                  setCommentText("");
-                  setSelectedAttribute("");
-                }}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmitComment}
-                disabled={!commentText.trim()}
-                className="flex-1"
-              >
-                Submit Comment
-              </Button>
-            </div>
+          <div className="flex gap-3 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowReportDialog(false);
+                setReportReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReport}
+              disabled={!reportReason || isReporting}
+            >
+              {isReporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Reporting...
+                </>
+              ) : (
+                "Report"
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

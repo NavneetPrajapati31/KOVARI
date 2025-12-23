@@ -1,35 +1,34 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SoloMatchCard } from "./SoloMatchCard";
 import { GroupMatchCard } from "./GroupMatchCard";
 import { Spinner } from "@heroui/react";
 import { Users } from "lucide-react";
+import { ReportDialog } from "@/shared/components/ReportDialog";
 
-import { SearchData } from "../types";
+import { SearchData, SoloMatch, GroupMatch } from "../types";
 
 interface ResultsDisplayProps {
   activeTab: number;
-  matchedGroups: any[];
+  matchedGroups: (SoloMatch | GroupMatch)[];
   currentGroupIndex: number;
   searchLoading: boolean;
   searchError: string | null;
   lastSearchData: SearchData | null;
   onPreviousGroup: () => void;
   onNextGroup: () => void;
-  onConnect: (matchId: string) => Promise<void>;
-  onSuperLike: (matchId: string) => Promise<void>;
   onPass: (matchId: string) => Promise<void>;
-  onComment: (
-    matchId: string,
-    attribute: string,
-    comment: string
-  ) => Promise<void>;
   onViewProfile: (userId: string) => void;
   onJoinGroup: (groupId: string) => Promise<void>;
-  onRequestJoin: (groupId: string) => Promise<void>;
   onPassGroup: (groupId: string) => Promise<void>;
   onViewGroup: (groupId: string) => void;
+  currentUserId?: string;
+  destinationId?: string;
+}
+
+function isSoloMatch(match: SoloMatch | GroupMatch): match is SoloMatch {
+  return "is_solo_match" in match;
 }
 
 export const ResultsDisplay = ({
@@ -41,16 +40,25 @@ export const ResultsDisplay = ({
   lastSearchData,
   onPreviousGroup,
   onNextGroup,
-  onConnect,
-  onSuperLike,
   onPass,
-  onComment,
   onViewProfile,
   onJoinGroup,
-  onRequestJoin,
   onPassGroup,
   onViewGroup,
+  currentUserId,
+  destinationId,
 }: ResultsDisplayProps) => {
+  const [reportDialogState, setReportDialogState] = useState<{
+    open: boolean;
+    targetType: "user" | "group";
+    targetId: string;
+    targetName?: string;
+  }>({
+    open: false,
+    targetType: "user",
+    targetId: "",
+  });
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -67,27 +75,51 @@ export const ResultsDisplay = ({
 
   // Conditional Match Card Component
   const MatchCardComponent = () => {
+    const currentMatch = matchedGroups[currentGroupIndex];
+
+    if (!currentMatch) {
+      return null;
+    }
+
     if (activeTab === 0) {
+      const soloMatch = currentMatch as SoloMatch;
       return (
         <SoloMatchCard
-          key={matchedGroups[currentGroupIndex]?.id}
-          match={matchedGroups[currentGroupIndex]}
-          onConnect={onConnect}
-          onSuperLike={onSuperLike}
-          onPass={onPass}
-          onComment={onComment}
+          key={soloMatch.id}
+          match={soloMatch}
+          destinationId={destinationId || lastSearchData?.destination || ""}
+          currentUserId={currentUserId || ""}
           onViewProfile={onViewProfile}
+          onSkip={() => onPass(soloMatch.user.userId)}
+          onReport={() =>
+            setReportDialogState({
+              open: true,
+              targetType: "user",
+              targetId: soloMatch.id,
+              targetName: soloMatch.name || soloMatch.user?.name,
+            })
+          }
         />
       );
     } else {
+      const groupMatch = currentMatch as GroupMatch;
       return (
         <GroupMatchCard
-          key={matchedGroups[currentGroupIndex]?.id}
-          group={matchedGroups[currentGroupIndex]}
-          onJoinGroupAction={onJoinGroup}
-          onRequestJoinAction={onRequestJoin}
-          onPassAction={onPassGroup}
-          onViewGroupAction={onViewGroup}
+          key={groupMatch.id}
+          group={groupMatch}
+          destinationId={destinationId || lastSearchData?.destination || ""}
+          currentUserId={currentUserId || ""}
+          onInterested={() => onJoinGroup(groupMatch.id)}
+          onSkip={() => onPassGroup(groupMatch.id)}
+          onViewGroup={onViewGroup}
+          onReport={() =>
+            setReportDialogState({
+              open: true,
+              targetType: "group",
+              targetId: groupMatch.id,
+              targetName: groupMatch.name,
+            })
+          }
         />
       );
     }
@@ -124,7 +156,7 @@ export const ResultsDisplay = ({
       {matchedGroups.length > 0 ? (
         <div className="flex-1 relative flex items-center justify-center p-6">
           {/* Navigation arrows */}
-          {matchedGroups.length > 1 && (
+          {/* {matchedGroups.length > 1 && (
             <>
               <button
                 onClick={onPreviousGroup}
@@ -167,7 +199,7 @@ export const ResultsDisplay = ({
                 </svg>
               </button>
             </>
-          )}
+          )} */}
 
           {/* Match Card - Direct display without extra wrapper */}
           <div className="w-full h-full">
@@ -175,7 +207,7 @@ export const ResultsDisplay = ({
           </div>
 
           {/* Match counter */}
-          {matchedGroups.length > 1 && (
+          {/* {matchedGroups.length > 1 && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm border border-border rounded-full text-sm shadow-sm">
               <span className="font-semibold text-foreground">
                 {currentGroupIndex + 1}
@@ -188,7 +220,7 @@ export const ResultsDisplay = ({
                 {activeTab === 0 ? "travelers" : "groups"}
               </span>
             </div>
-          )}
+          )} */}
         </div>
       ) : (
         /* No Results or Initial State */
@@ -218,6 +250,16 @@ export const ResultsDisplay = ({
           </div>
         </div>
       )}
+
+      <ReportDialog
+        open={reportDialogState.open}
+        onOpenChange={(open) =>
+          setReportDialogState((prev) => ({ ...prev, open }))
+        }
+        targetType={reportDialogState.targetType}
+        targetId={reportDialogState.targetId}
+        targetName={reportDialogState.targetName}
+      />
     </div>
   );
 };

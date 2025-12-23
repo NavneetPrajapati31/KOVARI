@@ -361,6 +361,11 @@ export default function ExplorePage() {
   const handleNextGroup = () => {
     if (currentGroupIndex < matchedGroups.length - 1) {
       setCurrentGroupIndex(currentGroupIndex + 1);
+    } else if (matchedGroups.length > 0) {
+      // No more matches - clear the results to show "no more matches" message
+      console.log("No more matches available");
+      setMatchedGroups([]);
+      setCurrentGroupIndex(0);
     }
   };
 
@@ -376,9 +381,14 @@ export default function ExplorePage() {
   };
 
   const handlePass = async (matchId: string) => {
-    console.log("Passing on solo traveler:", matchId);
-    // TODO: Implement pass logic - move to next match
+    console.log("handlePass: Skipping match and moving to next", {
+      matchId,
+      currentIndex: currentGroupIndex,
+      totalMatches: matchedGroups.length,
+    });
+    // Move to next match after skipping
     handleNextGroup();
+    console.log("handlePass: Next group index is now:", currentGroupIndex + 1);
   };
 
   const handleComment = async (
@@ -398,8 +408,8 @@ export default function ExplorePage() {
   };
 
   const handleViewProfile = (userId: string) => {
-    console.log("Viewing profile:", userId);
-    // TODO: Navigate to user profile
+    if (!userId) return;
+    router.push(`/profile/${userId}`);
   };
 
   const handleJoinGroup = async (groupId: string) => {
@@ -455,6 +465,8 @@ export default function ExplorePage() {
               searchLoading={searchLoading}
               searchError={searchError}
               lastSearchData={lastSearchData}
+              currentUserId={user?.id}
+              destinationId={searchData.destination}
               onPreviousGroup={handlePreviousGroup}
               onNextGroup={handleNextGroup}
               onConnect={handleConnect}
