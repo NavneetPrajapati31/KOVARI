@@ -31,6 +31,12 @@ interface ReportDialogProps {
   targetType: "user" | "group";
   targetId: string;
   targetName?: string;
+  onSubmit?: (
+    reason: string,
+    evidenceUrl: string | null,
+    evidencePublicId: string | null,
+    additionalNotes: string
+  ) => Promise<boolean>;
 }
 
 const REPORT_REASONS = {
@@ -58,6 +64,7 @@ export function ReportDialog({
   targetType,
   targetId,
   targetName,
+  onSubmit,
 }: ReportDialogProps) {
   // Use refs to persist state across remounts (when parent re-renders)
   const reasonRef = useRef("");
@@ -78,6 +85,7 @@ export function ReportDialog({
   const [evidencePublicId, setEvidencePublicId] = useState<string | null>(null);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
   const hasFormData = useRef(false);
   const uploadInProgressRef = useRef(false);
@@ -91,6 +99,32 @@ export function ReportDialog({
   // Get current preview (use ref as fallback for Fast Refresh recovery)
   const currentPreview = evidencePreview || evidencePreviewRef.current;
   const currentEvidenceUrl = evidenceUrl || evidenceUrlRef.current;
+
+  // Auto-close dialog after showing success message
+  useEffect(() => {
+    if (isSuccess) {
+      const timer = setTimeout(() => {
+        // Reset all form state
+        setReason("");
+        setCustomReason("");
+        setAdditionalNotes("");
+        setEvidenceFile(null);
+        setEvidencePreview(null);
+        setEvidenceUrl(null);
+        setEvidencePublicId(null);
+        reasonRef.current = "";
+        customReasonRef.current = "";
+        additionalNotesRef.current = "";
+        evidenceFileRef.current = null;
+        evidencePreviewRef.current = null;
+        evidenceUrlRef.current = null;
+        evidencePublicIdRef.current = null;
+        setIsSuccess(false);
+        onOpenChange(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSuccess, onOpenChange]);
 
   // Restore from sessionStorage on mount (handles complete component recreation)
   useEffect(() => {
@@ -817,6 +851,51 @@ export function ReportDialog({
       // Don't block submission, but warn user
     }
 
+    // CHECK FOR CUSTOM SUBMIT HANDLER FIRST
+    if (onSubmit) {
+      console.log("Using custom onSubmit handler");
+      try {
+        const success = await onSubmit(
+          finalReasonWithNotes,
+          finalEvidenceUrl,
+          finalEvidencePublicId,
+          additionalNotes || additionalNotesRef.current
+        );
+
+        if (success) {
+          console.log("✅ Custom submission successful");
+          
+          // Reset form data tracking
+          hasFormData.current = false;
+
+          // Clear sessionStorage on successful submission
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.removeItem(STORAGE_KEY);
+              console.log(
+                "🗑️ Cleared sessionStorage after successful submission"
+              );
+            } catch (error) {
+              console.error("Error clearing sessionStorage:", error);
+            }
+          }
+
+          // Show success message in dialog
+          setIsSuccess(true);
+        }
+      } catch (error) {
+        console.error("Custom onSubmit error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to submit report. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     const requestPayload = {
       targetType,
       targetId,
@@ -1007,6 +1086,9 @@ export function ReportDialog({
   };
 
   const handleCancel = () => {
+    // Reset success state
+    setIsSuccess(false);
+
     // Reset form data tracking
     hasFormData.current = false;
 
@@ -1082,18 +1164,49 @@ export function ReportDialog({
           }
         }}
       >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Flag className="h-5 w-5 text-destructive" />
-            Report {targetType === "user" ? "User" : "Group"}
-          </DialogTitle>
-          <DialogDescription>
-            {targetName && <span className="font-medium">{targetName}</span>}
-            {targetName && <br />}
-            Help us keep our community safe by reporting inappropriate behavior.
-            All reports are reviewed by our moderation team.
-          </DialogDescription>
-        </DialogHeader>
+        {isSuccess ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-4">
+            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+              <svg
+                className="h-6 w-6 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.5 12.75l6 6 9-13.5"
+                />
+              </svg>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">
+                Report Submitted
+              </h3>
+              <div className="mt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Thank you for your report. Our team will review it shortly.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Flag className="h-5 w-5 text-destructive" />
+                Report {targetType === "user" ? "User" : "Group"}
+              </DialogTitle>
+              <DialogDescription>
+                {targetName && <span className="font-medium">{targetName}</span>}
+                {targetName && <br />}
+                Help us keep our community safe by reporting inappropriate behavior.
+                All reports are reviewed by our moderation team.
+              </DialogDescription>
+            </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Reason Selection */}
@@ -1237,6 +1350,8 @@ export function ReportDialog({
             )}
           </Button>
         </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

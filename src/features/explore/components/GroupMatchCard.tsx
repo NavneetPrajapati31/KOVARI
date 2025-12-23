@@ -72,6 +72,7 @@ interface GroupMatchCardProps {
   onSkip?: (groupId: string, destinationId: string) => Promise<void>;
   onViewGroup?: (groupId: string) => void;
   onReport?: (groupId: string, reason: string) => Promise<void>;
+  onReportClick?: () => void;
 }
 
 export function GroupMatchCard({
@@ -82,6 +83,7 @@ export function GroupMatchCard({
   onSkip,
   onViewGroup,
   onReport,
+  onReportClick,
 }: GroupMatchCardProps) {
   const [isInteresting, setIsInteresting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
@@ -518,7 +520,13 @@ export function GroupMatchCard({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowReportDialog(true)}
+            onClick={() => {
+              if (onReportClick) {
+                onReportClick();
+              } else {
+                setShowReportDialog(true);
+              }
+            }}
             className="flex-1 h-10 border-yellow-200 text-yellow-600 hover:bg-yellow-50 rounded-full"
             title="Report this group"
           >

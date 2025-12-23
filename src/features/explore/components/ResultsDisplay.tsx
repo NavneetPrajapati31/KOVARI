@@ -1,5 +1,7 @@
 "use client";
 
+import { useToast } from "@/shared/hooks/use-toast";
+
 import { useEffect, useState } from "react";
 import { SoloMatchCard } from "./SoloMatchCard";
 import { GroupMatchCard } from "./GroupMatchCard";
@@ -8,6 +10,7 @@ import { Users } from "lucide-react";
 import { ReportDialog } from "@/shared/components/ReportDialog";
 
 import { SearchData, SoloMatch, GroupMatch } from "../types";
+import { createReportRecord } from "../lib/matchingActions";
 
 interface ResultsDisplayProps {
   activeTab: number;
@@ -48,6 +51,7 @@ export const ResultsDisplay = ({
   currentUserId,
   destinationId,
 }: ResultsDisplayProps) => {
+  const { toast } = useToast();
   const [reportDialogState, setReportDialogState] = useState<{
     open: boolean;
     targetType: "user" | "group";
@@ -91,11 +95,11 @@ export const ResultsDisplay = ({
           currentUserId={currentUserId || ""}
           onViewProfile={onViewProfile}
           onSkip={() => onPass(soloMatch.user.userId)}
-          onReport={() =>
+          onReportClick={() =>
             setReportDialogState({
               open: true,
               targetType: "user",
-              targetId: soloMatch.id,
+              targetId: soloMatch.user.userId,
               targetName: soloMatch.name || soloMatch.user?.name,
             })
           }
@@ -112,7 +116,7 @@ export const ResultsDisplay = ({
           onInterested={() => onJoinGroup(groupMatch.id)}
           onSkip={() => onPassGroup(groupMatch.id)}
           onViewGroup={onViewGroup}
-          onReport={() =>
+          onReportClick={() =>
             setReportDialogState({
               open: true,
               targetType: "group",
@@ -259,6 +263,40 @@ export const ResultsDisplay = ({
         targetType={reportDialogState.targetType}
         targetId={reportDialogState.targetId}
         targetName={reportDialogState.targetName}
+        onSubmit={async (reason, evidenceUrl, evidencePublicId, additionalNotes) => {
+          if (!currentUserId) return false;
+
+          const result = await createReportRecord(
+            currentUserId,
+            reportDialogState.targetId,
+            reason,
+            activeTab === 0 ? "solo" : "group",
+            evidenceUrl,
+            evidencePublicId
+          );
+          
+          if (!result.success) {
+            console.error("Failed to submit report:", result.error);
+            toast({
+              title: "Error",
+              description: result.error || "Failed to submit report",
+              variant: "destructive",
+            });
+            throw new Error(result.error || "Failed to submit report");
+          }
+          
+          
+          // Toast removed - handled within ReportDialog UI
+          
+          // Skip to the next match
+          if (activeTab === 0) {
+            onPass(reportDialogState.targetId);
+          } else {
+            onPassGroup(reportDialogState.targetId);
+          }
+          
+          return true;
+        }}
       />
     </div>
   );

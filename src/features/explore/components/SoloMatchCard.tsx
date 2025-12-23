@@ -40,6 +40,7 @@ import {
   Flag,
   AlertCircle,
   ThumbsDown,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -91,6 +92,7 @@ interface SoloMatchCardProps {
   onSkip?: (skippedUserId: string, destinationId: string) => Promise<void>;
   onViewProfile?: (userId: string) => void;
   onReport?: (reportedUserId: string, reason: string) => Promise<void>;
+  onReportClick?: () => void;
 }
 
 export function SoloMatchCard({
@@ -101,6 +103,7 @@ export function SoloMatchCard({
   onSkip,
   onViewProfile,
   onReport,
+  onReportClick,
 }: SoloMatchCardProps) {
   const [isInteresting, setIsInteresting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
@@ -569,44 +572,48 @@ export function SoloMatchCard({
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2 pb-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="flex-1 h-10 border-destructive/20 text-destructive hover:bg-destructive/10 rounded-full"
-            title="Skip this match"
+            className="flex-1 h-11 bg-destructive text-primary-foreground rounded-full"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <ThumbsDown className="w-4 h-4" />
+              <p className="text-md font-bold">Skip</p>
             )}
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleViewProfile}
-            className="flex-1 h-10 rounded-full"
-            title="View full profile"
+            className="flex-1 h-11 rounded-full"
           >
-            <User className="w-4 h-4" />
+            {/* <Eye className="w-4 h-4" /> */}
+            <p className="text-md font-bold">View Profile</p>
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
-            onClick={() => setShowReportDialog(true)}
-            className="flex-1 h-10 border-yellow-200 text-yellow-600 hover:bg-yellow-50 rounded-full"
-            title="Report this user"
+            onClick={() => {
+              if (onReportClick) {
+                onReportClick();
+              } else {
+                setShowReportDialog(true);
+              }
+            }}
+            className="flex-1 h-11 rounded-full"
           >
-            <Flag className="w-4 h-4" />
+            {/* <Flag className="w-4 h-4" /> */}
+            <p className="text-md font-bold">Report</p>
           </Button>
           <Button
             variant="default"
             size="sm"
             onClick={handleInterested}
             disabled={isInteresting || interestSent}
-            className="flex-1 h-10 rounded-full"
-            title="Send interest"
+            className="flex-1 h-11 rounded-full"
           >
             {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -617,8 +624,8 @@ export function SoloMatchCard({
               </>
             ) : (
               <>
-                <Heart className="w-4 h-4" />
-                <span className="text-xs ml-1">Interested</span>
+                {/* <Heart className="w-4 h-4" /> */}
+                <p className="text-md font-bold">Interested</p>
               </>
             )}
           </Button>

@@ -1,7 +1,7 @@
 /**
  * Matching Actions Library
  * Handles all MVP matching system interactions with Supabase
- * Uses actual schema: match_interests, match_skips, matches, match_reports tables
+ * Uses actual schema: match_interests, match_skips, matches, user_flags, group_flags tables
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -263,7 +263,9 @@ export async function createReportRecord(
   reporterId: string,
   reportedUserId: string,
   reason: string,
-  type: "solo" | "group" = "solo"
+  type: "solo" | "group" = "solo",
+  evidenceUrl?: string | null,
+  evidencePublicId?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Validate params before calling server API
@@ -281,7 +283,14 @@ export async function createReportRecord(
       const resp = await fetch("/api/matching/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reporterId, reportedUserId, reason, type }),
+        body: JSON.stringify({
+          reporterId,
+          reportedUserId,
+          reason,
+          type,
+          evidenceUrl,
+          evidencePublicId,
+        }),
       });
 
       if (!resp.ok) {

@@ -9,7 +9,13 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { reporterId, reportedUserId, reason, type = "solo" } = body;
+    const { reporterId, reportedUserId, reason, type = "solo", evidenceUrl, evidencePublicId } = body;
+
+    // Normalize evidenceUrl
+    const normalizedEvidenceUrl = 
+      evidenceUrl && typeof evidenceUrl === "string" && evidenceUrl.trim() 
+        ? evidenceUrl.trim() 
+        : null;
 
     if (!reporterId || !reportedUserId || !reason) {
       console.error("Report API: Missing parameters", {
@@ -22,7 +28,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
+    
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
       console.error("Report API: Missing Supabase environment variables");
       return NextResponse.json(
@@ -32,16 +38,9 @@ export async function POST(request: Request) {
     }
 
     // Validate reason
-    const validReasons = [
-      "fake_profile",
-      "inappropriate_content",
-      "spam",
-      "harassment",
-      "other",
-    ];
-    if (!validReasons.includes(reason)) {
+    if (!reason.trim()) {
       return NextResponse.json(
-        { success: false, error: "Invalid report reason" },
+        { success: false, error: "Report reason cannot be empty" },
         { status: 400 }
       );
     }
@@ -62,64 +61,97 @@ export async function POST(request: Request) {
     };
 
     const reporterUuid = await resolve(reporterId);
-    const reportedUuid = await resolve(reportedUserId);
-    if (!reporterUuid || !reportedUuid) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Could not resolve user identifiers to UUIDs",
-        },
+    let targetUuid = reportedUserId;
+    
+    // Validating reporter
+    if (!reporterUuid) {
+       return NextResponse.json(
+        { success: false, error: "Invalid reporter ID" },
         { status: 400 }
       );
     }
 
-    // Prevent duplicate report
-    const { data: existing } = await supabaseAdmin
-      .from("match_reports")
-      .select("id")
-      .eq("reporter_id", reporterUuid)
-      .eq("reported_user_id", reportedUuid)
-      .eq("match_type", type)
-      .maybeSingle();
+    // For solo matches, resolve the target user ID
+    if (type === "solo") {
+       targetUuid = await resolve(reportedUserId);
+       if (!targetUuid) {
+        return NextResponse.json(
+          { success: false, error: "Invalid target user ID" },
+          { status: 400 }
+        );
+       }
 
-    if (existing) {
-      return NextResponse.json({
-        success: true,
-        message: "Report already submitted",
-      });
+       // Check duplicate in user_flags
+       const { data: existing } = await supabaseAdmin
+         .from("user_flags")
+         .select("id")
+         .eq("reporter_id", reporterUuid)
+         .eq("user_id", targetUuid)
+         .maybeSingle();
+
+       if (existing) {
+         return NextResponse.json({
+           success: true,
+           message: "User already reported",
+         });
+       }
+
+       // Insert into user_flags
+       const { data, error } = await supabaseAdmin
+         .from("user_flags")
+         .insert([
+           {
+             reporter_id: reporterUuid,
+             user_id: targetUuid,
+             reason,
+             status: "pending",
+             evidence_url: normalizedEvidenceUrl,
+             evidence_public_id: evidencePublicId || null,
+           },
+         ])
+         .select("id")
+         .single();
+
+       if (error) throw error;
+       return NextResponse.json({ success: true, reportId: data.id });
+       
+    } else {
+       // Group type
+       // Assuming reportedUserId is the Group ID (already a UUID)
+       // Check duplicate in group_flags
+       const { data: existing } = await supabaseAdmin
+         .from("group_flags")
+         .select("id")
+         .eq("reporter_id", reporterUuid)
+         .eq("group_id", targetUuid)
+         .maybeSingle();
+
+       if (existing) {
+         return NextResponse.json({
+           success: true,
+           message: "Group already reported",
+         });
+       }
+
+       // Insert into group_flags
+       const { data, error } = await supabaseAdmin
+         .from("group_flags")
+         .insert([
+           {
+             reporter_id: reporterUuid,
+             group_id: targetUuid,
+             reason,
+             status: "pending",
+             evidence_url: normalizedEvidenceUrl,
+             evidence_public_id: evidencePublicId || null,
+           },
+         ])
+         .select("id")
+         .single();
+
+       if (error) throw error;
+       return NextResponse.json({ success: true, reportId: data.id });
     }
-
-    const { data, error } = await supabaseAdmin
-      .from("match_reports")
-      .insert([
-        {
-          reporter_id: reporterUuid,
-          reported_user_id: reportedUuid,
-          reason,
-          match_type: type,
-          status: "pending",
-        },
-      ])
-      .select("id")
-      .single();
-
-    if (error) {
-      console.error("Report API: Database insert error", {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
-      return NextResponse.json(
-        { success: false, error: error.message || String(error) },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      reportId: data?.id,
-    });
   } catch (error: any) {
     console.error("Report API error:", error);
     return NextResponse.json(
