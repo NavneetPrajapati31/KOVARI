@@ -6,6 +6,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Avatar,
   AvatarFallback,
@@ -41,7 +42,9 @@ import {
   AlertCircle,
   ThumbsDown,
   Eye,
+  X,
 } from "lucide-react";
+import { Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
 import {
   Select,
@@ -111,6 +114,11 @@ export function SoloMatchCard({
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportReason, setReportReason] = useState<string>("");
   const [isReporting, setIsReporting] = useState(false);
+  const [showSkipAnimation, setShowSkipAnimation] = useState(false);
+  const [animationPhase, setAnimationPhase] = useState<"content" | "cross" | "complete">("content");
+  const [showInterestedAnimation, setShowInterestedAnimation] = useState(false);
+  const [interestedAnimationPhase, setInterestedAnimationPhase] = useState<"content" | "heart" | "complete">("content");
+  const [isViewingProfile, setIsViewingProfile] = useState(false);
 
   const handleInterested = async () => {
     if (interestSent) return;
@@ -130,25 +138,48 @@ export function SoloMatchCard({
         return;
       }
 
-      // Use provided handler or fall back to default action
-      if (onInterested) {
-        await onInterested(match.user.userId, destinationId);
-      } else {
-        const result = await createSoloInterest(
-          currentUserId,
-          match.user.userId,
-          destinationId
-        );
-        if (!result.success) {
-          console.error("Failed to create interest:", result.error);
-          setIsInteresting(false);
-          return;
-        }
+      // Create interest record first (don't call onInterested yet)
+      const result = await createSoloInterest(
+        currentUserId,
+        match.user.userId,
+        destinationId
+      );
+      if (!result.success) {
+        console.error("Failed to create interest:", result.error);
+        setIsInteresting(false);
+        return;
       }
-      setInterestSent(true);
+      
+      // Start animation sequence
+      setShowInterestedAnimation(true);
+      
+      // Phase 1: Fade out content
+      setTimeout(() => {
+        setInterestedAnimationPhase("heart");
+      }, 600);
+
+      // Phase 2: Show heart icon, then move to next match
+      setTimeout(async () => {
+        setInterestedAnimationPhase("complete");
+        
+        // Call onInterested handler to move to next match
+        if (onInterested) {
+          console.log("handleInterested: Calling onInterested handler to move to next match");
+          await onInterested(match.user.userId, destinationId);
+          console.log("handleInterested: onInterested handler completed");
+        }
+        
+        setInterestSent(true);
+        
+        // Reset animation state
+        setTimeout(() => {
+          setShowInterestedAnimation(false);
+          setInterestedAnimationPhase("content");
+          setIsInteresting(false);
+        }, 100);
+      }, 1400);
     } catch (error) {
       console.error("Error sending interest:", error);
-    } finally {
       setIsInteresting(false);
     }
   };
@@ -187,17 +218,36 @@ export function SoloMatchCard({
 
       console.log("handleSkip: Skip record created successfully");
 
-      // Call onSkip handler to move to next match
-      if (onSkip) {
-        console.log("handleSkip: Calling onSkip handler to move to next match");
-        await onSkip(match.user.userId, destinationId);
-        console.log("handleSkip: onSkip handler completed");
-      } else {
-        console.warn("handleSkip: No onSkip handler provided");
-      }
+      // Start animation sequence
+      setShowSkipAnimation(true);
+      
+      // Phase 1: Fade out content
+      setTimeout(() => {
+        setAnimationPhase("cross");
+      }, 600);
+
+      // Phase 2: Show cross icon, then move to next match
+      setTimeout(async () => {
+        setAnimationPhase("complete");
+        
+        // Call onSkip handler to move to next match
+        if (onSkip) {
+          console.log("handleSkip: Calling onSkip handler to move to next match");
+          await onSkip(match.user.userId, destinationId);
+          console.log("handleSkip: onSkip handler completed");
+        } else {
+          console.warn("handleSkip: No onSkip handler provided");
+        }
+
+        // Reset animation state
+        setTimeout(() => {
+          setShowSkipAnimation(false);
+          setAnimationPhase("content");
+          setIsSkipping(false);
+        }, 100);
+      }, 1400);
     } catch (error) {
-      console.error("Error skipping match:", error);
-    } finally {
+      console.error("Error in handleSkip:", error);
       setIsSkipping(false);
     }
   };
@@ -352,8 +402,56 @@ export function SoloMatchCard({
   );
 
   return (
-    <div className="w-full h-full flex flex-col overflow-y-auto">
-      <div className="flex flex-col gap-6">
+    <div className="w-full h-full flex flex-col overflow-y-auto relative">
+      <AnimatePresence mode="wait">
+        {showSkipAnimation && animationPhase === "cross" && (
+          <motion.div
+            key="cross-icon"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          >
+            <div className="bg-destructive rounded-full p-6">
+              <X className="w-18 h-18 text-primary-foreground" strokeWidth={3} />
+            </div>
+          </motion.div>
+        )}
+        
+        {showInterestedAnimation && interestedAnimationPhase === "heart" && (
+          <motion.div
+            key="heart-icon"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          >
+            <div className="bg-primary rounded-full p-6">
+              <Heart className="w-18 h-18 text-primary-foreground fill-primary-foreground" strokeWidth={3} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Loading overlay for View Profile */}
+      {isViewingProfile && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <Spinner variant="spinner" size="lg" color="primary" />
+        </div>
+      )}
+
+      <motion.div
+        key={match.id}
+        initial={{ opacity: 1 }}
+        animate={{ 
+          opacity: (showSkipAnimation && animationPhase === "content") || 
+                   (showInterestedAnimation && interestedAnimationPhase === "content") ? 0 : 1 
+        }}
+        transition={{ duration: 0.6 }}
+        className="flex flex-col gap-6"
+      >
         {/* Header Section */}
         <div className="flex items-start gap-4 pb-4 border-b border-border">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
@@ -630,7 +728,7 @@ export function SoloMatchCard({
             )}
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Report Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>

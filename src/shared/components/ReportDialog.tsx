@@ -1166,9 +1166,9 @@ export function ReportDialog({
       >
         {isSuccess ? (
           <div className="flex flex-col items-center justify-center py-10 space-y-4">
-            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
               <svg
-                className="h-6 w-6 text-green-600"
+                className="h-6 w-6 text-primary-foreground"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth="2"
@@ -1183,11 +1183,11 @@ export function ReportDialog({
               </svg>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">
+              <h3 className="text-md font-medium leading-6 text-foreground">
                 Report Submitted
               </h3>
               <div className="mt-2">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Thank you for your report. Our team will review it shortly.
                 </p>
               </div>

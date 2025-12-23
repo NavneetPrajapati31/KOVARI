@@ -94,6 +94,7 @@ export const ResultsDisplay = ({
           destinationId={destinationId || lastSearchData?.destination || ""}
           currentUserId={currentUserId || ""}
           onViewProfile={onViewProfile}
+          onInterested={() => onPass(soloMatch.user.userId)}
           onSkip={() => onPass(soloMatch.user.userId)}
           onReportClick={() =>
             setReportDialogState({
