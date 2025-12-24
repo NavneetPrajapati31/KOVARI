@@ -373,6 +373,7 @@ export default function ExplorePage() {
   const handleConnect = async (matchId: string) => {
     console.log("Connecting with solo traveler:", matchId);
     // TODO: Implement connection logic
+    handleNextGroup();
   };
 
   const handleSuperLike = async (matchId: string) => {
@@ -415,6 +416,7 @@ export default function ExplorePage() {
   const handleJoinGroup = async (groupId: string) => {
     console.log("Joining group:", groupId);
     // TODO: Implement join group logic
+    handleNextGroup();
   };
 
   const handleRequestJoin = async (groupId: string) => {
@@ -429,8 +431,8 @@ export default function ExplorePage() {
   };
 
   const handleViewGroup = (groupId: string) => {
-    console.log("Viewing group:", groupId);
-    // TODO: Navigate to group details
+    if (!groupId) return;
+    router.push(`/groups/${groupId}/home`);
   };
 
   return (

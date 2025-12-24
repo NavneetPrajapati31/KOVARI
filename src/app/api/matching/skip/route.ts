@@ -47,29 +47,55 @@ export async function POST(request: Request) {
     };
 
     const skipperUuid = await resolve(skipperId);
-    const skippedUuid = await resolve(skippedUserId);
-    if (!skipperUuid || !skippedUuid) {
-      console.error("Skip API: Failed to resolve UUIDs", {
+    if (!skipperUuid) {
+      console.error("Skip API: Failed to resolve skipper UUID", {
         skipperId,
-        skippedUserId,
         skipperUuid,
-        skippedUuid,
       });
       return NextResponse.json(
         {
           success: false,
-          error: "Could not resolve user identifiers to UUIDs",
+          error: "Could not resolve skipper identifier to UUID",
         },
         { status: 400 }
       );
     }
 
-    // Prevent duplicate skip
+    let skippedEntityId: string;
+    
+    if (type === "group") {
+      // For group skips, skippedUserId is already a group UUID
+      // After migration, match_skips.skipped_user_id can store both user and group IDs
+      skippedEntityId = skippedUserId;
+      console.log("Processing group skip", {
+        skipperUuid,
+        groupId: skippedEntityId,
+        destinationId,
+      });
+    } else {
+      // For solo skips, resolve the user ID
+      const skippedUuid = await resolve(skippedUserId);
+      if (!skippedUuid) {
+        console.error("Skip API: Failed to resolve skipped user UUID", {
+          skippedUserId,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Could not resolve skipped user identifier to UUID",
+          },
+          { status: 400 }
+        );
+      }
+      skippedEntityId = skippedUuid;
+    }
+
+    // Check for duplicate skip
     const { data: existing } = await supabaseAdmin
       .from("match_skips")
       .select("id")
       .eq("user_id", skipperUuid)
-      .eq("skipped_user_id", skippedUuid)
+      .eq("skipped_user_id", skippedEntityId)
       .eq("destination_id", destinationId)
       .eq("match_type", type)
       .maybeSingle();
@@ -77,16 +103,17 @@ export async function POST(request: Request) {
     if (existing) {
       return NextResponse.json({
         success: true,
-        message: "Already skipped this profile",
+        message: `Already skipped this ${type === "group" ? "group" : "profile"}`,
       });
     }
 
+    // Insert skip record (works for both solo and group)
     const { data, error } = await supabaseAdmin
       .from("match_skips")
       .insert([
         {
           user_id: skipperUuid,
-          skipped_user_id: skippedUuid,
+          skipped_user_id: skippedEntityId,
           destination_id: destinationId,
           match_type: type,
         },
@@ -100,6 +127,7 @@ export async function POST(request: Request) {
         code: error.code,
         details: error.details,
         hint: error.hint,
+        type,
       });
       return NextResponse.json(
         { success: false, error: error.message || String(error) },

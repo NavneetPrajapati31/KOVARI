@@ -253,6 +253,7 @@ export function SoloMatchCard({
   };
 
   const handleViewProfile = () => {
+    setIsViewingProfile(true);
     if (onViewProfile) {
       onViewProfile(match.user.userId);
     }
@@ -407,11 +408,11 @@ export function SoloMatchCard({
         {showSkipAnimation && animationPhase === "cross" && (
           <motion.div
             key="cross-icon"
-            initial={{ opacity: 0, scale: 0.5 }}
+            initial={{ opacity: 0, scale: 1 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
+            exit={{ opacity: 0, scale: 1 }}
             transition={{ duration: 0.4 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            className="absolute inset-0 z-50 flex items-center justify-center bg-card"
           >
             <div className="bg-destructive rounded-full p-6">
               <X className="w-18 h-18 text-primary-foreground" strokeWidth={3} />
@@ -422,11 +423,11 @@ export function SoloMatchCard({
         {showInterestedAnimation && interestedAnimationPhase === "heart" && (
           <motion.div
             key="heart-icon"
-            initial={{ opacity: 0, scale: 0.5 }}
+            initial={{ opacity: 0, scale: 1 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
+            exit={{ opacity: 0, scale: 1 }}
             transition={{ duration: 0.4 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            className="absolute inset-0 z-50 flex items-center justify-center bg-card"
           >
             <div className="bg-primary rounded-full p-6">
               <Heart className="w-18 h-18 text-primary-foreground fill-primary-foreground" strokeWidth={3} />
@@ -437,8 +438,8 @@ export function SoloMatchCard({
 
       {/* Loading overlay for View Profile */}
       {isViewingProfile && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <Spinner variant="spinner" size="lg" color="primary" />
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-card">
+          <Spinner variant="spinner" size="md" color="primary" />
         </div>
       )}
 

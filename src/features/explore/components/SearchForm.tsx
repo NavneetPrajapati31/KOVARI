@@ -394,7 +394,7 @@ export const SearchForm = ({
         disabled={isLoading || !searchData.destination}
         className="w-full bg-primary text-primary-foreground py-3 rounded-full"
       >
-        {isLoading ? "Searching..." : "SEARCH"}
+        {isLoading ? "Searching..." : "Search"}
       </Button>
     </div>
   );

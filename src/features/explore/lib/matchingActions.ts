@@ -95,13 +95,36 @@ export async function createGroupInterest(
   destinationId: string
 ): Promise<{ success: boolean; interestId?: string; error?: string }> {
   try {
-    // For MVP, we're not tracking group interests directly
-    // This is a placeholder for future group matching logic
-    console.info("Group interest feature coming soon");
+    // Validate params
+    if (!fromUserId || !toGroupId || !destinationId) {
+      console.error("createGroupInterest: missing parameter", {
+        fromUserId,
+        toGroupId,
+        destinationId,
+      });
+      return { success: false, error: "Missing parameters" };
+    }
 
+    // Call API to create group interest and join request
+    const resp = await fetch("/api/groups/interest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromUserId, toGroupId, destinationId }),
+    });
+
+    if (!resp.ok) {
+      const errorData = await resp.json();
+      console.error("createGroupInterest: API returned error status", errorData);
+      return {
+        success: false,
+        error: errorData.error || "Failed to create group interest",
+      };
+    }
+
+    const data = await resp.json();
     return {
-      success: false,
-      error: "Group matching coming soon",
+      success: true,
+      interestId: data.interestId,
     };
   } catch (error) {
     console.error("Unexpected error in createGroupInterest:", error);

@@ -26,6 +26,10 @@ interface ResultsDisplayProps {
   onJoinGroup: (groupId: string) => Promise<void>;
   onPassGroup: (groupId: string) => Promise<void>;
   onViewGroup: (groupId: string) => void;
+  onConnect?: (matchId: string) => Promise<void>;
+  onSuperLike?: (matchId: string) => Promise<void>;
+  onComment?: (matchId: string, attribute: string, comment: string) => Promise<void>;
+  onRequestJoin?: (groupId: string) => Promise<void>;
   currentUserId?: string;
   destinationId?: string;
 }
@@ -48,6 +52,10 @@ export const ResultsDisplay = ({
   onJoinGroup,
   onPassGroup,
   onViewGroup,
+  onConnect,
+  onSuperLike,
+  onComment,
+  onRequestJoin,
   currentUserId,
   destinationId,
 }: ResultsDisplayProps) => {
@@ -94,7 +102,13 @@ export const ResultsDisplay = ({
           destinationId={destinationId || lastSearchData?.destination || ""}
           currentUserId={currentUserId || ""}
           onViewProfile={onViewProfile}
-          onInterested={() => onPass(soloMatch.user.userId)}
+          onInterested={async (userId) => {
+            if (onConnect) {
+              await onConnect(userId);
+            } else {
+              await onPass(userId);
+            }
+          }}
           onSkip={() => onPass(soloMatch.user.userId)}
           onReportClick={() =>
             setReportDialogState({

@@ -6,6 +6,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Avatar,
   AvatarFallback,
@@ -44,7 +45,9 @@ import {
   Cigarette,
   Flag,
   AlertCircle,
+  X,
 } from "lucide-react";
+import { Spinner } from "@heroui/react";
 import {
   Dialog,
   DialogContent,
@@ -91,6 +94,11 @@ export function GroupMatchCard({
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportReason, setReportReason] = useState<string>("");
   const [isReporting, setIsReporting] = useState(false);
+  const [showSkipAnimation, setShowSkipAnimation] = useState(false);
+  const [animationPhase, setAnimationPhase] = useState<"content" | "cross" | "complete">("content");
+  const [showInterestedAnimation, setShowInterestedAnimation] = useState(false);
+  const [interestedAnimationPhase, setInterestedAnimationPhase] = useState<"content" | "heart" | "complete">("content");
+  const [isViewingGroup, setIsViewingGroup] = useState(false);
 
   console.log("GroupMatchCard received group:", group);
 
@@ -113,25 +121,48 @@ export function GroupMatchCard({
 
     setIsInteresting(true);
     try {
-      // Use provided handler or fall back to default action
-      if (onInterested) {
-        await onInterested(group.id, destinationId);
-      } else {
-        const result = await createGroupInterest(
-          currentUserId,
-          group.id,
-          destinationId
-        );
-        if (!result.success) {
-          console.error("Failed to create interest:", result.error);
-          setIsInteresting(false);
-          return;
-        }
+      // Create interest record first (don't call onInterested yet)
+      const result = await createGroupInterest(
+        currentUserId,
+        group.id,
+        destinationId
+      );
+      if (!result.success) {
+        console.error("Failed to create interest:", result.error);
+        setIsInteresting(false);
+        return;
       }
-      setInterestSent(true);
+      
+      // Start animation sequence
+      setShowInterestedAnimation(true);
+      
+      // Phase 1: Fade out content
+      setTimeout(() => {
+        setInterestedAnimationPhase("heart");
+      }, 600);
+
+      // Phase 2: Show heart icon, then move to next match
+      setTimeout(async () => {
+        setInterestedAnimationPhase("complete");
+        
+        // Call onInterested handler to move to next match
+        if (onInterested) {
+          console.log("handleJoinGroup: Calling onInterested handler to move to next match");
+          await onInterested(group.id, destinationId);
+          console.log("handleJoinGroup: onInterested handler completed");
+        }
+        
+        setInterestSent(true);
+        
+        // Reset animation state
+        setTimeout(() => {
+          setShowInterestedAnimation(false);
+          setInterestedAnimationPhase("content");
+          setIsInteresting(false);
+        }, 100);
+      }, 1400);
     } catch (error) {
       console.error("Error sending interest:", error);
-    } finally {
       setIsInteresting(false);
     }
   };
@@ -139,28 +170,55 @@ export function GroupMatchCard({
   const handleSkip = async () => {
     setIsSkipping(true);
     try {
-      // Use provided handler or fall back to default action
-      if (onSkip) {
-        await onSkip(group.id, destinationId);
-      } else {
-        const result = await createSkipRecord(
-          currentUserId,
-          group.id,
-          destinationId,
-          "group"
-        );
-        if (!result.success) {
-          console.error("Failed to skip:", result.error);
-        }
+      // Create skip record
+      const result = await createSkipRecord(
+        currentUserId,
+        group.id,
+        destinationId,
+        "group"
+      );
+      if (!result.success) {
+        console.error("Failed to skip:", result.error);
+        setIsSkipping(false);
+        return;
       }
+
+      console.log("handleSkip: Skip record created successfully");
+
+      // Start animation sequence
+      setShowSkipAnimation(true);
+      
+      // Phase 1: Fade out content
+      setTimeout(() => {
+        setAnimationPhase("cross");
+      }, 600);
+
+      // Phase 2: Show cross icon, then move to next match
+      setTimeout(async () => {
+        setAnimationPhase("complete");
+        
+        // Call onSkip handler to move to next match
+        if (onSkip) {
+          console.log("handleSkip: Calling onSkip handler to move to next match");
+          await onSkip(group.id, destinationId);
+          console.log("handleSkip: onSkip handler completed");
+        }
+
+        // Reset animation state
+        setTimeout(() => {
+          setShowSkipAnimation(false);
+          setAnimationPhase("content");
+          setIsSkipping(false);
+        }, 100);
+      }, 1400);
     } catch (error) {
-      console.error("Error skipping group:", error);
-    } finally {
+      console.error("Error in handleSkip:", error);
       setIsSkipping(false);
     }
   };
 
   const handleViewGroup = () => {
+    setIsViewingGroup(true);
     if (onViewGroup) {
       onViewGroup(group.id);
     }
@@ -332,8 +390,56 @@ export function GroupMatchCard({
   );
 
   return (
-    <div className="w-full h-full flex flex-col overflow-y-auto">
-      <div className="flex flex-col gap-6">
+    <div className="w-full h-full flex flex-col overflow-y-auto relative">
+      <AnimatePresence mode="wait">
+        {showSkipAnimation && animationPhase === "cross" && (
+          <motion.div
+            key="cross-icon"
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-card"
+          >
+            <div className="bg-destructive rounded-full p-6">
+              <X className="w-18 h-18 text-primary-foreground" strokeWidth={3} />
+            </div>
+          </motion.div>
+        )}
+        
+        {showInterestedAnimation && interestedAnimationPhase === "heart" && (
+          <motion.div
+            key="heart-icon"
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-card"
+          >
+            <div className="bg-primary rounded-full p-6">
+              <Heart className="w-18 h-18 text-primary-foreground fill-primary-foreground" strokeWidth={3} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Loading overlay for View Group */}
+      {isViewingGroup && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-card">
+          <Spinner variant="spinner" size="md" color="primary" />
+        </div>
+      )}
+
+      <motion.div
+        key={group.id}
+        initial={{ opacity: 1 }}
+        animate={{ 
+          opacity: (showSkipAnimation && animationPhase === "content") || 
+                   (showInterestedAnimation && interestedAnimationPhase === "content") ? 0 : 1 
+        }}
+        transition={{ duration: 0.6 }}
+        className="flex flex-col gap-6"
+      >
         {/* Header Section */}
         <div className="flex items-start gap-4 pb-4 border-b border-border">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
@@ -495,30 +601,28 @@ export function GroupMatchCard({
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2 pb-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="flex-1 h-10 border-destructive/20 text-destructive hover:bg-destructive/10 rounded-full"
-            title="Skip this group"
+            className="flex-1 h-11 bg-destructive text-primary-foreground rounded-full"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <ThumbsDown className="w-4 h-4" />
+              <p className="text-md font-bold">Skip</p>
             )}
           </Button>
-          <Button
-            variant="outline"
+          {/* <Button
+            variant="secondary"
             size="sm"
             onClick={handleViewGroup}
-            className="flex-1 h-10 rounded-full"
-            title="View group details"
+            className="flex-1 h-11 rounded-full"
           >
-            <Eye className="w-4 h-4" />
-          </Button>
+            <p className="text-md font-bold">View Group</p>
+          </Button> */}
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => {
               if (onReportClick) {
@@ -527,18 +631,16 @@ export function GroupMatchCard({
                 setShowReportDialog(true);
               }
             }}
-            className="flex-1 h-10 border-yellow-200 text-yellow-600 hover:bg-yellow-50 rounded-full"
-            title="Report this group"
+            className="flex-1 h-11 rounded-full"
           >
-            <Flag className="w-4 h-4" />
+            <p className="text-md font-bold">Report</p>
           </Button>
           <Button
             variant="default"
             size="sm"
             onClick={handleJoinGroup}
             disabled={isInteresting || interestSent}
-            className="flex-1 h-10 rounded-full"
-            title="Send interest"
+            className="flex-1 h-11 rounded-full"
           >
             {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -548,14 +650,11 @@ export function GroupMatchCard({
                 <span className="text-xs ml-1">Sent</span>
               </>
             ) : (
-              <>
-                <Heart className="w-4 h-4" />
-                <span className="text-xs ml-1">Interested</span>
-              </>
+              <p className="text-md font-bold">Interested</p>
             )}
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Report Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
