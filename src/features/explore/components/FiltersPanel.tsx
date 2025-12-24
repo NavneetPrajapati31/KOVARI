@@ -194,7 +194,7 @@ export const FiltersPanel = ({
               variant={
                 filters.interests.includes(interest) ? "default" : "outline"
               }
-              className="cursor-pointer rounded-full px-4 py-1.5"
+              className="cursor-pointer rounded-full px-4 py-1.5 text-xs font-normal"
               onClick={() => {
                 const newInterests = filters.interests.includes(interest)
                   ? filters.interests.filter((i) => i !== interest)
@@ -218,7 +218,7 @@ export const FiltersPanel = ({
               variant={
                 filters.languages.includes(language) ? "default" : "outline"
               }
-              className="cursor-pointer rounded-full px-4 py-1.5"
+              className="cursor-pointer rounded-full px-4 py-1.5 text-xs font-normal"
               onClick={() => {
                 const newLanguages = filters.languages.includes(language)
                   ? filters.languages.filter((l) => l !== language)

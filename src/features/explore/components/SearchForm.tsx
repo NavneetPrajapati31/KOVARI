@@ -250,7 +250,7 @@ export const SearchForm = ({
             }
             onFocus={() => setShowDestinationDropdown(true)}
             placeholder="Where do you want to go?"
-            className="w-full"
+            className="w-full text-sm"
           />
           {showDestinationDropdown && (
             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -371,7 +371,7 @@ export const SearchForm = ({
       {/* Quick Budget Buttons */}
       <div className="space-y-2">
         <Label className="text-sm text-muted-foreground">Quick Select</Label>
-        <div className="flex gap-2 w-full">
+        <div className="flex min-[930px]:grid min-[930px]:grid-cols-2 min-[1100px]:flex gap-2 w-full">
           {[10000, 20000, 35000, 50000].map((budget) => (
             <Button
               key={budget}
@@ -381,7 +381,7 @@ export const SearchForm = ({
               className="text-xs flex-1 rounded-full"
             >
               {budget === 50000
-                ? "Luxury ₹50k+"
+                ? "₹50k+"
                 : `₹${budget.toLocaleString()}`}
             </Button>
           ))}

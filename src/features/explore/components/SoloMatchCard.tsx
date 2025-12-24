@@ -6,7 +6,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Avatar,
   AvatarFallback,
@@ -114,10 +113,6 @@ export function SoloMatchCard({
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportReason, setReportReason] = useState<string>("");
   const [isReporting, setIsReporting] = useState(false);
-  const [showSkipAnimation, setShowSkipAnimation] = useState(false);
-  const [animationPhase, setAnimationPhase] = useState<"content" | "cross" | "complete">("content");
-  const [showInterestedAnimation, setShowInterestedAnimation] = useState(false);
-  const [interestedAnimationPhase, setInterestedAnimationPhase] = useState<"content" | "heart" | "complete">("content");
   const [isViewingProfile, setIsViewingProfile] = useState(false);
 
   const handleInterested = async () => {
@@ -138,7 +133,7 @@ export function SoloMatchCard({
         return;
       }
 
-      // Create interest record first (don't call onInterested yet)
+      // Create interest record first
       const result = await createSoloInterest(
         currentUserId,
         match.user.userId,
@@ -150,34 +145,14 @@ export function SoloMatchCard({
         return;
       }
       
-      // Start animation sequence
-      setShowInterestedAnimation(true);
-      
-      // Phase 1: Fade out content
-      setTimeout(() => {
-        setInterestedAnimationPhase("heart");
-      }, 600);
+      setInterestSent(true);
 
-      // Phase 2: Show heart icon, then move to next match
-      setTimeout(async () => {
-        setInterestedAnimationPhase("complete");
-        
-        // Call onInterested handler to move to next match
-        if (onInterested) {
-          console.log("handleInterested: Calling onInterested handler to move to next match");
-          await onInterested(match.user.userId, destinationId);
-          console.log("handleInterested: onInterested handler completed");
-        }
-        
-        setInterestSent(true);
-        
-        // Reset animation state
-        setTimeout(() => {
-          setShowInterestedAnimation(false);
-          setInterestedAnimationPhase("content");
-          setIsInteresting(false);
-        }, 100);
-      }, 1400);
+      // Call onInterested handler to move to next match
+      if (onInterested) {
+        await onInterested(match.user.userId, destinationId);
+      }
+      
+      setIsInteresting(false);
     } catch (error) {
       console.error("Error sending interest:", error);
       setIsInteresting(false);
@@ -197,12 +172,6 @@ export function SoloMatchCard({
         return;
       }
 
-      console.log("handleSkip: Starting skip process", {
-        currentUserId,
-        targetUserId: match.user.userId,
-        destinationId,
-      });
-
       // Create skip record
       const result = await createSkipRecord(
         currentUserId,
@@ -216,36 +185,12 @@ export function SoloMatchCard({
         return;
       }
 
-      console.log("handleSkip: Skip record created successfully");
+      // Call onSkip handler to move to next match
+      if (onSkip) {
+        await onSkip(match.user.userId, destinationId);
+      }
 
-      // Start animation sequence
-      setShowSkipAnimation(true);
-      
-      // Phase 1: Fade out content
-      setTimeout(() => {
-        setAnimationPhase("cross");
-      }, 600);
-
-      // Phase 2: Show cross icon, then move to next match
-      setTimeout(async () => {
-        setAnimationPhase("complete");
-        
-        // Call onSkip handler to move to next match
-        if (onSkip) {
-          console.log("handleSkip: Calling onSkip handler to move to next match");
-          await onSkip(match.user.userId, destinationId);
-          console.log("handleSkip: onSkip handler completed");
-        } else {
-          console.warn("handleSkip: No onSkip handler provided");
-        }
-
-        // Reset animation state
-        setTimeout(() => {
-          setShowSkipAnimation(false);
-          setAnimationPhase("content");
-          setIsSkipping(false);
-        }, 100);
-      }, 1400);
+      setIsSkipping(false);
     } catch (error) {
       console.error("Error in handleSkip:", error);
       setIsSkipping(false);
@@ -404,38 +349,6 @@ export function SoloMatchCard({
 
   return (
     <div className="w-full h-full flex flex-col overflow-y-auto relative">
-      <AnimatePresence mode="wait">
-        {showSkipAnimation && animationPhase === "cross" && (
-          <motion.div
-            key="cross-icon"
-            initial={{ opacity: 0, scale: 1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-card"
-          >
-            <div className="bg-destructive rounded-full p-6">
-              <X className="w-18 h-18 text-primary-foreground" strokeWidth={3} />
-            </div>
-          </motion.div>
-        )}
-        
-        {showInterestedAnimation && interestedAnimationPhase === "heart" && (
-          <motion.div
-            key="heart-icon"
-            initial={{ opacity: 0, scale: 1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-card"
-          >
-            <div className="bg-primary rounded-full p-6">
-              <Heart className="w-18 h-18 text-primary-foreground fill-primary-foreground" strokeWidth={3} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Loading overlay for View Profile */}
       {isViewingProfile && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-card">
@@ -443,19 +356,13 @@ export function SoloMatchCard({
         </div>
       )}
 
-      <motion.div
+      <div
         key={match.id}
-        initial={{ opacity: 1 }}
-        animate={{ 
-          opacity: (showSkipAnimation && animationPhase === "content") || 
-                   (showInterestedAnimation && interestedAnimationPhase === "content") ? 0 : 1 
-        }}
-        transition={{ duration: 0.6 }}
         className="flex flex-col gap-6"
       >
         {/* Header Section */}
-        <div className="flex items-start gap-4 pb-4 border-b border-border">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+        <div className="flex flex-col md:flex-row items-start gap-4 pb-4 border-b border-border">
+          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-3xl md:rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0 relative">
             {match.user.avatar ? (
               <img
                 src={match.user.avatar}
@@ -463,7 +370,7 @@ export function SoloMatchCard({
                 className="w-full h-full object-cover cursor-pointer"
               />
             ) : (
-              <Avatar className="w-16 h-16 text-lg rounded-full text-primary-foreground">
+              <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground">
                 <AvatarImage
                   src=""
                   alt={match.user.full_name || match.user.name || "Traveler"}
@@ -478,7 +385,7 @@ export function SoloMatchCard({
               </Avatar>
             )}
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 w-full">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h1 className="text-md font-semibold text-foreground mt-1">
                 {match.user.full_name || match.user.name || "Traveler"}
@@ -669,13 +576,14 @@ export function SoloMatchCard({
         )} */}
 
         {/* Action Buttons */}
-        <div className="flex gap-2 pt-2 pb-2">
+        <div className="flex flex-col md:flex-row gap-3 pt-4 pb-2">
+          {/* 1. Skip Button */}
           <Button
             variant="secondary"
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="flex-1 h-11 bg-destructive text-primary-foreground rounded-full"
+            className="md:flex-1 h-11 rounded-full"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -683,36 +591,14 @@ export function SoloMatchCard({
               <p className="text-md font-bold">Skip</p>
             )}
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleViewProfile}
-            className="flex-1 h-11 rounded-full"
-          >
-            {/* <Eye className="w-4 h-4" /> */}
-            <p className="text-md font-bold">View Profile</p>
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              if (onReportClick) {
-                onReportClick();
-              } else {
-                setShowReportDialog(true);
-              }
-            }}
-            className="flex-1 h-11 rounded-full"
-          >
-            {/* <Flag className="w-4 h-4" /> */}
-            <p className="text-md font-bold">Report</p>
-          </Button>
+
+          {/* 2. Interested Button */}
           <Button
             variant="default"
             size="sm"
             onClick={handleInterested}
             disabled={isInteresting || interestSent}
-            className="flex-1 h-11 rounded-full"
+            className="order-first md:order-none md:flex-1 h-11 rounded-full"
           >
             {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -728,8 +614,36 @@ export function SoloMatchCard({
               </>
             )}
           </Button>
+
+          {/* 3. View Profile Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleViewProfile}
+            className="md:flex-1 h-11 rounded-full"
+          >
+            {/* <Eye className="w-4 h-4" /> */}
+            <p className="text-md font-bold">View Profile</p>
+          </Button>
+
+          {/* 4. Report Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              if (onReportClick) {
+                onReportClick();
+              } else {
+                setShowReportDialog(true);
+              }
+            }}
+            className="md:flex-1 h-11 rounded-full"
+          >
+            {/* <Flag className="w-4 h-4" /> */}
+            <p className="text-md font-bold">Report</p>
+          </Button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Report Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>

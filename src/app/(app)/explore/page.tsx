@@ -13,6 +13,12 @@ import { Button } from "@/shared/components/ui/button";
 import { ExploreSidebar } from "@/features/explore/components/ExploreSidebar";
 import { ResultsDisplay } from "@/features/explore/components/ResultsDisplay";
 import { SearchData, Filters } from "@/features/explore/types";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/shared/components/ui/sheet";
+import { Filter } from "lucide-react";
 
 const EXPLORE_TABS = [
   { label: "Solo Travel", value: "solo" },
@@ -55,6 +61,7 @@ export default function ExplorePage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [lastSearchData, setLastSearchData] = useState<SearchData | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // Search form state
   const [searchData, setSearchData] = useState<SearchData>({
@@ -139,10 +146,10 @@ export default function ExplorePage() {
         <Button
           key={tab.value}
           variant={"outline"}
-          className={`text-xs sm:text-sm ${
+          className={`flex-auto text-xs sm:text-sm ${
             activeTab === idx
               ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
-              : "text-foreground/80 font-semibold bg-transparent rounded-2xl hover:text-primary"
+              : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary"
           }`}
           onClick={() => handleTabChange(idx)}
           onKeyDown={(e) => handleTabKeyDown(e, idx)}
@@ -167,6 +174,7 @@ export default function ExplorePage() {
   };
 
   const handleSearch = () => {
+    setIsSheetOpen(false);
     const fullSearchData: SearchData = {
       ...searchData,
       travelMode: activeTab === 0 ? "solo" : "group",
@@ -439,14 +447,42 @@ export default function ExplorePage() {
     <div className="min-h-screen p-4">
       <div className="max-w-full mx-auto flex flex-col gap-4">
         {/* Tabs Header - Outside containers like groups layout */}
-        <header>
-          <div className="flex gap-2 flex-shrink-0">{tabButtons}</div>
+        <header className="flex w-full items-center gap-2">
+          <div className="flex gap-2 flex-auto min-[930px]:w-auto min-[930px]:flex-none">{tabButtons}</div>
+
+          {/* Mobile Filter Trigger */}
+          <div className="flex-auto min-[930px]:hidden">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full text-xs sm:text-sm text-foreground font-semibold bg-card rounded-2xl hover:text-primary">
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent 
+                side="bottom" 
+                className="h-[100dvh] p-0 rounded-none w-full"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <div className="h-full pt-2">
+                  <ExploreSidebar
+                    activeTab={activeTab}
+                    searchData={searchData}
+                    filters={filters}
+                    searchLoading={searchLoading}
+                    onSearchDataChange={setSearchData}
+                    onSearch={handleSearch}
+                    onFilterChange={handleFilterChange}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </header>
 
         {/* Main Content Area */}
         <div className="flex-1 flex gap-3 h-[calc(100vh-8rem)] md:h-[calc(100vh-9rem)] lg:h-[calc(100vh-10rem)]">
           {/* Left Sidebar - Rounded Container */}
-          <div className="w-full md:w-[400px] lg:w-[420px] flex-shrink-0 rounded-3xl bg-card border-1 border-border overflow-hidden flex flex-col">
+          <div className="hidden min-[930px]:flex w-full min-[930px]:w-1/3 flex-shrink-0 rounded-3xl bg-card border-1 border-border overflow-hidden flex-col">
             <ExploreSidebar
               activeTab={activeTab}
               searchData={searchData}
@@ -459,7 +495,7 @@ export default function ExplorePage() {
           </div>
 
           {/* Right Content Area - Rounded Container */}
-          <div className="flex-1 bg-card rounded-3xl border-1 border-border overflow-hidden flex flex-col">
+          <div className="w-full min-[930px]:w-2/3 bg-card rounded-3xl border-1 border-border overflow-hidden flex flex-col">
             <ResultsDisplay
               activeTab={activeTab}
               matchedGroups={matchedGroups}

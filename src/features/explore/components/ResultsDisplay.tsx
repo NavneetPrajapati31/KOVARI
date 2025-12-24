@@ -147,7 +147,7 @@ export const ResultsDisplay = ({
   // If we're currently loading, show only the loading state and hide everything else
   if (searchLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="w-full h-full min-h-[90vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Spinner variant="spinner" size="md" color="primary" />
           <p className="text-muted-foreground text-sm font-medium">
@@ -159,7 +159,7 @@ export const ResultsDisplay = ({
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="w-full h-full min-h-[90vh] flex flex-col overflow-hidden">
       {/* Error Display */}
       {searchError && (
         <div className="px-6 pt-6 pb-0 flex-shrink-0">
@@ -261,7 +261,12 @@ export const ResultsDisplay = ({
                   Start your search
                 </h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Enter your travel details in the sidebar to find compatible{" "}
+                  <span className="min-[930px]:hidden">
+                    Tap &apos;Filters&apos; to find compatible{" "}
+                  </span>
+                  <span className="hidden min-[930px]:inline">
+                    Enter your travel details in the sidebar to find compatible{" "}
+                  </span>
                   {activeTab === 0 ? "travel companions" : "travel groups"}.
                 </p>
               </>
