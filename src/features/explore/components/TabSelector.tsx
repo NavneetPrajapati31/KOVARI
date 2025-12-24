@@ -36,8 +36,8 @@ export const TabSelector = ({ activeTab, onTabChange }: TabSelectorProps) => {
   };
 
   return (
-    <div className="p-4 bg-background flex-shrink-0">
-      <div className="flex bg-background rounded-lg p-1 shadow-sm border border-gray-200">
+    <div className="p-4 flex-shrink-0">
+      <div className="flex rounded-lg p-1">
         <button
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === 0
@@ -59,9 +59,6 @@ export const TabSelector = ({ activeTab, onTabChange }: TabSelectorProps) => {
           Group Travel
         </button>
       </div>
-      <p className="text-xs text-gray-500 mt-2 text-center">
-        {activeTab === 0 ? "Solo Travel Mode" : "Group Travel Mode"}
-      </p>
     </div>
   );
 };
