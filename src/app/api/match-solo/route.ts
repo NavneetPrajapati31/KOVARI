@@ -124,40 +124,145 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 2. Get all other active session keys and fetch their data
-    console.log(`🔍 Getting all session keys...`);
+    // 2. Resolve internal User UUID for filtering
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_user_id", userId)
+      .single();
+
+    if (userError || !userData) {
+      console.error("❌ Could not resolve internal UUID for user:", userId);
+      return NextResponse.json(
+        { message: "User profile not found" },
+        { status: 404 }
+      );
+    }
+    const searchingUserUuid = userData.id;
+    const currentDestination = searchingUserSession.destination.name;
+
+    // 3. Fetch Exclusion Lists (Matches, Skips, Reports, Interests)
+    console.log("🔍 Fetching exclusion lists...");
+    const [
+      matchesResult,
+      skipsResult,
+      reportsResult,
+      interestsSentResult,
+      interestsReceivedResult,
+    ] = await Promise.all([
+      // 1. Matches: Exclude if already matched for same destination
+      supabase
+        .from("matches")
+        .select("user_a_id, user_b_id")
+        .or(`user_a_id.eq.${searchingUserUuid},user_b_id.eq.${searchingUserUuid}`)
+        .eq("destination_id", currentDestination),
+
+      // 2. Skips: Exclude if I skipped them OR they skipped me for same destination
+      supabase
+        .from("match_skips")
+        .select("user_id, skipped_user_id")
+        .or(`user_id.eq.${searchingUserUuid},skipped_user_id.eq.${searchingUserUuid}`)
+        .eq("destination_id", currentDestination)
+        .eq("match_type", "solo"),
+
+      // 3. Reports: Exclude GLOBALLY if I reported them OR they reported me
+      supabase
+        .from("user_flags")
+        .select("reporter_id, user_id")
+        .or(`reporter_id.eq.${searchingUserUuid},user_id.eq.${searchingUserUuid}`),
+
+      // 4. Pending Interests Sent: Exclude if I already sent pending interest
+      supabase
+        .from("match_interests")
+        .select("to_user_id")
+        .eq("from_user_id", searchingUserUuid)
+        .eq("destination_id", currentDestination)
+        .eq("status", "pending"),
+
+      // 5. Pending/Declined Interests Received: Exclude if they sent pending or I declined
+      supabase
+        .from("match_interests")
+        .select("from_user_id")
+        .eq("to_user_id", searchingUserUuid)
+        .eq("destination_id", currentDestination)
+        .in("status", ["pending", "declined"]),
+    ]);
+
+    // Build Set of Excluded UUIDs
+    const excludedUuids = new Set<string>();
+
+    // Add Matches
+    matchesResult.data?.forEach((m) => {
+      if (m.user_a_id !== searchingUserUuid) excludedUuids.add(m.user_a_id);
+      if (m.user_b_id !== searchingUserUuid) excludedUuids.add(m.user_b_id);
+    });
+
+    // Add Skips
+    skipsResult.data?.forEach((s) => {
+      if (s.user_id !== searchingUserUuid) excludedUuids.add(s.user_id);
+      if (s.skipped_user_id !== searchingUserUuid)
+        excludedUuids.add(s.skipped_user_id);
+    });
+
+    // Add Reports
+    reportsResult.data?.forEach((r) => {
+      if (r.reporter_id !== searchingUserUuid) excludedUuids.add(r.reporter_id);
+      if (r.user_id !== searchingUserUuid) excludedUuids.add(r.user_id);
+    });
+
+    // Add Interests
+    interestsSentResult.data?.forEach((i) => excludedUuids.add(i.to_user_id));
+    interestsReceivedResult.data?.forEach((i) =>
+      excludedUuids.add(i.from_user_id)
+    );
+
+    // Resolve Excluded Clerk IDs
+    const excludedClerkIds = new Set<string>();
+    excludedClerkIds.add(userId); // Exclude self
+
+    if (excludedUuids.size > 0) {
+      const { data: excludedUsers } = await supabase
+        .from("users")
+        .select("clerk_user_id")
+        .in("id", Array.from(excludedUuids));
+
+      excludedUsers?.forEach((u) => excludedClerkIds.add(u.clerk_user_id));
+    }
+    console.log(
+      `🚫 Filtering out ${excludedClerkIds.size - 1} users based on interaction history`
+    );
+
+    // 4. Get all other active session keys and fetch their data
     const allSessionKeys = (await redisClient.keys("session:*")).filter(
       (key) => key !== `session:${userId}`
     );
-    console.log(`✅ Found ${allSessionKeys.length} other sessions`);
 
     if (allSessionKeys.length === 0) {
-      console.log(`ℹ️ No other sessions found`);
       return NextResponse.json([], { status: 200 });
     }
 
-    console.log(
-      `🔍 Getting session data for ${allSessionKeys.length} sessions...`
-    );
     const allSessionsJSON = await redisClient.mGet(allSessionKeys);
 
-    // FIX: Check if allSessionsJSON is not null and is an array before proceeding.
     if (!allSessionsJSON || !Array.isArray(allSessionsJSON)) {
-      console.log(`❌ Invalid session data returned from Redis`);
-      return NextResponse.json([], { status: 200 }); // Return empty if no valid sessions found
+      return NextResponse.json([], { status: 200 });
     }
 
-    // FIX: Use a type predicate `s is string` in the filter to correctly inform
-    // TypeScript that the resulting array only contains strings. This resolves all
-    // subsequent type errors in the chain.
     const validSessionsJSON = allSessionsJSON.filter(
       (s): s is string => s !== null
     );
-    console.log(`✅ Found ${validSessionsJSON.length} valid sessions`);
 
-    const allSessions: SoloSession[] = validSessionsJSON.map((s: string) =>
-      JSON.parse(s)
-    );
+    // 5. Parse and Filter Matches
+    const allSessions: SoloSession[] = validSessionsJSON
+      .map((s: string) => JSON.parse(s))
+      .filter((session: SoloSession) => {
+        // Exclude if in excluded list
+        if (session.userId && excludedClerkIds.has(session.userId)) {
+          return false;
+        }
+        return true;
+      });
+
+    console.log(`✅ Found ${allSessions.length} valid candidates after filtering`);
 
     // 3. Score all sessions and perform filtering with enhanced compatibility check
     console.log(`🔍 Calculating compatibility scores...`);
