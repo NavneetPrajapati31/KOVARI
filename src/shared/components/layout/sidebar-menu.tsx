@@ -53,8 +53,8 @@ const defaultMenuItems: MenuItem[] = [
     icon: User2,
   },
   {
-    label: "Invitations",
-    href: "/invitations",
+    label: "Requests",
+    href: "/requests",
     icon: User2,
   },
   {

@@ -1,9 +1,9 @@
-  // -----------------------------------------------------------------------------
-  //   File : Types
-  // -----------------------------------------------------------------------------
-  // Location: /src/types/index.ts
+// -----------------------------------------------------------------------------
+//   File : Types
+// -----------------------------------------------------------------------------
+// Location: /src/types/index.ts
 
-  export interface StaticAttributes {
+export interface StaticAttributes {
   name?: string;
   age: number;
   gender: string;
@@ -21,9 +21,10 @@
   nationality: string;
   profession: string;
   avatar?: string;
+  bio?: string;
 }
 
-  export interface SoloSession {
+export interface SoloSession {
   userId?: string;
   destination: {
     name?: string;
@@ -36,4 +37,4 @@
   mode: string;
   interests?: string[];
   static_attributes?: StaticAttributes; // Optional now - only for existing sessions
-} 
+}

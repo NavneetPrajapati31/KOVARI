@@ -39,7 +39,9 @@ export default function TravelerCardPreviewPage() {
     <div className="min-h-screen bg-gray-100 p-8 flex justify-center items-center">
       <SoloMatchCard
         match={sampleMatch}
-        onConnect={handleConnect}
+        destinationId="dest_001"
+        currentUserId="current_user_001"
+        onInterested={async (userId) => handleConnect(userId)}
       />
     </div>
   );

@@ -7,7 +7,7 @@ export interface Conversation {
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
-  lastMediaType?: "image" | "video";
+  lastMediaType?: "image" | "video" | "init";
 }
 
 interface UseDirectInboxResult {
@@ -131,7 +131,7 @@ export const useDirectInbox = (
                 ? `${currentUserUuid}:${partnerId}`
                 : `${partnerId}:${currentUserUuid}`;
             let lastMessage = "[Encrypted message]";
-            let lastMediaType: "image" | "video" | undefined = undefined;
+            let lastMediaType: "image" | "video" | "init" | undefined = undefined;
             if (msg.media_url && msg.media_type) {
               // Media message: show icon/label in inbox
               lastMessage = "";
@@ -222,7 +222,7 @@ export const useDirectInbox = (
                   ? `${currentUserUuid}:${partnerId}`
                   : `${partnerId}:${currentUserUuid}`;
               let lastMessage = "[Encrypted message]";
-              let lastMediaType: "image" | "video" | undefined = undefined;
+              let lastMediaType: "image" | "video" | "init" | undefined = undefined;
               if (msg.media_url && msg.media_type) {
                 // Media message: show icon/label in inbox
                 lastMessage = "";

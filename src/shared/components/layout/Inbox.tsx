@@ -257,6 +257,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
               minute: "2-digit",
             });
             const isActive = activeUserId === conversation.userId;
+            const isInit = (conversation as any).lastMediaType === "init";
 
             return (
               <div
@@ -278,7 +279,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                 aria-label={`Open chat with ${displayName}`}
               >
                 {/* Avatar */}
-                <div className="relative mr-3">
+                <div className={`relative mr-3 rounded-full ${isInit ? "ring-2 ring-primary ring-offset-2" : ""}`}>
                   <Avatar className="h-12 w-12 bg-muted">
                     <AvatarImage
                       src={isDeleted ? "" : profile?.profile_photo || ""}
@@ -337,6 +338,8 @@ export default function Inbox({ activeUserId }: InboxProps) {
                           </span>
                           <span>Video</span>
                         </>
+                      ) : (conversation as any).lastMediaType === "init" ? (
+                        <span className="font-medium text-primary">Start a conversation!</span>
                       ) : (
                         conversation.lastMessage
                       )}

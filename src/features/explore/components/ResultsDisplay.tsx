@@ -1,31 +1,41 @@
 "use client";
 
-import { useEffect } from "react";
+import { useToast } from "@/shared/hooks/use-toast";
+
+import { useEffect, useState } from "react";
 import { SoloMatchCard } from "./SoloMatchCard";
 import { GroupMatchCard } from "./GroupMatchCard";
 import { Spinner } from "@heroui/react";
 import { Users } from "lucide-react";
+import { ReportDialog } from "@/shared/components/ReportDialog";
 
-import { SearchData } from "../types";
+import { SearchData, SoloMatch, GroupMatch } from "../types";
+import { createReportRecord } from "../lib/matchingActions";
 
 interface ResultsDisplayProps {
   activeTab: number;
-  matchedGroups: any[];
+  matchedGroups: (SoloMatch | GroupMatch)[];
   currentGroupIndex: number;
   searchLoading: boolean;
   searchError: string | null;
   lastSearchData: SearchData | null;
   onPreviousGroup: () => void;
   onNextGroup: () => void;
-  onConnect: (matchId: string) => Promise<void>;
-  onSuperLike: (matchId: string) => Promise<void>;
   onPass: (matchId: string) => Promise<void>;
-  onComment: (matchId: string, attribute: string, comment: string) => Promise<void>;
   onViewProfile: (userId: string) => void;
   onJoinGroup: (groupId: string) => Promise<void>;
-  onRequestJoin: (groupId: string) => Promise<void>;
   onPassGroup: (groupId: string) => Promise<void>;
   onViewGroup: (groupId: string) => void;
+  onConnect?: (matchId: string) => Promise<void>;
+  onSuperLike?: (matchId: string) => Promise<void>;
+  onComment?: (matchId: string, attribute: string, comment: string) => Promise<void>;
+  onRequestJoin?: (groupId: string) => Promise<void>;
+  currentUserId?: string;
+  destinationId?: string;
+}
+
+function isSoloMatch(match: SoloMatch | GroupMatch): match is SoloMatch {
+  return "is_solo_match" in match;
 }
 
 export const ResultsDisplay = ({
@@ -37,16 +47,30 @@ export const ResultsDisplay = ({
   lastSearchData,
   onPreviousGroup,
   onNextGroup,
-  onConnect,
-  onSuperLike,
   onPass,
-  onComment,
   onViewProfile,
   onJoinGroup,
-  onRequestJoin,
   onPassGroup,
   onViewGroup,
+  onConnect,
+  onSuperLike,
+  onComment,
+  onRequestJoin,
+  currentUserId,
+  destinationId,
 }: ResultsDisplayProps) => {
+  const { toast } = useToast();
+  const [reportDialogState, setReportDialogState] = useState<{
+    open: boolean;
+    targetType: "user" | "group";
+    targetId: string;
+    targetName?: string;
+  }>({
+    open: false,
+    targetType: "user",
+    targetId: "",
+  });
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -63,69 +87,112 @@ export const ResultsDisplay = ({
 
   // Conditional Match Card Component
   const MatchCardComponent = () => {
+    const currentMatch = matchedGroups[currentGroupIndex];
+
+    if (!currentMatch) {
+      return null;
+    }
+
     if (activeTab === 0) {
+      const soloMatch = currentMatch as SoloMatch;
       return (
         <SoloMatchCard
-          key={matchedGroups[currentGroupIndex]?.id}
-          match={matchedGroups[currentGroupIndex]}
-          onConnect={onConnect}
-          onSuperLike={onSuperLike}
-          onPass={onPass}
-          onComment={onComment}
+          key={soloMatch.id}
+          match={soloMatch}
+          destinationId={destinationId || lastSearchData?.destination || ""}
+          currentUserId={currentUserId || ""}
           onViewProfile={onViewProfile}
+          onInterested={async (userId) => {
+            if (onConnect) {
+              await onConnect(userId);
+            } else {
+              await onPass(userId);
+            }
+          }}
+          onSkip={() => onPass(soloMatch.user.userId)}
+          onReportClick={() =>
+            setReportDialogState({
+              open: true,
+              targetType: "user",
+              targetId: soloMatch.user.userId,
+              targetName: soloMatch.name || soloMatch.user?.name,
+            })
+          }
         />
       );
     } else {
+      const groupMatch = currentMatch as GroupMatch;
       return (
         <GroupMatchCard
-          key={matchedGroups[currentGroupIndex]?.id}
-          group={matchedGroups[currentGroupIndex]}
-          onJoinGroupAction={onJoinGroup}
-          onRequestJoinAction={onRequestJoin}
-          onPassAction={onPassGroup}
-          onViewGroupAction={onViewGroup}
+          key={groupMatch.id}
+          group={groupMatch}
+          destinationId={destinationId || lastSearchData?.destination || ""}
+          currentUserId={currentUserId || ""}
+          onInterested={() => onJoinGroup(groupMatch.id)}
+          onSkip={() => onPassGroup(groupMatch.id)}
+          onViewGroup={onViewGroup}
+          onReportClick={() =>
+            setReportDialogState({
+              open: true,
+              targetType: "group",
+              targetId: groupMatch.id,
+              targetName: groupMatch.name,
+            })
+          }
         />
       );
     }
   };
 
-  return (
-    <div className="flex-1 bg-background overflow-hidden">
-      {/* Loading Overlay */}
-      {searchLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-card h-screen">
+  // If we're currently loading, show only the loading state and hide everything else
+  if (searchLoading) {
+    return (
+      <div className="w-full h-full min-h-[90vh] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
           <Spinner variant="spinner" size="md" color="primary" />
+          <p className="text-muted-foreground text-sm font-medium">
+            Finding matches...
+          </p>
         </div>
-      )}
+      </div>
+    );
+  }
 
+  return (
+    <div className="w-full h-full min-h-[90vh] flex flex-col overflow-hidden">
       {/* Error Display */}
       {searchError && (
-        <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex-shrink-0">
-          <p className="text-red-600 text-sm">{searchError}</p>
+        <div className="px-6 pt-6 pb-0 flex-shrink-0">
+          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
+            <p className="text-destructive text-sm font-medium">
+              {searchError}
+            </p>
+          </div>
         </div>
       )}
 
       {/* Results Display */}
       {matchedGroups.length > 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <div className="flex-1 relative flex items-center justify-center p-6">
           {/* Navigation arrows */}
-          {matchedGroups.length > 1 && (
+          {/* {matchedGroups.length > 1 && (
             <>
               <button
                 onClick={onPreviousGroup}
                 disabled={currentGroupIndex === 0}
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/40 backdrop-blur-sm border border-gray-200/50 rounded-full p-3 hover:bg-background/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+                className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 z-20 bg-background/95 backdrop-blur-sm border border-border rounded-full p-2.5 md:p-3 hover:bg-background hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:scale-105"
                 aria-label="Previous match"
               >
                 <svg
-                  width="24"
-                  height="24"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="text-foreground"
                 >
                   <path d="m15 18-6-6 6-6" />
                 </svg>
@@ -133,67 +200,124 @@ export const ResultsDisplay = ({
               <button
                 onClick={onNextGroup}
                 disabled={currentGroupIndex === matchedGroups.length - 1}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/40 backdrop-blur-sm border border-gray-200/50 rounded-full p-3 hover:bg-background/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+                className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 z-20 bg-background/95 backdrop-blur-sm border border-border rounded-full p-2.5 md:p-3 hover:bg-background hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:scale-105"
                 aria-label="Next match"
               >
                 <svg
-                  width="24"
-                  height="24"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="text-foreground"
                 >
                   <path d="m9 18 6-6-6-6" />
                 </svg>
               </button>
             </>
-          )}
-          
-          {/* Conditional Match Card */}
-          <MatchCardComponent />
-          
+          )} */}
+
+          {/* Match Card - Direct display without extra wrapper */}
+          <div className="w-full h-full">
+            <MatchCardComponent />
+          </div>
+
           {/* Match counter */}
-          {matchedGroups.length > 1 && (
-            <div className="flex items-center gap-2 mt-6 text-sm text-gray-600">
-              <span className="font-medium">{currentGroupIndex + 1}</span>
-              <span>of</span>
-              <span className="font-medium">{matchedGroups.length}</span>
-              <span>{activeTab === 0 ? "travelers" : "groups"}</span>
+          {/* {matchedGroups.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm border border-border rounded-full text-sm shadow-sm">
+              <span className="font-semibold text-foreground">
+                {currentGroupIndex + 1}
+              </span>
+              <span className="text-muted-foreground">of</span>
+              <span className="font-semibold text-foreground">
+                {matchedGroups.length}
+              </span>
+              <span className="text-muted-foreground">
+                {activeTab === 0 ? "travelers" : "groups"}
+              </span>
             </div>
-          )}
+          )} */}
         </div>
       ) : (
         /* No Results or Initial State */
-        <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-hidden">
-          {lastSearchData ? (
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">No matches found</h3>
-              <p className="text-gray-600 mb-6 max-w-md">
-                Try adjusting your search criteria or dates to find more {activeTab === 0 ? "travel companions" : "travel groups"}.
-              </p>
-              <div className="bg-background rounded-lg p-4 text-sm text-gray-600">
-                <p><strong>Destination:</strong> {lastSearchData.destination}</p>
-                <p><strong>Budget:</strong> ₹{lastSearchData.budget.toLocaleString()}</p>
-                <p><strong>Dates:</strong> {lastSearchData.startDate.toLocaleDateString()} - {lastSearchData.endDate.toLocaleDateString()}</p>
-                <p><strong>Mode:</strong> {activeTab === 0 ? "Solo Travel" : "Group Travel"}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center">
-              <div className="w-24 h-24 bg-background rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-12 h-12 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Start your search</h3>
-              <p className="text-gray-600 max-w-md">
-                Enter your travel details in the sidebar to find compatible {activeTab === 0 ? "travel companions" : "travel groups"}.
-              </p>
-            </div>
-          )}
+        <div className="flex-1 flex items-center justify-center p-6 md:p-8 lg:p-12">
+          <div className="text-center max-w-lg">
+            {lastSearchData ? (
+              <>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  No matches found
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Try adjusting your search criteria or dates to find more{" "}
+                  {activeTab === 0 ? "travel companions" : "travel groups"}.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Start your search
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  <span className="min-[930px]:hidden">
+                    Tap &apos;Filters&apos; to find compatible{" "}
+                  </span>
+                  <span className="hidden min-[930px]:inline">
+                    Enter your travel details in the sidebar to find compatible{" "}
+                  </span>
+                  {activeTab === 0 ? "travel companions" : "travel groups"}.
+                </p>
+              </>
+            )}
+          </div>
         </div>
       )}
+
+      <ReportDialog
+        open={reportDialogState.open}
+        onOpenChange={(open) =>
+          setReportDialogState((prev) => ({ ...prev, open }))
+        }
+        targetType={reportDialogState.targetType}
+        targetId={reportDialogState.targetId}
+        targetName={reportDialogState.targetName}
+        onSubmit={async (reason, evidenceUrl, evidencePublicId, additionalNotes) => {
+          if (!currentUserId) return false;
+
+          const result = await createReportRecord(
+            currentUserId,
+            reportDialogState.targetId,
+            reason,
+            activeTab === 0 ? "solo" : "group",
+            evidenceUrl,
+            evidencePublicId
+          );
+          
+          if (!result.success) {
+            console.error("Failed to submit report:", result.error);
+            toast({
+              title: "Error",
+              description: result.error || "Failed to submit report",
+              variant: "destructive",
+            });
+            throw new Error(result.error || "Failed to submit report");
+          }
+          
+          
+          // Toast removed - handled within ReportDialog UI
+          
+          // Skip to the next match
+          if (activeTab === 0) {
+            onPass(reportDialogState.targetId);
+          } else {
+            onPassGroup(reportDialogState.targetId);
+          }
+          
+          return true;
+        }}
+      />
     </div>
   );
 };

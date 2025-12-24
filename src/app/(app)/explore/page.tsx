@@ -1,14 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  KeyboardEvent,
+} from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { Button } from "@/shared/components/ui/button";
 import { ExploreSidebar } from "@/features/explore/components/ExploreSidebar";
 import { ResultsDisplay } from "@/features/explore/components/ResultsDisplay";
 import { SearchData, Filters } from "@/features/explore/types";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/shared/components/ui/sheet";
+import { Filter } from "lucide-react";
+
+const EXPLORE_TABS = [
+  { label: "Solo Travel", value: "solo" },
+  { label: "Group Travel", value: "groups" },
+] as const;
 
 export default function ExplorePage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { user } = useUser();
 
   // Get pre-filled destination from URL
@@ -16,14 +35,33 @@ export default function ExplorePage() {
     return searchParams.get("destination") || "";
   };
 
-  // State management
-  const [activeTab, setActiveTab] = useState(0);
-  const [isPageLoading, setIsPageLoading] = useState(false);
+  // Get tab index from URL
+  const getTabIndex = useCallback(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "groups") return 1;
+    return 0; // Default to solo
+  }, [searchParams]);
+
+  // State management - initialize from URL
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "groups") return 1;
+    return 0;
+  });
+
+  // Sync activeTab with URL params
+  useEffect(() => {
+    const tabIndex = getTabIndex();
+    if (activeTab !== tabIndex) {
+      setActiveTab(tabIndex);
+    }
+  }, [searchParams, getTabIndex, activeTab]);
   const [matchedGroups, setMatchedGroups] = useState<any[]>([]);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [lastSearchData, setLastSearchData] = useState<SearchData | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // Search form state
   const [searchData, setSearchData] = useState<SearchData>({
@@ -52,36 +90,75 @@ export default function ExplorePage() {
   useEffect(() => {
     const newDestination = getPrefilledDestination();
     if (newDestination && newDestination !== searchData.destination) {
-      setSearchData(prev => ({ ...prev, destination: newDestination }));
+      setSearchData((prev) => ({ ...prev, destination: newDestination }));
     }
   }, [searchParams, searchData.destination]);
 
-  // Page loading effect
-  useEffect(() => {
-    document.body.style.overflow = isPageLoading ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isPageLoading]);
-
-  // Prevent body scrolling when component mounts
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, []);
-
   // Sync travelMode with activeTab when it changes
   useEffect(() => {
-    setSearchData(prev => ({
+    setSearchData((prev) => ({
       ...prev,
-      travelMode: activeTab === 0 ? "solo" : "group"
+      travelMode: activeTab === 0 ? "solo" : "group",
     }));
   }, [activeTab]);
+
+  // Handle tab change with URL sync
+  const handleTabChange = useCallback(
+    (index: number) => {
+      if (index !== activeTab) {
+        setActiveTab(index);
+        const tabValue = EXPLORE_TABS[index].value;
+        router.push(`/explore?tab=${tabValue}`, { scroll: false });
+      }
+    },
+    [activeTab, router]
+  );
+
+  // Keyboard navigation for tabs
+  const handleTabKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        handleTabChange((activeTab + 1) % EXPLORE_TABS.length);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        handleTabChange(
+          (activeTab - 1 + EXPLORE_TABS.length) % EXPLORE_TABS.length
+        );
+      } else if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleTabChange(index);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        handleTabChange(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        handleTabChange(EXPLORE_TABS.length - 1);
+      }
+    },
+    [activeTab, handleTabChange]
+  );
+
+  // Tab buttons with groups layout styling
+  const tabButtons = useMemo(
+    () =>
+      EXPLORE_TABS.map((tab, idx) => (
+        <Button
+          key={tab.value}
+          variant={"outline"}
+          className={`flex-auto text-xs sm:text-sm ${
+            activeTab === idx
+              ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
+              : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary"
+          }`}
+          onClick={() => handleTabChange(idx)}
+          onKeyDown={(e) => handleTabKeyDown(e, idx)}
+        >
+          {tab.label}
+        </Button>
+      )),
+    [activeTab, handleTabChange, handleTabKeyDown]
+  );
 
   // Helper function to check if search data has changed
   const hasSearchDataChanged = (newSearchData: SearchData): boolean => {
@@ -90,17 +167,19 @@ export default function ExplorePage() {
     return (
       newSearchData.destination !== lastSearchData.destination ||
       newSearchData.budget !== lastSearchData.budget ||
-      newSearchData.startDate.getTime() !== lastSearchData.startDate.getTime() ||
+      newSearchData.startDate.getTime() !==
+        lastSearchData.startDate.getTime() ||
       newSearchData.endDate.getTime() !== lastSearchData.endDate.getTime()
     );
   };
 
   const handleSearch = () => {
+    setIsSheetOpen(false);
     const fullSearchData: SearchData = {
       ...searchData,
-      travelMode: activeTab === 0 ? "solo" : "group"
+      travelMode: activeTab === 0 ? "solo" : "group",
     };
-    
+
     if (!hasSearchDataChanged(fullSearchData)) {
       console.log("Search data unchanged, skipping search");
       return;
@@ -140,11 +219,25 @@ export default function ExplorePage() {
         });
 
         if (!sessionResponse.ok) {
-          throw new Error("Failed to create session");
+          const errorData = await sessionResponse.json().catch(() => ({}));
+          const errorMessage = errorData.message || "Failed to create session";
+          const errorHint = errorData.hint || "";
+
+          // Provide helpful error message based on error type
+          if (
+            errorData.error === "PROFILE_NOT_FOUND" ||
+            errorData.error === "PROFILE_INCOMPLETE"
+          ) {
+            throw new Error(
+              `${errorMessage}${errorHint ? ` ${errorHint}` : ""}`
+            );
+          }
+
+          throw new Error(errorMessage);
         }
 
         // Add a small delay to ensure Redis session is fully committed
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         // Step 2: Get solo matches using enhanced matching
         const soloMatchesRes = await fetch(`/api/match-solo?userId=${userId}`);
@@ -153,24 +246,28 @@ export default function ExplorePage() {
           console.log("Solo matches found:", soloMatches.length);
 
           // Convert solo matches to group-like format for display
-          const soloMatchesAsGroups = soloMatches.map((match: any, index: number) => ({
-            id: `solo-${index}`,
-            name: `${match.user.name || match.user.full_name || 'Traveler'} - ${match.destination}`,
-            destination: match.destination,
-            budget: match.user.budget || 'Not specified',
-            start_date: fullSearchData.startDate,
-            end_date: fullSearchData.endDate,
-            compatibility_score: Math.round(match.score * 100),
-            budget_difference: match.budgetDifference,
-            user: {
-              ...match.user,
-              interests: Array.isArray(match.commonInterests) && match.commonInterests.length > 0
-                ? match.commonInterests
-                : match.user?.interests
-            },
-            is_solo_match: true
-          }));
-          
+          const soloMatchesAsGroups = soloMatches.map(
+            (match: any, index: number) => ({
+              id: `solo-${index}`,
+              name: `${match.user.name || match.user.full_name || "Traveler"} - ${match.destination}`,
+              destination: match.destination,
+              budget: match.user.budget || "Not specified",
+              start_date: fullSearchData.startDate,
+              end_date: fullSearchData.endDate,
+              compatibility_score: Math.round(match.score * 100),
+              budget_difference: match.budgetDifference,
+              user: {
+                ...match.user,
+                interests:
+                  Array.isArray(match.commonInterests) &&
+                  match.commonInterests.length > 0
+                    ? match.commonInterests
+                    : match.user?.interests,
+              },
+              is_solo_match: true,
+            })
+          );
+
           setMatchedGroups(soloMatchesAsGroups);
           setCurrentGroupIndex(0);
           setLastSearchData(fullSearchData);
@@ -193,11 +290,12 @@ export default function ExplorePage() {
           interests: filters.interests,
           smoking: filters.smoking === "Yes",
           drinking: filters.drinking === "Yes",
-          nationality: filters.nationality !== "Any" ? filters.nationality : "Unknown",
+          nationality:
+            filters.nationality !== "Any" ? filters.nationality : "Unknown",
         };
-        
+
         console.log("Request body for group search:", requestBody);
-        
+
         const res = await fetch("/api/match-groups", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -207,7 +305,7 @@ export default function ExplorePage() {
         console.log("Response status:", res.status);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
-        
+
         console.log("API Response for groups:", data);
 
         // Transform the API response to match GroupMatchCard's expected format
@@ -226,14 +324,15 @@ export default function ExplorePage() {
             username: group.creator?.username || "unknown",
             avatar: group.creator?.avatar || undefined,
           },
-          cover_image: undefined,
+          cover_image: group.cover_image || undefined,
+          description: group.description || undefined,
           // Add matching score and breakdown for display
           score: group.score,
           breakdown: group.breakdown,
           distance: group.distance,
           tags: group.tags || [],
         }));
-        
+
         console.log("Transformed groups:", transformedGroups);
 
         setMatchedGroups(transformedGroups);
@@ -257,7 +356,7 @@ export default function ExplorePage() {
   }, [activeTab]);
 
   const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   // Navigation functions
@@ -270,6 +369,11 @@ export default function ExplorePage() {
   const handleNextGroup = () => {
     if (currentGroupIndex < matchedGroups.length - 1) {
       setCurrentGroupIndex(currentGroupIndex + 1);
+    } else if (matchedGroups.length > 0) {
+      // No more matches - clear the results to show "no more matches" message
+      console.log("No more matches available");
+      setMatchedGroups([]);
+      setCurrentGroupIndex(0);
     }
   };
 
@@ -277,6 +381,7 @@ export default function ExplorePage() {
   const handleConnect = async (matchId: string) => {
     console.log("Connecting with solo traveler:", matchId);
     // TODO: Implement connection logic
+    handleNextGroup();
   };
 
   const handleSuperLike = async (matchId: string) => {
@@ -285,24 +390,41 @@ export default function ExplorePage() {
   };
 
   const handlePass = async (matchId: string) => {
-    console.log("Passing on solo traveler:", matchId);
-    // TODO: Implement pass logic - move to next match
+    console.log("handlePass: Skipping match and moving to next", {
+      matchId,
+      currentIndex: currentGroupIndex,
+      totalMatches: matchedGroups.length,
+    });
+    // Move to next match after skipping
     handleNextGroup();
+    console.log("handlePass: Next group index is now:", currentGroupIndex + 1);
   };
 
-  const handleComment = async (matchId: string, attribute: string, comment: string) => {
-    console.log("Commenting on", attribute, "for traveler:", matchId, "Comment:", comment);
+  const handleComment = async (
+    matchId: string,
+    attribute: string,
+    comment: string
+  ) => {
+    console.log(
+      "Commenting on",
+      attribute,
+      "for traveler:",
+      matchId,
+      "Comment:",
+      comment
+    );
     // TODO: Implement comment logic
   };
 
   const handleViewProfile = (userId: string) => {
-    console.log("Viewing profile:", userId);
-    // TODO: Navigate to user profile
+    if (!userId) return;
+    router.push(`/profile/${userId}`);
   };
 
   const handleJoinGroup = async (groupId: string) => {
     console.log("Joining group:", groupId);
     // TODO: Implement join group logic
+    handleNextGroup();
   };
 
   const handleRequestJoin = async (groupId: string) => {
@@ -317,44 +439,87 @@ export default function ExplorePage() {
   };
 
   const handleViewGroup = (groupId: string) => {
-    console.log("Viewing group:", groupId);
-    // TODO: Navigate to group details
+    if (!groupId) return;
+    router.push(`/groups/${groupId}/home`);
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* Left Sidebar */}
-      <ExploreSidebar
-        activeTab={activeTab}
-        searchData={searchData}
-        filters={filters}
-        searchLoading={searchLoading}
-        onTabChange={setActiveTab}
-        onSearchDataChange={setSearchData}
-        onSearch={handleSearch}
-        onFilterChange={handleFilterChange}
-      />
+    <div className="min-h-screen p-4">
+      <div className="max-w-full mx-auto flex flex-col gap-4">
+        {/* Tabs Header - Outside containers like groups layout */}
+        <header className="flex w-full items-center gap-2">
+          <div className="flex gap-2 flex-auto min-[930px]:w-auto min-[930px]:flex-none">{tabButtons}</div>
 
-      {/* Right Content Area */}
-      <ResultsDisplay
-        activeTab={activeTab}
-        matchedGroups={matchedGroups}
-        currentGroupIndex={currentGroupIndex}
-        searchLoading={searchLoading}
-        searchError={searchError}
-        lastSearchData={lastSearchData}
-        onPreviousGroup={handlePreviousGroup}
-        onNextGroup={handleNextGroup}
-        onConnect={handleConnect}
-        onSuperLike={handleSuperLike}
-        onPass={handlePass}
-        onComment={handleComment}
-        onViewProfile={handleViewProfile}
-        onJoinGroup={handleJoinGroup}
-        onRequestJoin={handleRequestJoin}
-        onPassGroup={handlePassGroup}
-        onViewGroup={handleViewGroup}
-      />
+          {/* Mobile Filter Trigger */}
+          <div className="flex-auto min-[930px]:hidden">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full text-xs sm:text-sm text-foreground font-semibold bg-card rounded-2xl hover:text-primary">
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent 
+                side="bottom" 
+                className="h-[90dvh] p-0 rounded-t-3xl w-full"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <div className="h-full pt-2">
+                  <ExploreSidebar
+                    activeTab={activeTab}
+                    searchData={searchData}
+                    filters={filters}
+                    searchLoading={searchLoading}
+                    onSearchDataChange={setSearchData}
+                    onSearch={handleSearch}
+                    onFilterChange={handleFilterChange}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex gap-3 h-[calc(100vh-8rem)] md:h-[calc(100vh-9rem)] lg:h-[calc(100vh-10rem)]">
+          {/* Left Sidebar - Rounded Container */}
+          <div className="hidden min-[930px]:flex w-full min-[930px]:w-1/3 flex-shrink-0 rounded-3xl bg-card border-1 border-border overflow-hidden flex-col">
+            <ExploreSidebar
+              activeTab={activeTab}
+              searchData={searchData}
+              filters={filters}
+              searchLoading={searchLoading}
+              onSearchDataChange={setSearchData}
+              onSearch={handleSearch}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+
+          {/* Right Content Area - Rounded Container */}
+          <div className="w-full min-[930px]:w-2/3 bg-card rounded-3xl border-1 border-border overflow-hidden flex flex-col">
+            <ResultsDisplay
+              activeTab={activeTab}
+              matchedGroups={matchedGroups}
+              currentGroupIndex={currentGroupIndex}
+              searchLoading={searchLoading}
+              searchError={searchError}
+              lastSearchData={lastSearchData}
+              currentUserId={user?.id}
+              destinationId={searchData.destination}
+              onPreviousGroup={handlePreviousGroup}
+              onNextGroup={handleNextGroup}
+              onConnect={handleConnect}
+              onSuperLike={handleSuperLike}
+              onPass={handlePass}
+              onComment={handleComment}
+              onViewProfile={handleViewProfile}
+              onJoinGroup={handleJoinGroup}
+              onRequestJoin={handleRequestJoin}
+              onPassGroup={handlePassGroup}
+              onViewGroup={handleViewGroup}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
