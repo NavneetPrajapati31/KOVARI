@@ -460,7 +460,7 @@ export default function ExplorePage() {
               </SheetTrigger>
               <SheetContent 
                 side="bottom" 
-                className="h-[100dvh] p-0 rounded-none w-full"
+                className="h-[90dvh] p-0 rounded-t-3xl w-full"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <div className="h-full pt-2">

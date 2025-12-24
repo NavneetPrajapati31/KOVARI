@@ -24,9 +24,9 @@ export const ExploreSidebar = ({
   onFilterChange,
 }: ExploreSidebarProps) => {
   return (
-    <div className="h-[90vh] flex flex-col">
+    <div className="min-[930px]:h-[90vh] h-full flex flex-col">
       {/* Filters with Scrollbar */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-6">
+      <div className="flex-1 overflow-y-auto scrollbar-hide min-[930px]:p-6 p-5">
         <div className="mb-6 border-b border-border pb-4">
           <h2 className="text-md text-foreground font-bold mb-1">
             Search & Filters
