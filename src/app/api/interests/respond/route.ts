@@ -30,10 +30,12 @@ export async function POST(request: Request) {
 
     const status = action === 'accept' ? 'accepted' : 'rejected';
 
-    const { error } = await supabaseAdmin
+    const { data: updatedInterest, error } = await supabaseAdmin
       .from("match_interests")
       .update({ status })
-      .eq("id", interestId);
+      .eq("id", interestId)
+      .select()
+      .single();
 
     if (error) {
       console.error("Error updating interest:", error);
@@ -43,8 +45,34 @@ export async function POST(request: Request) {
       );
     }
     
-    // If accepted, we might want to ensure a reciprocal match or chat creation here
-    // But for this specific task of UI replication, updating status is sufficient.
+    // If accepted, initialize a chat by sending a system/welcome message
+    if (action === "accept" && updatedInterest) {
+      const senderId = updatedInterest.from_user_id; // The person who sent the interest
+      const receiverId = updatedInterest.to_user_id; // The current user who accepted it
+
+      try {
+        // Initialize chat with a "phantom" message to make it appear in inbox without content
+        // This relies on use-direct-inbox logic: matches (media_url && media_type) -> set lastMessage="" 
+        // and Inbox UI fallthrough to display empty string.
+        
+        const { error: msgError } = await supabaseAdmin
+          .from("direct_messages")
+          .insert({
+            sender_id: receiverId, // Initiate from the acceptor
+            receiver_id: senderId,
+            media_type: "init",
+            media_url: "system", // Required to trigger the media condition in hook
+            is_encrypted: false,
+            created_at: new Date().toISOString()
+          });
+
+        if (msgError) {
+          console.error("Error creating init message:", msgError);
+        }
+      } catch (err) {
+        console.error("Insertion error:", err);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
