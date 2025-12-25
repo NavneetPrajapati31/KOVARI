@@ -167,6 +167,34 @@ export async function POST(req: NextRequest, { params }: Params) {
         metadata: { ban_expires_at: banExpiresAt },
       });
 
+      // Forcefully revoke Clerk session to kick user out immediately
+      try {
+        const { clerkClient } = await import("@clerk/nextjs/server");
+        const client = await clerkClient();
+        
+        // Improve: Need to find Clerk User ID from our DB if userId is the supabase ID
+        const { data: userData } = await supabaseAdmin
+          .from("users")
+          .select("clerk_user_id")
+          .eq("id", userId)
+          .single();
+
+        if (userData?.clerk_user_id) {
+           // Revoke all sessions for this user
+           // We can get fetch list of sessions and revoke them or ban method?
+           // Clerk allows banning user to block sign-in: client.users.banUser(userId)
+           // But here we might just want to force sign-out for now so they hit middleware next time.
+           // However, if we just want to revoke sessions:
+           const sessions = await client.sessions.getSessionList({ userId: userData.clerk_user_id });
+           for (const session of sessions.data) {
+             await client.sessions.revokeSession(session.id);
+           }
+        }
+      } catch (clerkError) {
+        // Log but don't fail the request since the DB update succeeded
+        console.error("Failed to revoke Clerk sessions:", clerkError);
+      }
+
       return NextResponse.json({ success: true });
     }
 
