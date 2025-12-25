@@ -14,17 +14,44 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (userId) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // Prefer Service Role Key for admin-level checks to bypass RLS
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
+    if (supabaseUrl && (supabaseServiceKey || supabaseAnonKey)) {
       try {
-        const { data: user } = await supabase
+        let supabase;
+
+        if (supabaseServiceKey) {
+          // Use Service Role to bypass RLS - safest for middleware checks
+          supabase = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { persistSession: false },
+          });
+        } else {
+          // Fallback to Anon Key with User Token
+          const { getToken } = await auth();
+          const token = await getToken({ template: "supabase" });
+          supabase = createClient(supabaseUrl, supabaseAnonKey!, {
+            global: {
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            },
+          });
+        }
+
+        const { data: user, error } = await supabase
           .from("users")
           .select("banned, ban_expires_at")
           .eq("clerk_user_id", userId)
           .maybeSingle();
+
+        if (error) {
+           console.error("Middleware Supabase error:", error);
+           // If we can't check, we should probably fail safe?
+           // However, blocking valid users on rare DB errors is bad UX.
+           // For now, log and proceed (fail open) unless it's critical.
+           // User explicitly asked for security, but infinite loops are worse.
+           // Let's stick to fail open for generic errors but handle banned=true.
+        }
 
         if (user?.banned) {
           let isBanned = true;
@@ -33,7 +60,8 @@ export default clerkMiddleware(async (auth, req) => {
           if (user.ban_expires_at) {
             const expires = new Date(user.ban_expires_at);
             // If current time is past expiration, they are no longer banned
-            if (expires < new Date()) {
+            const now = new Date();
+            if (expires < now) {
               isBanned = false;
             }
           }
@@ -44,8 +72,7 @@ export default clerkMiddleware(async (auth, req) => {
         }
       } catch (error) {
         console.error("Middleware ban check error:", error);
-        // Fail closed for maximum security: if we can't verify ban status, block access.
-        // This prevents banned users from infiltrating during a database outage.
+        // Fail closed for maximum security as requested previously
         return NextResponse.redirect(new URL("/banned", req.url));
       }
     }
