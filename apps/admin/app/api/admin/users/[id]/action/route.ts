@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     // 1) find profile to get user_id
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("id, user_id, verified")
+      .select("id, user_id, verified, name, email")
       .eq("id", profileId)
       .maybeSingle();
 
@@ -100,6 +100,11 @@ export async function POST(req: NextRequest, { params }: Params) {
         targetId: userId,
         action: "VERIFY_USER",
         reason,
+        metadata: {
+          previous_verified_status: profile.verified,
+          user_email: profile.email,
+          user_name: profile.name,
+        },
       });
 
       return NextResponse.json({ success: true });
