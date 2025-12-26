@@ -165,9 +165,9 @@ export async function POST(req: NextRequest, { params }: Params) {
       updateData.removed_at = new Date().toISOString();
     }
 
-    // Increment flag_count if action comes from flag flow
-    if (fromFlagFlow) {
-      updateData.flag_count = previousFlagCount + 1;
+    // Decrement flag_count if a flag is being resolved
+    if (flagId && previousFlagCount > 0) {
+      updateData.flag_count = previousFlagCount - 1;
     }
 
     const { error } = await supabaseAdmin
@@ -193,9 +193,15 @@ export async function POST(req: NextRequest, { params }: Params) {
       destination: currentGroup.destination,
     };
 
-    if (fromFlagFlow) {
+    if (flagId) {
       metadata.fromFlagFlow = true;
-      metadata.newFlagCount = previousFlagCount + 1;
+      metadata.flagId = flagId;
+      if (previousFlagCount > 0) {
+        metadata.newFlagCount = previousFlagCount - 1;
+      }
+    } else if (fromFlagFlow) {
+      // Fallback if came from flag flow but no specific ID (unlikely now)
+      metadata.fromFlagFlow = true;
     }
 
     // Handle safety & abuse logic for remove actions
