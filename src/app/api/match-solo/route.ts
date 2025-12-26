@@ -15,9 +15,15 @@ import { createRouteHandlerSupabaseClient } from "../../../lib/supabase";
 import { getSetting } from "../../../lib/settings";
 import { getMatchingPresetConfig } from "../../../lib/matching/config";
 import * as Sentry from "@sentry/nextjs";
+import { createClient } from "@supabase/supabase-js";
 
 // Initialize Supabase client for this route
 const supabase = createRouteHandlerSupabaseClient();
+
+// Admin client for impression tracking (needs service role for writes)
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
 // Helper: get interests from travel_preferences by Clerk user id (fallback)
 const getTravelInterestsByClerkId = async (
@@ -154,14 +160,18 @@ export async function GET(request: NextRequest) {
       supabase
         .from("matches")
         .select("user_a_id, user_b_id")
-        .or(`user_a_id.eq.${searchingUserUuid},user_b_id.eq.${searchingUserUuid}`)
+        .or(
+          `user_a_id.eq.${searchingUserUuid},user_b_id.eq.${searchingUserUuid}`
+        )
         .eq("destination_id", currentDestination),
 
       // 2. Skips: Exclude if I skipped them OR they skipped me for same destination
       supabase
         .from("match_skips")
         .select("user_id, skipped_user_id")
-        .or(`user_id.eq.${searchingUserUuid},skipped_user_id.eq.${searchingUserUuid}`)
+        .or(
+          `user_id.eq.${searchingUserUuid},skipped_user_id.eq.${searchingUserUuid}`
+        )
         .eq("destination_id", currentDestination)
         .eq("match_type", "solo"),
 
@@ -169,7 +179,9 @@ export async function GET(request: NextRequest) {
       supabase
         .from("user_flags")
         .select("reporter_id, user_id")
-        .or(`reporter_id.eq.${searchingUserUuid},user_id.eq.${searchingUserUuid}`),
+        .or(
+          `reporter_id.eq.${searchingUserUuid},user_id.eq.${searchingUserUuid}`
+        ),
 
       // 4. Pending Interests Sent: Exclude if I already sent pending interest
       supabase
@@ -262,7 +274,9 @@ export async function GET(request: NextRequest) {
         return true;
       });
 
-    console.log(`✅ Found ${allSessions.length} valid candidates after filtering`);
+    console.log(
+      `✅ Found ${allSessions.length} valid candidates after filtering`
+    );
 
     // 3. Score all sessions and perform filtering with enhanced compatibility check
     console.log(`🔍 Calculating compatibility scores...`);
@@ -385,6 +399,119 @@ export async function GET(request: NextRequest) {
     console.log(`✅ Found ${scoredMatches.length} compatible matches`);
     const sortedMatches = scoredMatches.sort((a, b) => b!.score - a!.score);
     const topMatches = sortedMatches.slice(0, 10);
+
+    // Track profile impressions for each matched user (async, don't block response)
+    if (topMatches.length > 0 && searchingUserUuid) {
+      const destinationName = searchingUserSession.destination?.name || null;
+
+      // Track impressions asynchronously using admin client for proper permissions
+      Promise.all(
+        topMatches.map(async (match) => {
+          if (
+            match?.user?.userId &&
+            match.user.userId !== searchingUserSession.userId
+          ) {
+            try {
+              // Get the viewed user's UUID from their Clerk ID using admin client
+              const { data: viewedUserData, error: userError } =
+                await supabaseAdmin
+                  .from("users")
+                  .select("id")
+                  .eq("clerk_user_id", match.user.userId)
+                  .maybeSingle();
+
+              if (userError) {
+                console.warn(
+                  `Error fetching user ${match.user.userId} for impression tracking:`,
+                  userError
+                );
+                return;
+              }
+
+              if (viewedUserData?.id) {
+                // Check for duplicate impression today (within same day)
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const todayEnd = new Date();
+                todayEnd.setHours(23, 59, 59, 999);
+
+                const { data: existingImpression, error: checkError } =
+                  await supabaseAdmin
+                    .from("profile_impressions")
+                    .select("id")
+                    .eq("viewer_id", searchingUserUuid)
+                    .eq("viewed_user_id", viewedUserData.id)
+                    .eq("destination_id", destinationName || null)
+                    .gte("created_at", todayStart.toISOString())
+                    .lte("created_at", todayEnd.toISOString())
+                    .maybeSingle();
+
+                if (checkError) {
+                  console.warn(
+                    `Error checking existing impression:`,
+                    checkError
+                  );
+                  return;
+                }
+
+                if (!existingImpression) {
+                  // Insert new impression using admin client
+                  const { error: insertError } = await supabaseAdmin
+                    .from("profile_impressions")
+                    .insert([
+                      {
+                        viewer_id: searchingUserUuid,
+                        viewed_user_id: viewedUserData.id,
+                        destination_id: destinationName || null,
+                        created_at: new Date().toISOString(),
+                      },
+                    ]);
+
+                  if (insertError) {
+                    console.error(
+                      `Failed to track impression for user ${viewedUserData.id}:`,
+                      insertError
+                    );
+                    Sentry.captureException(insertError, {
+                      tags: {
+                        scope: "impression-tracking",
+                        viewer_id: searchingUserUuid,
+                        viewed_user_id: viewedUserData.id,
+                      },
+                    });
+                  } else {
+                    console.log(
+                      `✅ Tracked impression: ${searchingUserUuid} viewed ${viewedUserData.id}`
+                    );
+                  }
+                } else {
+                  console.log(
+                    `ℹ️ Impression already tracked today for ${viewedUserData.id}`
+                  );
+                }
+              }
+            } catch (err) {
+              console.error(
+                `Error tracking impression for match ${match?.user?.userId}:`,
+                err
+              );
+              Sentry.captureException(err, {
+                tags: {
+                  scope: "impression-tracking",
+                },
+              });
+            }
+          }
+        })
+      ).catch((err) => {
+        console.error("Error in impression tracking batch:", err);
+        Sentry.captureException(err, {
+          tags: {
+            scope: "impression-tracking-batch",
+          },
+        });
+      });
+    }
 
     // Increment match generation counter for metrics
     if (topMatches.length > 0) {

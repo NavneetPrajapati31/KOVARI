@@ -17,6 +17,7 @@ interface DestinationCardProps {
   onExplore: () => void;
   forMobile?: boolean;
   forTablet?: boolean;
+  isLoading?: boolean;
 }
 
 // Client-side image stretch component
@@ -56,10 +57,19 @@ export function UpcomingTripCard({
   onExplore,
   forMobile = false,
   forTablet = false,
+  isLoading = false,
 }: DestinationCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
   const router = useRouter();
+
+  if (isLoading || !name || !groupId) {
+    return (
+      <Card className="relative w-full h-full rounded-xl shadow-none border-none overflow-hidden flex flex-col">
+        <Skeleton className="w-full h-full rounded-xl" />
+      </Card>
+    );
+  }
 
   // Format dates for display
   const formatTripDates = (start?: string, end?: string): string => {

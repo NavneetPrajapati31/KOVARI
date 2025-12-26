@@ -22,6 +22,7 @@ interface DestinationCardProps {
   onExplore: () => void;
   forMobile?: boolean;
   forTablet?: boolean;
+  isLoading?: boolean;
 }
 
 // Client-side image stretch component
@@ -58,10 +59,19 @@ export function TopDestinationCard({
   onExplore,
   forMobile = false,
   forTablet = false,
+  isLoading = false,
 }: DestinationCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
   const router = useRouter();
+
+  if (isLoading || !name) {
+    return (
+      <Card className="relative w-full h-full rounded-xl shadow-none border-none overflow-hidden flex flex-col">
+        <Skeleton className="w-full h-full rounded-xl" />
+      </Card>
+    );
+  }
 
   return (
     <Card

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Avatar,
   AvatarFallback,
@@ -8,21 +8,9 @@ import {
 } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/shared/components/ui/popover";
-import {
-  Check,
-  X,
-  Clock,
-  Users,
-  EllipsisVerticalIcon,
-  UserMinus,
-  Flag,
-} from "lucide-react";
-import { cn } from "@/shared/utils/utils";
+import { Check, X, Clock, Users, Trash2, Loader2 } from "lucide-react";
+import { cn, formatRelativeTime } from "@/shared/utils/utils";
+import * as Sentry from "@sentry/nextjs";
 
 interface ConnectionRequest {
   id: string;
@@ -34,92 +22,26 @@ interface ConnectionRequest {
   status: "pending" | "accepted" | "declined";
 }
 
-const dummyConnectionRequests: ConnectionRequest[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg",
-    mutualConnections: 3,
-    location: "New York, USA",
-    timestamp: "2 hours ago",
-    status: "pending",
-  },
-  {
-    id: "2",
-    name: "Michael Chen",
-    avatar:
-      "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg",
-    mutualConnections: 5,
-    location: "San Francisco, USA",
-    timestamp: "1 day ago",
-    status: "pending",
-  },
-  {
-    id: "3",
-    name: "Emma Rodriguez",
-    avatar:
-      "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg",
-    mutualConnections: 2,
-    location: "Barcelona, Spain",
-    timestamp: "3 days ago",
-    status: "pending",
-  },
-  {
-    id: "4",
-    name: "David Kim",
-    avatar:
-      "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg",
-    mutualConnections: 4,
-    location: "Seoul, South Korea",
-    timestamp: "1 week ago",
-    status: "pending",
-  },
-  {
-    id: "5",
-    name: "Sarah Johnson",
-    avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg",
-    mutualConnections: 3,
-    location: "New York, USA",
-    timestamp: "2 hours ago",
-    status: "pending",
-  },
-  {
-    id: "6",
-    name: "Michael Chen",
-    avatar:
-      "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg",
-    mutualConnections: 5,
-    location: "San Francisco, USA",
-    timestamp: "1 day ago",
-    status: "pending",
-  },
-  {
-    id: "7",
-    name: "Emma Rodriguez",
-    avatar:
-      "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg",
-    mutualConnections: 2,
-    location: "Barcelona, Spain",
-    timestamp: "3 days ago",
-    status: "pending",
-  },
-  {
-    id: "8",
-    name: "David Kim",
-    avatar:
-      "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg",
-    mutualConnections: 4,
-    location: "Seoul, South Korea",
-    timestamp: "1 week ago",
-    status: "pending",
-  },
-];
+interface ApiInterest {
+  id: string;
+  sender: {
+    id: string;
+    name: string;
+    username: string;
+    avatar: string;
+    bio: string;
+    location?: string;
+    mutualConnections?: number;
+  };
+  destination: string;
+  sentAt: string;
+  status: string;
+}
 
 interface ConnectionRequestCardProps {
   request: ConnectionRequest;
-  onAccept: (id: string) => void;
-  onDecline: (id: string) => void;
-  onReport: (id: string) => void;
+  onAccept: (id: string) => Promise<void> | void;
+  onDecline: (id: string) => Promise<void> | void;
   className?: string;
 }
 
@@ -127,16 +49,11 @@ function ConnectionRequestCard({
   request,
   onAccept,
   onDecline,
-  onReport,
   className,
 }: ConnectionRequestCardProps) {
-  const handleRemove = () => {
-    onDecline(request.id);
-  };
-
-  const handleReport = () => {
-    onReport(request.id);
-  };
+  const [loadingAction, setLoadingAction] = useState<
+    "accept" | "decline" | null
+  >(null);
 
   return (
     <Card
@@ -166,82 +83,190 @@ function ConnectionRequestCard({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center space-x-1 flex-shrink-0">
-        <button
-          className="bg-primary text-primary-foreground text-xs p-1 px-2 rounded-md whitespace-nowrap"
-          onClick={() => onAccept(request.id)}
+      <div className="flex items-center space-x-2 flex-shrink-0">
+        <Button
+          size="sm"
+          className="bg-primary text-primary-foreground text-xs h-7 px-3 rounded-md whitespace-nowrap gap-2"
+          disabled={!!loadingAction}
+          onClick={async () => {
+            setLoadingAction("accept");
+            try {
+              await onAccept(request.id);
+            } catch (error) {
+              console.error("Error accepting request:", error);
+            } finally {
+              setTimeout(() => setLoadingAction(null), 1000);
+            }
+          }}
         >
-          <span className="text-[10px]">Accept</span>
-        </button>
+          {loadingAction === "accept" && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          )}
+          {!loadingAction && <span>Connect</span>}
+        </Button>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 w-6 p-0 flex-shrink-0"
-            >
-              <EllipsisVerticalIcon className="h-3 w-3 !text-muted-foreground" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-40 p-1 shadow-sm"
-            align="end"
-            side="bottom"
-          >
-            <div className="flex flex-col space-y-0">
-              <Button
-                size="sm"
-                className="bg-transparent text-foreground justify-start h-8 text-xs"
-                onClick={handleRemove}
-              >
-                <UserMinus className="h-3 w-3 mr-2 text-muted-foreground" />
-                Remove Request
-              </Button>
-
-              <Button
-                size="sm"
-                className="bg-transparent !text-destructive justify-start h-8 text-xs hover:text-destructive"
-                onClick={handleReport}
-              >
-                <Flag className="h-3 w-3 mr-2 text-destructive" />
-                Report User
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 w-7 p-0 flex-shrink-0"
+          disabled={!!loadingAction}
+          onClick={async () => {
+            setLoadingAction("decline");
+            try {
+              await onDecline(request.id);
+            } catch (error) {
+              console.error("Error declining request:", error);
+            } finally {
+              setTimeout(() => setLoadingAction(null), 1000);
+            }
+          }}
+        >
+          {loadingAction === "decline" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
+          ) : (
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          )}
+        </Button>
       </div>
     </Card>
   );
 }
 
 export const ConnectionRequestsCard = () => {
-  const [requests, setRequests] = useState<ConnectionRequest[]>(
-    dummyConnectionRequests
-  );
+  const [requests, setRequests] = useState<ConnectionRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAccept = (id: string) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, status: "accepted" as const } : req
-      )
-    );
+  useEffect(() => {
+    fetchConnectionRequests();
+  }, []);
+
+  const fetchConnectionRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      Sentry.startSpan(
+        {
+          op: "http.client",
+          name: "GET /api/interests",
+        },
+        async (span) => {
+          const response = await fetch("/api/interests");
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch connection requests");
+          }
+
+          const data: ApiInterest[] = await response.json();
+
+          // Transform API response to component format
+          const transformedRequests: ConnectionRequest[] = data.map(
+            (interest) => {
+              // Normalize status: "rejected" -> "declined"
+              let status: "pending" | "accepted" | "declined" = "pending";
+              if (interest.status === "accepted") {
+                status = "accepted";
+              } else if (
+                interest.status === "rejected" ||
+                interest.status === "declined"
+              ) {
+                status = "declined";
+              }
+
+              return {
+                id: interest.id,
+                name: interest.sender.name,
+                avatar: interest.sender.avatar || "",
+                mutualConnections: interest.sender.mutualConnections || 0,
+                location: interest.sender.location || "Unknown Location",
+                timestamp: formatRelativeTime(interest.sentAt),
+                status,
+              };
+            }
+          );
+
+          setRequests(transformedRequests);
+          span.setAttribute("count", transformedRequests.length);
+        }
+      );
+    } catch (err: any) {
+      console.error("Error fetching connection requests:", err);
+      Sentry.captureException(err);
+      setError("Failed to load connection requests");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDecline = (id: string) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, status: "declined" as const } : req
-      )
-    );
+  const handleAccept = async (id: string): Promise<void> => {
+    try {
+      Sentry.startSpan(
+        {
+          op: "ui.click",
+          name: "Accept Connection Request",
+        },
+        async (span) => {
+          const response = await fetch("/api/interests/respond", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              interestId: id,
+              action: "accept",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to accept request");
+          }
+
+          // Remove the accepted request from the list
+          setRequests((prev) => prev.filter((req) => req.id !== id));
+          span.setAttribute("interestId", id);
+        }
+      );
+    } catch (err: any) {
+      console.error("Error accepting request:", err);
+      Sentry.captureException(err);
+      throw err; // Re-throw to let the card component handle it
+    }
   };
 
-  const handleReport = (id: string) => {
-    // Handle report logic here
-    console.log(`Reporting user with ID: ${id}`);
-    // You can implement the actual report functionality here
-    // For now, we'll just decline the request
-    handleDecline(id);
+  const handleDecline = async (id: string): Promise<void> => {
+    try {
+      Sentry.startSpan(
+        {
+          op: "ui.click",
+          name: "Decline Connection Request",
+        },
+        async (span) => {
+          const response = await fetch("/api/interests/respond", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              interestId: id,
+              action: "decline",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to decline request");
+          }
+
+          // Remove the declined request from the list
+          setRequests((prev) => prev.filter((req) => req.id !== id));
+          span.setAttribute("interestId", id);
+        }
+      );
+    } catch (err: any) {
+      console.error("Error declining request:", err);
+      Sentry.captureException(err);
+      throw err; // Re-throw to let the card component handle it
+    }
   };
 
   const pendingRequests = requests.filter((req) => req.status === "pending");
@@ -250,19 +275,39 @@ export const ConnectionRequestsCard = () => {
     <div className="w-full bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
       <div className="mb-3 p-4 border-b border-border flex-shrink-0">
         <h2 className="text-foreground font-semibold text-xs truncate">
-          Connection Requests
+          Match Requests
         </h2>
         <p className="mt-0.5 text-muted-foreground text-xs">
           {pendingRequests.length} pending requests
         </p>
       </div>
 
-      <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto px-4 hide-scrollbar flex-1">
+      <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto px-4 pb-3 hide-scrollbar flex-1">
         <div className="space-y-3">
-          {pendingRequests.length === 0 ? (
+          {loading ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
-              <Clock className="h-8 w-8 text-muted-foreground mb-2" />
+              {/* <Clock className="h-8 w-8 text-muted-foreground mb-2 animate-pulse" /> */}
               <p className="text-sm text-muted-foreground">
+                Loading requests...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-48 text-center">
+              {/* <Clock className="h-8 w-8 text-muted-foreground mb-2" /> */}
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={fetchConnectionRequests}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : pendingRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-center">
+              {/* <Clock className="h-8 w-8 text-muted-foreground mb-2" /> */}
+              <p className="text-xs text-muted-foreground">
                 No pending requests
               </p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -276,7 +321,6 @@ export const ConnectionRequestsCard = () => {
                 request={request}
                 onAccept={handleAccept}
                 onDecline={handleDecline}
-                onReport={handleReport}
               />
             ))
           )}

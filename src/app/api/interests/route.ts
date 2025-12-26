@@ -61,10 +61,10 @@ export async function GET() {
     // Collect sender IDs
     const senderIds = [...new Set(interests.map((i) => i.from_user_id))];
 
-    // Fetch sender profiles
+    // Fetch sender profiles with location
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from("profiles")
-      .select("user_id, name, username, profile_photo, bio")
+      .select("user_id, name, username, profile_photo, bio, location")
       .in("user_id", senderIds);
 
     if (profilesError) {
@@ -77,9 +77,61 @@ export async function GET() {
       return acc;
     }, {});
 
+    // Calculate mutual connections for each sender
+    // Mutual connections = users who have matches with both current user and sender
+    const mutualConnectionsMap: Record<string, number> = {};
+    
+    for (const senderId of senderIds) {
+      try {
+        // Get all matches for current user
+        const { data: currentUserMatches } = await supabaseAdmin
+          .from("matches")
+          .select("user_a_id, user_b_id")
+          .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
+          .eq("status", "active");
+
+        // Get all matches for sender
+        const { data: senderMatches } = await supabaseAdmin
+          .from("matches")
+          .select("user_a_id, user_b_id")
+          .or(`user_a_id.eq.${senderId},user_b_id.eq.${senderId}`)
+          .eq("status", "active");
+
+        if (currentUserMatches && senderMatches) {
+          // Extract connected user IDs for current user
+          const currentUserConnections = new Set<string>();
+          currentUserMatches.forEach((match) => {
+            if (match.user_a_id !== userId) currentUserConnections.add(match.user_a_id);
+            if (match.user_b_id !== userId) currentUserConnections.add(match.user_b_id);
+          });
+
+          // Extract connected user IDs for sender
+          const senderConnections = new Set<string>();
+          senderMatches.forEach((match) => {
+            if (match.user_a_id !== senderId) senderConnections.add(match.user_a_id);
+            if (match.user_b_id !== senderId) senderConnections.add(match.user_b_id);
+          });
+
+          // Find intersection (mutual connections)
+          const mutual = [...currentUserConnections].filter((id) =>
+            senderConnections.has(id)
+          );
+          mutualConnectionsMap[senderId] = mutual.length;
+        } else {
+          mutualConnectionsMap[senderId] = 0;
+        }
+      } catch (error) {
+        console.error(`Error calculating mutual connections for ${senderId}:`, error);
+        mutualConnectionsMap[senderId] = 0;
+      }
+    }
+
     // Transform data to match the UI component requirements
     const formattedInterests = interests.map((interest: any) => {
       const sender = profileMap[interest.from_user_id] || {};
+      // Use destination_id as the location (this is where they want to travel to)
+      const destinationLocation = interest.destination_id || "Unknown Destination";
+
       return {
         id: interest.id,
         sender: {
@@ -88,6 +140,8 @@ export async function GET() {
           username: sender.username || "traveler",
           avatar: sender.profile_photo || "",
           bio: sender.bio || "",
+          location: destinationLocation, // Show destination they're interested in, not their home location
+          mutualConnections: mutualConnectionsMap[interest.from_user_id] || 0,
         },
         destination: interest.destination_id, 
         sentAt: interest.created_at,

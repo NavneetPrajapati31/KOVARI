@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 
-import { Skeleton } from "@/shared/components/ui/SkeletonCard";
+import { Skeleton } from "@heroui/react";
 import DashboardCard from "@/shared/components/ui/DashboardCard";
 import DoneTripsCard from "@/shared/components/DoneTripsCard/DoneTripsCard";
 import { GroupList } from "@/shared/components/GroupCard/GroupCard-list";
@@ -68,13 +68,59 @@ interface ItineraryDay {
   events: ItineraryEvent[];
 }
 
-function SkeletonDemo() {
+// Dashboard Skeleton Components - Simplified (outer cards only)
+function DashboardSkeleton() {
   return (
-    <div className="flex items-center space-x-4">
-      <Skeleton className="h-12 w-12 rounded-full bg-primary" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-[250px] bg-primary" />
-        <Skeleton className="h-4 w-[200px] bg-primary" />
+    <div className="h-full bg-background p-4 flex flex-col gap-3">
+      {/* Header Skeleton */}
+      <div className="flex items-center justify-between pb-2">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="flex items-center gap-6">
+          <Skeleton className="h-5 w-20" />
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-3 h-full">
+        {/* Left Column */}
+        <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
+          {/* Top Row: Cards */}
+          <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
+            {/* Upcoming Trip Card Skeleton */}
+            <div className="w-full md:w-1/3 h-[180px] md:h-full">
+              <Skeleton className="w-full h-full rounded-xl" />
+            </div>
+            {/* Top Destination Card Skeleton */}
+            <div className="w-full md:w-1/3 h-[180px] md:h-full">
+              <Skeleton className="w-full h-full rounded-xl" />
+            </div>
+            {/* Stats Cards Skeleton */}
+            <div className="w-full md:w-1/3 flex flex-col gap-3 h-full">
+              <Skeleton className="flex-1 w-full rounded-xl" />
+              <Skeleton className="flex-1 w-full rounded-xl" />
+            </div>
+          </div>
+
+          {/* Bottom Row: Groups and Requests */}
+          <div className="flex flex-col md:flex-row gap-3 flex-1">
+            {/* Travel Groups Skeleton */}
+            <div className="w-full md:flex-1 min-w-0">
+              <Skeleton className="w-full h-full rounded-xl max-h-[85vh]" />
+            </div>
+
+            {/* Connection Requests Skeleton */}
+            <div className="w-full md:flex-1 min-w-0">
+              <Skeleton className="w-full h-full rounded-xl max-h-[85vh]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Itinerary Skeleton */}
+        <div className="flex flex-col w-full lg:w-1/2 h-full">
+          <Skeleton className="h-full w-full rounded-xl" />
+        </div>
       </div>
     </div>
   );
@@ -92,6 +138,10 @@ export default function Dashboard() {
   const [itineraryDays, setItineraryDays] = useState<ItineraryDay[]>([]);
   const [itineraryLoading, setItineraryLoading] = useState(false);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
+  const [profileImpressions, setProfileImpressions] = useState<number | null>(
+    null
+  );
+  const [impressionsLoading, setImpressionsLoading] = useState(false);
 
   useEffect(() => {
     if (isSignedIn && user) setUser(user);
@@ -102,6 +152,56 @@ export default function Dashboard() {
       .then((res) => res.json())
       .then((data) => setTravelDays(data.travelDays || []));
   }, []);
+
+  // Fetch profile impressions
+  const fetchProfileImpressions = useCallback(async () => {
+    if (isSignedIn && user) {
+      setImpressionsLoading(true);
+      try {
+        const res = await fetch("/api/profile-impressions");
+        const data = await res.json();
+        setProfileImpressions(data.impressions || 0);
+      } catch (err) {
+        console.error("Error fetching profile impressions:", err);
+        setProfileImpressions(0);
+      } finally {
+        setImpressionsLoading(false);
+      }
+    }
+  }, [isSignedIn, user]);
+
+  useEffect(() => {
+    fetchProfileImpressions();
+  }, [fetchProfileImpressions]);
+
+  // Refresh impressions when page comes into focus (user navigates back from explore)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchProfileImpressions();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchProfileImpressions();
+      }
+    };
+
+    // Also refresh periodically every 30 seconds when page is visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchProfileImpressions();
+      }
+    }, 30000); // 30 seconds
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [fetchProfileImpressions]);
 
   const formattedTravelDays = travelDays.filter((d) =>
     /^\d{4}-\d{2}-\d{2}$/.test(d)
@@ -253,50 +353,53 @@ export default function Dashboard() {
     window.open(url, "_blank");
   };
 
+  const isLoading = groupsLoading || !isSignedIn;
+
   return (
     <div className="h-full bg-background p-4 flex flex-col gap-3">
-      {!isSignedIn ? (
-        <SkeletonDemo />
+      {isLoading ? (
+        <DashboardSkeleton />
       ) : (
         <>
           <div className="flex items-center justify-between pb-2">
             <div>
-              <h1 className="text-sm font-medium">Hi, {user?.firstName || "User"}</h1>
-              <p className="text-muted-foreground text-xs">Welcome back to KOVARI 👋🏻</p>
+              <h1 className="text-sm font-medium">
+                Hi, {user?.firstName || "User"}
+              </h1>
+              <p className="text-muted-foreground text-xs">
+                Welcome back to KOVARI 👋🏻
+              </p>
             </div>
-            <div className="flex items-center gap-6">
-               {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
-               <Link href={"/notifications"}>
-               <div className="relative cursor-pointer">
+            <div className="flex items-center gap-4">
+              {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
+              <Link href={"/notifications"}>
+                <div className="relative cursor-pointer">
                   <Bell className="w-5 h-5 text-foreground" />
                   <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
-               </div></Link>
-               
-               <Link href={"/requests"}>
-               <Heart className="w-5 h-5 text-foreground cursor-pointer" /></Link>
+                </div>
+              </Link>
+
+              <Link href={"/requests"}>
+                <Heart className="w-5 h-5 text-foreground cursor-pointer" />
+              </Link>
             </div>
           </div>
           <div className="flex flex-col lg:flex-row gap-3 h-full">
             <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
               <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
                 <div className="w-full md:w-1/3 h-[180px] md:h-full">
-                  {groupsLoading ? (
-                    <>
-                      <Skeleton className="w-full h-full rounded-xl" />
-                    </>
-                  ) : (
-                    <div className="h-full">
-                      <UpcomingTripCard
-                        groupId={selectedGroupId || ""}
-                        name={name}
-                        country={country}
-                        startDate={startDate}
-                        endDate={endDate}
-                        imageUrl="https://images.pexels.com/photos/8776666/pexels-photo-8776666.jpeg"
-                        onExplore={handleExplore}
-                      />
-                    </div>
-                  )}
+                  <div className="h-full">
+                    <UpcomingTripCard
+                      groupId={selectedGroupId || ""}
+                      name={name}
+                      country={country}
+                      startDate={startDate}
+                      endDate={endDate}
+                      imageUrl="https://images.pexels.com/photos/8776666/pexels-photo-8776666.jpeg"
+                      onExplore={handleExplore}
+                      isLoading={groupsLoading}
+                    />
+                  </div>
                 </div>
                 <div className="w-full md:w-1/3 h-[180px] md:h-full">
                   <div className="h-full">
@@ -305,6 +408,7 @@ export default function Dashboard() {
                       country={country}
                       imageUrl="https://images.pexels.com/photos/1486222/pexels-photo-1486222.jpeg"
                       onExplore={handleExplore}
+                      isLoading={groupsLoading}
                     />
                   </div>
                 </div>
@@ -320,8 +424,14 @@ export default function Dashboard() {
                   <div className="flex-1">
                     <DashboardCard
                       title="Profile Impressions"
-                      value={`128 impressions`}
-                      loading={groupsLoading}
+                      value={
+                        impressionsLoading
+                          ? "Loading..."
+                          : profileImpressions !== null
+                            ? `${profileImpressions} impression${profileImpressions !== 1 ? "s" : ""}`
+                            : "0 impressions"
+                      }
+                      loading={impressionsLoading || groupsLoading}
                       subtitle="Total profile impressions"
                     />
                   </div>
@@ -337,8 +447,25 @@ export default function Dashboard() {
                       Manage your collaborative travel experiences
                     </p>
                   </div>
-                  <div className="px-4 flex-1 overflow-hidden">
-                    <GroupList title="My Groups" />
+                  <div className="px-4 pb-3 flex-1 overflow-hidden">
+                    {groupsLoading ? (
+                      <div className="space-y-3">
+                        {Array.from({ length: 3 }).map((_, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 p-3 border-b border-border"
+                          >
+                            <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-24" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <GroupList title="My Groups" />
+                    )}
                   </div>
                 </div>
                 <div className="w-full md:flex-1 min-w-0 h-full flex flex-col">
@@ -350,7 +477,11 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-col w-full lg:w-1/2 h-full">
               <div className="h-full overflow-hidden">
-                <ItineraryUI />
+                {itineraryLoading ? (
+                  <Skeleton className="h-full w-full rounded-xl" />
+                ) : (
+                  <ItineraryUI />
+                )}
               </div>
             </div>
           </div>

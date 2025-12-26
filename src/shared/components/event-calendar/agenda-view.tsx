@@ -40,15 +40,15 @@ export function AgendaView({
   );
 
   return (
-    <div className="bg-card border-border/70 rounded-b-2xl h-screen overflow-y-auto hide-scrollbar border-t px-4">
+    <div className="bg-card border-border/70 rounded-b-2xl md:h-[90vh] h-full overflow-y-auto hide-scrollbar border-t px-4">
       {!hasEvents ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <RiCalendarEventLine
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          {/* <RiCalendarEventLine
             size={32}
             className="text-muted-foreground/50 mb-2"
-          />
-          <h3 className="text-lg font-medium">No events found</h3>
-          <p className="text-muted-foreground">
+          /> */}
+          <h3 className="text-xs text-muted-foreground">No events found</h3>
+          <p className="text-xs text-muted-foreground mt-1">
             There are no events scheduled for this time period.
           </p>
         </div>
