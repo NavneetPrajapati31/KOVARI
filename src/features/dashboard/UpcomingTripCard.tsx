@@ -17,6 +17,7 @@ interface DestinationCardProps {
   onExplore: () => void;
   forMobile?: boolean;
   forTablet?: boolean;
+  isLoading?: boolean;
 }
 
 // Client-side image stretch component
@@ -56,10 +57,19 @@ export function UpcomingTripCard({
   onExplore,
   forMobile = false,
   forTablet = false,
+  isLoading = false,
 }: DestinationCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
   const router = useRouter();
+
+  if (isLoading || !name || !groupId) {
+    return (
+      <Card className="relative w-full h-full rounded-xl shadow-none border-none overflow-hidden flex flex-col">
+        <Skeleton className="w-full h-full rounded-xl" />
+      </Card>
+    );
+  }
 
   // Format dates for display
   const formatTripDates = (start?: string, end?: string): string => {
@@ -135,11 +145,11 @@ export function UpcomingTripCard({
           {/* Content section - keeping your exact structure */}
           <div className="flex flex-row gap-1 px-3 py-3">
             {/* Creator avatar and name */}
-            <div className="flex flex-col items-start flex-1">
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
+            <div className="flex flex-col items-start flex-1 min-w-0">
+              <span className="text-white font-semibold text-[12px] sm:text-xs truncate w-full">
                 {name}, {country}
               </span>
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
+              <span className="text-white font-semibold text-[12px] sm:text-xs truncate w-full">
                 {tripDates}
               </span>
             </div>

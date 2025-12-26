@@ -6,6 +6,7 @@ import { addDays, setHours, setMinutes, subDays } from "date-fns";
 import { EventCalendar } from "@/shared/components/event-calendar/event-calendar";
 import type { CalendarEvent } from "@/shared/components/event-calendar/types";
 import { useUserGroups } from "@/shared/hooks/useUserGroups";
+import { Skeleton } from "@heroui/react";
 
 // Type for itinerary item from API
 interface ItineraryItem {
@@ -236,13 +237,8 @@ export default function ItineraryUI() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
-          <p className="text-sm text-gray-600">
-            Loading itinerary events from all groups...
-          </p>
-        </div>
+      <div className="flex flex-col w-full h-full">
+        <Skeleton className="h-full w-full rounded-xl" />
       </div>
     );
   }
@@ -262,8 +258,10 @@ export default function ItineraryUI() {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
-          <p className="text-sm text-gray-600">No itinerary events found</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
+            No itinerary events found
+          </p>
+          <p className="text-xs text-muted-foreground">
             Create some events in your groups&apos; itineraries to see them here
           </p>
         </div>

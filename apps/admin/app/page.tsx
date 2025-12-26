@@ -219,6 +219,8 @@ async function getRecentActions(): Promise<AdminAction[]> {
   }
 }
 
+import { DashboardAutoRefresh } from '@/components/DashboardAutoRefresh';
+
 export default async function DashboardPage() {
   await requireAdminPage();
 
@@ -231,6 +233,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <DashboardAutoRefresh />
       {/* Header */}
       <div className="space-y-1">
         <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>

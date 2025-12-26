@@ -56,6 +56,8 @@ interface GroupWithCoords {
   top_interests: string[] | null;
   average_age: number | null;
   members_count: number;
+  cover_image: string | null;
+  description: string | null;
   destinationCoords: Location;
   distance: number;
 }
@@ -177,9 +179,78 @@ export async function POST(req: NextRequest) {
 
     const supabase = createRouteHandlerSupabaseClient();
 
+    // Resolve internal User UUID for filtering
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_user_id", userId)
+      .single();
+
+    if (userError || !userData) {
+      console.error("❌ Could not resolve internal UUID for user:", userId);
+      return NextResponse.json(
+        { message: "User profile not found" },
+        { status: 404 }
+      );
+    }
+    const searchingUserUuid = userData.id;
+
+    const userDestName = typeof destination === "string" ? destination : "Custom Coordinates";
+
+    // Fetch Exclusion Lists for Groups
+    console.log("🔍 Fetching group exclusion lists...");
+    const [
+      skipsResult,
+      reportsResult,
+      membershipsResult,
+      interestsResult
+    ] = await Promise.all([
+      // 1. Skips: Exclude if I skipped the group
+      supabase
+        .from("match_skips")
+        .select("skipped_user_id") // Stores group ID for 'group' type
+        .eq("user_id", searchingUserUuid)
+        .eq("match_type", "group")
+        .eq("destination_id", userDestName), 
+
+      // 2. Reports: Exclude if I reported the group (Global)
+      supabase
+        .from("group_flags")
+        .select("group_id")
+        .eq("reporter_id", searchingUserUuid),
+
+      // 3. Memberships: Exclude if already a member or pending request (Global)
+      supabase
+        .from("group_memberships")
+        .select("group_id")
+        .eq("user_id", searchingUserUuid),
+
+      // 4. Interests: Exclude if I already expressed interest (Redundant but safe)
+      supabase
+        .from("match_interests")
+        .select("to_user_id") // Stores group ID for 'group' type
+        .eq("from_user_id", searchingUserUuid)
+        .eq("match_type", "group")
+        .eq("destination_id", userDestName)
+    ]);
+
+    const excludedGroupIds = new Set<string>();
+    
+    // Add Skips
+    skipsResult.data?.forEach(s => excludedGroupIds.add(s.skipped_user_id));
+    // Add Reports
+    reportsResult.data?.forEach(r => excludedGroupIds.add(r.group_id));
+    // Add Memberships
+    membershipsResult.data?.forEach(m => excludedGroupIds.add(m.group_id));
+    // Add Interests
+    interestsResult.data?.forEach(i => excludedGroupIds.add(i.to_user_id));
+
+    const excludedIdsArray = Array.from(excludedGroupIds);
+    console.log(`🚫 Excluding ${excludedIdsArray.length} groups based on history`);
+
     // Fetch groups with all necessary fields from the schema
     console.log("Fetching groups from database...");
-    const { data: groups, error } = await supabase
+    let groupsQuery = supabase
       .from("groups")
       .select(
         `
@@ -195,10 +266,20 @@ export async function POST(req: NextRequest) {
         dominant_languages,
         top_interests,
         average_age,
-        members_count
+        members_count,
+        cover_image,
+        description
       `
       )
-      .eq("status", "active"); // Only match approved groups
+      .eq("status", "active") // Only match approved groups
+      .neq("creator_id", searchingUserUuid); // Exclude my own groups
+
+    // Apply exclusion filter if there are IDs to exclude
+    if (excludedIdsArray.length > 0) {
+      groupsQuery = groupsQuery.not("id", "in", `(${excludedIdsArray.join(",")})`);
+    }
+
+    const { data: groups, error } = await groupsQuery;
 
     if (error) {
       console.error("Database error fetching groups:", error);
@@ -206,14 +287,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (!groups || groups.length === 0) {
-      console.log("No groups found in database");
       return NextResponse.json({ groups: [] });
     }
-
-    console.log(`Found ${groups.length} groups in database:`, groups);
-
-    // Get coordinates for all group destinations and filter by distance
-    console.log("Processing group destinations for coordinates...");
     const groupsWithCoords: GroupWithCoords[] = [];
     for (const group of groups) {
       if (group.destination) {
@@ -379,6 +454,8 @@ export async function POST(req: NextRequest) {
         breakdown: match.breakdown,
         members: originalGroup?.members_count || 0,
         distance: originalGroup?.distance || 0,
+        cover_image: originalGroup?.cover_image || null,
+        description: originalGroup?.description || null,
         creator: {
           name: creator?.name || "Unknown",
           username: creator?.username || "unknown",

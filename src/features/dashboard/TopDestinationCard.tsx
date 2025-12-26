@@ -22,6 +22,7 @@ interface DestinationCardProps {
   onExplore: () => void;
   forMobile?: boolean;
   forTablet?: boolean;
+  isLoading?: boolean;
 }
 
 // Client-side image stretch component
@@ -58,10 +59,19 @@ export function TopDestinationCard({
   onExplore,
   forMobile = false,
   forTablet = false,
+  isLoading = false,
 }: DestinationCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
 
   const router = useRouter();
+
+  if (isLoading || !name) {
+    return (
+      <Card className="relative w-full h-full rounded-xl shadow-none border-none overflow-hidden flex flex-col">
+        <Skeleton className="w-full h-full rounded-xl" />
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -91,13 +101,13 @@ export function TopDestinationCard({
           {/* Content section - keeping your exact structure */}
           <div className="flex flex-row px-3 py-3">
             {/* Creator avatar and name */}
-            <div className="flex flex-col w-full">
-              <div className="flex flex-row justify-between items-center">
-                <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate">
+            <div className="flex flex-col w-full min-w-0">
+              <div className="flex flex-row justify-between items-center w-full">
+                <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate w-full">
                   Top Destination
                 </span>
               </div>
-              <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate">
+              <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate w-full">
                 {name}
               </span>
             </div>

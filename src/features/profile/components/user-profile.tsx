@@ -11,7 +11,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSidebar } from "@/shared/components/ui/sidebar";
-import { Camera, Heart, Plus, Flag } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import { useClerk } from "@clerk/nextjs";
+import { Camera, Heart, Plus, Flag, Menu, Settings, LogOut } from "lucide-react";
 import ProfileImageModal from "./profile-image-modal";
 import { AnimatePresence } from "framer-motion";
 import CreatePostModal from "./create-post-modal";
@@ -52,6 +60,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   const [followersCount, setFollowersCount] = React.useState(profile.followers);
   const { toast } = useToast();
   const router = useRouter();
+  const { signOut } = useClerk();
 
   // Modal state for profile image (mobile only)
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
@@ -225,7 +234,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
 
               <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none p-4 gap-0 items-start justify-start flex-1 min-w-0">
                 {/* Left Info */}
-                <div className="flex flex-row items-center gap-x-6 w-full mb-2">
+                {/* Left Info */}
+                <div className="flex flex-row items-center justify-between w-full mb-2">
                   <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-3">
                     <div
                       className="flex flex-col cursor-pointer focus:outline-none"
@@ -314,23 +324,31 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         </div>
                       </div>
                     </div>
-                    {/* <User
-                      avatarProps={{
-                        size: "lg",
-                        src: `${profile.profileImage}` || "",
-                      }}
-                      description={
-                        <span className="text-xs text-muted-foreground font-medium">
-                          @{profile.username}
-                        </span>
-                      }
-                      name={
-                        <h1 className="text-md font-extrabold text-foreground leading-tight">
-                          {profile.name}
-                        </h1>
-                      }
-                    /> */}
                   </div>
+                  
+                   {/* Mobile Settings/Logout Menu */}
+                   {profile.isOwnProfile && (
+                    <div className="self-start">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
+                                    <Menu className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-background/95 backdrop-blur-2xl rounded-2xl border-border">
+                                <DropdownMenuItem onClick={() => router.push("/settings")} className="cursor-pointer hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-foreground">
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    <span>Settings</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => signOut({ redirectUrl: "/sign-in" })} className="cursor-pointer text-destructive focus:text-destructive hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-destructive">
+                                    <LogOut className="mr-2 h-4 w-4 text-destructive" />
+                                    <span>Log out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                   )}
                 </div>
 
                 {/* <div className="flex flex-row items-center gap-x-6 w-full min-[376px]:hidden">
@@ -406,16 +424,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </Link>
                       <Link href="/explore">
                         <Button
+                        variant={"secondary"}
                           size={"sm"}
-                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
+                          className="font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
                         >
                           Explore
                         </Button>
                       </Link>
                       {profile.isOwnProfile === true && (
                         <Button
+                        variant={"secondary"}
                           size={"sm"}
-                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
+                          className="font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
                           aria-label="Create post"
                           tabIndex={0}
                           onClick={handleOpenCreatePostModal}
@@ -584,7 +604,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       {profile.interests.map((interest) => (
                         <Badge
                           key={interest}
-                          className="rounded-full px-3 py-1 text-xs font-medium bg-primary-light text-primary border border-primary"
+                          className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
                         >
                           {interest}
                         </Badge>
@@ -599,7 +619,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       {profile.languages.map((language) => (
                         <Badge
                           key={language}
-                          className="rounded-full px-3 py-1 text-xs font-medium bg-primary-light text-primary border border-primary"
+                          className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
                         >
                           {language}
                         </Badge>
@@ -652,7 +672,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="w-10 h-10 bg-border rounded-full flex items-center justify-center mb-2">
+                    <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center mb-2">
                       <Camera className="w-5 h-5" />
                     </div>
                     <h3 className="text-sm font-semibold text-foreground mb-1">
@@ -807,15 +827,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <Link href="/explore">
                         <Button
                           size={"sm"}
-                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
+                          variant={"secondary"}
+                          className="font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
                         >
                           Explore
                         </Button>
                       </Link>
                       {profile.isOwnProfile === true && (
                         <Button
+                        variant={"secondary"}
                           size={"sm"}
-                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
+                          className="font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
                           aria-label="Create post"
                           tabIndex={0}
                           onClick={handleOpenCreatePostModal}
@@ -976,7 +998,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       {profile.interests.map((interest) => (
                         <Badge
                           key={interest}
-                          className="rounded-full px-3 py-1 text-xs font-medium bg-primary-light text-primary border border-primary"
+                          className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
                         >
                           {interest}
                         </Badge>
@@ -991,7 +1013,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       {profile.languages.map((language) => (
                         <Badge
                           key={language}
-                          className="rounded-full px-3 py-1 text-xs font-medium bg-primary-light text-primary border border-primary"
+                          className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
                         >
                           {language}
                         </Badge>
@@ -1044,7 +1066,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center mb-3">
                       <Camera className="text-foreground" />
                     </div>
                     <h3 className="text-md font-semibold text-foreground mb-1">

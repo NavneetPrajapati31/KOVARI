@@ -79,6 +79,7 @@ interface GroupDetailProps {
   }>;
   flags: Flag[];
   adminActions: AdminAction[];
+  flagId?: string;
 }
 
 export function GroupDetail({
@@ -87,6 +88,7 @@ export function GroupDetail({
   membersCount,
   flags,
   adminActions,
+  flagId,
 }: GroupDetailProps) {
   const router = useRouter();
   const { toasts, toast, removeToast } = useToast();
@@ -101,7 +103,10 @@ export function GroupDetail({
       const res = await fetch(`/api/admin/groups/${group.id}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve' }),
+        body: JSON.stringify({ 
+          action: 'approve',
+          flagId: flagId,
+        }),
       });
 
       if (!res.ok) {
@@ -141,6 +146,7 @@ export function GroupDetail({
         body: JSON.stringify({
           action: 'remove',
           reason: removeReason.trim(),
+          flagId: flagId,
         }),
       });
 
@@ -343,7 +349,7 @@ export function GroupDetail({
                   )}
               </div>
               {organizer.name !== 'User (Profile Missing)' ? (
-                <Link href={`/users/${organizer.id}`}>
+                <Link href={`/users/${organizer.id}${flagId ? `?flagId=${flagId}` : ''}`}>
                   <Button variant="outline" size="sm">
                     View Profile
                   </Button>

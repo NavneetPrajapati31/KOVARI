@@ -19,11 +19,11 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
   subtitle,
 }) => {
   return (
-    <div className="bg-card border border-border rounded-xl p-4 shadow-none transition h-full">
+    <div className="bg-card border border-border rounded-xl p-4 shadow-none transition h-full min-w-0">
       {/* <div className="w-8 h-8 bg-card rounded-lg border-border border flex items-center justify-center mb-2">
         <Globe className="h-4 w-4 text-foreground" />
       </div> */}
-      <h2 className="text-xs font-medium mb-0.5 text-foreground">{title}</h2>
+      <h2 className="text-xs font-medium mb-0.5 text-foreground truncate">{title}</h2>
       {/* <p className="text-xs text-muted-foreground">{subtitle}</p> */}
 
       {loading ? (

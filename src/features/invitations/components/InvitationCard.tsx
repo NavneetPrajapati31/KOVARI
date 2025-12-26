@@ -152,7 +152,7 @@ export function GroupInviteCard({
           <Button
             color="primary"
             variant="outline"
-            className="border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
+            className="hover:bg-background border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
             aria-label="Decline Invitation"
             tabIndex={0}
             disabled={!!loadingAction}

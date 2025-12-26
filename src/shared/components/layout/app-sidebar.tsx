@@ -1,16 +1,27 @@
 "use client";
 
 import {
-  Calendar,
-  ChevronUp,
   Home,
   Inbox,
-  PanelLeftIcon,
   Search,
   Settings,
-  User2,
+  HelpCircle,
+  Plus,
+  MessageSquare,
+  Mail,
+  Moon,
+  PanelLeft,
+  MoreVertical,
+  UserPlus,
+  Users,
+  Bell,
+  Send,
+  Heart,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import HomeIcon from "@mui/icons-material/Home";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 
 import {
   Sidebar,
@@ -18,10 +29,14 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarGroupLabel,
+  SidebarInput,
   useSidebar,
+  SidebarTrigger,
 } from "@/shared/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -32,13 +47,33 @@ import {
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Avatar } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
-import type { UserResource } from "@clerk/types";
+import { Switch } from "@/shared/components/ui/switch";
 
-// Menu items.
-const items = [
+// Section 1: Main Navigation
+const mainItems = [
   {
-    title: "Home",
+    title: "Dashboard",
     url: "/",
+    icon: Home,
+  },
+  {
+    // Mapping "Explore" to generic list item style or keeping name
+    title: "Explore",
+    url: "/explore",
+    icon: Search,
+  },
+  {
+    title: "Orders",
+    url: "#",
+    icon: Inbox, // Dummy to match image feel if desired, but better sticking to user functionality.
+  },
+];
+
+// Cleaned up items based on User's actual routes + Image structure
+const navMain = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
     icon: Home,
   },
   {
@@ -46,123 +81,79 @@ const items = [
     url: "/explore",
     icon: Search,
   },
+
   {
     title: "Chats",
     url: "/chat",
-    icon: User2,
+    icon: Send,
   },
   {
     title: "Groups",
     url: "/groups",
-    icon: Inbox,
+    icon: Users,
   },
   {
-    title: "Profile",
-    url: "/profile",
-    icon: User2,
+    title: "Requests", // Dummy to match image 'Email'
+    url: "/requests",
+    icon: Heart,
   },
+  {
+    title: "Notifications",
+    url: "/notifications",
+    icon: Bell,
+  },
+];
+
+// const navApps = [
+
+// ];
+
+const navFooter = [
   {
     title: "Settings",
     url: "#",
     icon: Settings,
   },
+  // {
+  //     title: "Help Center",
+  //     url: "#",
+  //     icon: HelpCircle,
+  // }
 ];
 
 export const AcmeLogo = () => {
   return (
-    <svg fill="none" height="30" viewBox="0 0 32 32" width="30">
-      <path
-        clipRule="evenodd"
-        d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
-        fill="currentColor"
-        fillRule="evenodd"
-      />
-    </svg>
+    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+      <svg
+        fill="none"
+        height="20"
+        viewBox="0 0 32 32"
+        width="20"
+        className="text-white"
+      >
+        <path
+          clipRule="evenodd"
+          d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
+          fill="currentColor"
+          fillRule="evenodd"
+        />
+      </svg>
+    </div>
   );
 };
 
-function SidebarToggle() {
+const SidebarToggle = () => {
   const { toggleSidebar } = useSidebar();
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      className="bg-transparent text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+      className="bg-transparent text-foreground hover:bg-transparent hover:text-foreground"
       onClick={toggleSidebar}
     >
-      <PanelLeftIcon className="h-5 w-5 transition-transform duration-300 ease-in-out" />
+      <PanelLeft className="h-5 w-5 transition-transform duration-300 ease-in-out" />
     </Button>
-  );
-}
-
-// Extracted SidebarUserMenu for DRYness
-interface SidebarUserMenuProps {
-  user: UserResource | null | undefined;
-  onProfileClick?: () => void;
-  onSignOutClick?: () => void;
-}
-
-const SidebarUserMenu = ({
-  user,
-  onProfileClick,
-  onSignOutClick,
-}: SidebarUserMenuProps) => {
-  const { state } = useSidebar();
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="border-none outline-none flex h-auto items-center gap-2 py-3 w-full focus:outline-none focus:ring-0 justify-start"
-          aria-label="User menu"
-          tabIndex={0}
-        >
-          <Avatar
-            src={user?.imageUrl || ""}
-            alt={user?.fullName || "User avatar"}
-            size="sm"
-            className="flex-shrink-0"
-          />
-          <div
-            className={`
-              transition-all duration-300 origin-left overflow-hidden
-              ${
-                state === "collapsed"
-                  ? "max-w-0 opacity-0 scale-x-0"
-                  : "max-w-[160px] opacity-100 scale-x-100"
-              }
-            `}
-            style={{ minWidth: 0 }}
-          >
-            <p className="text-sm font-bold text-foreground truncate">
-              {user?.fullName}
-            </p>
-            <p className="text-muted-foreground text-xs truncate text-start">
-              @{user?.username}
-            </p>
-          </div>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side="top"
-        className="w-[--radix-popper-anchor-width] shadow-sm"
-      >
-        <DropdownMenuItem
-          className="focus:bg-transparent focus:text-primary focus:outline-none border-none"
-          onClick={onProfileClick}
-        >
-          <span>My Profile</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="focus:bg-transparent focus:text-primary focus:outline-none"
-          onClick={onSignOutClick}
-        >
-          <span>Sign out</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 };
 
@@ -170,28 +161,45 @@ export function AppSidebar() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
+  const pathname = usePathname();
   const { state } = useSidebar();
 
+  const menuItems = [
+    // {
+    //   key: "auth",
+    //   label: <span className="text-xs text-muted-foreground">{`Signed in as ${user?.username}`}</span>,
+    // },
+    {
+      key: "profile",
+      label: "My Profile",
+      onClick: () => router.push("/profile"),
+    },
+    {
+      key: "logout",
+      label: <p className="text-red-500">Log Out</p>,
+      onClick: () => signOut({ redirectUrl: "/" }),
+    },
+  ];
+
   return (
-    <Sidebar collapsible="icon" className="bg-background">
-      <SidebarContent className="overflow-x-hidden">
-        <SidebarGroup>
-          <div
-            className="
+    <Sidebar collapsible="icon" className="bg-background border-r">
+      <SidebarHeader className="bg-background border-b">
+        <div
+          className="
               flex items-center border-none mb-1 mt-1
               justify-between
               group-data-[state=collapsed]:justify-center
               group-data-[state=collapsed]:border-none
               group-data-[state=collapsed]:p-0
             "
+        >
+          <div
+            className="relative flex items-center justify-start"
+            style={{ width: 140 }}
           >
-            <div
-              className="relative flex items-center justify-start"
-              style={{ width: 140 }}
-            >
-              {/* <AcmeLogo /> */}
-              <span
-                className={`font-semibold font-clash text-muted-foreground
+            {/* <AcmeLogo /> */}
+            <span
+              className={`font-clash tracking-widest font-medium text-md
                   transition-all duration-300 origin-left overflow-hidden
                   
                   ${
@@ -200,52 +208,170 @@ export function AppSidebar() {
                       : "max-w-[100px] opacity-100 scale-x-100 pl-2"
                   }
                 `}
-                style={{ minWidth: 0 }}
-              >
-                KOVARI
-              </span>
-            </div>
-            <SidebarToggle />
+              style={{ minWidth: 0 }}
+            >
+              KOVARI
+            </span>
           </div>
+          <SidebarToggle />
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="bg-background">
+        {/* Main Section */}
+        <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {navMain.map((item) => {
+                const isActive =
+                  item.url === "/"
+                    ? pathname === "/"
+                    : pathname === item.url ||
+                      pathname.startsWith(item.url + "/");
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className={`transition-all duration-200 rounded-md ${
+                        isActive
+                          ? "text-primary  data-[active=true]:text-primary"
+                          : "text-foreground"
+                      }`}
+                    >
+                      <Link href={item.url}>
+                        <item.icon
+                          className={
+                            isActive
+                              ? item.title === "Explore"
+                                ? "text-primary"
+                                : "text-primary fill-current"
+                              : "text-foreground"
+                          }
+                          strokeWidth={
+                            isActive && item.title === "Explore" ? 3 : undefined
+                          }
+                        />
+                        <span className="font-normal">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* APPS Section */}
+        {/* <SidebarGroup className="mt-4">
+            <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 tracking-wider">APPS</SidebarGroupLabel>
+            <SidebarGroupContent>
+                <SidebarMenu>
+                    {navApps.map((item) => {
+                         const isActive = pathname === item.url;
+                         return (
+                            <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton 
+                                    asChild 
+                                    isActive={isActive}
+                                    className={`transition-all duration-200 ${
+                                        isActive 
+                                        ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:text-white data-[active=true]:bg-transparent data-[active=true]:text-white shadow-md"
+                                        : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                >
+                                    <a href={item.url}>
+                                        <item.icon className={isActive ? "text-white" : "text-gray-500"} />
+                                        <span>{item.title}</span>
+                                    </a>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )
+                    })}
+                     <SidebarMenuItem>
+                        <SidebarMenuButton className="text-muted-foreground hover:text-foreground">
+                            <Plus className="h-4 w-4" />
+                            <span>Add Apps</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroupContent>
+        </SidebarGroup> */}
+
+        {/* Footer/Settings Section in Content if we want it scrollable, or Footer slot for fixed */}
+        <SidebarGroup className="mt-auto border-b border-border">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navFooter.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon className="text-muted-foreground" />
-                      <span
-                        className={`
-                          transition-all duration-300 origin-left overflow-hidden
-                          font-semibold text-muted-foreground
-                          ${
-                            state === "collapsed"
-                              ? "max-w-0 opacity-0 scale-x-0"
-                              : "max-w-[120px] opacity-100 scale-x-100"
-                          }
-                        `}
-                        style={{ minWidth: 0 }}
-                      >
+                    <Link href={item.url}>
+                      <item.icon className="text-foreground" />
+                      <span className="text-foreground font-normal">
                         {item.title}
                       </span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {/* <SidebarMenuItem>
+                        <div className="flex items-center justify-between px-2 py-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                                <Moon className="h-4 w-4" />
+                                <span>Dark Mode</span>
+                            </div>
+                            <Switch id="dark-mode" />
+                        </div>
+                    </SidebarMenuItem> */}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      {/* Always show the user menu at the bottom, only details collapse/expand */}
-      {/* {user && (
-        <SidebarFooter className="flex justify-center">
-          <SidebarUserMenu
-            user={user}
-            onProfileClick={() => router.push("/profile")}
-            onSignOutClick={() => signOut({ redirectUrl: "/" })}
-          />
-        </SidebarFooter>
-      )} */}
+
+      <SidebarFooter className="bg-background">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:justify-center focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none active:outline-none"
+                >
+                  <Avatar
+                    src={user?.imageUrl || ""}
+                    alt={user?.fullName || "User"}
+                    className="h-6 w-6 rounded-full bg-gray-200 aspect-square shrink-0 focus:outline-none"
+                  />
+                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                    <span className="truncate font-semibold text-xs">
+                      {user?.fullName || "User Name"}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {user?.emailAddresses?.[0]?.emailAddress ||
+                        "user@example.com"}
+                    </span>
+                  </div>
+                  <MoreVertical className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                className="w-[--radix-popper-anchor-width] p-2 backdrop-blur-2xl bg-background/50 rounded-2xl shadow-sm transition-all duration-300 ease-in-out border-border"
+              >
+                {menuItems.map((item) => (
+                  <DropdownMenuItem
+                    key={item.key}
+                    onClick={item.onClick}
+                    className={`font-semibold w-full rounded-md px-4 py-1 text-xs border-none cursor-pointer flex items-center hover:bg-sidebar-accent focus:bg-sidebar-accent focus:outline-none bg-transparent text-foreground focus:text-foreground ${!item.onClick ? "cursor-default opacity-70" : ""}`}
+                  >
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
