@@ -10,7 +10,7 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
-type UserAction = "verify" | "ban" | "suspend" | "unban";
+type UserAction = "verify" | "ban" | "suspend" | "unban" | "warn";
 
 export async function POST(req: NextRequest, { params }: Params) {
   let adminId: string;
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const action: UserAction = body.action;
     const reason: string | undefined = body.reason;
     const banUntil: string | undefined = body.banUntil;
+    const flagId: string | undefined = body.flagId; // Handle specific flag resolution
 
     // 1) find profile to get user_id
     const { data: profile, error: profileError } = await supabaseAdmin
@@ -67,7 +68,9 @@ export async function POST(req: NextRequest, { params }: Params) {
             ? "BAN_USER"
             : action === "suspend"
               ? "SUSPEND_USER"
-              : "UNBAN_USER"
+              : action === "unban"
+                ? "UNBAN_USER"
+                : "WARN_USER"
         )
         .gt("created_at", oneMinuteAgo)
         .limit(1);
@@ -79,6 +82,89 @@ export async function POST(req: NextRequest, { params }: Params) {
         );
       }
     }
+
+    // Helper to resolve a specific flag if provided
+    const resolveFlag = async (flagId: string, actionType: string) => {
+      try {
+        console.log(`Resolving flag ${flagId} with action ${actionType} from user action...`);
+        
+        const now = new Date().toISOString();
+        const fullUpdateData = { 
+          status: "actioned",
+          reviewed_by: adminId,
+          reviewed_at: now
+        };
+        const simpleUpdateData = { status: "actioned" };
+
+        // 1. Try updating user_flags
+        let { data: userRows, error: updateError } = await supabaseAdmin
+          .from("user_flags")
+          .update(fullUpdateData)
+          .eq("id", flagId)
+          .select('id'); 
+
+        // Handle missing column error
+        if (updateError && (updateError.code === "42703" || updateError.message?.includes("column") || updateError.code === "PGRST204")) {
+           console.log("reviewed_by/reviewed_at columns might be missing, retrying with simple status update...");
+           const retry = await supabaseAdmin
+             .from("user_flags")
+             .update(simpleUpdateData)
+             .eq("id", flagId)
+             .select('id');
+           updateError = retry.error;
+           userRows = retry.data;
+        }
+
+        if (updateError) {
+          console.error("Error updating user_flags:", updateError);
+        } else if (userRows && userRows.length > 0) {
+           console.log(`Successfully updated user_flags id=${flagId}`);
+           await logResolution(flagId, actionType);
+           return;
+        }
+
+        // 2. If no user_flag matched, try group_flags
+        console.log("Flag not found in user_flags or update failed, trying group_flags...");
+        
+        let { data: groupRows, error: groupError } = await supabaseAdmin
+          .from("group_flags")
+          .update(fullUpdateData)
+          .eq("id", flagId)
+          .select('id');
+          
+        if (groupError && (groupError.code === "42703" || groupError.message?.includes("column") || groupError.code === "PGRST204")) {
+           const retry = await supabaseAdmin
+             .from("group_flags")
+             .update(simpleUpdateData)
+             .eq("id", flagId)
+             .select('id');
+            groupError = retry.error;
+            groupRows = retry.data;
+        }
+
+        if (!groupError && groupRows && groupRows.length > 0) {
+           console.log(`Successfully updated group_flags id=${flagId}`);
+           await logResolution(flagId, actionType);
+           return;
+        }
+
+        console.warn(`Could not find/update flag ${flagId} in user_flags or group_flags.`);
+
+      } catch (error) {
+        console.error("Error resolving flag:", error);
+      }
+    };
+
+    const logResolution = async (flagId: string, actionType: string) => {
+       await logAdminAction({
+            adminId,
+            targetType: "user_flag",
+            targetId: flagId,
+            action: "RESOLVE_FLAG",
+            reason: `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} user: ${reason || "No reason provided"}`,
+            metadata: { flagId, action: actionType },
+          });
+    };
 
     if (action === "verify") {
       const { error } = await supabaseAdmin
@@ -108,6 +194,79 @@ export async function POST(req: NextRequest, { params }: Params) {
       });
 
       return NextResponse.json({ success: true });
+    }
+
+    if (action === "warn") {
+      if (!reason || !reason.trim()) {
+        return NextResponse.json(
+          { error: "Reason is required for warning" },
+          { status: 400 }
+        );
+      }
+
+      // Send warning email (if email is available and Resend is configured)
+      let emailSent = false;
+      let emailError: string | null = null;
+      if (profile.email && process.env.RESEND_API_KEY) {
+        try {
+          const { Resend } = await import("resend");
+          const resend = new Resend(process.env.RESEND_API_KEY);
+          const fromEmail = process.env.RESEND_FROM_EMAIL || "Kovari <noreply@kovari.com>";
+
+          console.log("Attempting to send warning email:", {
+            from: fromEmail,
+            to: profile.email,
+            hasApiKey: !!process.env.RESEND_API_KEY,
+          });
+
+          const result = await resend.emails.send({
+            from: fromEmail,
+            to: profile.email,
+            subject: "Warning: Account Violation",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #dc2626;">Account Warning</h2>
+                <p>Your account has received a warning due to a reported violation of our community guidelines.</p>
+                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+                <p>Please review our community guidelines and ensure your future behavior complies with our terms of service.</p>
+                <p>If you have any questions or concerns, please contact our support team.</p>
+                <p>Best regards,<br>The Kovari Team</p>
+              </div>
+            `,
+          });
+
+          emailSent = true;
+          console.log("Warning email sent successfully:", result);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error("Error sending warning email:", errorMessage);
+          emailError = errorMessage;
+        }
+      }
+
+      await logAdminAction({
+        adminId,
+        targetType: "user",
+        targetId: userId,
+        action: "WARN_USER",
+        reason,
+        metadata: {
+          emailSent,
+          user_email: profile.email,
+          user_name: profile.name,
+        },
+      });
+
+      // Resolve flag if provided
+      if (flagId) {
+        await resolveFlag(flagId, "warn");
+      }
+
+      return NextResponse.json({ 
+        success: true,
+        emailSent,
+        emailError 
+      });
     }
 
     if (action === "ban" || action === "suspend") {
@@ -166,6 +325,11 @@ export async function POST(req: NextRequest, { params }: Params) {
         reason,
         metadata: { ban_expires_at: banExpiresAt },
       });
+
+      // Resolving flag if provided
+      if (flagId) {
+        await resolveFlag(flagId, action);
+      }
 
       // Forcefully revoke Clerk session to kick user out immediately
       try {

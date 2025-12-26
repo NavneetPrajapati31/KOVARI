@@ -310,7 +310,17 @@ export async function POST(req: NextRequest, { params }: Params) {
         reason,
         metadata: { flagId, emailSent, userEmail },
       });
-      console.log("Admin action logged");
+
+      // Also log as RESOLVE_FLAG
+      await logAdminAction({
+        adminId,
+        targetType: "user_flag",
+        targetId: flagId,
+        action: "RESOLVE_FLAG",
+        reason: `Warned user: ${reason || "No reason provided"}`,
+        metadata: { flagId, action: "warn", emailSent },
+      });
+      console.log("Admin action logged (WARN & RESOLVE)");
 
       return NextResponse.json({ 
         success: true, 
@@ -449,6 +459,17 @@ export async function POST(req: NextRequest, { params }: Params) {
         metadata: { flagId, ban_expires_at: banUntil, suspendUntil: banUntil, emailSent, userEmail },
       });
 
+      // Also log as RESOLVE_FLAG
+      await logAdminAction({
+        adminId,
+        targetType: "user_flag",
+        targetId: flagId,
+        action: "RESOLVE_FLAG",
+        reason: `Suspended user: ${reason || "No reason provided"}`,
+        metadata: { flagId, action: "suspend", ban_expires_at: banUntil },
+      });
+      console.log("Admin action logged (SUSPEND & RESOLVE)");
+
       return NextResponse.json({ 
         success: true,
         suspendUntil: banUntil,
@@ -577,6 +598,17 @@ export async function POST(req: NextRequest, { params }: Params) {
         reason,
         metadata: { flagId, permanent: true, emailSent, userEmail },
       });
+
+      // Also log as RESOLVE_FLAG
+      await logAdminAction({
+        adminId,
+        targetType: "user_flag",
+        targetId: flagId,
+        action: "RESOLVE_FLAG",
+        reason: `Banned user: ${reason || "No reason provided"}`,
+        metadata: { flagId, action: "ban", permanent: true },
+      });
+      console.log("Admin action logged (BAN & RESOLVE)");
 
       return NextResponse.json({ 
         success: true,

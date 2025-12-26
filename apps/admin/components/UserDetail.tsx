@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -65,6 +65,8 @@ export function UserDetail({
   notes: initialNotes,
 }: UserDetailProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const flagId = searchParams.get("flagId"); // Get flagId from URL if present
   const { toasts, toast, removeToast } = useToast();
   const [profile, setProfile] = React.useState(initialProfile);
   const [flags, setFlags] = React.useState(initialFlags);
@@ -99,7 +101,7 @@ export function UserDetail({
     }
   }, [initialProfile]);
   const [actionState, setActionState] = React.useState<{
-    type: "suspend" | "ban" | null;
+    type: "suspend" | "ban" | "warn" | null;
     open: boolean;
   }>({ type: null, open: false });
   const [suspendForm, setSuspendForm] = React.useState({
@@ -107,11 +109,12 @@ export function UserDetail({
     banUntil: "",
   });
   const [banForm, setBanForm] = React.useState({ reason: "" });
+  const [warnForm, setWarnForm] = React.useState({ reason: "" });
   const [noteForm, setNoteForm] = React.useState({ note: "" });
   const [showNoteForm, setShowNoteForm] = React.useState(false);
 
   const handleAction = async (
-    action: "verify" | "ban" | "suspend" | "unban",
+    action: "verify" | "ban" | "suspend" | "unban" | "warn",
     reason?: string,
     banUntil?: string
   ) => {
@@ -120,7 +123,7 @@ export function UserDetail({
       const res = await fetch(`/api/admin/users/${profile.id}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason, banUntil }),
+        body: JSON.stringify({ action, reason, banUntil, flagId }), // Include flagId
       });
 
       if (!res.ok) {
@@ -184,6 +187,7 @@ export function UserDetail({
       setActionState({ type: null, open: false });
       setSuspendForm({ reason: "", banUntil: "" });
       setBanForm({ reason: "" });
+      setWarnForm({ reason: "" });
     }
   };
 
@@ -301,6 +305,13 @@ export function UserDetail({
           )}
           {!isBanned && (
             <>
+              <Button
+                  variant="outline"
+                  onClick={() => setActionState({ type: "warn", open: true })}
+                  disabled={isLoading}
+                >
+                  Warn
+                </Button>
               <Button
                 variant="outline"
                 onClick={() => setActionState({ type: "suspend", open: true })}
@@ -505,6 +516,34 @@ export function UserDetail({
           </div>
         </div>
       </div>
+
+      {/* Warn Dialog */}
+      {actionState.type === "warn" && (
+        <ConfirmDialog
+          open={actionState.open}
+          onOpenChange={(open) =>
+            setActionState({ type: open ? "warn" : null, open })
+          }
+          title="Warn User"
+          description="Send a warning to this user. This will be logged and they will receive an email."
+          confirmText="Send Warning"
+          validate={() => !!warnForm.reason.trim()}
+          onConfirm={() => handleAction("warn", warnForm.reason)}
+        >
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label htmlFor="warn-reason">Warning Message</Label>
+              <textarea
+                id="warn-reason"
+                value={warnForm.reason}
+                onChange={(e) => setWarnForm({ reason: e.target.value })}
+                placeholder="Reason for warning (sent to user)"
+                className="w-full min-h-[100px] rounded-md border bg-background px-3 py-2 text-sm mt-1"
+              />
+            </div>
+          </div>
+        </ConfirmDialog>
+      )}
 
       {/* Suspend Dialog */}
       {actionState.type === "suspend" && (
