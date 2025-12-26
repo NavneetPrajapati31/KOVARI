@@ -15,6 +15,7 @@ import {
   UserPlus,
   Users,
   Bell,
+  Send,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -80,7 +81,7 @@ const navMain = [
      {
         title: "Chats",
         url: "/chat",
-        icon: MessageSquare,
+        icon: Send,
     },
     {
         title: "Groups",
@@ -227,7 +228,7 @@ export function AppSidebar() {
                         }`}
                     >
                         <Link href={item.url}>
-                        <item.icon className={isActive ? "text-primary-foreground" : "text-foreground"} />
+                        <item.icon className={isActive ? "text-primary-foreground fill-current" : "text-foreground"} />
                         <span className="font-normal">{item.title}</span>
                         </Link>
                     </SidebarMenuButton>

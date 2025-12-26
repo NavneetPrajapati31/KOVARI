@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/shared/components/ui/button";
+
+// Update the imports at the top
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { GroupCard } from "@/features/explore/components/GroupCard";
@@ -60,13 +63,12 @@ export default function GroupsPage() {
       )}
       <div className="flex-1 space-y-4 p-4 w-full min-h-screen relative">
         <header className="mb-0">
-          <h1
-            className="text-md font-bold tracking-tight text-foreground"
-            tabIndex={0}
-            aria-label="Groups"
+          <Button
+            variant="outline"
+            className="text-xs sm:text-sm text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border border-primary pointer-events-none cursor-default"
           >
             My Groups
-          </h1>
+          </Button>
         </header>
         {isLoading ? (
           <div className="w-full">

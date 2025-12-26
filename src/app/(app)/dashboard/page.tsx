@@ -1,5 +1,5 @@
 "use client";
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, Heart } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
@@ -51,6 +51,7 @@ import { ConnectionRequestsCard } from "@/features/dashboard/ConnectionRequestsC
 
 import { ChartLineDots } from "@/features/dashboard/ImpressionsChart";
 import ItineraryUI from "@/shared/components/comp-542";
+import Link from "next/link";
 
 interface ItineraryEvent {
   id: string;
@@ -265,10 +266,14 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-6">
                {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
+               <Link href={"/notifications"}>
                <div className="relative cursor-pointer">
-                  <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground" />
-                  <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-[2px] border-background" />
-               </div>
+                  <Bell className="w-5 h-5 text-foreground" />
+                  <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
+               </div></Link>
+               
+               <Link href={"/requests"}>
+               <Heart className="w-5 h-5 text-foreground cursor-pointer" /></Link>
             </div>
           </div>
           <div className="flex flex-col lg:flex-row gap-3 h-full">
