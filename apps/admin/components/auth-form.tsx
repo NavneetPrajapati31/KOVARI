@@ -34,6 +34,11 @@ export default function AuthForm() {
       });
 
       if (result?.status === "complete" && setActive) {
+        // Set flag to log login action after redirect
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem("admin_login_pending", "true");
+        }
+
         await setActive({
           session: result.createdSessionId,
         });
@@ -57,6 +62,10 @@ export default function AuthForm() {
     setError("");
 
     try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem("admin_login_pending", "true");
+      }
+      
       await signIn?.authenticateWithRedirect({
         strategy: provider,
         redirectUrl: "/sso-callback",
