@@ -135,11 +135,11 @@ export function UpcomingTripCard({
           {/* Content section - keeping your exact structure */}
           <div className="flex flex-row gap-1 px-3 py-3">
             {/* Creator avatar and name */}
-            <div className="flex flex-col items-start flex-1">
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
+            <div className="flex flex-col items-start flex-1 min-w-0">
+              <span className="text-white font-semibold text-[12px] sm:text-xs truncate w-full">
                 {name}, {country}
               </span>
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
+              <span className="text-white font-semibold text-[12px] sm:text-xs truncate w-full">
                 {tripDates}
               </span>
             </div>

@@ -91,13 +91,13 @@ export function TopDestinationCard({
           {/* Content section - keeping your exact structure */}
           <div className="flex flex-row px-3 py-3">
             {/* Creator avatar and name */}
-            <div className="flex flex-col w-full">
-              <div className="flex flex-row justify-between items-center">
-                <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate">
+            <div className="flex flex-col w-full min-w-0">
+              <div className="flex flex-row justify-between items-center w-full">
+                <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate w-full">
                   Top Destination
                 </span>
               </div>
-              <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate">
+              <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate w-full">
                 {name}
               </span>
             </div>

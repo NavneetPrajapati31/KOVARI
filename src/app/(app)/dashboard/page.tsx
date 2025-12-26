@@ -1,5 +1,5 @@
 "use client";
-
+import { Search, Bell } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
@@ -258,6 +258,19 @@ export default function Dashboard() {
         <SkeletonDemo />
       ) : (
         <>
+          <div className="flex items-center justify-between pb-2">
+            <div>
+              <h1 className="text-sm font-medium">Hi, {user?.firstName || "User"}</h1>
+              <p className="text-muted-foreground text-xs">Welcome back to KOVARI 👋🏻</p>
+            </div>
+            <div className="flex items-center gap-6">
+               {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
+               <div className="relative cursor-pointer">
+                  <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+                  <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-[2px] border-background" />
+               </div>
+            </div>
+          </div>
           <div className="flex flex-col lg:flex-row gap-3 h-full">
             <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
               <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
@@ -310,7 +323,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex flex-col md:flex-row gap-3 flex-1">
-                <div className="w-full lg:w-1/2 bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
+                <div className="w-full md:flex-1 min-w-0 bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
                   <div className="mb-3 p-4 border-b border-border flex-shrink-0">
                     <h2 className="text-foreground font-semibold text-xs truncate">
                       Travel Groups
@@ -323,7 +336,7 @@ export default function Dashboard() {
                     <GroupList title="My Groups" />
                   </div>
                 </div>
-                <div className="w-full lg:w-1/2 h-full flex flex-col">
+                <div className="w-full md:flex-1 min-w-0 h-full flex flex-col">
                   <div className="flex-1 min-h-0">
                     <ConnectionRequestsCard />
                   </div>
