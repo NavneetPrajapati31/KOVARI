@@ -4,7 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, MessageSquare, Users, User, Send } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { cn } from "@/shared/utils/utils";
 
 export function BottomNav() {
@@ -25,10 +29,10 @@ export function BottomNav() {
       isActive: (path: string) => path.startsWith("/explore"),
     },
     {
-        label: "Chats",
-        href: "/chat",
-        icon: Send, // Using MessageSquare or Send/PaperPlane style if preferred, usually MessageSquare matches "Chats" title well.
-        isActive: (path: string) => path.startsWith("/chat"),
+      label: "Chats",
+      href: "/chat",
+      icon: Send, // Using MessageSquare or Send/PaperPlane style if preferred, usually MessageSquare matches "Chats" title well.
+      isActive: (path: string) => path.startsWith("/chat"),
     },
     {
       label: "Groups",
@@ -37,11 +41,11 @@ export function BottomNav() {
       isActive: (path: string) => path.startsWith("/groups"),
     },
     {
-        label: "Profile",
-        href: "/profile",
-        icon: null, // Special case for avatar
-        isActive: (path: string) => path.startsWith("/profile"),
-    }
+      label: "Profile",
+      href: "/profile",
+      icon: null, // Special case for avatar
+      isActive: (path: string) => path.startsWith("/profile"),
+    },
   ];
 
   return (
@@ -51,23 +55,47 @@ export function BottomNav() {
         const Icon = tab.icon;
 
         return (
-            <Link
+          <Link
             key={tab.label}
             href={tab.href}
             className={cn(
-                "flex flex-col items-center justify-center w-full h-full space-y-1",
-                active ? "text-primary" : "text-foreground "
+              "flex flex-col items-center justify-center w-full h-full space-y-1",
+              active ? "text-primary" : "text-foreground "
             )}
-            >
+          >
             {tab.label === "Profile" ? (
-                 <Avatar className={cn("h-6 w-6", active ? "ring-2 ring-primary ring-offset-2" : "ring-0")}>
-                    <AvatarImage src={user?.imageUrl} alt={user?.fullName || "Profile"} />
-                    <AvatarFallback>{user?.firstName?.charAt(0) || "U"}</AvatarFallback>
-                </Avatar>
+              <Avatar
+                className={cn(
+                  "h-6 w-6",
+                  active ? "ring-2 ring-primary ring-offset-2" : "ring-0"
+                )}
+              >
+                <AvatarImage
+                  src={user?.imageUrl}
+                  alt={user?.fullName || "Profile"}
+                />
+                <AvatarFallback>
+                  {user?.firstName?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
             ) : (
-                Icon && <Icon className={cn("h-5 w-5", active && "fill-current")} strokeWidth={active ? 2.5 : 2} />
+              Icon && (
+                <Icon
+                  className={cn(
+                    "h-5 w-5",
+                    active
+                      ? tab.label === "Explore"
+                        ? "text-primary"
+                        : "text-primary fill-current"
+                      : "text-foreground"
+                  )}
+                  strokeWidth={
+                    active && tab.label === "Explore" ? 3 : undefined
+                  }
+                />
+              )
             )}
-            </Link>
+          </Link>
         );
       })}
     </div>
