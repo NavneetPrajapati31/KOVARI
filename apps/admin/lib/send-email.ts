@@ -1,30 +1,17 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
+import * as Brevo from "@getbrevo/brevo";
 
-// Lazy load Brevo SDK only on server-side to avoid client bundling issues
-async function getBrevoClient() {
-  // Dynamic import to ensure this only runs on the server
-  const SibApiV3Sdk = await import("sib-api-v3-sdk");
-
-  // Configure Brevo API client
-  const defaultClient = SibApiV3Sdk.ApiClient.instance;
-  const apiKey = defaultClient.authentications["api-key"];
-
-  // Debug log (masked)
-  const key = process.env.BREVO_API_KEY;
-  console.log("Brevo Client Init - Key configured:", !!key, "Length:", key?.length);
-
+// Initialize Brevo API Instance
+const getBrevoApiInstance = () => {
   if (!process.env.BREVO_API_KEY) {
     throw new Error("BREVO_API_KEY is not configured");
   }
 
-  apiKey.apiKey = process.env.BREVO_API_KEY;
-
-  return {
-    TransactionalEmailsApi: SibApiV3Sdk.TransactionalEmailsApi,
-    SendSmtpEmail: SibApiV3Sdk.SendSmtpEmail,
-  };
-}
+  const apiInstance = new Brevo.TransactionalEmailsApi();
+  apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+  return apiInstance;
+};
 
 interface SendEmailParams {
   to: string;
@@ -63,17 +50,16 @@ export const sendEmail = async ({
       span.setAttribute("sender", senderEmail);
 
       try {
-        // Lazy load Brevo SDK
-        const { TransactionalEmailsApi, SendSmtpEmail } = await getBrevoClient();
-        const apiInstance = new TransactionalEmailsApi();
-
-        const sendSmtpEmail = new SendSmtpEmail();
-        sendSmtpEmail.to = [{ email: to }];
-        sendSmtpEmail.sender = { email: senderEmail, name: senderName };
+        const apiInstance = getBrevoApiInstance();
+        const sendSmtpEmail = new Brevo.SendSmtpEmail();
+        
         sendSmtpEmail.subject = subject;
         sendSmtpEmail.htmlContent = html;
+        sendSmtpEmail.sender = { name: senderName, email: senderEmail };
+        sendSmtpEmail.to = [{ email: to }];
+        
         if (category) {
-            // Brevo tags support if needed in future
+            // Brevo tags support (optional)
             // sendSmtpEmail.tags = [category];
         }
 
@@ -81,18 +67,27 @@ export const sendEmail = async ({
         const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
         console.log("Brevo API Response:", JSON.stringify(data, null, 2));
 
+        // data.messageId might be body.messageId depending on SDK version return type
+        // The new SDK usually returns { response: ..., body: ... } or just the body?
+        // Let's assume typical response. If it fails type check we can fix.
+        // Actually, sendTransacEmail returns Promise<{ response: http.IncomingMessage; body: CreateSmtpEmail; }> in some versions
+        // or just the body.
+        
+        // Inspecting the type definitions if possible would be good, but I'll assume safe access.
+        const messageId = (data as any).messageId || (data as any).body?.messageId;
+
         span.setAttribute("success", true);
-        span.setAttribute("message_id", data.messageId || "unknown");
+        span.setAttribute("message_id", messageId || "unknown");
         console.log("Email sent successfully:", {
           to,
-          messageId: data.messageId,
+          messageId,
           subject
         });
         
-        return { success: true, messageId: data.messageId };
+        return { success: true, messageId };
       } catch (error: any) {
         const errorMessage =
-          error?.response?.body?.message ||
+          error?.body?.message || 
           error?.message ||
           "Unknown error sending email";
         

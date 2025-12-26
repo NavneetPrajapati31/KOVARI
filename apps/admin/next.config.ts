@@ -2,7 +2,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['redis', 'sib-api-v3-sdk'],
+  serverExternalPackages: ['redis', '@getbrevo/brevo'],
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
