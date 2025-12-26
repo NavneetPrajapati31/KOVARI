@@ -28,7 +28,80 @@ export async function POST(req: NextRequest, { params }: Params) {
     const body = await req.json();
     const action: GroupAction = body.action;
     const reason: string | undefined = body.reason;
+    const flagId: string | undefined = body.flagId;
     const fromFlagFlow: boolean = body.fromFlagFlow || false; // Indicates if action comes from flag flow
+    // Helper to resolve specific flag
+    const resolveFlag = async (flagId: string, actionType: string) => {
+      try {
+        const now = new Date().toISOString();
+        const fullUpdateData = { 
+          status: "actioned",
+          reviewed_by: adminId,
+          reviewed_at: now
+        };
+        const simpleUpdateData = { status: "actioned" };
+
+        // 1. Try group_flags first (most likely)
+        let { data: groupRows, error: groupError } = await supabaseAdmin
+          .from("group_flags")
+          .update(fullUpdateData)
+          .eq("id", flagId)
+          .select('id');
+          
+        if (groupError && (groupError.code === "42703" || groupError.message?.includes("column") || groupError.code === "PGRST204")) {
+           const retry = await supabaseAdmin
+             .from("group_flags")
+             .update(simpleUpdateData)
+             .eq("id", flagId)
+             .select('id');
+            groupError = retry.error;
+            groupRows = retry.data;
+        }
+
+        if (!groupError && groupRows && groupRows.length > 0) {
+           await logAdminAction({
+                adminId,
+                targetType: "group_flag",
+                targetId: flagId,
+                action: "RESOLVE_FLAG",
+                reason: `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} group: ${reason || "No reason provided"}`,
+                metadata: { flagId, action: actionType },
+              });
+           return;
+        }
+
+        // 2. Try user_flags (fallback)
+        let { data: userRows, error: updateError } = await supabaseAdmin
+          .from("user_flags")
+          .update(fullUpdateData)
+          .eq("id", flagId)
+          .select('id'); 
+
+        if (updateError && (updateError.code === "42703" || updateError.message?.includes("column") || updateError.code === "PGRST204")) {
+           const retry = await supabaseAdmin
+             .from("user_flags")
+             .update(simpleUpdateData)
+             .eq("id", flagId)
+             .select('id');
+           updateError = retry.error;
+           userRows = retry.data;
+        }
+
+        if (userRows && userRows.length > 0) {
+           await logAdminAction({
+                adminId,
+                targetType: "user_flag",
+                targetId: flagId,
+                action: "RESOLVE_FLAG",
+                reason: `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} group: ${reason || "No reason provided"}`,
+                metadata: { flagId, action: actionType },
+              });
+        }
+
+      } catch (error) {
+        console.error("Error resolving flag:", error);
+      }
+    };
 
     // Validate action
     if (action !== "approve" && action !== "remove") {
@@ -144,6 +217,11 @@ export async function POST(req: NextRequest, { params }: Params) {
       reason,
       metadata,
     });
+
+    // Resolve flag if provided
+    if (flagId) {
+      await resolveFlag(flagId, action);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

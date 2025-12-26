@@ -590,16 +590,7 @@ export function FlagDetailModal({
                             </div>
                           )}
                         </div>
-                        <Link href={`/groups/${flagData.flag.targetId}`}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-2"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Manage Group
-                          </Button>
-                        </Link>
+{/* Manage Group button moved to bottom actions */}
                       </div>
                     </div>
                   )}
@@ -647,18 +638,26 @@ export function FlagDetailModal({
                 >
                   Dismiss
                 </Button>
-                {flagData.flag.targetType === 'user' && (
-                  <>
-                    <Link href={`/users/${flagData.targetProfile?.id || flagData.flag.targetId}?flagId=${flagData.flag.id}`} className="w-full">
-                        <Button
-                        variant="default" // Changed to default for emphasis
-                        disabled={isActionLoading}
-                        className="w-full"
-                        >
-                        Take Action
-                        </Button>
-                    </Link>
-                  </>
+                {flagData.flag.targetType === 'user' ? (
+                  <Link href={`/users/${flagData.targetProfile?.id || flagData.flag.targetId}?flagId=${flagData.flag.id}`} className="w-full">
+                    <Button
+                      variant="default"
+                      disabled={isActionLoading}
+                      className="w-full"
+                    >
+                      Take Action
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href={`/groups/${flagData.flag.targetId}?flagId=${flagData.flag.id}`} className="w-full">
+                    <Button
+                      variant="default"
+                      disabled={isActionLoading}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      Take Action
+                    </Button>
+                  </Link>
                 )}
               </div>
             </div>

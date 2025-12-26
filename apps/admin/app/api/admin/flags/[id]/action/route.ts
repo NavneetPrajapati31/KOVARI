@@ -6,6 +6,10 @@ import { logAdminAction } from "@/admin-lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
 import { sendEmail } from "@/admin-lib/send-email";
+import {
+  categorizeRemovalReason,
+  handleOrganizerTrustImpact,
+} from "@/admin-lib/groupSafetyHandler";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -132,7 +136,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // Helper: update flag status with reviewed_by and reviewed_at
     const updateFlagStatus = async (status: string) => {
-      // Build update data - try to include reviewed_by and reviewed_at if columns exist
+      // Build update data
       const updateData: {
         status: string;
         reviewed_by?: string;
@@ -143,52 +147,56 @@ export async function POST(req: NextRequest, { params }: Params) {
         reviewed_at: now,
       };
 
-      // Try to update user_flags first
-      const { error: userFlagUpdateError } = await supabaseAdmin
-        .from("user_flags")
-        .update(updateData)
-        .eq("id", flagId);
+      if (targetType === "group") {
+        // Update group_flags
+        const { error: groupFlagUpdateError } = await supabaseAdmin
+          .from("group_flags")
+          .update(updateData)
+          .eq("id", flagId);
 
-      if (userFlagUpdateError) {
-        // If error is about missing columns, try without reviewed_by/reviewed_at
-        if (userFlagUpdateError.code === "42703" || userFlagUpdateError.message?.includes("column")) {
-          console.log("reviewed_by/reviewed_at columns may not exist, updating without them");
-          const { error: retryError } = await supabaseAdmin
-            .from("user_flags")
-            .update({ status })
-            .eq("id", flagId);
-
-          if (retryError) {
-            console.error("Flag status update error:", retryError);
-            throw new Error("Failed to update flag status");
-          }
-        } else {
-          // If user_flags update fails for other reason, try group_flags
-          try {
-            const { error: groupFlagUpdateError } = await supabaseAdmin
+        if (groupFlagUpdateError) {
+          // Retry without reviewed columns if typical schema error
+          if (
+            groupFlagUpdateError.code === "42703" ||
+            groupFlagUpdateError.message?.includes("column")
+          ) {
+            console.log(
+              "reviewed_by/reviewed_at columns may not exist in group_flags"
+            );
+            const { error: retryError } = await supabaseAdmin
               .from("group_flags")
-              .update(updateData)
+              .update({ status })
               .eq("id", flagId);
 
-            if (groupFlagUpdateError) {
-              // Try without reviewed columns
-              if (groupFlagUpdateError.code === "42703" || groupFlagUpdateError.message?.includes("column")) {
-                const { error: retryError } = await supabaseAdmin
-                  .from("group_flags")
-                  .update({ status })
-                  .eq("id", flagId);
+            if (retryError) throw new Error("Failed to update group flag status");
+          } else {
+            console.error("Flag status update error:", groupFlagUpdateError);
+            throw new Error("Failed to update flag status");
+          }
+        }
+      } else {
+        // Update user_flags (default)
+        const { error: userFlagUpdateError } = await supabaseAdmin
+          .from("user_flags")
+          .update(updateData)
+          .eq("id", flagId);
 
-                if (retryError) {
-                  console.error("Flag status update error:", retryError);
-                  throw new Error("Failed to update flag status");
-                }
-              } else {
-                console.error("Flag status update error:", groupFlagUpdateError);
-                throw new Error("Failed to update flag status");
-              }
-            }
-          } catch (error) {
-            console.error("Flag status update error:", error);
+        if (userFlagUpdateError) {
+          if (
+            userFlagUpdateError.code === "42703" ||
+            userFlagUpdateError.message?.includes("column")
+          ) {
+            console.log(
+              "reviewed_by/reviewed_at columns may not exist in user_flags"
+            );
+            const { error: retryError } = await supabaseAdmin
+              .from("user_flags")
+              .update({ status })
+              .eq("id", flagId);
+
+            if (retryError) throw new Error("Failed to update user flag status");
+          } else {
+            console.error("Flag status update error:", userFlagUpdateError);
             throw new Error("Failed to update flag status");
           }
         }
@@ -214,78 +222,116 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ success: true, message: "Flag dismissed successfully" });
     }
 
-    // Handle warn action (only for users, not groups)
+    // Handle warn action
     if (action === "warn") {
-      if (targetType === "group") {
-        return NextResponse.json(
-          { error: "Warning action is only available for user flags" },
-          { status: 400 }
-        );
-      }
+      // Shared email variables
+      let contactEmail: string | null = null;
+      let emailSubject = "";
+      let emailHtml = "";
+      let loggingTargetId = userId; // default to user ID (which is userId variable)
 
-      // Get user email for warning
-      let userEmail: string | null = null;
-      try {
-        const { data: profile } = await supabaseAdmin
-          .from("profiles")
-          .select("email")
-          .eq("user_id", userId)
+      if (targetType === "group") {
+        const groupId = userId; // userId var holds group ID here
+        loggingTargetId = groupId;
+        
+        // 1. Fetch group details to find creator
+        const { data: groupData } = await supabaseAdmin
+          .from("groups")
+          .select("name, creator_id")
+          .eq("id", groupId)
           .maybeSingle();
 
-        if (profile?.email) {
-          userEmail = profile.email;
+        if (!groupData) {
+          return NextResponse.json({ error: "Group not found" }, { status: 404 });
         }
-      } catch (error) {
-        console.error("Error fetching user email:", error);
+
+        const creatorId = groupData.creator_id;
+        
+        // 2. Fetch creator email
+        if (creatorId) {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("email")
+            .eq("user_id", creatorId)
+            .maybeSingle();
+          if (profile?.email) contactEmail = profile.email;
+        }
+
+        emailSubject = `Warning: Issue reported in your group "${groupData.name}"`;
+        emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #ea580c;">Group Warning</h2>
+              <p>Your group <strong>${groupData.name}</strong> has received a warning due to a reported violation of our community guidelines.</p>
+              ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+              <p>Please review our community guidelines and ensure your group complies with our terms of service.</p>
+              <p>Best regards,<br>The Kovari Team</p>
+            </div>
+          `;
+      } else {
+        // USER TARGET
+        try {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("email")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+          if (profile?.email) {
+            contactEmail = profile.email;
+          }
+        } catch (error) {
+          console.error("Error fetching user email:", error);
+        }
+
+        emailSubject = "Warning: Account Violation";
+        emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #dc2626;">Account Warning</h2>
+              <p>Your account has received a warning due to a reported violation of our community guidelines.</p>
+              ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+              <p>Please review our community guidelines and ensure your future behavior complies with our terms of service.</p>
+              <p>Best regards,<br>The Kovari Team</p>
+            </div>
+          `;
       }
 
       // Send warning email using Brevo
       let emailSent = false;
       let emailError: string | undefined = undefined;
       
-      if (userEmail) {
+      if (contactEmail) {
         const result = await sendEmail({
-             to: userEmail,
-             subject: "Warning: Account Violation",
-             html: `
-               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                 <h2 style="color: #dc2626;">Account Warning</h2>
-                 <p>Your account has received a warning due to a reported violation of our community guidelines.</p>
-                 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                 <p>Please review our community guidelines and ensure your future behavior complies with our terms of service.</p>
-                 <p>If you have any questions or concerns, please contact our support team.</p>
-                 <p>Best regards,<br>The Kovari Team</p>
-               </div>
-             `,
-             category: "user_warning"
+             to: contactEmail,
+             subject: emailSubject,
+             html: emailHtml,
+             category: targetType === "group" ? "group_warning" : "user_warning"
         });
         emailSent = result.success;
         if (!result.success) emailError = result.error;
       } else {
-        console.log("User email not found, skipping email send");
+        console.log("Contact email not found, skipping email send");
       }
 
       // Mark flag as reviewed (status = "actioned" for non-dismiss actions)
       console.log("Updating flag status to actioned...");
       await updateFlagStatus("actioned");
-      console.log("Flag status updated");
-
+      
       await logAdminAction({
         adminId,
-        targetType: "user",
-        targetId: userId,
-        action: "WARN_USER_FROM_FLAG",
+        targetType: targetType === "group" ? "group" : "user",
+        targetId: loggingTargetId,
+        action: targetType === "group" ? "WARN_GROUP_FROM_FLAG" : "WARN_USER_FROM_FLAG",
         reason,
-        metadata: { flagId, emailSent, userEmail },
+        metadata: { flagId, emailSent, email: contactEmail },
       });
 
       // Also log as RESOLVE_FLAG
       await logAdminAction({
         adminId,
-        targetType: "user_flag",
+        targetType: targetType === "group" ? "group_flag" : "user_flag",
         targetId: flagId,
         action: "RESOLVE_FLAG",
-        reason: `Warned user: ${reason || "No reason provided"}`,
+        reason: targetType === "group" ? `Warned group: ${reason}` : `Warned user: ${reason}`,
         metadata: { flagId, action: "warn", emailSent },
       });
       console.log("Admin action logged (WARN & RESOLVE)");
@@ -412,107 +458,196 @@ export async function POST(req: NextRequest, { params }: Params) {
       });
     }
 
-    // Handle ban action (only for users, not groups)
+    // Handle ban action
     if (action === "ban") {
-      if (targetType === "group") {
-        return NextResponse.json(
-          { error: "Ban action is only available for user flags" },
-          { status: 400 }
-        );
-      }
-
-      // Get user email for notification
-      let userEmail: string | null = null;
-      try {
-        const { data: profile } = await supabaseAdmin
-          .from("profiles")
-          .select("email")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (profile?.email) {
-          userEmail = profile.email;
-        }
-      } catch (error) {
-        console.error("Error fetching user email:", error);
-      }
-
-      // Permanent ban (no expiry)
-      const { error: banError } = await supabaseAdmin
-        .from("users")
-        .update({
-          banned: true,
-          ban_reason: reason ?? "Permanently banned due to flag report",
-          ban_expires_at: null, // Permanent ban
-        })
-        .eq("id", userId);
-
-      if (banError) {
-        console.error("Ban user error:", banError);
-        return NextResponse.json(
-          { error: "Failed to ban user" },
-          { status: 500 }
-        );
-      }
-
-      // Send ban notification email using Brevo
       let emailSent = false;
       let emailError: string | undefined = undefined;
-      
-      if (userEmail) {
-        const result = await sendEmail({
-             to: userEmail,
-             subject: "Account Permanently Banned",
-             html: `
-               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                 <h2 style="color: #dc2626;">Account Permanently Banned</h2>
-                 <p>Your account has been permanently banned due to a serious violation of our community guidelines.</p>
-                 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                 <p>This ban is permanent and cannot be reversed. You will no longer be able to access your account or use our services.</p>
-                 <p>If you believe this ban was issued in error, you may contact our support team to appeal this decision. However, please note that permanent bans are only issued for severe violations.</p>
-                 <p>Best regards,<br>The Kovari Team</p>
-               </div>
-             `,
-             category: "user_ban"
+
+      if (targetType === "group") {
+        const groupId = userId; // userId var holds group ID here
+        
+        // 1. Fetch group details
+        const { data: groupData } = await supabaseAdmin
+          .from("groups")
+          .select("name, creator_id")
+          .eq("id", groupId)
+          .maybeSingle();
+
+        if (!groupData) {
+          return NextResponse.json({ error: "Group not found" }, { status: 404 });
+        }
+        
+        // 2. Remove the group (update status to removed)
+        const { error: removeError } = await supabaseAdmin
+          .from("groups")
+          .update({
+            status: "removed",
+            removed_reason: reason ?? "Removed due to flag report",
+            removed_at: new Date().toISOString()
+          })
+          .eq("id", groupId);
+
+        if (removeError) {
+          console.error("Group remove error:", removeError);
+          return NextResponse.json({ error: "Failed to remove group" }, { status: 500 });
+        }
+
+        const creatorId = groupData.creator_id;
+
+        // 3. Handle trust impact (scoring)
+        if (reason && creatorId) {
+             const severity = categorizeRemovalReason(reason);
+             await handleOrganizerTrustImpact(creatorId, severity, adminId, groupId);
+        }
+
+        // 4. Send email to creator
+        if (creatorId) {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("email")
+            .eq("user_id", creatorId)
+            .maybeSingle();
+          
+          if (profile?.email) {
+             const result = await sendEmail({
+                 to: profile.email,
+                 subject: `Group Removed: ${groupData.name}`,
+                 html: `
+                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                     <h2 style="color: #dc2626;">Group Removed</h2>
+                     <p>Your group <strong>${groupData.name}</strong> has been removed due to a violation of our community guidelines.</p>
+                     ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+                     <p>Continued violations may result in the suspension of your account.</p>
+                     <p>Best regards,<br>The Kovari Team</p>
+                   </div>
+                 `,
+                 category: "group_removed"
+             });
+             emailSent = result.success;
+             if (!result.success) emailError = result.error;
+          }
+        }
+
+        // 5. Logs & status
+        await updateFlagStatus("actioned");
+        await logAdminAction({
+            adminId,
+            targetType: "group",
+            targetId: groupId,
+            action: "REMOVE_GROUP_FROM_FLAG",
+            reason,
+            metadata: { flagId, emailSent },
         });
-        emailSent = result.success;
-        if (!result.success) emailError = result.error;
+        await logAdminAction({
+            adminId,
+            targetType: "group_flag",
+            targetId: flagId,
+            action: "RESOLVE_FLAG",
+            reason: `Removed group: ${reason}`,
+            metadata: { flagId, action: "ban/remove", emailSent },
+        });
+
+         return NextResponse.json({ 
+            success: true,
+            emailSent,
+            emailError: emailError || undefined,
+            message: emailSent 
+            ? "Group removed. Notification email sent."
+            : "Group removed"
+        });
+
       } else {
-         console.log("User email not found, skipping email send");
+        // USER BAN LOGIC (Original)
+        // Get user email for notification
+        let userEmail: string | null = null;
+        try {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("email")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+          if (profile?.email) {
+            userEmail = profile.email;
+          }
+        } catch (error) {
+          console.error("Error fetching user email:", error);
+        }
+
+        // Permanent ban (no expiry)
+        const { error: banError } = await supabaseAdmin
+          .from("users")
+          .update({
+            banned: true,
+            ban_reason: reason ?? "Permanently banned due to flag report",
+            ban_expires_at: null, // Permanent ban
+          })
+          .eq("id", userId);
+
+        if (banError) {
+          console.error("Ban user error:", banError);
+          return NextResponse.json(
+            { error: "Failed to ban user" },
+            { status: 500 }
+          );
+        }
+
+        // Send ban notification email using Brevo
+        if (userEmail) {
+          const result = await sendEmail({
+              to: userEmail,
+              subject: "Account Permanently Banned",
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <h2 style="color: #dc2626;">Account Permanently Banned</h2>
+                  <p>Your account has been permanently banned due to a serious violation of our community guidelines.</p>
+                  ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+                  <p>This ban is permanent and cannot be reversed. You will no longer be able to access your account or use our services.</p>
+                  <p>If you believe this ban was issued in error, you may contact our support team to appeal this decision. However, please note that permanent bans are only issued for severe violations.</p>
+                  <p>Best regards,<br>The Kovari Team</p>
+                </div>
+              `,
+              category: "user_ban"
+          });
+          emailSent = result.success;
+          if (!result.success) emailError = result.error;
+        } else {
+            console.log("User email not found, skipping email send");
+        }
+
+        // Mark flag as reviewed
+        await updateFlagStatus("actioned");
+
+        await logAdminAction({
+          adminId,
+          targetType: "user",
+          targetId: userId,
+          action: "BAN_USER_FROM_FLAG",
+          reason,
+          metadata: { flagId, permanent: true, emailSent, userEmail },
+        });
+
+        // Also log as RESOLVE_FLAG
+        await logAdminAction({
+          adminId,
+          targetType: "user_flag",
+          targetId: flagId,
+          action: "RESOLVE_FLAG",
+          reason: `Banned user: ${reason || "No reason provided"}`,
+          metadata: { flagId, action: "ban", permanent: true },
+        });
+        console.log("Admin action logged (BAN & RESOLVE)");
+
+        return NextResponse.json({ 
+          success: true,
+          permanent: true,
+          emailSent,
+          emailError: emailError || undefined,
+          message: emailSent 
+            ? "User permanently banned. Notification email sent."
+            : "User permanently banned"
+        });
       }
-
-      // Mark flag as reviewed
-      await updateFlagStatus("actioned");
-
-      await logAdminAction({
-        adminId,
-        targetType: "user",
-        targetId: userId,
-        action: "BAN_USER_FROM_FLAG",
-        reason,
-        metadata: { flagId, permanent: true, emailSent, userEmail },
-      });
-
-      // Also log as RESOLVE_FLAG
-      await logAdminAction({
-        adminId,
-        targetType: "user_flag",
-        targetId: flagId,
-        action: "RESOLVE_FLAG",
-        reason: `Banned user: ${reason || "No reason provided"}`,
-        metadata: { flagId, action: "ban", permanent: true },
-      });
-      console.log("Admin action logged (BAN & RESOLVE)");
-
-      return NextResponse.json({ 
-        success: true,
-        permanent: true,
-        emailSent,
-        emailError: emailError || undefined,
-        message: emailSent 
-          ? "User permanently banned. Notification email sent."
-          : "User permanently banned"
-      });
     }
 
     console.error("Invalid action reached end of handler:", action);

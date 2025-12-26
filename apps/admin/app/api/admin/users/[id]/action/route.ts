@@ -84,10 +84,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     // Helper to resolve result logging
-    const logResolution = async (flagId: string, actionType: string) => {
+    const logResolution = async (flagId: string, actionType: string, targetType: "user_flag" | "group_flag") => {
        await logAdminAction({
             adminId,
-            targetType: "user_flag",
+            targetType: targetType,
             targetId: flagId,
             action: "RESOLVE_FLAG",
             reason: `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} user: ${reason || "No reason provided"}`,
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest, { params }: Params) {
           console.error("Error updating user_flags:", updateError);
         } else if (userRows && userRows.length > 0) {
            // console.log(`Successfully updated user_flags id=${flagId}`);
-           await logResolution(flagId, actionType);
+           await logResolution(flagId, actionType, "user_flag");
            return;
         }
 
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
         if (!groupError && groupRows && groupRows.length > 0) {
            // console.log(`Successfully updated group_flags id=${flagId}`);
-           await logResolution(flagId, actionType);
+           await logResolution(flagId, actionType, "group_flag");
            return;
         }
 
