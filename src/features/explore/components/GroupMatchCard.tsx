@@ -514,7 +514,7 @@ export function GroupMatchCard({
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="md:flex-1 h-11 rounded-full"
+            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -540,7 +540,7 @@ export function GroupMatchCard({
                 setShowReportDialog(true);
               }
             }}
-            className="md:flex-1 h-11 rounded-full"
+            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
           >
             <p className="text-md font-bold">Report</p>
           </Button>

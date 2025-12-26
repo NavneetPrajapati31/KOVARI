@@ -583,13 +583,43 @@ export function SoloMatchCard({
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="md:flex-1 h-11 rounded-full"
+            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <p className="text-md font-bold">Skip</p>
             )}
+          </Button>
+
+
+
+          {/* 3. View Profile Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleViewProfile}
+            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
+          >
+            {/* <Eye className="w-4 h-4" /> */}
+            <p className="text-md font-bold">View Profile</p>
+          </Button>
+
+          {/* 4. Report Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              if (onReportClick) {
+                onReportClick();
+              } else {
+                setShowReportDialog(true);
+              }
+            }}
+            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
+          >
+            {/* <Flag className="w-4 h-4" /> */}
+            <p className="text-md font-bold">Report</p>
           </Button>
 
           {/* 2. Interested Button */}
@@ -613,34 +643,6 @@ export function SoloMatchCard({
                 <p className="text-md font-bold">Interested</p>
               </>
             )}
-          </Button>
-
-          {/* 3. View Profile Button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleViewProfile}
-            className="md:flex-1 h-11 rounded-full"
-          >
-            {/* <Eye className="w-4 h-4" /> */}
-            <p className="text-md font-bold">View Profile</p>
-          </Button>
-
-          {/* 4. Report Button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              if (onReportClick) {
-                onReportClick();
-              } else {
-                setShowReportDialog(true);
-              }
-            }}
-            className="md:flex-1 h-11 rounded-full"
-          >
-            {/* <Flag className="w-4 h-4" /> */}
-            <p className="text-md font-bold">Report</p>
           </Button>
         </div>
       </div>
