@@ -301,12 +301,15 @@ async function getGroupDetail(id: string): Promise<GroupData | null> {
 
 export default async function GroupDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ flagId?: string }>;
 }) {
   await requireAdmin();
 
   const { id } = await params;
+  const { flagId } = await searchParams;
   const groupData = await getGroupDetail(id);
 
   if (!groupData) {
@@ -331,6 +334,7 @@ export default async function GroupDetailPage({
         images={groupData.images}
         flags={groupData.flags}
         adminActions={groupData.admin_actions}
+        flagId={flagId}
       />
     </main>
   );

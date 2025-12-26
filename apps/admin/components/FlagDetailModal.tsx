@@ -392,8 +392,16 @@ export function FlagDetailModal({
         <DialogContent
           className="max-w-4xl max-h-[90vh] overflow-y-auto w-full sm:w-[95vw] md:w-[90vw] lg:w-[85vw]"
           style={{
+            // When actionDialog is open, we disable pointer events on the background dialog
+            // but keep visual opacity reduced to focus attention on the confirm dialog
             pointerEvents: actionDialog?.open ? 'none' : 'auto',
             opacity: actionDialog?.open ? 0.5 : 1,
+          }}
+          // Important: Stop propagation of clicks inside the content so they don't accidentally close unexpected things
+          onClick={(e) => {
+            if (!actionDialog?.open) {
+                e.stopPropagation();
+            }
           }}
         >
           <DialogHeader>
@@ -582,16 +590,7 @@ export function FlagDetailModal({
                             </div>
                           )}
                         </div>
-                        <Link href={`/groups/${flagData.flag.targetId}`}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-2"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Manage Group
-                          </Button>
-                        </Link>
+{/* Manage Group button moved to bottom actions */}
                       </div>
                     </div>
                   )}
@@ -622,64 +621,43 @@ export function FlagDetailModal({
               )}
 
               {/* Action Buttons - Available for all statuses */}
-              <div className="flex flex-wrap gap-2 border-t pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t pt-4 w-full">
                 <Button
                   variant="outline"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation(); // Stop propagation to prevent modal issues
                     console.log('=== DISMISS BUTTON CLICKED ===');
-                    const newDialog = {
-                      action: 'dismiss' as const,
+                    // Directly set state without complex logic first to test
+                    setActionDialog({
+                      action: 'dismiss',
                       open: true,
-                    };
-                    console.log('Setting action dialog to:', newDialog);
-                    setActionDialog(newDialog);
-                    console.log('Action dialog state set');
+                    });
                   }}
                   disabled={isActionLoading}
-                  className="flex-1 sm:flex-initial"
+                  className="w-full"
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
                   Dismiss
                 </Button>
-                {flagData.flag.targetType === 'user' && (
-                  <>
+                {flagData.flag.targetType === 'user' ? (
+                  <Link href={`/users/${flagData.targetProfile?.id || flagData.flag.targetId}?flagId=${flagData.flag.id}`} className="w-full">
                     <Button
-                      variant="outline"
-                      onClick={() => {
-                        console.log('Warn button clicked');
-                        setActionDialog({ action: 'warn', open: true });
-                      }}
+                      variant="default"
                       disabled={isActionLoading}
-                      className="flex-1 sm:flex-initial"
+                      className="w-full"
                     >
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Warn
+                      Take Action
                     </Button>
+                  </Link>
+                ) : (
+                  <Link href={`/groups/${flagData.flag.targetId}?flagId=${flagData.flag.id}`} className="w-full">
                     <Button
-                      variant="outline"
-                      onClick={() => {
-                        console.log('Suspend button clicked');
-                        setActionDialog({ action: 'suspend', open: true });
-                      }}
+                      variant="default"
                       disabled={isActionLoading}
-                      className="flex-1 sm:flex-initial"
+                      className="w-full flex items-center justify-center gap-2"
                     >
-                      <Clock className="mr-2 h-4 w-4" />
-                      Suspend
+                      Take Action
                     </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        console.log('Ban button clicked');
-                        setActionDialog({ action: 'ban', open: true });
-                      }}
-                      disabled={isActionLoading}
-                      className="flex-1 sm:flex-initial"
-                    >
-                      <Ban className="mr-2 h-4 w-4" />
-                      Ban
-                    </Button>
-                  </>
+                  </Link>
                 )}
               </div>
             </div>
@@ -716,10 +694,8 @@ export function FlagDetailModal({
               : actionDialog.action === 'warn'
                 ? 'This will send a warning email to the user and mark the flag as actioned. Are you sure?'
                 : actionDialog.action === 'suspend'
-                  ? banUntil
-                    ? `This will temporarily suspend the user until ${new Date(banUntil).toLocaleString()}. Are you sure?`
-                    : 'Please select a suspension end date.'
-                  : 'This will permanently ban the user. This action cannot be undone. Are you sure?'
+                  ? 'Temporarily suspend this user. They will be unable to access the platform until the suspension expires.'
+                  : 'Permanently ban this user. This action cannot be undone easily.'
           }
           variant={actionDialog.action === 'ban' ? 'destructive' : 'default'}
           confirmText={
@@ -730,6 +706,11 @@ export function FlagDetailModal({
                 : actionDialog.action === 'suspend'
                   ? 'Suspend'
                   : 'Ban'
+          }
+          requireTypedConfirmation={
+             actionDialog.action === 'ban' 
+             ? { text: 'BAN', placeholder: 'Type BAN to confirm' }
+             : undefined
           }
           onConfirm={async () => {
             console.log('=== CONFIRM DIALOG ONCONFIRM ===');
@@ -746,11 +727,25 @@ export function FlagDetailModal({
             console.log('=== VALIDATE FUNCTION CALLED ===');
             console.log('Action:', actionDialog.action);
             console.log('Ban until:', banUntil);
+            console.log('Reason:', actionReason);
 
-            if (actionDialog.action === 'suspend' && !banUntil) {
-              console.log('Validation failed: suspend requires banUntil');
-              return false;
+            if (actionDialog.action === 'suspend') {
+              if (!banUntil) {
+                 console.log('Validation failed: suspend requires banUntil');
+                 return false;
+              }
+              if (!actionReason.trim()) {
+                 console.log('Validation failed: suspend requires reason');
+                 return false; 
+              }
             }
+            if (actionDialog.action === 'ban') {
+              if (!actionReason.trim()) {
+                console.log('Validation failed: ban requires reason');
+                return false;
+              }
+            }
+            
             console.log('Validation passed');
             return true;
           }}
@@ -758,10 +753,9 @@ export function FlagDetailModal({
           <div className="space-y-4">
             <div>
               <Label htmlFor="reason">
-                Admin Note{' '}
-                {actionDialog.action === 'ban' ? '(recommended)' : '(optional)'}
+                {actionDialog.action === 'suspend' || actionDialog.action === 'ban' ? 'Reason' : 'Admin Note (optional)'}
               </Label>
-              <Textarea
+              <Input
                 id="reason"
                 value={actionReason}
                 onChange={(e) => {
@@ -792,11 +786,10 @@ export function FlagDetailModal({
                     : actionDialog.action === 'warn'
                       ? 'Add a note about the warning (this will be included in the email)...'
                       : actionDialog.action === 'suspend'
-                        ? 'Add a note about the suspension reason...'
-                        : 'Add a note about the ban reason (this is important for permanent bans)...'
+                        ? 'Reason for suspension'
+                        : 'Reason for ban'
                 }
-                rows={3}
-                className="w-full"
+                className="w-full mt-1"
                 autoFocus={false}
               />
               <p className="text-xs text-muted-foreground mt-1">
@@ -806,7 +799,7 @@ export function FlagDetailModal({
             {actionDialog.action === 'suspend' && (
               <div>
                 <Label htmlFor="banUntil">
-                  Suspension End Date & Time (required)
+                  Suspension Expires
                 </Label>
                 <Input
                   id="banUntil"
@@ -837,15 +830,9 @@ export function FlagDetailModal({
                   }}
                   required
                   min={new Date().toISOString().slice(0, 16)}
-                  className="w-full"
+                  className="w-full mt-1"
                   autoFocus={false}
                 />
-                {banUntil && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    User will be suspended until:{' '}
-                    <strong>{new Date(banUntil).toLocaleString()}</strong>
-                  </p>
-                )}
               </div>
             )}
             {actionDialog.action === 'ban' && (
