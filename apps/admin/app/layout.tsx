@@ -36,21 +36,29 @@ export default function RootLayout({
   );
   const shouldUseClerk = !isBuild || !isDummyKey;
 
-  const content = (
+  if (shouldUseClerk && publishableKey) {
+    return (
+      <ClerkProvider>
+        <html lang="en">
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          >
+            <AdminLayoutWrapper>{children}</AdminLayoutWrapper>
+          </body>
+        </html>
+      </ClerkProvider>
+    );
+  }
+
+  // During build with dummy keys or missing keys, render without ClerkProvider
+  // We MUST skip AdminLayoutWrapper because it uses useAuth() which requires ClerkProvider
+  return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AdminLayoutWrapper>{children}</AdminLayoutWrapper>
+        {children}
       </body>
     </html>
   );
-
-  if (shouldUseClerk && publishableKey) {
-    return <ClerkProvider>{content}</ClerkProvider>;
-  }
-
-  // During build with dummy keys, render without ClerkProvider
-  // UserButton in AdminTopbar will render a placeholder instead
-  return content;
 }
