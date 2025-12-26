@@ -1,10 +1,10 @@
-// apps/admin/app/api/admin/users/[id]/action/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
+import { sendEmail } from "@/admin-lib/send-email";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -83,6 +83,18 @@ export async function POST(req: NextRequest, { params }: Params) {
       }
     }
 
+    // Helper to resolve result logging
+    const logResolution = async (flagId: string, actionType: string) => {
+       await logAdminAction({
+            adminId,
+            targetType: "user_flag",
+            targetId: flagId,
+            action: "RESOLVE_FLAG",
+            reason: `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} user: ${reason || "No reason provided"}`,
+            metadata: { flagId, action: actionType },
+          });
+    };
+
     // Helper to resolve a specific flag if provided
     const resolveFlag = async (flagId: string, actionType: string) => {
       try {
@@ -105,7 +117,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
         // Handle missing column error
         if (updateError && (updateError.code === "42703" || updateError.message?.includes("column") || updateError.code === "PGRST204")) {
-           console.log("reviewed_by/reviewed_at columns might be missing, retrying with simple status update...");
+           // console.log("reviewed_by/reviewed_at columns might be missing, retrying with simple status update...");
            const retry = await supabaseAdmin
              .from("user_flags")
              .update(simpleUpdateData)
@@ -118,13 +130,13 @@ export async function POST(req: NextRequest, { params }: Params) {
         if (updateError) {
           console.error("Error updating user_flags:", updateError);
         } else if (userRows && userRows.length > 0) {
-           console.log(`Successfully updated user_flags id=${flagId}`);
+           // console.log(`Successfully updated user_flags id=${flagId}`);
            await logResolution(flagId, actionType);
            return;
         }
 
         // 2. If no user_flag matched, try group_flags
-        console.log("Flag not found in user_flags or update failed, trying group_flags...");
+        // console.log("Flag not found in user_flags or update failed, trying group_flags...");
         
         let { data: groupRows, error: groupError } = await supabaseAdmin
           .from("group_flags")
@@ -143,7 +155,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         }
 
         if (!groupError && groupRows && groupRows.length > 0) {
-           console.log(`Successfully updated group_flags id=${flagId}`);
+           // console.log(`Successfully updated group_flags id=${flagId}`);
            await logResolution(flagId, actionType);
            return;
         }
@@ -153,17 +165,6 @@ export async function POST(req: NextRequest, { params }: Params) {
       } catch (error) {
         console.error("Error resolving flag:", error);
       }
-    };
-
-    const logResolution = async (flagId: string, actionType: string) => {
-       await logAdminAction({
-            adminId,
-            targetType: "user_flag",
-            targetId: flagId,
-            action: "RESOLVE_FLAG",
-            reason: `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} user: ${reason || "No reason provided"}`,
-            metadata: { flagId, action: actionType },
-          });
     };
 
     if (action === "verify") {
@@ -204,26 +205,15 @@ export async function POST(req: NextRequest, { params }: Params) {
         );
       }
 
-      // Send warning email (if email is available and Resend is configured)
+      // Send warning email using Brevo
       let emailSent = false;
-      let emailError: string | null = null;
-      if (profile.email && process.env.RESEND_API_KEY) {
-        try {
-          const { Resend } = await import("resend");
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const fromEmail = process.env.RESEND_FROM_EMAIL || "Kovari <noreply@kovari.com>";
-
-          console.log("Attempting to send warning email:", {
-            from: fromEmail,
-            to: profile.email,
-            hasApiKey: !!process.env.RESEND_API_KEY,
-          });
-
-          const result = await resend.emails.send({
-            from: fromEmail,
-            to: profile.email,
-            subject: "Warning: Account Violation",
-            html: `
+      let emailError: string | undefined = undefined;
+      
+      if (profile.email) {
+        const result = await sendEmail({
+          to: profile.email,
+          subject: "Warning: Account Violation",
+          html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <h2 style="color: #dc2626;">Account Warning</h2>
                 <p>Your account has received a warning due to a reported violation of our community guidelines.</p>
@@ -233,15 +223,10 @@ export async function POST(req: NextRequest, { params }: Params) {
                 <p>Best regards,<br>The Kovari Team</p>
               </div>
             `,
-          });
-
-          emailSent = true;
-          console.log("Warning email sent successfully:", result);
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error("Error sending warning email:", errorMessage);
-          emailError = errorMessage;
-        }
+           category: "user_warning"
+        });
+        emailSent = result.success;
+        if (!result.success) emailError = result.error;
       }
 
       await logAdminAction({
@@ -317,13 +302,47 @@ export async function POST(req: NextRequest, { params }: Params) {
         );
       }
 
+      // Send notification email
+      let emailSent = false;
+      let emailError: string | undefined = undefined;
+      
+      if (profile.email) {
+        const isBan = action === "ban";
+        const subject = isBan ? "Account Permanently Banned" : "Account Suspension Notice";
+        const title = isBan ? "Account Permanently Banned" : "Account Suspended";
+        const suspendUntilDate = banExpiresAt ? new Date(banExpiresAt).toLocaleString() : "";
+        
+        const html = `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #dc2626;">${title}</h2>
+                <p>Your account has been ${isBan ? "permanently banned" : "temporarily suspended"} due to a ${isBan ? "serious" : "reported"} violation of our community guidelines.</p>
+                ${!isBan ? `<p><strong>Suspension Period:</strong> Until ${suspendUntilDate}</p>` : ""}
+                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+                <p>${isBan 
+                  ? "This ban is permanent and cannot be reversed. You will no longer be able to access your account or use our services." 
+                  : "During this suspension period, you will not be able to access your account. After the suspension period ends, your account access will be automatically restored."}</p>
+                <p>If you have any questions or concerns, please contact our support team.</p>
+                <p>Best regards,<br>The Kovari Team</p>
+              </div>
+            `;
+
+        const result = await sendEmail({
+          to: profile.email,
+          subject,
+          html,
+          category: isBan ? "user_ban" : "user_suspension"
+        });
+        emailSent = result.success;
+        if (!result.success) emailError = result.error;
+      }
+
       await logAdminAction({
         adminId,
         targetType: "user",
         targetId: userId,
         action: action === "ban" ? "BAN_USER" : "SUSPEND_USER",
         reason,
-        metadata: { ban_expires_at: banExpiresAt },
+        metadata: { ban_expires_at: banExpiresAt, emailSent },
       });
 
       // Resolving flag if provided
@@ -345,10 +364,6 @@ export async function POST(req: NextRequest, { params }: Params) {
 
         if (userData?.clerk_user_id) {
            // Revoke all sessions for this user
-           // We can get fetch list of sessions and revoke them or ban method?
-           // Clerk allows banning user to block sign-in: client.users.banUser(userId)
-           // But here we might just want to force sign-out for now so they hit middleware next time.
-           // However, if we just want to revoke sessions:
            const sessions = await client.sessions.getSessionList({ userId: userData.clerk_user_id });
            for (const session of sessions.data) {
              await client.sessions.revokeSession(session.id);
@@ -359,7 +374,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         console.error("Failed to revoke Clerk sessions:", clerkError);
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, emailSent });
     }
 
     if (action === "unban") {

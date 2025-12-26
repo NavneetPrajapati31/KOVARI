@@ -5,6 +5,7 @@ import { requireAdmin } from "@/admin-lib/adminAuth";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
+import { sendEmail } from "@/admin-lib/send-email";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -238,63 +239,30 @@ export async function POST(req: NextRequest, { params }: Params) {
         console.error("Error fetching user email:", error);
       }
 
-      // Send warning email (if email is available and Resend is configured)
+      // Send warning email using Brevo
       let emailSent = false;
-      let emailError: string | null = null;
-      if (userEmail && process.env.RESEND_API_KEY) {
-        try {
-          const { Resend } = await import("resend");
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const fromEmail = process.env.RESEND_FROM_EMAIL || "Kovari <noreply@kovari.com>";
-
-          console.log("Attempting to send warning email:", {
-            from: fromEmail,
-            to: userEmail,
-            hasApiKey: !!process.env.RESEND_API_KEY,
-            apiKeyLength: process.env.RESEND_API_KEY?.length,
-            apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 7),
-          });
-
-          const result = await resend.emails.send({
-            from: fromEmail,
-            to: userEmail,
-            subject: "Warning: Account Violation",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #dc2626;">Account Warning</h2>
-                <p>Your account has received a warning due to a reported violation of our community guidelines.</p>
-                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                <p>Please review our community guidelines and ensure your future behavior complies with our terms of service.</p>
-                <p>If you have any questions or concerns, please contact our support team.</p>
-                <p>Best regards,<br>The Kovari Team</p>
-              </div>
-            `,
-          });
-
-          emailSent = true;
-          console.log("Warning email sent successfully:", result);
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const errorDetails = error && typeof error === "object" && "message" in error 
-            ? JSON.stringify(error, null, 2) 
-            : String(error);
-          
-          console.error("Error sending warning email:", {
-            error: errorMessage,
-            details: errorDetails,
-            from: process.env.RESEND_FROM_EMAIL || "Kovari <noreply@kovari.com>",
-            to: userEmail,
-          });
-          
-          emailError = errorMessage;
-          // Continue even if email fails - action should still complete
-        }
-      } else if (userEmail && !process.env.RESEND_API_KEY) {
-        console.log("RESEND_API_KEY not configured, skipping email send");
-        emailSent = false;
-      } else if (!userEmail) {
+      let emailError: string | undefined = undefined;
+      
+      if (userEmail) {
+        const result = await sendEmail({
+             to: userEmail,
+             subject: "Warning: Account Violation",
+             html: `
+               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                 <h2 style="color: #dc2626;">Account Warning</h2>
+                 <p>Your account has received a warning due to a reported violation of our community guidelines.</p>
+                 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+                 <p>Please review our community guidelines and ensure your future behavior complies with our terms of service.</p>
+                 <p>If you have any questions or concerns, please contact our support team.</p>
+                 <p>Best regards,<br>The Kovari Team</p>
+               </div>
+             `,
+             category: "user_warning"
+        });
+        emailSent = result.success;
+        if (!result.success) emailError = result.error;
+      } else {
         console.log("User email not found, skipping email send");
-        emailSent = false;
       }
 
       // Mark flag as reviewed (status = "actioned" for non-dismiss actions)
@@ -328,12 +296,6 @@ export async function POST(req: NextRequest, { params }: Params) {
         emailError: emailError || undefined,
         message: emailSent 
           ? "Warning email sent successfully" 
-          : emailError
-          ? `Warning action completed, but email failed: ${emailError}`
-          : userEmail && !process.env.RESEND_API_KEY
-          ? "Warning action completed, but email was not sent (RESEND_API_KEY not configured)"
-          : !userEmail
-          ? "Warning action completed, but email was not sent (user email not found)"
           : "Warning action completed but email not sent"
       });
     }
@@ -388,63 +350,32 @@ export async function POST(req: NextRequest, { params }: Params) {
         );
       }
 
-      // Send suspension notification email (if email is available and Resend is configured)
+      // Send suspension notification email using Brevo
       let emailSent = false;
-      let emailError: string | null = null;
-      if (userEmail && process.env.RESEND_API_KEY) {
-        try {
-          const { Resend } = await import("resend");
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const suspendUntilDate = new Date(banUntil).toLocaleString();
-          const fromEmail = process.env.RESEND_FROM_EMAIL || "Kovari <noreply@kovari.com>";
-
-          console.log("Attempting to send suspension email:", {
-            from: fromEmail,
-            to: userEmail,
-            hasApiKey: !!process.env.RESEND_API_KEY,
-          });
-
-          const result = await resend.emails.send({
-            from: fromEmail,
-            to: userEmail,
-            subject: "Account Suspension Notice",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #dc2626;">Account Suspended</h2>
-                <p>Your account has been temporarily suspended due to a reported violation of our community guidelines.</p>
-                <p><strong>Suspension Period:</strong> Until ${suspendUntilDate}</p>
-                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                <p>During this suspension period, you will not be able to access your account. After the suspension period ends, your account access will be automatically restored.</p>
-                <p>If you have any questions or concerns, please contact our support team.</p>
-                <p>Best regards,<br>The Kovari Team</p>
-              </div>
-            `,
-          });
-
-          emailSent = true;
-          console.log("Suspension email sent successfully:", result);
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const errorDetails = error && typeof error === "object" && "message" in error 
-            ? JSON.stringify(error, null, 2) 
-            : String(error);
-          
-          console.error("Error sending suspension email:", {
-            error: errorMessage,
-            details: errorDetails,
-            from: process.env.RESEND_FROM_EMAIL || "Kovari <noreply@kovari.com>",
-            to: userEmail,
-          });
-          
-          emailError = errorMessage;
-          // Continue even if email fails - action should still complete
-        }
-      } else if (userEmail && !process.env.RESEND_API_KEY) {
-        console.log("RESEND_API_KEY not configured, skipping email send");
-        emailSent = false;
-      } else if (!userEmail) {
+      let emailError: string | undefined = undefined;
+      
+      if (userEmail) {
+        const suspendUntilDate = new Date(banUntil).toLocaleString();
+        const result = await sendEmail({
+             to: userEmail,
+             subject: "Account Suspension Notice",
+             html: `
+               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                 <h2 style="color: #dc2626;">Account Suspended</h2>
+                 <p>Your account has been temporarily suspended due to a reported violation of our community guidelines.</p>
+                 <p><strong>Suspension Period:</strong> Until ${suspendUntilDate}</p>
+                 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+                 <p>During this suspension period, you will not be able to access your account. After the suspension period ends, your account access will be automatically restored.</p>
+                 <p>If you have any questions or concerns, please contact our support team.</p>
+                 <p>Best regards,<br>The Kovari Team</p>
+               </div>
+             `,
+             category: "user_suspension"
+        });
+        emailSent = result.success;
+        if (!result.success) emailError = result.error;
+      } else {
         console.log("User email not found, skipping email send");
-        emailSent = false;
       }
 
       // Mark flag as reviewed
@@ -477,12 +408,6 @@ export async function POST(req: NextRequest, { params }: Params) {
         emailError: emailError || undefined,
         message: emailSent 
           ? `User suspended until ${new Date(banUntil).toLocaleString()}. Notification email sent.`
-          : emailError
-          ? `User suspended until ${new Date(banUntil).toLocaleString()}, but email failed: ${emailError}`
-          : userEmail && !process.env.RESEND_API_KEY
-          ? `User suspended until ${new Date(banUntil).toLocaleString()}, but email was not sent (RESEND_API_KEY not configured)`
-          : !userEmail
-          ? `User suspended until ${new Date(banUntil).toLocaleString()}, but email was not sent (user email not found)`
           : `User suspended until ${new Date(banUntil).toLocaleString()}`
       });
     }
@@ -530,61 +455,30 @@ export async function POST(req: NextRequest, { params }: Params) {
         );
       }
 
-      // Send ban notification email (if email is available and Resend is configured)
+      // Send ban notification email using Brevo
       let emailSent = false;
-      let emailError: string | null = null;
-      if (userEmail && process.env.RESEND_API_KEY) {
-        try {
-          const { Resend } = await import("resend");
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const fromEmail = process.env.RESEND_FROM_EMAIL || "Kovari <noreply@kovari.com>";
-
-          console.log("Attempting to send ban email:", {
-            from: fromEmail,
-            to: userEmail,
-            hasApiKey: !!process.env.RESEND_API_KEY,
-          });
-
-          const result = await resend.emails.send({
-            from: fromEmail,
-            to: userEmail,
-            subject: "Account Permanently Banned",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #dc2626;">Account Permanently Banned</h2>
-                <p>Your account has been permanently banned due to a serious violation of our community guidelines.</p>
-                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                <p>This ban is permanent and cannot be reversed. You will no longer be able to access your account or use our services.</p>
-                <p>If you believe this ban was issued in error, you may contact our support team to appeal this decision. However, please note that permanent bans are only issued for severe violations.</p>
-                <p>Best regards,<br>The Kovari Team</p>
-              </div>
-            `,
-          });
-
-          emailSent = true;
-          console.log("Ban email sent successfully:", result);
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const errorDetails = error && typeof error === "object" && "message" in error 
-            ? JSON.stringify(error, null, 2) 
-            : String(error);
-          
-          console.error("Error sending ban email:", {
-            error: errorMessage,
-            details: errorDetails,
-            from: process.env.RESEND_FROM_EMAIL || "Kovari <noreply@kovari.com>",
-            to: userEmail,
-          });
-          
-          emailError = errorMessage;
-          // Continue even if email fails - action should still complete
-        }
-      } else if (userEmail && !process.env.RESEND_API_KEY) {
-        console.log("RESEND_API_KEY not configured, skipping email send");
-        emailSent = false;
-      } else if (!userEmail) {
-        console.log("User email not found, skipping email send");
-        emailSent = false;
+      let emailError: string | undefined = undefined;
+      
+      if (userEmail) {
+        const result = await sendEmail({
+             to: userEmail,
+             subject: "Account Permanently Banned",
+             html: `
+               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                 <h2 style="color: #dc2626;">Account Permanently Banned</h2>
+                 <p>Your account has been permanently banned due to a serious violation of our community guidelines.</p>
+                 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+                 <p>This ban is permanent and cannot be reversed. You will no longer be able to access your account or use our services.</p>
+                 <p>If you believe this ban was issued in error, you may contact our support team to appeal this decision. However, please note that permanent bans are only issued for severe violations.</p>
+                 <p>Best regards,<br>The Kovari Team</p>
+               </div>
+             `,
+             category: "user_ban"
+        });
+        emailSent = result.success;
+        if (!result.success) emailError = result.error;
+      } else {
+         console.log("User email not found, skipping email send");
       }
 
       // Mark flag as reviewed
@@ -617,12 +511,6 @@ export async function POST(req: NextRequest, { params }: Params) {
         emailError: emailError || undefined,
         message: emailSent 
           ? "User permanently banned. Notification email sent."
-          : emailError
-          ? `User permanently banned, but email failed: ${emailError}`
-          : userEmail && !process.env.RESEND_API_KEY
-          ? "User permanently banned, but email was not sent (RESEND_API_KEY not configured)"
-          : !userEmail
-          ? "User permanently banned, but email was not sent (user email not found)"
           : "User permanently banned"
       });
     }

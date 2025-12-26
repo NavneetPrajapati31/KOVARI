@@ -38,6 +38,7 @@
     "react-dom": "19.2.1",
     "redis": "^5.6.1",
     "resend": "^4.6.0",
+    "sib-api-v3-sdk": "^8.5.0",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
