@@ -261,19 +261,25 @@ export default function Dashboard() {
         <>
           <div className="flex items-center justify-between pb-2">
             <div>
-              <h1 className="text-sm font-medium">Hi, {user?.firstName || "User"}</h1>
-              <p className="text-muted-foreground text-xs">Welcome back to KOVARI 👋🏻</p>
+              <h1 className="text-sm font-medium">
+                Hi, {user?.firstName || "User"}
+              </h1>
+              <p className="text-muted-foreground text-xs">
+                Welcome back to KOVARI 👋🏻
+              </p>
             </div>
             <div className="flex items-center gap-6">
-               {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
-               <Link href={"/notifications"}>
-               <div className="relative cursor-pointer">
+              {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
+              <Link href={"/notifications"}>
+                <div className="relative cursor-pointer">
                   <Bell className="w-5 h-5 text-foreground" />
                   <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
-               </div></Link>
-               
-               <Link href={"/requests"}>
-               <Heart className="w-5 h-5 text-foreground cursor-pointer" /></Link>
+                </div>
+              </Link>
+
+              <Link href={"/requests"}>
+                <Heart className="w-5 h-5 text-foreground cursor-pointer" />
+              </Link>
             </div>
           </div>
           <div className="flex flex-col lg:flex-row gap-3 h-full">
@@ -337,7 +343,7 @@ export default function Dashboard() {
                       Manage your collaborative travel experiences
                     </p>
                   </div>
-                  <div className="px-4 flex-1 overflow-hidden">
+                  <div className="px-4 pb-3 flex-1 overflow-hidden">
                     <GroupList title="My Groups" />
                   </div>
                 </div>

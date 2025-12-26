@@ -5,6 +5,13 @@ import {
   startOfWeek,
   isSameDay as dfnsIsSameDay,
   isSameWeek as dfnsIsSameWeek,
+  differenceInSeconds,
+  differenceInMinutes,
+  differenceInHours,
+  differenceInDays,
+  differenceInWeeks,
+  differenceInMonths,
+  differenceInYears,
 } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
@@ -106,4 +113,32 @@ export const linkifyMessage = (message: string): string => {
 export function formatTime(time: { hour: number; minute: number; ampm: "AM" | "PM" }) {
   const mm = time.minute.toString().padStart(2, "0");
   return `${time.hour}:${mm} ${time.ampm}`;
+}
+
+/**
+ * Format a date as relative time (e.g., "2 hours ago", "3 days ago", "1 week ago")
+ * @param date - Date object or ISO string
+ * @returns Formatted relative time string
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const targetDate = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+
+  if (isNaN(targetDate.getTime())) return "Unknown";
+
+  const seconds = differenceInSeconds(now, targetDate);
+  const minutes = differenceInMinutes(now, targetDate);
+  const hours = differenceInHours(now, targetDate);
+  const days = differenceInDays(now, targetDate);
+  const weeks = differenceInWeeks(now, targetDate);
+  const months = differenceInMonths(now, targetDate);
+  const years = differenceInYears(now, targetDate);
+
+  if (seconds < 60) return "just now";
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  if (days < 7) return `${days} ${days === 1 ? "day" : "days"} ago`;
+  if (weeks < 4) return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
+  if (months < 12) return `${months} ${months === 1 ? "month" : "months"} ago`;
+  return `${years} ${years === 1 ? "year" : "years"} ago`;
 }
