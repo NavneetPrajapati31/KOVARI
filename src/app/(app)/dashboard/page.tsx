@@ -138,6 +138,10 @@ export default function Dashboard() {
   const [itineraryDays, setItineraryDays] = useState<ItineraryDay[]>([]);
   const [itineraryLoading, setItineraryLoading] = useState(false);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
+  const [profileImpressions, setProfileImpressions] = useState<number | null>(
+    null
+  );
+  const [impressionsLoading, setImpressionsLoading] = useState(false);
 
   useEffect(() => {
     if (isSignedIn && user) setUser(user);
@@ -148,6 +152,56 @@ export default function Dashboard() {
       .then((res) => res.json())
       .then((data) => setTravelDays(data.travelDays || []));
   }, []);
+
+  // Fetch profile impressions
+  const fetchProfileImpressions = useCallback(async () => {
+    if (isSignedIn && user) {
+      setImpressionsLoading(true);
+      try {
+        const res = await fetch("/api/profile-impressions");
+        const data = await res.json();
+        setProfileImpressions(data.impressions || 0);
+      } catch (err) {
+        console.error("Error fetching profile impressions:", err);
+        setProfileImpressions(0);
+      } finally {
+        setImpressionsLoading(false);
+      }
+    }
+  }, [isSignedIn, user]);
+
+  useEffect(() => {
+    fetchProfileImpressions();
+  }, [fetchProfileImpressions]);
+
+  // Refresh impressions when page comes into focus (user navigates back from explore)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchProfileImpressions();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchProfileImpressions();
+      }
+    };
+
+    // Also refresh periodically every 30 seconds when page is visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchProfileImpressions();
+      }
+    }, 30000); // 30 seconds
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [fetchProfileImpressions]);
 
   const formattedTravelDays = travelDays.filter((d) =>
     /^\d{4}-\d{2}-\d{2}$/.test(d)
@@ -370,8 +424,14 @@ export default function Dashboard() {
                   <div className="flex-1">
                     <DashboardCard
                       title="Profile Impressions"
-                      value={`128 impressions`}
-                      loading={groupsLoading}
+                      value={
+                        impressionsLoading
+                          ? "Loading..."
+                          : profileImpressions !== null
+                            ? `${profileImpressions} impression${profileImpressions !== 1 ? "s" : ""}`
+                            : "0 impressions"
+                      }
+                      loading={impressionsLoading || groupsLoading}
                       subtitle="Total profile impressions"
                     />
                   </div>

@@ -256,12 +256,20 @@ export default function ItineraryUI() {
 
   if (events.length === 0 && !loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
+      <div className="bg-card !border !border-border rounded-2xl md:h-[90vh] h-full flex flex-col">
+        <div className="mb-3 p-4 border-b border-border flex-shrink-0">
+          <h2 className="text-foreground font-semibold text-xs truncate">
+            Itinerary
+          </h2>
+          <p className="mt-0.5 text-muted-foreground text-xs">
+            Your upcoming events and activities
+          </p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-24 text-center flex-1">
           <p className="text-xs text-muted-foreground">
             No itinerary events found
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-1">
             Create some events in your groups&apos; itineraries to see them here
           </p>
         </div>
@@ -270,11 +278,23 @@ export default function ItineraryUI() {
   }
 
   return (
-    <EventCalendar
-      events={events}
-      onEventAdd={handleEventAdd}
-      onEventUpdate={handleEventUpdate}
-      onEventDelete={handleEventDelete}
-    />
+    <div className="flex flex-col h-full">
+      <div className="mb-3 p-4 border-b border-border flex-shrink-0">
+        <h2 className="text-foreground font-semibold text-xs truncate">
+          Itinerary
+        </h2>
+        <p className="mt-0.5 text-muted-foreground text-xs">
+          {events.length} {events.length === 1 ? "event" : "events"} scheduled
+        </p>
+      </div>
+      <div className="flex-1 min-h-0">
+        <EventCalendar
+          events={events}
+          onEventAdd={handleEventAdd}
+          onEventUpdate={handleEventUpdate}
+          onEventDelete={handleEventDelete}
+        />
+      </div>
+    </div>
   );
 }
