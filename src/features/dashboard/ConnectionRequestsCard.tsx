@@ -8,7 +8,7 @@ import {
 } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
-import { Check, X, Clock, Users, Trash2 } from "lucide-react";
+import { Check, X, Clock, Users, Trash2, Loader2 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/shared/utils/utils";
 import * as Sentry from "@sentry/nextjs";
 
@@ -40,8 +40,8 @@ interface ApiInterest {
 
 interface ConnectionRequestCardProps {
   request: ConnectionRequest;
-  onAccept: (id: string) => void;
-  onDecline: (id: string) => void;
+  onAccept: (id: string) => Promise<void> | void;
+  onDecline: (id: string) => Promise<void> | void;
   className?: string;
 }
 
@@ -51,6 +51,10 @@ function ConnectionRequestCard({
   onDecline,
   className,
 }: ConnectionRequestCardProps) {
+  const [loadingAction, setLoadingAction] = useState<
+    "accept" | "decline" | null
+  >(null);
+
   return (
     <Card
       className={cn(
@@ -82,19 +86,46 @@ function ConnectionRequestCard({
       <div className="flex items-center space-x-2 flex-shrink-0">
         <Button
           size="sm"
-          className="bg-primary text-primary-foreground text-xs h-7 px-3 rounded-md whitespace-nowrap"
-          onClick={() => onAccept(request.id)}
+          className="bg-primary text-primary-foreground text-xs h-7 px-3 rounded-md whitespace-nowrap gap-2"
+          disabled={!!loadingAction}
+          onClick={async () => {
+            setLoadingAction("accept");
+            try {
+              await onAccept(request.id);
+            } catch (error) {
+              console.error("Error accepting request:", error);
+            } finally {
+              setTimeout(() => setLoadingAction(null), 1000);
+            }
+          }}
         >
-          Connect
+          {loadingAction === "accept" && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          )}
+          {!loadingAction && <span>Connect</span>}
         </Button>
 
         <Button
           size="sm"
           variant="outline"
           className="h-7 w-7 p-0 flex-shrink-0"
-          onClick={() => onDecline(request.id)}
+          disabled={!!loadingAction}
+          onClick={async () => {
+            setLoadingAction("decline");
+            try {
+              await onDecline(request.id);
+            } catch (error) {
+              console.error("Error declining request:", error);
+            } finally {
+              setTimeout(() => setLoadingAction(null), 1000);
+            }
+          }}
         >
-          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          {loadingAction === "decline" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
+          ) : (
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          )}
         </Button>
       </div>
     </Card>
@@ -168,7 +199,7 @@ export const ConnectionRequestsCard = () => {
     }
   };
 
-  const handleAccept = async (id: string) => {
+  const handleAccept = async (id: string): Promise<void> => {
     try {
       Sentry.startSpan(
         {
@@ -199,10 +230,11 @@ export const ConnectionRequestsCard = () => {
     } catch (err: any) {
       console.error("Error accepting request:", err);
       Sentry.captureException(err);
+      throw err; // Re-throw to let the card component handle it
     }
   };
 
-  const handleDecline = async (id: string) => {
+  const handleDecline = async (id: string): Promise<void> => {
     try {
       Sentry.startSpan(
         {
@@ -233,6 +265,7 @@ export const ConnectionRequestsCard = () => {
     } catch (err: any) {
       console.error("Error declining request:", err);
       Sentry.captureException(err);
+      throw err; // Re-throw to let the card component handle it
     }
   };
 
@@ -253,14 +286,14 @@ export const ConnectionRequestsCard = () => {
         <div className="space-y-3">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
-              <Clock className="h-8 w-8 text-muted-foreground mb-2 animate-pulse" />
+              {/* <Clock className="h-8 w-8 text-muted-foreground mb-2 animate-pulse" /> */}
               <p className="text-sm text-muted-foreground">
                 Loading requests...
               </p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
-              <Clock className="h-8 w-8 text-muted-foreground mb-2" />
+              {/* <Clock className="h-8 w-8 text-muted-foreground mb-2" /> */}
               <p className="text-sm text-muted-foreground">{error}</p>
               <Button
                 variant="outline"
