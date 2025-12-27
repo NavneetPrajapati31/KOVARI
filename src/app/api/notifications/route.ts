@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       query = query.eq("is_read", false);
     }
 
-    const { data, error } = await query;
+    const { data: notificationsData, error } = await query;
 
     if (error) {
       console.error("Error fetching notifications:", error);
@@ -59,7 +59,68 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({ notifications: data || [] });
+    const notifications = notificationsData || [];
+
+    // Enrichment: Fetch images for notifications
+    const userIdsToFetch = new Set<string>();
+    const groupIdsToFetch = new Set<string>();
+
+    notifications.forEach((n) => {
+      if (!n.entity_id) return;
+      
+      if (
+        n.entity_type === "match" || 
+        n.entity_type === "chat"
+      ) {
+         // for match/chat, entity_id is the user ID
+         userIdsToFetch.add(n.entity_id);
+      } else if (n.entity_type === "group") {
+         groupIdsToFetch.add(n.entity_id);
+      }
+    });
+
+    // Fetch in parallel
+    const [profilesResult, groupsResult] = await Promise.all([
+      userIdsToFetch.size > 0
+        ? supabase
+            .from("profiles")
+            .select("user_id, profile_photo")
+            .in("user_id", Array.from(userIdsToFetch))
+        : Promise.resolve({ data: [] }),
+      groupIdsToFetch.size > 0
+        ? supabase
+            .from("groups")
+            .select("id, cover_image")
+            .in("id", Array.from(groupIdsToFetch))
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const profileMap = new Map();
+    if (profilesResult.data) {
+      profilesResult.data.forEach((p: any) => {
+        profileMap.set(p.user_id, p.profile_photo);
+      });
+    }
+
+    const groupMap = new Map();
+    if (groupsResult.data) {
+      groupsResult.data.forEach((g: any) => {
+        groupMap.set(g.id, g.cover_image);
+      });
+    }
+
+    // Attach images
+    const enrichedNotifications = notifications.map((n) => {
+      let image_url;
+      if (n.entity_type === "match" || n.entity_type === "chat") {
+        image_url = profileMap.get(n.entity_id);
+      } else if (n.entity_type === "group") {
+        image_url = groupMap.get(n.entity_id);
+      }
+      return { ...n, image_url };
+    });
+
+    return NextResponse.json({ notifications: enrichedNotifications });
   } catch (error: any) {
     console.error("Exception in GET /api/notifications:", error);
     return NextResponse.json(

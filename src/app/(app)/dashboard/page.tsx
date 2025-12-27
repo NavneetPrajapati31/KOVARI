@@ -1,5 +1,5 @@
 "use client";
-import { Search, Bell, Heart, ChevronRight } from "lucide-react";
+import { Search, Bell, Heart, ChevronRight, CheckCheck } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
@@ -464,11 +464,11 @@ export default function Dashboard() {
                           {notifications.slice(0, 5).map((notification) => {
                             const notificationLink =
                               getNotificationLink(notification);
-                            const showPoolIcon =
-                              shouldShowPoolIcon(notification);
                             const avatarFallback = getAvatarFallback(
                               notification.title
                             );
+                            // @ts-ignore - Check for report type
+                            const isReport = notification.type === "REPORT_SUBMITTED";
 
                             return (
                               <Link
@@ -486,15 +486,16 @@ export default function Dashboard() {
                                     : "hover:bg-muted/50"
                                 }`}
                               >
-                                {showPoolIcon ? (
-                                  <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <div className="w-6 h-6 bg-primary/20 rounded-full" />
+                                {isReport ? (
+                                  <div className="w-10 h-10 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
+                                    <CheckCheck className="w-5 h-5 text-green-600" />
                                   </div>
                                 ) : (
                                   <Avatar className="w-10 h-10 flex-shrink-0">
                                     <AvatarImage
-                                      src={undefined}
+                                      src={notification.image_url || undefined}
                                       alt={notification.title}
+                                      className="object-cover"
                                     />
                                     <AvatarFallback className="bg-primary/10 text-primary">
                                       {avatarFallback}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Bell, ChevronRight } from "lucide-react";
+import { Search, Bell, ChevronRight, Check, UserPlus, User } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -99,8 +99,16 @@ export default function NotificationsPage() {
           <div>
             {filteredNotifications.map((notification) => {
               const notificationLink = getNotificationLink(notification);
-              const showPoolIcon = shouldShowPoolIcon(notification);
               const avatarFallback = getAvatarFallback(notification.title);
+              
+              const isReport = notification.type === "REPORT_SUBMITTED";
+              const isGroupInviteOrRequest = 
+                notification.type === "GROUP_INVITE_RECEIVED" || 
+                notification.type === "GROUP_JOIN_REQUEST_RECEIVED";
+              const isGroupApproved = notification.type === "GROUP_JOIN_APPROVED";
+              
+              // Determine if we should show a special icon instead of an avatar image
+              const showGroupIconFallback = !notification.image_url && (isGroupInviteOrRequest || isGroupApproved);
 
               return (
                 <Link
@@ -113,13 +121,29 @@ export default function NotificationsPage() {
                       : "hover:bg-muted/50 border-border"
                   }`}
                 >
-                  {showPoolIcon ? (
+                  {isReport ? (
                     <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
-                      <div className="w-6 h-6 bg-primary-light rounded-full" />
+                      <Check className="w-5 h-5 text-primary" />
+                    </div>
+                  ) : showGroupIconFallback ? (
+                     <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
+                       {isGroupInviteOrRequest ? (
+                         <UserPlus className="w-4 h-4 text-primary" />
+                       ) : (
+                         <Check className="w-5 h-5 text-primary" />
+                       )}
+                     </div>
+                  ) : !notification.image_url && (notification.type === "MATCH_INTEREST_RECEIVED" || notification.type === "MATCH_ACCEPTED" || notification.type === "NEW_MESSAGE") ? (
+                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
+                      <User className="w-4 h-4 text-primary" />
                     </div>
                   ) : (
                     <Avatar className="w-10 h-10 flex-shrink-0">
-                      <AvatarImage src={undefined} alt={notification.title} />
+                      <AvatarImage 
+                        src={notification.image_url || undefined} 
+                        alt={notification.title} 
+                        className="object-cover" 
+                      />
                       <AvatarFallback className="bg-primary-light text-primary">
                         {avatarFallback}
                       </AvatarFallback>
