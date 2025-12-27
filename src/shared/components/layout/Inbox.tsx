@@ -127,7 +127,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
     return (
       <div className="h-full flex flex-col bg-gray-50">
         {/* Search Bar */}
-        <div className="p-3.5 bg-card flex-shrink-0 border-b border-border">
+        <div className="p-3 bg-card flex-shrink-0 border-b border-border">
           <div className="relative">
             <Input
               type="text"
@@ -145,7 +145,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
   return (
     <div className="h-full flex flex-col bg-card">
       {/* Search Bar */}
-      <div className="p-3.5 bg-card flex-shrink-0 border-b border-border">
+      <div className="p-3 bg-card flex-shrink-0 border-b border-border">
         <div className="relative">
           <input
             type="text"
@@ -279,7 +279,9 @@ export default function Inbox({ activeUserId }: InboxProps) {
                 aria-label={`Open chat with ${displayName}`}
               >
                 {/* Avatar */}
-                <div className={`relative mr-3 rounded-full ${isInit ? "ring-2 ring-primary ring-offset-2" : ""}`}>
+                <div
+                  className={`relative mr-3 rounded-full ${isInit ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                >
                   <Avatar className="h-12 w-12 bg-muted">
                     <AvatarImage
                       src={isDeleted ? "" : profile?.profile_photo || ""}
@@ -339,7 +341,9 @@ export default function Inbox({ activeUserId }: InboxProps) {
                           <span>Video</span>
                         </>
                       ) : (conversation as any).lastMediaType === "init" ? (
-                        <span className="font-medium text-primary">Start a conversation!</span>
+                        <span className="font-medium text-primary">
+                          Start a conversation!
+                        </span>
                       ) : (
                         conversation.lastMessage
                       )}

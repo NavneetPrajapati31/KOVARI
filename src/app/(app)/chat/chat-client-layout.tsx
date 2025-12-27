@@ -13,7 +13,7 @@ export default function ChatClientLayout({ children }: ChatClientLayoutProps) {
   const hasSelectedChat = !!params?.userId;
 
   return (
-    <div className="flex h-[90vh] overflow-hidden border-b-1 border-border">
+    <div className="flex h-screen overflow-hidden border-b-1 border-border">
       {/* Left Side - Inbox (Desktop) or Mobile when no chat selected */}
       <div
         className={`w-full md:w-80 lg:w-96 border-r border-border bg-card flex-shrink-0 h-full ${

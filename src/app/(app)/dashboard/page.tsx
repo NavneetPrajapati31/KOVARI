@@ -1,8 +1,19 @@
 "use client";
-import { Search, Bell, Heart } from "lucide-react";
+import { Search, Bell, Heart, ChevronRight } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/components/ui/popover";
+import { Button } from "@/shared/components/ui/button";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/shared/components/ui/avatar";
 
 import { Skeleton } from "@heroui/react";
 import DashboardCard from "@/shared/components/ui/DashboardCard";
@@ -142,6 +153,7 @@ export default function Dashboard() {
     null
   );
   const [impressionsLoading, setImpressionsLoading] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     if (isSignedIn && user) setUser(user);
@@ -363,21 +375,173 @@ export default function Dashboard() {
         <>
           <div className="flex items-center justify-between pb-2">
             <div>
-              <h1 className="text-sm font-medium">
+              <h1 className="text-sm font-semibold">
                 Hi, {user?.firstName || "User"}
               </h1>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground font-medium text-xs">
                 Welcome back to KOVARI 👋🏻
               </p>
             </div>
             <div className="flex items-center gap-4">
               {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
-              <Link href={"/notifications"}>
-                <div className="relative cursor-pointer">
-                  <Bell className="w-5 h-5 text-foreground" />
-                  <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
-                </div>
-              </Link>
+              <Popover
+                open={notificationsOpen}
+                onOpenChange={setNotificationsOpen}
+              >
+                <PopoverTrigger asChild>
+                  <div className="relative cursor-pointer">
+                    <Bell className="w-5 h-5 text-foreground" />
+                    <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[380px] p-0 max-h-[600px] flex flex-col shadow-none rounded-xl"
+                  align="end"
+                  sideOffset={8}
+                >
+                  {/* Header */}
+                  <div className="p-4 py-3 border-b border-border">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-semibold text-foreground">
+                        Notifications
+                      </h2>
+                      <Button
+                        variant={"ghost"}
+                        onClick={() => {
+                          // Handle mark all as read
+                        }}
+                        className="text-sm !px-0 text-primary font-medium hover:bg-transparent hover:text-primary focus-visible:border-none focus-visible:ring-0"
+                      >
+                        Mark all as read
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Notifications List */}
+                  <div className="flex-1 overflow-y-auto scrollbar-hide">
+                    <div className="divide-y divide-border">
+                      {/* Notification Item 1 */}
+                      <Link
+                        href="/notifications"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                      >
+                        <Avatar className="w-10 h-10 flex-shrink-0">
+                          <AvatarImage
+                            src="https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
+                            alt="Radouane Khiri"
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            RK
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground mb-1">
+                            Radouane Khiri
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            You are almost out of premium d...
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                      </Link>
+
+                      {/* Notification Item 2 */}
+                      <Link
+                        href="/notifications"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                      >
+                        <Avatar className="w-10 h-10 flex-shrink-0">
+                          <AvatarImage
+                            src="https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
+                            alt="Mom's line"
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            ML
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground mb-1">
+                            Mom's line
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            Congratulations! Your service h...
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                      </Link>
+
+                      {/* Notification Item 3 */}
+                      <Link
+                        href="/notifications"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                      >
+                        <Avatar className="w-10 h-10 flex-shrink-0">
+                          <AvatarImage
+                            src="https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
+                            alt="Radouane Khiri"
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            RK
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground mb-1">
+                            Family Pool
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            Payment Reminder: Due in 2 Da...
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                      </Link>
+
+                      {/* Notification Item 4 */}
+                      <Link
+                        href="/notifications"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                      >
+                        <Avatar className="w-10 h-10 flex-shrink-0">
+                          <AvatarImage
+                            src="https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
+                            alt="Dad's line"
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            DL
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground mb-1">
+                            Dad's line
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            You are almost out of premium d...
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="p-4 border-t border-border">
+                    <Link
+                      href="/notifications"
+                      onClick={() => setNotificationsOpen(false)}
+                    >
+                      <Button
+                        variant="outline"
+                        className="w-full hover:bg-background"
+                      >
+                        See all
+                      </Button>
+                    </Link>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
               <Link href={"/requests"}>
                 <Heart className="w-5 h-5 text-foreground cursor-pointer" />
