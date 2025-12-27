@@ -1,10 +1,22 @@
 "use client";
-import { Search, Bell, Heart } from "lucide-react";
+import { Search, Bell, Heart, ChevronRight, CheckCheck } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/components/ui/popover";
+import { Button } from "@/shared/components/ui/button";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/shared/components/ui/avatar";
 
 import { Skeleton } from "@heroui/react";
+import InboxChatListSkeleton from "@/shared/components/layout/inbox-chat-list-skeleton";
 import DashboardCard from "@/shared/components/ui/DashboardCard";
 import DoneTripsCard from "@/shared/components/DoneTripsCard/DoneTripsCard";
 import { GroupList } from "@/shared/components/GroupCard/GroupCard-list";
@@ -28,6 +40,13 @@ const UpcomingTripCard = dynamic(
 import { useUserGroups } from "@/shared/hooks/useUserGroups";
 import { useUserTrips } from "@/shared/hooks/useUserTrips";
 import { usePendingInvites } from "@/shared/hooks/usePendingInvites";
+import { useNotifications } from "@/shared/hooks/useNotifications";
+import { Notification } from "@/shared/types/notifications";
+import {
+  getNotificationLink,
+  getAvatarFallback,
+  shouldShowPoolIcon,
+} from "@/shared/utils/notificationHelpers";
 
 import {
   getMostFrequentDestinations,
@@ -142,6 +161,16 @@ export default function Dashboard() {
     null
   );
   const [impressionsLoading, setImpressionsLoading] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  // Fetch notifications for popover
+  const {
+    notifications,
+    loading: notificationsLoading,
+    unreadCount,
+    markAllAsRead,
+    markAsRead,
+  } = useNotifications({ limit: 5, unreadOnly: false, realtime: true });
 
   useEffect(() => {
     if (isSignedIn && user) setUser(user);
@@ -363,21 +392,149 @@ export default function Dashboard() {
         <>
           <div className="flex items-center justify-between pb-2">
             <div>
-              <h1 className="text-sm font-medium">
+              <h1 className="text-sm font-semibold">
                 Hi, {user?.firstName || "User"}
               </h1>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground font-medium text-xs">
                 Welcome back to KOVARI 👋🏻
               </p>
             </div>
             <div className="flex items-center gap-4">
               {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
-              <Link href={"/notifications"}>
+              {/* Mobile: Link to notifications page */}
+              <Link href="/notifications" className="md:hidden">
                 <div className="relative cursor-pointer">
                   <Bell className="w-5 h-5 text-foreground" />
-                  <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
+                  )}
                 </div>
               </Link>
+              {/* Desktop: Popover */}
+              <div className="hidden md:block">
+                <Popover
+                  open={notificationsOpen}
+                  onOpenChange={setNotificationsOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <div className="relative cursor-pointer">
+                      <Bell className="w-5 h-5 text-foreground" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
+                      )}
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[380px] p-0 max-h-[600px] flex flex-col shadow-none rounded-xl"
+                    align="end"
+                    sideOffset={8}
+                  >
+                    {/* Header */}
+                    <div className="p-4 py-3 border-b border-border">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-foreground">
+                          Notifications
+                        </h2>
+                        <Button
+                          variant={"ghost"}
+                          onClick={async () => {
+                            await markAllAsRead();
+                          }}
+                          disabled={unreadCount === 0}
+                          className="text-sm !px-0 text-primary font-medium hover:bg-transparent hover:text-primary focus-visible:border-none focus-visible:ring-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Mark all as read
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Notifications List */}
+                    <div className="flex-1 overflow-y-auto scrollbar-hide">
+                      {notificationsLoading ? (
+                        <InboxChatListSkeleton />
+                      ) : notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                          <Bell className="w-5 h-5 text-muted-foreground mb-2 opacity-50" />
+                          <p className="text-xs text-muted-foreground">
+                            No notifications
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border">
+                          {notifications.slice(0, 5).map((notification) => {
+                            const notificationLink =
+                              getNotificationLink(notification);
+                            const avatarFallback = getAvatarFallback(
+                              notification.title
+                            );
+                            // @ts-ignore - Check for report type
+                            const isReport = notification.type === "REPORT_SUBMITTED";
+
+                            return (
+                              <Link
+                                key={notification.id}
+                                href={notificationLink}
+                                onClick={async () => {
+                                  if (!notification.is_read) {
+                                    await markAsRead(notification.id);
+                                  }
+                                  setNotificationsOpen(false);
+                                }}
+                                className={`flex items-start gap-3 p-4 transition-colors cursor-pointer ${
+                                  !notification.is_read
+                                    ? "bg-primary-light hover:bg-primary-light/80"
+                                    : "hover:bg-muted/50"
+                                }`}
+                              >
+                                {isReport ? (
+                                  <div className="w-10 h-10 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
+                                    <CheckCheck className="w-5 h-5 text-green-600" />
+                                  </div>
+                                ) : (
+                                  <Avatar className="w-10 h-10 flex-shrink-0">
+                                    <AvatarImage
+                                      src={notification.image_url || undefined}
+                                      alt={notification.title}
+                                      className="object-cover"
+                                    />
+                                    <AvatarFallback className="bg-primary/10 text-primary">
+                                      {avatarFallback}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-foreground mb-1">
+                                    {notification.title}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {notification.message}
+                                  </p>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-4 border-t border-border">
+                      <Link
+                        href="/notifications"
+                        onClick={() => setNotificationsOpen(false)}
+                      >
+                        <Button
+                          variant="outline"
+                          className="w-full hover:bg-background focus-visible:border-none focus-visible:ring-0"
+                        >
+                          See all
+                        </Button>
+                      </Link>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
               <Link href={"/requests"}>
                 <Heart className="w-5 h-5 text-foreground cursor-pointer" />

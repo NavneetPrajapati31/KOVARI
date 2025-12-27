@@ -9,7 +9,7 @@ import InterestResults, {
 } from "@/features/interests/components/InterestResults";
 import { Button } from "@/shared/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import InvitationCardSkeleton from "@/features/invitations/components/InvitationCardSkeleton";
 
@@ -28,6 +28,16 @@ export default function RequestsPage() {
   const [error, setError] = useState<string | null>(null);
   const { userId, isLoaded } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "invitations") {
+      setActiveTab(1);
+    } else if (tab === "interests") {
+      setActiveTab(0);
+    }
+  }, [searchParams]);
 
   const handleTabChange = useCallback((index: number) => {
     setActiveTab(index);

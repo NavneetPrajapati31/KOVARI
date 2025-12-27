@@ -182,8 +182,8 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar collapsible="icon" className="bg-background border-r">
-      <SidebarHeader className="bg-background border-b">
+    <Sidebar collapsible="icon" className="bg-card border-r">
+      <SidebarHeader className="bg-card border-b">
         <div
           className="
               flex items-center border-none mb-1 mt-1
@@ -217,7 +217,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-background">
+      <SidebarContent className="bg-card">
         {/* Main Section */}
         <SidebarGroup>
           <SidebarGroupContent>
@@ -328,7 +328,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="bg-background">
+      <SidebarFooter className="bg-card">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -356,7 +356,7 @@ export function AppSidebar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 side="top"
-                className="w-[--radix-popper-anchor-width] p-2 backdrop-blur-2xl bg-background/50 rounded-2xl shadow-sm transition-all duration-300 ease-in-out border-border"
+                className="w-[--radix-popper-anchor-width] p-2 backdrop-blur-2xl bg-transparent rounded-2xl shadow-sm transition-all duration-300 ease-in-out border-border"
               >
                 {menuItems.map((item) => (
                   <DropdownMenuItem

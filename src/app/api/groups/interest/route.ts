@@ -130,6 +130,46 @@ export async function POST(request: Request) {
       });
     }
 
+    // Send notification to group creator
+    try {
+      const { data: groupData } = await supabaseAdmin
+        .from("groups")
+        .select("creator_id, name")
+        .eq("id", groupId)
+        .single();
+
+      if (groupData && groupData.creator_id && groupData.creator_id !== userUuid) {
+        // Dynamically import notification helpers
+        const { createNotification } = await import(
+          "@/lib/notifications/createNotification"
+        );
+        const { NotificationType } = await import(
+          "@/shared/types/notifications"
+        );
+        
+        // Get user name for the notification message
+        const { data: userData } = await supabaseAdmin
+          .from("profiles")
+          .select("name")
+          .eq("user_id", userUuid)
+          .single();
+          
+        const userName = userData?.name || "Someone";
+
+        await createNotification({
+          userId: groupData.creator_id,
+          type: NotificationType.GROUP_JOIN_REQUEST_RECEIVED,
+          title: "Join Request",
+          message: `${userName} wants to join ${groupData.name || "your group"}`,
+          entityType: "group",
+          entityId: groupId,
+        });
+      }
+    } catch (notifyError) {
+      console.error("Group Interest API: Failed to send notification", notifyError);
+      // Don't fail the request
+    }
+
     return NextResponse.json({
       success: true,
       membershipId: membershipData?.id,
