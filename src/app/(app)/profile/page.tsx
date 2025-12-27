@@ -18,7 +18,7 @@ const ProfileLoading = () => {
     <>
       {/* Mobile/Tablet Layout */}
       <div className="min-h-screen bg-transparent md:hidden">
-        <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-3 shadow-none p-3">
+        <Card className="w-full mx-auto bg-transparent border-none rounded-none gap-3 shadow-none p-3">
           {/* Profile Information Section */}
           <Card className="rounded-none border-none shadow-none bg-transparent p-0">
             <CardContent className="p-0">
@@ -52,7 +52,7 @@ const ProfileLoading = () => {
 
           <Card
             aria-label="User details"
-            className="w-full h-full rounded-3xl bg-transparent shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
+            className="w-full rounded-3xl bg-transparent shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
           >
             <Skeleton className="w-1/5 rounded-full h-3 mt-2 mb-1"></Skeleton>
 
@@ -76,7 +76,7 @@ const ProfileLoading = () => {
 
       {/* Desktop Layout */}
       <div className="min-h-screen bg-transparent hidden md:block">
-        <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-5">
+        <Card className="w-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-5">
           {/* Profile Information Section */}
           <Card className="rounded-none border-none shadow-none bg-transparent p-0">
             <CardContent className="p-0">
@@ -97,7 +97,7 @@ const ProfileLoading = () => {
 
           <Card
             aria-label="User details"
-            className="w-full h-full rounded-3xl bg-transparent shadow-none p-6 flex flex-col gap-6 border border-border mx-auto"
+            className="w-full rounded-3xl bg-transparent shadow-none p-6 flex flex-col gap-6 border border-border mx-auto"
           >
             <Skeleton className="w-1/6 rounded-full h-4 mt-2 mb-1"></Skeleton>
 

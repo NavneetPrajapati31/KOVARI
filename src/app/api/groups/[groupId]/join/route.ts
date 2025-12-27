@@ -110,6 +110,38 @@ export async function POST(
       return new NextResponse("Database error", { status: 500 });
     }
 
+    // Send notification to the user who was added/approved
+    try {
+      const { data: groupData } = await supabase
+        .from("groups")
+        .select("name")
+        .eq("id", groupId)
+        .single();
+
+      const groupName = groupData?.name || "a group";
+
+      // Dynamically import notification helpers
+      const { createNotification } = await import(
+        "@/lib/notifications/createNotification"
+      );
+      const { NotificationType } = await import(
+        "@/shared/types/notifications"
+      );
+
+      await createNotification({
+        userId: user.id,
+        type: NotificationType.GROUP_JOIN_APPROVED,
+        title: "Join Request Approved",
+        message: `Your request to join ${groupName} has been approved.`,
+        entityType: "group",
+        entityId: groupId,
+      });
+      
+    } catch (notifyError) {
+      console.error("[GROUP_JOIN_POST] Error sending notification:", notifyError);
+      // Don't fail the request if notification fails
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[GROUP_JOIN_POST]", error);

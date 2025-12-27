@@ -39,6 +39,13 @@ const UpcomingTripCard = dynamic(
 import { useUserGroups } from "@/shared/hooks/useUserGroups";
 import { useUserTrips } from "@/shared/hooks/useUserTrips";
 import { usePendingInvites } from "@/shared/hooks/usePendingInvites";
+import { useNotifications } from "@/shared/hooks/useNotifications";
+import { Notification } from "@/shared/types/notifications";
+import {
+  getNotificationLink,
+  getAvatarFallback,
+  shouldShowPoolIcon,
+} from "@/shared/utils/notificationHelpers";
 
 import {
   getMostFrequentDestinations,
@@ -154,6 +161,15 @@ export default function Dashboard() {
   );
   const [impressionsLoading, setImpressionsLoading] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  // Fetch notifications for popover
+  const {
+    notifications,
+    loading: notificationsLoading,
+    unreadCount,
+    markAllAsRead,
+    markAsRead,
+  } = useNotifications({ limit: 5, unreadOnly: false, realtime: true });
 
   useEffect(() => {
     if (isSignedIn && user) setUser(user);
@@ -384,164 +400,152 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-4">
               {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
-              <Popover
-                open={notificationsOpen}
-                onOpenChange={setNotificationsOpen}
-              >
-                <PopoverTrigger asChild>
-                  <div className="relative cursor-pointer">
-                    <Bell className="w-5 h-5 text-foreground" />
+              {/* Mobile: Link to notifications page */}
+              <Link href="/notifications" className="md:hidden">
+                <div className="relative cursor-pointer">
+                  <Bell className="w-5 h-5 text-foreground" />
+                  {unreadCount > 0 && (
                     <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[380px] p-0 max-h-[600px] flex flex-col shadow-none rounded-xl"
-                  align="end"
-                  sideOffset={8}
+                  )}
+                </div>
+              </Link>
+              {/* Desktop: Popover */}
+              <div className="hidden md:block">
+                <Popover
+                  open={notificationsOpen}
+                  onOpenChange={setNotificationsOpen}
                 >
-                  {/* Header */}
-                  <div className="p-4 py-3 border-b border-border">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-semibold text-foreground">
-                        Notifications
-                      </h2>
-                      <Button
-                        variant={"ghost"}
-                        onClick={() => {
-                          // Handle mark all as read
-                        }}
-                        className="text-sm !px-0 text-primary font-medium hover:bg-transparent hover:text-primary focus-visible:border-none focus-visible:ring-0"
-                      >
-                        Mark all as read
-                      </Button>
+                  <PopoverTrigger asChild>
+                    <div className="relative cursor-pointer">
+                      <Bell className="w-5 h-5 text-foreground" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
+                      )}
                     </div>
-                  </div>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[380px] p-0 max-h-[600px] flex flex-col shadow-none rounded-xl"
+                    align="end"
+                    sideOffset={8}
+                  >
+                    {/* Header */}
+                    <div className="p-4 py-3 border-b border-border">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-foreground">
+                          Notifications
+                        </h2>
+                        <Button
+                          variant={"ghost"}
+                          onClick={async () => {
+                            await markAllAsRead();
+                          }}
+                          disabled={unreadCount === 0}
+                          className="text-sm !px-0 text-primary font-medium hover:bg-transparent hover:text-primary focus-visible:border-none focus-visible:ring-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Mark all as read
+                        </Button>
+                      </div>
+                    </div>
 
-                  {/* Notifications List */}
-                  <div className="flex-1 overflow-y-auto scrollbar-hide">
-                    <div className="divide-y divide-border">
-                      {/* Notification Item 1 */}
+                    {/* Notifications List */}
+                    <div className="flex-1 overflow-y-auto scrollbar-hide">
+                      {notificationsLoading ? (
+                        <div className="space-y-3 p-4">
+                          {Array.from({ length: 3 }).map((_, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-start gap-3 p-4"
+                            >
+                              <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-full" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                          <Bell className="w-5 h-5 text-muted-foreground mb-2 opacity-50" />
+                          <p className="text-xs text-muted-foreground">
+                            No notifications
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border">
+                          {notifications.slice(0, 5).map((notification) => {
+                            const notificationLink =
+                              getNotificationLink(notification);
+                            const showPoolIcon =
+                              shouldShowPoolIcon(notification);
+                            const avatarFallback = getAvatarFallback(
+                              notification.title
+                            );
+
+                            return (
+                              <Link
+                                key={notification.id}
+                                href={notificationLink}
+                                onClick={async () => {
+                                  if (!notification.is_read) {
+                                    await markAsRead(notification.id);
+                                  }
+                                  setNotificationsOpen(false);
+                                }}
+                                className={`flex items-start gap-3 p-4 transition-colors cursor-pointer ${
+                                  !notification.is_read
+                                    ? "bg-primary-light hover:bg-primary-light/80"
+                                    : "hover:bg-muted/50"
+                                }`}
+                              >
+                                {showPoolIcon ? (
+                                  <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <div className="w-6 h-6 bg-primary/20 rounded-full" />
+                                  </div>
+                                ) : (
+                                  <Avatar className="w-10 h-10 flex-shrink-0">
+                                    <AvatarImage
+                                      src={undefined}
+                                      alt={notification.title}
+                                    />
+                                    <AvatarFallback className="bg-primary/10 text-primary">
+                                      {avatarFallback}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-foreground mb-1">
+                                    {notification.title}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {notification.message}
+                                  </p>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-4 border-t border-border">
                       <Link
                         href="/notifications"
                         onClick={() => setNotificationsOpen(false)}
-                        className="flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
                       >
-                        <Avatar className="w-10 h-10 flex-shrink-0">
-                          <AvatarImage
-                            src="https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
-                            alt="Radouane Khiri"
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            RK
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground mb-1">
-                            Radouane Khiri
-                          </p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            You are almost out of premium d...
-                          </p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
-                      </Link>
-
-                      {/* Notification Item 2 */}
-                      <Link
-                        href="/notifications"
-                        onClick={() => setNotificationsOpen(false)}
-                        className="flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
-                      >
-                        <Avatar className="w-10 h-10 flex-shrink-0">
-                          <AvatarImage
-                            src="https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
-                            alt="Mom's line"
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            ML
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground mb-1">
-                            Mom's line
-                          </p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            Congratulations! Your service h...
-                          </p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
-                      </Link>
-
-                      {/* Notification Item 3 */}
-                      <Link
-                        href="/notifications"
-                        onClick={() => setNotificationsOpen(false)}
-                        className="flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
-                      >
-                        <Avatar className="w-10 h-10 flex-shrink-0">
-                          <AvatarImage
-                            src="https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
-                            alt="Radouane Khiri"
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            RK
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground mb-1">
-                            Family Pool
-                          </p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            Payment Reminder: Due in 2 Da...
-                          </p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
-                      </Link>
-
-                      {/* Notification Item 4 */}
-                      <Link
-                        href="/notifications"
-                        onClick={() => setNotificationsOpen(false)}
-                        className="flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
-                      >
-                        <Avatar className="w-10 h-10 flex-shrink-0">
-                          <AvatarImage
-                            src="https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
-                            alt="Dad's line"
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            DL
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground mb-1">
-                            Dad's line
-                          </p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            You are almost out of premium d...
-                          </p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                        <Button
+                          variant="outline"
+                          className="w-full hover:bg-background"
+                        >
+                          See all
+                        </Button>
                       </Link>
                     </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="p-4 border-t border-border">
-                    <Link
-                      href="/notifications"
-                      onClick={() => setNotificationsOpen(false)}
-                    >
-                      <Button
-                        variant="outline"
-                        className="w-full hover:bg-background"
-                      >
-                        See all
-                      </Button>
-                    </Link>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
               <Link href={"/requests"}>
                 <Heart className="w-5 h-5 text-foreground cursor-pointer" />

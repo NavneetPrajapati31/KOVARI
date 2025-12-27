@@ -245,6 +245,31 @@ export async function POST(req: Request) {
           }
         );
       }
+
+      // Create notification for user whose join request was approved
+      const { createNotification } = await import(
+        "@/lib/notifications/createNotification"
+      );
+      const { NotificationType } = await import("@/shared/types/notifications");
+
+      // Get group name
+      const { data: groupData } = await supabase
+        .from("groups")
+        .select("name")
+        .eq("id", groupId)
+        .single();
+
+      const groupName = groupData?.name || "a group";
+
+      await createNotification({
+        userId: userUuid,
+        type: NotificationType.GROUP_JOIN_APPROVED,
+        title: "Group request approved",
+        message: `You're now a member of ${groupName}`,
+        entityType: "group",
+        entityId: groupId,
+      });
+
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -366,6 +391,32 @@ export async function POST(req: Request) {
             });
           if (insertError) {
             console.error("Error inviting user:", insertError);
+          } else {
+            // Create notification for invited user
+            const { createNotification } = await import(
+              "@/lib/notifications/createNotification"
+            );
+            const { NotificationType } = await import(
+              "@/shared/types/notifications"
+            );
+
+            // Get group name
+            const { data: groupData } = await supabase
+              .from("groups")
+              .select("name")
+              .eq("id", groupId)
+              .single();
+
+            const groupName = groupData?.name || "a group";
+
+            await createNotification({
+              userId: userRow.id,
+              type: NotificationType.GROUP_INVITE_RECEIVED,
+              title: "Group invitation",
+              message: `You've been invited to join ${groupName}`,
+              entityType: "group",
+              entityId: groupId,
+            });
           }
         }
       } else if (invite.email) {

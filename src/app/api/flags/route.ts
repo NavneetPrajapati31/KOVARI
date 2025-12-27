@@ -360,6 +360,30 @@ export async function POST(req: NextRequest) {
       console.log("Flag ID:", flagResult.id);
       console.log("Flag data:", JSON.stringify(flagResult, null, 2));
 
+      // Create notification for reporter
+      if (reporterId) {
+        try {
+          const { createNotification } = await import(
+            "@/lib/notifications/createNotification"
+          );
+          const { NotificationType } = await import(
+            "@/shared/types/notifications"
+          );
+
+          await createNotification({
+            userId: reporterId,
+            type: NotificationType.REPORT_SUBMITTED,
+            title: "Report received",
+            message: "Thanks for reporting. Our team will review this.",
+            entityType: undefined,
+            entityId: undefined,
+          });
+        } catch (notifError) {
+          // Don't fail the report if notification fails
+          console.error("Error creating report notification:", notifError);
+        }
+      }
+
       // Verify the insert actually happened by querying the database
       const { data: verifyData, error: verifyError } = await supabase
         .from("user_flags")
@@ -471,6 +495,30 @@ export async function POST(req: NextRequest) {
       console.log("✅ SUCCESS: Group flag created successfully!");
       console.log("Flag ID:", flagResult.id);
       console.log("Flag data:", JSON.stringify(flagResult, null, 2));
+
+      // Create notification for reporter
+      if (reporterId) {
+        try {
+          const { createNotification } = await import(
+            "@/lib/notifications/createNotification"
+          );
+          const { NotificationType } = await import(
+            "@/shared/types/notifications"
+          );
+
+          await createNotification({
+            userId: reporterId,
+            type: NotificationType.REPORT_SUBMITTED,
+            title: "Report received",
+            message: "Thanks for reporting. Our team will review this.",
+            entityType: undefined,
+            entityId: undefined,
+          });
+        } catch (notifError) {
+          // Don't fail the report if notification fails
+          console.error("Error creating report notification:", notifError);
+        }
+      }
 
       // Verify the insert actually happened by querying the database
       const { data: verifyData, error: verifyError } = await supabase
