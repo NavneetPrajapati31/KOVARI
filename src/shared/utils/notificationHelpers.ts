@@ -16,13 +16,18 @@ export function getNotificationLink(notification: Notification): string {
 
   switch (entity_type) {
     case "match":
-      // For matches, navigate to chat with the matched user
-      // entity_id is the match ID, but we need the other user's ID
-      // For now, navigate to requests page where they can see the match
+      if (type === NotificationType.MATCH_ACCEPTED) {
+        // For accepted matches, entity_id is the partner's user ID
+        return `/chat/${entity_id}`; 
+      }
+      // For interest received, navigate to requests page
       return "/requests";
     case "group":
       if (type === NotificationType.GROUP_JOIN_REQUEST_RECEIVED) {
-        return `/groups/${entity_id}/settings/requests`;
+        return `/groups/${entity_id}/settings?tab=requests`;
+      }
+      else if (type === NotificationType.GROUP_INVITE_RECEIVED) {
+        return `/requests?tab=invitations`;
       }
       return `/groups/${entity_id}/home`;
     case "chat":

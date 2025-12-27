@@ -18,6 +18,7 @@ import {
   shouldShowPoolIcon,
 } from "@/shared/utils/notificationHelpers";
 import { Skeleton } from "@heroui/react";
+import InboxChatListSkeleton from "@/shared/components/layout/inbox-chat-list-skeleton";
 
 export default function NotificationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,17 +80,7 @@ export default function NotificationsPage() {
       {/* Notifications List */}
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {loading ? (
-          <div className="space-y-3 p-4">
-            {Array.from({ length: 5 }).map((_, idx) => (
-              <div key={idx} className="flex items-start gap-3 p-4">
-                <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
-                <div className="flex-1 min-w-0 space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-full" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <InboxChatListSkeleton />
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <Bell className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />

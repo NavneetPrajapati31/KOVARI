@@ -16,6 +16,7 @@ import {
 } from "@/shared/components/ui/avatar";
 
 import { Skeleton } from "@heroui/react";
+import InboxChatListSkeleton from "@/shared/components/layout/inbox-chat-list-skeleton";
 import DashboardCard from "@/shared/components/ui/DashboardCard";
 import DoneTripsCard from "@/shared/components/DoneTripsCard/DoneTripsCard";
 import { GroupList } from "@/shared/components/GroupCard/GroupCard-list";
@@ -450,20 +451,7 @@ export default function Dashboard() {
                     {/* Notifications List */}
                     <div className="flex-1 overflow-y-auto scrollbar-hide">
                       {notificationsLoading ? (
-                        <div className="space-y-3 p-4">
-                          {Array.from({ length: 3 }).map((_, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-start gap-3 p-4"
-                            >
-                              <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
-                              <div className="flex-1 min-w-0 space-y-2">
-                                <Skeleton className="h-4 w-32" />
-                                <Skeleton className="h-3 w-full" />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <InboxChatListSkeleton />
                       ) : notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-center p-8">
                           <Bell className="w-5 h-5 text-muted-foreground mb-2 opacity-50" />
@@ -537,7 +525,7 @@ export default function Dashboard() {
                       >
                         <Button
                           variant="outline"
-                          className="w-full hover:bg-background"
+                          className="w-full hover:bg-background focus-visible:border-none focus-visible:ring-0"
                         >
                           See all
                         </Button>

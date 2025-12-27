@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       title: "Match interest",
       message: `${fromUserName} is interested in traveling with you to ${destinationName}`,
       entityType: "match",
-      entityId: data.id,
+      entityId: fromUuid,
     });
 
     // Check reverse interest and create match if mutual
@@ -246,7 +246,7 @@ export async function POST(request: Request) {
           title: "It's a match!",
           message: `You matched with ${userBName}. Start a conversation.`,
           entityType: "match",
-          entityId: matchData.id,
+          entityId: userB,
         });
 
         const notifB = await createNotification({
@@ -255,7 +255,7 @@ export async function POST(request: Request) {
           title: "It's a match!",
           message: `You matched with ${userAName}. Start a conversation.`,
           entityType: "match",
-          entityId: matchData.id,
+          entityId: userA,
         });
 
         console.log("[matching/interest] Notification results:", {

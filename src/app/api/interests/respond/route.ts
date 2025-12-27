@@ -238,7 +238,7 @@ export async function POST(request: Request) {
                 title: "It's a match!",
                 message: `You matched with ${userBName}. Start a conversation.`,
                 entityType: "match",
-                entityId: matchId,
+                entityId: userB,
               });
               console.log("[interests/respond] Notification A result:", notifA);
             }
@@ -250,7 +250,7 @@ export async function POST(request: Request) {
                 title: "It's a match!",
                 message: `You matched with ${userAName}. Start a conversation.`,
                 entityType: "match",
-                entityId: matchId,
+                entityId: userA,
               });
               console.log("[interests/respond] Notification B result:", notifB);
             }
@@ -318,7 +318,7 @@ export async function POST(request: Request) {
               title: "It's a match!",
               message: `You matched with ${userBName}. Start a conversation.`,
               entityType: "match",
-              entityId: matchId,
+              entityId: userB,
             });
             console.log("[interests/respond] Notification A result:", notifA);
           }
@@ -330,7 +330,7 @@ export async function POST(request: Request) {
               title: "It's a match!",
               message: `You matched with ${userAName}. Start a conversation.`,
               entityType: "match",
-              entityId: matchId,
+              entityId: userA,
             });
             console.log("[interests/respond] Notification B result:", notifB);
           }
@@ -370,7 +370,7 @@ export async function POST(request: Request) {
           title: "It's a match!",
           message: `${receiverName} accepted your travel interest. Start a conversation.`,
           entityType: "match",
-          entityId: interestId, // Use interest ID since match doesn't exist yet
+          entityId: receiverId, // Use partner ID (receiver) for chat redirection
         });
 
         console.log(
