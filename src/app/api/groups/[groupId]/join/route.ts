@@ -131,7 +131,7 @@ export async function POST(
       await createNotification({
         userId: user.id,
         type: NotificationType.GROUP_JOIN_APPROVED,
-        title: "Join Request Approved",
+        title: "Request Approved",
         message: `Your request to join ${groupName} has been approved.`,
         entityType: "group",
         entityId: groupId,

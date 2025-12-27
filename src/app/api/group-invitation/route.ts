@@ -264,7 +264,7 @@ export async function POST(req: Request) {
       await createNotification({
         userId: userUuid,
         type: NotificationType.GROUP_JOIN_APPROVED,
-        title: "Group request approved",
+        title: "Request Approved",
         message: `You're now a member of ${groupName}`,
         entityType: "group",
         entityId: groupId,
@@ -309,6 +309,14 @@ export async function POST(req: Request) {
         }
       );
     }
+    // Get sender's name for notifications
+    const { data: senderProfile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("user_id", userUuid)
+      .single();
+    const senderName = senderProfile?.name || "Someone";
+
     // For each invite, find user by email or username
     for (const invite of invites) {
       let userRow = null;
@@ -413,7 +421,7 @@ export async function POST(req: Request) {
               userId: userRow.id,
               type: NotificationType.GROUP_INVITE_RECEIVED,
               title: "Group invitation",
-              message: `You've been invited to join ${groupName}`,
+              message: `You've been invited to join ${groupName} by ${senderName}`,
               entityType: "group",
               entityId: groupId,
             });

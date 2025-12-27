@@ -142,6 +142,8 @@ export async function POST(request: Request) {
            type: NotificationType.REPORT_SUBMITTED,
            title: "Report received",
            message: "We've received your report and will review it shortly.",
+           entityType: "report",
+           entityId: data.id,
          });
        } catch (notifError) {
          console.error("Report API: Failed to send notification", notifError);
@@ -193,6 +195,8 @@ export async function POST(request: Request) {
            type: NotificationType.REPORT_SUBMITTED,
            title: "Report received",
            message: "We've received your report and will review it shortly.",
+           entityType: "report",
+           entityId: data.id,
          });
        } catch (notifError) {
          console.error("Report API: Failed to send notification", notifError);

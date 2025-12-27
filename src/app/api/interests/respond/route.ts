@@ -236,7 +236,7 @@ export async function POST(request: Request) {
                 userId: userA,
                 type: NotificationType.MATCH_ACCEPTED,
                 title: "It's a match!",
-                message: `You matched with ${userBName}. Start chatting.`,
+                message: `You matched with ${userBName}. Start a conversation.`,
                 entityType: "match",
                 entityId: matchId,
               });
@@ -248,7 +248,7 @@ export async function POST(request: Request) {
                 userId: userB,
                 type: NotificationType.MATCH_ACCEPTED,
                 title: "It's a match!",
-                message: `You matched with ${userAName}. Start chatting.`,
+                message: `You matched with ${userAName}. Start a conversation.`,
                 entityType: "match",
                 entityId: matchId,
               });
@@ -316,7 +316,7 @@ export async function POST(request: Request) {
               userId: userA,
               type: NotificationType.MATCH_ACCEPTED,
               title: "It's a match!",
-              message: `You matched with ${userBName}. Start chatting.`,
+              message: `You matched with ${userBName}. Start a conversation.`,
               entityType: "match",
               entityId: matchId,
             });
@@ -328,7 +328,7 @@ export async function POST(request: Request) {
               userId: userB,
               type: NotificationType.MATCH_ACCEPTED,
               title: "It's a match!",
-              message: `You matched with ${userAName}. Start chatting.`,
+              message: `You matched with ${userAName}. Start a conversation.`,
               entityType: "match",
               entityId: matchId,
             });
@@ -368,7 +368,7 @@ export async function POST(request: Request) {
           userId: senderId, // The person who sent the interest
           type: NotificationType.MATCH_ACCEPTED,
           title: "It's a match!",
-          message: `${receiverName} accepted your travel interest. Start chatting.`,
+          message: `${receiverName} accepted your travel interest. Start a conversation.`,
           entityType: "match",
           entityId: interestId, // Use interest ID since match doesn't exist yet
         });

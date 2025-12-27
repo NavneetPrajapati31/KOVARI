@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     await createNotification({
       userId: toUuid,
       type: NotificationType.MATCH_INTEREST_RECEIVED,
-      title: "New travel interest",
+      title: "Match interest",
       message: `${fromUserName} is interested in traveling with you to ${destinationName}`,
       entityType: "match",
       entityId: data.id,
@@ -244,7 +244,7 @@ export async function POST(request: Request) {
           userId: userA,
           type: NotificationType.MATCH_ACCEPTED,
           title: "It's a match!",
-          message: `You matched with ${userBName}. Start chatting.`,
+          message: `You matched with ${userBName}. Start a conversation.`,
           entityType: "match",
           entityId: matchData.id,
         });
@@ -253,7 +253,7 @@ export async function POST(request: Request) {
           userId: userB,
           type: NotificationType.MATCH_ACCEPTED,
           title: "It's a match!",
-          message: `You matched with ${userAName}. Start chatting.`,
+          message: `You matched with ${userAName}. Start a conversation.`,
           entityType: "match",
           entityId: matchData.id,
         });

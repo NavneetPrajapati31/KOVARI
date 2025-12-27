@@ -159,7 +159,7 @@ export async function POST(request: Request) {
         await createNotification({
           userId: groupData.creator_id,
           type: NotificationType.GROUP_JOIN_REQUEST_RECEIVED,
-          title: "New Group Request",
+          title: "Join Request",
           message: `${userName} wants to join ${groupData.name || "your group"}`,
           entityType: "group",
           entityId: groupId,

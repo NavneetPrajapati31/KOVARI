@@ -374,7 +374,7 @@ export async function POST(req: NextRequest) {
             userId: reporterId,
             type: NotificationType.REPORT_SUBMITTED,
             title: "Report received",
-            message: "Thanks for reporting. Our team will review this.",
+            message: "Thanks for reporting. Our team will review this shortly.",
             entityType: undefined,
             entityId: undefined,
           });
@@ -510,7 +510,7 @@ export async function POST(req: NextRequest) {
             userId: reporterId,
             type: NotificationType.REPORT_SUBMITTED,
             title: "Report received",
-            message: "Thanks for reporting. Our team will review this.",
+            message: "Thanks for reporting. Our team will review this shortly.",
             entityType: undefined,
             entityId: undefined,
           });

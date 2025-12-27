@@ -8,7 +8,7 @@ export enum NotificationType {
   REPORT_SUBMITTED = "REPORT_SUBMITTED",
 }
 
-export type EntityType = "match" | "group" | "chat" | null;
+export type EntityType = "match" | "group" | "chat" | "report" | null;
 
 export interface Notification {
   id: string;
