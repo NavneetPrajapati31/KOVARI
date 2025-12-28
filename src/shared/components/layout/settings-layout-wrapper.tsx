@@ -444,7 +444,7 @@ export default function LayoutWrapper() {
   // Responsive layout
   if (isMobile) {
     return (
-      <div className="flex flex-col min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl">
+      <div className="flex flex-col min-h-screen h-full bg-card text-foreground border-1 border-border rounded-3xl">
         {activeTab == null ? (
           <div className="w-full">
             <SettingsSidebar
