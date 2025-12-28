@@ -58,7 +58,7 @@ export default function GroupsPage() {
   return (
     <>
       {isPageRedirecting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-card h-screen">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-card h-screen">
           {/* <Loader2 className="w-11 h-11 animate-spin text-black" /> */}
           <Spinner variant="spinner" size="md" color="primary" />
         </div>
