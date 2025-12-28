@@ -127,14 +127,14 @@ export default function Inbox({ activeUserId }: InboxProps) {
     return (
       <div className="h-full flex flex-col bg-gray-50">
         {/* Search Bar */}
-        <div className="p-3 bg-card flex-shrink-0 border-b border-border">
+        <div className="p-3 bg-card flex-shrink-0 border-b border-border sticky top-0 z-50 bg-card">
           <div className="relative">
             <Input
               type="text"
               placeholder="Search"
-              className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-gray-300"
+              className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-sm placeholder:text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300"
             />
-            <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           </div>
         </div>
         <InboxChatListSkeleton />
@@ -145,7 +145,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
   return (
     <div className="h-full flex flex-col bg-card">
       {/* Search Bar */}
-      <div className="p-3 bg-card flex-shrink-0 border-b border-border">
+      <div className="p-3 bg-card flex-shrink-0 border-b border-border sticky top-0 z-50 bg-card">
         <div className="relative">
           <input
             type="text"
@@ -186,7 +186,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
       </div>
 
       {/* Messages List */}
-      <div className="flex-1 bg-card overflow-y-auto scrollbar-hide">
+      <div className="flex-1 min-h-0 bg-card overflow-y-auto scrollbar-hide">
         {(() => {
           if (inbox.conversations.length === 0) {
             return (

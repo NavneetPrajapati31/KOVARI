@@ -1319,9 +1319,9 @@ const DirectChatPage = () => {
   // The chat will still be accessible and messages will be visible
 
   return (
-    <div className="relative h-full bg-card">
+    <div className="flex flex-col h-full bg-card">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 px-3 sm:px-5 py-3 border-b border-border bg-card z-10">
+      <div className="sticky top-0 z-10 w-full bg-card border-b border-border px-3 sm:px-5 py-3 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Back button for mobile */}
@@ -1380,7 +1380,7 @@ const DirectChatPage = () => {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="absolute top-16 bottom-8 left-0 right-0 overflow-y-auto scrollbar-hide p-4 mb-2 max-h-[80vh] bg-card flex flex-col"
+        className="flex-1 min-h-0 overflow-y-auto scrollbar-hide p-4 bg-card flex flex-col w-full"
         data-testid="messages-container"
         aria-live="polite"
         aria-atomic="false"
@@ -1424,7 +1424,7 @@ const DirectChatPage = () => {
       </div>
 
       {/* Message Input - Always at Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border px-2 py-1 shadow-none z-10">
+      <div className="w-full bg-card border-t border-border px-2 py-1 shadow-none z-10 flex-shrink-0 sticky bottom-0">
         <MessageInput
           handleSend={async (
             value: string,

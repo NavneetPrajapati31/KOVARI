@@ -97,7 +97,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
           className={`text-xs sm:text-sm ${
             activeTab === idx
               ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
-              : "text-foreground/80 font-semibold bg-transparent rounded-2xl hover:text-primary"
+              : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary hover:bg-card"
           }`}
           onClick={() => handleTabClick(idx)}
           onKeyDown={(e) => handleTabKeyDown(e, idx)}
@@ -109,13 +109,13 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   );
 
   return (
-    <div className="flex bg-background text-foreground px-2 py-4 sm:p-4 overflow-x-hidden scrollbar-hide">
+    <div className="flex bg-background text-foreground px-2 py-0 sm:px-4">
       {/* Sidebar can go here */}
       <div className="flex-1 flex flex-col">
-        <header>
+        <header className="flex sticky top-0 z-50 bg-background py-4">
           <div className="flex gap-2 flex-shrink-0">{tabButtons}</div>
         </header>
-        <main className="flex-1 pt-4 md:pt-4 xl:pt-4">{children}</main>
+        <main className="flex-1 pt-0">{children}</main>
       </div>
     </div>
   );

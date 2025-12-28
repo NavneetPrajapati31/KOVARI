@@ -76,7 +76,7 @@ export default function RequestsPage() {
           className={`text-xs sm:text-sm ${
             activeTab === idx
               ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
-              : "text-foreground/80 font-semibold bg-transparent rounded-2xl hover:text-primary"
+              : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary hover:bg-card"
           }`}
           onClick={() => handleTabChange(idx)}
           onKeyDown={(e) => handleTabKeyDown(e, idx)}
@@ -279,7 +279,7 @@ export default function RequestsPage() {
   return (
     <div className="flex flex-col w-full min-h-screen">
       {/* Tabs Header */}
-      <div className="w-full flex flex-row items-center gap-2 px-4 py-6">
+      <div className="w-full flex flex-row items-center gap-2 px-4 py-4 sticky top-0 z-50 bg-background">
         {tabButtons}
       </div>
 

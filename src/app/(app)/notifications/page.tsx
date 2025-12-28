@@ -45,7 +45,7 @@ export default function NotificationsPage() {
   });
 
   return (
-    <div className="h-full w-full bg-card flex flex-col">
+    <div className="h-screen w-full bg-card flex flex-col">
       {/* Search Bar */}
       {/* <div className="p-4 border-b border-border flex-shrink-0">
         <div className="relative">
