@@ -149,7 +149,7 @@ export default function ExplorePage() {
           className={`flex-auto text-xs sm:text-sm ${
             activeTab === idx
               ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
-              : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary"
+              : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary hover:bg-card"
           }`}
           onClick={() => handleTabChange(idx)}
           onKeyDown={(e) => handleTabKeyDown(e, idx)}
@@ -444,10 +444,10 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="max-w-full mx-auto flex flex-col gap-4">
+    <div className="min-h-screen px-4">
+      <div className="max-w-full mx-auto flex flex-col gap-0">
         {/* Tabs Header - Outside containers like groups layout */}
-        <header className="flex w-full items-center gap-2">
+        <header className="flex w-full items-center gap-2 sticky top-0 z-50 bg-background py-4">
           <div className="flex gap-2 flex-auto min-[930px]:w-auto min-[930px]:flex-none">{tabButtons}</div>
 
           {/* Mobile Filter Trigger */}

@@ -124,7 +124,7 @@ function ConnectionRequestCard({
           {loadingAction === "decline" ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
           ) : (
-            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
           )}
         </Button>
       </div>

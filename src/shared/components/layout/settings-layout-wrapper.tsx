@@ -324,7 +324,7 @@ export default function LayoutWrapper() {
   // Membership check and error handling must be before any layout rendering
   if (membershipLoading) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="flex items-center space-x-2">
           <Spinner variant="spinner" size="sm" color="primary" />
           <span className="text-primary text-sm">Checking membership...</span>
@@ -344,7 +344,7 @@ export default function LayoutWrapper() {
 
   if (isNotMember) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="text-center max-w-md mx-auto p-8 flex flex-col items-center justify-center">
           <h2 className="text-md font-semibold text-foreground mb-2">
             Join the group to access settings
@@ -388,7 +388,7 @@ export default function LayoutWrapper() {
 
   if (membershipError && membershipError.includes("Group not found")) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
           <div className="flex items-center justify-center mb-2">
             <AlertCircle className="h-7 w-7 text-muted-foreground" />
@@ -417,7 +417,7 @@ export default function LayoutWrapper() {
 
   if (isPending) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
           <div className="flex items-center justify-center mb-2">
             <AlertCircle className="h-7 w-7 text-muted-foreground" />
@@ -516,7 +516,7 @@ export default function LayoutWrapper() {
 
   // Desktop layout
   return (
-    <div className="flex flex-col md:flex-row min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl">
+    <div className="flex flex-col md:flex-row h-[90vh] bg-card text-foreground border-1 border-border rounded-3xl">
       {/* Sidebar */}
       <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">
         <SettingsSidebar
@@ -525,7 +525,7 @@ export default function LayoutWrapper() {
         />
       </div>
       {/* Content */}
-      <div className="flex-1 flex flex-col p-3 gap-2 overflow-hidden">
+      <div className="flex-1 flex flex-col p-3 gap-2 overflow-y-auto scrollbar-hide">
         <SectionContent key={activeTab || "none"} activeTab={activeTab} />
       </div>
     </div>

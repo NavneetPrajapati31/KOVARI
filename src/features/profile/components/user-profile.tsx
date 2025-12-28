@@ -215,7 +215,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     <div className="min-h-screen bg-transparent md:hidden">
       <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-3 shadow-none p-3">
         {/* Mobile Profile Header */}
-        <Card className="rounded-none border-none shadow-none bg-transparent p-0">
+        <Card className="rounded-none border-none shadow-none bg-card p-0">
           <CardContent className="p-0">
             <div className="flex flex-row items-stretch gap-4">
               {/* Profile Avatar Overlay - Stretches to match second card height */}
@@ -522,7 +522,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
         {/* Mobile Content Card */}
         <Card
           aria-label="User details"
-          className="w-full h-full min-h-[80vh] rounded-3xl bg-transparent shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
+          className="w-full h-full min-h-[80vh] rounded-3xl bg-card shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
         >
           {/* Tabs Navigation - Mobile Style */}
           <div className="flex gap-x-2 sm:gap-x-4">
@@ -719,7 +719,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     <div className="min-h-screen bg-transparent hidden md:block">
       <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-5">
         {/* Profile Information Section */}
-        <Card className="rounded-none border-none shadow-none bg-transparent p-0">
+        <Card className="rounded-none border-none shadow-none bg-card p-0">
           <CardContent className="p-0">
             <div className="flex flex-row items-stretch gap-4">
               {/* Profile Avatar Overlay - Stretches to match second card height */}
@@ -918,7 +918,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
 
         <Card
           aria-label="User details"
-          className="w-full h-full rounded-3xl bg-transparent shadow-none p-6 flex flex-col gap-6 border border-border mx-auto"
+          className="w-full h-full rounded-3xl bg-card shadow-none p-6 flex flex-col gap-6 border border-border mx-auto"
         >
           {/* Tabs Navigation - Modern Style */}
           <div className="flex gap-x-2">

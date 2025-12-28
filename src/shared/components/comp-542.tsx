@@ -279,14 +279,14 @@ export default function ItineraryUI() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-3 p-4 border-b border-border flex-shrink-0">
+      {/* <div className="mb-3 p-4 border-b border-border flex-shrink-0">
         <h2 className="text-foreground font-semibold text-xs truncate">
           Itinerary
         </h2>
         <p className="mt-0.5 text-muted-foreground text-xs">
           {events.length} {events.length === 1 ? "event" : "events"} scheduled
         </p>
-      </div>
+      </div> */}
       <div className="flex-1 min-h-0">
         <EventCalendar
           events={events}

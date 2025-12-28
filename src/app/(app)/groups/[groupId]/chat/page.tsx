@@ -339,7 +339,7 @@ export default function GroupChatInterface() {
   // Membership check and error handling must be before any layout rendering
   if (membershipLoading) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="flex items-center space-x-2">
           <Spinner variant="spinner" size="sm" color="primary" />
           <span className="text-primary text-sm">Checking membership...</span>
@@ -359,7 +359,7 @@ export default function GroupChatInterface() {
 
   if (isNotMember) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="text-center max-w-md mx-auto p-8 flex flex-col items-center justify-center">
           <h2 className="text-md font-semibold text-foreground mb-2">
             Join the group to access chats
@@ -403,7 +403,7 @@ export default function GroupChatInterface() {
 
   if (membershipError && membershipError.includes("Group not found")) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
           <div className="flex items-center justify-center mb-2">
             <AlertCircle className="h-7 w-7 text-muted-foreground" />
@@ -432,7 +432,7 @@ export default function GroupChatInterface() {
 
   if (isPending) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="text-center max-w-md mx-auto p-6 flex flex-col items-center justify-center">
           <div className="flex items-center justify-center mb-2">
             <AlertCircle className="h-7 w-7 text-muted-foreground" />
@@ -459,7 +459,7 @@ export default function GroupChatInterface() {
   if (loading && messages.length === 0) {
     return (
       <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-        <div className="flex h-[80vh] items-center justify-center">
+        <div className="flex h-[90vh] items-center justify-center">
           <div className="flex items-center space-x-2">
             <Spinner variant="spinner" size="md" color="primary" />
             {/* <span className="text-muted-foreground">Loading chat...</span> */}
@@ -471,7 +471,7 @@ export default function GroupChatInterface() {
 
   return (
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-      <div className="flex h-[80vh]">
+      <div className="flex h-[90vh]">
         {/* Right Sidebar */}
         <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-none hidden lg:block">
           <div className="p-5">
