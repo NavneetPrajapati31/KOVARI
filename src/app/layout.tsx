@@ -7,6 +7,7 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/next";
 
 if (process.env.NEXT_PUBLIC_DEV_THEME === "true") {
   try {
@@ -72,6 +73,7 @@ export default function RootLayout({
                 },
               }}
             />
+            <Analytics />
           </HeroUIProvider>
         </body>
       </html>
