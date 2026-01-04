@@ -94,6 +94,7 @@ async function createClerkUser(userData) {
       lastName: userData.lastName,
       skipPasswordChecks: true, // For test users
       skipPasswordRequirement: true,
+      skipEmailVerification: true, // Skip email verification for test users
     });
 
     console.log(`✅ Created Clerk user: ${userData.email} (ID: ${user.id})`);
