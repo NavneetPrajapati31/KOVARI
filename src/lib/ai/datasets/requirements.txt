@@ -1,0 +1,3 @@
+# Python dependencies for ML dataset builder
+pandas>=2.0.0
+

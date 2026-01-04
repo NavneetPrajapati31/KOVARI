@@ -2,6 +2,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { auth } from "@clerk/nextjs/server";
+import { logMatchEvent, createMatchEventLog } from "@/lib/ai/logging/logMatchEvent";
+import { extractFeaturesForSoloMatch } from "@/lib/ai/logging/extract-features-for-logging";
+import { getSetting } from "@/lib/settings";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -50,6 +53,43 @@ export async function POST(request: Request) {
       const senderId = updatedInterest.from_user_id; // The person who sent the interest
       const receiverId = updatedInterest.to_user_id; // The current user who accepted it
 
+      // Get Clerk IDs for feature extraction
+      const { data: senderUser } = await supabaseAdmin
+        .from("users")
+        .select("clerk_user_id")
+        .eq("id", senderId)
+        .single();
+      
+      const { data: receiverUser } = await supabaseAdmin
+        .from("users")
+        .select("clerk_user_id")
+        .eq("id", receiverId)
+        .single();
+
+      // Get matching preset for logging
+      const presetSetting = await getSetting("matching_preset");
+      const presetMode = (presetSetting as { mode: string } | null)?.mode || "balanced";
+
+      // Extract features and log match accepted event
+      if (senderUser?.clerk_user_id && receiverUser?.clerk_user_id) {
+        const features = await extractFeaturesForSoloMatch(
+          receiverUser.clerk_user_id, // Current user (acceptor)
+          senderUser.clerk_user_id,    // Other user (sender)
+          updatedInterest.destination_id
+        );
+
+        if (features) {
+          logMatchEvent(
+            createMatchEventLog(
+              "user_user",
+              features,
+              "accept",
+              presetMode.toLowerCase()
+            )
+          );
+        }
+      }
+
       try {
         // Initialize chat with a "phantom" message to make it appear in inbox without content
         // This relies on use-direct-inbox logic: matches (media_url && media_type) -> set lastMessage="" 
@@ -68,6 +108,26 @@ export async function POST(request: Request) {
 
         if (msgError) {
           console.error("Error creating init message:", msgError);
+        } else {
+          // Log chat initiated event
+          if (senderUser?.clerk_user_id && receiverUser?.clerk_user_id) {
+            const features = await extractFeaturesForSoloMatch(
+              receiverUser.clerk_user_id, // Current user (acceptor)
+              senderUser.clerk_user_id,    // Other user (sender)
+              updatedInterest.destination_id
+            );
+
+            if (features) {
+              logMatchEvent(
+                createMatchEventLog(
+                  "user_user",
+                  features,
+                  "chat",
+                  presetMode.toLowerCase()
+                )
+              );
+            }
+          }
         }
       } catch (err) {
         console.error("Insertion error:", err);

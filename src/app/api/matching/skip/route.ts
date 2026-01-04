@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logMatchEvent, createMatchEventLog } from "@/lib/ai/logging/logMatchEvent";
+import { extractFeaturesForSoloMatch, extractFeaturesForGroupMatch } from "@/lib/ai/logging/extract-features-for-logging";
+import { getSetting } from "@/lib/settings";
+import { getMatchingPresetConfig } from "@/lib/matching/config";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -133,6 +137,76 @@ export async function POST(request: Request) {
         { success: false, error: error.message || String(error) },
         { status: 500 }
       );
+    }
+
+    // Log match ignore event for ML training data
+    try {
+      // Get matching preset for logging
+      const presetSetting = await getSetting("matching_preset");
+      const presetMode = (presetSetting as { mode: string } | null)?.mode || "balanced";
+
+      if (type === "solo") {
+        // Get Clerk IDs for both users
+        const { data: skipperUser } = await supabaseAdmin
+          .from("users")
+          .select("clerk_user_id")
+          .eq("id", skipperUuid)
+          .single();
+        
+        const { data: skippedUser } = await supabaseAdmin
+          .from("users")
+          .select("clerk_user_id")
+          .eq("id", skippedEntityId)
+          .single();
+
+        if (skipperUser?.clerk_user_id && skippedUser?.clerk_user_id) {
+          const features = await extractFeaturesForSoloMatch(
+            skipperUser.clerk_user_id,
+            skippedUser.clerk_user_id,
+            destinationId
+          );
+
+          if (features) {
+            logMatchEvent(
+              createMatchEventLog(
+                "user_user",
+                features,
+                "ignore",
+                presetMode.toLowerCase()
+              )
+            );
+          }
+        }
+      } else {
+        // Group skip - get user Clerk ID
+        const { data: skipperUser } = await supabaseAdmin
+          .from("users")
+          .select("clerk_user_id")
+          .eq("id", skipperUuid)
+          .single();
+
+        if (skipperUser?.clerk_user_id) {
+          const features = await extractFeaturesForGroupMatch(
+            skipperUser.clerk_user_id,
+            skippedEntityId, // groupId
+            destinationId
+          );
+
+          if (features) {
+            logMatchEvent(
+              createMatchEventLog(
+                "user_group",
+                features,
+                "ignore",
+                presetMode.toLowerCase()
+              )
+            );
+          }
+        }
+      }
+    } catch (logError) {
+      // Don't fail the skip operation if logging fails
+      console.error("Error logging skip event:", logError);
     }
 
     return NextResponse.json({

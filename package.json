@@ -33,6 +33,7 @@
     "test-solo-api-fix": "node test-solo-api-fix.js"
   },
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@clerk/nextjs": "^6.24.0",
     "@clerk/themes": "^2.2.48",
     "@dnd-kit/core": "^6.3.1",
