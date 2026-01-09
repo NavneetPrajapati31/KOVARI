@@ -15,9 +15,16 @@ const schema = z.object({
   birthday: z.string().datetime(),
   bio: z.string().max(300),
   profile_photo: z.string().url().optional(),
+  location: z.string().min(1),
   languages: z.array(z.string()),
   nationality: z.string(),
   job: z.string(),
+  religion: z.string().min(1),
+  smoking: z.string().min(1),
+  drinking: z.string().min(1),
+  personality: z.string().min(1),
+  food_preference: z.string().min(1),
+  interests: z.array(z.string()).optional().default([]),
 });
 
 export async function POST(req: Request) {

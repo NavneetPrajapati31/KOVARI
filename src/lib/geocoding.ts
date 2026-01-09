@@ -86,11 +86,8 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
 
         console.log(`Geocoding (Cache MISS): Looking up coordinates for "${sanitizedLocation}" with OpenStreetMap`);
 
-        // 3. Enforce rate limiting (max 1 request per second per Nominatim policy)
-        await enforceRateLimit();
-
-        // 4. If not in cache, call the OpenStreetMap Nominatim API
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(sanitizedLocation)}&format=json&limit=1&addressdetails=1`;
+        // 3. If not in cache, call the OpenStreetMap Nominatim API
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(sanitizedLocation)}&format=json&limit=1`;
 
         const response = await fetch(url, {
             headers: {
@@ -105,18 +102,12 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Nominatim API failed for "${sanitizedLocation}" with status ${response.status}: ${errorText}`);
-            
-            // If we're still blocked, wait longer before retrying
-            if (response.status === 403) {
-                console.error('Geocoding: Nominatim API blocked (403). Please check your User-Agent and rate limiting.');
-            }
-            
             return null;
         }
 
         const data = await response.json();
 
-        // 5. Parse the result and cache it
+        // 4. Parse the result and cache it
         if (data && Array.isArray(data) && data.length > 0) {
             const lat = parseFloat(data[0].lat);
             const lon = parseFloat(data[0].lon);
@@ -129,7 +120,7 @@ export const getCoordinatesForLocation = async (locationName: string): Promise<C
 
             const coords: Coordinates = { lat, lon };
 
-            // Cache the result for 30 days
+            // FIX: Use setEx (Redis v4+) instead of setex (deprecated)
             await redisClient.setEx(cacheKey, 2592000, JSON.stringify(coords)); // 2592000 seconds = 30 days
             
             console.log(`Geocoding: Successfully found coordinates for "${sanitizedLocation}": ${lat}, ${lon}`);
