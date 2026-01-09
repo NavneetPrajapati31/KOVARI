@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,12 +11,17 @@
 !.yarn/releases
 !.yarn/versions
 
+# apps directory (monorepo/build artifacts)
+/apps/
+
 # testing
 /coverage
 
 # next.js
 /.next/
+**/.next/
 /out/
+**/out/
 
 # production
 /build

@@ -366,7 +366,6 @@ export async function GET(request: NextRequest) {
                   languages: profile.languages,
                   nationality: profile.nationality,
                   location: profile.location || { lat: 0, lon: 0 },
-                  bio: profile.bio,
                   interests: Array.isArray(profile.interests)
                     ? profile.interests
                     : [],

@@ -92,11 +92,11 @@ export async function POST(req: NextRequest) {
 
     // Get matching preset configuration
     const presetSetting = await getSetting("matching_preset");
-    const demoModeSetting = await getSetting("demo_mode");
-    const allowMockUsers = (demoModeSetting as { enabled: boolean } | null)?.enabled || false;
+    const demoModeCheck = await getSetting("demo_mode");
+    const isDemoMode = (demoModeCheck as { enabled: boolean } | null)?.enabled || false;
     
     // Use "demo" preset if demo mode is enabled, otherwise use configured preset
-    const presetMode = allowMockUsers
+    const presetMode = isDemoMode
       ? "demo"
       : ((presetSetting as { mode: string } | null)?.mode || "balanced");
     const presetConfig = getMatchingPresetConfig(presetMode);
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
     console.log("🔍 Fetching group exclusion lists...");
     
     // In demo mode, allow skipped groups to reappear (helpful for demos)
-    const shouldExcludeSkips = !allowMockUsers;
+    const shouldExcludeSkips = !isDemoMode;
     
     const [
       skipsResult,

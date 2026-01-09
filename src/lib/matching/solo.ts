@@ -358,14 +358,14 @@ export const calculateFinalCompatibilityScore = (userSession: SoloSession, match
     return { score: finalScore, breakdown: scores, budgetDifference };
 };
 
-// NEW: Enhanced compatibility check with source/destination validation and 200km hard filter
-export const isCompatibleMatch = (userSession: SoloSession, matchSession: SoloSession): boolean => {
+// NEW: Enhanced compatibility check with source/destination validation and configurable distance filter
+export const isCompatibleMatch = (userSession: SoloSession, matchSession: SoloSession, maxDistanceKm: number = 200): boolean => {
     // Check if source and destination are the same (should be avoided)
     if (isSameSourceDestination(userSession, matchSession)) {
         return false;
     }
     
-    // NEW: Apply 200km hard distance filter (same as group matching)
+    // NEW: Apply configurable hard distance filter (defaults to 200km)
     if (!userSession.destination || !matchSession.destination) {
         return false;
     }
@@ -375,8 +375,8 @@ export const isCompatibleMatch = (userSession: SoloSession, matchSession: SoloSe
         matchSession.destination.lat, matchSession.destination.lon
     );
     
-    // Hard filter: Only allow matches within 200km (same as group matching)
-    if (distance > 200) {
+    // Hard filter: Only allow matches within maxDistanceKm
+    if (distance > maxDistanceKm) {
         return false;
     }
     

@@ -42,16 +42,16 @@ interface GroupProfile {
 // --- 2. HELPER & SCORING FUNCTIONS ---
 
 /**
- * HARD FILTER: Calculates distance and checks if it's within the 200km limit.
+ * HARD FILTER: Calculates distance and checks if it's within the specified limit (default 200km).
  */
-const isWithinDistance = (loc1: Location, loc2: Location): boolean => {
+const isWithinDistance = (loc1: Location, loc2: Location, maxDistanceKm: number = 200): boolean => {
     const R = 6371; // Earth's radius in km
     const dLat = (loc2.lat - loc1.lat) * (Math.PI / 180);
     const dLon = (loc2.lon - loc1.lon) * (Math.PI / 180);
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(loc1.lat * (Math.PI / 180)) * Math.cos(loc2.lat * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
-    return distance <= 200;
+    return distance <= maxDistanceKm;
 };
 
 /**
@@ -138,12 +138,13 @@ const calculateBackgroundScore = (user: UserProfile, group: GroupProfile): numbe
  * Finds the best group matches for a user with a distance filter and a comprehensive weighted score.
  * @param user The profile of the user searching.
  * @param allGroups An array of group profiles fetched from your database.
+ * @param maxDistanceKm Maximum distance in km for matches (defaults to 200km).
  * @returns A ranked list of matched groups.
  */
-export const findGroupMatchesForUser = (user: UserProfile, allGroups: GroupProfile[]) => {
+export const findGroupMatchesForUser = (user: UserProfile, allGroups: GroupProfile[], maxDistanceKm: number = 200) => {
 
-  // Step 1: Apply the hard distance filter. Only groups within 200km are considered.
-  const nearbyGroups = allGroups.filter(group => isWithinDistance(user.destination, group.destination));
+  // Step 1: Apply the hard distance filter. Only groups within maxDistanceKm are considered.
+  const nearbyGroups = allGroups.filter(group => isWithinDistance(user.destination, group.destination, maxDistanceKm));
 
   // Step 2: Calculate a comprehensive, weighted score for every nearby group.
   const scoredMatches = nearbyGroups.map(group => {
