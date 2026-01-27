@@ -353,7 +353,7 @@ const GroupHomePage = () => {
   // Membership check and error handling must be before any layout rendering
   if (membershipLoading) {
     return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[80vh]">
+      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden flex items-center justify-center h-[90vh]">
         <div className="flex items-center space-x-2">
           <Spinner variant="spinner" size="sm" color="primary" />
           <span className="text-primary text-sm">Checking membership...</span>
