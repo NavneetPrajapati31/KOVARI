@@ -46,6 +46,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           Update your group&apos;s name, description, and cover image.
         </p>
       </div>
+      <div className="space-y-4 w-full max-w-full pb-4">
       <Card className="border-1 border-border bg-transparent">
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -127,6 +128,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           </Button>
         </CardContent>
       </Card>
+      </div>
     </>
   );
 };

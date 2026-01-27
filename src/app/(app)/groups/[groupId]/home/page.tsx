@@ -59,9 +59,8 @@ import {
   CollapsibleTrigger,
 } from "@/shared/components/ui/collapsible";
 import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
-import { AlertCircle, Flag } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { ReportDialog } from "@/shared/components/ReportDialog";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -140,7 +139,6 @@ const GroupHomePage = () => {
   const [noteSaveError, setNoteSaveError] = useState<string | null>(null);
   const [displayDate, setDisplayDate] = useState("Jun 22, 2024");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
   const [groupInfoLoading, setGroupInfoLoading] = useState(true);
@@ -581,26 +579,9 @@ const GroupHomePage = () => {
                           {groupInfo?.description}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setIsReportDialogOpen(true)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0 h-6 w-6 sm:h-auto sm:w-auto sm:px-2 sm:py-1 p-0"
-                        aria-label="Report group"
-                      >
-                        <Flag className="h-3.5 w-3.5 sm:mr-1.5" />
-                        <span className="hidden sm:inline text-xs">Report</span>
-                      </Button>
                     </div>
                   </>
                 )}
-                <ReportDialog
-                  open={isReportDialogOpen}
-                  onOpenChange={setIsReportDialogOpen}
-                  targetType="group"
-                  targetId={params.groupId || ""}
-                  targetName={groupInfo?.name}
-                />
 
                 <Divider />
 
@@ -798,7 +779,7 @@ const GroupHomePage = () => {
                                 <Skeleton className="h-3 w-full mb-4 rounded-full" />
                               </div>
                             ))
-                          : itineraryItems.slice(0, 4).map((item) => (
+                          : itineraryItems.map((item) => (
                               <div
                                 key={item.id}
                                 className="border-1 border-border rounded-2xl p-3"
@@ -1215,7 +1196,13 @@ const GroupHomePage = () => {
                     </div>
 
                     {/* Itinerary Items */}
-                    <div className="space-y-2 mt-1">
+                    <div
+                      className={`space-y-2 mt-1 ${
+                        itineraryItems.length > 6
+                          ? "max-h-[420px] overflow-y-auto hide-scrollbar pr-2"
+                          : ""
+                      }`}
+                    >
                       {itineraryLoading
                         ? Array.from({ length: 4 }).map((_, i) => (
                             <div
@@ -1330,7 +1317,7 @@ const GroupHomePage = () => {
                     <div className="flex items-start justify-between gap-2 w-full">
                       <div className="flex-1 min-w-0">
                         <span
-                          className="text-md font-bold leading-tight truncate text-foreground block"
+                          className="text-md font-bold leading-tight truncate text-foreground block mb-2"
                           title={groupInfo?.name}
                         >
                           {groupInfo?.name}
@@ -1339,27 +1326,10 @@ const GroupHomePage = () => {
                           {groupInfo?.description}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setIsReportDialogOpen(true)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0 h-6 w-6 sm:h-auto sm:w-auto sm:px-2 sm:py-1 p-0"
-                        aria-label="Report group"
-                      >
-                        <Flag className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-1.5" />
-                        <span className="hidden sm:inline text-xs">Report</span>
-                      </Button>
                     </div>
                   </>
                 )}
               </div>
-              <ReportDialog
-                open={isReportDialogOpen}
-                onOpenChange={setIsReportDialogOpen}
-                targetType="group"
-                targetId={params.groupId || ""}
-                targetName={groupInfo?.name}
-              />
               <CardHeader className="flex flex-col p-3 items-start">
                 <h2 className="text-sm font-semibold text-foreground mb-1">
                   {membersLoading ? (
@@ -1609,7 +1579,13 @@ const GroupHomePage = () => {
                   </div>
 
                   {/* Itinerary Items */}
-                  <div className="space-y-2 mt-1">
+                  <div
+                    className={`space-y-2 mt-1 ${
+                      itineraryItems.length > 6
+                        ? "max-h-[600px] overflow-y-auto hide-scrollbar pr-2"
+                        : ""
+                    }`}
+                  >
                     {itineraryLoading
                       ? Array.from({ length: 4 }).map((_, i) => (
                           <div

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
@@ -19,7 +19,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
-import { Shield, AlertTriangle, Globe, Lock, Users } from "lucide-react";
+import { Shield, AlertTriangle, Globe, Lock, Users, Flag } from "lucide-react";
+import { useParams } from "next/navigation";
+import { ReportDialog } from "@/shared/components/ReportDialog";
 
 interface PrivacySafetySectionProps {
   form: UseFormReturn<any>;
@@ -39,6 +41,26 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
   } = form;
 
   const watchedValues = watch();
+  const params = useParams<{ groupId: string }>();
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [groupInfo, setGroupInfo] = useState<{ name?: string } | null>(null);
+
+  // Fetch group info for report dialog
+  React.useEffect(() => {
+    const fetchGroupInfo = async () => {
+      try {
+        const response = await fetch(`/api/groups/${params.groupId}`);
+        if (!response.ok) throw new Error("Failed to fetch group info");
+        const data = await response.json();
+        setGroupInfo(data);
+      } catch (err) {
+        console.error("Failed to fetch group info:", err);
+      }
+    };
+    if (params.groupId) {
+      fetchGroupInfo();
+    }
+  }, [params.groupId]);
 
   return (
     <>
@@ -50,7 +72,7 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
           Control who can see and join your group.
         </p>
       </div>
-      <div className="space-y-4 w-full max-w-full">
+      <div className="space-y-4 w-full max-w-full pb-4">
         <Card className="border-1 border-border bg-transparent w-full max-w-full min-w-0">
           <CardContent className="space-y-4 w-full max-w-full min-w-0">
             <div className="space-y-2">
@@ -215,6 +237,39 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
         >
           {isSubmitting ? "Saving..." : "Save Privacy Settings"}
         </Button>
+
+        <Card className="border-1 border-border bg-transparent w-full max-w-full min-w-0">
+          <CardHeader className="pb-4 w-full max-w-full min-w-0">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-destructive">
+              <Flag className="h-4 w-4" />
+              Report Group
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Report this group if you believe it violates our community guidelines or terms of service.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 w-full max-w-full min-w-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsReportDialogOpen(true)}
+              className="w-full h-9 text-sm text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive"
+            >
+              <Flag className="h-4 w-4 mr-2" />
+              Report Group
+            </Button>
+          </CardContent>
+        </Card>
+
+        <ReportDialog
+          open={isReportDialogOpen}
+          onOpenChange={setIsReportDialogOpen}
+          targetType="group"
+          targetId={params.groupId || ""}
+          targetName={groupInfo?.name}
+        />
+
+        
       </div>
     </>
   );
