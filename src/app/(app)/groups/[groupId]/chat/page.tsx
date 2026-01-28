@@ -6,9 +6,6 @@ import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
-  Search,
-  Phone,
-  Video,
   MoreVertical,
   Mic,
   Send,
@@ -19,6 +16,8 @@ import {
   Lock,
   User,
   Plus,
+  Flag,
+  Images,
 } from "lucide-react";
 import { PiPaperclip } from "react-icons/pi";
 import { HiPlay } from "react-icons/hi";
@@ -41,6 +40,13 @@ import { useUser } from "@clerk/nextjs";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { Skeleton } from "@heroui/react";
 import MediaViewerModal from "@/shared/components/media-viewer-modal";
+import { ReportDialog } from "@/shared/components/ReportDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import Link from "next/link";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
@@ -60,24 +66,24 @@ function ChatPageSkeleton() {
         {/* Sidebar skeleton - hidden on small/medium like real sidebar */}
         <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-hidden hidden lg:block">
           <div className="p-5">
-            <div className="text-center mb-4 border-b border-border pb-3">
+            <div className="text-center mb-4 border-b border-border pb-4">
               <Skeleton className="mx-auto mb-3 rounded-full w-16 h-16" />
               <Skeleton className="h-4 w-32 mx-auto mb-2 rounded-lg" />
               <Skeleton className="h-3 w-20 mx-auto rounded-lg" />
             </div>
-            <div className="mb-3 border-b border-border pb-3">
+            <div className="mb-3 border-b border-border pb-4">
               <div className="flex items-center justify-between mt-2 mb-4">
                 <Skeleton className="h-3.5 w-16 rounded-lg" />
                 <Skeleton className="h-3 w-12 rounded-lg" />
               </div>
               <div className="flex gap-2">
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                   <Skeleton key={i} className="rounded-full w-10 h-10 shrink-0" />
                 ))}
               </div>
             </div>
             <div>
-              <div className="flex items-center justify-between mt-2 mb-4">
+              <div className="flex items-center justify-between mt-4 mb-4">
                 <Skeleton className="h-3.5 w-28 rounded-lg" />
                 <Skeleton className="h-3 w-14 rounded-lg" />
               </div>
@@ -109,6 +115,15 @@ function ChatPageSkeleton() {
 
           {/* Messages area */}
           <div className="flex-1 overflow-hidden p-4 space-y-4">
+          <div className="flex justify-start">
+              <div className="flex items-end gap-2 max-w-[75%]">
+                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
+                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
+            </div>
             <div className="flex justify-start">
               <div className="flex items-end gap-2 max-w-[75%]">
                 <Skeleton className="rounded-full w-8 h-8 shrink-0" />
@@ -121,16 +136,7 @@ function ChatPageSkeleton() {
             <div className="flex justify-start">
               <div className="flex items-end gap-2 max-w-[75%]">
                 <Skeleton className="rounded-full w-8 h-8 shrink-0" />
-                <Skeleton className="h-14 w-56 rounded-2xl rounded-bl-md" />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="h-16 w-36 rounded-2xl rounded-br-md" />
-            </div>
-            <div className="flex justify-start">
-              <div className="flex items-end gap-2 max-w-[75%]">
-                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
-                <Skeleton className="h-10 w-32 rounded-2xl rounded-bl-md" />
+                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
               </div>
             </div>
             <div className="flex justify-end">
@@ -139,7 +145,7 @@ function ChatPageSkeleton() {
             <div className="flex justify-start">
               <div className="flex items-end gap-2 max-w-[75%]">
                 <Skeleton className="rounded-full w-8 h-8 shrink-0" />
-                <Skeleton className="h-10 w-32 rounded-2xl rounded-bl-md" />
+                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
               </div>
             </div>
             <div className="flex justify-end">
@@ -203,6 +209,8 @@ export default function GroupChatInterface() {
     undefined
   );
   const [modalSender, setModalSender] = useState<string | undefined>(undefined);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isMediaSheetOpen, setIsMediaSheetOpen] = useState(false);
 
   const {
     messages,
@@ -788,34 +796,59 @@ export default function GroupChatInterface() {
                   {members.length} members
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-1">
                 <Button
                   size="icon"
-                  className="bg-transparent text-muted-foreground hover:text-foreground"
+                  className="lg:hidden bg-transparent text-muted-foreground hover:text-foreground"
+                  aria-label="Photos and videos"
+                  onClick={() => setIsMediaSheetOpen(true)}
                 >
-                  <Search className="h-5 w-5" />
+                  <Images className="h-5 w-5" />
                 </Button>
-                <Button
-                  size="icon"
-                  className="bg-transparent text-muted-foreground hover:text-foreground"
-                >
-                  <Phone className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="icon"
-                  className="bg-transparent text-muted-foreground hover:text-foreground"
-                >
-                  <Video className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="icon"
-                  className="bg-transparent text-muted-foreground hover:text-foreground"
-                >
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      className="bg-transparent text-muted-foreground hover:text-foreground"
+                      aria-label="More options"
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => setIsReportDialogOpen(true)}
+                    className="gap-2 bg-transparent hover:bg-transparent text-destructive hover:text-destructive focus:bg-transparent focus:text-destructive hover:cursor-pointer"
+                  >
+                    {/* <Flag className="h-4 w-4" /> */}
+                    Report group
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
+
+          {/* Photos & videos: direct full-screen gallery on small screens (no middle view) */}
+          {isMediaSheetOpen && (
+            <div className="fixed inset-0 z-[90] bg-background">
+              {userId ? (
+                <GroupMediaSection
+                  groupId={groupId}
+                  userId={userId}
+                  initialGalleryOpen
+                  onGalleryClose={() => setIsMediaSheetOpen(false)}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <Spinner variant="spinner" size="sm" color="primary" />
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    Loading...
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Messages */}
           <div
@@ -1092,6 +1125,13 @@ export default function GroupChatInterface() {
         timestamp={modalTimestamp} // already raw, ensure it's not formatted
         sender={modalSender}
       />
+      <ReportDialog
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        targetType="group"
+        targetId={groupId || ""}
+        targetName={groupInfo?.name}
+      />
     </div>
   );
 }
@@ -1106,7 +1146,7 @@ const MediaWithSkeleton = ({
 }) => {
   const [loaded, setLoaded] = useState(false);
   return (
-    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+    <div className="relative w-40 h-32 md:w-56 md:h-32 max-w-full">
       {!loaded && (
         <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
       )}
@@ -1133,7 +1173,7 @@ const VideoWithSkeleton = ({
 }) => {
   const [loaded, setLoaded] = useState(false);
   return (
-    <div className="relative w-40 h-32 md:w-60 md:h-44 lg:w-80 lg:h-60 max-w-full">
+    <div className="relative w-40 h-32 md:w-56 md:h-32 max-w-full">
       {!loaded && (
         <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
       )}

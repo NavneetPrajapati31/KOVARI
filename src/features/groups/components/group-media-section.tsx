@@ -16,10 +16,19 @@ interface MediaItem {
 
 interface Props {
   groupId: string;
-  userId: string; // <-- add userId prop
+  userId: string;
+  /** When true, open the full-screen gallery immediately (e.g. from chat header button). */
+  initialGalleryOpen?: boolean;
+  /** Called when the gallery is closed (so parent can close sheet/overlay). */
+  onGalleryClose?: () => void;
 }
 
-export const GroupMediaSection = ({ groupId, userId }: Props) => {
+export const GroupMediaSection = ({
+  groupId,
+  userId,
+  initialGalleryOpen = false,
+  onGalleryClose,
+}: Props) => {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +48,7 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
   const [modalCurrentIndex, setModalCurrentIndex] = useState(0);
 
   // Full-screen "See all" gallery (WhatsApp/Telegram style)
-  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(initialGalleryOpen);
 
   // Fetch group members
   const { members } = useGroupMembers(groupId);
@@ -68,11 +77,21 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
+  // When parent asks for gallery to open immediately (e.g. from chat header)
+  useEffect(() => {
+    if (initialGalleryOpen) setGalleryOpen(true);
+  }, [initialGalleryOpen]);
+
+  const handleCloseGallery = () => {
+    setGalleryOpen(false);
+    onGalleryClose?.();
+  };
+
   // Close gallery on Escape
   useEffect(() => {
     if (!galleryOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setGalleryOpen(false);
+      if (e.key === "Escape") handleCloseGallery();
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -246,7 +265,7 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
       {/* Full-screen "See all" gallery (WhatsApp/Telegram style) */}
       {galleryOpen && (
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-card"
+          className="fixed inset-0 z-[100] flex flex-col bg-card"
           aria-modal="true"
           role="dialog"
           aria-label="Photos and videos gallery"
@@ -259,7 +278,7 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
               size="icon"
               className="h-9 w-9 rounded-full hover:bg-transparent hover:text-foreground"
               aria-label="Close gallery"
-              onClick={() => setGalleryOpen(false)}
+              onClick={handleCloseGallery}
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -271,50 +290,59 @@ export const GroupMediaSection = ({ groupId, userId }: Props) => {
             </span>
           </div>
 
-          {/* Scrollable grid - 3 columns like Telegram */}
-          <div className="flex-1 overflow-y-auto hide-scrollbar p-2 sm:p-3">
-            <div className="grid grid-cols-4 gap-1 sm:gap-2">
-              {media.map((item, idx) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="aspect-[4/3] rounded-lg overflow-hidden relative group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  aria-label={`View ${item.type} ${idx + 1} of ${media.length}`}
-                  onClick={() => {
-                    setModalCurrentIndex(idx);
-                    const displayName =
-                      members.find((m) => m.id === item.uploaded_by)?.name ||
-                      "Unknown";
-                    setModalMediaUrl(item.url);
-                    setModalMediaType(item.type);
-                    setModalTimestamp(item.created_at);
-                    setModalSender(displayName);
-                    setModalOpen(true);
-                  }}
-                >
-                  {item.type === "image" ? (
-                    <img
-                      src={item.url}
-                      alt=""
-                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                    />
-                  ) : (
-                    <>
-                      <video
+          {/* Scrollable grid - 3 cols on small, 4 on sm+ */}
+          <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
+              {loading ? (
+                Array.from({ length: 12 }).map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    className="aspect-[4/3] w-full rounded-lg"
+                  />
+                ))
+              ) : (
+                media.map((item, idx) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="aspect-[4/3] rounded-lg overflow-hidden relative group focus:outline-none focus:ring-0 focus:ring-offset-0"
+                    aria-label={`View ${item.type} ${idx + 1} of ${media.length}`}
+                    onClick={() => {
+                      setModalCurrentIndex(idx);
+                      const displayName =
+                        members.find((m) => m.id === item.uploaded_by)?.name ||
+                        "Unknown";
+                      setModalMediaUrl(item.url);
+                      setModalMediaType(item.type);
+                      setModalTimestamp(item.created_at);
+                      setModalSender(displayName);
+                      setModalOpen(true);
+                    }}
+                  >
+                    {item.type === "image" ? (
+                      <img
                         src={item.url}
+                        alt=""
                         className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                        muted
-                        playsInline
-                        preload="metadata"
-                        aria-hidden
                       />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-                        <HiPlay className="h-8 w-8 text-white drop-shadow" />
-                      </div>
-                    </>
-                  )}
-                </button>
-              ))}
+                    ) : (
+                      <>
+                        <video
+                          src={item.url}
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                          muted
+                          playsInline
+                          preload="metadata"
+                          aria-hidden
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                          <HiPlay className="h-8 w-8 text-white drop-shadow" />
+                        </div>
+                      </>
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>

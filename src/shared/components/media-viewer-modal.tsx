@@ -143,7 +143,7 @@ export const MediaViewerModal = ({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md transition-all p-0 sm:p-2 md:p-4"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-md transition-all p-0 sm:p-2 md:p-4"
       aria-modal="true"
       role="dialog"
       aria-label={
