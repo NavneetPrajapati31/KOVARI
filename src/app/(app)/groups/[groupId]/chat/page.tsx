@@ -106,10 +106,10 @@ function ChatPageSkeleton() {
                 <Skeleton className="h-3 w-[60%] min-w-[6rem] max-w-[8rem] sm:max-w-[10rem] md:max-w-[11rem] mb-1.5 sm:mb-2 rounded-lg" />
                 <Skeleton className="h-3 w-14 sm:w-20 rounded-lg" />
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              {/* <div className="flex items-center gap-1 shrink-0">
                 <Skeleton className="rounded-full w-8 h-8 sm:w-9 sm:h-9" />
                 <Skeleton className="rounded-full w-8 h-8 sm:w-9 sm:h-9" />
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -553,8 +553,8 @@ export default function GroupChatInterface() {
     );
   }
 
-  // After membership check: show skeletons while chat data is loading
-  if (loading) {
+  // After membership check: show skeletons only on initial load (not when sending or refetching)
+  if (loading && messages.length === 0) {
     return <ChatPageSkeleton />;
   }
 
