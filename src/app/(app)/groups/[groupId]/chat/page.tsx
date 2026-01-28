@@ -41,6 +41,7 @@ import { useUser } from "@clerk/nextjs";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { Skeleton } from "@heroui/react";
 import MediaViewerModal from "@/shared/components/media-viewer-modal";
+import Link from "next/link";
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
 
@@ -50,6 +51,125 @@ const isRealTextMessage = (content: string) => {
   const trimmed = content.trim();
   return trimmed !== "" && trimmed !== "[Encrypted message]";
 };
+
+/** Skeleton shown after membership check while chat/messages are loading */
+function ChatPageSkeleton() {
+  return (
+    <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
+      <div className="flex h-[90vh]">
+        {/* Sidebar skeleton - hidden on small/medium like real sidebar */}
+        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-hidden hidden lg:block">
+          <div className="p-5">
+            <div className="text-center mb-4 border-b border-border pb-3">
+              <Skeleton className="mx-auto mb-3 rounded-full w-16 h-16" />
+              <Skeleton className="h-4 w-32 mx-auto mb-2 rounded-lg" />
+              <Skeleton className="h-3 w-20 mx-auto rounded-lg" />
+            </div>
+            <div className="mb-3 border-b border-border pb-3">
+              <div className="flex items-center justify-between mt-2 mb-4">
+                <Skeleton className="h-3.5 w-16 rounded-lg" />
+                <Skeleton className="h-3 w-12 rounded-lg" />
+              </div>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="rounded-full w-10 h-10 shrink-0" />
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mt-2 mb-4">
+                <Skeleton className="h-3.5 w-28 rounded-lg" />
+                <Skeleton className="h-3 w-14 rounded-lg" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main chat area skeleton */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <div className="px-3 sm:px-5 py-3 border-b border-border">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <Skeleton className="h-4 w-36 sm:w-44 mb-2 rounded-lg" />
+                <Skeleton className="h-3 w-20 rounded-lg" />
+              </div>
+              {/* <div className="flex items-center gap-1 shrink-0">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="rounded-full w-9 h-9" />
+                ))}
+              </div> */}
+            </div>
+          </div>
+
+          {/* Messages area */}
+          <div className="flex-1 overflow-hidden p-4 space-y-4">
+            <div className="flex justify-start">
+              <div className="flex items-end gap-2 max-w-[75%]">
+                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
+                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
+            </div>
+            <div className="flex justify-start">
+              <div className="flex items-end gap-2 max-w-[75%]">
+                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
+                <Skeleton className="h-14 w-56 rounded-2xl rounded-bl-md" />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-16 w-36 rounded-2xl rounded-br-md" />
+            </div>
+            <div className="flex justify-start">
+              <div className="flex items-end gap-2 max-w-[75%]">
+                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
+                <Skeleton className="h-10 w-32 rounded-2xl rounded-bl-md" />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
+            </div>
+            <div className="flex justify-start">
+              <div className="flex items-end gap-2 max-w-[75%]">
+                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
+                <Skeleton className="h-10 w-32 rounded-2xl rounded-bl-md" />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
+            </div>
+            <div className="flex justify-start">
+              <div className="flex items-end gap-2 max-w-[75%]">
+                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
+                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
+            </div>
+          </div>
+
+          {/* Input bar */}
+          {/* <div className="border-t border-border px-2 py-2">
+            <div className="flex items-center gap-1">
+              <Skeleton className="rounded-full w-9 h-9 shrink-0" />
+              <Skeleton className="flex-1 h-9 rounded-full max-w-md" />
+              <Skeleton className="rounded-full w-9 h-9 shrink-0" />
+              <Skeleton className="rounded-full w-9 h-9 shrink-0" />
+            </div>
+          </div> */}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function GroupChatInterface() {
   const params = useParams();
@@ -456,18 +576,10 @@ export default function GroupChatInterface() {
     );
   }
 
-  // if (loading && messages.length === 0) {
-  //   return (
-  //     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-  //       <div className="flex h-[90vh] items-center justify-center">
-  //         <div className="flex items-center space-x-2">
-  //           <Spinner variant="spinner" size="md" color="primary" />
-  //           {/* <span className="text-muted-foreground">Loading chat...</span> */}
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  // After membership check: show skeletons while chat data is loading
+  if (loading) {
+    return <ChatPageSkeleton />;
+  }
 
   return (
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
@@ -499,9 +611,11 @@ export default function GroupChatInterface() {
                 <h3 className="text-sm font-semibold text-foreground">
                   Members
                 </h3>
-                <Button className="bg-transparent text-primary text-sm p-0 h-auto font-medium">
-                  See all
-                </Button>
+                <Link href={`/groups/${groupId}/settings?tab=members`}>
+                  <Button className="bg-transparent text-primary text-sm p-0 h-auto font-medium">
+                    See all
+                  </Button>
+                </Link>
               </div>
               {membersLoading ? (
                 <div className="flex items-center justify-center py-4">
