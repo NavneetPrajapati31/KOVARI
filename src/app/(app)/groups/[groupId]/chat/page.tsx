@@ -17,8 +17,9 @@ import {
   User,
   Plus,
   Flag,
-  Images,
+  Image,
 } from "lucide-react";
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import { PiPaperclip } from "react-icons/pi";
 import { HiPlay } from "react-icons/hi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
@@ -102,7 +103,7 @@ function ChatPageSkeleton() {
           <div className="px-3 sm:px-5 py-3 border-b border-border">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <Skeleton className="h-4 w-36 sm:w-44 mb-2 rounded-lg" />
+                <Skeleton className="h-3 w-36 sm:w-44 mb-2 rounded-lg" />
                 <Skeleton className="h-3 w-20 rounded-lg" />
               </div>
               {/* <div className="flex items-center gap-1 shrink-0">
@@ -114,7 +115,7 @@ function ChatPageSkeleton() {
           </div>
 
           {/* Messages area */}
-          <div className="flex-1 overflow-hidden p-4 space-y-4">
+          <div className="flex-1 overflow-hidden p-4 space-y-4 mt-2">
           <div className="flex justify-start">
               <div className="flex items-end gap-2 max-w-[75%]">
                 <Skeleton className="rounded-full w-8 h-8 shrink-0" />
@@ -797,31 +798,32 @@ export default function GroupChatInterface() {
                 </p>
               </div>
               <div className="flex items-center gap-1">
-                <Button
-                  size="icon"
-                  className="lg:hidden bg-transparent text-muted-foreground hover:text-foreground"
+                <button
+                  className="lg:hidden p-2 rounded-full bg-transparent text-muted-foreground hover:text-foreground focus:outline-none focus:ring-0"
                   aria-label="Photos and videos"
                   onClick={() => setIsMediaSheetOpen(true)}
                 >
-                  <Images className="h-5 w-5" />
-                </Button>
+                  <ImageOutlinedIcon className="h-5 w-5 text-muted-foreground" />
+                </button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      size="icon"
-                      className="bg-transparent text-muted-foreground hover:text-foreground"
+                    <button
+                      className="p-2 rounded-full bg-transparent text-muted-foreground hover:text-foreground focus:outline-none focus:ring-0"
                       aria-label="More options"
                     >
                       <MoreVertical className="h-5 w-5" />
-                    </Button>
+                    </button>
                   </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 transition-all duration-300 ease-in-out border-border">
                   <DropdownMenuItem
                     onClick={() => setIsReportDialogOpen(true)}
-                    className="gap-2 bg-transparent hover:bg-transparent text-destructive hover:text-destructive focus:bg-transparent focus:text-destructive hover:cursor-pointer"
+                     className="text-destructive font-semibold hover:cursor-pointer focus:bg-transparent focus:text-destructive focus-within:!border-none focus-within:!outline-none"
                   >
                     {/* <Flag className="h-4 w-4" /> */}
-                    Report group
+                    <span className="flex items-center gap-2">
+              {/* <Flag className="h-4 w-4" /> */}
+              Report Group
+            </span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
