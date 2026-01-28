@@ -291,8 +291,8 @@ export const GroupMediaSection = ({
           </div>
 
           {/* Scrollable grid - 3 cols on small, 4 on sm+ */}
-          <div className="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-3">
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div className="flex-1 overflow-y-auto hide-scrollbar p-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {loading ? (
                 Array.from({ length: 24 }).map((_, i) => (
                   <Skeleton

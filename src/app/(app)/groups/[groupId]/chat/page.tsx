@@ -62,35 +62,35 @@ const isRealTextMessage = (content: string) => {
 /** Skeleton shown after membership check while chat/messages are loading */
 function ChatPageSkeleton() {
   return (
-    <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-      <div className="flex h-[90vh]">
+    <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden h-[90vh] min-h-[50dvh] sm:min-h-[60dvh]">
+      <div className="flex h-full min-h-0">
         {/* Sidebar skeleton - hidden on small/medium like real sidebar */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-hidden hidden lg:block">
-          <div className="p-5">
-            <div className="text-center mb-4 border-b border-border pb-4">
-              <Skeleton className="mx-auto mb-3 rounded-full w-16 h-16" />
-              <Skeleton className="h-4 w-32 mx-auto mb-2 rounded-lg" />
-              <Skeleton className="h-3 w-20 mx-auto rounded-lg" />
+        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-hidden hidden lg:block shrink-0">
+          <div className="p-4 sm:p-5 overflow-y-auto h-full">
+            <div className="text-center mb-3 sm:mb-4 border-b border-border pb-3 sm:pb-4">
+              <Skeleton className="mx-auto mb-2 sm:mb-3 rounded-full w-14 h-14 sm:w-16 sm:h-16" />
+              <Skeleton className="h-3.5 sm:h-4 w-24 sm:w-32 mx-auto mb-1.5 sm:mb-2 rounded-lg" />
+              <Skeleton className="h-3 w-16 sm:w-20 mx-auto rounded-lg" />
             </div>
-            <div className="mb-3 border-b border-border pb-4">
-              <div className="flex items-center justify-between mt-2 mb-4">
-                <Skeleton className="h-3.5 w-16 rounded-lg" />
-                <Skeleton className="h-3 w-12 rounded-lg" />
+            <div className="mb-3 border-b border-border pb-3 sm:pb-4">
+              <div className="flex items-center justify-between mt-2 mb-2 sm:mb-3">
+                <Skeleton className="h-3 sm:h-3.5 w-14 sm:w-16 rounded-lg" />
+                <Skeleton className="h-3 w-10 sm:w-12 rounded-lg" />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <Skeleton key={i} className="rounded-full w-10 h-10 shrink-0" />
+                  <Skeleton key={i} className="rounded-full w-8 h-8 sm:w-10 sm:h-10 shrink-0" />
                 ))}
               </div>
             </div>
             <div>
-              <div className="flex items-center justify-between mt-4 mb-4">
-                <Skeleton className="h-3.5 w-28 rounded-lg" />
-                <Skeleton className="h-3 w-14 rounded-lg" />
+              <div className="flex items-center justify-between mt-3 sm:mt-4 mb-2 sm:mb-3">
+                <Skeleton className="h-3 sm:h-3.5 w-24 sm:w-28 rounded-lg" />
+                <Skeleton className="h-3 w-12 sm:w-14 rounded-lg" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                 {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
+                  <Skeleton key={i} className="aspect-[4/3] w-full rounded-lg sm:rounded-xl min-h-0" />
                 ))}
               </div>
             </div>
@@ -98,80 +98,48 @@ function ChatPageSkeleton() {
         </div>
 
         {/* Main chat area skeleton */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Header */}
-          <div className="px-3 sm:px-5 py-3 border-b border-border">
+          <div className="shrink-0 px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 border-b border-border">
             <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <Skeleton className="h-3 w-36 sm:w-44 mb-2 rounded-lg" />
-                <Skeleton className="h-3 w-20 rounded-lg" />
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-3 w-[60%] min-w-[6rem] max-w-[8rem] sm:max-w-[10rem] md:max-w-[11rem] mb-1.5 sm:mb-2 rounded-lg" />
+                <Skeleton className="h-3 w-14 sm:w-20 rounded-lg" />
               </div>
-              {/* <div className="flex items-center gap-1 shrink-0">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="rounded-full w-9 h-9" />
-                ))}
-              </div> */}
+              <div className="flex items-center gap-1 shrink-0">
+                <Skeleton className="rounded-full w-8 h-8 sm:w-9 sm:h-9" />
+                <Skeleton className="rounded-full w-8 h-8 sm:w-9 sm:h-9" />
+              </div>
             </div>
           </div>
 
-          {/* Messages area */}
-          <div className="flex-1 overflow-hidden p-4 space-y-4 mt-2">
-          <div className="flex justify-start">
-              <div className="flex items-end gap-2 max-w-[75%]">
-                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
-                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
-            </div>
-            <div className="flex justify-start">
-              <div className="flex items-end gap-2 max-w-[75%]">
-                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
-                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
-            </div>
-            <div className="flex justify-start">
-              <div className="flex items-end gap-2 max-w-[75%]">
-                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
-                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
-            </div>
-            <div className="flex justify-start">
-              <div className="flex items-end gap-2 max-w-[75%]">
-                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
-                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
-            </div>
-            <div className="flex justify-start">
-              <div className="flex items-end gap-2 max-w-[75%]">
-                <Skeleton className="rounded-full w-8 h-8 shrink-0" />
-                <Skeleton className="h-12 w-48 rounded-2xl rounded-bl-md" />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-2xl rounded-br-md" />
-            </div>
+          {/* Messages area - scrollable */}
+          <div className="flex-1 min-h-0 overflow-hidden p-3 sm:p-4 space-y-3 sm:space-y-4">
+            {(["sender", "user", "sender", "user", "sender", "user", "sender", "user","sender","user"] as const).map((type, i) =>
+              type === "sender" ? (
+                <div key={i} className="flex justify-start">
+                  <div className="flex items-end gap-1.5 sm:gap-2 w-[70%] min-w-[4rem] max-w-[12rem] sm:max-w-[14rem]">
+                    <Skeleton className="rounded-full w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
+                    <Skeleton className="h-10 sm:h-12 w-[70%] min-w-[4rem] max-w-[12rem] sm:max-w-[14rem] rounded-2xl rounded-bl-md shrink-0" />
+                  </div>
+                </div>
+              ) : (
+                <div key={i} className="flex justify-end">
+                  <Skeleton className="h-9 sm:h-10 w-[55%] min-w-[3.5rem] max-w-[10rem] sm:max-w-[11rem] rounded-2xl rounded-br-md shrink-0" />
+                </div>
+              )
+            )}
           </div>
 
           {/* Input bar */}
-          {/* <div className="border-t border-border px-2 py-2">
-            <div className="flex items-center gap-1">
-              <Skeleton className="rounded-full w-9 h-9 shrink-0" />
-              <Skeleton className="flex-1 h-9 rounded-full max-w-md" />
-              <Skeleton className="rounded-full w-9 h-9 shrink-0" />
-              <Skeleton className="rounded-full w-9 h-9 shrink-0" />
+          <div className="shrink-0 border-t border-border px-2 sm:px-3 py-3">
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <Skeleton className="rounded-full w-7 h-7 shrink-0" />
+              <Skeleton className="flex-1 min-w-0 h-7 rounded-full max-w-full" />
+              <Skeleton className="rounded-full w-7 h-7 shrink-0" />
+              <Skeleton className="rounded-full w-7 h-7 shrink-0" />
             </div>
-          </div> */}
+          </div>
         </div>
       </div>
     </div>
@@ -771,7 +739,7 @@ export default function GroupChatInterface() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-sm font-semibold text-foreground">
+                  <h1 className="text-xs font-semibold text-foreground">
                     {groupInfo?.name || "Loading..."}
                   </h1>
                   {/* {isEncryptionAvailable && keyFingerprint && (
