@@ -456,18 +456,18 @@ export default function GroupChatInterface() {
     );
   }
 
-  if (loading && messages.length === 0) {
-    return (
-      <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
-        <div className="flex h-[90vh] items-center justify-center">
-          <div className="flex items-center space-x-2">
-            <Spinner variant="spinner" size="md" color="primary" />
-            {/* <span className="text-muted-foreground">Loading chat...</span> */}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (loading && messages.length === 0) {
+  //   return (
+  //     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
+  //       <div className="flex h-[90vh] items-center justify-center">
+  //         <div className="flex items-center space-x-2">
+  //           <Spinner variant="spinner" size="md" color="primary" />
+  //           {/* <span className="text-muted-foreground">Loading chat...</span> */}
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
