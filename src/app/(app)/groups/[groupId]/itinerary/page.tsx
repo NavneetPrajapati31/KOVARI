@@ -14,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { Label } from "@/shared/components/ui/label";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +35,9 @@ import {
   MapPin,
   AlertCircle,
 } from "lucide-react";
-import { Chip, Spinner } from "@heroui/react";
+import { Chip, Spinner, DatePicker } from "@heroui/react";
+import { getLocalTimeZone, today, parseDate } from "@internationalized/date";
+import { cn } from "@/shared/utils/utils";
 import { createClient } from "@/lib/supabase";
 import {
   DropdownMenu,
@@ -136,6 +140,15 @@ const COLUMN_BADGES: Record<string, { label: string; color: string }> = {
   completed: { label: "Completed", color: "bg-green-50 text-green-700" },
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
 };
+
+// Helper: format Date + time string to datetime-local value (YYYY-MM-DDTHH:mm)
+function toDatetimeLocal(d: Date, timeStr?: string): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const [hh, mm] = (timeStr ?? "00:00").slice(0, 5).split(":");
+  return `${y}-${m}-${day}T${hh || "00"}:${mm || "00"}`;
+}
 
 // Priority badge mapping
 const PRIORITY_BADGES: Record<string, string> = {
@@ -686,7 +699,7 @@ export default function ItineraryPage() {
         {/* Right side - Team avatars and action buttons */}
         <div className="flex items-center gap-4">
           {/* Team member avatars */}
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <div className="flex -space-x-2">
               {groupMembers.slice(0, 4).map((member) => (
                 <img
@@ -705,35 +718,16 @@ export default function ItineraryPage() {
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
 
           {/* Desktop actions (md+) */}
           <div className="hidden md:flex items-center gap-2">
             <Button
-              className="bg-violet-600 hover:bg-violet-700 text-primary-foreground px-4 py-2 rounded-lg font-medium"
+              className="bg-primary hover:bg-primary-hover text-primary-foreground px-4 py-2 rounded-lg font-medium"
               onClick={handleOpenInviteModal}
             >
               <Users className="w-4 h-4 mr-2" />
               <span className="text-sm">Invite Member</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="border-border text-foreground hover:bg-gray-200 px-4 py-2 rounded-lg font-medium"
-              onClick={() => {
-                // Handle share action
-                console.log("Share clicked");
-              }}
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-              </svg>
-              <span className="text-sm">Share</span>
             </Button>
             <Button
               className="flex items-center rounded-lg gap-2 bg-primary hover:bg-primary-hover"
@@ -1043,55 +1037,109 @@ export default function ItineraryPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Edit Itinerary Item</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(800px,calc(100vw-2rem))] max-h-[90dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 bg-background">
+            <DialogTitle className="text-base sm:text-lg font-semibold text-foreground">
+              Edit Itinerary Item
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
               Update the details of this itinerary item.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Title</label>
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-5 sm:space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title" className="text-foreground">
+                Title
+              </Label>
               <Input
+                id="edit-title"
                 value={formData.title}
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
                 placeholder="Activity title"
+                className="rounded-lg border-border h-10 sm:h-11"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description" className="text-foreground">
+                Description
+              </Label>
               <Textarea
+                id="edit-description"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
                 placeholder="Activity description"
                 rows={3}
+                className="rounded-lg border-border resize-none min-h-[80px]"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Date & Time</label>
-                <Input
-                  type="datetime-local"
-                  value={formData.datetime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, datetime: e.target.value })
-                  }
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              <div className="space-y-2">
+                <Label className="text-foreground">Date & Time</Label>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <DatePicker
+                    variant="bordered"
+                    value={
+                      formData.datetime && formData.datetime.length >= 10
+                        ? (() => {
+                            try {
+                              return parseDate(formData.datetime.slice(0, 10));
+                            } catch {
+                              return today(getLocalTimeZone());
+                            }
+                          })()
+                        : today(getLocalTimeZone())
+                    }
+                    onChange={(date) => {
+                      if (date) {
+                        const timePart = formData.datetime
+                          ? formData.datetime.slice(11, 16)
+                          : "00:00";
+                        setFormData({
+                          ...formData,
+                          datetime: toDatetimeLocal(date.toDate(getLocalTimeZone()), timePart),
+                        });
+                      }
+                    }}
+                    classNames={{
+                      inputWrapper: cn(
+                        "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-lg border border-border hover:border-border h-10 sm:h-11"
+                      ),
+                      calendarContent: cn("!bg-white !opacity-1"),
+                    }}
+                  />
+                  <Input
+                    type="time"
+                    value={
+                      formData.datetime
+                        ? formData.datetime.slice(11, 16)
+                        : "00:00"
+                    }
+                    onChange={(e) => {
+                      const datePart = formData.datetime
+                        ? formData.datetime.slice(0, 10)
+                        : new Date().toISOString().slice(0, 10);
+                      setFormData({
+                        ...formData,
+                        datetime: `${datePart}T${e.target.value}`,
+                      });
+                    }}
+                    className="rounded-lg border-border h-10 sm:h-11 shrink-0"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Type</label>
+              <div className="space-y-2">
+                <Label className="text-foreground">Type</Label>
                 <Select
                   value={formData.type}
                   onValueChange={(value: ItineraryItem["type"]) =>
                     setFormData({ ...formData, type: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-lg border-border h-10 sm:h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1107,26 +1155,30 @@ export default function ItineraryPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Location</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="edit-location" className="text-foreground">
+                  Location
+                </Label>
                 <Input
+                  id="edit-location"
                   value={formData.location}
                   onChange={(e) =>
                     setFormData({ ...formData, location: e.target.value })
                   }
                   placeholder="Location"
+                  className="rounded-lg border-border h-10 sm:h-11"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium">Priority</label>
+              <div className="space-y-2">
+                <Label className="text-foreground">Priority</Label>
                 <Select
                   value={formData.priority}
                   onValueChange={(value: "low" | "medium" | "high") =>
                     setFormData({ ...formData, priority: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-lg border-border h-10 sm:h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1137,91 +1189,99 @@ export default function ItineraryPage() {
                 </Select>
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">Notes</label>
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes" className="text-foreground">
+                Notes
+              </Label>
               <Textarea
+                id="edit-notes"
                 value={formData.notes}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
                 placeholder="Additional notes"
                 rows={2}
+                className="rounded-lg border-border resize-none min-h-[60px]"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Image URL</label>
-                <Input
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image_url: e.target.value })
-                  }
-                  placeholder="Image URL"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">External Link</label>
-                <Input
-                  value={formData.external_link}
-                  onChange={(e) =>
-                    setFormData({ ...formData, external_link: e.target.value })
-                  }
-                  placeholder="External link"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Assign To</label>
-              <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
-                {groupMembers.map((member) => (
-                  <label
-                    key={member.id}
-                    className="flex items-center space-x-2 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.assigned_to.includes(member.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData({
-                            ...formData,
-                            assigned_to: [...formData.assigned_to, member.id],
-                          });
-                        } else {
+            <div className="space-y-2">
+              <Label className="text-foreground">Assign To</Label>
+              <div className="rounded-lg border border-border bg-muted/30 max-h-36 sm:max-h-40 overflow-y-auto p-2 sm:p-3 space-y-1.5">
+                {groupMembers.map((member) => {
+                  const isChecked = formData.assigned_to.includes(member.id);
+                  return (
+                    <label
+                      key={member.id}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors has-[:checked]:bg-primary/5 has-[:checked]:border-primary/20 border border-transparent"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (isChecked) {
                           setFormData({
                             ...formData,
                             assigned_to: formData.assigned_to.filter(
                               (id) => id !== member.id
                             ),
                           });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            assigned_to: [...formData.assigned_to, member.id],
+                          });
                         }
                       }}
-                      className="rounded"
-                    />
-                    <img
-                      src={member.avatar || "/placeholder-user.jpg"}
-                      alt={member.name}
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <span className="text-sm">{member.name}</span>
-                  </label>
-                ))}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData({
+                              ...formData,
+                              assigned_to: [...formData.assigned_to, member.id],
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              assigned_to: formData.assigned_to.filter(
+                                (id) => id !== member.id
+                              ),
+                            });
+                          }
+                        }}
+                        className="rounded border-border pointer-events-none"
+                      />
+                      <img
+                        src={member.avatar || "/placeholder-user.jpg"}
+                        alt={member.name}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover shrink-0 border border-border"
+                      />
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {member.name}
+                      </span>
+                    </label>
+                  );
+                })}
                 {Array.isArray(groupMembers) && groupMembers.length === 0 && (
-                  <p className="text-sm text-muted-foreground italic">
+                  <p className="text-sm text-muted-foreground italic py-4 text-center">
                     No group members available
                   </p>
                 )}
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 sm:gap-3 flex-row flex-wrap bg-background">
             <Button
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
+              className="rounded-lg order-2 sm:order-1 min-w-[80px]"
             >
               Cancel
             </Button>
-            <Button onClick={handleUpdateItem}>Update Item</Button>
+            <Button
+              onClick={handleUpdateItem}
+              className="rounded-lg order-1 sm:order-2 min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Update Item
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1264,26 +1324,70 @@ export default function ItineraryPage() {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Date & Time</label>
-                <Input
-                  type="datetime-local"
-                  value={formData.datetime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, datetime: e.target.value })
-                  }
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              <div className="space-y-2">
+                <Label className="text-foreground">Date & Time</Label>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <DatePicker
+                    variant="bordered"
+                    value={
+                      formData.datetime && formData.datetime.length >= 10
+                        ? (() => {
+                            try {
+                              return parseDate(formData.datetime.slice(0, 10));
+                            } catch {
+                              return today(getLocalTimeZone());
+                            }
+                          })()
+                        : today(getLocalTimeZone())
+                    }
+                    onChange={(date) => {
+                      if (date) {
+                        const timePart = formData.datetime
+                          ? formData.datetime.slice(11, 16)
+                          : "00:00";
+                        setFormData({
+                          ...formData,
+                          datetime: toDatetimeLocal(date.toDate(getLocalTimeZone()), timePart),
+                        });
+                      }
+                    }}
+                    classNames={{
+                      inputWrapper: cn(
+                        "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-lg border border-border hover:border-border h-10 sm:h-11"
+                      ),
+                      calendarContent: cn("!bg-white !opacity-1"),
+                    }}
+                  />
+                  <Input
+                    type="time"
+                    value={
+                      formData.datetime
+                        ? formData.datetime.slice(11, 16)
+                        : "00:00"
+                    }
+                    onChange={(e) => {
+                      const datePart = formData.datetime
+                        ? formData.datetime.slice(0, 10)
+                        : new Date().toISOString().slice(0, 10);
+                      setFormData({
+                        ...formData,
+                        datetime: `${datePart}T${e.target.value}`,
+                      });
+                    }}
+                    className="rounded-lg border-border h-10 sm:h-11 shrink-0"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Type</label>
+              <div className="space-y-2">
+                <Label className="text-foreground">Type</Label>
                 <Select
                   value={formData.type}
                   onValueChange={(value: ItineraryItem["type"]) =>
                     setFormData({ ...formData, type: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-lg border-border h-10 sm:h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1299,26 +1403,28 @@ export default function ItineraryPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Location</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="add-location" className="text-foreground">Location</Label>
                 <Input
+                  id="add-location"
                   value={formData.location}
                   onChange={(e) =>
                     setFormData({ ...formData, location: e.target.value })
                   }
                   placeholder="Location"
+                  className="rounded-lg border-border h-10 sm:h-11"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium">Priority</label>
+              <div className="space-y-2">
+                <Label className="text-foreground">Priority</Label>
                 <Select
                   value={formData.priority}
                   onValueChange={(value: "low" | "medium" | "high") =>
                     setFormData({ ...formData, priority: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-lg border-border h-10 sm:h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1329,38 +1435,18 @@ export default function ItineraryPage() {
                 </Select>
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">Notes</label>
+            <div className="space-y-2">
+              <Label htmlFor="add-notes" className="text-foreground">Notes</Label>
               <Textarea
+                id="add-notes"
                 value={formData.notes}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
                 placeholder="Additional notes"
                 rows={2}
+                className="rounded-lg border-border resize-none min-h-[60px]"
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Image URL</label>
-                <Input
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image_url: e.target.value })
-                  }
-                  placeholder="Image URL"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">External Link</label>
-                <Input
-                  value={formData.external_link}
-                  onChange={(e) =>
-                    setFormData({ ...formData, external_link: e.target.value })
-                  }
-                  placeholder="External link"
-                />
-              </div>
             </div>
             <div>
               <label className="text-sm font-medium">Assign To</label>
