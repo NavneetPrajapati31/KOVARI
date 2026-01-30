@@ -753,12 +753,12 @@ export default function ItineraryPage() {
   return (
     <div className="space-y-6 bg-transparent min-h-screen p-2">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">
+          <h1 className="text-md sm:text-lg font-semibold text-foreground mb-1">
             Itinerary Board
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Plan and organize your group&apos;s travel activities
           </p>
         </div>
@@ -788,7 +788,7 @@ export default function ItineraryPage() {
           </div> */}
 
           {/* Desktop actions (md+) */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <Button
               className="bg-primary hover:bg-primary-hover text-primary-foreground px-4 py-2 rounded-lg font-medium"
               onClick={handleOpenInviteModal}
@@ -805,7 +805,7 @@ export default function ItineraryPage() {
             </Button>
           </div>
           {/* Mobile dropdown actions (sm) */}
-          <div className="md:hidden">
+          {/* <div className="md:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" aria-label="More actions">
@@ -839,7 +839,7 @@ export default function ItineraryPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
+          </div> */}
         </div>
       </div>
 
