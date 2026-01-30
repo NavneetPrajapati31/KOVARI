@@ -35,6 +35,8 @@ import {
   ClockIcon,
   MapPin,
   AlertCircle,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import { Chip, Spinner } from "@heroui/react";
 import { DateTimePicker } from "@/shared/components/ui/time-picker";
@@ -230,6 +232,8 @@ export default function ItineraryPage() {
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<ItineraryItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [draggedItem, setDraggedItem] = useState<ItineraryItem | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
@@ -449,18 +453,28 @@ export default function ItineraryPage() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `/api/groups/${params.groupId}/itinerary/${itemId}`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Failed to delete item");
 
-      if (!response.ok) throw new Error("Failed to delete item");
-      fetchItineraryData(); // Refresh data
+      setItemToDelete(null);
+      if (editingItem?.id === itemId) {
+        setIsEditDialogOpen(false);
+        setEditingItem(null);
+        resetForm();
+      }
+      fetchItineraryData();
+      toast.success("Item deleted.");
     } catch (err) {
+      toast.error((err as Error).message);
       setError((err as Error).message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -867,12 +881,6 @@ export default function ItineraryPage() {
                   >
                     <Plus className="w-4 h-4 text-muted-foreground" />
                   </button>
-                  <button
-                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
-                    aria-label="Column actions"
-                  >
-                    <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                  </button>
                 </div>
               </div>
 
@@ -881,11 +889,51 @@ export default function ItineraryPage() {
                 {filteredItems.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-card border border-border rounded-lg shadow-sm p-4 flex flex-col gap-3 relative transition-shadow cursor-pointer"
+                    className="bg-card border border-border rounded-lg shadow-sm p-4 flex flex-col gap-3 relative transition-shadow cursor-pointer group"
                     draggable
                     onDragStart={(e) => handleDragStart(e, item)}
                     onClick={() => openEditDialog(item)}
                   >
+                    {/* Card actions: Edit & Delete */}
+                    <div
+                      className="absolute top-4 right-4 z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                        <button
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+                    aria-label="Column actions"
+                  >
+                    <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 transition-all duration-300 ease-in-out border-border mr-4">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditDialog(item);
+                            }}
+
+                            className="text-foreground font-medium hover:cursor-pointer focus:bg-transparent focus:text-foreground focus-within:!border-none focus-within:!outline-none"
+                          >
+                            <Pencil className="w-4 h-4 mr-0" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10 font-medium hover:cursor-pointer focus:bg-transparent focus-within:!border-none focus-within:!outline-none"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setItemToDelete(item);
+                            }}
+                            
+                          >
+                            <Trash2 className="w-4 h-4 mr-0 text-destructive" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                     {/* Status badge */}
                     {(() => {
                       const badge = COLUMN_BADGES[item.status];
@@ -1289,18 +1337,19 @@ export default function ItineraryPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background">
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background sm:justify-between">
+            <div className="flex gap-2 order-1 sm:order-2 ml-auto">
             <Button
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
-              className="rounded-lg order-2 sm:order-1 min-w-[80px]"
+              className="rounded-lg min-w-[80px]"
             >
               Cancel
             </Button>
             <Button
               onClick={handleUpdateItem}
               disabled={isSubmittingEdit}
-              className="rounded-lg order-1 sm:order-2 min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2"
+              className="rounded-lg min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2"
             >
               {isSubmittingEdit ? (
                 <Spinner
@@ -1311,6 +1360,7 @@ export default function ItineraryPage() {
               ) : null}
               {isSubmittingEdit ? "Updating..." : "Update Item"}
             </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1493,6 +1543,7 @@ export default function ItineraryPage() {
             </div>
           </div>
           <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background">
+          <div className="flex gap-2 order-1 sm:order-2 ml-auto">
             <Button
               variant="outline"
               onClick={() => setIsAddDialogOpen(false)}
@@ -1514,6 +1565,65 @@ export default function ItineraryPage() {
               ) : null}
               {isSubmittingAdd ? "Adding..." : "Add Item"}
             </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog
+        open={itemToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setItemToDelete(null);
+        }}
+      >
+        <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-[min(400px,calc(100vw-2rem))] rounded-2xl border border-border p-0 gap-0 shadow-xl overflow-hidden">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 bg-background text-left">
+            <DialogTitle className="text-md font-semibold text-foreground">
+              Delete itinerary item?
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {itemToDelete ? (
+                <>
+                  Are you sure you want to delete &quot;{itemToDelete.title}&quot;?
+                  This action cannot be undone.
+                </>
+              ) : (
+                "This action cannot be undone."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background justify-end">
+          <div className="flex gap-2 order-1 sm:order-2 ml-auto">
+            <Button
+              variant="outline"
+              onClick={() => setItemToDelete(null)}
+              disabled={isDeleting}
+              className="rounded-lg min-w-[80px] border-border text-muted-foreground hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (itemToDelete) await handleDeleteItem(itemToDelete.id);
+              }}
+              disabled={isDeleting}
+              className="rounded-lg min-w-[80px] bg-destructive text-primary-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+            >
+              {isDeleting ? (
+                <>
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-white" }}
+                  />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
