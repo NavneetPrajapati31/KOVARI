@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -16,6 +16,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Label } from "@/shared/components/ui/label";
 import { Checkbox } from "@/shared/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -35,8 +36,8 @@ import {
   MapPin,
   AlertCircle,
 } from "lucide-react";
-import { Chip, Spinner, DatePicker } from "@heroui/react";
-import { getLocalTimeZone, today, parseDate } from "@internationalized/date";
+import { Chip, Spinner } from "@heroui/react";
+import { DateTimePicker } from "@/shared/components/ui/time-picker";
 import { cn } from "@/shared/utils/utils";
 import { createClient } from "@/lib/supabase";
 import {
@@ -85,26 +86,26 @@ const COLUMNS = [
   {
     id: "pending",
     title: "To do",
-    color: "bg-orange-50 text-orange-700",
+    color: "bg-yellow-50 text-yellow-700",
     dot: "#F59E0B",
   },
   {
     id: "confirmed",
     title: "In Progress",
     color: "bg-blue-50 text-blue-700",
-    dot: "#3B82F6",
+    dot: "#007aff",
   },
   {
     id: "completed",
     title: "Done",
     color: "bg-purple-50 text-purple-700",
-    dot: "#8B5CF6",
+    dot: "#34c759",
   },
   {
     id: "cancelled",
     title: "Cancelled",
     color: "bg-red-50 text-red-700",
-    dot: "#B91C1C",
+    dot: "#f31260",
   },
 ] as const;
 
@@ -135,19 +136,18 @@ const TYPE_COLORS = {
 
 // Status badge mapping based on database values
 const COLUMN_BADGES: Record<string, { label: string; color: string }> = {
-  pending: { label: "Not Started", color: "bg-blue-50 text-blue-700" },
-  confirmed: { label: "In Progress", color: "bg-purple-50 text-purple-700" },
+  pending: { label: "Not Started", color: "bg-yellow-50 text-yellow-700" },
+  confirmed: { label: "In Progress", color: "bg-blue-50 text-blue-700" },
   completed: { label: "Completed", color: "bg-green-50 text-green-700" },
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
 };
 
-// Helper: format Date + time string to datetime-local value (YYYY-MM-DDTHH:mm)
-function toDatetimeLocal(d: Date, timeStr?: string): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const [hh, mm] = (timeStr ?? "00:00").slice(0, 5).split(":");
-  return `${y}-${m}-${day}T${hh || "00"}:${mm || "00"}`;
+// Get initials for avatar fallback (e.g. "Navneet Prajapati" -> "NP")
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 // Priority badge mapping
@@ -227,6 +227,8 @@ export default function ItineraryPage() {
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
   const [draggedItem, setDraggedItem] = useState<ItineraryItem | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -301,6 +303,10 @@ export default function ItineraryPage() {
     external_link: "",
   });
 
+  // Ref to always read latest formData at submit time (avoids stale closure in dialogs)
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   useEffect(() => {
     fetchGroupInfo();
     fetchItineraryData();
@@ -346,33 +352,66 @@ export default function ItineraryPage() {
   };
 
   const handleAddItem = async () => {
+    const latest = formDataRef.current;
+    const title = latest.title?.trim();
+    const datetime = latest.datetime?.trim();
+    if (!title) {
+      toast.error("Please enter a title.");
+      return;
+    }
+    if (!datetime || datetime.length < 16) {
+      toast.error("Please select a date and time.");
+      return;
+    }
+    setIsSubmittingAdd(true);
     try {
       const response = await fetch(`/api/groups/${params.groupId}/itinerary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
-          status: "pending", // Default status for new items
+          ...latest,
+          title,
+          datetime,
+          status: "pending",
           group_id: params.groupId,
-          assigned_to: Array.isArray(formData.assigned_to)
-            ? formData.assigned_to
+          assigned_to: Array.isArray(latest.assigned_to)
+            ? latest.assigned_to
             : [],
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to add item");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to add item");
+      }
 
       setIsAddDialogOpen(false);
       resetForm();
-      fetchItineraryData(); // Refresh data
+      fetchItineraryData();
+      toast.success("Item added successfully.");
     } catch (err) {
+      toast.error((err as Error).message);
       setError((err as Error).message);
+    } finally {
+      setIsSubmittingAdd(false);
     }
   };
 
   const handleUpdateItem = async () => {
     if (!editingItem) return;
 
+    const latest = formDataRef.current;
+    const title = latest.title?.trim();
+    const datetime = latest.datetime?.trim();
+    if (!title) {
+      toast.error("Please enter a title.");
+      return;
+    }
+    if (!datetime || datetime.length < 16) {
+      toast.error("Please select a date and time.");
+      return;
+    }
+    setIsSubmittingEdit(true);
     try {
       const response = await fetch(
         `/api/groups/${params.groupId}/itinerary/${editingItem.id}`,
@@ -380,23 +419,32 @@ export default function ItineraryPage() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...formData,
-            assigned_to: Array.isArray(formData.assigned_to)
-              ? formData.assigned_to
+            ...latest,
+            title,
+            datetime,
+            assigned_to: Array.isArray(latest.assigned_to)
+              ? latest.assigned_to
               : [],
             group_id: params.groupId,
           }),
         }
       );
 
-      if (!response.ok) throw new Error("Failed to update item");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update item");
+      }
 
       setIsEditDialogOpen(false);
       setEditingItem(null);
       resetForm();
-      fetchItineraryData(); // Refresh data
+      fetchItineraryData();
+      toast.success("Item updated successfully.");
     } catch (err) {
+      toast.error((err as Error).message);
       setError((err as Error).message);
+    } finally {
+      setIsSubmittingEdit(false);
     }
   };
 
@@ -462,6 +510,11 @@ export default function ItineraryPage() {
       image_url: "",
       external_link: "",
     });
+  };
+
+  const openAddDialog = () => {
+    resetForm();
+    setIsAddDialogOpen(true);
   };
 
   const openEditDialog = (item: ItineraryItem) => {
@@ -731,7 +784,7 @@ export default function ItineraryPage() {
             </Button>
             <Button
               className="flex items-center rounded-lg gap-2 bg-primary hover:bg-primary-hover"
-              onClick={() => setIsAddDialogOpen(true)}
+              onClick={openAddDialog}
             >
               <Plus className="h-4 w-4" />
               <span className="text-sm">Add Item</span>
@@ -766,7 +819,7 @@ export default function ItineraryPage() {
                   </svg>
                   Share
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsAddDialogOpen(true)}>
+                <DropdownMenuItem onClick={openAddDialog}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
                 </DropdownMenuItem>
@@ -809,7 +862,7 @@ export default function ItineraryPage() {
                 <div className="flex items-center gap-1">
                   <button
                     className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsAddDialogOpen(true)}
+                    onClick={openAddDialog}
                     aria-label="Add task"
                   >
                     <Plus className="w-4 h-4 text-muted-foreground" />
@@ -1038,15 +1091,15 @@ export default function ItineraryPage() {
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(800px,calc(100vw-2rem))] max-h-[90dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
-          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 bg-background">
-            <DialogTitle className="text-base sm:text-lg font-semibold text-foreground">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 bg-background text-left">
+            <DialogTitle className="text-md font-semibold text-foreground">
               Edit Itinerary Item
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               Update the details of this itinerary item.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-5 sm:space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-4 sm:px-6 py-4 sm:py-5 space-y-5 sm:space-y-6">
             <div className="space-y-2">
               <Label htmlFor="edit-title" className="text-foreground">
                 Title
@@ -1055,8 +1108,12 @@ export default function ItineraryPage() {
                 id="edit-title"
                 value={formData.title}
                 onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
                 }
+                onFocus={(e) => {
+                  // Prevent full text selection when dialog opens and this field gets focus
+                  setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0);
+                }}
                 placeholder="Activity title"
                 className="rounded-lg border-border h-10 sm:h-11"
               />
@@ -1069,74 +1126,30 @@ export default function ItineraryPage() {
                 id="edit-description"
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
+                  setFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
                 placeholder="Activity description"
                 rows={3}
-                className="rounded-lg border-border resize-none min-h-[80px]"
+                className="rounded-lg border-border resize-none min-h-[60px]"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label className="text-foreground">Date & Time</Label>
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <DatePicker
-                    variant="bordered"
-                    value={
-                      formData.datetime && formData.datetime.length >= 10
-                        ? (() => {
-                            try {
-                              return parseDate(formData.datetime.slice(0, 10));
-                            } catch {
-                              return today(getLocalTimeZone());
-                            }
-                          })()
-                        : today(getLocalTimeZone())
-                    }
-                    onChange={(date) => {
-                      if (date) {
-                        const timePart = formData.datetime
-                          ? formData.datetime.slice(11, 16)
-                          : "00:00";
-                        setFormData({
-                          ...formData,
-                          datetime: toDatetimeLocal(date.toDate(getLocalTimeZone()), timePart),
-                        });
-                      }
-                    }}
-                    classNames={{
-                      inputWrapper: cn(
-                        "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-lg border border-border hover:border-border h-10 sm:h-11"
-                      ),
-                      calendarContent: cn("!bg-white !opacity-1"),
-                    }}
-                  />
-                  <Input
-                    type="time"
-                    value={
-                      formData.datetime
-                        ? formData.datetime.slice(11, 16)
-                        : "00:00"
-                    }
-                    onChange={(e) => {
-                      const datePart = formData.datetime
-                        ? formData.datetime.slice(0, 10)
-                        : new Date().toISOString().slice(0, 10);
-                      setFormData({
-                        ...formData,
-                        datetime: `${datePart}T${e.target.value}`,
-                      });
-                    }}
-                    className="rounded-lg border-border h-10 sm:h-11 shrink-0"
-                  />
-                </div>
+                <DateTimePicker
+                  value={formData.datetime}
+                  onChange={(v) => setFormData((prev) => ({ ...prev, datetime: v }))}
+                  placeholder="Select date and time"
+                  variant="compact"
+                  className="w-full"
+                />
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label className="text-foreground">Type</Label>
                 <Select
                   value={formData.type}
                   onValueChange={(value: ItineraryItem["type"]) =>
-                    setFormData({ ...formData, type: value })
+                    setFormData((prev) => ({ ...prev, type: value }))
                   }
                 >
                   <SelectTrigger className="rounded-lg border-border h-10 sm:h-11">
@@ -1153,7 +1166,7 @@ export default function ItineraryPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <div className="space-y-2">
@@ -1164,10 +1177,10 @@ export default function ItineraryPage() {
                   id="edit-location"
                   value={formData.location}
                   onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
+                    setFormData((prev) => ({ ...prev, location: e.target.value }))
                   }
                   placeholder="Location"
-                  className="rounded-lg border-border h-10 sm:h-11"
+                  className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full"
                 />
               </div>
               <div className="space-y-2">
@@ -1175,10 +1188,10 @@ export default function ItineraryPage() {
                 <Select
                   value={formData.priority}
                   onValueChange={(value: "low" | "medium" | "high") =>
-                    setFormData({ ...formData, priority: value })
+                    setFormData((prev) => ({ ...prev, priority: value }))
                   }
                 >
-                  <SelectTrigger className="rounded-lg border-border h-10 sm:h-11">
+                  <SelectTrigger className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1197,36 +1210,38 @@ export default function ItineraryPage() {
                 id="edit-notes"
                 value={formData.notes}
                 onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
+                  setFormData((prev) => ({ ...prev, notes: e.target.value }))
                 }
                 placeholder="Additional notes"
-                rows={2}
+                rows={3}
                 className="rounded-lg border-border resize-none min-h-[60px]"
               />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground">Assign To</Label>
-              <div className="rounded-lg border border-border bg-muted/30 max-h-36 sm:max-h-40 overflow-y-auto p-2 sm:p-3 space-y-1.5">
+              <div className="rounded-lg border border-border bg-background max-h-44 sm:max-h-48 overflow-y-auto overflow-x-hidden p-1.5 space-y-0.5">
                 {groupMembers.map((member) => {
                   const isChecked = formData.assigned_to.includes(member.id);
                   return (
                     <label
                       key={member.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors has-[:checked]:bg-primary/5 has-[:checked]:border-primary/20 border border-transparent"
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors outline-none",
+                        "hover:bg-muted/60 active:bg-muted/80",
+                        isChecked && "bg-primary/5 hover:bg-primary/10"
+                      )}
                       onClick={(e) => {
                         e.preventDefault();
                         if (isChecked) {
-                          setFormData({
-                            ...formData,
-                            assigned_to: formData.assigned_to.filter(
-                              (id) => id !== member.id
-                            ),
-                          });
+                          setFormData((prev) => ({
+                            ...prev,
+                            assigned_to: prev.assigned_to.filter((id) => id !== member.id),
+                          }));
                         } else {
-                          setFormData({
-                            ...formData,
-                            assigned_to: [...formData.assigned_to, member.id],
-                          });
+                          setFormData((prev) => ({
+                            ...prev,
+                            assigned_to: [...prev.assigned_to, member.id],
+                          }));
                         }
                       }}
                     >
@@ -1234,41 +1249,47 @@ export default function ItineraryPage() {
                         checked={isChecked}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            setFormData({
-                              ...formData,
-                              assigned_to: [...formData.assigned_to, member.id],
-                            });
+                            setFormData((prev) => ({
+                              ...prev,
+                              assigned_to: [...prev.assigned_to, member.id],
+                            }));
                           } else {
-                            setFormData({
-                              ...formData,
-                              assigned_to: formData.assigned_to.filter(
-                                (id) => id !== member.id
-                              ),
-                            });
+                            setFormData((prev) => ({
+                              ...prev,
+                              assigned_to: prev.assigned_to.filter((id) => id !== member.id),
+                            }));
                           }
                         }}
-                        className="rounded border-border pointer-events-none"
+                        className="rounded border-border pointer-events-none shrink-0"
                       />
-                      <img
-                        src={member.avatar || "/placeholder-user.jpg"}
-                        alt={member.name}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover shrink-0 border border-border"
-                      />
-                      <span className="text-sm font-medium text-foreground truncate">
-                        {member.name}
+                      <Avatar className="h-8 w-8 shrink-0 border border-border">
+                        <AvatarImage
+                          src={member.avatar || undefined}
+                          alt={member.name}
+                          className="object-cover"
+                        />
+                        <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
+                          {getInitials(member.name || "Unknown")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-foreground truncate min-w-0">
+                        {member.name || "Unknown"}
                       </span>
                     </label>
                   );
                 })}
                 {Array.isArray(groupMembers) && groupMembers.length === 0 && (
-                  <p className="text-sm text-muted-foreground italic py-4 text-center">
-                    No group members available
-                  </p>
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Users className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      No group members available
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
           </div>
-          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 sm:gap-3 flex-row flex-wrap bg-background">
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background">
             <Button
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
@@ -1278,142 +1299,91 @@ export default function ItineraryPage() {
             </Button>
             <Button
               onClick={handleUpdateItem}
-              className="rounded-lg order-1 sm:order-2 min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={isSubmittingEdit}
+              className="rounded-lg order-1 sm:order-2 min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2"
             >
-              Update Item
+              {isSubmittingEdit ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-white" }}
+                />
+              ) : null}
+              {isSubmittingEdit ? "Updating..." : "Update Item"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Add Item Dialog */}
+      {/* Add Item Dialog - same UI as Edit Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
-          {/* Hidden trigger, open via setIsAddDialogOpen */}
-          <div style={{ display: "none" }} />
+          <div className="hidden" aria-hidden />
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Add Itinerary Item</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(800px,calc(100vw-2rem))] max-h-[90dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 bg-background text-left">
+            <DialogTitle className="text-md font-semibold text-foreground">
+              Add Itinerary Item
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
               Create a new activity or event for your group&apos;s itinerary.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Title</label>
+          <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-4 sm:px-6 py-4 sm:py-5 space-y-5 sm:space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="add-title" className="text-foreground">
+                Title
+              </Label>
               <Input
+                id="add-title"
                 value={formData.title}
                 onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
                 }
                 placeholder="Activity title"
+                className="rounded-lg border-border h-10 sm:h-11"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
+            <div className="space-y-2">
+              <Label htmlFor="add-description" className="text-foreground">
+                Description
+              </Label>
               <Textarea
+                id="add-description"
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    description: e.target.value,
-                  })
+                  setFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
                 placeholder="Activity description"
                 rows={3}
+                className="rounded-lg border-border resize-none min-h-[60px]"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label className="text-foreground">Date & Time</Label>
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <DatePicker
-                    variant="bordered"
-                    value={
-                      formData.datetime && formData.datetime.length >= 10
-                        ? (() => {
-                            try {
-                              return parseDate(formData.datetime.slice(0, 10));
-                            } catch {
-                              return today(getLocalTimeZone());
-                            }
-                          })()
-                        : today(getLocalTimeZone())
-                    }
-                    onChange={(date) => {
-                      if (date) {
-                        const timePart = formData.datetime
-                          ? formData.datetime.slice(11, 16)
-                          : "00:00";
-                        setFormData({
-                          ...formData,
-                          datetime: toDatetimeLocal(date.toDate(getLocalTimeZone()), timePart),
-                        });
-                      }
-                    }}
-                    classNames={{
-                      inputWrapper: cn(
-                        "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-lg border border-border hover:border-border h-10 sm:h-11"
-                      ),
-                      calendarContent: cn("!bg-white !opacity-1"),
-                    }}
-                  />
-                  <Input
-                    type="time"
-                    value={
-                      formData.datetime
-                        ? formData.datetime.slice(11, 16)
-                        : "00:00"
-                    }
-                    onChange={(e) => {
-                      const datePart = formData.datetime
-                        ? formData.datetime.slice(0, 10)
-                        : new Date().toISOString().slice(0, 10);
-                      setFormData({
-                        ...formData,
-                        datetime: `${datePart}T${e.target.value}`,
-                      });
-                    }}
-                    className="rounded-lg border-border h-10 sm:h-11 shrink-0"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground">Type</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value: ItineraryItem["type"]) =>
-                    setFormData({ ...formData, type: value })
-                  }
-                >
-                  <SelectTrigger className="rounded-lg border-border h-10 sm:h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TYPE_ICONS).map(([key, icon]) => (
-                      <SelectItem key={key} value={key}>
-                        <span className="flex items-center gap-2">
-                          <span>{icon}</span>
-                          <span className="capitalize">{key}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <DateTimePicker
+                  value={formData.datetime}
+                  onChange={(v) => setFormData((prev) => ({ ...prev, datetime: v }))}
+                  placeholder="Select date and time"
+                  variant="compact"
+                  className="w-full"
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <div className="space-y-2">
-                <Label htmlFor="add-location" className="text-foreground">Location</Label>
+                <Label htmlFor="add-location" className="text-foreground">
+                  Location
+                </Label>
                 <Input
                   id="add-location"
                   value={formData.location}
                   onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
+                    setFormData((prev) => ({ ...prev, location: e.target.value }))
                   }
                   placeholder="Location"
-                  className="rounded-lg border-border h-10 sm:h-11"
+                  className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full"
                 />
               </div>
               <div className="space-y-2">
@@ -1421,10 +1391,10 @@ export default function ItineraryPage() {
                 <Select
                   value={formData.priority}
                   onValueChange={(value: "low" | "medium" | "high") =>
-                    setFormData({ ...formData, priority: value })
+                    setFormData((prev) => ({ ...prev, priority: value }))
                   }
                 >
-                  <SelectTrigger className="rounded-lg border-border h-10 sm:h-11">
+                  <SelectTrigger className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1436,67 +1406,114 @@ export default function ItineraryPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-notes" className="text-foreground">Notes</Label>
+              <Label htmlFor="add-notes" className="text-foreground">
+                Notes
+              </Label>
               <Textarea
                 id="add-notes"
                 value={formData.notes}
                 onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
+                  setFormData((prev) => ({ ...prev, notes: e.target.value }))
                 }
                 placeholder="Additional notes"
-                rows={2}
+                rows={3}
                 className="rounded-lg border-border resize-none min-h-[60px]"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Assign To</label>
-              <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
-                {groupMembers.map((member) => (
-                  <label
-                    key={member.id}
-                    className="flex items-center space-x-2 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.assigned_to.includes(member.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData({
-                            ...formData,
-                            assigned_to: [...formData.assigned_to, member.id],
-                          });
+            <div className="space-y-2">
+              <Label className="text-foreground">Assign To</Label>
+              <div className="rounded-lg border border-border bg-background max-h-44 sm:max-h-48 overflow-y-auto overflow-x-hidden p-1.5 space-y-0.5">
+                {groupMembers.map((member) => {
+                  const isChecked = formData.assigned_to.includes(member.id);
+                  return (
+                    <label
+                      key={member.id}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors outline-none",
+                        "hover:bg-muted/60 active:bg-muted/80",
+                        isChecked && "bg-primary/5 hover:bg-primary/10"
+                      )}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (isChecked) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            assigned_to: prev.assigned_to.filter((id) => id !== member.id),
+                          }));
                         } else {
-                          setFormData({
-                            ...formData,
-                            assigned_to: formData.assigned_to.filter(
-                              (id) => id !== member.id
-                            ),
-                          });
+                          setFormData((prev) => ({
+                            ...prev,
+                            assigned_to: [...prev.assigned_to, member.id],
+                          }));
                         }
                       }}
-                      className="rounded"
-                    />
-                    <img
-                      src={member.avatar || "/placeholder-user.jpg"}
-                      alt={member.name}
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <span className="text-sm">{member.name}</span>
-                  </label>
-                ))}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData((prev) => ({
+                              ...prev,
+                              assigned_to: [...prev.assigned_to, member.id],
+                            }));
+                          } else {
+                            setFormData((prev) => ({
+                              ...prev,
+                              assigned_to: prev.assigned_to.filter((id) => id !== member.id),
+                            }));
+                          }
+                        }}
+                        className="rounded border-border pointer-events-none shrink-0"
+                      />
+                      <Avatar className="h-8 w-8 shrink-0 border border-border">
+                        <AvatarImage
+                          src={member.avatar || undefined}
+                          alt={member.name}
+                          className="object-cover"
+                        />
+                        <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
+                          {getInitials(member.name || "Unknown")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-foreground truncate min-w-0">
+                        {member.name || "Unknown"}
+                      </span>
+                    </label>
+                  );
+                })}
                 {Array.isArray(groupMembers) && groupMembers.length === 0 && (
-                  <p className="text-sm text-muted-foreground italic">
-                    No group members available
-                  </p>
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Users className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      No group members available
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background">
+            <Button
+              variant="outline"
+              onClick={() => setIsAddDialogOpen(false)}
+              className="rounded-lg order-2 sm:order-1 min-w-[80px]"
+            >
               Cancel
             </Button>
-            <Button onClick={handleAddItem}>Add Item</Button>
+            <Button
+              onClick={handleAddItem}
+              disabled={isSubmittingAdd}
+              className="rounded-lg order-1 sm:order-2 min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2"
+            >
+              {isSubmittingAdd ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-white" }}
+                />
+              ) : null}
+              {isSubmittingAdd ? "Adding..." : "Add Item"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
