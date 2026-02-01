@@ -75,43 +75,7 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
       <div className="space-y-4 w-full max-w-full pb-4">
         <Card className="border-1 border-border bg-transparent w-full max-w-full min-w-0">
           <CardContent className="space-y-4 w-full max-w-full min-w-0">
-            <div className="space-y-2">
-              <Label htmlFor="visibility" className="text-xs font-medium">
-                Group Visibility
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("visibility", value as any)}
-                defaultValue={watchedValues.visibility}
-              >
-                <SelectTrigger className="h-9 text-xs w-full min-w-0">
-                  <span className="truncate overflow-hidden whitespace-nowrap block w-full min-w-0">
-                    <SelectValue placeholder="Select visibility" />
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-3 w-3" />
-                      Public
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="private">
-                    <div className="flex items-center gap-2">
-                      <Lock className="h-3 w-3" />
-                      Private
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="invite-only">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3 w-3" />
-                      Invite-only
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-row sm:flex-row sm:items-center sm:justify-between gap-3 py-2 border-t pt-4 min-w-0">
+            <div className="flex flex-row sm:flex-row sm:items-center sm:justify-between gap-3 py-2 border-none pt-0 min-w-0">
               <div className="space-y-1 flex-1">
                 <Label className="text-xs font-medium">Group Privacy</Label>
                 <p className="text-xs text-muted-foreground">

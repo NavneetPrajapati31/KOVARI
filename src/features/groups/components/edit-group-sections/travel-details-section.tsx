@@ -21,7 +21,6 @@ import {
 import { MapPin } from "lucide-react";
 import { cn, DatePicker } from "@heroui/react";
 import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
-import { optional } from "zod";
 
 interface TravelDetailsSectionProps {
   form: UseFormReturn<any>;
@@ -64,7 +63,7 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
           Travel Details
         </h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
-          Set your travel dates, style, and group size preferences.
+          Set your travel dates and group size preferences.
         </p>
       </div>
       <Card className="border-1 border-border bg-transparent">
@@ -142,27 +141,6 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="w-full space-y-2">
-              <Label htmlFor="travel-style" className="text-xs font-medium">
-                Travel Style
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("travelStyle", value as any)}
-                defaultValue={watchedValues.travelStyle}
-              >
-                <SelectTrigger className="h-9 text-sm w-full">
-                  <SelectValue placeholder="Select travel style" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="adventure">Adventure</SelectItem>
-                  <SelectItem value="cultural">Cultural</SelectItem>
-                  <SelectItem value="relaxation">Relaxation</SelectItem>
-                  <SelectItem value="budget">Budget</SelectItem>
-                  <SelectItem value="luxury">Luxury</SelectItem>
-                  <SelectItem value="mixed">Mixed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full space-y-2">
               <Label htmlFor="group-size" className="text-xs font-medium">
                 Preferred Group Size
               </Label>
@@ -180,8 +158,6 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="w-full space-y-2">
               <Label htmlFor="budget-range" className="text-xs font-medium">
                 Budget Range
@@ -198,31 +174,6 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                   <SelectItem value="moderate">Moderate ($$)</SelectItem>
                   <SelectItem value="luxury">Luxury ($$$)</SelectItem>
                   <SelectItem value="flexible">Flexible</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full space-y-2">
-              <Label
-                htmlFor="accommodation-type"
-                className="text-xs font-medium"
-              >
-                Accommodation Type
-              </Label>
-              <Select
-                onValueChange={(value) =>
-                  setValue("accommodationType", value as any)
-                }
-                defaultValue={watchedValues.accommodationType}
-              >
-                <SelectTrigger className="h-9 text-sm w-full">
-                  <SelectValue placeholder="Select accommodation" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hostel">Hostel</SelectItem>
-                  <SelectItem value="hotel">Hotel</SelectItem>
-                  <SelectItem value="airbnb">Airbnb</SelectItem>
-                  <SelectItem value="camping">Camping</SelectItem>
-                  <SelectItem value="mixed">Mixed</SelectItem>
                 </SelectContent>
               </Select>
             </div>

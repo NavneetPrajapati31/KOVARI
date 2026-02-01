@@ -5,8 +5,6 @@ import {
   MapPin,
   Shield,
   MessageCircle,
-  Heart,
-  Zap,
   Users,
   AlertTriangle,
   Trash2,
@@ -25,8 +23,6 @@ const TABS = [
     icon: MessageCircle,
     category: "edit",
   },
-  { key: "preferences", label: "Preferences", icon: Heart, category: "edit" },
-  { key: "advanced", label: "Advanced", icon: Zap, category: "edit" },
   // Other sections
   {
     key: "members",

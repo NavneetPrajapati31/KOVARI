@@ -18,9 +18,6 @@ import { BasicInfoSection } from "@/features/groups/components/edit-group-sectio
 import { TravelDetailsSection } from "@/features/groups/components/edit-group-sections/travel-details-section";
 import { PrivacySafetySection } from "@/features/groups/components/edit-group-sections/privacy-safety-section";
 import { CommunicationSection } from "@/features/groups/components/edit-group-sections/communication-section";
-import { PreferencesSection } from "@/features/groups/components/edit-group-sections/preferences-section";
-import { AdvancedSection } from "@/features/groups/components/edit-group-sections/advanced-section";
-
 // Import other pages
 import MembersPage from "@/app/(app)/groups/[groupId]/settings/members/page";
 import RequestPage from "@/app/(app)/groups/[groupId]/settings/requests/page";
@@ -43,15 +40,8 @@ const editGroupSchema = z
     // Travel Details
     startDate: z.string().min(1, "Start date is required"),
     endDate: z.string().min(1, "End date is required"),
-    travelStyle: z.enum([
-      "adventure",
-      "cultural",
-      "relaxation",
-      "budget",
-      "luxury",
-      "mixed",
-    ]),
     groupSize: z.enum(["2-4", "5-7", "8-10"]),
+    budgetRange: z.enum(["budget", "moderate", "luxury", "flexible"]),
 
     // Privacy & Visibility
     visibility: z.enum(["public", "private", "invite-only"]),
@@ -74,25 +64,6 @@ const editGroupSchema = z
       notificationsEnabled: z.boolean(),
       messageModeration: z.boolean(),
     }),
-
-    // Travel Preferences
-    interests: z.array(z.string()).min(1, "Select at least one interest"),
-    budgetRange: z.enum(["budget", "moderate", "luxury", "flexible"]),
-    accommodationType: z.enum([
-      "hostel",
-      "hotel",
-      "airbnb",
-      "camping",
-      "mixed",
-    ]),
-
-    // Advanced Settings
-    coverImage: z.string().optional(),
-    tags: z.array(z.string()).max(10, "Maximum 10 tags allowed"),
-    rules: z
-      .string()
-      .max(1000, "Rules must be less than 1000 characters")
-      .optional(),
   })
   .refine(
     (data) => {
@@ -112,8 +83,6 @@ const SECTION_COMPONENTS = {
   travel: TravelDetailsSection,
   privacy: PrivacySafetySection,
   communication: CommunicationSection,
-  preferences: PreferencesSection,
-  advanced: AdvancedSection,
 } as const;
 
 const PAGE_COMPONENTS = {
@@ -135,8 +104,8 @@ const SectionContent = memo(({ activeTab }: { activeTab: string | null }) => {
       destination: "",
       startDate: "",
       endDate: "",
-      travelStyle: "mixed",
       groupSize: "5-7",
+      budgetRange: "moderate",
       visibility: "public",
       allowJoinRequests: true,
       requireApproval: true,
@@ -153,11 +122,6 @@ const SectionContent = memo(({ activeTab }: { activeTab: string | null }) => {
         notificationsEnabled: true,
         messageModeration: true,
       },
-      interests: [],
-      budgetRange: "moderate",
-      accommodationType: "mixed",
-      tags: [],
-      rules: "",
     },
   });
 
@@ -491,8 +455,6 @@ export default function LayoutWrapper() {
                     travel: "Travel Details",
                     privacy: "Privacy & Safety",
                     communication: "Communication",
-                    preferences: "Preferences",
-                    advanced: "Advanced",
                     members: "Manage Members",
                     requests: "Join Requests",
                     delete: "Leave Group",
