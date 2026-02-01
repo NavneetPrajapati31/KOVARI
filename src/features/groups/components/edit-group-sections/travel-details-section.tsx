@@ -4,23 +4,9 @@ import React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
-import { MapPin } from "lucide-react";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { cn, DatePicker } from "@heroui/react";
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
+import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
 
 interface TravelDetailsSectionProps {
   form: UseFormReturn<any>;
@@ -28,20 +14,10 @@ interface TravelDetailsSectionProps {
   isSubmitting: boolean;
 }
 
-// Utility functions for CalendarDate <-> Date
-function dateToCalendarDate(date?: Date): CalendarDate | null {
-  if (!date) return null;
-  return new CalendarDate(
-    date.getUTCFullYear(),
-    date.getUTCMonth() + 1,
-    date.getUTCDate()
-  );
-}
+const ISO_DATE_REGEX = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
-function calendarDateToDate(cd: CalendarDate | null | undefined): Date | null {
-  if (!cd) return null;
-  return new Date(Date.UTC(cd.year, cd.month - 1, cd.day));
-}
+const isIsoDateString = (value: unknown): value is string =>
+  typeof value === "string" && ISO_DATE_REGEX.test(value);
 
 export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
   form,
@@ -55,6 +31,45 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
   } = form;
 
   const watchedValues = watch();
+  const timeZone = getLocalTimeZone();
+
+  const startDateString: unknown = watchedValues.startDate;
+  const endDateString: unknown = watchedValues.endDate;
+
+  const todayValue = today(timeZone);
+  const normalizedStartDateString = isIsoDateString(startDateString)
+    ? startDateString
+    : todayValue.toString();
+
+  const minEndDateString = parseDate(normalizedStartDateString)
+    .add({ days: 1 })
+    .toString();
+
+  const normalizedEndDateString =
+    isIsoDateString(endDateString) && endDateString >= minEndDateString
+      ? endDateString
+      : minEndDateString;
+
+  React.useEffect(() => {
+    if (normalizedStartDateString !== startDateString) {
+      setValue("startDate", normalizedStartDateString, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
+    if (normalizedEndDateString !== endDateString) {
+      setValue("endDate", normalizedEndDateString, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
+  }, [
+    endDateString,
+    normalizedEndDateString,
+    normalizedStartDateString,
+    setValue,
+    startDateString,
+  ]);
 
   return (
     <>
@@ -63,7 +78,7 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
           Travel Details
         </h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
-          Set your travel dates and group size preferences.
+          Set your travel dates.
         </p>
       </div>
       <Card className="border-1 border-border bg-transparent">
@@ -73,22 +88,32 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
               <Label className="text-xs font-medium">Start Date *</Label>
               <DatePicker
                 variant="bordered"
-                defaultValue={today(getLocalTimeZone())}
+                value={parseDate(normalizedStartDateString)}
                 label="Date"
-                minValue={today(getLocalTimeZone())}
-                onChange={async (date: any) => {
-                  if (date) {
-                    const newStartDate = date.toDate();
-                    setValue("startDate", newStartDate);
+                minValue={todayValue}
+                isDisabled={isSubmitting}
+                onChange={async (date: unknown) => {
+                  if (!date || typeof (date as { toString?: unknown }).toString !== "function") {
+                    return;
+                  }
 
-                    if (
-                      watchedValues.endDate &&
-                      newStartDate > watchedValues.endDate
-                    ) {
-                      const newEndDate = new Date(newStartDate);
-                      newEndDate.setDate(newEndDate.getDate() + 1);
-                      setValue("endDate", newEndDate);
-                    }
+                  const nextStartDateString = (date as { toString: () => string }).toString();
+                  if (!isIsoDateString(nextStartDateString)) return;
+
+                  setValue("startDate", nextStartDateString, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+
+                  const nextMinEndDateString = parseDate(nextStartDateString)
+                    .add({ days: 1 })
+                    .toString();
+
+                  if (!isIsoDateString(endDateString) || endDateString < nextMinEndDateString) {
+                    setValue("endDate", nextMinEndDateString, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
                   }
                 }}
                 classNames={{
@@ -110,18 +135,22 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
               <Label className="text-xs font-medium">End Date *</Label>
               <DatePicker
                 variant="bordered"
-                defaultValue={today(getLocalTimeZone()).add({ days: 1 })}
+                value={parseDate(normalizedEndDateString)}
                 label="Date"
-                minValue={
-                  watchedValues.startDate
-                    ? today(getLocalTimeZone()).add({ days: 1 })
-                    : undefined
-                }
-                onChange={async (date: any) => {
-                  if (date) {
-                    const newEndDate = date.toDate();
-                    setValue("endDate", newEndDate);
+                minValue={parseDate(normalizedStartDateString).add({ days: 1 })}
+                isDisabled={isSubmitting}
+                onChange={async (date: unknown) => {
+                  if (!date || typeof (date as { toString?: unknown }).toString !== "function") {
+                    return;
                   }
+
+                  const nextEndDateString = (date as { toString: () => string }).toString();
+                  if (!isIsoDateString(nextEndDateString)) return;
+
+                  setValue("endDate", nextEndDateString, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
                 }}
                 classNames={{
                   inputWrapper: cn(
@@ -137,45 +166,6 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                   {errors.endDate.message?.toString()}
                 </p>
               )}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="w-full space-y-2">
-              <Label htmlFor="group-size" className="text-xs font-medium">
-                Preferred Group Size
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("groupSize", value as any)}
-                defaultValue={watchedValues.groupSize}
-              >
-                <SelectTrigger className="h-9 text-sm w-full">
-                  <SelectValue placeholder="Select group size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2-4">2-4 people</SelectItem>
-                  <SelectItem value="5-7">5-7 people</SelectItem>
-                  <SelectItem value="8-10">8-10 people</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full space-y-2">
-              <Label htmlFor="budget-range" className="text-xs font-medium">
-                Budget Range
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("budgetRange", value as any)}
-                defaultValue={watchedValues.budgetRange}
-              >
-                <SelectTrigger className="h-9 text-sm w-full">
-                  <SelectValue placeholder="Select budget range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="budget">Budget ($)</SelectItem>
-                  <SelectItem value="moderate">Moderate ($$)</SelectItem>
-                  <SelectItem value="luxury">Luxury ($$$)</SelectItem>
-                  <SelectItem value="flexible">Flexible</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>

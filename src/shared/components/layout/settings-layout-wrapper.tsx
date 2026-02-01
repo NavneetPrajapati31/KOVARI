@@ -17,11 +17,12 @@ import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { BasicInfoSection } from "@/features/groups/components/edit-group-sections/basic-info-section";
 import { TravelDetailsSection } from "@/features/groups/components/edit-group-sections/travel-details-section";
 import { PrivacySafetySection } from "@/features/groups/components/edit-group-sections/privacy-safety-section";
-import { CommunicationSection } from "@/features/groups/components/edit-group-sections/communication-section";
 // Import other pages
 import MembersPage from "@/app/(app)/groups/[groupId]/settings/members/page";
 import RequestPage from "@/app/(app)/groups/[groupId]/settings/requests/page";
 import DangerPage from "@/app/(app)/groups/[groupId]/settings/danger/page";
+
+const ISO_DATE_REGEX = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 // Enhanced schema for travel group editing
 const editGroupSchema = z
@@ -36,12 +37,17 @@ const editGroupSchema = z
       .max(500, "Description must be less than 500 characters")
       .optional(),
     destination: z.string().min(1, "Destination is required"),
+    coverImage: z.string().optional().nullable(),
 
     // Travel Details
-    startDate: z.string().min(1, "Start date is required"),
-    endDate: z.string().min(1, "End date is required"),
-    groupSize: z.enum(["2-4", "5-7", "8-10"]),
-    budgetRange: z.enum(["budget", "moderate", "luxury", "flexible"]),
+    startDate: z
+      .string()
+      .min(1, "Start date is required")
+      .regex(ISO_DATE_REGEX, "Invalid start date"),
+    endDate: z
+      .string()
+      .min(1, "End date is required")
+      .regex(ISO_DATE_REGEX, "Invalid end date"),
 
     // Privacy & Visibility
     visibility: z.enum(["public", "private", "invite-only"]),
@@ -56,19 +62,13 @@ const editGroupSchema = z
       memberVerification: z.boolean(),
       reportSystem: z.boolean(),
     }),
-
-    // Communication
-    communicationSettings: z.object({
-      allowDirectMessages: z.boolean(),
-      groupChatEnabled: z.boolean(),
-      notificationsEnabled: z.boolean(),
-      messageModeration: z.boolean(),
-    }),
   })
   .refine(
     (data) => {
-      if (!data.startDate || !data.endDate) return true;
-      return new Date(data.startDate) < new Date(data.endDate);
+      if (!ISO_DATE_REGEX.test(data.startDate) || !ISO_DATE_REGEX.test(data.endDate)) {
+        return true;
+      }
+      return data.startDate < data.endDate;
     },
     {
       message: "End date must be after start date",
@@ -82,7 +82,6 @@ const SECTION_COMPONENTS = {
   basic: BasicInfoSection,
   travel: TravelDetailsSection,
   privacy: PrivacySafetySection,
-  communication: CommunicationSection,
 } as const;
 
 const PAGE_COMPONENTS = {
@@ -91,91 +90,168 @@ const PAGE_COMPONENTS = {
   delete: DangerPage,
 } as const;
 
-// Memoized section content component
-const SectionContent = memo(({ activeTab }: { activeTab: string | null }) => {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-  // Initialize form for edit sections
-  const form = useForm<EditGroupForm>({
-    resolver: zodResolver(editGroupSchema),
-    defaultValues: {
-      groupName: "",
-      description: "",
-      destination: "",
-      startDate: "",
-      endDate: "",
-      groupSize: "5-7",
-      budgetRange: "moderate",
-      visibility: "public",
-      allowJoinRequests: true,
-      requireApproval: true,
-      safetyFeatures: {
-        emergencyContacts: true,
-        locationSharing: false,
-        panicButton: true,
-        memberVerification: true,
-        reportSystem: true,
-      },
-      communicationSettings: {
-        allowDirectMessages: true,
-        groupChatEnabled: true,
-        notificationsEnabled: true,
-        messageModeration: true,
-      },
-    },
-  });
-
-  const handleSectionSubmit = async (sectionId: string) => {
-    setIsSubmitting(true);
-    try {
-      // TODO: Implement API call to update specific section
-      console.log(`Updating ${sectionId} section`);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Show success feedback
-      console.log(`${sectionId} section updated successfully`);
-    } catch (error) {
-      console.error(`Error updating ${sectionId} section:`, error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Check if it's an edit section
-  if (activeTab && activeTab in SECTION_COMPONENTS) {
-    const SectionComponent =
-      SECTION_COMPONENTS[activeTab as keyof typeof SECTION_COMPONENTS];
-    return (
-      <div className="w-full h-full p-4">
-        <SectionComponent
-          form={form}
-          onSubmit={handleSectionSubmit}
-          isSubmitting={isSubmitting}
-        />
-      </div>
-    );
-  }
-
-  // Check if it's a page component
-  if (activeTab && activeTab in PAGE_COMPONENTS) {
-    const PageComponent =
-      PAGE_COMPONENTS[activeTab as keyof typeof PAGE_COMPONENTS];
-    return (
-      <div className="w-full h-full">
-        <PageComponent />
-      </div>
-    );
-  }
-
-  // Default fallback
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <p className="text-muted-foreground">Select a section to get started</p>
-    </div>
-  );
+// Default form values
+const getDefaultFormValues = (): EditGroupForm => ({
+  groupName: "",
+  description: "",
+  destination: "",
+  coverImage: null,
+  startDate: "",
+  endDate: "",
+  visibility: "public",
+  allowJoinRequests: true,
+  requireApproval: true,
+  safetyFeatures: {
+    emergencyContacts: true,
+    locationSharing: false,
+    panicButton: true,
+    memberVerification: true,
+    reportSystem: true,
+  },
 });
+
+// Memoized section content component
+const SectionContent = memo(
+  ({
+    activeTab,
+    groupId,
+    groupData,
+    onGroupUpdate,
+  }: {
+    activeTab: string | null;
+    groupId: string | undefined;
+    groupData: {
+      name?: string;
+      destination?: string;
+      cover_image?: string | null;
+      description?: string | null;
+      start_date?: string;
+      end_date?: string;
+    } | null;
+    onGroupUpdate?: (data: Record<string, unknown>) => void;
+  }) => {
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    // Initialize form for edit sections
+    const form = useForm<EditGroupForm>({
+      resolver: zodResolver(editGroupSchema),
+      defaultValues: getDefaultFormValues(),
+    });
+
+    // Populate form when group data loads
+    React.useEffect(() => {
+      if (groupData) {
+        form.reset({
+          ...getDefaultFormValues(),
+          groupName: groupData.name ?? "",
+          description: groupData.description ?? "",
+          destination: groupData.destination ?? "",
+          coverImage: groupData.cover_image ?? null,
+          startDate: groupData.start_date ?? "",
+          endDate: groupData.end_date ?? "",
+        } as EditGroupForm);
+      }
+    }, [groupData, form]);
+
+    const handleSectionSubmit = React.useCallback(
+      async (sectionId: string) => {
+        if (!groupId) return;
+        setIsSubmitting(true);
+        try {
+          if (sectionId === "travel") {
+            const isValid = await form.trigger(["startDate", "endDate"]);
+            if (!isValid) {
+              toast.error("Please check your travel dates");
+              return;
+            }
+          }
+
+          const values = form.getValues();
+          if (sectionId === "basic") {
+            const res = await fetch(`/api/groups/${groupId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: values.groupName,
+                destination: values.destination,
+                description: values.description ?? "",
+                cover_image: values.coverImage ?? null,
+              }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.error || "Failed to update");
+            }
+            toast.success("Basic info updated successfully");
+            onGroupUpdate?.(data);
+          } else if (sectionId === "travel") {
+            const res = await fetch(`/api/groups/${groupId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                start_date: values.startDate,
+                end_date: values.endDate,
+              }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.error || "Failed to update");
+            }
+
+            toast.success("Travel details updated successfully");
+            onGroupUpdate?.(data);
+          } else {
+            // Travel/Privacy sections - placeholder for future API
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            toast.success(`${sectionId} section updated`);
+          }
+        } catch (error) {
+          console.error(`Error updating ${sectionId}:`, error);
+          toast.error(
+            error instanceof Error ? error.message : "Failed to update"
+          );
+        } finally {
+          setIsSubmitting(false);
+        }
+      },
+      [groupId, form, onGroupUpdate]
+    );
+
+    // Check if it's an edit section
+    if (activeTab && activeTab in SECTION_COMPONENTS) {
+      const SectionComponent =
+        SECTION_COMPONENTS[activeTab as keyof typeof SECTION_COMPONENTS];
+      return (
+        <div className="w-full h-full p-4">
+          <SectionComponent
+            form={form}
+            onSubmit={handleSectionSubmit}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+      );
+    }
+
+    // Check if it's a page component
+    if (activeTab && activeTab in PAGE_COMPONENTS) {
+      const PageComponent =
+        PAGE_COMPONENTS[activeTab as keyof typeof PAGE_COMPONENTS];
+      return (
+        <div className="w-full h-full">
+          <PageComponent />
+        </div>
+      );
+    }
+
+    // Default fallback
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <p className="text-muted-foreground">Select a section to get started</p>
+      </div>
+    );
+  }
+);
 
 SectionContent.displayName = "SectionContent";
 
@@ -203,9 +279,15 @@ export default function LayoutWrapper() {
   const [isRejoining, setIsRejoining] = useState(false);
   const [groupInfo, setGroupInfo] = useState<{
     status?: "active" | "pending" | "removed";
+    name?: string;
+    destination?: string;
+    cover_image?: string | null;
+    description?: string | null;
+    start_date?: string;
+    end_date?: string;
   } | null>(null);
 
-  // Fetch group info to check status
+  // Fetch group info to check status and populate form
   React.useEffect(() => {
     const fetchGroupInfo = async () => {
       try {
@@ -454,7 +536,6 @@ export default function LayoutWrapper() {
                     basic: "Basic Info",
                     travel: "Travel Details",
                     privacy: "Privacy & Safety",
-                    communication: "Communication",
                     members: "Manage Members",
                     requests: "Join Requests",
                     delete: "Leave Group",
@@ -468,6 +549,11 @@ export default function LayoutWrapper() {
               <SectionContent
                 key={activeTab ?? "none"}
                 activeTab={activeTab ?? ""}
+                groupId={groupId}
+                groupData={groupInfo}
+                onGroupUpdate={(data) =>
+                  setGroupInfo((prev) => (prev ? { ...prev, ...data } : prev))
+                }
               />
             </div>
           </div>
@@ -488,7 +574,15 @@ export default function LayoutWrapper() {
       </div>
       {/* Content */}
       <div className="flex-1 flex flex-col p-3 gap-2 overflow-y-auto scrollbar-hide">
-        <SectionContent key={activeTab || "none"} activeTab={activeTab} />
+        <SectionContent
+          key={activeTab || "none"}
+          activeTab={activeTab}
+          groupId={groupId}
+          groupData={groupInfo}
+          onGroupUpdate={(data) =>
+            setGroupInfo((prev) => (prev ? { ...prev, ...data } : prev))
+          }
+        />
       </div>
     </div>
   );

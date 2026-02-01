@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
@@ -12,6 +13,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { AlertTriangle } from "lucide-react";
 
 interface RemoveMemberModalProps {
   open: boolean;
@@ -37,13 +39,36 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
   error = null,
 }) => {
   if (!member) return null;
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (isLoading) return;
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent aria-modal="true" aria-labelledby="remove-member-title">
-        <DialogHeader>
-          <DialogTitle id="remove-member-title">Remove Member</DialogTitle>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        aria-modal="true"
+        aria-labelledby="remove-member-title"
+        aria-describedby="remove-member-description"
+        className="rounded-2xl border-border max-w-[min(420px,calc(100vw-2rem))]"
+      >
+        <DialogHeader className="text-left mb-2">
+          <DialogTitle
+            id="remove-member-title"
+            className="text-foreground font-semibold text-left"
+          >
+            Remove member
+          </DialogTitle>
+          <DialogDescription
+            id="remove-member-description"
+            className="text-muted-foreground text-left"
+          >
+            This will remove them from the group.
+          </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center gap-4 py-2">
+
+        <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={member.avatar || ""} alt={member.name} />
             <AvatarFallback>
@@ -53,24 +78,25 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
                 .join("")}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <div className="font-medium text-foreground">{member.name}</div>
-            <div className="text-xs text-muted-foreground">
+          <div className="min-w-0">
+            <div className="font-medium text-foreground truncate">
+              {member.name}
+            </div>
+            <div className="text-xs text-muted-foreground truncate">
               @{member.username}
             </div>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground py-2">
-          Are you sure you want to remove this member from the group? This
-          action cannot be undone.
-        </p>
-        {error && <div className="text-destructive text-xs py-1">{error}</div>}
-        <DialogFooter className="flex gap-2 pt-2">
+
+        {error && <p className="text-xs text-destructive">{error}</p>}
+
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={isLoading}
             aria-label="Cancel removal"
+            className="h-9"
           >
             Cancel
           </Button>
@@ -79,6 +105,7 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
             onClick={onConfirm}
             disabled={isLoading}
             aria-label="Confirm remove member"
+            className="h-9"
           >
             {isLoading ? "Removing..." : "Remove"}
           </Button>

@@ -6,7 +6,6 @@ export type SettingsTab =
   | "basic"
   | "travel"
   | "privacy"
-  | "communication"
   | "members"
   | "requests"
   | "delete"
@@ -16,7 +15,6 @@ const VALID_TABS: Exclude<SettingsTab, null>[] = [
   "basic",
   "travel",
   "privacy",
-  "communication",
   "members",
   "requests",
   "delete",

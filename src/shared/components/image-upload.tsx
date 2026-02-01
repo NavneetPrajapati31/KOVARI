@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+import React from "react";
 import { useState, useRef, useCallback } from "react";
 import { X, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -20,6 +20,7 @@ interface ImageUploadProps {
   avatar?: boolean;
   compact?: boolean;
   hideLabel?: boolean;
+  value?: string | null;
 }
 
 export function ImageUpload({
@@ -32,10 +33,16 @@ export function ImageUpload({
   compact = false,
   avatar = false,
   hideLabel = false,
+  value = null,
 }: ImageUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(value ?? null);
+
+  // Sync with value prop when it changes externally (e.g., form reset)
+  React.useEffect(() => {
+    setUploadedImage(value ?? null);
+  }, [value]);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);

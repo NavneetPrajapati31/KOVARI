@@ -436,6 +436,22 @@ export default function RequestsPage() {
           <span className="text-destructive">{joinRequestsError}</span>
         </div>
       )}
+      {/* Empty state - no pending requests */}
+      {!isJoinRequestsLoading &&
+        !joinRequestsError &&
+        joinRequests.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="rounded-full bg-muted/50 p-4 mb-4">
+            </div>
+            <h2 className="text-base font-semibold text-foreground mb-1">
+              No pending requests
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              There are no join requests awaiting review. New requests will
+              appear here when users ask to join this group.
+            </p>
+          </div>
+        )}
     </div>
   );
 }

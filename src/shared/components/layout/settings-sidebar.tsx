@@ -4,7 +4,6 @@ import {
   Settings,
   MapPin,
   Shield,
-  MessageCircle,
   Users,
   AlertTriangle,
   Trash2,
@@ -17,12 +16,6 @@ const TABS = [
   { key: "basic", label: "Basic Info", icon: Settings, category: "edit" },
   { key: "travel", label: "Travel Details", icon: MapPin, category: "edit" },
   { key: "privacy", label: "Privacy & Safety", icon: Shield, category: "edit" },
-  {
-    key: "communication",
-    label: "Communication",
-    icon: MessageCircle,
-    category: "edit",
-  },
   // Other sections
   {
     key: "members",

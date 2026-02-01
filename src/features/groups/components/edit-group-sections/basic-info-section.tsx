@@ -6,15 +6,9 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
-import { Settings, Camera } from "lucide-react";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { ImageUpload } from "@/shared/components/image-upload";
+import { Spinner } from "@heroui/react";
 
 interface BasicInfoSectionProps {
   form: UseFormReturn<any>;
@@ -30,6 +24,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   const {
     register,
     watch,
+    setValue,
     formState: { errors },
   } = form;
 
@@ -46,7 +41,6 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           Update your group&apos;s name, description, and cover image.
         </p>
       </div>
-      <div className="space-y-4 w-full max-w-full pb-4">
       <Card className="border-1 border-border bg-transparent">
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -57,9 +51,10 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               id="group-name"
               {...register("groupName")}
               placeholder="Enter a memorable group name"
-              className={`h-9 text-sm ${
+              className={`h-9 text-sm w-full ${
                 errors.groupName ? "border-destructive" : ""
               }`}
+              disabled={isSubmitting}
             />
             {errors.groupName && (
               <p className="text-xs text-destructive">
@@ -76,9 +71,10 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               id="destination"
               {...register("destination")}
               placeholder="e.g., Tokyo, Japan"
-              className={`h-9 text-sm ${
+              className={`h-9 text-sm w-full ${
                 errors.destination ? "border-destructive" : ""
               }`}
+              disabled={isSubmitting}
             />
             {errors.destination && (
               <p className="text-xs text-destructive">
@@ -96,12 +92,13 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 id="description"
                 {...register("description")}
                 placeholder="Tell people what your group is about..."
-                className={`min-h-[100px] text-sm resize-none ${
+                className={`min-h-[100px] text-sm resize-none w-full ${
                   errors.description ? "border-destructive" : ""
                 }`}
                 maxLength={500}
+                disabled={isSubmitting}
               />
-              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground pointer-events-none">
                 {descriptionLength}/500
               </div>
             </div>
@@ -114,7 +111,12 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
 
           <div className="space-y-2">
             <Label className="text-xs font-medium">Cover Image</Label>
-            <ImageUpload hideLabel avatar />
+            <ImageUpload
+              hideLabel
+              value={watchedValues.coverImage ?? null}
+              onImageUpload={(url) => setValue("coverImage", url, { shouldDirty: true })}
+              onImageRemove={() => setValue("coverImage", null, { shouldDirty: true })}
+            />
           </div>
         </CardContent>
         <CardContent className="pt-0">
@@ -122,13 +124,23 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             type="button"
             onClick={() => onSubmit("basic")}
             disabled={isSubmitting}
-            className="w-full h-9 text-sm"
+            className="w-full h-9 text-sm inline-flex gap-2"
           >
-            {isSubmitting ? "Saving..." : "Save Basic Info"}
+            {isSubmitting ? (
+              <>
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-white" }}
+                />
+                Saving...
+              </>
+            ) : (
+              "Save Basic Info"
+            )}
           </Button>
         </CardContent>
       </Card>
-      </div>
     </>
   );
 };

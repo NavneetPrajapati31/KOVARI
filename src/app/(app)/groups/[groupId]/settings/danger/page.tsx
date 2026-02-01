@@ -3,13 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
+import { Input } from "@/shared/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { AlertTriangle, LogOut, Trash2 } from "lucide-react";
+import { LogOut, Trash2 } from "lucide-react";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 
 interface MembershipInfo {
@@ -146,18 +140,34 @@ export default function DangerPage() {
 
   if (isLoading) {
     return (
-      <div className="w-full mx-auto p-4 space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-md sm:text-lg font-bold text-foreground">
+      <div className="w-full p-4 text-left">
+        <div className="space-y-2 mb-8 text-left">
+          <h1 className="text-md sm:text-lg font-semibold text-foreground">
             Danger Zone
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm">
-            Irreversible and destructive actions for this group.
+            Irreversible actions for this group.
           </p>
         </div>
-        <div className="animate-pulse space-y-2">
-          <div className="h-40 bg-gray-200 rounded-xl"></div>
-          <div className="h-40 bg-gray-200 rounded-xl"></div>
+        <div className="border border-border rounded-lg overflow-hidden divide-y divide-border">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5">
+            <div className="space-y-2 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+              </div>
+              <div className="h-3 w-72 bg-muted/70 animate-pulse rounded" />
+            </div>
+            <div className="h-8 w-28 bg-muted animate-pulse rounded shrink-0" />
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5">
+            <div className="space-y-2 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+              </div>
+              <div className="h-3 w-72 bg-muted/70 animate-pulse rounded" />
+            </div>
+            <div className="h-8 w-28 bg-muted animate-pulse rounded shrink-0" />
+          </div>
         </div>
       </div>
     );
@@ -165,114 +175,108 @@ export default function DangerPage() {
 
   if (error) {
     return (
-      <div className="w-full mx-auto p-4">
-        <div className="text-center text-red-600">
-          <p>Error: {error}</p>
-        </div>
+      <div className="w-full p-4">
+        <p className="text-sm text-destructive">{error}</p>
       </div>
     );
   }
 
   if (!membershipInfo?.isMember) {
     return (
-      <div className="w-full mx-auto p-4">
-        <div className="text-center text-muted-foreground">
-          <p>You are not a member of this group.</p>
-        </div>
+      <div className="w-full p-4">
+        <p className="text-sm text-muted-foreground">
+          You are not a member of this group.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full mx-auto p-4 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-md sm:text-lg font-bold text-foreground">
-            Danger Zone
-          </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            Irreversible and destructive actions for this group.
-          </p>
-        </div>
+    <div className="w-full p-4 text-left">
+      <div className="space-y-1 mb-8 text-left">
+        <h1 className="text-md sm:text-lg font-semibold text-foreground">
+          Danger Zone
+        </h1>
+        <p className="text-muted-foreground text-xs sm:text-sm">
+          Irreversible actions for this group.
+        </p>
       </div>
 
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="flex text-sm items-center gap-2 text-destructive">
-            <AlertTriangle className="h-4 w-4" />
-            Leave Group
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Leave this group. You can rejoin if you have an invitation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="space-y-0 border border-border rounded-lg overflow-hidden divide-y divide-border">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 bg-background text-left">
+          <div className="space-y-0.5 min-w-0 text-left">
+            <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
+              <LogOut className="h-4 w-4 text-muted-foreground shrink-0" />
+              Leave Group
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Leave this group. You can rejoin if you have an invitation.
+            </p>
+          </div>
           <Button
-            variant="destructive"
-            className="text-sm"
+            variant="outline"
+            size="sm"
+            className="text-destructive bg-card hover:text-destructive hover:bg-destructive/10 border-border shrink-0"
             onClick={() => setIsLeaveDialogOpen(true)}
             disabled={isLeaving}
           >
-            <LogOut className="h-4 w-4 mr-2" />
             {isLeaving ? "Leaving..." : "Leave Group"}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
 
-      {membershipInfo.isCreator && (
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="flex items-center text-sm gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              Delete Group
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Permanently delete this group and all its data. This action cannot
-              be undone.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        {membershipInfo.isCreator && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 bg-background text-left">
+            <div className="space-y-0.5 min-w-0 text-left">
+              <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Trash2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                Delete Group
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Permanently delete this group and all its data. Cannot be
+                undone.
+              </p>
+            </div>
             <Button
-              variant="destructive"
-              className="text-sm"
+              variant="outline"
+              size="sm"
+              className="text-destructive bg-card hover:text-destructive hover:bg-destructive/10 border-destructive/50 shrink-0"
               onClick={() => setIsDeleteDialogOpen(true)}
               disabled={isDeleting}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
               {isDeleting ? "Deleting..." : "Delete Group"}
             </Button>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Leave Group Confirmation Dialog */}
       <Dialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
+        <DialogContent className="rounded-2xl border-border max-w-[min(400px,calc(100vw-2rem))]">
+          <DialogHeader className="text-left">
+            <DialogTitle className="text-foreground font-semibold text-left mb-2">
               Leave Group
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-muted-foreground text-left">
               Are you sure you want to leave this group? You can rejoin if you
               have an invitation.
             </DialogDescription>
           </DialogHeader>
           {leaveError && (
-            <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
-              {leaveError}
-            </div>
+            <p className="text-sm text-destructive">{leaveError}</p>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setIsLeaveDialogOpen(false)}
               disabled={isLeaving}
             >
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 border-border"
               onClick={handleLeaveGroup}
               disabled={isLeaving}
             >
@@ -284,39 +288,39 @@ export default function DangerPage() {
 
       {/* Delete Group Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
+        <DialogContent className="rounded-2xl border-border max-w-[min(400px,calc(100vw-2rem))]">
+          <DialogHeader className="text-left">
+            <DialogTitle className="text-foreground font-semibold text-left mb-2">
               Delete Group
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-muted-foreground text-left">
               This action cannot be undone. This will permanently delete the
               group and all its data.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              To confirm deletion, type{" "}
-              <span className="font-mono font-bold">DELETE</span> in the field
-              below:
-            </div>
-            <input
+          <div className="space-y-3 text-left">
+            <p className="text-sm text-muted-foreground">
+              Type{" "}
+              <span className="font-mono font-medium text-foreground">
+                DELETE
+              </span>{" "}
+              to confirm:
+            </p>
+            <Input
               type="text"
               value={deleteConfirmation}
               onChange={(e) => setDeleteConfirmation(e.target.value)}
               placeholder="DELETE"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="h-9 border-border focus-visible:ring-0"
             />
             {deleteError && (
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
-                {deleteError}
-              </div>
+              <p className="text-sm text-destructive">{deleteError}</p>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => {
                 setIsDeleteDialogOpen(false);
                 setDeleteConfirmation("");
@@ -328,6 +332,7 @@ export default function DangerPage() {
             </Button>
             <Button
               variant="destructive"
+              size="sm"
               onClick={handleDeleteGroup}
               disabled={isDeleting || deleteConfirmation !== "DELETE"}
             >
