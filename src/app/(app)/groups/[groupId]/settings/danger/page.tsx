@@ -151,20 +151,20 @@ export default function DangerPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5">
             <div className="space-y-2 flex-1">
               <div className="flex items-center gap-2">
-                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-full sm:w-24 bg-muted animate-pulse rounded" />
               </div>
-              <div className="h-3 w-72 bg-muted/70 animate-pulse rounded" />
+              <div className="h-3 w-full sm:w-72 bg-muted/70 animate-pulse rounded" />
             </div>
-            <div className="h-8 w-28 bg-muted animate-pulse rounded shrink-0" />
+            <div className="h-8 w-full sm:w-28 bg-muted animate-pulse rounded" />
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5">
             <div className="space-y-2 flex-1">
               <div className="flex items-center gap-2">
-                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-full sm:w-24 bg-muted animate-pulse rounded" />
               </div>
-              <div className="h-3 w-72 bg-muted/70 animate-pulse rounded" />
+              <div className="h-3 w-full sm:w-72 bg-muted/70 animate-pulse rounded" />
             </div>
-            <div className="h-8 w-28 bg-muted animate-pulse rounded shrink-0" />
+            <div className="h-8 w-full sm:w-28 bg-muted animate-pulse rounded" />
           </div>
         </div>
       </div>
