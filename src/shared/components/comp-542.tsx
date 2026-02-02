@@ -217,6 +217,43 @@ const getRandomEventColor = (): CalendarEvent["color"] => {
   return eventColors[randomIndex];
 };
 
+/** Clean minimal skeleton: header + day sections with simple bar placeholders */
+function ItinerarySkeleton() {
+  return (
+    <div
+      className="bg-card flex flex-col h-full min-h-0 rounded-xl border border-border overflow-hidden"
+      aria-hidden
+      aria-busy
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 p-3.5 flex-shrink-0 border-b border-border/50">
+        <Skeleton className="h-4 w-28 rounded flex-1 max-w-[140px]" />
+        <Skeleton className="h-4 w-28 rounded flex-1 max-w-[140px]" />
+      </div>
+
+      {/* Content: uniform day + event bars, no boxes */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+        {[1, 2, 3, 4, 5, 6].map((dayIdx) => (
+          <div
+            key={dayIdx}
+            className="pt-4 first:pt-0 mt-6 first:mt-0 border-t border-border/50 first:border-t-0"
+          >
+            <Skeleton className="h-4 w-32 rounded mb-4" />
+            <div className="space-y-3 pl-0">
+              <div className="space-y-1.5">
+                <Skeleton className="h-8 w-full rounded" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-full rounded" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ItineraryUI() {
   const { events, loading, error } = useItineraryEvents();
 
@@ -237,18 +274,22 @@ export default function ItineraryUI() {
 
   if (loading) {
     return (
-      <div className="flex flex-col w-full h-full">
-        <Skeleton className="h-full w-full rounded-xl" />
+      <div className="flex flex-col w-full h-full min-h-0 flex-1">
+        <ItinerarySkeleton />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <p className="text-sm text-red-600 mb-2">Error loading events</p>
-          <p className="text-xs text-gray-500">{error}</p>
+      <div className="flex flex-col w-full h-full min-h-0 bg-card border border-border rounded-xl overflow-hidden">
+        <div className="flex flex-1 min-h-0 items-center justify-center p-8">
+          <div className="text-center">
+            <p className="text-sm text-destructive mb-2">
+              Error loading events
+            </p>
+            <p className="text-xs text-muted-foreground">{error}</p>
+          </div>
         </div>
       </div>
     );
@@ -256,7 +297,7 @@ export default function ItineraryUI() {
 
   if (events.length === 0 && !loading) {
     return (
-      <div className="bg-card !border !border-border rounded-2xl md:h-[90vh] h-full flex flex-col">
+      <div className="bg-card border border-border rounded-xl h-full min-h-0 flex flex-col overflow-hidden">
         <div className="mb-3 p-4 border-b border-border flex-shrink-0">
           <h2 className="text-foreground font-semibold text-xs truncate">
             Itinerary
@@ -265,12 +306,10 @@ export default function ItineraryUI() {
             Your upcoming events and activities
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center py-24 text-center flex-1">
-          <p className="text-xs text-muted-foreground">
-            No itinerary events found
-          </p>
+        <div className="flex flex-1 min-h-0 flex-col items-center justify-center py-24 text-center">
+          <p className="text-xs font-medium text-foreground">No events found</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Create some events in your groups&apos; itineraries to see them here
+            There are no events scheduled for this time period.
           </p>
         </div>
       </div>
@@ -278,7 +317,7 @@ export default function ItineraryUI() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 flex-1">
       {/* <div className="mb-3 p-4 border-b border-border flex-shrink-0">
         <h2 className="text-foreground font-semibold text-xs truncate">
           Itinerary

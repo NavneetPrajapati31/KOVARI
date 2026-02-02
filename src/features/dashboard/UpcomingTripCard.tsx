@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
-import { MapPin, Calendar, Users, Loader2, ArrowUpRight } from "lucide-react";
+import { useState } from "react";
+import { Card } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
-import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
+import { Skeleton } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
 interface DestinationCardProps {
@@ -65,9 +64,13 @@ export function UpcomingTripCard({
 
   if (isLoading || !name || !groupId) {
     return (
-      <Card className="relative w-full h-full rounded-xl shadow-none border-none overflow-hidden flex flex-col">
-        <Skeleton className="w-full h-full rounded-xl" />
-      </Card>
+      <div
+        className="relative w-full h-full min-h-0 rounded-xl overflow-hidden bg-card"
+        aria-hidden
+        aria-busy
+      >
+        <Skeleton className="absolute inset-0 size-full rounded-xl" />
+      </div>
     );
   }
 

@@ -19,7 +19,10 @@ import { Skeleton } from "@heroui/react";
 import InboxChatListSkeleton from "@/shared/components/layout/inbox-chat-list-skeleton";
 import DashboardCard from "@/shared/components/ui/DashboardCard";
 import DoneTripsCard from "@/shared/components/DoneTripsCard/DoneTripsCard";
-import { GroupList } from "@/shared/components/GroupCard/GroupCard-list";
+import {
+  GroupList,
+  GroupListSkeleton,
+} from "@/shared/components/GroupCard/GroupCard-list";
 import TodoChecklist from "@/shared/components/Todo-Checklist/Todo-checklist";
 import TripsBarChart from "@/shared/components/charts/TripsBarChart";
 import dynamic from "next/dynamic";
@@ -34,7 +37,14 @@ const UpcomingTripCard = dynamic(
     import("@/features/dashboard/UpcomingTripCard").then((mod) => ({
       default: mod.UpcomingTripCard,
     })),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="relative w-full h-full min-h-0 rounded-xl overflow-hidden bg-card">
+        <Skeleton className="absolute inset-0 size-full rounded-xl" />
+      </div>
+    ),
+  }
 );
 
 import { useUserGroups } from "@/shared/hooks/useUserGroups";
@@ -382,11 +392,11 @@ export default function Dashboard() {
     window.open(url, "_blank");
   };
 
-  const isLoading = groupsLoading || !isSignedIn;
+  const showFullSkeleton = !isSignedIn;
 
   return (
     <div className="h-full bg-background p-4 flex flex-col gap-3">
-      {isLoading ? (
+      {showFullSkeleton ? (
         <DashboardSkeleton />
       ) : (
         <>
@@ -468,7 +478,8 @@ export default function Dashboard() {
                               notification.title
                             );
                             // @ts-ignore - Check for report type
-                            const isReport = notification.type === "REPORT_SUBMITTED";
+                            const isReport =
+                              notification.type === "REPORT_SUBMITTED";
 
                             return (
                               <Link
@@ -544,8 +555,8 @@ export default function Dashboard() {
           <div className="flex flex-col lg:flex-row gap-3 h-full">
             <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
               <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
-                <div className="w-full md:w-1/3 h-[180px] md:h-full">
-                  <div className="h-full">
+                <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
+                  <div className="h-full min-h-0">
                     <UpcomingTripCard
                       groupId={selectedGroupId || ""}
                       name={name}
@@ -558,8 +569,8 @@ export default function Dashboard() {
                     />
                   </div>
                 </div>
-                <div className="w-full md:w-1/3 h-[180px] md:h-full">
-                  <div className="h-full">
+                <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
+                  <div className="h-full min-h-0">
                     <TopDestinationCard
                       name={name}
                       country={country}
@@ -606,19 +617,8 @@ export default function Dashboard() {
                   </div>
                   <div className="px-4 pb-3 flex-1 overflow-hidden">
                     {groupsLoading ? (
-                      <div className="space-y-3">
-                        {Array.from({ length: 3 }).map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-3 p-3 border-b border-border"
-                          >
-                            <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
-                            <div className="flex-1 min-w-0 space-y-2">
-                              <Skeleton className="h-4 w-32" />
-                              <Skeleton className="h-3 w-24" />
-                            </div>
-                          </div>
-                        ))}
+                      <div className="overflow-y-auto pr-1 scrollbar-hide">
+                        <GroupListSkeleton />
                       </div>
                     ) : (
                       <GroupList title="My Groups" />
@@ -632,13 +632,9 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col w-full lg:w-1/2 h-full">
-              <div className="h-full overflow-hidden">
-                {itineraryLoading ? (
-                  <Skeleton className="h-full w-full rounded-xl" />
-                ) : (
-                  <ItineraryUI />
-                )}
+            <div className="flex flex-col w-full lg:w-1/2 h-full min-h-0">
+              <div className="h-full min-h-0 overflow-hidden flex flex-col">
+                <ItineraryUI />
               </div>
             </div>
           </div>

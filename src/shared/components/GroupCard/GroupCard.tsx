@@ -17,7 +17,15 @@ interface GroupCardProps {
   className?: string;
 }
 
+/** Returns only the city name (first segment before comma); no state, province or country. */
+function getCityOnly(destination: string): string {
+  const city = destination.split(",")[0]?.trim();
+  return city ?? destination;
+}
+
 export function GroupCard({ group, className }: GroupCardProps) {
+  const cityName = getCityOnly(group.destination);
+
   return (
     <Card
       className={cn(
@@ -32,7 +40,7 @@ export function GroupCard({ group, className }: GroupCardProps) {
             src={group.imageUrl || "/placeholder.svg"}
             alt={group.name}
           />
-          <AvatarFallback className="bg-white border border-border text-neutral-300">
+          <AvatarFallback className="bg-card border border-border text-muted-foreground">
             {group.name.charAt(0)}
           </AvatarFallback>
         </Avatar>
@@ -42,13 +50,13 @@ export function GroupCard({ group, className }: GroupCardProps) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between w-full gap-6">
           <h3 className="font-semibold text-xs truncate">{group.name}</h3>
-          <p className="text-xs text-foreground font-medium text-right truncate">
-            {group.destination}
+          <p className="text-xs text-foreground font-medium text-right whitespace-nowrap capitalize">
+            {cityName}
           </p>
         </div>
         <div className="flex items-center justify-between mt-0.5 w-full">
           <p className="text-xs text-foreground truncate">
-            {group.members} Members
+            {group.members === 1 ? "1 member" : `${group.members} members`}
           </p>
           {/* {group.timestampOrTag && (
             <p className="text-sm text-black text-right truncate">

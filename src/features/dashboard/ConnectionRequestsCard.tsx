@@ -8,6 +8,7 @@ import {
 } from "@/shared/components/ui/avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
+import { Skeleton } from "@heroui/react";
 import { Check, X, Clock, Users, Trash2, Loader2 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/shared/utils/utils";
 import * as Sentry from "@sentry/nextjs";
@@ -66,7 +67,7 @@ function ConnectionRequestCard({
       <div className="flex-shrink-0">
         <Avatar className="h-10 w-10">
           <AvatarImage src={request.avatar} alt={request.name} />
-          <AvatarFallback className="bg-white border border-border text-neutral-300">
+          <AvatarFallback className="bg-card border border-border text-muted-foreground">
             {request.name.charAt(0)}
           </AvatarFallback>
         </Avatar>
@@ -132,6 +133,38 @@ function ConnectionRequestCard({
   );
 }
 
+const REQUEST_SKELETON_ROW_COUNT = 7;
+
+/** Skeleton row matching ConnectionRequestCard: avatar, name + location, Connect + X buttons */
+function ConnectionRequestCardSkeletonRow() {
+  return (
+    <Card className="flex flex-row items-center gap-x-2 py-0 bg-card text-foreground shadow-none border-none">
+      <div className="flex-shrink-0">
+        <Skeleton className="h-10 w-10 rounded-full" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col min-w-0 space-y-1">
+          <Skeleton className="h-3.5 w-24 rounded" />
+          <Skeleton className="h-3 w-20 rounded" />
+        </div>
+      </div>
+      <div className="flex items-center space-x-2 flex-shrink-0">
+        <Skeleton className="h-7 w-16 rounded-md" />
+      </div>
+    </Card>
+  );
+}
+
+function MatchRequestsSkeleton() {
+  return (
+    <div className="min-h-[10rem] space-y-3" aria-hidden aria-busy>
+      {Array.from({ length: REQUEST_SKELETON_ROW_COUNT }).map((_, idx) => (
+        <ConnectionRequestCardSkeletonRow key={idx} />
+      ))}
+    </div>
+  );
+}
+
 export const ConnectionRequestsCard = () => {
   const [requests, setRequests] = useState<ConnectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,7 +179,7 @@ export const ConnectionRequestsCard = () => {
       setLoading(true);
       setError(null);
 
-      Sentry.startSpan(
+      await Sentry.startSpan(
         {
           op: "http.client",
           name: "GET /api/interests",
@@ -285,12 +318,7 @@ export const ConnectionRequestsCard = () => {
       <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto px-4 pb-3 hide-scrollbar flex-1">
         <div className="space-y-3">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              {/* <Clock className="h-8 w-8 text-muted-foreground mb-2 animate-pulse" /> */}
-              <p className="text-sm text-muted-foreground">
-                Loading requests...
-              </p>
-            </div>
+            <MatchRequestsSkeleton />
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">
               {/* <Clock className="h-8 w-8 text-muted-foreground mb-2" /> */}

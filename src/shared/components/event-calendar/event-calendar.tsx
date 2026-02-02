@@ -256,7 +256,7 @@ export function EventCalendar({
 
   return (
     <div
-      className="bg-card flex flex-col rounded-xl border has-data-[slot=month-view]:flex-1 w-full"
+      className="bg-card flex flex-col h-full min-h-0 rounded-xl border has-data-[slot=month-view]:flex-1 w-full"
       style={
         {
           "--event-height": `${24}px`,
