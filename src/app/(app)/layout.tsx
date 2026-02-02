@@ -23,16 +23,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <DirectMessageListener />
       <ProtectedRoute>
         <SidebarProvider>
-          {/* <SidebarWrapper /> */}
-          <AppSidebar />
+          <SidebarWrapper />
           <main
             className={`flex-1 min-h-0 flex flex-col ${
               isBottomNavHidden ? "pb-0" : "pb-16 md:pb-0"
             }`}
           >
-            {/* <LayoutWrapper>{children}</LayoutWrapper> */}
             {children}
-            {/* {children} */}
           </main>
           <BottomNav />
         </SidebarProvider>

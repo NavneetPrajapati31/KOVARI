@@ -18,7 +18,7 @@ import { DatePicker } from "@heroui/react";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Switch } from "@heroui/react";
+import { Switch } from "@/shared/components/ui/switch";
 import { ImageUpload } from "@/shared/components/image-upload";
 
 const destinations = [
@@ -517,10 +517,9 @@ export function GroupCreationForm() {
                 Make group public
               </Label>
               <Switch
-                size="sm"
                 checked={watchedValues.isPublic}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setValue("isPublic", e.target.checked);
+                onCheckedChange={(checked: boolean) => {
+                  setValue("isPublic", checked);
                   trigger("isPublic");
                 }}
                 className="data-[state=checked]:bg-primary"
@@ -532,10 +531,9 @@ export function GroupCreationForm() {
                 Strictly non-smoking group
               </Label>
               <Switch
-                size="sm"
                 checked={watchedValues.strictlyNonSmoking}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setValue("strictlyNonSmoking", e.target.checked);
+                onCheckedChange={(checked: boolean) => {
+                  setValue("strictlyNonSmoking", checked);
                   trigger("strictlyNonSmoking");
                 }}
                 className="data-[state=checked]:bg-primary"
@@ -547,10 +545,9 @@ export function GroupCreationForm() {
                 Strictly non-drinking group
               </Label>
               <Switch
-                size="sm"
                 checked={watchedValues.strictlyNonDrinking}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setValue("strictlyNonDrinking", e.target.checked);
+                onCheckedChange={(checked: boolean) => {
+                  setValue("strictlyNonDrinking", checked);
                   trigger("strictlyNonDrinking");
                 }}
                 className="data-[state=checked]:bg-primary"

@@ -130,8 +130,13 @@ export async function POST(req: Request) {
       creator_id: userRow.id,
       ...parsed.data,
       cover_image: parsed.data.cover_image || null,
-      non_smokers: parsed.data.non_smokers || null,
-      non_drinkers: parsed.data.non_drinkers || null,
+      // Preserve explicit boolean false; only coerce undefined to null
+      non_smokers:
+        parsed.data.non_smokers === undefined ? null : parsed.data.non_smokers,
+      non_drinkers:
+        parsed.data.non_drinkers === undefined
+          ? null
+          : parsed.data.non_drinkers,
       status: "pending", // New groups are pending admin approval
     };
 

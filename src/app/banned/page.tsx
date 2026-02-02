@@ -1,48 +1,87 @@
 import { SignOutButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { createClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
 
 export default async function BannedPage() {
   const { userId } = await auth();
-  let banDetails = {
-    isSuspended: false,
-    reason: null as string | null,
-    expiresAt: null as string | null,
+
+  // If not signed in, there is no meaningful "banned" state – send them away
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  type BanDetails = {
+    isActiveBan: boolean;
+    isSuspended: boolean;
+    reason: string | null;
+    expiresAt: string | null;
   };
 
-  if (userId) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const defaultBanDetails: BanDetails = {
+    isActiveBan: false,
+    isSuspended: false,
+    reason: null,
+    expiresAt: null,
+  };
 
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
-      try {
-        const { data: user } = await supabase
-          .from("users")
-          .select("banned, ban_reason, ban_expires_at")
-          .eq("clerk_user_id", userId)
-          .maybeSingle();
+  let banDetails: BanDetails = defaultBanDetails;
 
-        if (user) {
-          banDetails = {
-            isSuspended: !!user.ban_expires_at,
-            reason: user.ban_reason,
-            expiresAt: user.ban_expires_at,
-          };
-        }
-      } catch (error) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (supabaseUrl && supabaseKey) {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    try {
+      const { data: user, error } = await supabase
+        .from("users")
+        .select("banned, ban_reason, ban_expires_at")
+        .eq("clerk_user_id", userId)
+        .maybeSingle();
+
+      if (error) {
         console.error("Failed to fetch ban details:", error);
       }
+
+      if (user?.banned) {
+        const now = new Date();
+        const expiresAt = user.ban_expires_at
+          ? new Date(user.ban_expires_at)
+          : null;
+
+        const isActiveBan =
+          expiresAt === null // permanent ban
+            ? true
+            : expiresAt > now; // suspension still active
+
+        const isSuspended = !!expiresAt && isActiveBan;
+
+        if (isActiveBan) {
+          banDetails = {
+            isActiveBan,
+            isSuspended,
+            reason: user.ban_reason ?? null,
+            expiresAt: user.ban_expires_at ?? null,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch ban details:", error);
     }
   }
 
-  const title = banDetails.isSuspended ? "Account Suspended" : "Account Banned";
+  // If there is no active ban (permanent or suspension), do not allow access
+  if (!banDetails.isActiveBan) {
+    redirect("/");
+  }
+
+  const title = banDetails.isSuspended ? "Account suspended" : "Account banned";
   const message = banDetails.isSuspended
-    ? "Your account has been temporarily suspended due to a violation of our terms of service."
-    : "Your account has been permanently banned due to a violation of our terms of service.";
+    ? "Your account is temporarily suspended due to a violation of our terms of service."
+    : "Your account is permanently banned due to a violation of our terms of service.";
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
@@ -52,11 +91,10 @@ export default async function BannedPage() {
         </h1>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground sm:text-base">
-            {message}{" "}
-            If you believe this is a mistake, please contact support.
+            {message} If you believe this is a mistake, please contact support.
           </p>
 
-          {(banDetails.expiresAt) && (
+          {banDetails.expiresAt && (
             <div className="rounded-lg bg-muted/50 p-4 text-left text-sm space-y-2">
               {/* {banDetails.reason && (
                 <div>
@@ -64,14 +102,14 @@ export default async function BannedPage() {
                   <span className="text-muted-foreground">{banDetails.reason}</span>
                 </div>
               )} */}
-              {banDetails.expiresAt && (
-                <div>
-                  <span className="font-semibold block text-foreground">Suspension Expires:</span>
-                  <span className="text-muted-foreground">
-                    {format(new Date(banDetails.expiresAt), "PPP p")}
-                  </span>
-                </div>
-              )}
+              <div>
+                <span className="font-semibold block text-foreground">
+                  Suspension ends
+                </span>
+                <span className="text-muted-foreground">
+                  {format(new Date(banDetails.expiresAt), "PPP p")}
+                </span>
+              </div>
             </div>
           )}
         </div>
