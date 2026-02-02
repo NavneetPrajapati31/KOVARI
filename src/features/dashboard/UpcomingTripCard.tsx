@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
+import { Calendar } from "lucide-react";
 import { Skeleton } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
@@ -62,7 +63,7 @@ export function UpcomingTripCard({
 
   const router = useRouter();
 
-  if (isLoading || !name || !groupId) {
+  if (isLoading) {
     return (
       <div
         className="relative w-full h-full min-h-0 rounded-xl overflow-hidden bg-card"
@@ -71,6 +72,28 @@ export function UpcomingTripCard({
       >
         <Skeleton className="absolute inset-0 size-full rounded-xl" />
       </div>
+    );
+  }
+
+  if (!name || !groupId) {
+    return (
+      <Card
+        className="relative w-full h-full min-h-0 rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-none border border-border overflow-hidden flex flex-col bg-card"
+        aria-label="No upcoming trip"
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          <Calendar
+            className="w-8 h-8 text-muted-foreground/60 mb-2"
+            aria-hidden
+          />
+          <p className="text-xs font-medium text-foreground">
+            No upcoming trip
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Join or create a group to see your next trip
+          </p>
+        </div>
+      </Card>
     );
   }
 
