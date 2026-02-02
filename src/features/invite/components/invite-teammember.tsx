@@ -64,16 +64,7 @@ const mockTeammates: Teammate[] = [
   },
 ];
 
-const availableUsers: User[] = [
-  {
-    id: "5",
-    name: "Richard Winson",
-    email: "richard.winson@company.com",
-  },
-  { id: "6", name: "Tedd Morrison", email: "tedd.morrison@company.com" },
-  { id: "7", name: "Alex Morgan", email: "alex.morgan@company.com" },
-  { id: "8", name: "Jordan Lee", email: "jordan.lee@company.com" },
-];
+const availableUsers: User[] = [];
 
 export function InviteTeammatesModal({
   open,

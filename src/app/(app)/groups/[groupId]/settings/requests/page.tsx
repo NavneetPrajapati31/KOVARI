@@ -173,10 +173,8 @@ export default function RequestsPage() {
 
   return (
     <div className="w-full mx-auto p-4 space-y-6">
-      <div className="space-y-2 mb-4">
-        <h1 className="text-md sm:text-lg font-bold text-foreground">
-          Join Requests
-        </h1>
+      <div className="space-y-1 mb-4">
+        <h1 className="text-md font-bold text-foreground">Join Requests</h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
           Approve or reject pending join requests for this group. Only admins
           can take action.
@@ -441,8 +439,7 @@ export default function RequestsPage() {
         !joinRequestsError &&
         joinRequests.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="rounded-full bg-muted/50 p-4 mb-4">
-            </div>
+            <div className="rounded-full bg-muted/50 p-4 mb-4"></div>
             <h2 className="text-base font-semibold text-foreground mb-1">
               No pending requests
             </h2>

@@ -33,10 +33,8 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
 
   return (
     <>
-      <div className="space-y-2 mb-6">
-        <h1 className="text-md sm:text-lg font-bold text-foreground">
-          Basic Information
-        </h1>
+      <div className="space-y-1 mb-6">
+        <h1 className="text-md font-bold text-foreground">Basic Information</h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
           Update your group&apos;s name, description, and cover image.
         </p>
@@ -114,8 +112,12 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             <ImageUpload
               hideLabel
               value={watchedValues.coverImage ?? null}
-              onImageUpload={(url) => setValue("coverImage", url, { shouldDirty: true })}
-              onImageRemove={() => setValue("coverImage", null, { shouldDirty: true })}
+              onImageUpload={(url) =>
+                setValue("coverImage", url, { shouldDirty: true })
+              }
+              onImageRemove={() =>
+                setValue("coverImage", null, { shouldDirty: true })
+              }
             />
           </div>
         </CardContent>
@@ -124,14 +126,15 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             type="button"
             onClick={() => onSubmit("basic")}
             disabled={isSubmitting}
-            className="w-full h-9 text-sm inline-flex gap-2"
+            variant="outline"
+            className="w-full h-9 text-sm inline-flex gap-2 border-border bg-background hover:bg-muted"
           >
             {isSubmitting ? (
               <>
                 <Spinner
                   variant="spinner"
                   size="sm"
-                  classNames={{ spinnerBars: "bg-white" }}
+                  classNames={{ spinnerBars: "bg-primary" }}
                 />
                 Saving...
               </>

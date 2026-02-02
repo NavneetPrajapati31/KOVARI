@@ -51,21 +51,13 @@ const editGroupSchema = z
 
     // Privacy & Visibility
     visibility: z.enum(["public", "private", "invite-only"]),
-    allowJoinRequests: z.boolean(),
-    requireApproval: z.boolean(),
-
-    // Safety & Trust
-    safetyFeatures: z.object({
-      emergencyContacts: z.boolean(),
-      locationSharing: z.boolean(),
-      panicButton: z.boolean(),
-      memberVerification: z.boolean(),
-      reportSystem: z.boolean(),
-    }),
   })
   .refine(
     (data) => {
-      if (!ISO_DATE_REGEX.test(data.startDate) || !ISO_DATE_REGEX.test(data.endDate)) {
+      if (
+        !ISO_DATE_REGEX.test(data.startDate) ||
+        !ISO_DATE_REGEX.test(data.endDate)
+      ) {
         return true;
       }
       return data.startDate < data.endDate;
@@ -99,15 +91,6 @@ const getDefaultFormValues = (): EditGroupForm => ({
   startDate: "",
   endDate: "",
   visibility: "public",
-  allowJoinRequests: true,
-  requireApproval: true,
-  safetyFeatures: {
-    emergencyContacts: true,
-    locationSharing: false,
-    panicButton: true,
-    memberVerification: true,
-    reportSystem: true,
-  },
 });
 
 // Memoized section content component
@@ -127,6 +110,7 @@ const SectionContent = memo(
       description?: string | null;
       start_date?: string;
       end_date?: string;
+      is_public?: boolean | null;
     } | null;
     onGroupUpdate?: (data: Record<string, unknown>) => void;
   }) => {
@@ -149,6 +133,7 @@ const SectionContent = memo(
           coverImage: groupData.cover_image ?? null,
           startDate: groupData.start_date ?? "",
           endDate: groupData.end_date ?? "",
+          visibility: groupData.is_public === false ? "private" : "public",
         } as EditGroupForm);
       }
     }, [groupData, form]);
@@ -200,6 +185,28 @@ const SectionContent = memo(
             }
 
             toast.success("Travel details updated successfully");
+            onGroupUpdate?.(data);
+          } else if (sectionId === "privacy") {
+            const isValid = await form.trigger(["visibility"]);
+            if (!isValid) {
+              toast.error("Please check your privacy setting");
+              return;
+            }
+
+            const res = await fetch(`/api/groups/${groupId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                is_public: values.visibility === "public",
+              }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.error || "Failed to update");
+            }
+
+            toast.success("Privacy updated successfully");
             onGroupUpdate?.(data);
           } else {
             // Travel/Privacy sections - placeholder for future API

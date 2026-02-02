@@ -14,7 +14,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, destination, cover_image, description, notes, start_date, end_date, status, creator_id"
+      "id, name, destination, cover_image, description, notes, start_date, end_date, is_public, status, creator_id"
     )
     .eq("id", groupId)
     .single();
@@ -78,6 +78,7 @@ export async function PATCH(
     notes,
     start_date,
     end_date,
+    is_public,
   } = body;
 
   // Validate user and membership
@@ -176,6 +177,16 @@ export async function PATCH(
     updates.notes = notes;
   }
 
+  if (is_public !== undefined) {
+    if (typeof is_public !== "boolean") {
+      return NextResponse.json(
+        { error: "Invalid is_public value" },
+        { status: 400 }
+      );
+    }
+    updates.is_public = is_public;
+  }
+
   const hasStartDate = start_date !== undefined;
   const hasEndDate = end_date !== undefined;
   if (hasStartDate || hasEndDate) {
@@ -218,7 +229,7 @@ export async function PATCH(
     .update(updates)
     .eq("id", groupId)
     .select(
-      "id, name, destination, cover_image, description, notes, start_date, end_date, status"
+      "id, name, destination, cover_image, description, notes, start_date, end_date, is_public, status"
     )
     .single();
 

@@ -73,10 +73,8 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
 
   return (
     <>
-      <div className="space-y-2 mb-6">
-        <h1 className="text-md sm:text-lg font-bold text-foreground">
-          Travel Details
-        </h1>
+      <div className="space-y-1 mb-6">
+        <h1 className="text-md font-bold text-foreground">Travel Details</h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
           Set your travel dates.
         </p>
@@ -93,11 +91,17 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                 minValue={todayValue}
                 isDisabled={isSubmitting}
                 onChange={async (date: unknown) => {
-                  if (!date || typeof (date as { toString?: unknown }).toString !== "function") {
+                  if (
+                    !date ||
+                    typeof (date as { toString?: unknown }).toString !==
+                      "function"
+                  ) {
                     return;
                   }
 
-                  const nextStartDateString = (date as { toString: () => string }).toString();
+                  const nextStartDateString = (
+                    date as { toString: () => string }
+                  ).toString();
                   if (!isIsoDateString(nextStartDateString)) return;
 
                   setValue("startDate", nextStartDateString, {
@@ -109,7 +113,10 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                     .add({ days: 1 })
                     .toString();
 
-                  if (!isIsoDateString(endDateString) || endDateString < nextMinEndDateString) {
+                  if (
+                    !isIsoDateString(endDateString) ||
+                    endDateString < nextMinEndDateString
+                  ) {
                     setValue("endDate", nextMinEndDateString, {
                       shouldDirty: true,
                       shouldValidate: true,
@@ -140,11 +147,17 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                 minValue={parseDate(normalizedStartDateString).add({ days: 1 })}
                 isDisabled={isSubmitting}
                 onChange={async (date: unknown) => {
-                  if (!date || typeof (date as { toString?: unknown }).toString !== "function") {
+                  if (
+                    !date ||
+                    typeof (date as { toString?: unknown }).toString !==
+                      "function"
+                  ) {
                     return;
                   }
 
-                  const nextEndDateString = (date as { toString: () => string }).toString();
+                  const nextEndDateString = (
+                    date as { toString: () => string }
+                  ).toString();
                   if (!isIsoDateString(nextEndDateString)) return;
 
                   setValue("endDate", nextEndDateString, {
@@ -174,7 +187,8 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
             type="button"
             onClick={() => onSubmit("travel")}
             disabled={isSubmitting}
-            className="w-full h-9 text-sm"
+            variant="outline"
+            className="w-full h-9 text-sm border-border bg-background hover:bg-muted"
           >
             {isSubmitting ? "Saving..." : "Save Travel Details"}
           </Button>

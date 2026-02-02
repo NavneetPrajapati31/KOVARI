@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { useToast } from "@/shared/hooks/use-toast";
-import { Flag, Loader2, X } from "lucide-react";
+import { Flag, Loader2, UploadCloud, X } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import * as Sentry from "@sentry/nextjs";
 
@@ -443,7 +443,7 @@ export function ReportDialog({
     }
   }, [open, isUploadingEvidence, isSubmitting]);
 
-  // Handle dialog close - prevent accidental closes when form has data or upload in progress
+  // Handle dialog close - only block during upload/submission
   const handleDialogOpenChange = (newOpen: boolean) => {
     // CRITICAL: Never allow closing during upload or submission
     if (!newOpen && (isUploadingEvidence || isSubmitting)) {
@@ -460,19 +460,6 @@ export function ReportDialog({
       return; // Block the close completely
     }
 
-    // If trying to close and form has data, prevent closing
-    // User must explicitly cancel or submit
-    if (!newOpen && hasFormData.current) {
-      console.log("⚠️ Prevented dialog close - form has unsaved data");
-      toast({
-        title: "Unsaved changes",
-        description: "Please submit or cancel to close the dialog.",
-        variant: "default",
-      });
-      return;
-    }
-
-    // Only close if no data or explicitly cancelled/submitted
     onOpenChange(newOpen);
   };
 
@@ -864,7 +851,7 @@ export function ReportDialog({
 
         if (success) {
           console.log("✅ Custom submission successful");
-          
+
           // Reset form data tracking
           hasFormData.current = false;
 
@@ -1124,48 +1111,40 @@ export function ReportDialog({
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="sm:max-w-[500px]"
+        className="rounded-2xl border-border max-w-[min(520px,calc(100vw-2rem))] p-0 gap-0 overflow-hidden"
         onEscapeKeyDown={(e) => {
-          // Prevent ESC from closing if form has data or upload in progress
-          if ((hasFormData.current || isUploadingEvidence) && !isSubmitting) {
+          // Prevent ESC from closing if upload/submission is in progress
+          if (isUploadingEvidence || isSubmitting) {
             e.preventDefault();
-            if (isUploadingEvidence) {
-              toast({
-                title: "Upload in progress",
-                description: "Please wait for the evidence upload to complete.",
-                variant: "default",
-              });
-            } else {
-              toast({
-                title: "Unsaved changes",
-                description: "Please submit or cancel to close the dialog.",
-                variant: "default",
-              });
-            }
+            toast({
+              title: isUploadingEvidence
+                ? "Upload in progress"
+                : "Submission in progress",
+              description: isUploadingEvidence
+                ? "Please wait for the evidence upload to complete."
+                : "Please wait for the report to be submitted.",
+              variant: "default",
+            });
           }
         }}
         onPointerDownOutside={(e) => {
-          // Prevent outside click from closing if form has data or upload in progress
-          if ((hasFormData.current || isUploadingEvidence) && !isSubmitting) {
+          // Prevent outside click from closing if upload/submission is in progress
+          if (isUploadingEvidence || isSubmitting) {
             e.preventDefault();
-            if (isUploadingEvidence) {
-              toast({
-                title: "Upload in progress",
-                description: "Please wait for the evidence upload to complete.",
-                variant: "default",
-              });
-            } else {
-              toast({
-                title: "Unsaved changes",
-                description: "Please submit or cancel to close the dialog.",
-                variant: "default",
-              });
-            }
+            toast({
+              title: isUploadingEvidence
+                ? "Upload in progress"
+                : "Submission in progress",
+              description: isUploadingEvidence
+                ? "Please wait for the evidence upload to complete."
+                : "Please wait for the report to be submitted.",
+              variant: "default",
+            });
           }
         }}
       >
         {isSuccess ? (
-          <div className="flex flex-col items-center justify-center py-10 space-y-4">
+          <div className="flex flex-col items-center justify-center px-6 py-10 space-y-4">
             <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
               <svg
                 className="h-6 w-6 text-primary-foreground"
@@ -1195,161 +1174,210 @@ export function ReportDialog({
           </div>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Flag className="h-5 w-5 text-destructive" />
-                Report {targetType === "user" ? "User" : "Group"}
-              </DialogTitle>
-              <DialogDescription>
-                {targetName && <span className="font-medium">{targetName}</span>}
-                {targetName && <br />}
-                Help us keep our community safe by reporting inappropriate behavior.
-                All reports are reviewed by our moderation team.
-              </DialogDescription>
-            </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          {/* Reason Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason *</Label>
-            <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger id="reason">
-                <SelectValue placeholder="Select a reason" />
-              </SelectTrigger>
-              <SelectContent>
-                {REPORT_REASONS[targetType].map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Custom Reason (for "Other") */}
-          {reason === "Other" && (
-            <div className="space-y-2">
-              <Label htmlFor="customReason">Please provide details *</Label>
-              <Textarea
-                id="customReason"
-                placeholder="Describe the issue..."
-                value={customReason}
-                onChange={(e) => setCustomReason(e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
-            </div>
-          )}
-
-          {/* Evidence Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="evidence">
-              Upload evidence (optional but helps us act faster)
-            </Label>
-            {!(evidencePreview || evidencePreviewRef.current) ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  id="evidence"
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                  onChange={handleFileChange}
-                  disabled={isUploadingEvidence || isSubmitting}
-                  className="cursor-pointer"
-                />
-                {isUploadingEvidence && (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">
-                      Uploading...
+            <div className="px-6 pt-5 pb-3 border-b border-border">
+              <DialogHeader className="text-left space-y-1">
+                <DialogTitle className="flex items-start gap-3">
+                  <span className="min-w-0">
+                    <span className="block leading-tight">
+                      Report {targetType === "user" ? "user" : "group"}
                     </span>
+                    {/* {targetName ? (
+                      <span className="block text-sm font-normal text-muted-foreground truncate">
+                        {targetName}
+                      </span>
+                    ) : null} */}
+                  </span>
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Tell us what’s wrong. We’ll review it.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <div className="px-6 py-4 grid gap-4">
+              {/* Reason Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="reason" className="text-xs font-medium">
+                    Reason <span className="text-destructive">*</span>
+                  </Label>
+                </div>
+                <Select value={reason} onValueChange={setReason}>
+                  <SelectTrigger
+                    id="reason"
+                    className="h-9 w-full bg-background border-border hover:bg-muted/30"
+                  >
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REPORT_REASONS[targetType].map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Custom Reason (for "Other") */}
+              {reason === "Other" && (
+                <div className="space-y-2">
+                  <Label htmlFor="customReason" className="text-xs font-medium">
+                    Details <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="customReason"
+                    placeholder="Briefly describe what happened…"
+                    value={customReason}
+                    onChange={(e) => setCustomReason(e.target.value)}
+                    rows={4}
+                    className="min-h-[88px] resize-none"
+                  />
+                </div>
+              )}
+
+              {/* Evidence Upload */}
+              <div className="space-y-2">
+                {!(evidencePreview || evidencePreviewRef.current) ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="evidence" className="text-xs font-medium">
+                      Evidence{" "}
+                      <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="evidence"
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                        onChange={handleFileChange}
+                        disabled={isUploadingEvidence || isSubmitting}
+                        className="sr-only"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isUploadingEvidence || isSubmitting}
+                        asChild
+                      >
+                        {isUploadingEvidence ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <label htmlFor="evidence" className="cursor-pointer">
+                            Upload
+                          </label>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border overflow-hidden bg-background">
+                    <div className="relative aspect-[16/9] bg-muted">
+                      <img
+                        src={currentPreview || ""}
+                        alt="Evidence preview"
+                        className="h-full w-full object-contain"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleRemoveEvidence}
+                        className="absolute top-2 right-2 h-8 w-8 bg-background/90 hover:bg-background"
+                        disabled={isSubmitting || isUploadingEvidence}
+                        aria-label="Remove evidence"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 p-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {evidenceFile?.name ??
+                            evidenceFileRef.current?.name ??
+                            "Evidence"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {currentEvidenceUrl ? "Uploaded" : "Ready"}
+                        </p>
+                      </div>
+                      {isUploadingEvidence ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
+                            Uploading…
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="relative">
-                <div className="relative w-full h-48 border rounded-md overflow-hidden bg-muted">
-                  <img
-                    src={currentPreview || ""}
-                    alt="Evidence preview"
-                    className="w-full h-full object-contain"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleRemoveEvidence}
-                    className="absolute top-2 right-2 h-6 w-6 p-0"
-                    disabled={isSubmitting}
+
+              {/* Additional Notes */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="additionalNotes"
+                    className="text-xs font-medium"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    Additional notes{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    {additionalNotes.length}/{MAX_NOTES_LENGTH}
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Evidence uploaded successfully
-                </p>
+                <Textarea
+                  id="additionalNotes"
+                  placeholder="Add any context that could help our review…"
+                  value={additionalNotes}
+                  onChange={(e) => {
+                    if (e.target.value.length <= MAX_NOTES_LENGTH) {
+                      setAdditionalNotes(e.target.value);
+                    }
+                  }}
+                  rows={3}
+                  className="min-h-[88px] resize-none"
+                  maxLength={MAX_NOTES_LENGTH}
+                />
               </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Supported formats: JPEG, PNG, GIF, WebP (max 10MB)
-            </p>
-          </div>
-
-          {/* Additional Notes */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="additionalNotes">
-                Additional notes (optional)
-              </Label>
-              <span className="text-xs text-muted-foreground">
-                {additionalNotes.length}/{MAX_NOTES_LENGTH}
-              </span>
             </div>
-            <Textarea
-              id="additionalNotes"
-              placeholder="Any additional information that might help..."
-              value={additionalNotes}
-              onChange={(e) => {
-                if (e.target.value.length <= MAX_NOTES_LENGTH) {
-                  setAdditionalNotes(e.target.value);
-                }
-              }}
-              rows={3}
-              className="resize-none"
-              maxLength={MAX_NOTES_LENGTH}
-            />
-          </div>
-        </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleSubmit}
-            disabled={isSubmitting || !reason || isUploadingEvidence}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : isUploadingEvidence ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading evidence...
-              </>
-            ) : (
-              "Submit Report"
-            )}
-          </Button>
-        </DialogFooter>
+            <div className="px-6 pb-5 pt-3 border-t border-border bg-background">
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSubmitting || isUploadingEvidence}
+                  className="h-9"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !reason || isUploadingEvidence}
+                  className="min-w-[140px] h-9"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting…
+                    </>
+                  ) : isUploadingEvidence ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading…
+                    </>
+                  ) : (
+                    "Submit report"
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
           </>
         )}
       </DialogContent>
