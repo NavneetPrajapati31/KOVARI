@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Bell, ChevronRight, Check, UserPlus, User } from "lucide-react";
+import {
+  Search,
+  Bell,
+  ChevronRight,
+  Check,
+  UserPlus,
+  User,
+} from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -22,8 +29,14 @@ import InboxChatListSkeleton from "@/shared/components/layout/inbox-chat-list-sk
 
 export default function NotificationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { notifications, loading, error, markAllAsRead, markAsRead, unreadCount } =
-    useNotifications({ limit: 100, unreadOnly: false, realtime: true });
+  const {
+    notifications,
+    loading,
+    error,
+    markAllAsRead,
+    markAsRead,
+    unreadCount,
+  } = useNotifications({ limit: 100, unreadOnly: false, realtime: true });
 
   const handleMarkAllAsRead = async () => {
     await markAllAsRead();
@@ -99,16 +112,19 @@ export default function NotificationsPage() {
           <div>
             {filteredNotifications.map((notification) => {
               const notificationLink = getNotificationLink(notification);
-              const avatarFallback = getAvatarFallback(notification.title);
-              
+              const avatarFallback = getAvatarFallback(notification);
+
               const isReport = notification.type === "REPORT_SUBMITTED";
-              const isGroupInviteOrRequest = 
-                notification.type === "GROUP_INVITE_RECEIVED" || 
+              const isGroupInviteOrRequest =
+                notification.type === "GROUP_INVITE_RECEIVED" ||
                 notification.type === "GROUP_JOIN_REQUEST_RECEIVED";
-              const isGroupApproved = notification.type === "GROUP_JOIN_APPROVED";
-              
+              const isGroupApproved =
+                notification.type === "GROUP_JOIN_APPROVED";
+
               // Determine if we should show a special icon instead of an avatar image
-              const showGroupIconFallback = !notification.image_url && (isGroupInviteOrRequest || isGroupApproved);
+              const showGroupIconFallback =
+                !notification.image_url &&
+                (isGroupInviteOrRequest || isGroupApproved);
 
               return (
                 <Link
@@ -126,25 +142,28 @@ export default function NotificationsPage() {
                       <Check className="w-5 h-5 text-primary" />
                     </div>
                   ) : showGroupIconFallback ? (
-                     <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
-                       {isGroupInviteOrRequest ? (
-                         <UserPlus className="w-4 h-4 text-primary" />
-                       ) : (
-                         <Check className="w-5 h-5 text-primary" />
-                       )}
-                     </div>
-                  ) : !notification.image_url && (notification.type === "MATCH_INTEREST_RECEIVED" || notification.type === "MATCH_ACCEPTED" || notification.type === "NEW_MESSAGE") ? (
+                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
+                      {isGroupInviteOrRequest ? (
+                        <UserPlus className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Check className="w-5 h-5 text-primary" />
+                      )}
+                    </div>
+                  ) : !notification.image_url &&
+                    (notification.type === "MATCH_INTEREST_RECEIVED" ||
+                      notification.type === "MATCH_ACCEPTED" ||
+                      notification.type === "NEW_MESSAGE") ? (
                     <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
                       <User className="w-4 h-4 text-primary" />
                     </div>
                   ) : (
                     <Avatar className="w-10 h-10 flex-shrink-0">
-                      <AvatarImage 
-                        src={notification.image_url || undefined} 
-                        alt={notification.title} 
-                        className="object-cover" 
+                      <AvatarImage
+                        src={notification.image_url || undefined}
+                        alt={notification.title}
+                        className="object-cover"
                       />
-                      <AvatarFallback className="bg-primary-light text-primary">
+                      <AvatarFallback className="bg-card text-muted-foreground border border-border">
                         {avatarFallback}
                       </AvatarFallback>
                     </Avatar>

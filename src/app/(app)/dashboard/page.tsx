@@ -474,9 +474,8 @@ export default function Dashboard() {
                           {notifications.slice(0, 5).map((notification) => {
                             const notificationLink =
                               getNotificationLink(notification);
-                            const avatarFallback = getAvatarFallback(
-                              notification.title
-                            );
+                            const avatarFallback =
+                              getAvatarFallback(notification);
                             // @ts-ignore - Check for report type
                             const isReport =
                               notification.type === "REPORT_SUBMITTED";
@@ -508,7 +507,7 @@ export default function Dashboard() {
                                       alt={notification.title}
                                       className="object-cover"
                                     />
-                                    <AvatarFallback className="bg-primary/10 text-primary">
+                                    <AvatarFallback className="bg-card text-muted-foreground border border-border">
                                       {avatarFallback}
                                     </AvatarFallback>
                                   </Avatar>

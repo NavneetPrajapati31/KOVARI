@@ -18,15 +18,14 @@ export function getNotificationLink(notification: Notification): string {
     case "match":
       if (type === NotificationType.MATCH_ACCEPTED) {
         // For accepted matches, entity_id is the partner's user ID
-        return `/chat/${entity_id}`; 
+        return `/chat/${entity_id}`;
       }
       // For interest received, navigate to requests page
       return "/requests";
     case "group":
       if (type === NotificationType.GROUP_JOIN_REQUEST_RECEIVED) {
         return `/groups/${entity_id}/settings?tab=requests`;
-      }
-      else if (type === NotificationType.GROUP_INVITE_RECEIVED) {
+      } else if (type === NotificationType.GROUP_INVITE_RECEIVED) {
         return `/requests?tab=invitations`;
       }
       return `/groups/${entity_id}/home`;
@@ -38,10 +37,44 @@ export function getNotificationLink(notification: Notification): string {
   }
 }
 
+const NON_NAME_FIRST_WORDS = new Set([
+  "you",
+  "your",
+  "a",
+  "an",
+  "the",
+  "new",
+  "reminder",
+]);
+
 /**
- * Get avatar fallback text from notification title
+ * Try to get the person's initial from the message (e.g. "Tarun Kumar is interested..." -> "T")
  */
-export function getAvatarFallback(title: string): string {
+function getInitialFromMessage(message: string): string | null {
+  const trimmed = message.trim();
+  if (!trimmed) return null;
+  const words = trimmed.split(/\s+/);
+  const first = words[0]?.trim();
+  if (!first || first.length === 0) return null;
+  const lower = first.toLowerCase();
+  if (NON_NAME_FIRST_WORDS.has(lower)) {
+    const second = words[1]?.trim();
+    if (second && second.length > 0) return second[0].toUpperCase();
+    return null;
+  }
+  return first[0].toUpperCase();
+}
+
+/**
+ * Get avatar fallback: prefer the person's initial from the message (e.g. "T" for Tarun Kumar),
+ * otherwise fall back to initials from the notification title.
+ */
+export function getAvatarFallback(notification: Notification): string {
+  const personInitial =
+    notification.message && getInitialFromMessage(notification.message);
+  if (personInitial) return personInitial;
+
+  const title = notification.title;
   const words = title.split(" ");
   if (words.length >= 2) {
     return (words[0][0] + words[1][0]).toUpperCase();
