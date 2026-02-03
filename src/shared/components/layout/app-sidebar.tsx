@@ -177,7 +177,10 @@ export function AppSidebar() {
     {
       key: "logout",
       label: <p className="text-red-500">Log Out</p>,
-      onClick: () => signOut({ redirectUrl: "/" }),
+      onClick: async () => {
+        await signOut({ redirectUrl: "/sign-in" });
+        router.push("/sign-in");
+      },
     },
   ];
 

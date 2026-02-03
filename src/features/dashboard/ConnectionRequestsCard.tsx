@@ -101,7 +101,7 @@ function ConnectionRequestCard({
           }}
         >
           {loadingAction === "accept" && (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary-foreground" />
           )}
           {!loadingAction && <span>Connect</span>}
         </Button>
@@ -123,7 +123,7 @@ function ConnectionRequestCard({
           }}
         >
           {loadingAction === "decline" ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-destructive" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           ) : (
             <X className="h-3.5 w-3.5 text-muted-foreground" />
           )}

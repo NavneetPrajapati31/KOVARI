@@ -341,7 +341,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                                     <span>Settings</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => signOut({ redirectUrl: "/sign-in" })} className="cursor-pointer text-destructive focus:text-destructive hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-destructive">
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    await signOut({ redirectUrl: "/sign-in" });
+                                    router.push("/sign-in");
+                                  }}
+                                  className="cursor-pointer text-destructive focus:text-destructive hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-destructive"
+                                >
                                     <LogOut className="mr-2 h-4 w-4 text-destructive" />
                                     <span>Log out</span>
                                 </DropdownMenuItem>

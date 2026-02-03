@@ -233,7 +233,7 @@ function ItinerarySkeleton() {
 
       {/* Content: uniform day + event bars, no boxes */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        {[1, 2, 3, 4, 5, 6].map((dayIdx) => (
+        {[1, 2, 3, 4, 5].map((dayIdx) => (
           <div
             key={dayIdx}
             className="pt-4 first:pt-0 mt-6 first:mt-0 border-t border-border/50 first:border-t-0"
