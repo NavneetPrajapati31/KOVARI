@@ -83,10 +83,10 @@ export function UpcomingTripCard({
       >
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <Calendar
-            className="w-8 h-8 text-muted-foreground/60 mb-2"
+            className="w-5 h-5 text-muted-foreground mb-2"
             aria-hidden
           />
-          <p className="text-xs font-medium text-foreground">
+          <p className="text-xs font-medium text-muted-foreground">
             No upcoming trip
           </p>
           <p className="text-xs text-muted-foreground mt-1">

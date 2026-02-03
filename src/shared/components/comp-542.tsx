@@ -307,7 +307,9 @@ export default function ItineraryUI() {
           </p>
         </div>
         <div className="flex flex-1 min-h-0 flex-col items-center justify-center py-24 text-center">
-          <p className="text-xs font-medium text-foreground">No events found</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            No events found
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
             There are no events scheduled for this time period.
           </p>
