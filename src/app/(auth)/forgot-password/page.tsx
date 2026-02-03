@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useMemo } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/shared/components/ui/button";
@@ -24,7 +24,7 @@ type ForgotPasswordStep =
 
 const MIN_PASSWORD_LENGTH = 8;
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tokenFromUrl = useMemo(
@@ -324,5 +324,37 @@ export default function ForgotPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ForgotPasswordFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
+      <div className="w-full max-w-md">
+        <Link
+          href="/sign-in"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+          aria-label="Back to sign in"
+        >
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          Back to sign in
+        </Link>
+        <div className="border border-border rounded-xl bg-card shadow-sm p-8 sm:p-10 flex flex-col items-center justify-center min-h-[280px]">
+          <Loader2
+            className="w-8 h-8 animate-spin text-muted-foreground"
+            aria-hidden
+          />
+          <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={<ForgotPasswordFallback />}>
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }
