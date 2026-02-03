@@ -5,6 +5,7 @@ import {
   Search,
   Bell,
   ChevronRight,
+  ChevronLeft,
   Check,
   UserPlus,
   User,
@@ -75,10 +76,19 @@ export default function NotificationsPage() {
 
       {/* Header */}
       <div className="p-4 py-3 border-b border-border flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <h1 className="text-sm font-semibold text-foreground">
-            Notifications
-          </h1>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link
+              href="/dashboard"
+              className="md:hidden flex-shrink-0 p-1 -ml-1 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+              aria-label="Back to dashboard"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-sm font-semibold text-foreground truncate">
+              Notifications
+            </h1>
+          </div>
           <Button
             variant="ghost"
             onClick={handleMarkAllAsRead}
