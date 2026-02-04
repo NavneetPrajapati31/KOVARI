@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Home,
   Inbox,
@@ -48,6 +49,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { Avatar } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
 import { Switch } from "@/shared/components/ui/switch";
+import { createClient } from "@/lib/supabase";
 
 // Section 1: Main Navigation
 const mainItems = [
@@ -163,6 +165,42 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { state } = useSidebar();
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfilePhoto = async () => {
+      if (!user?.id) {
+        setProfilePhotoUrl(null);
+        return;
+      }
+      try {
+        const supabase = createClient();
+        const { data: userRow, error: userError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("clerk_user_id", user.id)
+          .maybeSingle();
+        if (userError || !userRow?.id) {
+          setProfilePhotoUrl(null);
+          return;
+        }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("profile_photo")
+          .eq("user_id", userRow.id)
+          .maybeSingle();
+        setProfilePhotoUrl(profile?.profile_photo ?? null);
+      } catch {
+        setProfilePhotoUrl(null);
+      }
+    };
+    fetchProfilePhoto();
+  }, [user?.id]);
+
+  const avatarSrc =
+    profilePhotoUrl && profilePhotoUrl.trim() !== ""
+      ? profilePhotoUrl
+      : user?.imageUrl || "";
 
   const menuItems = [
     // {
@@ -341,7 +379,7 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:justify-center focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none active:outline-none"
                 >
                   <Avatar
-                    src={user?.imageUrl || ""}
+                    src={avatarSrc}
                     alt={user?.fullName || "User"}
                     className="h-6 w-6 rounded-full bg-gray-200 aspect-square shrink-0 focus:outline-none"
                   />

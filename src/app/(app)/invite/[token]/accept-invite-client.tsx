@@ -35,11 +35,16 @@ export function AcceptInviteClient({
           return;
         }
 
-        const errorText = await res.text();
-        const message =
-          errorText?.length > 0
-            ? errorText
-            : "Something went wrong. Please try again.";
+        let message = "Something went wrong. Please try again.";
+        try {
+          const text = await res.text();
+          if (text?.length > 0) {
+            const data = JSON.parse(text);
+            message = typeof data?.error === "string" ? data.error : text;
+          }
+        } catch {
+          // non-JSON or empty body: keep default message
+        }
         setError(message);
       } catch (e) {
         if (cancelled) return;

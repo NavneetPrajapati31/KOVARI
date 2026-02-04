@@ -92,6 +92,30 @@ export async function POST(
       return new NextResponse("User not found", { status: 404 });
     }
 
+    // Validate group exists, is not removed, and is not full (unless admin is adding someone else)
+    const { data: groupRow, error: groupErr } = await supabase
+      .from("groups")
+      .select("id, status")
+      .eq("id", groupId)
+      .maybeSingle();
+    if (groupErr || !groupRow) {
+      return new NextResponse("Group not found", { status: 404 });
+    }
+    if (groupRow.status === "removed") {
+      return new NextResponse("Group not found", { status: 404 });
+    }
+    const { count, error: countErr } = await supabase
+      .from("group_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("group_id", groupId)
+      .eq("status", "accepted");
+    if (!countErr && count != null && count >= 10) {
+      return new NextResponse(
+        JSON.stringify({ error: "Group is full (maximum 10 members)" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const { error: upsertError } = await supabase
       .from("group_memberships")
       .upsert(

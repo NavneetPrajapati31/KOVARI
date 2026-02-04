@@ -96,7 +96,10 @@ export default async function InvitePage({
     }
   }
 
-  if ((!linkRow && !emailInvite) || linkError) {
+  const isLinkExpired =
+    linkRow?.expires_at && new Date(linkRow.expires_at).getTime() <= Date.now();
+
+  if ((!linkRow && !emailInvite) || linkError || isLinkExpired) {
     return (
       <InviteCard
         icon={AlertCircle}

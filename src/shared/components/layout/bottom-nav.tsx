@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, MessageSquare, Users, User, Send } from "lucide-react";
@@ -10,10 +11,47 @@ import {
   AvatarImage,
 } from "@/shared/components/ui/avatar";
 import { cn } from "@/shared/utils/utils";
+import { createClient } from "@/lib/supabase";
 
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useUser();
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfilePhoto = async () => {
+      if (!user?.id) {
+        setProfilePhotoUrl(null);
+        return;
+      }
+      try {
+        const supabase = createClient();
+        const { data: userRow } = await supabase
+          .from("users")
+          .select("id")
+          .eq("clerk_user_id", user.id)
+          .maybeSingle();
+        if (!userRow?.id) {
+          setProfilePhotoUrl(null);
+          return;
+        }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("profile_photo")
+          .eq("user_id", userRow.id)
+          .maybeSingle();
+        setProfilePhotoUrl(profile?.profile_photo ?? null);
+      } catch {
+        setProfilePhotoUrl(null);
+      }
+    };
+    fetchProfilePhoto();
+  }, [user?.id]);
+
+  const profileAvatarSrc =
+    profilePhotoUrl && profilePhotoUrl.trim() !== ""
+      ? profilePhotoUrl
+      : user?.imageUrl || undefined;
 
   // Define exception routes where the bottom nav should be hidden
   const isHidden =
@@ -78,7 +116,7 @@ export function BottomNav() {
                 )}
               >
                 <AvatarImage
-                  src={user?.imageUrl}
+                  src={profileAvatarSrc}
                   alt={user?.fullName || "Profile"}
                 />
                 <AvatarFallback>
