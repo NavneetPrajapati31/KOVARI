@@ -1,42 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSyncUserToSupabase } from "@/lib/syncUserToSupabase";
 import ProfileSetupForm from "@/features/onboarding/components/ProfileSetupForm";
+import { Button } from "@/shared/components/ui/button";
 
 export default function ProfileSetupPage() {
   const { syncUser } = useSyncUserToSupabase();
   const router = useRouter();
-  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [status, setStatus] = useState<
+    "loading" | "needs_onboarding" | "already_complete"
+  >("loading");
+  const hasCheckedRef = useRef(false);
 
   useEffect(() => {
-    const init = async () => {
+    if (hasCheckedRef.current) return;
+    hasCheckedRef.current = true;
+
+    const check = async () => {
       try {
         await syncUser();
-
         const res = await fetch("/api/profile/current", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
-
         if (res.ok) {
-          // Profile exists, onboarding not needed
-          router.replace("/dashboard");
-          return;
+          setStatus("already_complete");
+        } else {
+          setStatus("needs_onboarding");
         }
-      } catch (error) {
-        console.error("Onboarding profile check failed:", error);
-      } finally {
-        setCheckingProfile(false);
+      } catch {
+        setStatus("needs_onboarding");
       }
     };
 
-    void init();
-  }, [router, syncUser]);
+    void check();
+  }, [syncUser]);
 
-  if (checkingProfile) {
+  if (status === "loading") {
     return <div className="h-screen bg-background" />;
+  }
+
+  if (status === "already_complete") {
+    return (
+      <div className="h-screen bg-background flex flex-col items-center justify-center p-6">
+        <p className="text-sm text-muted-foreground mb-4 text-center">
+          You&apos;ve already completed onboarding.
+        </p>
+        <Button asChild>
+          <Link href="/dashboard">Go to Dashboard</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (

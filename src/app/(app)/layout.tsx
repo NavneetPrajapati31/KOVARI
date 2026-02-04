@@ -16,7 +16,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const isBottomNavHidden =
     (pathname.startsWith("/chat/") && pathname !== "/chat") ||
     pathname === "/create-group" ||
-    (pathname.startsWith("/groups/") && pathname.includes("/chat"));
+    (pathname.startsWith("/groups/") && pathname.includes("/chat")) ||
+    pathname.startsWith("/onboarding");
 
   return (
     <>

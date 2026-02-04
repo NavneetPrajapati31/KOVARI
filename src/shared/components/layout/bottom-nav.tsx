@@ -56,7 +56,8 @@ export function BottomNav() {
   // Define exception routes where the bottom nav should be hidden
   const isHidden =
     (pathname.startsWith("/chat/") && pathname !== "/chat") ||
-    (pathname.startsWith("/groups/") && pathname.includes("/chat"));
+    (pathname.startsWith("/groups/") && pathname.includes("/chat")) ||
+    pathname.startsWith("/onboarding");
 
   if (isHidden) return null;
 

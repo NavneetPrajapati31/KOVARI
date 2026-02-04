@@ -48,6 +48,19 @@ export async function GET() {
       );
     }
 
+    // Consider onboarding complete only when both username and name are set.
+    // DB trigger may create a profile with a default username; name is only set by the onboarding form.
+    const usernameSet =
+      profile?.username != null && String(profile.username).trim() !== "";
+    const nameSet = profile?.name != null && String(profile.name).trim() !== "";
+    const hasCompletedOnboarding = usernameSet && nameSet;
+    if (!hasCompletedOnboarding) {
+      return new Response(
+        JSON.stringify({ error: "Profile incomplete", incomplete: true }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const interests = profile?.interests || [];
 
     // Transform data to match ProfileEditForm structure

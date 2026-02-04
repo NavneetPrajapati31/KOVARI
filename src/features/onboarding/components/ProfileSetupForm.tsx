@@ -2053,7 +2053,7 @@ export default function ProfileSetupForm() {
       </div>
 
       <Button
-        onClick={() => router.push("/dashboard")}
+        onClick={() => router.replace("/dashboard")}
         className="w-full h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
       >
         Get Started
