@@ -110,7 +110,11 @@ export const linkifyMessage = (message: string): string => {
   return html;
 };
 
-export function formatTime(time: { hour: number; minute: number; ampm: "AM" | "PM" }) {
+export function formatTime(time: {
+  hour: number;
+  minute: number;
+  ampm: "AM" | "PM";
+}) {
   const mm = time.minute.toString().padStart(2, "0");
   return `${time.hour}:${mm} ${time.ampm}`;
 }
@@ -135,10 +139,38 @@ export function formatRelativeTime(date: Date | string): string {
   const years = differenceInYears(now, targetDate);
 
   if (seconds < 60) return "just now";
-  if (minutes < 60) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+  if (minutes < 60)
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
   if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
   if (days < 7) return `${days} ${days === 1 ? "day" : "days"} ago`;
   if (weeks < 4) return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
   if (months < 12) return `${months} ${months === 1 ? "month" : "months"} ago`;
   return `${years} ${years === 1 ? "year" : "years"} ago`;
+}
+
+/**
+ * Format a date as short relative time for notifications (Instagram-style:
+ * "just now", "2m", "5h", "1d", "2w", "1mo", "1y")
+ */
+export function formatNotificationTime(date: Date | string): string {
+  const targetDate = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+
+  if (isNaN(targetDate.getTime())) return "";
+
+  const seconds = differenceInSeconds(now, targetDate);
+  const minutes = differenceInMinutes(now, targetDate);
+  const hours = differenceInHours(now, targetDate);
+  const days = differenceInDays(now, targetDate);
+  const weeks = differenceInWeeks(now, targetDate);
+  const months = differenceInMonths(now, targetDate);
+  const years = differenceInYears(now, targetDate);
+
+  if (seconds < 60) return "just now";
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
+  if (weeks < 4) return `${weeks}w`;
+  if (months < 12) return `${months}mo`;
+  return `${years}y`;
 }

@@ -337,6 +337,20 @@ export async function POST(req: Request) {
           continue;
         }
         if (data) userRow = { id: data.user_id };
+        if (!userRow?.id) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              status: "user_not_found",
+              message:
+                "No account found with this username. Please check the username and try again.",
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
         if (userRow && userRow.id) {
           // Check for existing membership to prevent duplicate invites
           const { data: existing, error: existError } = await supabase

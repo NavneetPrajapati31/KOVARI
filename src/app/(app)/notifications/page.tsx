@@ -25,6 +25,7 @@ import {
   getAvatarFallback,
   shouldShowPoolIcon,
 } from "@/shared/utils/notificationHelpers";
+import { formatNotificationTime } from "@/shared/utils/utils";
 import { Skeleton } from "@heroui/react";
 import InboxChatListSkeleton from "@/shared/components/layout/inbox-chat-list-skeleton";
 
@@ -184,6 +185,14 @@ export default function NotificationsPage() {
                     </p>
                     <p className="text-xs text-muted-foreground line-clamp-2">
                       {notification.message}
+                      {notification.created_at && (
+                        <>
+                          {" · "}
+                          <span className="text-muted-foreground/80">
+                            {formatNotificationTime(notification.created_at)}
+                          </span>
+                        </>
+                      )}
                     </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />

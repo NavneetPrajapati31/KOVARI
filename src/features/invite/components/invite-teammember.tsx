@@ -10,7 +10,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { X, Link2, CheckCircle2, Info } from "lucide-react";
 import { toast } from "@/shared/hooks/use-toast";
-import { Divider } from "@heroui/react";
+import { Divider, Spinner } from "@heroui/react";
 
 interface InviteTeammatesModalProps {
   open: boolean;
@@ -33,7 +33,7 @@ export function InviteTeammatesModal({
   const [isInviting, setIsInviting] = useState(false);
   const [inviteSentSuccess, setInviteSentSuccess] = useState(false);
   const [infoMessage, setInfoMessage] = useState<{
-    type: "already_invited" | "already_member";
+    type: "already_invited" | "already_member" | "user_not_found";
     text: string;
   } | null>(null);
   const [inviteLink, setInviteLink] = useState<string>("");
@@ -101,6 +101,21 @@ export function InviteTeammatesModal({
         setInfoMessage({ type: "already_member", text: message });
         toast({
           title: "User is already a member",
+          description: message,
+        });
+        return;
+      }
+
+      if (status === "user_not_found") {
+        const message =
+          data.message ||
+          "No account found with this username. Please check the username and try again.";
+        setInfoMessage({
+          type: "user_not_found",
+          text: message,
+        });
+        toast({
+          title: "Username not found",
           description: message,
         });
         return;
@@ -222,10 +237,10 @@ export function InviteTeammatesModal({
 
         <Divider className="mb-0 sm:mb-2" />
 
-        <div className="px-4 sm:px-6 pt-1 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 space-y-5 overflow-y-auto flex-1 min-h-0">
+        <div className="px-4 sm:px-6 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 space-y-5 overflow-y-auto flex-1 min-h-0">
           {inviteSentSuccess && (
             <div
-              className="flex items-center gap-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-2.5 text-sm"
+              className="flex items-center gap-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-3 text-sm"
               role="status"
               aria-live="polite"
             >
@@ -244,7 +259,7 @@ export function InviteTeammatesModal({
             </div>
           )}
           <form
-            className="space-y-3"
+            className=""
             onSubmit={(e) => {
               e.preventDefault();
               handleInvite(e);
@@ -257,7 +272,7 @@ export function InviteTeammatesModal({
             >
               Email or username
             </label>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 id="invite-input"
                 type="text"
@@ -269,7 +284,7 @@ export function InviteTeammatesModal({
                   setInfoMessage(null);
                 }}
                 placeholder="Email or username"
-                className="flex-1 rounded-xl min-h-11 text-base sm:text-sm"
+                className="flex-1 rounded-xl min-h-11 text-sm"
                 aria-label="Email or username to invite"
               />
               <Button
@@ -279,7 +294,15 @@ export function InviteTeammatesModal({
                 className="bg-primary text-primary-foreground rounded-xl text-sm font-medium min-h-11 w-full sm:w-auto sm:min-w-[6rem] whitespace-nowrap"
                 aria-label="Send invite"
               >
-                {isInviting ? "Sending…" : "Invite"}
+                {isInviting ? (
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-primary-foreground" }}
+                  />
+                ) : (
+                  "Invite"
+                )}
               </Button>
             </div>
           </form>
@@ -287,10 +310,6 @@ export function InviteTeammatesModal({
           <div className="rounded-xl sm:rounded-2xl border border-border bg-muted/30 p-4 sm:p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="flex items-start gap-3 min-w-0 flex-1">
-                <div className="relative shrink-0 mt-0.5">
-                  <Link2 className="h-5 w-5 text-muted-foreground" />
-                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
-                </div>
                 <div className="min-w-0">
                   <h3 className="font-medium text-sm text-foreground">
                     Shareable link
@@ -300,38 +319,31 @@ export function InviteTeammatesModal({
                   </p>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleGetLink}
-                className="w-full sm:w-auto min-h-11 sm:min-h-0 rounded-xl bg-background border-border hover:bg-muted text-foreground font-medium shrink-0"
-                aria-label="Get invite link"
-                disabled={isLinkLoading}
-              >
-                {isLinkLoading ? "Creating…" : "Get link"}
-              </Button>
-            </div>
-            {inviteLink && (
-              <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <input
-                  ref={linkInputRef}
-                  type="text"
-                  value={inviteLink}
-                  readOnly
-                  className="flex-1 text-xs bg-background rounded-lg px-3 py-2.5 border border-border min-w-0 break-all min-h-10"
-                  aria-label="Invite link"
-                />
+              <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
                 <Button
                   type="button"
-                  onClick={handleCopyLink}
-                  className="text-sm font-medium min-h-11 sm:min-h-0 rounded-lg px-4 py-2.5 bg-primary text-primary-foreground whitespace-nowrap w-full sm:w-auto"
-                  aria-label={linkCopied ? "Copied" : "Copy invite link"}
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGetLink}
+                  className="flex-1 sm:flex-initial min-h-11 sm:min-h-0 rounded-lg bg-background border-border hover:bg-muted text-foreground font-medium shrink-0 px-4 text-sm"
+                  aria-label="Get invite link"
+                  disabled={isLinkLoading}
                 >
-                  {linkCopied ? "Copied" : "Copy"}
+                  {isLinkLoading ? "Creating…" : "Get link"}
                 </Button>
+                {inviteLink && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleCopyLink}
+                    className="flex-1 sm:flex-initial min-h-11 sm:min-h-0 rounded-lg bg-primary text-primary-foreground font-medium shrink-0 px-4 text-sm"
+                    aria-label={linkCopied ? "Copied" : "Copy invite link"}
+                  >
+                    {linkCopied ? "Copied" : "Copy"}
+                  </Button>
+                )}
               </div>
-            )}
+            </div>
             {linkError && (
               <p className="text-xs text-destructive mt-2" role="alert">
                 {linkError}
