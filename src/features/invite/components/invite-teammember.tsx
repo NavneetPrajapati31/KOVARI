@@ -201,31 +201,31 @@ export function InviteTeammatesModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-lg w-[95vw] sm:w-full p-0 gap-0 bg-card min-w-0 max-h-[90vh] overflow-hidden"
+        className="max-w-lg w-[calc(100vw-2rem)] sm:w-full p-0 gap-0 bg-card min-w-0 max-h-[90dvh] sm:max-h-[90vh] overflow-hidden rounded-2xl sm:rounded-lg"
         hideCloseButton
       >
         <DialogTitle />
-        <div className="flex items-center justify-between px-6 pt-4 pb-2">
-          <h2 className="text-md font-semibold text-foreground truncate pr-2">
+        <div className="flex items-center justify-between px-4 sm:px-6 pt-4 pb-2 shrink-0">
+          <h2 className="text-base font-semibold text-foreground truncate pr-2">
             Invite member
           </h2>
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => onOpenChange(false)}
-            className="p-0 hover:bg-transparent text-foreground hover:text-foreground"
+            className="h-9 w-9 shrink-0 rounded-full p-0 hover:bg-muted/80 text-foreground hover:text-foreground"
             aria-label="Close invite modal"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <Divider className="mb-4" />
+        <Divider className="mb-0 sm:mb-2" />
 
-        <div className="px-4 sm:px-6 pb-4 space-y-4 overflow-y-auto flex-1">
+        <div className="px-4 sm:px-6 pt-1 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 space-y-5 overflow-y-auto flex-1 min-h-0">
           {inviteSentSuccess && (
             <div
-              className="flex items-center gap-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-2 text-sm"
+              className="flex items-center gap-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-2.5 text-sm"
               role="status"
               aria-live="polite"
             >
@@ -235,7 +235,7 @@ export function InviteTeammatesModal({
           )}
           {infoMessage && (
             <div
-              className="flex items-center gap-2 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-2 text-sm"
+              className="flex items-center gap-2 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-2.5 text-sm"
               role="alert"
               aria-live="polite"
             >
@@ -244,7 +244,7 @@ export function InviteTeammatesModal({
             </div>
           )}
           <form
-            className="space-y-2"
+            className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
               handleInvite(e);
@@ -257,7 +257,7 @@ export function InviteTeammatesModal({
             >
               Email or username
             </label>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Input
                 id="invite-input"
                 type="text"
@@ -268,15 +268,15 @@ export function InviteTeammatesModal({
                   setInviteSentSuccess(false);
                   setInfoMessage(null);
                 }}
-                placeholder="Enter email or username"
-                className="flex-1 rounded-lg"
+                placeholder="Email or username"
+                className="flex-1 rounded-xl min-h-11 text-base sm:text-sm"
                 aria-label="Email or username to invite"
               />
               <Button
                 type="button"
                 onClick={(e) => handleInvite(e)}
                 disabled={!canInvite || isInviting}
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg text-sm w-full sm:w-auto whitespace-nowrap"
+                className="bg-primary text-primary-foreground rounded-xl text-sm font-medium min-h-11 w-full sm:w-auto sm:min-w-[6rem] whitespace-nowrap"
                 aria-label="Send invite"
               >
                 {isInviting ? "Sending…" : "Invite"}
@@ -284,19 +284,19 @@ export function InviteTeammatesModal({
             </div>
           </form>
 
-          <div className="rounded-2xl py-3 sm:py-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 sm:justify-between">
-              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                <div className="relative shrink-0">
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-muted/30 p-4 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="relative shrink-0 mt-0.5">
                   <Link2 className="h-5 w-5 text-muted-foreground" />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
+                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-medium text-sm text-foreground truncate">
+                  <h3 className="font-medium text-sm text-foreground">
                     Shareable link
                   </h3>
-                  <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-1">
-                    Create and copy a shareable invite link for this group.
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed sm:line-clamp-1">
+                    Share a link so anyone can join this group.
                   </p>
                 </div>
               </div>
@@ -305,7 +305,7 @@ export function InviteTeammatesModal({
                 variant="outline"
                 size="sm"
                 onClick={handleGetLink}
-                className="bg-card border-border hover:bg-muted text-muted-foreground px-4 sm:px-5 py-1.5 rounded-lg text-sm whitespace-nowrap shrink-0"
+                className="w-full sm:w-auto min-h-11 sm:min-h-0 rounded-xl bg-background border-border hover:bg-muted text-foreground font-medium shrink-0"
                 aria-label="Get invite link"
                 disabled={isLinkLoading}
               >
@@ -313,19 +313,19 @@ export function InviteTeammatesModal({
               </Button>
             </div>
             {inviteLink && (
-              <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <input
                   ref={linkInputRef}
                   type="text"
                   value={inviteLink}
                   readOnly
-                  className="flex-1 text-xs bg-background rounded-md px-3 py-2 border border-border min-w-0 break-all"
+                  className="flex-1 text-xs bg-background rounded-lg px-3 py-2.5 border border-border min-w-0 break-all min-h-10"
                   aria-label="Invite link"
                 />
                 <Button
                   type="button"
                   onClick={handleCopyLink}
-                  className="text-xs px-3 py-2 bg-primary text-primary-foreground whitespace-nowrap w-full sm:w-auto h-auto border border-primary"
+                  className="text-sm font-medium min-h-11 sm:min-h-0 rounded-lg px-4 py-2.5 bg-primary text-primary-foreground whitespace-nowrap w-full sm:w-auto"
                   aria-label={linkCopied ? "Copied" : "Copy invite link"}
                 >
                   {linkCopied ? "Copied" : "Copy"}
@@ -333,7 +333,7 @@ export function InviteTeammatesModal({
               </div>
             )}
             {linkError && (
-              <p className="text-xs text-destructive mt-1" role="alert">
+              <p className="text-xs text-destructive mt-2" role="alert">
                 {linkError}
               </p>
             )}

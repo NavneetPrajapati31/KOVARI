@@ -195,15 +195,20 @@ export function GroupCard({
           </span>
         </div>
         {/* Date/time */}
-        <div className="flex items-center gap-2 text-primary text-xs font-medium mb-1">
-          <Calendar className="w-4 h-4" />
-          <span>{formatDateRange()}</span>
+        <div className="flex items-center gap-2 text-primary text-xs font-medium mb-1 min-w-0">
+          <Calendar className="w-4 h-4 shrink-0" />
+          <span className="truncate min-w-0" title={formatDateRange()}>
+            {formatDateRange()}
+          </span>
           <Divider
             orientation="vertical"
-            className="h-4 text-muted-foreground"
+            className="h-4 shrink-0 text-muted-foreground"
           />
-          <MapPin className="w-4 h-4 inline-block text-primary" />
-          <span className="capitalize">
+          <MapPin className="w-4 h-4 shrink-0 text-primary" />
+          <span
+            className="capitalize truncate min-w-0"
+            title={formatDestinationCity(group.destination)}
+          >
             {formatDestinationCity(group.destination)}
           </span>
         </div>
