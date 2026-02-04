@@ -173,7 +173,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (parsed.data.destination) {
+    if (parsed.data.destination && !groupData.ai_overview) {
       const overview = await getGeminiPlaceOverview(parsed.data.destination);
       if (overview) {
         const { error: overviewError } = await supabase
