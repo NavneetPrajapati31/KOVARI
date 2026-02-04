@@ -58,29 +58,29 @@ export function GroupCard({
   const formatDateRange = () => {
     if (!group.dateRange || !group.dateRange.start)
       return "Dates not available";
-  
+
     if (group.dateRange.isOngoing) return "Ongoing";
-  
+
     const startDate = new Date(group.dateRange.start).toLocaleDateString(
       "en-US",
       {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
       }
     );
-  
+
     if (!group.dateRange.end) return startDate;
-  
+
     const endDate = new Date(group.dateRange.end).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
-  
+
     return `${startDate} - ${endDate}`;
   };
-  
+
   const formatMemberCount = () => {
     if (group.memberCount === 0) return "No members yet";
     if (group.memberCount === 1) return "1 member";
@@ -162,7 +162,7 @@ export function GroupCard({
   };
 
   return (
-    <Card className="w-full max-w-[400px] h-[350px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
+    <Card className="w-full max-w-[400px] h-[330px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card border border-border text-card-foreground">
       {/* Top image section */}
       <div className="relative w-full h-[160px] overflow-hidden bg-muted">
         <Image
@@ -176,7 +176,7 @@ export function GroupCard({
         />
       </div>
       {/* Content section */}
-      <div className="flex flex-col gap-2 px-5 pt-4 pb-4">
+      <div className="flex flex-col gap-2 px-5 pt-4">
         {/* Group name */}
         <div className="flex items-center">
           <span
@@ -187,39 +187,39 @@ export function GroupCard({
           </span>
         </div>
         {/* Date/time */}
-        <div className="flex items-center gap-2 text-primary text-xs font-medium mb-3">
+        <div className="flex items-center gap-2 text-primary text-xs font-medium mb-1">
           <Calendar className="w-4 h-4" />
           <span>{formatDateRange()}</span>
-        </div>
-        {/* Destination */}
-        <div className="text-muted-foreground text-xs font-medium flex items-center gap-2">
-          <span>{formatMemberCount()}</span>
           <Divider
             orientation="vertical"
             className="h-4 text-muted-foreground"
           />
-          <MapPin className="w-4 h-4 inline-block text-muted-foreground" />
-          <span>{group.destination}</span>
+          <MapPin className="w-4 h-4 inline-block text-primary" />
+          <span className="capitalize">{group.destination}</span>
         </div>
+        {/* Destination */}
+        {/* <div className="text-muted-foreground text-xs font-medium flex items-center gap-2">
+          <span>{formatMemberCount()}</span>
+        </div> */}
         {/* Creator avatar and name */}
         {group.creator ? (
-    <div className="flex items-center gap-2">
-    <Avatar
-      src={group.creator.avatar || ""}
-      alt={group.creator.name || "Creator"}
-      className="w-6 h-6"
-      aria-label={`Avatar of ${group.creator.username || "Unknown"}`}
-    />
-    <span className="text-muted-foreground font-medium text-xs truncate">
-      Created by {`@${group.creator.username || "unknown"}`}
-    </span>
-    </div>
-    ) : (
+          <div className="flex items-center gap-2">
+            <Avatar
+              src={group.creator.avatar || ""}
+              alt={group.creator.name || "Creator"}
+              className="w-6 h-6"
+              aria-label={`Avatar of ${group.creator.username || "Unknown"}`}
+            />
+            <span className="text-muted-foreground font-medium text-xs truncate">
+              Created by {`@${group.creator.username || "unknown"}`}
+            </span>
+          </div>
+        ) : (
           <div className="text-muted-foreground text-xs">
             Created by Unknown
           </div>
-  )}
-        </div>
+        )}
+      </div>
       {/* Action button(s) at the bottom */}
       <div className="px-5 pb-5 mt-auto">
         {group.status === "pending" ? (
