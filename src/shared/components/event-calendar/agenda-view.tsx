@@ -1,10 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { RiCalendarEventLine } from "@remixicon/react";
-import { addDays, format, isToday } from "date-fns";
+import {
+  format,
+  isToday,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+} from "date-fns";
 
-import { AgendaDaysToShow } from "./constants";
 import { getAgendaEventsForDay } from "./utils";
 import { EventItem } from "./event-item";
 import type { CalendarEvent } from "./types";
@@ -20,12 +24,11 @@ export function AgendaView({
   events,
   onEventSelect,
 }: AgendaViewProps) {
-  // Show events for the next days based on constant
+  // Single month: all days in the month of currentDate
   const days = useMemo(() => {
-    console.log("Agenda view updating with date:", currentDate.toISOString());
-    return Array.from({ length: AgendaDaysToShow }, (_, i) =>
-      addDays(new Date(currentDate), i)
-    );
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    return eachDayOfInterval({ start: monthStart, end: monthEnd });
   }, [currentDate]);
 
   const handleEventClick = (event: CalendarEvent, e: React.MouseEvent) => {

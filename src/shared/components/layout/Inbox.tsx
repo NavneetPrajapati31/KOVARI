@@ -23,6 +23,48 @@ import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { createClient } from "@/lib/supabase";
 import InboxChatListSkeleton from "./inbox-chat-list-skeleton";
 
+/**
+ * Format last message time like WhatsApp/Telegram: Today (time only),
+ * Yesterday (with time), day name for this week, or date for older.
+ */
+function formatChatTimestamp(dateInput: string | Date): string {
+  const date = new Date(dateInput);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  const weekAgo = new Date(todayStart);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const timeStr = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (date >= todayStart) {
+    return timeStr;
+  }
+  if (date >= yesterdayStart) {
+    return `Yesterday, ${timeStr}`;
+  }
+  if (date >= weekAgo) {
+    const dayName = date.toLocaleDateString([], { weekday: "short" });
+    return `${dayName}, ${timeStr}`;
+  }
+  if (date.getFullYear() === now.getFullYear()) {
+    const shortDate = date.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+    });
+    return `${shortDate}, ${timeStr}`;
+  }
+  return date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 interface UserProfile {
   name?: string;
   username?: string;
@@ -250,12 +292,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
             const displayName = isDeleted
               ? "Deleted User"
               : profile?.name || profile?.username || "Unknown";
-            const time = new Date(
-              conversation.lastMessageAt
-            ).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
+            const time = formatChatTimestamp(conversation.lastMessageAt);
             const isActive = activeUserId === conversation.userId;
             const isInit = (conversation as any).lastMediaType === "init";
 

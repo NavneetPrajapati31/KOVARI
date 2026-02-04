@@ -12,6 +12,8 @@ interface ExploreSidebarProps {
   onSearchDataChange: (data: SearchData) => void;
   onSearch: () => void;
   onFilterChange: (key: string, value: any) => void;
+  /** When set (e.g. mobile sheet), the date picker popover portals here so it stays clickable. */
+  datePickerPortalContainer?: HTMLElement | null;
 }
 
 export const ExploreSidebar = ({
@@ -22,6 +24,7 @@ export const ExploreSidebar = ({
   onSearchDataChange,
   onSearch,
   onFilterChange,
+  datePickerPortalContainer,
 }: ExploreSidebarProps) => {
   return (
     <div className="min-[930px]:h-[90vh] h-full flex flex-col">
@@ -43,6 +46,7 @@ export const ExploreSidebar = ({
             onSearchDataChange={onSearchDataChange}
             onSearch={onSearch}
             isLoading={searchLoading}
+            datePickerPortalContainer={datePickerPortalContainer}
           />
         </div>
 

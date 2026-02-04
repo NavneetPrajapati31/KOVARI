@@ -33,6 +33,8 @@ interface SearchFormProps {
   onSearchDataChange: (data: SearchData) => void;
   onSearch: () => void;
   isLoading: boolean;
+  /** When set (e.g. mobile sheet), the date picker popover portals here so it stays clickable. */
+  datePickerPortalContainer?: HTMLElement | null;
 }
 
 const DESTINATION_OPTIONS = [
@@ -209,6 +211,7 @@ export const SearchForm = ({
   onSearchDataChange,
   onSearch,
   isLoading,
+  datePickerPortalContainer,
 }: SearchFormProps) => {
   const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
 
@@ -337,6 +340,17 @@ export const SearchForm = ({
           minValue={today(getLocalTimeZone())}
           className="w-full"
           size="sm"
+          popoverProps={{
+            shouldCloseOnInteractOutside: () => false,
+            ...(datePickerPortalContainer && {
+              portalContainer: datePickerPortalContainer,
+            }),
+            classNames: {
+              base: "z-[100]",
+              content: "z-[101]",
+              backdrop: "z-[100]",
+            },
+          }}
         />
       </div>
 
@@ -380,9 +394,7 @@ export const SearchForm = ({
               onClick={() => handleSearchDataChange({ budget })}
               className="text-xs flex-1 rounded-full"
             >
-              {budget === 50000
-                ? "₹50k+"
-                : `₹${budget.toLocaleString()}`}
+              {budget === 50000 ? "₹50k+" : `₹${budget.toLocaleString()}`}
             </Button>
           ))}
         </div>

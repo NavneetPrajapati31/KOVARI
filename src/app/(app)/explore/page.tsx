@@ -62,6 +62,8 @@ export default function ExplorePage() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [lastSearchData, setLastSearchData] = useState<SearchData | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [datePickerPortalContainer, setDatePickerPortalContainer] =
+    useState<HTMLDivElement | null>(null);
 
   // Search form state
   const [searchData, setSearchData] = useState<SearchData>({
@@ -448,22 +450,30 @@ export default function ExplorePage() {
       <div className="max-w-full mx-auto flex flex-col gap-0">
         {/* Tabs Header - Outside containers like groups layout */}
         <header className="flex w-full items-center gap-2 sticky top-0 z-50 bg-background py-4">
-          <div className="flex gap-2 flex-auto min-[930px]:w-auto min-[930px]:flex-none">{tabButtons}</div>
+          <div className="flex gap-2 flex-auto min-[930px]:w-auto min-[930px]:flex-none">
+            {tabButtons}
+          </div>
 
           {/* Mobile Filter Trigger */}
           <div className="flex-auto min-[930px]:hidden">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="w-full text-xs sm:text-sm text-foreground font-semibold bg-card rounded-2xl hover:text-primary">
+                <Button
+                  variant="outline"
+                  className="w-full text-xs sm:text-sm text-foreground font-semibold bg-card rounded-2xl hover:text-primary"
+                >
                   Filters
                 </Button>
               </SheetTrigger>
-              <SheetContent 
-                side="bottom" 
+              <SheetContent
+                side="bottom"
                 className="h-[90dvh] p-0 rounded-t-3xl w-full"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
-                <div className="h-full pt-2">
+                <div
+                  ref={(el) => setDatePickerPortalContainer(el ?? null)}
+                  className="h-full pt-2 relative"
+                >
                   <ExploreSidebar
                     activeTab={activeTab}
                     searchData={searchData}
@@ -472,6 +482,7 @@ export default function ExplorePage() {
                     onSearchDataChange={setSearchData}
                     onSearch={handleSearch}
                     onFilterChange={handleFilterChange}
+                    datePickerPortalContainer={datePickerPortalContainer}
                   />
                 </div>
               </SheetContent>

@@ -27,7 +27,6 @@ import { DayView } from "./day-view";
 import { EventDialog } from "./event-dialog";
 import { MonthView } from "./month-view";
 import { WeekView } from "./week-view";
-import { AgendaDaysToShow } from "./constants";
 import { addHoursToDate } from "./utils";
 import { cn } from "@/shared/utils/utils";
 import { Button } from "@/shared/components/ui/button";
@@ -102,28 +101,22 @@ export function EventCalendar({
   }, [isEventDialogOpen]);
 
   const handlePrevious = () => {
-    if (view === "month") {
+    if (view === "month" || view === "agenda") {
       setCurrentDate(subMonths(currentDate, 1));
     } else if (view === "week") {
       setCurrentDate(subWeeks(currentDate, 1));
     } else if (view === "day") {
       setCurrentDate(addDays(currentDate, -1));
-    } else if (view === "agenda") {
-      // For agenda view, go back 30 days (a full month)
-      setCurrentDate(addDays(currentDate, -AgendaDaysToShow));
     }
   };
 
   const handleNext = () => {
-    if (view === "month") {
+    if (view === "month" || view === "agenda") {
       setCurrentDate(addMonths(currentDate, 1));
     } else if (view === "week") {
       setCurrentDate(addWeeks(currentDate, 1));
     } else if (view === "day") {
       setCurrentDate(addDays(currentDate, 1));
-    } else if (view === "agenda") {
-      // For agenda view, go forward 30 days (a full month)
-      setCurrentDate(addDays(currentDate, AgendaDaysToShow));
     }
   };
 
@@ -240,15 +233,8 @@ export function EventCalendar({
         </>
       );
     } else if (view === "agenda") {
-      // Show the month range for agenda view
-      const start = currentDate;
-      const end = addDays(currentDate, AgendaDaysToShow - 1);
-
-      if (isSameMonth(start, end)) {
-        return format(start, "MMMM yyyy");
-      } else {
-        return `${format(start, "MMM")} - ${format(end, "MMM yyyy")}`;
-      }
+      // Single month for agenda view (e.g. "January 2026")
+      return format(currentDate, "MMMM yyyy");
     } else {
       return format(currentDate, "MMMM yyyy");
     }
