@@ -14,7 +14,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, destination, cover_image, description, notes, start_date, end_date, is_public, status, creator_id"
+      "id, name, destination, cover_image, description, notes, start_date, end_date, is_public, status, creator_id, ai_overview"
     )
     .eq("id", groupId)
     .single();
@@ -229,7 +229,7 @@ export async function PATCH(
     .update(updates)
     .eq("id", groupId)
     .select(
-      "id, name, destination, cover_image, description, notes, start_date, end_date, is_public, status"
+      "id, name, destination, cover_image, description, notes, start_date, end_date, is_public, status, ai_overview"
     )
     .single();
 
