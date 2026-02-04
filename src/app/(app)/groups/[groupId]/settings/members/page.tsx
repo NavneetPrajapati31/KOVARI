@@ -417,7 +417,7 @@ export default function Page() {
                     <Chip
                       size="sm"
                       variant="bordered"
-                      className="text-sm capitalize flex-shrink-0 self-center bg-primary-light border-1 border-primary text-primary px-2"
+                      className="text-sm capitalize flex-shrink-0 self-center bg-primary-light border-none text-primary px-2"
                     >
                       <span className="font-medium text-xs">Admin</span>
                     </Chip>
@@ -425,7 +425,7 @@ export default function Page() {
                     <Chip
                       size="sm"
                       variant="bordered"
-                      className="text-sm capitalize flex-shrink-0 self-center bg-gray-200 border-1 border-muted-foreground text-muted-foreground px-2"
+                      className="text-sm capitalize flex-shrink-0 self-center bg-muted border-none text-muted-foreground px-2"
                     >
                       <span className="font-medium text-xs">Member</span>
                     </Chip>

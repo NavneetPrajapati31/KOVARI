@@ -62,17 +62,15 @@ import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "confirmed":
-      return "success";
-    case "pending":
-      return "warning";
-    case "cancelled":
-      return "danger";
-    default:
-      return "default";
-  }
+// Status badge mapping (aligned with itinerary page)
+const ITINERARY_STATUS_BADGES: Record<
+  string,
+  { label: string; color: string }
+> = {
+  pending: { label: "Not Started", color: "bg-yellow-50 text-yellow-700" },
+  confirmed: { label: "In Progress", color: "bg-blue-50 text-blue-700" },
+  completed: { label: "Completed", color: "bg-green-50 text-green-700" },
+  cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
 };
 
 const formatDate = (dateString: string) => {
@@ -525,7 +523,7 @@ const GroupHomePage = () => {
                 <Chip
                   size="sm"
                   variant="bordered"
-                  className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-1 border-primary text-primary px-2"
+                  className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-none text-primary px-2"
                 >
                   <span className="font-medium text-xs">Admin</span>
                 </Chip>
@@ -572,9 +570,7 @@ const GroupHomePage = () => {
                   <>
                     <div className="flex items-start justify-between gap-2 px-1 mb-1">
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-sm font-bold">
-                          {groupInfo?.name}
-                        </h2>
+                        <h2 className="text-sm font-bold">{groupInfo?.name}</h2>
                         <p className="text-xs font-medium text-muted-foreground mt-1 mb-3">
                           {groupInfo?.description}
                         </p>
@@ -703,7 +699,7 @@ const GroupHomePage = () => {
                             <Chip
                               size="sm"
                               variant="bordered"
-                              className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-1 border-primary text-primary px-2"
+                              className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-none text-primary px-2"
                             >
                               <span className="font-medium text-xs">Admin</span>
                             </Chip>
@@ -789,18 +785,15 @@ const GroupHomePage = () => {
                                     {item.title}
                                   </h4>
                                   <Chip
-                                    size="sm"
-                                    color={getStatusColor(item.status)}
-                                    variant="flat"
-                                    className={`text-xs capitalize flex-shrink-0 ${
-                                      item.status === "confirmed"
-                                        ? "text-green-600 bg-green-100"
-                                        : item.status === "cancelled"
-                                          ? "text-destructive bg-[#dc2626]/15"
-                                          : ""
+                                    className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 flex-shrink-0 ${
+                                      ITINERARY_STATUS_BADGES[item.status]
+                                        ?.color || "bg-gray-100 text-foreground"
                                     }`}
                                   >
-                                    {item.status}
+                                    <span className="font-semibold">
+                                      {ITINERARY_STATUS_BADGES[item.status]
+                                        ?.label || item.status}
+                                    </span>
                                   </Chip>
                                 </div>
 
@@ -1053,7 +1046,7 @@ const GroupHomePage = () => {
                                   <Chip
                                     size="sm"
                                     variant="bordered"
-                                    className=" text-xs capitalize flex-shrink-0 bg-primary-light border-1 border-primary text-primary px-2"
+                                    className=" text-xs capitalize flex-shrink-0 bg-primary-light border-none text-primary px-2"
                                   >
                                     <span className="font-medium text-xs">
                                       Admin
@@ -1231,19 +1224,15 @@ const GroupHomePage = () => {
                                       {item.title}
                                     </h4>
                                     <Chip
-                                      size="sm"
-                                      color={getStatusColor(item.status)}
-                                      variant="flat"
-                                      className={`text-xs capitalize flex-shrink-0 ${
-                                        item.status === "confirmed"
-                                          ? "text-green-600 bg-green-100"
-                                          : item.status == "cancelled"
-                                            ? "text-destructive bg-[#dc2626]/15"
-                                            : ""
+                                      className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 flex-shrink-0 ${
+                                        ITINERARY_STATUS_BADGES[item.status]
+                                          ?.color ||
+                                        "bg-gray-100 text-foreground"
                                       }`}
                                     >
-                                      <span className="font-medium p-2">
-                                        {item.status}
+                                      <span className="font-semibold">
+                                        {ITINERARY_STATUS_BADGES[item.status]
+                                          ?.label || item.status}
                                       </span>
                                     </Chip>
                                   </div>
@@ -1388,7 +1377,7 @@ const GroupHomePage = () => {
                             <Chip
                               size="sm"
                               variant="bordered"
-                              className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-1 border-primary text-primary px-2"
+                              className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-none text-primary px-2"
                             >
                               <span className="font-medium text-xs">Admin</span>
                             </Chip>
@@ -1614,19 +1603,14 @@ const GroupHomePage = () => {
                                     {item.title}
                                   </h4>
                                   <Chip
-                                    size="sm"
-                                    color={getStatusColor(item.status)}
-                                    variant="flat"
-                                    className={`text-xs capitalize flex-shrink-0 ${
-                                      item.status === "confirmed"
-                                        ? "text-green-600 bg-green-100"
-                                        : item.status == "cancelled"
-                                          ? "text-destructive bg-[#dc2626]/15"
-                                          : ""
+                                    className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 flex-shrink-0 ${
+                                      ITINERARY_STATUS_BADGES[item.status]
+                                        ?.color || "bg-gray-100 text-foreground"
                                     }`}
                                   >
-                                    <span className="font-medium p-2">
-                                      {item.status}
+                                    <span className="font-semibold">
+                                      {ITINERARY_STATUS_BADGES[item.status]
+                                        ?.label || item.status}
                                     </span>
                                   </Chip>
                                 </div>
