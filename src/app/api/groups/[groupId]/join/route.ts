@@ -110,36 +110,39 @@ export async function POST(
       return new NextResponse("Database error", { status: 500 });
     }
 
-    // Send notification to the user who was added/approved
-    try {
-      const { data: groupData } = await supabase
-        .from("groups")
-        .select("name")
-        .eq("id", groupId)
-        .single();
+    // Send notification only when this is an admin approving a request, not when user joins via invite link
+    const viaInvite = body?.viaInvite === true;
+    if (!viaInvite) {
+      try {
+        const { data: groupData } = await supabase
+          .from("groups")
+          .select("name")
+          .eq("id", groupId)
+          .single();
 
-      const groupName = groupData?.name || "a group";
+        const groupName = groupData?.name || "a group";
 
-      // Dynamically import notification helpers
-      const { createNotification } = await import(
-        "@/lib/notifications/createNotification"
-      );
-      const { NotificationType } = await import(
-        "@/shared/types/notifications"
-      );
+        const { createNotification } = await import(
+          "@/lib/notifications/createNotification"
+        );
+        const { NotificationType } = await import(
+          "@/shared/types/notifications"
+        );
 
-      await createNotification({
-        userId: user.id,
-        type: NotificationType.GROUP_JOIN_APPROVED,
-        title: "Request Approved",
-        message: `Your request to join ${groupName} has been approved.`,
-        entityType: "group",
-        entityId: groupId,
-      });
-      
-    } catch (notifyError) {
-      console.error("[GROUP_JOIN_POST] Error sending notification:", notifyError);
-      // Don't fail the request if notification fails
+        await createNotification({
+          userId: user.id,
+          type: NotificationType.GROUP_JOIN_APPROVED,
+          title: "Request Approved",
+          message: `Your request to join ${groupName} has been approved.`,
+          entityType: "group",
+          entityId: groupId,
+        });
+      } catch (notifyError) {
+        console.error(
+          "[GROUP_JOIN_POST] Error sending notification:",
+          notifyError
+        );
+      }
     }
 
     return NextResponse.json({ success: true });

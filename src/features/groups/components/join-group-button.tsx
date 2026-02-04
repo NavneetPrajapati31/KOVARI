@@ -8,9 +8,16 @@ import { Loader2 } from "lucide-react";
 
 interface JoinGroupButtonProps {
   groupId: string;
+  className?: string;
+  /** When true, join API will not create a "Request Approved" notification (e.g. when joining via invite link). */
+  viaInvite?: boolean;
 }
 
-export function JoinGroupButton({ groupId }: JoinGroupButtonProps) {
+export function JoinGroupButton({
+  groupId,
+  className,
+  viaInvite = false,
+}: JoinGroupButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +27,8 @@ export function JoinGroupButton({ groupId }: JoinGroupButtonProps) {
     try {
       const res = await fetch(`/api/groups/${groupId}/join`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(viaInvite ? { viaInvite: true } : {}),
       });
 
       if (!res.ok) {
@@ -49,10 +58,11 @@ export function JoinGroupButton({ groupId }: JoinGroupButtonProps) {
     <Button
       onClick={handleJoin}
       disabled={isLoading}
-      className="bg-blue-600 text-white px-6 py-2 rounded font-semibold hover:bg-blue-700 transition"
+      className={className ?? "rounded-full font-medium"}
+      size="lg"
     >
       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Join Group
+      {isLoading ? "Joining..." : "Join group"}
     </Button>
   );
 }

@@ -23,10 +23,7 @@ export async function POST(req: NextRequest) {
     const email = typeof body?.email === "string" ? body.email.trim() : "";
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     const client = await clerkClient();
@@ -37,7 +34,11 @@ export async function POST(req: NextRequest) {
 
     if (!users?.length) {
       return NextResponse.json(
-        { success: true, message: "If that email is registered, you will receive a reset link shortly." },
+        {
+          success: true,
+          message:
+            "If that email is registered, you will receive a reset link shortly.",
+        },
         { status: 200 }
       );
     }
@@ -71,7 +72,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: true, message: "If that email is registered, you will receive a reset link shortly." },
+      {
+        success: true,
+        message:
+          "If that email is registered, you will receive a reset link shortly.",
+      },
       { status: 200 }
     );
   } catch (error) {
