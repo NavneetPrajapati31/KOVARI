@@ -88,6 +88,14 @@ export function GroupCard({
     return `${group.memberCount} members`;
   };
 
+  /** Show only the city (first part before comma), not state/province/country */
+  const formatDestinationCity = (destination: string) => {
+    const trimmed = destination?.trim() ?? "";
+    if (!trimmed) return trimmed;
+    const city = trimmed.split(",")[0]?.trim() ?? trimmed;
+    return city;
+  };
+
   const getActionButton = () => {
     // Check if group is pending - show "Under Review" for all users (including creator)
     if (group.status === "pending") {
@@ -195,7 +203,9 @@ export function GroupCard({
             className="h-4 text-muted-foreground"
           />
           <MapPin className="w-4 h-4 inline-block text-primary" />
-          <span className="capitalize">{group.destination}</span>
+          <span className="capitalize">
+            {formatDestinationCity(group.destination)}
+          </span>
         </div>
         {/* Destination */}
         {/* <div className="text-muted-foreground text-xs font-medium flex items-center gap-2">
