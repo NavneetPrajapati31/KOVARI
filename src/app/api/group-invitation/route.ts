@@ -8,28 +8,35 @@ import { randomBytes } from "crypto";
 const generateToken = (length = 24) =>
   randomBytes(length).toString("base64url");
 
-const INVITE_BASE_URL =
-  process.env.NEXT_PUBLIC_INVITE_BASE_URL || "localhost:3000/invite";
-
-// Uncomment and install resend or use your own email provider
-let resend: any = null;
-try {
-  // Dynamically import resend if available
-  resend = require("resend");
-} catch (e) {
-  // Fallback: resend not installed
-}
-
-type SendInviteEmailFn = (args: {
-  to: string;
-  groupName: string;
-  inviteLink: string;
-}) => Promise<void>;
-let sendInviteEmail: SendInviteEmailFn;
-if (process.env.NODE_ENV === "development") {
-  sendInviteEmail = require("@/lib/send-invite-email.dev").sendInviteEmail;
-} else {
-  sendInviteEmail = require("@/lib/send-invite-email").sendInviteEmail;
+/**
+ * Base URL for invite links (no trailing slash). Prefers request origin/host so
+ * links work in both dev and prod without extra env.
+ */
+function getInviteBaseUrl(req: Request): string {
+  const origin = req.headers.get("origin");
+  if (origin) {
+    const base = origin.replace(/\/$/, "");
+    return `${base}/invite`;
+  }
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  if (host) {
+    const scheme = proto === "https" ? "https" : "http";
+    return `${scheme}://${host}/invite`;
+  }
+  const explicit = process.env.NEXT_PUBLIC_INVITE_BASE_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (appUrl) {
+    const base = appUrl.replace(/\/$/, "");
+    return `${base}/invite`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}/invite`;
+  }
+  return "http://localhost:3000/invite";
 }
 
 export async function GET(req: Request) {
@@ -89,13 +96,11 @@ export async function GET(req: Request) {
         });
       }
     }
-    return new Response(
-      JSON.stringify({ link: `${INVITE_BASE_URL}/${token}` }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    const inviteBaseUrl = getInviteBaseUrl(req);
+    return new Response(JSON.stringify({ link: `${inviteBaseUrl}/${token}` }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error in GET group invitation API:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
@@ -346,24 +351,68 @@ export async function POST(req: Request) {
             continue;
           }
 
-          // If user is already a member or has a pending/declined status, skip
+          // If user is already a member or has a pending invitation, return status for UI
           if (existing) {
             if (existing.status === "accepted") {
-              console.log(
-                `User ${userRow.id} is already a member of group ${groupId}`
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  status: "already_member",
+                  message: "This user is already a member of the group.",
+                }),
+                {
+                  status: 200,
+                  headers: { "Content-Type": "application/json" },
+                }
               );
-              continue;
             }
             if (existing.status === "pending") {
-              console.log(
-                `User ${userRow.id} already has a pending invitation to group ${groupId}`
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  status: "already_invited",
+                  message:
+                    "This user already has a pending invitation to the group.",
+                }),
+                {
+                  status: 200,
+                  headers: { "Content-Type": "application/json" },
+                }
               );
-              continue;
             }
             if (existing.status === "declined") {
-              console.log(
-                `User ${userRow.id} previously declined invitation to group ${groupId}`
+              // Re-invite: set membership back to pending and send notification
+              const { error: updateError } = await supabase
+                .from("group_memberships")
+                .update({ status: "pending" })
+                .eq("id", existing.id);
+              if (updateError) {
+                console.error(
+                  "Error re-inviting (updating declined):",
+                  updateError
+                );
+                continue;
+              }
+              const { createNotification } = await import(
+                "@/lib/notifications/createNotification"
               );
+              const { NotificationType } = await import(
+                "@/shared/types/notifications"
+              );
+              const { data: groupData } = await supabase
+                .from("groups")
+                .select("name")
+                .eq("id", groupId)
+                .single();
+              const groupName = groupData?.name || "a group";
+              await createNotification({
+                userId: userRow.id,
+                type: NotificationType.GROUP_INVITE_RECEIVED,
+                title: "Group invitation",
+                message: `You've been invited to join ${groupName} by ${senderName}`,
+                entityType: "group",
+                entityId: groupId,
+              });
               continue;
             }
           }
@@ -452,19 +501,25 @@ export async function POST(req: Request) {
             .maybeSingle();
           if (group?.name) groupName = group.name;
         } catch {}
-        // Send invite email
+        // Send invite email via Brevo (formatted HTML)
         try {
-          await sendInviteEmail({
+          const inviteBaseUrl = getInviteBaseUrl(req);
+          const { sendGroupInviteEmail } = await import("@/lib/brevo");
+          const result = await sendGroupInviteEmail({
             to: invite.email,
             groupName,
-            inviteLink: `${INVITE_BASE_URL}/${token}`,
+            inviteLink: `${inviteBaseUrl}/${token}`,
+            senderName,
           });
+          if (!result.success) {
+            console.error("Error sending invite email:", result.error);
+          }
         } catch (e) {
           console.error("Error sending invite email:", e);
         }
       }
     }
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, status: "sent" }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

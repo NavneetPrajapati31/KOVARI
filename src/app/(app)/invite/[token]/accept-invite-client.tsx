@@ -99,7 +99,7 @@ export function AcceptInviteClient({
           <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-5">
             <Users className="w-7 h-7 text-primary" aria-hidden />
           </div>
-          <h1 className="text-xl font-bold text-foreground mb-2">
+          <h1 className="text-lg font-bold text-foreground mb-2">
             Accepting your invite
           </h1>
           <p className="text-sm text-muted-foreground mb-6">

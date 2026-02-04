@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase";
 
@@ -17,18 +17,22 @@ export interface MembershipInfo {
 
 export const useGroupMembership = (groupId: string) => {
   const { user } = useUser();
+  const userId = user?.id ?? null;
   const [membershipInfo, setMembershipInfo] = useState<MembershipInfo | null>(
     null
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const fetchMembership = useCallback(async () => {
-    if (!user || !groupId) return;
+    if (!userId || !groupId) return;
 
     try {
-      setLoading(true);
       setError(null);
+      if (!hasLoadedOnce.current) {
+        setLoading(true);
+      }
 
       const response = await fetch(`/api/groups/${groupId}/membership`);
       if (!response.ok) {
@@ -43,6 +47,7 @@ export const useGroupMembership = (groupId: string) => {
 
       const data = await response.json();
       setMembershipInfo(data);
+      hasLoadedOnce.current = true;
     } catch (err) {
       console.error("Error fetching membership:", err);
       setError(
@@ -51,7 +56,7 @@ export const useGroupMembership = (groupId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [groupId, user]);
+  }, [groupId, userId]);
 
   useEffect(() => {
     fetchMembership();
@@ -59,7 +64,7 @@ export const useGroupMembership = (groupId: string) => {
 
   // Realtime subscription for instant removal detection (broad group filter for debugging)
   useEffect(() => {
-    if (!user || !groupId) return;
+    if (!userId || !groupId) return;
     const supabase = createClient();
     let channel: any;
 
@@ -96,7 +101,7 @@ export const useGroupMembership = (groupId: string) => {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [user, groupId, fetchMembership]);
+  }, [userId, groupId, fetchMembership]);
 
   return {
     membershipInfo,
