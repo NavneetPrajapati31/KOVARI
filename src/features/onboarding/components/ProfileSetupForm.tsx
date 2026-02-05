@@ -2134,7 +2134,11 @@ export default function ProfileSetupForm() {
       {isSubmitting && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-transparent rounded-lg p-6 flex flex-col items-center space-y-4">
-            <Spinner variant="spinner" size="md" color="primary" />
+            <Spinner
+              variant="spinner"
+              size="md"
+              classNames={{ spinnerBars: "bg-primary-foreground" }}
+            />
           </div>
         </div>
       )}
