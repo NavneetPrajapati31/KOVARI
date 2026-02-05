@@ -252,7 +252,13 @@ const GroupHomePage = () => {
     };
 
     generateOverview();
-  }, [fetchGroupInfo, groupInfo, groupInfoError, groupInfoLoading, params.groupId]);
+  }, [
+    fetchGroupInfo,
+    groupInfo,
+    groupInfoError,
+    groupInfoLoading,
+    params.groupId,
+  ]);
 
   // When groupInfo loads, set noteText from groupInfo.notes
   useEffect(() => {

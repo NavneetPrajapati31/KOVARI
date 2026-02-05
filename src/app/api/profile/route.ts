@@ -127,8 +127,24 @@ export async function POST(req: Request) {
     );
   }
 
+  // Get the Clerk email and persist it into profiles.email so we don't rely
+  // on any dummy or trigger-generated email values.
+  let primaryEmail: string | null = null;
+  try {
+    const clerk = await clerkClient();
+    const clerkUser = await clerk.users.getUser(userId);
+    const primary = clerkUser.primaryEmailAddress;
+    primaryEmail =
+      primary?.emailAddress ??
+      clerkUser.emailAddresses[0]?.emailAddress ??
+      null;
+  } catch (err) {
+    console.error("Error fetching Clerk user email", err);
+  }
+
   const profileData = {
     user_id: userRow.id,
+    ...(primaryEmail ? { email: primaryEmail } : {}),
     ...result.data,
   };
 
