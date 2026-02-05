@@ -305,7 +305,7 @@ export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 7;
+  const totalSteps = 6;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
@@ -558,17 +558,12 @@ export default function ProfileSetupForm() {
       );
       if (!valid) return;
       setStep2Data(step2Form.getValues());
-      setStep(7);
-      return;
-    }
-    if (step === 7) {
-      const valid = await step3Form.trigger(
-        ["destinations", "tripFocus", "frequency"],
-        { shouldFocus: true }
-      );
-      if (!valid) return;
-      const data = step3Form.getValues();
-      await onStep3Submit(data);
+      const defaultTravelData: Step3Data = {
+        destinations: "",
+        tripFocus: [],
+        frequency: "",
+      };
+      await submitProfileAndPreferences(defaultTravelData);
       return;
     }
   };
@@ -648,6 +643,19 @@ export default function ProfileSetupForm() {
     await submitProfileAndPreferences(data);
   };
 
+  // Format date as ISO datetime string at midnight UTC to preserve the selected date
+  const formatDateOnly = (date: Date | undefined): string | undefined => {
+    if (!date) return undefined;
+    // Get the date components in local timezone
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    // Create a new date at midnight UTC using the same year/month/day
+    // This preserves the date without timezone shifting
+    const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+    return utcDate.toISOString();
+  };
+
   // Original step 3 submission logic moved to a separate function
   const submitProfileAndPreferences = async (data: Step3Data) => {
     const readErrorMessage = async (res: Response) => {
@@ -688,8 +696,34 @@ export default function ProfileSetupForm() {
     try {
       setIsSubmitting(true);
       setSyncUserError(null);
-      const completeData = { ...step1Data, ...step2Data, ...data };
+      // Use form values directly if state is not yet updated (React state updates are async)
+      const currentStep1Data = step1Data || step1Form.getValues();
+      const currentStep2Data = step2Data || step2Form.getValues();
+      const completeData = {
+        ...currentStep1Data,
+        ...currentStep2Data,
+        ...data,
+      };
       console.log("Complete form data:", completeData);
+
+      // Validate that all required fields are present
+      if (
+        !completeData.firstName ||
+        !completeData.lastName ||
+        !completeData.username
+      ) {
+        throw new Error("Please complete all required fields in step 1");
+      }
+      if (
+        !completeData.location ||
+        !completeData.nationality ||
+        !completeData.jobType
+      ) {
+        throw new Error("Please complete all required fields in step 4");
+      }
+      if (!completeData.languages || completeData.languages.length === 0) {
+        throw new Error("Please select at least one language");
+      }
 
       // Transform data to match API schema
       const interestsLabels = (completeData.interests || [])
@@ -705,27 +739,38 @@ export default function ProfileSetupForm() {
         return age;
       };
       const numericAge = computeAge(completeData.birthday as Date | undefined);
+
+      // Ensure all required fields have valid values
+      const formattedBirthday = formatDateOnly(completeData.birthday);
+      if (!formattedBirthday) {
+        throw new Error("Birthday is required");
+      }
+
       const profileData = {
         name: `${completeData.firstName} ${completeData.lastName}`,
         username: completeData.username,
         age: Number.isFinite(numericAge) ? numericAge : 18,
         gender: completeData.gender,
-        birthday: completeData.birthday?.toISOString(),
+        birthday: formattedBirthday,
         bio: completeData.bio || "",
         profile_photo:
           typeof completeData.profilePic === "string" &&
           /^https?:\/\//i.test(completeData.profilePic)
             ? (completeData.profilePic as string)
             : undefined,
-        location: completeData.location,
-        languages: completeData.languages,
-        nationality: completeData.nationality,
-        job: completeData.jobType,
-        religion: completeData.religion,
-        smoking: completeData.smoking,
-        drinking: completeData.drinking,
-        personality: completeData.personality,
-        food_preference: completeData.foodPreference,
+        location: completeData.location || "",
+        languages:
+          Array.isArray(completeData.languages) &&
+          completeData.languages.length > 0
+            ? completeData.languages
+            : [],
+        nationality: completeData.nationality || "",
+        job: completeData.jobType || "",
+        religion: completeData.religion || "",
+        smoking: completeData.smoking || "",
+        drinking: completeData.drinking || "",
+        personality: completeData.personality || "",
+        food_preference: completeData.foodPreference || "",
         interests: interestsLabels,
       };
 
@@ -747,7 +792,7 @@ export default function ProfileSetupForm() {
           imageUrl: completeData.profilePic || undefined,
           age: numericAge,
           gender: completeData.gender,
-          birthday: completeData.birthday?.toISOString(),
+          birthday: formatDateOnly(completeData.birthday),
           bio: completeData.bio,
           nationality: completeData.nationality,
           jobType: completeData.jobType,
@@ -827,7 +872,7 @@ export default function ProfileSetupForm() {
           </span>
         </div>
         <div className="flex space-x-1">
-          {[1, 2, 3, 4, 5, 6, 7].map((stepNum) => (
+          {[1, 2, 3, 4, 5, 6].map((stepNum) => (
             <div key={stepNum} className="flex-1">
               <div
                 className={`h-1.5 rounded-full ${
@@ -2002,170 +2047,6 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Step 7 - Travel Preferences
-  const renderTravel = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-4"
-    >
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">
-          Travel Preferences
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Customize your upcoming travel experience
-        </p>
-      </div>
-
-      <Form {...step3Form}>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            await handleNext();
-          }}
-          className="space-y-4"
-        >
-          {/* Preferred Destinations */}
-          <FormField
-            control={step3Form.control}
-            name="destinations"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Preferred Destinations
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      placeholder="Dream destinations on your bucket list"
-                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-
-          {/* Travel Mode */}
-          {/* <FormField
-            control={step3Form.control}
-            name="mode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Travel Style
-                </FormLabel>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant={field.value === "solo" ? "default" : "outline"}
-                    className="h-9 text-sm"
-                    onClick={() => field.onChange("solo")}
-                  >
-                    Solo
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={field.value === "group" ? "default" : "outline"}
-                    className="h-9 text-sm"
-                    onClick={() => field.onChange("group")}
-                  >
-                    Group
-                  </Button>
-                </div>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          /> */}
-
-          {/* Trip Focus / Activities */}
-          <FormField
-            control={step3Form.control}
-            name="tripFocus"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Trip Focus
-                </FormLabel>
-                <div className="flex flex-wrap gap-2">
-                  {tripFocusList.map((focus) => (
-                    <Badge
-                      key={focus}
-                      variant={
-                        field.value?.includes(focus) ? "default" : "outline"
-                      }
-                      className="cursor-pointer px-4 py-2 text-xs hover:bg-primary hover:text-white transition-colors"
-                      onClick={() => {
-                        const newValue = field.value?.includes(focus)
-                          ? field.value.filter((h) => h !== focus)
-                          : [...(field.value || []), focus];
-                        field.onChange(newValue);
-                      }}
-                    >
-                      {focus}
-                    </Badge>
-                  ))}
-                </div>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-
-          {/* Trip Frequency */}
-          <FormField
-            control={step3Form.control}
-            name="frequency"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-medium text-muted-foreground">
-                  How often do you travel?
-                </FormLabel>
-                <div className="flex flex-wrap gap-2">
-                  {tripFrequencies.map((freq) => (
-                    <Badge
-                      key={freq}
-                      variant={field.value === freq ? "default" : "outline"}
-                      className="cursor-pointer px-4 py-2 text-xs hover:bg-primary hover:text-white transition-colors"
-                      onClick={() => field.onChange(freq)}
-                    >
-                      {freq}
-                    </Badge>
-                  ))}
-                </div>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-
-          {/* Navigation Buttons */}
-          <div className="flex space-x-2 pt-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={goBack}
-              className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              Back
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
-            >
-              Continue
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </motion.div>
-  );
-
   // Render step 4 - Success
   const renderStep4 = () => (
     <motion.div
@@ -2175,13 +2056,11 @@ export default function ProfileSetupForm() {
       transition={{ duration: 0.4 }}
       className="space-y-4"
     >
-      <div className="text-center mb-6">
-        <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckIcon className="w-8 h-8 text-primary-foreground" />
-          {/* <CelebrationIcon className="w-8 h-8 text-primary-foreground" /> */}
-          {/* <CircleCheckBig /> */}
+      <div className="text-center mb-4">
+        <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckIcon className="w-6 h-6 text-primary-foreground" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-1">
+        <h1 className="text-lg font-bold text-foreground mb-1">
           Welcome aboard! 🎉
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -2236,7 +2115,6 @@ export default function ProfileSetupForm() {
             {step === 4 && <div key="step4">{renderLocation()}</div>}
             {step === 5 && <div key="step5">{renderLanguages()}</div>}
             {step === 6 && <div key="step6">{renderLifestyle()}</div>}
-            {step === 7 && <div key="step7">{renderTravel()}</div>}
             {step === 8 && <div key="step8">{renderStep4()}</div>}
           </AnimatePresence>
         </CardContent>
@@ -2255,8 +2133,7 @@ export default function ProfileSetupForm() {
       {isSubmitting && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-transparent rounded-lg p-6 flex flex-col items-center space-y-4">
-            <Loader2 className="h-11 w-11 animate-spin text-white" />
-            {/* <p className="text-sm text-white">Saving your profile...</p> */}
+            <Spinner variant="spinner" size="md" color="primary" />
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 const PreferencesSchema = z.object({
-  destinations: z.array(z.string()).min(1),
+  destinations: z.array(z.string()).default([]),
   trip_focus: z.array(z.string()).optional(),
   frequency: z.string().optional(),
 });
@@ -71,9 +71,24 @@ export async function POST(req: Request) {
     });
   }
 
+  const data = parsed.data;
+  const validFrequencies = [
+    "Once a year",
+    "Every 6 months",
+    "Monthly",
+    "Digital nomad",
+  ] as const;
+  const raw = data.frequency && String(data.frequency).trim();
+  const frequency =
+    raw && validFrequencies.includes(raw as (typeof validFrequencies)[number])
+      ? raw
+      : null;
+
   const payload = {
     user_id: userIdInSupabase,
-    ...parsed.data,
+    destinations: data.destinations ?? [],
+    trip_focus: data.trip_focus ?? [],
+    frequency,
   };
 
   // Check for existing row
