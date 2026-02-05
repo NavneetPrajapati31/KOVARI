@@ -170,7 +170,7 @@ export default function ProfileEditLayoutWrapper() {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row min-h-screen h-full bg-background text-foreground border-1 border-border rounded-3xl mx-3 mb-6 md:mx-6">
+      <div className="flex flex-col md:flex-row min-h-screen h-full bg-card text-foreground border-1 border-border rounded-3xl mx-3 mb-6 md:mx-6">
         {/* Sidebar (hide on mobile) */}
         {!isMobile && (
           <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">

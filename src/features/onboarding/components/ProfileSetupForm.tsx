@@ -18,6 +18,7 @@ import {
   ScanFace,
   X,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -59,9 +60,11 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/shared/components/ui/card";
 import { cn } from "@/shared/utils/utils";
 import { DatePicker } from "@/shared/components/ui/date-picker";
-import { ImageUpload } from "@/shared/components/image-upload";
+import ProfileCropModal from "@/shared/components/profile-crop-modal";
+import { uploadFiles } from "@/lib/uploadthing";
 import CheckIcon from "@mui/icons-material/Check";
 import CelebrationIcon from "@mui/icons-material/Celebration";
+import { Avatar, Spinner } from "@heroui/react";
 
 // Define schemas for each step
 const step1Schema = z
@@ -282,6 +285,10 @@ export default function ProfileSetupForm() {
   );
   const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
   const [syncUserError, setSyncUserError] = useState<string | null>(null);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState<string>("");
+  const [cropLoading, setCropLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { syncUser } = useSyncUserToSupabase();
 
@@ -352,6 +359,87 @@ export default function ProfileSetupForm() {
       return false;
     } finally {
       setUsernameCheckLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    const acceptedFormats = ["PNG", "JPG", "JPEG", "WEBP"];
+    const maxSizeInMB = 10;
+
+    if (file.size > maxSizeInMB * 1024 * 1024) {
+      toast.error(`File size must be less than ${maxSizeInMB}MB`);
+      return;
+    }
+
+    const fileExtension = file.name.split(".").pop()?.toUpperCase();
+    if (!fileExtension || !acceptedFormats.includes(fileExtension)) {
+      toast.error(`Only ${acceptedFormats.join(", ")} files are supported`);
+      return;
+    }
+
+    const tempUrl = URL.createObjectURL(file);
+    setTempImageUrl(tempUrl);
+    setCropModalOpen(true);
+  };
+
+  const handleProfileFileSelect = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      void handleAvatarUpload(files[0]);
+    }
+    if (event.target) {
+      event.target.value = "";
+    }
+  };
+
+  const handleProfileCropComplete = async (croppedImageUrl: string) => {
+    setCropLoading(true);
+    try {
+      const response = await fetch(croppedImageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "profile-crop.jpg", {
+        type: "image/jpeg",
+      });
+
+      const uploaded = await uploadFiles("profileImageUploader", {
+        files: [file],
+      });
+
+      const url = uploaded?.[0]?.url;
+      if (!url) {
+        throw new Error("No URL returned from upload");
+      }
+
+      setProfileImage(url);
+      step2Form.setValue("profilePic", url, { shouldValidate: true });
+      toast.success("Profile photo updated successfully!");
+      setCropModalOpen(false);
+    } catch (error) {
+      console.error("Cropped image upload error:", error);
+      toast.error("Failed to upload profile photo");
+    } finally {
+      setCropLoading(false);
+      if (tempImageUrl) {
+        URL.revokeObjectURL(tempImageUrl);
+        setTempImageUrl("");
+      }
+      if (croppedImageUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(croppedImageUrl);
+      }
+    }
+  };
+
+  const handleCropModalOpenChange = (open: boolean) => {
+    if (!open) {
+      setCropModalOpen(false);
+      if (tempImageUrl) {
+        URL.revokeObjectURL(tempImageUrl);
+        setTempImageUrl("");
+      }
+    } else {
+      setCropModalOpen(true);
     }
   };
 
@@ -711,7 +799,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">
+        <h1 className="text-lg font-bold text-foreground mb-1">
           Let&apos;s get started
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -739,10 +827,9 @@ export default function ProfileSetupForm() {
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
                         placeholder="John"
-                        className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground "
+                        className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground "
                         {...field}
                       />
                     </div>
@@ -762,10 +849,9 @@ export default function ProfileSetupForm() {
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
                         placeholder="Doe"
-                        className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
+                        className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
                         {...field}
                       />
                     </div>
@@ -787,10 +873,9 @@ export default function ProfileSetupForm() {
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <UserRound className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       placeholder="your_username"
-                      className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground w-full"
+                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground w-full"
                       autoComplete="username"
                       {...field}
                       onBlur={async (e) => {
@@ -806,7 +891,12 @@ export default function ProfileSetupForm() {
                       }}
                     />
                     {usernameCheckLoading && (
-                      <Loader2 className="absolute right-2.5 top-2 h-5 w-5 animate-spin text-muted-foreground/5" />
+                      <Spinner
+                        variant="spinner"
+                        size="sm"
+                        classNames={{ spinnerBars: "bg-primary" }}
+                        className="absolute right-2.5 top-2"
+                      />
                     )}
                   </div>
                 </FormControl>
@@ -839,7 +929,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">
+        <h1 className="text-lg font-bold text-foreground mb-1">
           Profile picture
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -865,20 +955,87 @@ export default function ProfileSetupForm() {
                   Profile Picture
                 </FormLabel>
                 <FormControl>
-                  <ImageUpload
-                    onImageUpload={(url) => {
-                      setProfileImage(url as string);
-                      field.onChange(url);
-                    }}
-                    onImageRemove={() => {
-                      setProfileImage(null);
-                      field.onChange(null);
-                    }}
-                    label=""
-                    maxSizeInMB={10}
-                    acceptedFormats={["PNG", "JPG", "JPEG", "WEBP"]}
-                    avatar
-                  />
+                  <div className="flex flex-col items-center gap-0 md:gap-4 rounded-xl border border-input px-4 py-4 md:flex-row md:items-center">
+                    <div className="h-20 w-20 rounded-full bg-background flex items-center justify-center overflow-hidden md:h-16 md:w-16">
+                      {profileImage ? (
+                        <Image
+                          src={profileImage}
+                          alt="Profile"
+                          width={80}
+                          height={80}
+                          className="h-full w-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <Avatar
+                          src=""
+                          showFallback
+                          fallback={
+                            <svg
+                              className="w-full h-full text-gray-600"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle cx="12" cy="8" r="4" />
+                              <rect x="4" y="14" width="16" height="6" rx="3" />
+                            </svg>
+                          }
+                          className="h-20 w-20"
+                        />
+                      )}
+                    </div>
+                    <div className="flex w-full flex-col gap-1 md:w-auto">
+                      <div className="flex items-center gap-1 justify-center md:justify-start">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="mt-4 md:mt-0 bg-transparent border border-border hover:bg-gray-200 shadow-none rounded-lg px-3 py-1 text-xs transition-all duration-300 disabled:opacity-50"
+                          aria-label="Upload profile photo"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={cropLoading}
+                        >
+                          {cropLoading ? (
+                            <Spinner
+                              variant="spinner"
+                              size="sm"
+                              classNames={{ spinnerBars: "bg-black" }}
+                            />
+                          ) : (
+                            <span className="text-xs text-primary">
+                              {profileImage
+                                ? "Change profile picture"
+                                : "Upload profile picture"}
+                            </span>
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="mt-4 md:mt-0 px-3 py-1 bg-transparent border border-border shadow-none rounded-lg text-destructive hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
+                          aria-label="Remove profile photo"
+                          onClick={() => {
+                            if (!profileImage || cropLoading) return;
+                            setProfileImage(null);
+                            field.onChange(null);
+                          }}
+                          disabled={!profileImage || cropLoading}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.webp"
+                        onChange={handleProfileFileSelect}
+                        className="hidden"
+                        aria-label="Upload profile photo"
+                      />
+                      <p className="text-[11px] text-muted-foreground text-center md:text-left hidden md:block">
+                        Recommended at least 400×400px. JPG, PNG or WEBP, up to
+                        10MB.
+                      </p>
+                    </div>
+                  </div>
                 </FormControl>
                 {/* <FormMessage className="text-xs">
                   Upload profile picture
@@ -898,10 +1055,9 @@ export default function ProfileSetupForm() {
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Lightbulb className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                     <Textarea
                       placeholder="Tell us about yourself..."
-                      className="pl-8 min-h-[80px] text-sm border-input focus:border-primary focus:ring-primary rounded-lg resize-none placeholder:text-muted-foreground"
+                      className="min-h-[80px] text-sm font-medium rounded-lg resize-none placeholder:text-muted-foreground"
                       {...field}
                     />
                   </div>
@@ -916,7 +1072,7 @@ export default function ProfileSetupForm() {
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+              className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -944,7 +1100,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">About you</h1>
+        <h1 className="text-lg font-bold text-foreground mb-1">About you</h1>
         <p className="text-sm text-muted-foreground">Gender and birthday</p>
       </div>
 
@@ -1019,7 +1175,7 @@ export default function ProfileSetupForm() {
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+              className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -1047,7 +1203,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">
+        <h1 className="text-lg font-bold text-foreground mb-1">
           Where are you based?
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -1286,7 +1442,7 @@ export default function ProfileSetupForm() {
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+              className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -2103,6 +2259,15 @@ export default function ProfileSetupForm() {
           </AnimatePresence>
         </CardContent>
       </Card>
+
+      {/* Profile photo crop modal */}
+      <ProfileCropModal
+        open={cropModalOpen}
+        onOpenChange={handleCropModalOpenChange}
+        imageUrl={tempImageUrl}
+        onCropComplete={handleProfileCropComplete}
+        isLoading={cropLoading}
+      />
 
       {/* Loading Overlay */}
       {isSubmitting && (

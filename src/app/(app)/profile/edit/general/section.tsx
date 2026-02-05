@@ -331,7 +331,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
                 )}
               </Button>
               <Button
-                className="mt-6 px-3 py-1 bg-transparent border border-border shadow-none rounded-lg text-destructive hover:bg-[#f31260]/20 transition-all duration-300"
+                className="mt-6 px-3 py-1 bg-transparent border border-border shadow-none rounded-lg text-destructive hover:bg-gray-200 transition-all duration-300"
                 aria-label="Delete avatar"
                 onClick={handleAvatarDelete}
                 disabled={
