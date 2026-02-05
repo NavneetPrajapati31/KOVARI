@@ -65,6 +65,7 @@ import { uploadFiles } from "@/lib/uploadthing";
 import CheckIcon from "@mui/icons-material/Check";
 import CelebrationIcon from "@mui/icons-material/Celebration";
 import { Avatar, Spinner } from "@heroui/react";
+import { COUNTRIES } from "@/shared/utils/countries";
 
 // Define schemas for each step
 const step1Schema = z
@@ -99,7 +100,7 @@ const step1Schema = z
       return age >= 18 && age <= 100;
     },
     {
-      message: "You must be between 18 and 100 years old",
+      message: "You must be atleast 18 years old",
       path: ["birthday"],
     }
   );
@@ -150,52 +151,89 @@ const languageOptions = [
   "Spanish",
   "French",
   "German",
-  "Chinese",
+  "Italian",
+  "Portuguese",
+  "Russian",
+  "Chinese (Mandarin)",
   "Japanese",
   "Korean",
   "Arabic",
-  "Russian",
-  "Portuguese",
   "Hindi",
-  "Italian",
+  "Turkish",
+  "Dutch",
+  "Thai",
+  "Vietnamese",
+  "Indonesian",
+  "Swedish",
+  "Polish",
+  "Greek",
 ];
 
-const nationalityOptions = [
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Australia",
-  "Germany",
-  "France",
-  "Japan",
-  "China",
-  "India",
-  "Brazil",
-  "Mexico",
-  "Spain",
-  "Italy",
-];
-
-const jobTypeOptions = [
-  "Full-time",
-  "Part-time",
-  "Freelance",
-  "Contract",
-  "Internship",
-  "Student",
-];
+const nationalityOptions = COUNTRIES;
 
 const interestOptions = [
-  { id: "1", label: "Technology" },
-  { id: "2", label: "Travel" },
-  { id: "3", label: "Food" },
-  { id: "4", label: "Sports" },
-  { id: "5", label: "Music" },
-  { id: "6", label: "Art" },
-  { id: "7", label: "Reading" },
-  { id: "8", label: "Photography" },
-  { id: "9", label: "Gaming" },
-  { id: "10", label: "Fitness" },
+  // Travel & Adventure
+  { id: "travel", label: "Travel" },
+  { id: "hiking", label: "Hiking" },
+  { id: "camping", label: "Camping" },
+  { id: "backpacking", label: "Backpacking" },
+  { id: "surfing", label: "Surfing" },
+  { id: "skiing", label: "Skiing" },
+  { id: "rock-climbing", label: "Rock Climbing" },
+
+  // Food & Drink
+  { id: "food", label: "Food" },
+  { id: "cooking", label: "Cooking" },
+  { id: "wine", label: "Wine" },
+  { id: "coffee", label: "Coffee" },
+  { id: "brunch", label: "Brunch" },
+
+  // Fitness & Wellness
+  { id: "fitness", label: "Fitness" },
+  { id: "yoga", label: "Yoga" },
+  { id: "running", label: "Running" },
+  { id: "cycling", label: "Cycling" },
+  { id: "dance", label: "Dance" },
+
+  // Sports
+  { id: "sports", label: "Sports" },
+  { id: "football", label: "Football" },
+  { id: "basketball", label: "Basketball" },
+  { id: "tennis", label: "Tennis" },
+
+  // Arts & Culture
+  { id: "art", label: "Art" },
+  { id: "photography", label: "Photography" },
+  { id: "museums", label: "Museums" },
+  { id: "concerts", label: "Concerts" },
+  { id: "festivals", label: "Festivals" },
+
+  // Music
+  { id: "music", label: "Music" },
+  { id: "live-music", label: "Live Music" },
+
+  // Entertainment
+  { id: "movies", label: "Movies" },
+  { id: "netflix", label: "Netflix" },
+  { id: "podcasts", label: "Podcasts" },
+
+  // Reading & Learning
+  { id: "reading", label: "Reading" },
+  { id: "books", label: "Books" },
+
+  // Social & Causes
+  { id: "volunteering", label: "Volunteering" },
+
+  // Lifestyle
+  { id: "fashion", label: "Fashion" },
+
+  // Pets & Animals
+  { id: "dogs", label: "Dogs" },
+  { id: "cats", label: "Cats" },
+
+  // Nightlife
+  { id: "nightlife", label: "Nightlife" },
+  { id: "bars", label: "Bars" },
 ];
 
 const religionOptions = [
@@ -271,9 +309,15 @@ export default function ProfileSetupForm() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
   const [locationQuery, setLocationQuery] = useState("");
+  const languageTriggerRef = useRef<HTMLDivElement>(null);
+  const interestTriggerRef = useRef<HTMLDivElement>(null);
+  const [languagePopoverWidth, setLanguagePopoverWidth] = useState<
+    number | undefined
+  >(undefined);
+  const [interestPopoverWidth, setInterestPopoverWidth] = useState<
+    number | undefined
+  >(undefined);
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
@@ -296,6 +340,19 @@ export default function ProfileSetupForm() {
   useEffect(() => {
     syncUser();
   }, [syncUser]);
+
+  // Measure trigger widths for popover content matching
+  useEffect(() => {
+    if (languageOpen && languageTriggerRef.current) {
+      setLanguagePopoverWidth(languageTriggerRef.current.offsetWidth);
+    }
+  }, [languageOpen]);
+
+  useEffect(() => {
+    if (interestOpen && interestTriggerRef.current) {
+      setInterestPopoverWidth(interestTriggerRef.current.offsetWidth);
+    }
+  }, [interestOpen]);
 
   // Initialize forms for each step
   const step1Form = useForm<Step1Data>({
@@ -545,8 +602,37 @@ export default function ProfileSetupForm() {
         });
         if (!res.ok) return;
         const data = (await res.json()) as Array<any>;
-        const labels = data.map((d) => d.display_name as string);
-        setLocationSuggestions(labels);
+
+        const labels = data.map((d) => {
+          const addr = d.address || {};
+          const city =
+            addr.city ||
+            addr.town ||
+            addr.village ||
+            addr.hamlet ||
+            addr.suburb ||
+            "";
+          const region = addr.state || addr.county || "";
+          const country = addr.country || "";
+
+          // Simplified label: prefer "City, Country".
+          // If no city, fall back to "Region, Country".
+          const main = city || region;
+          const parts = [main, country].filter(Boolean);
+          return parts.join(", ") || (d.display_name as string);
+        });
+
+        // De-duplicate by simplified label, preserve order, and keep list short
+        const seen = new Set<string>();
+        const simplified = [];
+        for (const label of labels) {
+          if (!label || seen.has(label)) continue;
+          seen.add(label);
+          simplified.push(label);
+          if (simplified.length >= 5) break;
+        }
+
+        setLocationSuggestions(simplified);
       } catch {}
     }, 300);
     return () => {
@@ -554,41 +640,6 @@ export default function ProfileSetupForm() {
       clearTimeout(timeout);
     };
   }, [locationQuery]);
-
-  const handleUseMyLocation = async () => {
-    if (!navigator.geolocation) return;
-    try {
-      setIsLocating(true);
-      await new Promise<void>((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            try {
-              const { latitude, longitude } = pos.coords;
-              const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`;
-              const res = await fetch(url, {
-                headers: {
-                  Accept: "application/json",
-                  "User-Agent": "Kovari/1.0 (onboarding@kovari.app)",
-                },
-              });
-              const data = await res.json();
-              const name = (data?.display_name as string) || "";
-              if (name) {
-                step2Form.setValue("location", name, { shouldValidate: true });
-                setLocationQuery("");
-                setLocationSuggestions([]);
-              }
-            } catch {}
-            resolve();
-          },
-          () => resolve(),
-          { enableHighAccuracy: true, timeout: 8000 }
-        );
-      });
-    } finally {
-      setIsLocating(false);
-    }
-  };
 
   // Handle step 3 submission
   const onStep3Submit = async (data: Step3Data) => {
@@ -1057,7 +1108,7 @@ export default function ProfileSetupForm() {
                   <div className="relative">
                     <Textarea
                       placeholder="Tell us about yourself..."
-                      className="min-h-[80px] text-sm font-medium rounded-lg resize-none placeholder:text-muted-foreground"
+                      className="min-h-[80px] text-sm rounded-lg resize-none placeholder:text-muted-foreground"
                       {...field}
                     />
                   </div>
@@ -1067,7 +1118,7 @@ export default function ProfileSetupForm() {
             )}
           />
           {/* Navigation Buttons */}
-          <div className="flex space-x-4 pt-3">
+          <div className="flex space-x-2 pt-3">
             <Button
               type="button"
               variant="outline"
@@ -1170,7 +1221,7 @@ export default function ProfileSetupForm() {
               </FormItem>
             )}
           />
-          <div className="flex space-x-4 pt-3">
+          <div className="flex space-x-2 pt-3">
             <Button
               type="button"
               variant="outline"
@@ -1226,75 +1277,38 @@ export default function ProfileSetupForm() {
                 <FormLabel className="text-xs font-medium text-muted-foreground">
                   Location
                 </FormLabel>
-                <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
-                          !field.value &&
-                            "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                        )}
-                      >
-                        <div className="flex items-center text-muted-foreground">
-                          <Earth className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                          {field.value || "Select location"}
-                        </div>
-                        <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <div className="p-2">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Search city, state, country..."
-                          className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg"
-                          value={locationQuery}
-                          onChange={(e) => setLocationQuery(e.target.value)}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-9 text-xs"
-                          onClick={handleUseMyLocation}
-                          disabled={isLocating}
-                          aria-label="Use my current location"
-                        >
-                          {isLocating ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <ScanFace className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      placeholder="Search your location"
+                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
+                      value={locationQuery || field.value || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setLocationQuery(value);
+                        field.onChange(value);
+                      }}
+                    />
+                    {locationSuggestions.length > 0 && (
+                      <div className="absolute z-20 mt-1 w-full rounded-lg border bg-popover shadow-lg max-h-56 overflow-auto">
+                        {locationSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-sm text-muted-foreground hover:bg-gray-100"
+                            onClick={() => {
+                              field.onChange(suggestion);
+                              setLocationQuery(suggestion);
+                              setLocationSuggestions([]);
+                            }}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
                       </div>
-                      <div className="mt-2 max-h-56 overflow-auto rounded-md border">
-                        {locationSuggestions.length === 0 ? (
-                          <div className="p-2 text-xs text-muted-foreground">
-                            Start typing to search locations
-                          </div>
-                        ) : (
-                          locationSuggestions.map((suggestion) => (
-                            <div
-                              key={suggestion}
-                              className="px-2 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-gray-100"
-                              onClick={() => {
-                                field.onChange(suggestion);
-                                setLocationOpen(false);
-                                setLocationQuery("");
-                                setLocationSuggestions([]);
-                              }}
-                            >
-                              {suggestion}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                    )}
+                  </div>
+                </FormControl>
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
@@ -1320,26 +1334,27 @@ export default function ProfileSetupForm() {
                               "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
                           )}
                         >
-                          <div className="flex items-center text-muted-foreground">
-                            <Earth className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                            {field.value
-                              ? nationalityOptions.find(
-                                  (n) => n === field.value
-                                )
-                              : "Select nationality"}
+                          <div className="flex items-center text-foreground font-medium">
+                            {field.value ? (
+                              nationalityOptions.find((n) => n === field.value)
+                            ) : (
+                              <span className="text-muted-foreground font-normal">
+                                Select nationality
+                              </span>
+                            )}
                           </div>
                           <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
+                    <PopoverContent className="w-full py-2 px-1" align="start">
                       <Command>
-                        <CommandInput
+                        {/* <CommandInput
                           placeholder="Search nationality..."
                           className="text-sm placeholder:text-muted-foreground"
-                        />
+                        /> */}
                         <CommandList>
-                          <CommandGroup className="max-h-64 overflow-auto">
+                          <CommandGroup className="max-h-64 overflow-auto hide-scrollbar">
                             {nationalityOptions.map((nationality) => (
                               <div
                                 key={nationality}
@@ -1377,67 +1392,21 @@ export default function ProfileSetupForm() {
                   <FormLabel className="text-xs font-medium text-muted-foreground">
                     Job Type
                   </FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
-                            !field.value &&
-                              "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                          )}
-                        >
-                          <div className="flex items-center text-muted-foreground">
-                            <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                            {field.value
-                              ? jobTypeOptions.find((j) => j === field.value)
-                              : "Select job type"}
-                          </div>
-                          <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search job type..."
-                          className="text-sm placeholder:text-muted-foreground"
-                        />
-                        <CommandList>
-                          <CommandGroup className="max-h-64 overflow-auto">
-                            {jobTypeOptions.map((jobType) => (
-                              <div
-                                key={jobType}
-                                className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
-                                onClick={() => {
-                                  field.onChange(jobType);
-                                }}
-                              >
-                                {jobType === field.value && (
-                                  <CheckIcon
-                                    fontSize="inherit"
-                                    className="mr-2 text-muted-foreground flex-shrink-0"
-                                  />
-                                )}
-                                {jobType !== field.value && (
-                                  <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
-                                )}
-                                {jobType}
-                              </div>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        placeholder="Enter your job type"
+                        className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
                   <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
           </div>
-          <div className="flex space-x-4 pt-3">
+          <div className="flex space-x-2 pt-3">
             <Button
               type="button"
               variant="outline"
@@ -1470,7 +1439,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">
+        <h1 className="text-lg font-bold text-foreground mb-1">
           Languages & interests
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -1497,35 +1466,40 @@ export default function ProfileSetupForm() {
                       Languages
                     </FormLabel>
                     <Popover open={languageOpen} onOpenChange={setLanguageOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
-                              !field.value?.length &&
-                                "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                            )}
-                          >
-                            <div className="flex items-center text-muted-foreground">
-                              <MessageSquareText className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                              {field.value?.length
-                                ? `${field.value.length} language${field.value.length > 1 ? "s" : ""} selected`
-                                : "Select languages"}
-                            </div>
-                            <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
+                      <div ref={languageTriggerRef}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
+                                !field.value?.length &&
+                                  "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+                              )}
+                            >
+                              <div className="flex items-center text-muted-foreground">
+                                {field.value?.length
+                                  ? `${field.value.length} language${field.value.length > 1 ? "s" : ""} selected`
+                                  : "Select languages"}
+                              </div>
+                              <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent
+                        className="p-0"
+                        align="start"
+                        style={{
+                          width: languagePopoverWidth
+                            ? `${languagePopoverWidth}px`
+                            : undefined,
+                        }}
+                      >
                         <Command>
-                          <CommandInput
-                            placeholder="Search languages..."
-                            className="text-sm placeholder:text-muted-foreground"
-                          />
                           <CommandList>
-                            <CommandGroup className="max-h-64 overflow-auto">
+                            <CommandGroup className="max-h-64 w-full overflow-auto hide-scrollbar">
                               {languageOptions.map((language) => (
                                 <div
                                   key={language}
@@ -1550,24 +1524,26 @@ export default function ProfileSetupForm() {
                                   ) : (
                                     <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
                                   )}
-                                  <span>{language}</span>
+                                  <span className="font-medium">
+                                    {language}
+                                  </span>
                                 </div>
                               ))}
                             </CommandGroup>
                           </CommandList>
                           {field.value?.length > 0 && (
-                            <div className="border-t p-2">
+                            <div className="border-t p-4">
                               <div className="flex flex-wrap gap-1">
                                 {field.value.map((language) => (
                                   <Badge
                                     key={language}
                                     variant="secondary"
-                                    className="text-xs bg-primary text-white px-2 py-1"
+                                    className="text-xs bg-primary-light text-primary px-2 py-1"
                                   >
                                     {language}
                                     <button
                                       type="button"
-                                      className="ml-1 text-white rounded-full"
+                                      className="ml-1 text-primary rounded-full"
                                       onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -1605,12 +1581,12 @@ export default function ProfileSetupForm() {
                           <Badge
                             key={language}
                             variant="secondary"
-                            className="text-xs bg-primary text-white"
+                            className="text-xs bg-primary-light text-primary"
                           >
                             {language}
                             <button
                               type="button"
-                              className="ml-1 text-white"
+                              className="ml-1 text-primary"
                               onClick={() => {
                                 field.onChange(
                                   field.value.filter((l) => l !== language)
@@ -1642,35 +1618,40 @@ export default function ProfileSetupForm() {
                       Interests
                     </FormLabel>
                     <Popover open={interestOpen} onOpenChange={setInterestOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
-                              !field.value?.length &&
-                                "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                            )}
-                          >
-                            <div className="flex items-center text-muted-foreground">
-                              <Lightbulb className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                              {field.value?.length
-                                ? `${field.value.length} interest${field.value.length > 1 ? "s" : ""} selected`
-                                : "Select interests"}
-                            </div>
-                            <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
+                      <div ref={interestTriggerRef}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
+                                !field.value?.length &&
+                                  "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+                              )}
+                            >
+                              <div className="flex items-center text-muted-foreground">
+                                {field.value?.length
+                                  ? `${field.value.length} interest${field.value.length > 1 ? "s" : ""} selected`
+                                  : "Select interests"}
+                              </div>
+                              <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0 " />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent
+                        className="p-0"
+                        align="start"
+                        style={{
+                          width: interestPopoverWidth
+                            ? `${interestPopoverWidth}px`
+                            : undefined,
+                        }}
+                      >
                         <Command>
-                          <CommandInput
-                            placeholder="Search interests..."
-                            className="text-sm placeholder:text-muted-foreground"
-                          />
                           <CommandList>
-                            <CommandGroup className="max-h-64 overflow-auto">
+                            <CommandGroup className="max-h-64 overflow-auto hide-scrollbar">
                               {interestOptions.map((interest) => (
                                 <div
                                   key={interest.id}
@@ -1695,13 +1676,15 @@ export default function ProfileSetupForm() {
                                   ) : (
                                     <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
                                   )}
-                                  <span>{interest.label}</span>
+                                  <span className="font-medium">
+                                    {interest.label}
+                                  </span>
                                 </div>
                               ))}
                             </CommandGroup>
                           </CommandList>
                           {field.value?.length > 0 && (
-                            <div className="border-t p-2">
+                            <div className="border-t p-4">
                               <div className="flex flex-wrap gap-1">
                                 {field.value.map((interestId) => {
                                   const interest = interestOptions.find(
@@ -1711,12 +1694,12 @@ export default function ProfileSetupForm() {
                                     <Badge
                                       key={interest.id}
                                       variant="secondary"
-                                      className="text-xs bg-primary text-white px-2 py-1"
+                                      className="text-xs bg-primary-light text-primary px-2 py-1"
                                     >
                                       {interest.label}
                                       <button
                                         type="button"
-                                        className="ml-1 text-white rounded-full"
+                                        className="ml-1 text-primary rounded-full"
                                         onClick={(e) => {
                                           e.preventDefault();
                                           e.stopPropagation();
@@ -1759,12 +1742,12 @@ export default function ProfileSetupForm() {
                             <Badge
                               key={interest.id}
                               variant="secondary"
-                              className="text-xs bg-primary text-white"
+                              className="text-xs bg-primary-light text-primary"
                             >
                               {interest.label}
                               <button
                                 type="button"
-                                className="ml-1 text-white"
+                                className="ml-1 text-primary"
                                 onClick={() => {
                                   field.onChange(
                                     field.value.filter((i) => i !== interestId)
@@ -1785,12 +1768,12 @@ export default function ProfileSetupForm() {
               />
             );
           })()}
-          <div className="flex space-x-4 pt-3">
+          <div className="flex space-x-2 pt-3">
             <Button
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+              className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -1818,7 +1801,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Lifestyle</h1>
+        <h1 className="text-lg font-bold text-foreground mb-1">Lifestyle</h1>
         <p className="text-sm text-muted-foreground">
           Religion, preferences and personality
         </p>
@@ -1996,12 +1979,12 @@ export default function ProfileSetupForm() {
               </FormItem>
             )}
           />
-          <div className="flex space-x-4 pt-3">
+          <div className="flex space-x-2 pt-3">
             <Button
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+              className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -2056,10 +2039,9 @@ export default function ProfileSetupForm() {
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Earth className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       placeholder="Dream destinations on your bucket list"
-                      className="pl-8 h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
+                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
                       {...field}
                     />
                   </div>
@@ -2161,12 +2143,12 @@ export default function ProfileSetupForm() {
           />
 
           {/* Navigation Buttons */}
-          <div className="flex space-x-4 pt-3">
+          <div className="flex space-x-2 pt-3">
             <Button
               type="button"
               variant="outline"
               onClick={goBack}
-              className="bg-white flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-black hover:text-white rounded-lg transition-all"
+              className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
