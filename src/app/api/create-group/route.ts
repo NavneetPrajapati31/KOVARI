@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { getCoordinatesForLocation } from "@/lib/geocoding";
+import { getGeminiPlaceOverview } from "@/lib/gemini";
 
 // --- Schema validation ---
 const GroupSchema = z.object({
@@ -170,6 +171,20 @@ export async function POST(req: Request) {
           headers: { "Content-Type": "application/json" },
         }
       );
+    }
+
+    if (parsed.data.destination && !groupData.ai_overview) {
+      const overview = await getGeminiPlaceOverview(parsed.data.destination);
+      if (overview) {
+        const { error: overviewError } = await supabase
+          .from("groups")
+          .update({ ai_overview: overview })
+          .eq("id", groupData.id);
+
+        if (overviewError) {
+          console.error("Failed to save AI overview:", overviewError);
+        }
+      }
     }
 
     // Try to create group membership with multiple fallback approaches

@@ -42,6 +42,7 @@
     "@emoji-mart/react": "^1.1.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@heroui/react": "2.7.11",

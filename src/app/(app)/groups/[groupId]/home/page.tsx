@@ -103,6 +103,7 @@ interface GroupInfo {
   start_date: string;
   end_date: string;
   status?: "active" | "pending" | "removed";
+  ai_overview?: string | null;
 }
 
 interface GroupMember {
@@ -149,6 +150,8 @@ const GroupHomePage = () => {
   const [itineraryItems, setItineraryItems] = useState<ItineraryItem[]>([]);
   const [itineraryLoading, setItineraryLoading] = useState(true);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
+  const [isOverviewGenerating, setIsOverviewGenerating] = useState(false);
+  const hasRequestedOverviewRef = useRef(false);
 
   // Check user membership status
   const {
@@ -160,21 +163,30 @@ const GroupHomePage = () => {
 
   const [isRejoining, setIsRejoining] = useState(false);
 
+  const fetchGroupInfo = useCallback(async () => {
+    setGroupInfoLoading(true);
+    setGroupInfoError(null);
+    try {
+      const res = await fetch(`/api/groups/${params.groupId}`);
+      if (!res.ok) throw new Error("Failed to fetch group info");
+      const data = await res.json();
+      setGroupInfo(data);
+    } catch (err: unknown) {
+      setGroupInfoError((err as Error).message);
+    } finally {
+      setGroupInfoLoading(false);
+    }
+  }, [params.groupId]);
+
+  const aiOverviewText = groupInfo?.ai_overview?.trim();
+  const aiOverviewContent = groupInfoError
+    ? "Unable to load the AI overview right now."
+    : aiOverviewText ||
+      (isOverviewGenerating
+        ? "Generating AI overview..."
+        : "AI overview is being generated. Check back soon.");
+
   useEffect(() => {
-    const fetchGroupInfo = async () => {
-      setGroupInfoLoading(true);
-      setGroupInfoError(null);
-      try {
-        const res = await fetch(`/api/groups/${params.groupId}`);
-        if (!res.ok) throw new Error("Failed to fetch group info");
-        const data = await res.json();
-        setGroupInfo(data);
-      } catch (err: unknown) {
-        setGroupInfoError((err as Error).message);
-      } finally {
-        setGroupInfoLoading(false);
-      }
-    };
     const fetchGroupMembers = async () => {
       setMembersLoading(true);
       setMembersError(null);
@@ -208,7 +220,39 @@ const GroupHomePage = () => {
       fetchGroupMembers();
       fetchItinerary();
     }
-  }, [params.groupId]);
+  }, [fetchGroupInfo, params.groupId]);
+
+  useEffect(() => {
+    if (
+      groupInfoLoading ||
+      groupInfoError ||
+      !groupInfo ||
+      groupInfo.ai_overview ||
+      hasRequestedOverviewRef.current
+    ) {
+      return;
+    }
+
+    const generateOverview = async () => {
+      setIsOverviewGenerating(true);
+      hasRequestedOverviewRef.current = true;
+      try {
+        const res = await fetch(`/api/groups/${params.groupId}/ai-overview`, {
+          method: "POST",
+        });
+        if (!res.ok) {
+          throw new Error("Failed to generate overview");
+        }
+        await fetchGroupInfo();
+      } catch (err: unknown) {
+        console.error("AI overview generation failed:", err);
+      } finally {
+        setIsOverviewGenerating(false);
+      }
+    };
+
+    generateOverview();
+  }, [fetchGroupInfo, groupInfo, groupInfoError, groupInfoLoading, params.groupId]);
 
   // When groupInfo loads, set noteText from groupInfo.notes
   useEffect(() => {
@@ -731,12 +775,7 @@ const GroupHomePage = () => {
                           AI Overview
                         </h3>
                         <p className="text-xs font-medium leading-relaxed">
-                          Mount Fuji is a dreamlike destination for travelers
-                          seeking both adventure and serenity. Towering
-                          gracefully over Honshu Island, it invites climbers to
-                          ascend its slopes during the official climbing season
-                          in July and August, offering panoramic sunrise views
-                          that are truly unforgettable.
+                          {aiOverviewContent}
                         </p>
                       </CardBody>
                     </Card>
@@ -946,12 +985,7 @@ const GroupHomePage = () => {
                             AI Overview
                           </h3>
                           <p className="text-xs font-medium leading-relaxed">
-                            Mount Fuji is a dreamlike destination for travelers
-                            seeking both adventure and serenity. Towering
-                            gracefully over Honshu Island, it invites climbers
-                            to ascend its slopes during the official climbing
-                            season in July and August, offering panoramic
-                            sunrise views that are truly unforgettable.
+                            {aiOverviewContent}
                           </p>
                         </CardBody>
                       </Card>
@@ -1418,17 +1452,7 @@ const GroupHomePage = () => {
                     <span className="text-sm mb-1 font-semibold text-primary">
                       AI Overview
                     </span>
-                    <p className="text-sm font-medium">
-                      Mount Fuji is a dreamlike destination for travelers
-                      seeking both adventure and serenity. Towering gracefully
-                      over Honshu Island, it invites climbers to ascend its
-                      slopes during the official climbing season in July and
-                      August, offering panoramic sunrise views that are truly
-                      unforgettable. For those who prefer to admire its beauty
-                      from afar, nearby spots like Lake Kawaguchi, Hakone, and
-                      the famous Chureito Pagoda provide postcard-perfect photo
-                      ops.
-                    </p>
+                    <p className="text-sm font-medium">{aiOverviewContent}</p>
                   </CardBody>
                 </Card>
               )}
