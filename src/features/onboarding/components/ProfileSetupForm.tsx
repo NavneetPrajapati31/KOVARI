@@ -592,6 +592,7 @@ export default function ProfileSetupForm() {
           signal: controller.signal,
           headers: {
             Accept: "application/json",
+            "Accept-Language": "en",
             "User-Agent": "Kovari/1.0 (onboarding@kovari.app)",
           },
         });
