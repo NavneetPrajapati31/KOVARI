@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import ProfileImageModal from "./profile-image-modal";
 import { AnimatePresence } from "framer-motion";
-import CreatePostModal from "./create-post-modal";
+// import CreatePostModal from "./create-post-modal";
 import { ReportDialog } from "@/shared/components/ReportDialog";
 
 export interface UserProfile {
@@ -67,7 +67,8 @@ export interface UserProfileProps {
 
 export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   // Dynamic posts array for the feed (now from profile)
-  const [activeTab, setActiveTab] = React.useState("Posts");
+  const [activeTab, setActiveTab] = React.useState("About");
+
   const [isFollowing, setIsFollowing] = React.useState(
     profile.isFollowing || false
   );
@@ -88,34 +89,35 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   const handleModalClose = () => setIsImageModalOpen(false);
 
   // Add state and handler for modal at the top of the component
-  const [isCreatePostModalOpen, setIsCreatePostModalOpen] =
-    React.useState(false);
-  const handleOpenCreatePostModal = () => setIsCreatePostModalOpen(true);
-  const handleCloseCreatePostModal = () => setIsCreatePostModalOpen(false);
+  // const [isCreatePostModalOpen, setIsCreatePostModalOpen] =
+  //   React.useState(false);
+  // const handleOpenCreatePostModal = () => setIsCreatePostModalOpen(true);
+  // const handleCloseCreatePostModal = () => setIsCreatePostModalOpen(false);
 
   // Report dialog state
   const [isReportDialogOpen, setIsReportDialogOpen] = React.useState(false);
 
-  const [posts, setPosts] = React.useState(profile.posts);
+  // const [posts, setPosts] = React.useState(profile.posts);
 
-  const handleCreatePost = async ({
-    imageUrl,
-    title,
-    content,
-  }: {
-    imageUrl: string;
-    title: string;
-    content?: string;
-  }) => {
-    const res = await fetch("/api/user-posts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image_url: imageUrl, title, content }),
-    });
-    if (!res.ok) throw new Error("Failed to create post");
-    const newPost = await res.json();
-    setPosts((prev) => [newPost, ...prev]);
-  };
+  // const handleCreatePost = async ({
+  //   imageUrl,
+  //   title,
+  //   content,
+  // }: {
+  //   imageUrl: string;
+  //   title: string;
+  //   content?: string;
+  // }) => {
+  //   const res = await fetch("/api/user-posts", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify({ image_url: imageUrl, title, content }),
+  //   });
+  //   if (!res.ok) throw new Error("Failed to create post");
+  //   const newPost = await res.json();
+  //   setPosts((prev) => [newPost, ...prev]);
+  // };
+
 
   // Debug logging
   console.log("Profile data:", {
@@ -478,7 +480,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           Explore
                         </Button>
                       </Link>
-                      {profile.isOwnProfile === true && (
+                      {/* {profile.isOwnProfile === true && (
                         <Button
                           variant={"secondary"}
                           size={"sm"}
@@ -494,8 +496,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                             <Plus className="w-4 h-4" />
                           </span>
                         </Button>
-                      )}
+                      )} */}
                     </>
+
                   ) : (
                     // Other user's profile buttons
                     <>
@@ -574,7 +577,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           {/* Tabs Navigation - Mobile Style */}
           <div className="flex gap-x-2 sm:gap-x-4">
             {[
-              { key: "Posts", label: "Posts" },
+              // { key: "Posts", label: "Posts" },
               { key: "About", label: "About" },
             ].map((tab) => (
               <Button
@@ -737,7 +740,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
               </div>
             )}
-            {activeTab === "Posts" && (
+
+            {/* {activeTab === "Posts" && (
               <div>
                 {posts.length > 0 ? (
                   <div className="grid grid-cols-3 gap-1">
@@ -751,30 +755,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           alt={`Post ${post.id}`}
                           className="w-full h-full object-cover rounded-none"
                         />
-                        {/* Bottom overlay for buttons */}
-                        {/* <div
-                          className="absolute bottom-0 left-0 w-full h-16 z-10 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                          aria-label="Post actions"
-                        >
-                          <div className="flex gap-1 bg-transparent rounded-xl border-none shadow-none px-2 py-4 h-full w-full justify-center bg-gradient-to-t from-black/30 to-transparent">
-                            <Button
-                              className="px-3 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0 text-xs"
-                              tabIndex={0}
-                              aria-label="View post"
-                              onKeyDown={handleKeyDown}
-                            >
-                              View
-                            </Button>
-                            <Button
-                              className="px-3 py-1 w-1/2 rounded-full bg-white/70 text-foreground font-semibold shadow-md backdrop-blur-sm focus:outline-none focus:ring-0 text-xs"
-                              tabIndex={0}
-                              aria-label="Share post"
-                              onKeyDown={handleKeyDown}
-                            >
-                              Share
-                            </Button>
-                          </div>
-                        </div> */}
                       </div>
                     ))}
                   </div>
@@ -796,11 +776,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Create your first post
                       </Button>
                     )}
-                    {/* Modal for creating post will be rendered here */}
                   </div>
                 )}
               </div>
-            )}
+            )} */}
+
           </CardContent>
         </Card>
       </Card>
@@ -954,7 +934,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           Explore
                         </Button>
                       </Link>
-                      {profile.isOwnProfile === true && (
+                      {/* {profile.isOwnProfile === true && (
                         <Button
                           variant={"secondary"}
                           size={"sm"}
@@ -965,8 +945,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         >
                           Create post
                         </Button>
-                      )}
+                      )} */}
                     </>
+
                   ) : (
                     // Other user's profile buttons
                     <>
@@ -1044,7 +1025,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           {/* Tabs Navigation - Modern Style */}
           <div className="flex gap-x-2">
             {[
-              { key: "Posts", label: "Posts" },
+              // { key: "Posts", label: "Posts" },
               { key: "About", label: "About" },
             ].map((tab) => (
               <Button
@@ -1207,7 +1188,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
               </div>
             )}
-            {activeTab === "Posts" && (
+
+            {/* {activeTab === "Posts" && (
               <div>
                 {posts.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-4 gap-2">
@@ -1221,7 +1203,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           alt={`Post ${post.id}`}
                           className="w-full h-full object-cover"
                         />
-                        {/* Bottom overlay for buttons */}
                         <div
                           className="absolute bottom-0 left-0 w-full h-20 z-10 flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           aria-label="Post actions"
@@ -1266,11 +1247,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Create your first post
                       </Button>
                     )}
-                    {/* Modal for creating post will be rendered here */}
                   </div>
                 )}
               </div>
-            )}
+            )} */}
+
           </CardContent>
         </Card>
       </Card>
@@ -1281,11 +1262,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     <>
       <MobileLayout />
       <DesktopLayout />
-      <CreatePostModal
+      {/* <CreatePostModal
         open={isCreatePostModalOpen}
         onClose={handleCloseCreatePostModal}
         onCreate={handleCreatePost}
-      />
+      /> */}
     </>
+
   );
 };

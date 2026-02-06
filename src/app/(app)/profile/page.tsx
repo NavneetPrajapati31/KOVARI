@@ -181,13 +181,15 @@ const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
     const interests = profileData?.interests || [];
 
     // 2. Fetch posts from user_posts
-    const { data: postsData } = await supabase
-      .from("user_posts")
-      .select("id, image_url")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+    // const { data: postsData } = await supabase
+    //   .from("user_posts")
+    //   .select("id, image_url")
+    //   .eq("user_id", userId)
+    //   .order("created_at", { ascending: false });
 
-    const posts = Array.isArray(postsData) ? postsData : [];
+    // const posts = Array.isArray(postsData) ? postsData : [];
+    const posts: any[] = [];
+
 
     // 3. Count followers
     const { count: followersCount } = await supabase
@@ -202,13 +204,14 @@ const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
       .eq("follower_id", userId);
 
     // 5. Count posts and sum likes
-    const { count: postsCount, data: postsLikesData } = await supabase
-      .from("user_posts")
-      .select("likes", { count: "exact" })
-      .eq("user_id", userId);
+    // const { count: postsCount, data: postsLikesData } = await supabase
+    //   .from("user_posts")
+    //   .select("likes", { count: "exact" })
+    //   .eq("user_id", userId);
 
-    const likesSum =
-      postsLikesData?.reduce((acc, post) => acc + (post.likes || 0), 0) || 0;
+    const likesSum = 0;
+    //   postsLikesData?.reduce((acc, post) => acc + (post.likes || 0), 0) || 0;
+
 
     // 6. Map to UserProfileType
     return {
