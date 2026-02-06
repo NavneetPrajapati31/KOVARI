@@ -104,7 +104,7 @@ export function DatePicker({
             "hover:bg-transparent"
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          {/* <CalendarIcon className="mr-2 h-4 w-4" /> */}
           {date && !isNaN(date.getTime()) ? (
             format(date, "PPP")
           ) : (

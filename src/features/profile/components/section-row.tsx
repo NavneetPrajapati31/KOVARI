@@ -294,7 +294,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
       const isValidDate = parsedDate && !isNaN(parsedDate.getTime());
       
       return (
-        <div className="h-9 w-full">
+        <div className="h-9 sm:w-full">
           <DatePicker
             date={isValidDate ? (parsedDate as Date) : undefined}
             onDateChange={(selectedDate) => {
