@@ -455,8 +455,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   {profile.profession}
                 </div> */}
                 <div className="text-xs  text-muted-foreground font-medium mt-1 line-clamp-3">
-                  {profile.bio}
+                  {profile.bio || "No bio added."}
                 </div>
+
 
                 {/* Action Buttons */}
                 <div className="flex flex-row flex-wrap gap-1.5 mt-4">
@@ -609,16 +610,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             {activeTab === "About" && (
               <div className="flex flex-col gap-6">
                 <div>
-                  <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide mb-3">
-                    Personal Details
-                  </div>
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                     <div className="flex flex-col">
                       <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
                         Age
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.age}
+                        {profile.age || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -626,7 +624,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Gender
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.gender}
+                        {profile.gender || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -634,7 +632,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Nationality
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.nationality}
+                        {profile.nationality || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -642,7 +640,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Location
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.location}
+                        {profile.location || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -650,7 +648,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Profession
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.profession}
+                        {profile.profession || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -658,23 +656,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Religion
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.religion}
+                        {profile.religion || "Not specified"}
                       </dd>
                     </div>
                   </dl>
                 </div>
                 <Separator />
                 <div>
-                  <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide mb-3">
-                    Lifestyle & Preferences
-                  </div>
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                     <div className="flex flex-col">
                       <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
                         Personality
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.personality}
+                        {profile.personality || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -682,7 +677,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Food Preference
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.foodPreference}
+                        {profile.foodPreference || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -690,7 +685,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Smoking
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.smoking}
+                        {profile.smoking || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -698,7 +693,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Drinking
                       </dt>
                       <dd className="text-xs text-foreground font-medium mt-0.5">
-                        {profile.drinking}
+                        {profile.drinking || "Not specified"}
                       </dd>
                     </div>
                   </dl>
@@ -710,14 +705,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       Interests
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {profile.interests.map((interest) => (
-                        <Badge
-                          key={interest}
-                          className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
-                        >
-                          {interest}
-                        </Badge>
-                      ))}
+                      {profile.interests && profile.interests.length > 0 ? (
+                        profile.interests.map((interest) => (
+                          <Badge
+                            key={interest}
+                            className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
+                          >
+                            {interest}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-xs font-medium text-foreground">Not specified</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex-1">
@@ -725,18 +724,23 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       Languages
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {profile.languages.map((language) => (
-                        <Badge
-                          key={language}
-                          className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
-                        >
-                          {language}
-                        </Badge>
-                      ))}
+                      {profile.languages && profile.languages.length > 0 ? (
+                        profile.languages.map((language) => (
+                          <Badge
+                            key={language}
+                            className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
+                          >
+                            {language}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-xs font-medium text-foreground">Not specified</span>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
+
             )}
 
             {/* {activeTab === "Posts" && (
@@ -842,7 +846,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         {profile.name}
                       </h1>
                     </div>
-                    <p className="text-xs text-muted-foreground font-medium mb-2">
+                    <p className="text-sm text-muted-foreground font-medium mb-2">
                       @
                       {profile.username.length > 30
                         ? `${profile.username.substring(0, 30)}...`
@@ -908,8 +912,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   {profile.profession}
                 </div> */}
                 <div className="text-sm text-muted-foreground font-medium mt-1 line-clamp-3">
-                  {profile.bio}
+                  {profile.bio || "No bio added."}
                 </div>
+
                 {/* Action Buttons */}
                 <div className="flex flex-row flex-wrap gap-1.5 mt-4">
                   {profile.isOwnProfile === true ? (
@@ -1053,16 +1058,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
             {activeTab === "About" && (
               <div className="space-y-8">
                 <div>
-                  <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-4">
-                    Personal Details
-                  </div>
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                     <div className="flex flex-col">
                       <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
                         Age
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.age}
+                        {profile.age || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -1070,7 +1072,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Gender
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.gender}
+                        {profile.gender || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -1078,7 +1080,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Nationality
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.nationality}
+                        {profile.nationality || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -1086,7 +1088,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Profession
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.profession}
+                        {profile.profession || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -1094,7 +1096,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Location
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.location}
+                        {profile.location || "Not specified"}
                       </dd>
                     </div>
                      <div className="flex flex-col">
@@ -1102,7 +1104,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Religion
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.religion}
+                        {profile.religion || "Not specified"}
                       </dd>
                     </div>
                   </dl>
@@ -1111,16 +1113,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 <Separator />
 
                 <div>
-                  <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-4">
-                    Lifestyle & Preferences
-                  </div>
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                     <div className="flex flex-col">
                       <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
                         Personality
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.personality}
+                        {profile.personality || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -1128,7 +1127,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Food Preference
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.foodPreference}
+                        {profile.foodPreference || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -1136,7 +1135,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Smoking
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.smoking}
+                        {profile.smoking || "Not specified"}
                       </dd>
                     </div>
                     <div className="flex flex-col">
@@ -1144,7 +1143,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         Drinking
                       </dt>
                       <dd className="text-sm text-foreground font-medium">
-                        {profile.drinking}
+                        {profile.drinking || "Not specified"}
                       </dd>
                     </div>
                   </dl>
@@ -1156,14 +1155,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       Interests
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {profile.interests.map((interest) => (
-                        <Badge
-                          key={interest}
-                          className="rounded-full px-3 py-1 text-sm font-medium bg-secondary text-foreground"
-                        >
-                          {interest}
-                        </Badge>
-                      ))}
+                      {profile.interests && profile.interests.length > 0 ? (
+                        profile.interests.map((interest) => (
+                          <Badge
+                            key={interest}
+                            className="rounded-full px-3 py-1 text-sm font-medium bg-secondary text-foreground"
+                          >
+                            {interest}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-sm font-medium text-foreground">Not specified</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex-1">
@@ -1171,18 +1174,23 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       Languages
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {profile.languages.map((language) => (
-                        <Badge
-                          key={language}
-                          className="rounded-full px-3 py-1 text-sm font-medium bg-secondary text-foreground"
-                        >
-                          {language}
-                        </Badge>
-                      ))}
+                      {profile.languages && profile.languages.length > 0 ? (
+                        profile.languages.map((language) => (
+                          <Badge
+                            key={language}
+                            className="rounded-full px-3 py-1 text-sm font-medium bg-secondary text-foreground"
+                          >
+                            {language}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-sm font-medium text-foreground">Not specified</span>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
+
             )}
 
             {/* {activeTab === "Posts" && (

@@ -81,7 +81,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
                   {form.watch("interests")!.map((interest) => (
                     <span
                       key={interest}
-                      className="px-4 py-1.5 text-sm font-medium bg-secondary text-foreground rounded-full"
+                      className="px-3 py-1 text-sm font-medium bg-secondary text-foreground rounded-full"
                     >
                       {interest}
                     </span>
@@ -110,7 +110,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
                   {form.watch("languages")!.map((lang) => (
                     <span
                       key={lang}
-                      className="px-4 py-1.5 text-sm font-medium bg-secondary text-foreground rounded-full"
+                      className="px-3 py-1 text-sm font-medium bg-secondary text-foreground rounded-full"
                     >
                       {lang}
                     </span>

@@ -408,7 +408,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
                         <Badge 
                           key={val} 
                           variant="secondary" 
-                          className="bg-secondary text-foreground transition-colors border-none px-4 py-2 text-xs"
+                          className="bg-secondary text-foreground transition-colors border-none px-3 py-1.5 text-xs"
                         >
                           {val}
                           <button

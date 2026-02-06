@@ -250,16 +250,16 @@ const religionOptions = [
 ];
 
 const smokingOptions = [
-  "Non-smoker",
+  "Yes",
+  "No",
   "Occasionally",
-  "Regularly",
   "Prefer not to say",
 ];
 
 const drinkingOptions = [
-  "Non-drinker",
+  "Yes",
+  "No",
   "Socially",
-  "Regularly",
   "Prefer not to say",
 ];
 

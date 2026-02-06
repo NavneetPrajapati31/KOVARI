@@ -50,16 +50,16 @@ export const religionOptions = [
 ];
 
 export const smokingOptions = [
-  "Non-smoker",
+  "Yes",
+  "No",
   "Occasionally",
-  "Regularly",
   "Prefer not to say",
 ];
 
 export const drinkingOptions = [
-  "Non-drinker",
+  "Yes",
+  "No",
   "Socially",
-  "Regularly",
   "Prefer not to say",
 ];
 
