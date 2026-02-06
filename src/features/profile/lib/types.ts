@@ -22,9 +22,16 @@ export const profileEditSchema = z.object({
     .number()
     .min(18, { message: "You must be at least 18 years old" })
     .max(120, { message: "Invalid age" }),
-  gender: z.enum(["male", "female", "other", "prefer_not_to_say"], {
+  gender: z.enum(["Male", "Female", "Other", "Prefer not to say"], {
     required_error: "Please select your gender",
   }),
+  birthday: z.string().datetime({ message: "Invalid birthday" }),
+  location: z.string().min(1, { message: "Location is required" }),
+  religion: z.string().min(1, { message: "Religion is required" }),
+  smoking: z.string().min(1, { message: "Smoking preference is required" }),
+  drinking: z.string().min(1, { message: "Drinking preference is required" }),
+  personality: z.string().min(1, { message: "Personality type is required" }),
+  foodPreference: z.string().min(1, { message: "Food preference is required" }),
   nationality: z
     .string()
     .min(2, { message: "Nationality must be at least 2 characters" })
@@ -46,6 +53,9 @@ export const profileEditSchema = z.object({
     .string()
     .max(300, { message: "Bio must be less than 300 characters" })
     .optional(),
+  destinations: z.array(z.string()).optional(),
+  tripFocus: z.array(z.string()).optional(),
+  travelFrequency: z.string().optional(),
 });
 
 export type ProfileEditForm = z.infer<typeof profileEditSchema>;

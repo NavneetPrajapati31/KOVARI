@@ -92,7 +92,48 @@ export async function PATCH(req: Request) {
       bio: "bio",
       interests: "interests",
       location: "location",
+      birthday: "birthday",
+      religion: "religion",
+      smoking: "smoking",
+      drinking: "drinking",
+      personality: "personality",
+      foodPreference: "food_preference",
+      // Travel fields (will be handled separately if they map here)
+      destinations: "destinations",
+      tripFocus: "trip_focus",
+      travelFrequency: "frequency",
     };
+
+    // If it's a travel preference field, update the travel_preferences table
+    const travelFields = ["destinations", "tripFocus", "travelFrequency"];
+    if (travelFields.includes(field)) {
+      const dbField = fieldMapping[field];
+      const payload = {
+        user_id: user.id,
+        [dbField]: value,
+      };
+
+      const { error: travelUpdateError } = await supabase
+        .from("travel_preferences")
+        .upsert(payload, { onConflict: "user_id" });
+
+      if (travelUpdateError) {
+        console.error("Error updating travel preferences:", travelUpdateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to update travel preferences" }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          message: "Travel preferences updated successfully",
+          field,
+          value,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     const dbField = fieldMapping[field];
     if (!dbField) {
@@ -104,9 +145,6 @@ export async function PATCH(req: Request) {
 
     // Transform value if needed
     let transformedValue = value;
-    if (field === "gender" && typeof value === "string") {
-      transformedValue = value.charAt(0).toUpperCase() + value.slice(1);
-    }
 
     // Check if username is already taken (only for username updates)
     if (field === "username" && typeof value === "string") {

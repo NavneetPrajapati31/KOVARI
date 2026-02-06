@@ -5,15 +5,16 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
-import { X, Loader2 } from "lucide-react";
-import {
-  Select,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-} from "@/shared/components/ui/select";
+import { X, Check } from "lucide-react";
 import { Spinner } from "@heroui/react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/shared/components/ui/command";
 
 interface EditSelectModalProps {
   open: boolean;
@@ -32,7 +33,7 @@ export const EditSelectModal: React.FC<EditSelectModalProps> = ({
   options,
   value,
   onSave,
-  placeholder = "Select...",
+  placeholder = "Search...",
 }) => {
   const [selected, setSelected] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
@@ -41,14 +42,16 @@ export const EditSelectModal: React.FC<EditSelectModalProps> = ({
     setSelected(value);
   }, [value, open]);
 
-  const handleSave = async () => {
+  const handleSave = async (option?: string) => {
+    const valueToSave = option !== undefined ? option : selected;
+    if (!valueToSave) return;
+
     setIsSaving(true);
     try {
-      await Promise.resolve(onSave(selected));
+      await Promise.resolve(onSave(valueToSave));
       onOpenChange(false);
     } catch (error) {
-      // Optionally handle error (e.g., show toast)
-      // For now, just stop saving
+      console.error("Error saving:", error);
     } finally {
       setIsSaving(false);
     }
@@ -57,72 +60,68 @@ export const EditSelectModal: React.FC<EditSelectModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-xs w-[95vw] sm:max-w-md md:max-w-lg mx-auto my-8 sm:my-12 rounded-2xl shadow-lg p-4 sm:p-8 bg-card"
+        className="max-w-xs w-[95vw] sm:max-w-md md:max-w-lg mx-auto my-8 sm:my-12 rounded-2xl shadow-lg p-0 bg-card overflow-hidden"
         hideCloseButton
       >
-        <DialogTitle>
-          <div className="flex items-center justify-between w-full">
-            <span className="text-md font-semibold text-foreground truncate">
-              Edit {label}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="p-0 has-[svg]:px-0  hover:bg-transparent text-foreground hover:text-foreground"
-              aria-label="Close modal"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </DialogTitle>
-        <div className="mb-1 w-full">
-          <Select
-            value={selected}
-            onValueChange={setSelected}
-            aria-label={`Select ${label}`}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={placeholder} />
-            </SelectTrigger>
-            <SelectContent className="max-h-60 overflow-y-auto">
-              {options.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex justify-end gap-2 w-full mt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="min-w-[100px] px-5 py-1"
-            aria-label="Cancel"
-            disabled={isSaving}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSave}
-            className="min-w-[100px] px-5 py-1 flex items-center justify-center"
-            aria-label="Save"
-            disabled={!selected || selected === value || isSaving}
-          >
-            {isSaving ? (
-              <Spinner
-                variant="spinner"
+        <div className="p-4 sm:p-6 border-b">
+          <DialogTitle>
+            <div className="flex items-center justify-between w-full">
+              <span className="text-md font-semibold text-foreground truncate">
+                Select {label}
+              </span>
+              <Button
+                variant="ghost"
                 size="sm"
-                classNames={{ spinnerBars: "bg-white" }}
-              />
-            ) : (
-              "Save"
-            )}
-          </Button>
+                onClick={() => onOpenChange(false)}
+                className="p-0 h-8 w-8 hover:bg-muted"
+                disabled={isSaving}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogTitle>
         </div>
+
+        <div className="w-full">
+          <Command className="rounded-none border-none">
+            <CommandInput 
+              placeholder={placeholder} 
+              className="h-11 border-none focus:ring-0"
+              autoFocus
+            />
+            <CommandList className="max-h-[300px]">
+              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandGroup>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option}
+                    value={option}
+                    onSelect={() => {
+                      setSelected(option);
+                      handleSave(option);
+                    }}
+                    className="flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-muted"
+                  >
+                    <span>{option}</span>
+                    {option === selected && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </div>
+
+        {isSaving && (
+          <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50">
+            <Spinner
+              variant="spinner"
+              size="lg"
+              classNames={{ spinnerBars: "bg-primary" }}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

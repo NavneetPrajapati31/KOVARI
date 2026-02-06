@@ -9,6 +9,17 @@ import {
 import SectionRow from "@/features/profile/components/section-row";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useProfileFieldHandler } from "@/features/profile/hooks/use-profile-field-handler";
+import EditSelectModal from "@/shared/components/ui/edit-select-modal";
+import EditMultiSelectModal from "@/shared/components/ui/edit-multi-select-modal";
+import {
+  religionOptions,
+  smokingOptions,
+  drinkingOptions,
+  personalityOptions,
+  foodPreferenceOptions,
+  languageOptions,
+  interestOptions,
+} from "@/features/profile/lib/options";
 
 interface PersonalSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -27,48 +38,19 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
   updateProfileField,
 }) => {
   // Use the custom hook for standard field logic
-  const { fieldErrors, setFieldError, validateField, handleSaveField } =
-    useProfileFieldHandler({ form, updateProfileField });
+  const { fieldErrors, handleSaveField } = useProfileFieldHandler({
+    form,
+    updateProfileField,
+  });
 
   const isMobile = useIsMobile();
-
-  // Helper function to validate and process interests/languages input
-  const processArrayField = (
-    input: string,
-    field: "interests" | "languages"
-  ): string[] => {
-    const items = input
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-    if (field === "interests" && items.length === 0) {
-      throw new Error("Please select at least one interest");
-    }
-    if (field === "languages" && items.length === 0) {
-      throw new Error("Please select at least one language");
-    }
-    return items;
-  };
-
-  // Wrapper for array fields
-  const handleSaveArrayField = async (
-    field: "interests" | "languages",
-    value: string
-  ) => {
-    try {
-      const processedValue = processArrayField(value, field);
-      await handleSaveField(field, processedValue);
-    } catch (error: any) {
-      setFieldError(field, error.message);
-    }
-  };
 
   return (
     <div className={`w-full mx-auto ${isMobile ? "p-0" : "p-4"} space-y-6`}>
       {/* Header */}
       <div className="md:space-y-2 space-y-1">
         <div className="flex items-center justify-between">
-          <h1 className="md:text-lg text-md font-semibold text-foreground">
+          <h1 className="md:text-lg text-sm font-semibold text-foreground">
             Edit Personal Info
           </h1>
         </div>
@@ -82,36 +64,6 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
       >
         <div className={isMobile ? "space-y-2 px-4 pt-2 pb-4" : ""}>
           <SectionRow
-            label="Interests"
-            value={
-              Array.isArray(form.watch("interests")) &&
-              (form.watch("interests")?.length ?? 0) > 0
-                ? form.watch("interests")!.join(", ")
-                : "-"
-            }
-            onSave={(value) =>
-              handleSaveArrayField("interests", value as string)
-            }
-            fieldType="text"
-            error={fieldErrors.interests}
-            placeholder="e.g., Travel, Photography, Music (comma-separated)"
-          />
-          <SectionRow
-            label="Languages"
-            value={
-              Array.isArray(form.watch("languages")) &&
-              (form.watch("languages")?.length ?? 0) > 0
-                ? form.watch("languages")!.join(", ")
-                : "-"
-            }
-            onSave={(value) =>
-              handleSaveArrayField("languages", value as string)
-            }
-            fieldType="text"
-            error={fieldErrors.languages}
-            placeholder="e.g., English, Spanish, French (comma-separated)"
-          />
-          <SectionRow
             label="Bio"
             value={form.watch("bio") || "-"}
             onSave={(value) => handleSaveField("bio", value as string)}
@@ -119,6 +71,154 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             error={fieldErrors.bio}
             placeholder="Tell us about yourself..."
             maxLength={300}
+          />
+          <SectionRow
+            label="Interests"
+            value={
+              Array.isArray(form.watch("interests")) &&
+              (form.watch("interests")?.length ?? 0) > 0 ? (
+                <div className="flex flex-wrap gap-1.5 py-1">
+                  {form.watch("interests")!.map((interest) => (
+                    <span
+                      key={interest}
+                      className="px-2 py-0.5 text-[11px] font-medium bg-primary/10 text-primary rounded-full"
+                    >
+                      {interest}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                "-"
+              )
+            }
+            fieldType="popover-multi-select"
+            selectOptions={interestOptions.map((i) => ({
+              value: i,
+              label: i,
+            }))}
+            onSave={(value) => handleSaveField("interests", value as any as string[])}
+            editValue={form.watch("interests")}
+            error={fieldErrors.interests}
+            placeholder="Search interests..."
+          />
+          <SectionRow
+            label="Languages"
+            value={
+              Array.isArray(form.watch("languages")) &&
+              (form.watch("languages")?.length ?? 0) > 0 ? (
+                <div className="flex flex-wrap gap-1.5 py-1">
+                  {form.watch("languages")!.map((lang) => (
+                    <span
+                      key={lang}
+                      className="px-2 py-0.5 text-[11px] font-medium bg-secondary/10 text-secondary-foreground rounded-full border border-secondary/20"
+                    >
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                "-"
+              )
+            }
+            fieldType="popover-multi-select"
+            selectOptions={languageOptions.map((l) => ({ value: l, label: l }))}
+            onSave={(value) => handleSaveField("languages", value as any as string[])}
+            editValue={form.watch("languages")}
+            error={fieldErrors.languages}
+            placeholder="Search languages..."
+          />
+          <SectionRow
+            label="Religion"
+            value={
+              form.watch("religion") ? (
+                <span className="px-2 py-0.5 text-[11px] font-medium bg-amber-500/10 text-amber-600 rounded-full border border-amber-500/20">
+                  {form.watch("religion")}
+                </span>
+              ) : (
+                "-"
+              )
+            }
+            fieldType="select"
+            selectOptions={religionOptions.map((r) => ({ value: r, label: r }))}
+            onSave={(value) => handleSaveField("religion", value as string)}
+            editValue={form.watch("religion")}
+            error={fieldErrors.religion}
+          />
+          <SectionRow
+            label="Smoking"
+            value={
+              form.watch("smoking") ? (
+                <span className="px-2 py-0.5 text-[11px] font-medium bg-rose-500/10 text-rose-600 rounded-full border border-rose-500/20">
+                  {form.watch("smoking")}
+                </span>
+              ) : (
+                "-"
+              )
+            }
+            fieldType="select"
+            selectOptions={smokingOptions.map((s) => ({ value: s, label: s }))}
+            onSave={(value) => handleSaveField("smoking", value as string)}
+            editValue={form.watch("smoking")}
+            error={fieldErrors.smoking}
+          />
+          <SectionRow
+            label="Drinking"
+            value={
+              form.watch("drinking") ? (
+                <span className="px-2 py-0.5 text-[11px] font-medium bg-purple-500/10 text-purple-600 rounded-full border border-purple-500/20">
+                  {form.watch("drinking")}
+                </span>
+              ) : (
+                "-"
+              )
+            }
+            fieldType="select"
+            selectOptions={drinkingOptions.map((d) => ({ value: d, label: d }))}
+            onSave={(value) => handleSaveField("drinking", value as string)}
+            editValue={form.watch("drinking")}
+            error={fieldErrors.drinking}
+          />
+          <SectionRow
+            label="Personality"
+            value={
+              form.watch("personality") ? (
+                <span className="px-2 py-0.5 text-[11px] font-medium bg-indigo-500/10 text-indigo-600 rounded-full border border-indigo-500/20">
+                  {form.watch("personality")}
+                </span>
+              ) : (
+                "-"
+              )
+            }
+            fieldType="select"
+            selectOptions={personalityOptions.map((p) => ({
+              value: p,
+              label: p,
+            }))}
+            onSave={(value) => handleSaveField("personality", value as string)}
+            editValue={form.watch("personality")}
+            error={fieldErrors.personality}
+          />
+          <SectionRow
+            label="Food Preference"
+            value={
+              form.watch("foodPreference") ? (
+                <span className="px-2 py-0.5 text-[11px] font-medium bg-green-500/10 text-green-600 rounded-full border border-green-500/20">
+                  {form.watch("foodPreference")}
+                </span>
+              ) : (
+                "-"
+              )
+            }
+            fieldType="select"
+            selectOptions={foodPreferenceOptions.map((f) => ({
+              value: f,
+              label: f,
+            }))}
+            onSave={(value) =>
+              handleSaveField("foodPreference", value as string)
+            }
+            editValue={form.watch("foodPreference")}
+            error={fieldErrors.foodPreference}
           />
         </div>
       </section>

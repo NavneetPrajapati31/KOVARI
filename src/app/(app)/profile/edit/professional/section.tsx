@@ -42,7 +42,7 @@ const ProfessionalSection: React.FC<ProfessionalSectionProps> = ({
       {/* Header */}
       <div className="md:space-y-2 space-y-1">
         <div className="flex items-center justify-between">
-          <h1 className="md:text-lg text-md font-semibold text-foreground">
+          <h1 className="md:text-lg text-sm font-semibold text-foreground">
             Edit Professional Info
           </h1>
         </div>
@@ -57,20 +57,21 @@ const ProfessionalSection: React.FC<ProfessionalSectionProps> = ({
         <div className={isMobile ? "space-y-2 px-4 pt-2 pb-4" : ""}>
           <SectionRow
             label="Profession"
-            value={form.watch("profession") || "-"}
+            value={
+              form.watch("profession") ? (
+                <span className="px-2 py-0.5 text-[11px] font-medium bg-violet-500/10 text-violet-600 rounded-full border border-violet-500/20">
+                  {form.watch("profession")}
+                </span>
+              ) : (
+                "-"
+              )
+            }
+            fieldType="popover-select"
+            selectOptions={JOBS.map(job => ({ value: job, label: job }))}
+            onSave={(value) => handleSaveField("profession", value as string)}
+            editValue={form.watch("profession")}
+            placeholder="Search profession..."
             error={fieldErrors.profession}
-            placeholder="Enter your profession"
-            maxLength={50}
-            onEdit={() => setJobModalOpen(true)}
-          />
-          <EditSelectModal
-            open={isJobModalOpen}
-            onOpenChange={setJobModalOpen}
-            label="Profession"
-            options={JOBS}
-            value={form.watch("profession") || ""}
-            onSave={(value) => handleSaveField("profession", value)}
-            placeholder="Select your profession"
           />
         </div>
       </section>

@@ -47,37 +47,51 @@ export function DatePicker({
   disabled,
 }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(controlledDate);
+  const [month, setMonthInCalendar] = React.useState<Date>(
+    controlledDate || new Date()
+  );
 
   React.useEffect(() => {
     setDate(controlledDate);
+    if (controlledDate && !isNaN(controlledDate.getTime())) {
+      setMonthInCalendar(controlledDate);
+    }
   }, [controlledDate]);
 
   const handleDateChange = (newDate: Date | undefined) => {
     setDate(newDate);
+    if (newDate) {
+      setMonthInCalendar(newDate);
+    }
+    onDateChange?.(newDate);
+  };
+
+  const handleMonthChange = (monthName: string) => {
+    const monthIndex = months.indexOf(monthName);
+    const newDate = setMonth(date || new Date(), monthIndex);
+    setDate(newDate);
+    setMonthInCalendar(newDate);
+    onDateChange?.(newDate);
+  };
+
+  const handleYearChange = (year: string) => {
+    const newDate = setYear(date || new Date(), parseInt(year));
+    setDate(newDate);
+    setMonthInCalendar(newDate);
     onDateChange?.(newDate);
   };
 
   // List Months
-  const months = eachMonthOfInterval({
-    start: startOfYear(startYear),
-    end: endOfYear(endYear),
-  }).map((month) => month.toLocaleString("en-US", { month: "long" }));
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
   // List Years
-  const years = eachYearOfInterval({
-    start: startOfYear(new Date(startYear, 0, 1)),
-    end: endOfYear(new Date(endYear, 0, 1)),
-  }).map((year) => year.getFullYear());
-
-  const handleMonthChange = (month: string) => {
-    const newMonth = setMonth(date || new Date(), months.indexOf(month));
-    setDate(newMonth);
-  };
-
-  const handleYearChange = (year: string) => {
-    const newYear = setYear(date || new Date(), parseInt(year));
-    setDate(newYear);
-  };
+  const years = Array.from(
+    { length: endYear - startYear + 1 },
+    (_, i) => startYear + i
+  );
 
   return (
     <Popover>
@@ -91,23 +105,27 @@ export function DatePicker({
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {date && !isNaN(date.getTime()) ? (
+            format(date, "PPP")
+          ) : (
+            <span>Pick a date</span>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent className="w-auto p-0" align="start">
         <div className="flex items-center justify-between p-4 pb-0 gap-2">
           <Select
             onValueChange={handleMonthChange}
-            value={months[getMonth(date || new Date())]}
+            value={months[getMonth(month)]}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Months" />
+            <SelectTrigger className="w-full h-8 text-sm">
+              <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {months.map((month) => (
-                  <SelectItem key={month} value={month}>
-                    {month}
+                {months.map((m) => (
+                  <SelectItem key={m} value={m} className="text-sm">
+                    {m}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -115,16 +133,20 @@ export function DatePicker({
           </Select>
           <Select
             onValueChange={handleYearChange}
-            value={String(date?.getFullYear() || new Date().getFullYear())}
+            value={String(month.getFullYear())}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Years" />
+            <SelectTrigger className="w-full h-8 text-sm">
+              <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent className="max-h-[280px] overflow-y-auto">
               <SelectGroup>
-                {years.map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
+                {years.map((yearValue) => (
+                  <SelectItem
+                    key={yearValue}
+                    value={String(yearValue)}
+                    className="text-sm"
+                  >
+                    {yearValue}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -136,8 +158,8 @@ export function DatePicker({
           selected={date}
           onSelect={handleDateChange}
           initialFocus
-          month={date || new Date()}
-          onMonthChange={handleDateChange}
+          month={month}
+          onMonthChange={setMonthInCalendar}
           fromYear={startYear}
           toYear={endYear}
           disabled={disabled}

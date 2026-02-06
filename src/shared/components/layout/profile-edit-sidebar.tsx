@@ -100,7 +100,7 @@ const ProfileEditSidebar: React.FC<ProfileEditSidebarProps> = ({
   ) => (
     <div
       key={groupKey}
-      className="flex flex-row md:flex-col gap-x-2 md:gap-x-0 md:gap-y-2 flex-nowrap overflow-x-auto md:overflow-x-visible whitespace-nowrap px-1 md:px-0"
+      className="flex flex-row md:flex-col gap-x-2 md:gap-x-0 md:gap-y-1 flex-nowrap overflow-x-auto md:overflow-x-visible whitespace-nowrap px-1 md:px-0"
     >
       {title && (
         <div className="hidden md:block px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -130,7 +130,7 @@ const ProfileEditSidebar: React.FC<ProfileEditSidebarProps> = ({
             onMouseDown={(e) => e.preventDefault()}
             onTouchStart={(e) => e.preventDefault()}
           >
-            <Icon className="h-4 w-4" />
+            {/* <Icon className="h-4 w-4" /> */}
             <span className="truncate">{tab.label}</span>
           </button>
         );

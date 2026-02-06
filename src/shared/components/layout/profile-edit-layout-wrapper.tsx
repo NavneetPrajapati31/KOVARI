@@ -22,13 +22,23 @@ const DEFAULT_VALUES: ProfileEditForm = {
   avatar: "",
   name: "",
   username: "",
-  age: 0,
-  gender: "prefer_not_to_say",
+  age: 18,
+  gender: "Prefer not to say",
   nationality: "",
   profession: "",
   interests: [],
   languages: [],
   bio: "",
+  location: "",
+  birthday: new Date().toISOString(),
+  religion: "",
+  smoking: "",
+  drinking: "",
+  personality: "",
+  foodPreference: "",
+  destinations: [],
+  tripFocus: [],
+  travelFrequency: "",
 };
 
 const SectionContent = memo(
@@ -181,7 +191,7 @@ export default function ProfileEditLayoutWrapper() {
           </div>
         )}
         {/* Content Area */}
-        <div className="flex-1 flex flex-col p-4 md:p-3 gap-2 overflow-hidden">
+        <div className="flex-1 flex flex-col p-4 md:p-3 gap-2">
           {isMobile ? (
             <div className="flex flex-col gap-6">
               <GeneralSection

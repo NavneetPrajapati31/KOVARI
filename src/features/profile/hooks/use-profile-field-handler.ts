@@ -55,23 +55,26 @@ export const useProfileFieldHandler = ({
   const handleSaveField = async (
     field: keyof ProfileEditForm,
     value: string | number | string[]
-  ) => {
+  ): Promise<boolean> => {
     if (customHandleSaveField) {
-      return customHandleSaveField(field, value);
+      await customHandleSaveField(field, value);
+      return true;
     }
     setFieldErrors((prev) => ({ ...prev, [field]: "" }));
     const validationError = validateField(field, value);
     if (validationError) {
       setFieldErrors((prev) => ({ ...prev, [field]: validationError }));
-      return;
+      return false;
     }
     try {
       await updateProfileField(field, value);
       form.setValue(field, value);
       setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+      return true;
     } catch (error: any) {
       const errorMessage = error.message || "Failed to save field";
       setFieldErrors((prev) => ({ ...prev, [field]: errorMessage }));
+      return false;
     }
   };
 

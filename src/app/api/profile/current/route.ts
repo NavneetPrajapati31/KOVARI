@@ -48,6 +48,13 @@ export async function GET() {
       );
     }
 
+    // Get travel preferences
+    const { data: travelPrefs } = await supabase
+      .from("travel_preferences")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     // Consider onboarding complete only when both username and name are set.
     // DB trigger may create a profile with a default username; name is only set by the onboarding form.
     const usernameSet =
@@ -70,12 +77,23 @@ export async function GET() {
       name: profile.name || "",
       username: profile.username || "",
       age: profile.age || 0,
-      gender: profile.gender?.toLowerCase() || "prefer_not_to_say",
+      gender: profile.gender || "Prefer not to say",
       nationality: profile.nationality || "",
       profession: profile.job || "",
       interests,
       languages: profile.languages || [],
       bio: profile.bio || "",
+      birthday: profile.birthday || "",
+      location: profile.location || "",
+      religion: profile.religion || "",
+      smoking: profile.smoking || "",
+      drinking: profile.drinking || "",
+      personality: profile.personality || "",
+      foodPreference: profile.food_preference || "",
+      // Travel preferences
+      destinations: travelPrefs?.destinations || [],
+      tripFocus: travelPrefs?.trip_focus || [],
+      travelFrequency: travelPrefs?.frequency || "",
     };
 
     return new Response(JSON.stringify(profileData), {

@@ -17,6 +17,7 @@ import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { COUNTRIES } from "@/shared/utils/countries";
 import EditSelectModal from "@/shared/components/ui/edit-select-modal";
 import { useProfileFieldHandler } from "@/features/profile/hooks/use-profile-field-handler";
+import { genderOptions } from "@/features/profile/lib/options";
 
 interface GeneralSectionProps {
   form: UseFormReturn<ProfileEditForm>;
@@ -37,18 +38,13 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   updateProfileField,
 }) => {
   const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
-  const [usernameCheckError, setUsernameCheckError] = useState<string | null>(
-    null
-  );
   const [avatarUploadLoading, setAvatarUploadLoading] = useState(false);
   const [avatarDeleteLoading, setAvatarDeleteLoading] = useState(false);
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [tempImageUrl, setTempImageUrl] = useState<string>("");
   const [cropLoading, setCropLoading] = useState(false);
-  const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
-  const [isNationalityModalOpen, setNationalityModalOpen] = useState(false);
 
   // Use the custom hook for standard field logic
   const {
@@ -58,71 +54,80 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
     handleSaveField: baseHandleSaveField,
   } = useProfileFieldHandler({ form, updateProfileField });
 
-  // Check username availability with debouncing
-  const checkUsernameAvailability = async (
-    username: string
-  ): Promise<boolean> => {
+  // Async username uniqueness check matching ProfileSetupForm
+  const checkUsernameUnique = async (username: string): Promise<boolean> => {
+    setFieldError("username", "");
     if (!username || username.length < 3) return true;
-
-    // Clear previous timeout
-    if (usernameCheckTimeout.current) {
-      clearTimeout(usernameCheckTimeout.current);
+    
+    setUsernameCheckLoading(true);
+    try {
+      const res = await fetch("/api/check-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const data = await res.json();
+      if (!data.available) {
+        setFieldError("username", "Username is already taken");
+        return false;
+      }
+      return true;
+    } catch (e) {
+      setFieldError("username", "Could not check username");
+      return false;
+    } finally {
+      setUsernameCheckLoading(false);
     }
+  };
 
-    return new Promise((resolve) => {
-      usernameCheckTimeout.current = setTimeout(async () => {
-        setUsernameCheckLoading(true);
-        setUsernameCheckError(null);
-
-        try {
-          const response = await fetch("/api/check-username", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username }),
-          });
-
-          const data = await response.json();
-
-          if (!data.available) {
-            setUsernameCheckError("Username is already taken");
-            resolve(false);
-          } else {
-            setUsernameCheckError(null);
-            resolve(true);
-          }
-        } catch (error) {
-          setUsernameCheckError("Could not check username availability");
-          resolve(false);
-        } finally {
-          setUsernameCheckLoading(false);
-        }
-      }, 500); // 500ms debounce
-    });
+  const computeAge = (dobString: string) => {
+    const dob = new Date(dobString);
+    if (isNaN(dob.getTime())) return 0;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age;
   };
 
   // Custom handleSaveField for username (with availability check)
   const handleSaveField = async (
     field: keyof ProfileEditForm,
     value: string | number | string[]
-  ) => {
+  ): Promise<boolean> => {
     setFieldError(field, "");
-    setUsernameCheckError(null);
+    
     // Validate the field
     const validationError = validateField(field, value);
     if (validationError) {
       setFieldError(field, validationError);
-      return;
+      return false;
     }
+
     // Special handling for username - check availability
     if (field === "username") {
-      const isAvailable = await checkUsernameAvailability(value as string);
-      if (!isAvailable) {
-        setFieldError(field, "Username is already taken");
-        return;
+      // Don't check if it's the same as the current username
+      if (value !== profileData?.username) {
+        const isAvailable = await checkUsernameUnique(value as string);
+        if (!isAvailable) {
+          return false;
+        }
       }
     }
+
+    // Special handling for birthday - update age as well
+    if (field === "birthday") {
+      const age = computeAge(value as string);
+      // Update age in DB
+      await updateProfileField("age", age);
+      // Update age in form
+      form.setValue("age", age);
+    }
+
     // Use base handler for save
-    await baseHandleSaveField(field, value);
+    return await baseHandleSaveField(field, value);
   };
 
   // Handle avatar upload - now shows crop modal instead of direct upload
@@ -239,46 +244,12 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
     }
   };
 
-  const genderOptions = [
-    { value: "male", label: "Male" },
-    { value: "female", label: "Female" },
-    { value: "other", label: "Other" },
-    { value: "prefer_not_to_say", label: "Prefer not to say" },
-  ];
-
-  // if (isLoading) {
-  //   return (
-  //     <div className="w-full mx-auto p-4 space-y-6">
-  //       <div className="space-y-2">
-  //         <div className="flex items-center justify-between">
-  //           <h1 className="text-lg font-semibold text-foreground">
-  //             Edit General Info
-  //           </h1>
-  //         </div>
-  //         <p className="text-sm text-muted-foreground">
-  //           Update your basic profile details.
-  //         </p>
-  //       </div>
-  //       <section className="bg-transparent rounded-2xl shadow-none border border-border p-4 px-6">
-  //         <div className="animate-pulse space-y-4">
-  //           <div className="h-20 w-20 bg-gray-200 rounded-full"></div>
-  //           <div className="space-y-3">
-  //             {[1, 2, 3, 4, 5].map((i) => (
-  //               <div key={i} className="h-4 bg-gray-200 rounded"></div>
-  //             ))}
-  //           </div>
-  //         </div>
-  //       </section>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className={`w-full mx-auto ${isMobile ? "p-0" : "p-4"} space-y-6`}>
       {/* Header */}
       <div className="md:space-y-2 space-y-1">
         <div className="flex items-center justify-between">
-          <h1 className="md:text-lg text-md font-semibold text-foreground">
+          <h1 className="md:text-lg text-sm font-semibold text-foreground">
             Edit General Info
           </h1>
         </div>
@@ -381,7 +352,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             />
             <Button
               size="sm"
-              className="ml-auto border bg-transparent border-border rounded-lg px-3 py-1 text-destructive hover:bg-[#f31260]/20 transition-all duration-300 disabled:opacity-50"
+              className="ml-auto border bg-transparent border-border rounded-lg px-3 py-1 text-destructive hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
               aria-label="Delete avatar"
               onClick={handleAvatarDelete}
               disabled={
@@ -445,42 +416,68 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             value={form.watch("username") || "Not set"}
             onSave={(value) => handleSaveField("username", value as string)}
             fieldType="text"
-            error={fieldErrors.username || usernameCheckError}
+            error={fieldErrors.username}
+            isChecking={usernameCheckLoading}
             placeholder="Enter your username"
-            maxLength={30}
+            maxLength={32}
           />
           <SectionRow
-            label="Age"
-            value={form.watch("age") || "Not set"}
-            onSave={(value) => handleSaveField("age", Number(value))}
-            fieldType="number"
-            error={fieldErrors.age}
-            placeholder="Enter your age"
-            min={18}
-            max={120}
+            label="Birthday"
+            value={
+              form.watch("birthday")
+                ? new Date(form.watch("birthday")).toLocaleDateString()
+                : "Not set"
+            }
+            onSave={async (value) => {
+              // Value is already a normalized ISO string from SectionRow
+              if (value) {
+                await handleSaveField("birthday", value as string);
+              }
+            }}
+            fieldType="date"
+            editValue={form.watch("birthday")}
+            startYear={1950}
+            endYear={new Date().getFullYear()}
+            error={fieldErrors.birthday}
+            placeholder="Select your birthday"
           />
           <SectionRow
             label="Gender"
-            value={
-              form.watch("gender")
-                ? genderOptions.find(
-                    (opt) => opt.value === form.watch("gender")
-                  )?.label || "Not set"
-                : "Not set"
-            }
+            value={form.watch("gender") || "Not set"}
             onSave={(value) => handleSaveField("gender", value as string)}
             fieldType="select"
-            selectOptions={genderOptions}
+            selectOptions={genderOptions.map((opt) => ({
+              value: opt,
+              label: opt,
+            }))}
             error={fieldErrors.gender}
             placeholder="Select gender"
           />
           <SectionRow
             label="Nationality"
-            value={form.watch("nationality") || "Not set"}
+            value={
+              form.watch("nationality") ? (
+                <span className="text-sm font-medium text-muted-foreground">
+                  {form.watch("nationality")}
+                </span>
+              ) : (
+                "Not set"
+              )
+            }
+            fieldType="popover-select"
+            selectOptions={COUNTRIES.map(c => ({ value: c, label: c }))}
+            onSave={(value) => handleSaveField("nationality", value as string)}
+            editValue={form.watch("nationality")}
+            placeholder="Search nationality..."
             error={fieldErrors.nationality}
-            placeholder="Enter your nationality"
-            maxLength={50}
-            onEdit={() => setNationalityModalOpen(true)}
+          />
+          <SectionRow
+            label="Location"
+            value={form.watch("location") || "Not set"}
+            onSave={(value) => handleSaveField("location", value as string)}
+            fieldType="location"
+            error={fieldErrors.location}
+            placeholder="Enter your location"
           />
         </div>
       </section>
@@ -492,16 +489,6 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
         imageUrl={tempImageUrl}
         onCropComplete={handleCropComplete}
         isLoading={cropLoading}
-      />
-
-      <EditSelectModal
-        open={isNationalityModalOpen}
-        onOpenChange={setNationalityModalOpen}
-        label="Nationality"
-        options={COUNTRIES}
-        value={form.watch("nationality") || ""}
-        onSave={(value) => handleSaveField("nationality", value)}
-        placeholder="Select your nationality"
       />
     </div>
   );

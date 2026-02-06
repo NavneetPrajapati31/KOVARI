@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
-export type ProfileEditTab = "general" | "professional" | "personal";
+export type ProfileEditTab = "general" | "professional" | "personal" | "travel";
 
-const VALID_TABS: ProfileEditTab[] = ["general", "professional", "personal"];
+const VALID_TABS: ProfileEditTab[] = ["general", "professional", "personal", "travel"];
 
 export const useProfileEditTabs = () => {
   const router = useRouter();

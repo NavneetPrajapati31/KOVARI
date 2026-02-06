@@ -144,7 +144,7 @@ type Step2Data = z.infer<typeof step2Schema>;
 type Step3Data = z.infer<typeof step3Schema>;
 
 // Sample data for dropdowns
-const genderOptions = ["Male", "Female", "Other"];
+const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
 
 const languageOptions = [
   "English",
