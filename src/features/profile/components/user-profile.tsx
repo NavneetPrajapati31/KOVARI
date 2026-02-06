@@ -19,7 +19,16 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import { useClerk } from "@clerk/nextjs";
-import { Camera, Heart, Plus, Flag, Menu, Settings, LogOut } from "lucide-react";
+import {
+  Camera,
+  Heart,
+  Plus,
+  Flag,
+  Menu,
+  Settings,
+  LogOut,
+  UserRound,
+} from "lucide-react";
 import ProfileImageModal from "./profile-image-modal";
 import { AnimatePresence } from "framer-motion";
 import CreatePostModal from "./create-post-modal";
@@ -43,6 +52,12 @@ export interface UserProfile {
   posts: { id: number | string; image_url: string }[];
   isFollowing?: boolean;
   isOwnProfile?: boolean;
+  location: string;
+  religion: string;
+  smoking: string;
+  drinking: string;
+  personality: string;
+  foodPreference: string;
   userId?: string;
 }
 
@@ -52,7 +67,7 @@ export interface UserProfileProps {
 
 export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   // Dynamic posts array for the feed (now from profile)
-  const [activeTab, setActiveTab] = React.useState("Trips");
+  const [activeTab, setActiveTab] = React.useState("Posts");
   const [isFollowing, setIsFollowing] = React.useState(
     profile.isFollowing || false
   );
@@ -215,7 +230,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     <div className="min-h-screen bg-transparent md:hidden">
       <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-3 shadow-none p-3">
         {/* Mobile Profile Header */}
-        <Card className="rounded-none border-none shadow-none bg-card p-0">
+        <Card className="rounded-none border-none shadow-none bg-transparent p-0">
           <CardContent className="p-0">
             <div className="flex flex-row items-stretch gap-4">
               {/* Profile Avatar Overlay - Stretches to match second card height */}
@@ -232,7 +247,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
               </Card> */}
 
-              <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none p-4 gap-0 items-start justify-start flex-1 min-w-0">
+              <Card className="flex flex-col rounded-3xl bg-card border border-border shadow-none p-4 gap-0 items-start justify-start flex-1 min-w-0">
                 {/* Left Info */}
                 {/* Left Info */}
                 <div className="flex flex-row items-center justify-between w-full mb-2">
@@ -245,10 +260,26 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       onKeyDown={handleAvatarKeyDown}
                       role="button"
                     >
-                      <Avatar
-                        className="h-[70px] w-[70px]"
-                        src={profile.profileImage || ""}
-                      />
+                      {profile.profileImage ? (
+                        <Avatar
+                          className="h-[70px] w-[70px]"
+                          src={profile.profileImage}
+                        />
+                      ) : (
+                        <div className="h-[70px] w-[70px] flex items-center justify-center bg-muted rounded-full">
+                          <svg
+                            className="w-8 h-8 text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            focusable="false"
+                          >
+                            <circle cx="12" cy="8" r="4" />
+                            <rect x="4" y="14" width="16" height="6" rx="3" />
+                          </svg>
+                          {/* <UserRound className="w-20 h-20 text-gray-400" /> */}
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -325,36 +356,46 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </div>
                     </div>
                   </div>
-                  
-                   {/* Mobile Settings/Logout Menu */}
-                   {profile.isOwnProfile && (
+
+                  {/* Mobile Settings/Logout Menu */}
+                  {profile.isOwnProfile && (
                     <div className="self-start">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
-                                    <Menu className="h-5 w-5" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 bg-background/95 backdrop-blur-2xl rounded-2xl border-border">
-                                <DropdownMenuItem onClick={() => router.push("/settings")} className="cursor-pointer hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-foreground">
-                                    <Settings className="mr-2 h-4 w-4" />
-                                    <span>Settings</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={async () => {
-                                    await signOut({ redirectUrl: "/sign-in" });
-                                    router.push("/sign-in");
-                                  }}
-                                  className="cursor-pointer text-destructive focus:text-destructive hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-destructive"
-                                >
-                                    <LogOut className="mr-2 h-4 w-4 text-destructive" />
-                                    <span>Log out</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 -mr-2"
+                          >
+                            <Menu className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-48 bg-background/95 backdrop-blur-2xl rounded-2xl border-border"
+                        >
+                          <DropdownMenuItem
+                            onClick={() => router.push("/settings")}
+                            className="cursor-pointer hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-foreground"
+                          >
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Settings</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              await signOut({ redirectUrl: "/sign-in" });
+                              router.push("/sign-in");
+                            }}
+                            className="cursor-pointer text-destructive focus:text-destructive hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-destructive"
+                          >
+                            <LogOut className="mr-2 h-4 w-4 text-destructive" />
+                            <span>Log out</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                   )}
+                  )}
                 </div>
 
                 {/* <div className="flex flex-row items-center gap-x-6 w-full min-[376px]:hidden">
@@ -430,7 +471,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </Link>
                       <Link href="/explore">
                         <Button
-                        variant={"secondary"}
+                          variant={"secondary"}
                           size={"sm"}
                           className="font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
                         >
@@ -439,7 +480,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </Link>
                       {profile.isOwnProfile === true && (
                         <Button
-                        variant={"secondary"}
+                          variant={"secondary"}
                           size={"sm"}
                           className="font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
                           aria-label="Create post"
@@ -533,7 +574,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           {/* Tabs Navigation - Mobile Style */}
           <div className="flex gap-x-2 sm:gap-x-4">
             {[
-              { key: "Trips", label: "Trips" },
+              { key: "Posts", label: "Posts" },
               { key: "About", label: "About" },
             ].map((tab) => (
               <Button
@@ -565,45 +606,106 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
 
           <CardContent className="p-0">
             {activeTab === "About" && (
-              <div>
-                <dl className="grid grid-cols-1 gap-x-4 gap-y-3">
-                  <div className="flex flex-col">
-                    <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Age
-                    </dt>
-                    <dd className="text-xs text-foreground font-medium mt-0.5">
-                      {profile.age}
-                    </dd>
+              <div className="flex flex-col gap-6">
+                <div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide mb-3">
+                    Personal Details
                   </div>
-                  <div className="flex flex-col">
-                    <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Gender
-                    </dt>
-                    <dd className="text-xs text-foreground font-medium mt-0.5">
-                      {profile.gender}
-                    </dd>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Age
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.age}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Gender
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.gender}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Nationality
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.nationality}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Location
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.location}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Profession
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.profession}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Religion
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.religion}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                <Separator />
+                <div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide mb-3">
+                    Lifestyle & Preferences
                   </div>
-                  <div className="flex flex-col">
-                    <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Nationality
-                    </dt>
-                    <dd className="text-xs text-foreground font-medium mt-0.5">
-                      {profile.nationality}
-                    </dd>
-                  </div>
-                  <div className="flex flex-col">
-                    <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Profession
-                    </dt>
-                    <dd className="text-xs text-foreground font-medium mt-0.5">
-                      {profile.profession}
-                    </dd>
-                  </div>
-                </dl>
-                <Separator className="my-4" />
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Personality
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.personality}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Food Preference
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.foodPreference}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Smoking
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.smoking}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                        Drinking
+                      </dt>
+                      <dd className="text-xs text-foreground font-medium mt-0.5">
+                        {profile.drinking}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                <Separator />
                 <div className="flex flex-col gap-4">
                   <div className="flex-1">
-                    <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-2">
+                    <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">
                       Interests
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -618,7 +720,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-2">
+                    <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">
                       Languages
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -635,7 +737,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
               </div>
             )}
-            {activeTab === "Trips" && (
+            {activeTab === "Posts" && (
               <div>
                 {posts.length > 0 ? (
                   <div className="grid grid-cols-3 gap-1">
@@ -725,22 +827,35 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
     <div className="min-h-screen bg-transparent hidden md:block">
       <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-5">
         {/* Profile Information Section */}
-        <Card className="rounded-none border-none shadow-none bg-card p-0">
+        <Card className="rounded-none border-none shadow-none bg-transparent p-0">
           <CardContent className="p-0">
             <div className="flex flex-row items-stretch gap-4">
               {/* Profile Avatar Overlay - Stretches to match second card height */}
               <Card className="w-[230px] h-[230px] min-[840px]:h-[210px] min-[840px]:w-[210px] p-0 bg-muted border-none shadow-none rounded-3xl overflow-hidden flex-shrink-0">
-                <img
-                  src={
-                    profile.profileImage ||
-                    "https://images.pexels.com/photos/17071640/pexels-photo-17071640.jpeg"
-                  }
-                  alt="Profile"
-                  className="w-full h-full object-cover rounded-3xl"
-                />
+                {profile.profileImage ? (
+                  <img
+                    src={profile.profileImage}
+                    alt="Profile"
+                    className="w-full h-full object-cover rounded-3xl"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-muted rounded-3xl">
+                    <svg
+                      className="w-20 h-20 text-gray-400"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <circle cx="12" cy="8" r="4" />
+                      <rect x="4" y="14" width="16" height="6" rx="3" />
+                    </svg>
+                    {/* <UserRound className="w-20 h-20 text-gray-400" /> */}
+                  </div>
+                )}
               </Card>
 
-              <Card className="flex flex-col rounded-3xl bg-transparent border border-border shadow-none p-6 py-5 gap-0 items-start justify-start flex-1 min-w-0">
+              <Card className="flex flex-col rounded-3xl bg-card border border-border shadow-none p-6 py-5 gap-0 items-start justify-start flex-1 min-w-0">
                 {/* Left Info */}
                 <div className="flex flex-row items-center gap-x-10 w-full">
                   <div className="flex flex-col flex-1 min-w-0 gap-x-3">
@@ -841,7 +956,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </Link>
                       {profile.isOwnProfile === true && (
                         <Button
-                        variant={"secondary"}
+                          variant={"secondary"}
                           size={"sm"}
                           className="font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
                           aria-label="Create post"
@@ -929,7 +1044,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           {/* Tabs Navigation - Modern Style */}
           <div className="flex gap-x-2">
             {[
-              { key: "Trips", label: "Trips" },
+              { key: "Posts", label: "Posts" },
               { key: "About", label: "About" },
             ].map((tab) => (
               <Button
@@ -959,42 +1074,105 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
 
           <CardContent className="p-0">
             {activeTab === "About" && (
-              <div>
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-                  <div className="flex flex-col">
-                    <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Age
-                    </dt>
-                    <dd className="text-sm text-foreground font-medium">
-                      {profile.age}
-                    </dd>
+              <div className="space-y-8">
+                <div>
+                  <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-4">
+                    Personal Details
                   </div>
-                  <div className="flex flex-col">
-                    <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Gender
-                    </dt>
-                    <dd className="text-sm text-foreground font-medium">
-                      {profile.gender}
-                    </dd>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Age
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.age}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Gender
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.gender}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Nationality
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.nationality}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Profession
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.profession}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Location
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.location}
+                      </dd>
+                    </div>
+                     <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Religion
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.religion}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-4">
+                    Lifestyle & Preferences
                   </div>
-                  <div className="flex flex-col">
-                    <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Nationality
-                    </dt>
-                    <dd className="text-sm text-foreground font-medium">
-                      {profile.nationality}
-                    </dd>
-                  </div>
-                  <div className="flex flex-col">
-                    <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Profession
-                    </dt>
-                    <dd className="text-sm text-foreground font-medium">
-                      {profile.profession}
-                    </dd>
-                  </div>
-                </dl>
-                <Separator className="my-6" />
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Personality
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.personality}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Food Preference
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.foodPreference}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Smoking
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.smoking}
+                      </dd>
+                    </div>
+                    <div className="flex flex-col">
+                      <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                        Drinking
+                      </dt>
+                      <dd className="text-sm text-foreground font-medium">
+                        {profile.drinking}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                <Separator />
                 <div className="flex flex-col sm:flex-row gap-6">
                   <div className="flex-1">
                     <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-2">
@@ -1004,7 +1182,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       {profile.interests.map((interest) => (
                         <Badge
                           key={interest}
-                          className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
+                          className="rounded-full px-3 py-1 text-sm font-medium bg-secondary text-foreground"
                         >
                           {interest}
                         </Badge>
@@ -1019,7 +1197,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       {profile.languages.map((language) => (
                         <Badge
                           key={language}
-                          className="rounded-full px-3 py-1 text-xs font-medium bg-secondary text-foreground"
+                          className="rounded-full px-3 py-1 text-sm font-medium bg-secondary text-foreground"
                         >
                           {language}
                         </Badge>
@@ -1029,7 +1207,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div>
               </div>
             )}
-            {activeTab === "Trips" && (
+            {activeTab === "Posts" && (
               <div>
                 {posts.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-3 xl:grid-cols-4 gap-2">

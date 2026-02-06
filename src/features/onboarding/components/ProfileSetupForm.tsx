@@ -1068,7 +1068,7 @@ export default function ProfileSetupForm() {
                           showFallback
                           fallback={
                             <svg
-                              className="w-full h-full text-gray-600"
+                              className="w-full h-full text-gray-400"
                               fill="currentColor"
                               viewBox="0 0 24 24"
                             >
@@ -1076,7 +1076,7 @@ export default function ProfileSetupForm() {
                               <rect x="4" y="14" width="16" height="6" rx="3" />
                             </svg>
                           }
-                          className="h-20 w-20"
+                          className="h-20 w-20 bg-muted"
                         />
                       )}
                     </div>

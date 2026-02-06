@@ -46,7 +46,7 @@ const fetchUserProfile = async (
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select(
-        `name, username, age, gender, nationality, bio, languages, profile_photo, job`
+        `name, username, age, gender, nationality, bio, languages, profile_photo, job, location, religion, smoking, drinking, personality, food_preference, birthday, verified`
       )
       .eq("user_id", userId)
       .single();
@@ -160,6 +160,12 @@ const fetchUserProfile = async (
       posts,
       isFollowing,
       isOwnProfile,
+      location: profileData.location || "Surat",
+      religion: profileData.religion || "Hindu",
+      smoking: profileData.smoking || "No",
+      drinking: profileData.drinking || "No",
+      personality: profileData.personality || "Ambivert",
+      foodPreference: profileData.food_preference || "Veg",
       userId,
     };
   } catch (error) {

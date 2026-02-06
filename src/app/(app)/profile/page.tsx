@@ -168,7 +168,7 @@ const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select(
-        `name, username, age, gender, nationality, bio, languages, profile_photo, job, interests`
+        `name, username, age, gender, nationality, bio, languages, profile_photo, job, interests, location, religion, smoking, drinking, personality, food_preference, birthday, verified`
       )
       .eq("user_id", userId)
       .single();
@@ -231,6 +231,12 @@ const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
       posts,
       isFollowing: false, // Always false for own profile
       isOwnProfile: true, // Always true for own profile
+      location: profileData.location || "Surat",
+      religion: profileData.religion || "Hindu",
+      smoking: profileData.smoking || "No",
+      drinking: profileData.drinking || "No",
+      personality: profileData.personality || "Ambivert",
+      foodPreference: profileData.food_preference || "Veg",
       userId,
     };
   } catch (error) {

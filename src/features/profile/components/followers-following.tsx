@@ -186,9 +186,9 @@ export default function FollowersFollowing() {
   };
 
   return (
-    <div className="w-full bg-transparent min-h-screen">
+    <div className="w-full bg-card min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 bg-background z-10">
+      <div className="sticky top-0 bg-card z-10">
         <div className="flex items-center justify-start gap-4 sm:justify-between sm:gap-0 p-4">
           <Link href={"/profile"}>
             <ArrowLeft className="sm:w-5 sm:h-5 w-4 h-4 text-foreground" />
@@ -204,7 +204,7 @@ export default function FollowersFollowing() {
         </div>
         {/* Custom Tabs */}
         <div
-          className="flex w-full bg-transparent h-12 p-0 m-0 shadow-none border-b border-border"
+          className="flex w-full bg-card h-12 p-0 m-0 shadow-none border-b border-border"
           role="tablist"
           aria-label="Followers and Following Tabs"
         >
@@ -277,7 +277,7 @@ export default function FollowersFollowing() {
         </div>
       </div>
 
-      <div className="p-4 bg-background flex-shrink-0 border-b border-border">
+      <div className="p-4 bg-card flex-shrink-0 border-b border-border">
         <div className="relative">
           <input
             type="text"

@@ -37,6 +37,7 @@ import React, {
   KeyboardEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -152,6 +153,22 @@ const GroupHomePage = () => {
   const [itineraryError, setItineraryError] = useState<string | null>(null);
   const [isOverviewGenerating, setIsOverviewGenerating] = useState(false);
   const hasRequestedOverviewRef = useRef(false);
+
+  const sortedItineraryItems = useMemo(() => {
+    const getTimestamp = (datetime: string) => {
+      const ts = Date.parse(datetime);
+      return Number.isNaN(ts) ? Number.POSITIVE_INFINITY : ts;
+    };
+
+    return [...itineraryItems].sort((a, b) => {
+      const diff = getTimestamp(a.datetime) - getTimestamp(b.datetime);
+      if (diff !== 0) return diff;
+      // Stable tie-breakers for consistent rendering
+      const titleDiff = a.title.localeCompare(b.title);
+      if (titleDiff !== 0) return titleDiff;
+      return a.id.localeCompare(b.id);
+    });
+  }, [itineraryItems]);
 
   // Check user membership status
   const {
@@ -820,7 +837,7 @@ const GroupHomePage = () => {
                                 <Skeleton className="h-3 w-full mb-4 rounded-full" />
                               </div>
                             ))
-                          : itineraryItems.map((item) => (
+                          : sortedItineraryItems.map((item) => (
                               <div
                                 key={item.id}
                                 className="border-1 border-border rounded-2xl p-3"
@@ -985,7 +1002,7 @@ const GroupHomePage = () => {
                         />
                       </div>
                       {/* AI Overview */}
-                      <Card className="bg-primary-light border-3 border-card rounded-3xl shadow-sm flex-1 basis-1/3 lg:basis-1/2 max-h-[220px] overflow-y-scroll">
+                      <Card className="bg-primary-light border-3 border-card rounded-3xl shadow-sm flex-1 basis-1/3 lg:basis-1/2 max-h-[220px] overflow-y-auto hide-scrollbar">
                         <CardBody className="p-4">
                           <h3 className="text-xs font-semibold text-primary mb-2">
                             AI Overview
@@ -1249,7 +1266,7 @@ const GroupHomePage = () => {
                               </div>
                             </div>
                           ))
-                        : itineraryItems.map((item, index) => (
+                        : sortedItineraryItems.map((item, index) => (
                             <div key={item.id}>
                               <div className="flex items-start gap-2 group hover:bg-background border-1 border-border rounded-3xl p-3  m-0 transition-colors">
                                 {/* Icon & Type */}
@@ -1618,7 +1635,7 @@ const GroupHomePage = () => {
                             </div>
                           </div>
                         ))
-                      : itineraryItems.map((item, index) => (
+                      : sortedItineraryItems.map((item, index) => (
                           <div key={item.id}>
                             <div className="flex items-start gap-2 group hover:bg-background border-1 border-border rounded-3xl p-3  m-0 transition-colors">
                               {/* Icon & Type */}
