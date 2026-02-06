@@ -25,7 +25,8 @@ export default function FollowersFollowing() {
   // Determine if this is the user's own profile
   const isOwnProfile = currentUserUuid === userId;
   const tabParam = searchParams.get("tab");
-  const validTabs = ["followers", "following", "likes"];
+  const validTabs = ["followers", "following"];
+
   const initialTab = validTabs.includes(tabParam || "")
     ? tabParam!
     : "followers";
@@ -147,23 +148,24 @@ export default function FollowersFollowing() {
   }, [userId]);
 
   // Fetch likes count when likes tab is active
-  useEffect(() => {
-    if (activeTab !== "likes" || !userId) return;
-    setLikesLoading(false);
-    setError(null);
-    fetch(`/api/profile/${userId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch profile");
-        return res.json();
-      })
-      .then((data) => {
-        setLikes(Number(data.likes) || 0);
-      })
-      .catch((err) => {
-        setError(err.message || "Unknown error");
-      })
-      .finally(() => setLikesLoading(false));
-  }, [activeTab, userId]);
+  // useEffect(() => {
+  //   if (activeTab !== "likes" || !userId) return;
+  //   setLikesLoading(false);
+  //   setError(null);
+  //   fetch(`/api/profile/${userId}`)
+  //     .then((res) => {
+  //       if (!res.ok) throw new Error("Failed to fetch profile");
+  //       return res.json();
+  //     })
+  //     .then((data) => {
+  //       setLikes(Number(data.likes) || 0);
+  //     })
+  //     .catch((err) => {
+  //       setError(err.message || "Unknown error");
+  //     })
+  //     .finally(() => setLikesLoading(false));
+  // }, [activeTab, userId]);
+
 
   // Handlers (stubbed for now)
   const handleRemoveFollower = async (userId: number) => {
@@ -254,7 +256,7 @@ export default function FollowersFollowing() {
               <span className="absolute left-0 -bottom-[1px] w-full h-0.5 bg-primary rounded" />
             )}
           </button>
-          <button
+          {/* <button
             type="button"
             role="tab"
             // eslint-disable-next-line jsx-a11y/aria-proptypes
@@ -273,7 +275,8 @@ export default function FollowersFollowing() {
             {activeTab === "likes" && (
               <span className="absolute left-0 -bottom-[1px] w-full h-0.5 bg-primary rounded" />
             )}
-          </button>
+          </button> */}
+
         </div>
       </div>
 
@@ -333,7 +336,7 @@ export default function FollowersFollowing() {
             </span>
           </div>
         )}
-        {activeTab === "likes" && likesLoading && (
+        {/* {activeTab === "likes" && likesLoading && (
           <div className="flex justify-center items-center py-8">
             <span className="text-muted-foreground text-xs sm:text-sm">
               Loading...
@@ -353,7 +356,8 @@ export default function FollowersFollowing() {
               </p>
             </div>
           </div>
-        )}
+        )} */}
+
         {!followersLoading && !error && activeTab === "followers" && (
           <UserList
             users={filteredFollowers}

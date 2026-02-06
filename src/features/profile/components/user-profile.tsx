@@ -337,7 +337,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               Following
                             </span>
                           </div>
-                          <div
+                          {/* <div
                             className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
                             tabIndex={0}
                             role="button"
@@ -353,7 +353,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                             <span className="text-xs text-foreground font-bold">
                               Likes
                             </span>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </div>
@@ -451,9 +451,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 </div> */}
 
                 {/* Profession */}
-                <div className="text-xs  text-muted-foreground font-medium mt-1">
+                {/* <div className="text-xs  text-muted-foreground font-medium mt-1">
                   {profile.profession}
-                </div>
+                </div> */}
                 <div className="text-xs  text-muted-foreground font-medium mt-1 line-clamp-3">
                   {profile.bio}
                 </div>
@@ -508,7 +508,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         disabled={isLoading}
                         className={`font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none ${
                           isFollowing
-                            ? "bg-gray-200 text-muted-foreground hover:bg-gray-300 border-1 border-gray-400"
+                            ? "bg-secondary text-foreground"
                             : "bg-primary text-primary-foreground hover:bg-primary/90"
                         }`}
                       >
@@ -536,7 +536,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       >
                         <Button
                           size={"sm"}
-                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
+                          className="bg-secondary text-foreground font-semibold rounded-lg px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
                           aria-label="Message user"
                           tabIndex={0}
                         >
@@ -545,14 +545,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </Link>
                       <Button
                         size={"sm"}
-                        variant="outline"
                         onClick={() => setIsReportDialogOpen(true)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/50 font-semibold rounded-lg px-3 sm:px-6 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
+                        className="text-destructive hover:text-destructive bg-secondary font-semibold rounded-lg sm:px-6 px-4 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
                         aria-label="Report user"
                         tabIndex={0}
                       >
-                        <Flag className="h-3 w-3 sm:mr-1.5" />
-                        <span className="hidden sm:inline">Report</span>
+                        <span className="">Report</span>
                       </Button>
                       <ReportDialog
                         open={isReportDialogOpen}
@@ -811,7 +809,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
           <CardContent className="p-0">
             <div className="flex flex-row items-stretch gap-4">
               {/* Profile Avatar Overlay - Stretches to match second card height */}
-              <Card className="w-[230px] h-[230px] min-[840px]:h-[210px] min-[840px]:w-[210px] p-0 bg-muted border-none shadow-none rounded-3xl overflow-hidden flex-shrink-0">
+              <Card className="w-[200px] h-[200px] min-[840px]:h-[180px] min-[840px]:w-[180px] p-0 bg-muted border-none shadow-none rounded-3xl overflow-hidden flex-shrink-0">
                 {profile.profileImage ? (
                   <img
                     src={profile.profileImage}
@@ -888,7 +886,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         {profile.following}
                       </div>
                     </div>
-                    <div
+                    {/* <div
                       className="text-left cursor-pointer focus:outline-none"
                       tabIndex={0}
                       role="button"
@@ -902,13 +900,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <div className="text-md font-black text-foreground">
                         {profile.likes}
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
                 {/* Profession */}
-                <div className="text-sm text-muted-foreground font-medium mt-1">
+                {/* <div className="text-sm text-muted-foreground font-medium mt-1">
                   {profile.profession}
-                </div>
+                </div> */}
                 <div className="text-sm text-muted-foreground font-medium mt-1 line-clamp-3">
                   {profile.bio}
                 </div>
@@ -957,8 +955,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         disabled={isLoading}
                         className={`font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none ${
                           isFollowing
-                            ? "bg-gray-200 text-muted-foreground hover:bg-gray-300 border-1 border-gray-400"
-                            : "bg-primary text-primary-foreground hover:bg-primary/90"
+                            ? "bg-secondary text-foreground"
+                            : "bg-primary text-primary-foreground"
                         }`}
                       >
                         {isLoading ? (
@@ -985,7 +983,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       >
                         <Button
                           size={"sm"}
-                          className="bg-primary-light border border-primary text-primary font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
+                          className="bg-secondary text-foreground font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
                           aria-label="Message user"
                           tabIndex={0}
                         >
@@ -994,13 +992,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </Link>
                       <Button
                         size={"sm"}
-                        variant="outline"
                         onClick={() => setIsReportDialogOpen(true)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/50 font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
+                        className="text-destructive hover:text-destructive bg-secondary font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
                         aria-label="Report user"
                         tabIndex={0}
                       >
-                        <Flag className="h-3 w-3 mr-1.5" />
                         Report
                       </Button>
                       <ReportDialog

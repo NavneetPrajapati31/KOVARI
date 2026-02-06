@@ -4,14 +4,14 @@ import { Card, Skeleton } from "@heroui/react";
 export default function Loading() {
   return (
     <>
-      {/* Mobile/Tablet Layout */}
-      <div className="min-h-screen bg-transparent md:hidden">
-        <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-3 shadow-none p-3">
+     {/* Mobile/Tablet Layout */}
+      <div className="min-h-screen bg-background md:hidden">
+        <Card className="w-full mx-auto bg-transparent border-none rounded-none gap-3 shadow-none p-3">
           {/* Profile Information Section */}
           <Card className="rounded-none border-none shadow-none bg-transparent p-0">
             <CardContent className="p-0">
               <div className="flex flex-row items-stretch gap-4">
-                <Card className="flex rounded-3xl bg-transparent border border-border shadow-none p-4 items-start justify-start flex-1 min-w-0">
+                <Card className="flex rounded-3xl bg-card border border-border shadow-none p-4 items-start justify-start flex-1 min-w-0">
                   <div className="flex flex-row items-center gap-x-6 w-full mb-4 mt-3">
                     <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-4">
                       <div className="flex flex-col">
@@ -24,11 +24,8 @@ export default function Loading() {
                     </div>
                   </div>
 
-                  <Skeleton className="h-3 w-1/3 rounded-full mb-2" />
                   <Skeleton className="h-3 w-1/2 rounded-full mb-2" />
                   <Skeleton className="h-3 w-full rounded-full mb-2" />
-                  <Skeleton className="h-3 w-full rounded-full mb-2" />
-                  {/* <Skeleton className="h-3 w-full rounded-full mb-2" /> */}
 
                   <div className="flex flex-row justify-start items-center flex-1 gap-x-1.5 mt-4 w-full">
                     <Skeleton className="h-8 w-1/2 rounded-lg" />
@@ -41,7 +38,7 @@ export default function Loading() {
 
           <Card
             aria-label="User details"
-            className="w-full h-full rounded-3xl bg-transparent shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
+            className="w-full rounded-3xl bg-card shadow-none p-4 flex flex-col gap-6 border border-border mx-auto"
           >
             <Skeleton className="w-1/5 rounded-full h-3 mt-2 mb-1"></Skeleton>
 
@@ -63,17 +60,17 @@ export default function Loading() {
         </Card>
       </div>
 
-      {/* Desktop Layout - Keep existing */}
-      <div className="min-h-screen bg-transparent hidden md:block">
-        <Card className="w-full h-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-5">
+      {/* Desktop Layout */}
+      <div className="min-h-screen bg-background hidden md:block">
+        <Card className="w-full mx-auto bg-transparent border-none rounded-none gap-4 shadow-none p-5">
           {/* Profile Information Section */}
-          <Card className="rounded-none border-none shadow-none bg-transparent p-0">
+          <Card className="rounded-none border-none shadow-none p-0 bg-transparent">
             <CardContent className="p-0">
               <div className="flex flex-row items-stretch gap-4">
                 {/* Profile Avatar Overlay - Stretches to match second card height */}
-                <Skeleton className="rounded-3xl w-[230px] h-[230px] min-[840px]:h-[210px] min-[840px]:w-[210px] flex-shrink-0"></Skeleton>
+                <Skeleton className="rounded-3xl w-[200px] h-[200px] min-[840px]:h-[180px] min-[840px]:w-[180px] flex-shrink-0"></Skeleton>
 
-                <Card className="flex rounded-3xl bg-transparent border border-border h-[230px] min-[840px]:h-[210px] shadow-none p-6 py-5 items-start justify-start flex-1 min-w-0">
+                <Card className="flex rounded-3xl bg-card border border-border h-[200px] min-[840px]:h-[180px] shadow-none p-6 py-5 items-start justify-start flex-1 min-w-0">
                   <Skeleton className="h-4 w-1/5 rounded-full mb-2 mt-6" />
                   <Skeleton className="h-4 w-1/6 rounded-full mb-5" />
                   <Skeleton className="h-4 w-full rounded-full mb-2" />
@@ -86,7 +83,7 @@ export default function Loading() {
 
           <Card
             aria-label="User details"
-            className="w-full h-full rounded-3xl bg-transparent shadow-none p-6 flex flex-col gap-6 border border-border mx-auto"
+            className="w-full rounded-3xl bg-card shadow-none p-6 flex flex-col gap-6 border border-border mx-auto"
           >
             <Skeleton className="w-1/6 rounded-full h-4 mt-2 mb-1"></Skeleton>
 
