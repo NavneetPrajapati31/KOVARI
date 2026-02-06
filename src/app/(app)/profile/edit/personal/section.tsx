@@ -81,7 +81,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
                   {form.watch("interests")!.map((interest) => (
                     <span
                       key={interest}
-                      className="px-2 py-0.5 text-[11px] font-medium bg-primary/10 text-primary rounded-full"
+                      className="px-4 py-1.5 text-sm font-medium bg-secondary text-foreground rounded-full"
                     >
                       {interest}
                     </span>
@@ -110,7 +110,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
                   {form.watch("languages")!.map((lang) => (
                     <span
                       key={lang}
-                      className="px-2 py-0.5 text-[11px] font-medium bg-secondary/10 text-secondary-foreground rounded-full border border-secondary/20"
+                      className="px-4 py-1.5 text-sm font-medium bg-secondary text-foreground rounded-full"
                     >
                       {lang}
                     </span>
@@ -131,7 +131,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             label="Religion"
             value={
               form.watch("religion") ? (
-                <span className="px-2 py-0.5 text-[11px] font-medium bg-amber-500/10 text-amber-600 rounded-full border border-amber-500/20">
+                <span className="text-sm font-medium text-muted-foreground">
                   {form.watch("religion")}
                 </span>
               ) : (
@@ -148,7 +148,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             label="Smoking"
             value={
               form.watch("smoking") ? (
-                <span className="px-2 py-0.5 text-[11px] font-medium bg-rose-500/10 text-rose-600 rounded-full border border-rose-500/20">
+                <span className="text-sm font-medium text-muted-foreground">
                   {form.watch("smoking")}
                 </span>
               ) : (
@@ -165,7 +165,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             label="Drinking"
             value={
               form.watch("drinking") ? (
-                <span className="px-2 py-0.5 text-[11px] font-medium bg-purple-500/10 text-purple-600 rounded-full border border-purple-500/20">
+                <span className="text-sm font-medium text-muted-foreground">
                   {form.watch("drinking")}
                 </span>
               ) : (
@@ -182,7 +182,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             label="Personality"
             value={
               form.watch("personality") ? (
-                <span className="px-2 py-0.5 text-[11px] font-medium bg-indigo-500/10 text-indigo-600 rounded-full border border-indigo-500/20">
+                <span className="text-sm font-medium text-muted-foreground">
                   {form.watch("personality")}
                 </span>
               ) : (
@@ -202,7 +202,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             label="Food Preference"
             value={
               form.watch("foodPreference") ? (
-                <span className="px-2 py-0.5 text-[11px] font-medium bg-green-500/10 text-green-600 rounded-full border border-green-500/20">
+                <span className="text-sm font-medium text-muted-foreground">
                   {form.watch("foodPreference")}
                 </span>
               ) : (

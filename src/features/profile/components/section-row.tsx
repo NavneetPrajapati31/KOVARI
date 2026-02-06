@@ -218,17 +218,17 @@ const SectionRow: React.FC<SectionRowProps> = ({
     if (fieldType === "select") {
       return (
         <Select value={editValue as string} onValueChange={setEditValue}>
-          <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg bg-white">
+          <SelectTrigger className="w-full h-9 text-sm focus:ring-0 rounded-lg bg-white">
             <SelectValue
               placeholder={placeholder || "Select an option"}
             />
           </SelectTrigger>
-          <SelectContent className="bg-white">
+          <SelectContent className="p-1">
             {selectOptions.map((option) => (
               <SelectItem 
                 key={option.value} 
                 value={option.value}
-                className="text-sm focus:bg-primary/5 focus:text-primary cursor-pointer"
+                className="text-sm text-muted-foreground focus:bg-primary/5 focus:text-foreground hover:bg-secondary cursor-pointer"
               >
                 {option.label}
               </SelectItem>
@@ -244,10 +244,10 @@ const SectionRow: React.FC<SectionRowProps> = ({
           value={editValue as string}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`w-full min-h-[80px] p-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-sm bg-white ${
+          className={`w-full min-h-[80px] p-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-0 placeholder:text-sm bg-white ${
             error
               ? "border-destructive focus:border-destructive"
-              : "border-input focus:border-primary"
+              : "border-input"
           }`}
           disabled={isSaving}
           placeholder={placeholder}
@@ -390,10 +390,10 @@ const SectionRow: React.FC<SectionRowProps> = ({
                         >
                           <div className="mr-2 h-4 w-4 flex items-center justify-center flex-shrink-0">
                             {isSelected && (
-                              <Check className="h-4 w-4 text-primary" />
+                              <Check className="h-4 w-4 text-foreground" />
                             )}
                           </div>
-                          <span className={cn(isSelected ? "text-primary font-medium" : "text-muted-foreground")}>
+                          <span className={cn(isSelected ? "text-foreground font-medium" : "text-muted-foreground")}>
                             {option.label}
                           </span>
                         </div>
@@ -402,13 +402,13 @@ const SectionRow: React.FC<SectionRowProps> = ({
                 </CommandGroup>
               </CommandList>
                 {isMulti && currentValues.length > 0 && (
-                  <div className="p-3 border-t bg-muted/30">
+                  <div className="p-4 border-t bg-muted/30">
                     <div className="flex flex-wrap gap-1">
                       {currentValues.map(val => (
                         <Badge 
                           key={val} 
                           variant="secondary" 
-                          className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors border-none py-0.5 px-2 text-[10px]"
+                          className="bg-secondary text-foreground transition-colors border-none px-4 py-2 text-xs"
                         >
                           {val}
                           <button
@@ -418,7 +418,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
                               setEditValue(next);
                               onSave?.(next);
                             }}
-                            className="ml-1 hover:text-primary-hover"
+                            className="ml-2"
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -514,7 +514,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
               )}
             </div>
             {fieldType === "textarea" && (
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center justify-end">
                 <Button
                   size={isMobile ? "icon" : "sm"}
                   onClick={handleSave}

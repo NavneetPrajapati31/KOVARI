@@ -59,18 +59,17 @@ const ProfessionalSection: React.FC<ProfessionalSectionProps> = ({
             label="Profession"
             value={
               form.watch("profession") ? (
-                <span className="px-2 py-0.5 text-[11px] font-medium bg-violet-500/10 text-violet-600 rounded-full border border-violet-500/20">
+                <span className="text-sm font-medium text-muted-foreground">
                   {form.watch("profession")}
                 </span>
               ) : (
                 "-"
               )
             }
-            fieldType="popover-select"
-            selectOptions={JOBS.map(job => ({ value: job, label: job }))}
+            fieldType="text"
             onSave={(value) => handleSaveField("profession", value as string)}
             editValue={form.watch("profession")}
-            placeholder="Search profession..."
+            placeholder="Enter your profession"
             error={fieldErrors.profession}
           />
         </div>
