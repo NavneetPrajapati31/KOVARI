@@ -8,6 +8,8 @@ import type { User } from "@/features/profile/lib/user";
 import Link from "next/link";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
+import { Skeleton } from "@heroui/react";
+
 
 export default function FollowersFollowing() {
   const searchParams = useSearchParams();
@@ -36,6 +38,9 @@ export default function FollowersFollowing() {
   const [following, setFollowing] = useState<User[]>([]);
   const [followersLoading, setFollowersLoading] = useState(false);
   const [followingLoading, setFollowingLoading] = useState(false);
+  const [hasFetchedFollowers, setHasFetchedFollowers] = useState(false);
+  const [hasFetchedFollowing, setHasFetchedFollowing] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [profileUsername, setProfileUsername] = useState<string>("");
   const [profileLoading, setProfileLoading] = useState(false);
@@ -77,7 +82,7 @@ export default function FollowersFollowing() {
   // Memoized fetch for followers
   const fetchFollowers = async (force = false) => {
     if (!userId) return;
-    if (followers.length > 0 && !force) return;
+    if ((followers.length > 0 || hasFetchedFollowers) && !force) return;
     setFollowersLoading(true);
     setError(null);
     try {
@@ -85,6 +90,7 @@ export default function FollowersFollowing() {
       if (!res.ok) throw new Error("Failed to fetch followers");
       const data = await res.json();
       setFollowers(data);
+      setHasFetchedFollowers(true);
     } catch (err: any) {
       setError(err.message || "Unknown error");
     } finally {
@@ -92,10 +98,11 @@ export default function FollowersFollowing() {
     }
   };
 
+
   // Memoized fetch for following
   const fetchFollowing = async (force = false) => {
     if (!userId) return;
-    if (following.length > 0 && !force) return;
+    if ((following.length > 0 || hasFetchedFollowing) && !force) return;
     setFollowingLoading(true);
     setError(null);
     try {
@@ -103,12 +110,14 @@ export default function FollowersFollowing() {
       if (!res.ok) throw new Error("Failed to fetch following");
       const data = await res.json();
       setFollowing(data);
+      setHasFetchedFollowing(true);
     } catch (err: any) {
       setError(err.message || "Unknown error");
     } finally {
       setFollowingLoading(false);
     }
   };
+
 
   // Fetch on tab switch, but only if not already loaded
   useEffect(() => {
@@ -196,11 +205,14 @@ export default function FollowersFollowing() {
             <ArrowLeft className="sm:w-5 sm:h-5 w-4 h-4 text-foreground" />
           </Link>
           <h1 className="text-xs sm:text-sm font-semibold text-foreground">
-            {profileLoading && (
-              <span className="text-muted-foreground">Loading...</span>
+            {profileLoading ? (
+              <Skeleton className="h-4 w-16 rounded-full" />
+            ) : (
+              <>
+                 {profileError && <span className="text-destructive">Error</span>}
+                 {!profileError && profileUsername}
+              </>
             )}
-            {profileError && <span className="text-destructive">Error</span>}
-            {!profileLoading && !profileError && profileUsername}
           </h1>
           <div className="w-5 h-5"></div>
         </div>
@@ -280,12 +292,12 @@ export default function FollowersFollowing() {
         </div>
       </div>
 
-      <div className="p-4 bg-card flex-shrink-0 border-b border-border">
+      <div className="sm:p-4 p-3 bg-card flex-shrink-0 border-b border-border">
         <div className="relative">
           <input
             type="text"
             placeholder="Search"
-            className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-sm placeholder:text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300"
+            className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-xs placeholder:text-xs sm:text-sm sm:placeholder:text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Search followers or following"
@@ -304,7 +316,7 @@ export default function FollowersFollowing() {
               tabIndex={0}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <X className="h-5 w-5 text-gray-400" />
+              <X className="h-4 w-4 text-gray-400" />
             </button>
           ) : (
             <button
@@ -314,7 +326,7 @@ export default function FollowersFollowing() {
               tabIndex={0}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-4 w-4 text-gray-400" />
             </button>
           )}
         </div>
@@ -322,41 +334,28 @@ export default function FollowersFollowing() {
 
       {/* Tab Content */}
       <div className="w-full">
-        {activeTab === "followers" && followersLoading && (
-          <div className="flex justify-center items-center py-8">
-            <span className="text-muted-foreground text-xs sm:text-sm">
-              Loading...
-            </span>
+        {(activeTab === "followers" && (followersLoading || !hasFetchedFollowers)) ||
+        (activeTab === "following" && (followingLoading || !hasFetchedFollowing)) ? (
+          <div className="divide-y divide-border border-b border-border">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between pl-4 md:pr-4 pr-3 py-3"
+              >
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <Skeleton className="sm:w-11 sm:h-11 h-10 w-10 rounded-full" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <Skeleton className="h-3 w-24 rounded-full" />
+                    <Skeleton className="h-3 w-16 rounded-full" />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 ml-3">
+                  <Skeleton className="w-20 sm:w-24 h-8 rounded-md" />
+                </div>
+              </div>
+            ))}
           </div>
-        )}
-        {activeTab === "following" && followingLoading && (
-          <div className="flex justify-center items-center py-8">
-            <span className="text-muted-foreground text-xs sm:text-sm">
-              Loading...
-            </span>
-          </div>
-        )}
-        {/* {activeTab === "likes" && likesLoading && (
-          <div className="flex justify-center items-center py-8">
-            <span className="text-muted-foreground text-xs sm:text-sm">
-              Loading...
-            </span>
-          </div>
-        )}
-        {activeTab === "likes" && !likesLoading && !error && (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="text-gray-400 text-center">
-              <h3 className="text-xs sm:text-sm font-medium text-foreground mb-2">
-                {likes} likes
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {likes === 0
-                  ? "No likes yet. When you get likes, you'll see them here."
-                  : "This is a placeholder for likes content."}
-              </p>
-            </div>
-          </div>
-        )} */}
+        ) : null}
 
         {!followersLoading && !error && activeTab === "followers" && (
           <UserList
@@ -366,6 +365,7 @@ export default function FollowersFollowing() {
             onFollowBack={handleFollowBack}
             isOwnProfile={isOwnProfile}
             currentUserUuid={currentUserUuid || undefined}
+            searchQuery={searchQuery}
           />
         )}
         {!followingLoading && !error && activeTab === "following" && (
@@ -375,6 +375,7 @@ export default function FollowersFollowing() {
             onUnfollow={handleUnfollow}
             isOwnProfile={isOwnProfile}
             currentUserUuid={currentUserUuid || undefined}
+            searchQuery={searchQuery}
           />
         )}
       </div>

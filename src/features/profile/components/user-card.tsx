@@ -21,7 +21,9 @@ import {
   UserX,
   EllipsisVertical,
   Loader2,
+  X,
 } from "lucide-react";
+
 import type { User } from "@/features/profile/lib/user"; // Import the User interface
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
@@ -193,7 +195,7 @@ export default function UserCard({
   };
 
   return (
-    <div className="flex items-center justify-between pl-4 md:pr-4 pr-3 py-3 hover:bg-gray-100 transition-colors">
+    <div className="flex items-center justify-between pl-4 md:pr-4 pr-3 py-3 transition-colors">
       <div className="flex items-center space-x-3 flex-1 min-w-0">
         {profileLink ? (
           <Link
@@ -202,13 +204,22 @@ export default function UserCard({
             tabIndex={0}
             aria-label={`View ${user.name}'s profile`}
           >
-            <Avatar className="sm:w-11 sm:h-11 h-10 w-10 border border-gray-200">
+            <Avatar className="sm:w-11 sm:h-11 h-10 w-10">
               <AvatarImage
                 src={user.avatar || "/placeholder.svg"}
                 alt={user.name}
               />
-              <AvatarFallback className="bg-gray-100 text-gray-600 text-xs font-medium">
-                {getInitials(user.name)}
+              <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">
+                          <svg
+                            className="w-6 h-6 text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            focusable="false"
+                          >
+                            <circle cx="12" cy="8" r="4" />
+                            <rect x="4" y="14" width="16" height="6" rx="3" />
+                          </svg>
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -224,13 +235,22 @@ export default function UserCard({
           </Link>
         ) : (
           <>
-            <Avatar className="sm:w-11 sm:h-11 h-10 w-10 border border-gray-200">
+            <Avatar className="sm:w-11 sm:h-11 h-10 w-10">
               <AvatarImage
                 src={user.avatar || "/placeholder.svg"}
                 alt={user.name}
               />
-              <AvatarFallback className="bg-gray-100 text-gray-600 text-xs font-medium">
-                {getInitials(user.name)}
+             <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">
+                          <svg
+                            className="w-6 h-6 text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            focusable="false"
+                          >
+                            <circle cx="12" cy="8" r="4" />
+                            <rect x="4" y="14" width="16" height="6" rx="3" />
+                          </svg>
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -251,143 +271,127 @@ export default function UserCard({
         {/* Inline actions for desktop */}
         <div className="flex items-center space-x-2">
           {isOwnProfile && type === "followers" && (
-            <button
-              className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground flex justify-center items-center`}
-              onClick={isFollowing ? handleMessage : handleFollowToggle}
-              aria-label={isFollowing ? "message" : "follow back"}
-              disabled={loadingAction === "follow"}
-            >
-              {isFollowing ? (
-                "Message"
-              ) : loadingAction === "follow" ? (
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-              ) : (
-                "Follow Back"
-              )}
-            </button>
-          )}
-          {isOwnProfile && type === "followers" && (
             <>
-              <button
-                className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground`}
-                onClick={handleMessage}
-                aria-label={"message"}
+              <Button
+                className="h-8 px-4 text-[11px] sm:text-xs font-medium bg-primary text-primary-foreground rounded-lg min-w-[90px]"
+                onClick={isFollowing ? handleMessage : handleFollowToggle}
+                disabled={loadingAction === "follow"}
               >
-                Message
-              </button>
-              <button
-                className="w-20 sm:w-24 hidden md:flex px-5 py-1.5 text-[10px] sm:text-xs text-foreground bg-transparent border border-border rounded-md justify-center items-center"
+                {loadingAction === "follow" ? (
+                  <Spinner variant="spinner" size="sm" classNames={{spinnerBars: "bg-primary-foreground"}} />
+                ) : isFollowing ? (
+                  "Message"
+                ) : (
+                  "Follow Back"
+                )}
+              </Button>
+              <Button
+                size="sm"
+                className="hidden md:flex h-8 px-4 text-xs font-medium bg-secondary text-foreground rounded-lg min-w-[80px]"
                 onClick={handleRemove}
-                aria-label="Remove follower"
                 disabled={loadingAction === "remove"}
               >
                 {loadingAction === "remove" ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <Spinner variant="spinner" size="sm" classNames={{spinnerBars: "bg-foreground"}} />
                 ) : (
                   "Remove"
                 )}
-              </button>
+              </Button>
             </>
           )}
           {isOwnProfile && type === "following" && (
             <>
-              <button
-                className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground`}
+              <Button
+                size="sm"
+                className="h-8 px-4 text-[11px] sm:text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg min-w-[90px]"
                 onClick={handleMessage}
-                aria-label={"message"}
               >
                 Message
-              </button>
-              <button
-                className="w-20 sm:w-24 hidden md:flex px-5 py-1.5 text-[10px] sm:text-xs  text-foreground bg-transparent border border-border rounded-md justify-center items-center"
+              </Button>
+              <Button
+                size="sm"
+                className="hidden md:flex h-8 px-4 text-[11px] sm:text-xs font-medium bg-secondary text-foreground rounded-lg min-w-[80px]"
                 onClick={handleUnfollow}
-                aria-label="Unfollow"
                 disabled={loadingAction === "unfollow"}
               >
                 {loadingAction === "unfollow" ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <Spinner variant="spinner" size="sm" classNames={{spinnerBars: "bg-foreground"}} />
                 ) : (
                   "Unfollow"
                 )}
-              </button>
+              </Button>
             </>
           )}
           {/* For other profiles: show follow/message logic */}
-          {!isOwnProfile &&
-            String(user.id) !== currentUserUuid &&
-            (user.isFollowing ? (
-              <button
-                className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground`}
-                onClick={handleMessage}
-                aria-label="message"
-              >
-                Message
-              </button>
-            ) : (
-              <button
-                className={`w-20 sm:w-24 px-5 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors bg-primary text-primary-foreground flex justify-center items-center`}
-                onClick={handleFollow}
-                aria-label="follow"
-                disabled={loadingAction === "follow"}
-              >
-                {loadingAction === "follow" ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                ) : (
-                  "Follow"
-                )}
-              </button>
-            ))}
+          {!isOwnProfile && String(user.id) !== currentUserUuid && (
+            <Button
+              size="sm"
+              className={`h-8 px-4 text-[11px] sm:text-xs font-medium rounded-lg min-w-[90px] ${
+                isFollowing
+                  ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              }`}
+              onClick={isFollowing ? handleMessage : handleFollow}
+              disabled={loadingAction === "follow"}
+            >
+              {loadingAction === "follow" ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-primary-foreground" }}
+                />
+              ) : isFollowing ? (
+                "Message"
+              ) : (
+                "Follow"
+              )}
+            </Button>
+          )}
         </div>
         {/* Dropdown for mobile */}
+        {/* Dropdown for mobile */}
         {isOwnProfile && (
-          <div className="flex md:hidden">
-            <DropdownMenu
-              open={isDropdownOpen}
-              onOpenChange={setIsDropdownOpen}
-            >
-              <DropdownMenuTrigger asChild className="!px-0">
-                <Button
-                  size="sm"
-                  className="w-4 h-4 p-0 bg-transparent text-foreground"
-                >
-                  <EllipsisVertical className="w-4 h-4 text-foreground" />
-                  <span className="sr-only">More options</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-40 shadow-sm bg-white/50 backdrop-blur-md"
+          <div className="flex md:hidden items-center ml-1">
+            {type === "followers" ? (
+              <Button
+                size="sm"
+                className="w-8 h-8 bg-secondary text-foreground rounded-lg"
+                onClick={handleRemove}
+                disabled={loadingAction === "remove"}
               >
-                {isOwnProfile && type === "followers" && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleRemove();
-                    }}
-                    className="!text-destructive !hover:text-destructive text-xs sm:text-sm !bg-transparent !hover:bg-transparent"
-                    disabled={loadingAction === "remove"}
-                  >
-                    {loadingAction === "remove" ? "Removing..." : "Remove"}
-                  </DropdownMenuItem>
+                {loadingAction === "remove" ? (
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-foreground" }}
+                  />
+                ) : (
+                  <X className="w-5 h-5" />
                 )}
-                {isOwnProfile && type === "following" && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleUnfollow();
-                    }}
-                    className="!text-destructive !hover:text-destructive text-xs sm:text-sm !bg-transparent !hover:bg-transparent"
-                    disabled={loadingAction === "unfollow"}
-                  >
-                    {loadingAction === "unfollow"
-                      ? "Unfollowing..."
-                      : "Unfollow"}
-                  </DropdownMenuItem>
+                <span className="sr-only">Remove</span>
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="w-8 h-8 bg-secondary text-foreground rounded-lg"
+                onClick={handleUnfollow}
+                disabled={loadingAction === "unfollow"}
+              >
+                {loadingAction === "unfollow" ? (
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-foreground" }}
+                  />
+                ) : (
+                  <X className="w-5 h-5" />
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <span className="sr-only">Unfollow</span>
+              </Button>
+            )}
           </div>
         )}
+
       </div>
     </div>
   );

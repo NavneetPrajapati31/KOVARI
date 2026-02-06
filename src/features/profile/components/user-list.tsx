@@ -10,7 +10,9 @@ interface UserListProps {
   onFollowBack?: (userId: number) => void;
   isOwnProfile?: boolean;
   currentUserUuid?: string;
+  searchQuery?: string;
 }
+
 
 export default function UserList({
   users,
@@ -20,8 +22,21 @@ export default function UserList({
   onFollowBack,
   isOwnProfile,
   currentUserUuid,
+  searchQuery,
+
 }: UserListProps) {
   if (users.length === 0) {
+    if (searchQuery) {
+        return (
+            <div className="flex flex-col items-center justify-center py-16 px-4">
+              <div className="text-gray-400 text-center">
+                <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2">
+                  No users found
+                </h3>
+              </div>
+            </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="text-gray-400 text-center">
@@ -38,8 +53,9 @@ export default function UserList({
     );
   }
 
+
   return (
-    <div className="divide-y divide-border">
+    <div className="divide-y divide-border border-b border-border">
       {users.map((user) => (
         <UserCard
           key={user.id}
