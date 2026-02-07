@@ -95,7 +95,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex justify-around items-center h-16 md:hidden px-2 pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex justify-around items-center h-14 md:hidden px-2 pb-safe">
       {tabs.map((tab) => {
         const active = tab.isActive(pathname);
         const Icon = tab.icon;
