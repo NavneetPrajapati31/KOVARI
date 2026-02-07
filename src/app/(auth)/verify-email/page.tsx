@@ -1,18 +1,19 @@
 "use client";
 
-import type React from "react";
 import { useState, useEffect } from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, ArrowLeft } from "lucide-react";
 
 export default function VerifyEmail() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const { signUp, setActive } = useSignUp();
   const router = useRouter();
 
@@ -27,6 +28,7 @@ export default function VerifyEmail() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setSuccess("");
 
     try {
       if (!signUp) {
@@ -54,6 +56,7 @@ export default function VerifyEmail() {
   const handleResendCode = async () => {
     setIsLoading(true);
     setError("");
+    setSuccess("");
 
     try {
       if (!signUp) {
@@ -61,7 +64,7 @@ export default function VerifyEmail() {
       }
 
       await signUp.prepareEmailAddressVerification();
-      setError("Verification code resent. Please check your email.");
+      setSuccess("Verification code resent. Please check your email.");
     } catch (err: any) {
       setError(
         err.errors?.[0]?.message || "Failed to resend verification code"
@@ -72,81 +75,100 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-8 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-4 p-7 border-1 border-border rounded-lg bg-card">
-        <div>
-          {/* <div className="flex items-center justify-center space-x-2 mb-6">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <div className="w-6 h-6 text-primary-foreground">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" />
-                </svg>
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 custom-autofill">
+      <div className="w-full max-w-md">
+        <Link
+          href="/sign-in"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+          aria-label="Back to sign in"
+        >
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          Back to sign in
+        </Link>
+
+        <div className="border border-border rounded-xl bg-card shadow-sm p-8 sm:p-10">
+          <div className="text-center mb-8">
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Mail className="w-6 h-6 text-primary" aria-hidden />
             </div>
-            <span className="text-xl font-semibold text-primary">KOVARI</span>
-          </div> */}
-          <h2 className="text-center text-2xl font-bold text-foreground">
-            Verify your email
-          </h2>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
-            We&apos;ve sent a verification code to your email address. Please
-            enter it below.
-          </p>
+            <h1 className="text-xl font-bold text-foreground">
+              Verify your email
+            </h1>
+            <p className="mt-1.5 text-sm text-muted-foreground max-w-md mx-auto">
+              We&apos;ve sent a verification code to your email address. Please
+              enter it below.
+            </p>
+          </div>
+
+          {error && (
+            <div
+              className="mb-6 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg"
+              role="alert"
+            >
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div
+              className="mb-6 p-3 text-sm text-green-700 dark:text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg"
+              role="status"
+            >
+              {success}
+            </div>
+          )}
+
+          <form className="space-y-5" onSubmit={handleVerify}>
+            <div className="space-y-2">
+              <Label
+                htmlFor="code"
+                className="text-sm font-medium text-foreground"
+              >
+                Verification Code
+              </Label>
+              <Input
+                id="code"
+                type="text"
+                placeholder="Enter 6-digit code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="h-10 border-border focus:ring-transparent placeholder:text-muted-foreground"
+                required
+                disabled={isLoading}
+                maxLength={6}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-10 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
+              disabled={isLoading || code.length !== 6}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                "Verify Email"
+              )}
+            </Button>
+
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Didn&apos;t receive the code?{" "}
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  className="text-primary font-medium hover:underline focus:outline-none focus:underline"
+                  disabled={isLoading}
+                >
+                  Resend
+                </button>
+              </p>
+            </div>
+          </form>
         </div>
-
-        {error && (
-          <div className="p-3 text-sm text-destructive bg-[#dc2626]/15 border border-[#dc2626] rounded-md">
-            {error}
-          </div>
-        )}
-
-        <form className="mt-8 space-y-4" onSubmit={handleVerify}>
-          <div>
-            <Label
-              htmlFor="code"
-              className="text-sm font-medium text-foreground"
-            >
-              Verification Code
-            </Label>
-            <Input
-              id="code"
-              type="text"
-              placeholder="Enter 6-digit code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="mt-1 h-11 border-border focus:ring-transparent placeholder:text-muted-foreground placeholder:text-sm"
-              required
-              disabled={isLoading}
-              maxLength={6}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full h-11 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
-            disabled={isLoading || code.length !== 6}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              "Verify Email"
-            )}
-          </Button>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={handleResendCode}
-              className="text-sm text-muted-foreground hover:underline font-medium"
-              disabled={isLoading}
-            >
-              Didn&apos;t receive the code? Resend
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
