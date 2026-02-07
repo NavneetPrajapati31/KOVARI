@@ -13,7 +13,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Card, CardContent } from "@/shared/components/ui/card";
-import { Select, SelectItem } from "@heroui/react";
+import { LocationAutocomplete } from "@/shared/components/ui/location-autocomplete";
 import { DatePicker } from "@heroui/react";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { toast } from "sonner";
@@ -21,38 +21,7 @@ import { useRouter } from "next/navigation";
 import { Switch } from "@/shared/components/ui/switch";
 import { ImageUpload } from "@/shared/components/image-upload";
 
-const destinations = [
-  { value: "paris", label: "Paris, France" },
-  { value: "tokyo", label: "Tokyo, Japan" },
-  { value: "new-york", label: "New York, USA" },
-  { value: "london", label: "London, UK" },
-  { value: "sydney", label: "Sydney, Australia" },
-  { value: "barcelona", label: "Barcelona, Spain" },
-  { value: "rome", label: "Rome, Italy" },
-  { value: "bali", label: "Bali, Indonesia" },
-  { value: "dubai", label: "Dubai, UAE" },
-  { value: "singapore", label: "Singapore" },
-  { value: "amsterdam", label: "Amsterdam, Netherlands" },
-  { value: "berlin", label: "Berlin, Germany" },
-  { value: "bangkok", label: "Bangkok, Thailand" },
-  { value: "hong-kong", label: "Hong Kong" },
-  { value: "seoul", label: "Seoul, South Korea" },
-  { value: "mumbai", label: "Mumbai, India" },
-  { value: "cairo", label: "Cairo, Egypt" },
-  { value: "rio-de-janeiro", label: "Rio de Janeiro, Brazil" },
-  { value: "vancouver", label: "Vancouver, Canada" },
-  { value: "copenhagen", label: "Copenhagen, Denmark" },
-  { value: "athens", label: "Athens, Greece" },
-  { value: "budapest", label: "Budapest, Hungary" },
-  { value: "dublin", label: "Dublin, Ireland" },
-  { value: "lisbon", label: "Lisbon, Portugal" },
-  { value: "prague", label: "Prague, Czech Republic" },
-  { value: "vienna", label: "Vienna, Austria" },
-  { value: "stockholm", label: "Stockholm, Sweden" },
-  { value: "oslo", label: "Oslo, Norway" },
-  { value: "helsinki", label: "Helsinki, Finland" },
-  { value: "warsaw", label: "Warsaw, Poland" },
-];
+
 
 const formSchema = z
   .object({
@@ -61,6 +30,7 @@ const formSchema = z
       .min(1, "Group name is required")
       .min(3, "Group name must be at least 3 characters"),
     destination: z.string().min(1, "Please select a destination"),
+    destinationDetails: z.any().optional(),
     budget: z
       .number({ invalid_type_error: "Budget is required" })
       .min(1000, "Budget must be at least 1,000")
@@ -103,9 +73,7 @@ export function GroupCreationForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [destinationOpen, setDestinationOpen] = useState(false);
-  const [startDateOpen, setStartDateOpen] = useState(false);
-  const [endDateOpen, setEndDateOpen] = useState(false);
+
 
   const todayJs = new Date();
   const tomorrowJs = new Date(todayJs);
@@ -214,6 +182,9 @@ export function GroupCreationForm() {
         const formData = new FormData();
         formData.append("name", data.groupName);
         formData.append("destination", data.destination);
+        if (data.destinationDetails) {
+          formData.append("destination_details", JSON.stringify(data.destinationDetails));
+        }
         formData.append("start_date", format(data.startDate, "yyyy-MM-dd"));
         formData.append("end_date", format(data.endDate, "yyyy-MM-dd"));
         formData.append("is_public", String(data.isPublic));
@@ -233,6 +204,7 @@ export function GroupCreationForm() {
         const payload = {
           name: data.groupName,
           destination: data.destination,
+          destination_details: data.destinationDetails,
           start_date: format(data.startDate, "yyyy-MM-dd"),
           end_date: format(data.endDate, "yyyy-MM-dd"),
           is_public: data.isPublic,
@@ -323,41 +295,31 @@ export function GroupCreationForm() {
               <Label className="text-sm font-medium text-muted-foreground">
                 Destination
               </Label>
-              <Select
-                isRequired
-                variant="faded"
-                size="sm"
-                selectedKeys={
-                  watchedValues.destination
-                    ? new Set([watchedValues.destination])
-                    : new Set()
-                }
-                onSelectionChange={(keys: Set<React.Key> | "all") => {
-                  if (keys !== "all" && keys.size > 0) {
-                    const selectedValue = Array.from(keys)[0] as string;
-                    setValue("destination", selectedValue);
-                  } else if (keys !== "all" && keys.size === 0) {
-                    setValue("destination", "");
-                  }
+              <LocationAutocomplete
+                value={watchedValues.destination}
+                onChange={(val) => {
+                  setValue("destination", val);
+                  if (val) trigger("destination");
+                }}
+                onSelect={(data) => {
+                  setValue("destination", data.city || data.formatted.split(",")[0].trim()); // Store only city name or first part
+                  setValue("destinationDetails", {
+                    city: data.city,
+                    state: data.state,
+                    country: data.country,
+                    latitude: data.lat,
+                    longitude: data.lon,
+                    formatted_address: data.formatted,
+                    place_id: data.place_id
+                  });
                   trigger("destination");
                 }}
-                items={destinations}
-                placeholder="Select destination"
-                classNames={{
-                  trigger: cn(
-                    "w-full h-9 text-sm border border-input hover:border-input bg-transparent focus:border-primary focus:ring-primary rounded-md",
-                    errors.destination &&
-                      "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
-                  ),
-                  value: cn("text-muted-foreground"),
-                }}
-              >
-                {(destination) => (
-                  <SelectItem key={destination.value}>
-                    {destination.label}
-                  </SelectItem>
+                placeholder="Search destination"
+                className={cn(
+                  "bg-white",
+                  errors.destination && "border-[#F31260]"
                 )}
-              </Select>
+              />
               {errors.destination && (
                 <p className="text-sm text-[#F31260]">
                   {errors.destination.message}

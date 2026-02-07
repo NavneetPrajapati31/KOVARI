@@ -14,7 +14,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, destination, cover_image, description, notes, start_date, end_date, is_public, status, creator_id, ai_overview"
+      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, description, notes, start_date, end_date, is_public, status, creator_id, ai_overview"
     )
     .eq("id", groupId)
     .single();
@@ -73,6 +73,7 @@ export async function PATCH(
   const {
     name,
     destination,
+    destination_details,
     description,
     cover_image,
     notes,
@@ -153,6 +154,11 @@ export async function PATCH(
       );
     }
     updates.destination = destination;
+    if (destination_details) {
+      updates.destination_details = destination_details;
+      updates.destination_lat = destination_details.latitude;
+      updates.destination_lon = destination_details.longitude;
+    }
   }
   if (description !== undefined) {
     if (typeof description !== "string") {
@@ -229,7 +235,7 @@ export async function PATCH(
     .update(updates)
     .eq("id", groupId)
     .select(
-      "id, name, destination, cover_image, description, notes, start_date, end_date, is_public, status, ai_overview"
+      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, description, notes, start_date, end_date, is_public, status, ai_overview"
     )
     .single();
 

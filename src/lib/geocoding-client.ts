@@ -52,9 +52,7 @@ export const searchLocation = async (query: string): Promise<GeoapifyResult[]> =
   url.searchParams.append("type", "city");
   url.searchParams.append("limit", "5");
   url.searchParams.append("lang", "en");
-  // Bias and filter for India as requested
-  url.searchParams.append("filter", "countrycode:in");
-  url.searchParams.append("bias", "countrycode:in");
+  // No location bias or filter to allow global search
 
   try {
     const res = await fetch(url.toString());

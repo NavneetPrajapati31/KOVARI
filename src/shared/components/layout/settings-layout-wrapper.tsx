@@ -37,6 +37,7 @@ const editGroupSchema = z
       .max(500, "Description must be less than 500 characters")
       .optional(),
     destination: z.string().min(1, "Destination is required"),
+    destinationDetails: z.any().optional(),
     coverImage: z.string().optional().nullable(),
 
     // Travel Details
@@ -87,6 +88,7 @@ const getDefaultFormValues = (): EditGroupForm => ({
   groupName: "",
   description: "",
   destination: "",
+  destinationDetails: null,
   coverImage: null,
   startDate: "",
   endDate: "",
@@ -106,6 +108,7 @@ const SectionContent = memo(
     groupData: {
       name?: string;
       destination?: string;
+      destination_details?: any;
       cover_image?: string | null;
       description?: string | null;
       start_date?: string;
@@ -130,6 +133,7 @@ const SectionContent = memo(
           groupName: groupData.name ?? "",
           description: groupData.description ?? "",
           destination: groupData.destination ?? "",
+          destinationDetails: groupData.destination_details ?? null,
           coverImage: groupData.cover_image ?? null,
           startDate: groupData.start_date ?? "",
           endDate: groupData.end_date ?? "",
@@ -159,6 +163,7 @@ const SectionContent = memo(
               body: JSON.stringify({
                 name: values.groupName,
                 destination: values.destination,
+                destination_details: values.destinationDetails,
                 description: values.description ?? "",
                 cover_image: values.coverImage ?? null,
               }),
@@ -288,6 +293,7 @@ export default function LayoutWrapper() {
     status?: "active" | "pending" | "removed";
     name?: string;
     destination?: string;
+    destination_details?: any;
     cover_image?: string | null;
     description?: string | null;
     start_date?: string;

@@ -9,6 +9,7 @@ import { getGeminiPlaceOverview } from "@/lib/gemini";
 const GroupSchema = z.object({
   name: z.string().min(3),
   destination: z.string().min(2),
+  destination_details: z.any().optional(),
   start_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/),
   end_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/),
   is_public: z.boolean(),
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
       body = {
         name: formData.get("name"),
         destination: formData.get("destination"),
+        destination_details: formData.get("destination_details") ? JSON.parse(formData.get("destination_details") as string) : undefined,
         start_date: formData.get("start_date"),
         end_date: formData.get("end_date"),
         is_public: String(formData.get("is_public")) === "true",
@@ -130,6 +132,9 @@ export async function POST(req: Request) {
     const payload = {
       creator_id: userRow.id,
       ...parsed.data,
+      destination_details: parsed.data.destination_details || null,
+      destination_lat: parsed.data.destination_details?.latitude || null,
+      destination_lon: parsed.data.destination_details?.longitude || null,
       cover_image: parsed.data.cover_image || null,
       // Preserve explicit boolean false; only coerce undefined to null
       non_smokers:

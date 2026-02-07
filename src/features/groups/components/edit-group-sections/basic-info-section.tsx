@@ -7,6 +7,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Card, CardContent } from "@/shared/components/ui/card";
+import { LocationAutocomplete } from "@/shared/components/ui/location-autocomplete";
 import { ImageUpload } from "@/shared/components/image-upload";
 import { Spinner } from "@heroui/react";
 
@@ -65,13 +66,25 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             <Label htmlFor="destination" className="text-xs font-medium">
               Destination *
             </Label>
-            <Input
-              id="destination"
-              {...register("destination")}
+            <LocationAutocomplete
+              value={watchedValues.destination}
+              onChange={(val) => {
+                setValue("destination", val, { shouldDirty: true });
+              }}
+              onSelect={(data) => {
+                setValue("destination", data.city || data.formatted.split(",")[0].trim(), { shouldDirty: true });
+                setValue("destinationDetails", {
+                  city: data.city,
+                  state: data.state,
+                  country: data.country,
+                  latitude: data.lat,
+                  longitude: data.lon,
+                  formatted_address: data.formatted,
+                  place_id: data.place_id
+                }, { shouldDirty: true });
+              }}
               placeholder="e.g., Tokyo, Japan"
-              className={`h-9 text-sm w-full ${
-                errors.destination ? "border-destructive" : ""
-              }`}
+              className={errors.destination ? "border-destructive" : ""}
               disabled={isSubmitting}
             />
             {errors.destination && (
