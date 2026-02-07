@@ -77,6 +77,46 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
                 }}
               />
             </div>
+            
+            <div className="flex flex-row sm:flex-row sm:items-center sm:justify-between gap-3 py-2 border-none pt-0 min-w-0">
+              <div className="space-y-1 flex-1">
+                <Label className="text-xs font-medium">Strictly Non-Smoking</Label>
+                <p className="text-xs text-muted-foreground">
+                  Only allow non-smokers to join.
+                </p>
+              </div>
+              <Switch
+                checked={watchedValues.strictlyNonSmoking}
+                disabled={isSubmitting}
+                onCheckedChange={async (checked) => {
+                  setValue("strictlyNonSmoking", checked, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                  await onSubmit("privacy");
+                }}
+              />
+            </div>
+
+            <div className="flex flex-row sm:flex-row sm:items-center sm:justify-between gap-3 py-2 border-none pt-0 min-w-0">
+              <div className="space-y-1 flex-1">
+                <Label className="text-xs font-medium">Strictly Non-Drinking</Label>
+                <p className="text-xs text-muted-foreground">
+                  Only allow non-drinkers to join.
+                </p>
+              </div>
+              <Switch
+                checked={watchedValues.strictlyNonDrinking}
+                disabled={isSubmitting}
+                onCheckedChange={async (checked) => {
+                  setValue("strictlyNonDrinking", checked, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                  await onSubmit("privacy");
+                }}
+              />
+            </div>
 
             <div className="border-t border-border pt-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">

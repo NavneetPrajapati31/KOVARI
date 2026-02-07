@@ -14,7 +14,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, description, notes, start_date, end_date, is_public, status, creator_id, ai_overview"
+      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, creator_id, ai_overview"
     )
     .eq("id", groupId)
     .single();
@@ -79,6 +79,9 @@ export async function PATCH(
     notes,
     start_date,
     end_date,
+    budget,
+    non_smokers,
+    non_drinkers,
     is_public,
   } = body;
 
@@ -221,6 +224,36 @@ export async function PATCH(
     updates.end_date = end_date;
   }
 
+  if (budget !== undefined) {
+    if (typeof budget !== "number" || budget < 0) {
+      return NextResponse.json(
+        { error: "Budget must be a positive number" },
+        { status: 400 }
+      );
+    }
+    updates.budget = budget;
+  }
+
+  if (non_smokers !== undefined) {
+    if (typeof non_smokers !== "boolean") {
+      return NextResponse.json(
+        { error: "Invalid non_smokers value" },
+        { status: 400 }
+      );
+    }
+    updates.non_smokers = non_smokers;
+  }
+
+  if (non_drinkers !== undefined) {
+    if (typeof non_drinkers !== "boolean") {
+      return NextResponse.json(
+        { error: "Invalid non_drinkers value" },
+        { status: 400 }
+      );
+    }
+    updates.non_drinkers = non_drinkers;
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json(
       { error: "No valid fields to update" },
@@ -235,7 +268,7 @@ export async function PATCH(
     .update(updates)
     .eq("id", groupId)
     .select(
-      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, description, notes, start_date, end_date, is_public, status, ai_overview"
+      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, ai_overview"
     )
     .single();
 

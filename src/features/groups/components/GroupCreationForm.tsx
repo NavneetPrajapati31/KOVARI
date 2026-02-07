@@ -327,8 +327,8 @@ export function GroupCreationForm() {
               )}
             </div>
 
-            <div className="mb-4">
-              <Label htmlFor="budget">Budget (INR)</Label>
+            <div className="mb-4 space-y-2">
+              <Label htmlFor="budget" className="text-sm font-medium text-muted-foreground">Budget (INR)</Label>
               <Input
                 id="budget"
                 type="number"
@@ -449,7 +449,7 @@ export function GroupCreationForm() {
                 htmlFor="description"
                 className="text-sm font-medium text-muted-foreground"
               >
-                Description (optional)
+                Description
               </Label>
               <div className="relative">
                 <Textarea

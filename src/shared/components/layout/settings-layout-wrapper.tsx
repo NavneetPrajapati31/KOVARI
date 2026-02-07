@@ -41,6 +41,9 @@ const editGroupSchema = z
     coverImage: z.string().optional().nullable(),
 
     // Travel Details
+    budget: z
+      .number({ invalid_type_error: "Budget must be a number" })
+      .min(0, "Budget must be positive"),
     startDate: z
       .string()
       .min(1, "Start date is required")
@@ -52,6 +55,8 @@ const editGroupSchema = z
 
     // Privacy & Visibility
     visibility: z.enum(["public", "private", "invite-only"]),
+    strictlyNonSmoking: z.boolean(),
+    strictlyNonDrinking: z.boolean(),
   })
   .refine(
     (data) => {
@@ -90,9 +95,12 @@ const getDefaultFormValues = (): EditGroupForm => ({
   destination: "",
   destinationDetails: null,
   coverImage: null,
+  budget: 0,
   startDate: "",
   endDate: "",
   visibility: "public",
+  strictlyNonSmoking: false,
+  strictlyNonDrinking: false,
 });
 
 // Memoized section content component
@@ -111,9 +119,12 @@ const SectionContent = memo(
       destination_details?: any;
       cover_image?: string | null;
       description?: string | null;
+      budget?: number;
       start_date?: string;
       end_date?: string;
       is_public?: boolean | null;
+      non_smokers?: boolean | null;
+      non_drinkers?: boolean | null;
     } | null;
     onGroupUpdate?: (data: Record<string, unknown>) => void;
   }) => {
@@ -135,9 +146,12 @@ const SectionContent = memo(
           destination: groupData.destination ?? "",
           destinationDetails: groupData.destination_details ?? null,
           coverImage: groupData.cover_image ?? null,
+          budget: groupData.budget ?? 10000,
           startDate: groupData.start_date ?? "",
           endDate: groupData.end_date ?? "",
           visibility: groupData.is_public === false ? "private" : "public",
+          strictlyNonSmoking: groupData.non_smokers ?? false,
+          strictlyNonDrinking: groupData.non_drinkers ?? false,
         } as EditGroupForm);
       }
     }, [groupData, form]);
@@ -181,6 +195,7 @@ const SectionContent = memo(
               body: JSON.stringify({
                 start_date: values.startDate,
                 end_date: values.endDate,
+                budget: values.budget,
               }),
             });
 
@@ -203,6 +218,8 @@ const SectionContent = memo(
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 is_public: values.visibility === "public",
+                non_smokers: values.strictlyNonSmoking,
+                non_drinkers: values.strictlyNonDrinking,
               }),
             });
 
@@ -296,6 +313,7 @@ export default function LayoutWrapper() {
     destination_details?: any;
     cover_image?: string | null;
     description?: string | null;
+    budget?: number;
     start_date?: string;
     end_date?: string;
   } | null>(null);

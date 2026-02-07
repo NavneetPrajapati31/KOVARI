@@ -3,6 +3,7 @@
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { cn, DatePicker } from "@heroui/react";
@@ -180,6 +181,27 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                 </p>
               )}
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="budget" className="text-xs font-medium">
+              Budget (INR) *
+            </Label>
+            <Input
+              id="budget"
+              type="number"
+              min={0}
+              {...form.register("budget", { valueAsNumber: true })}
+              className={cn(
+                "h-9 text-sm w-full",
+                errors.budget && "border-destructive focus-visible:ring-destructive"
+              )}
+              disabled={isSubmitting}
+            />
+            {errors.budget && (
+              <p className="text-xs text-destructive">
+                {errors.budget.message?.toString()}
+              </p>
+            )}
           </div>
         </CardContent>
         <CardContent className="pt-0">
