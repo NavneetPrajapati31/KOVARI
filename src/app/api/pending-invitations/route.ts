@@ -81,6 +81,7 @@ export async function GET() {
         start_date,
         end_date,
         description,
+        cover_image,
         creator_id,
         created_at
       `
@@ -236,6 +237,7 @@ export async function GET() {
       return {
         id: group.id,
         groupName: group.name,
+        groupCoverImage: group.cover_image,
         creator: {
           name: creator?.name || "Unknown",
           username: creator?.username || "unknown",

@@ -1076,7 +1076,7 @@ export default function ProfileSetupForm() {
                               <rect x="4" y="14" width="16" height="6" rx="3" />
                             </svg>
                           }
-                          className="h-20 w-20 bg-muted"
+                          className="h-20 w-20 bg-secondary"
                         />
                       )}
                     </div>

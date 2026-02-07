@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardBody } from "@heroui/react";
-import { Avatar } from "@heroui/react";
+import { Card, CardBody, Spinner } from "@heroui/react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { Calendar, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import InvitationCardSkeleton from "@/features/invitations/components/InvitationCardSkeleton";
@@ -10,6 +14,7 @@ import InvitationCardSkeleton from "@/features/invitations/components/Invitation
 export interface GroupInvite {
   id: string;
   groupName: string;
+  groupCoverImage?: string;
   creator: {
     name: string;
     username: string;
@@ -51,110 +56,66 @@ export function GroupInviteCard({
   }
 
   return (
-    <Card className="w-full max-w-[600px] h-[240px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
-      <CardBody className="px-5 py-4 relative">
-        {/* Profile Section with Avatar and User Info */}
-        <div className="flex items-center gap-4 mb-2">
-          {/* Creator Avatar */}
-          <Avatar
-            src={invite.creator.avatar || ""}
-            alt={`${invite.creator.name}&apos;s profile`}
-            size="md"
-          />
-          {/* Group Info - Right of Avatar */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <h2 className="text-md font-bold text-foreground truncate">
-              {invite.groupName}
-            </h2>
-            <p className="text-muted-foreground text-xs truncate">
-              by @{invite.creator.username}
-            </p>
+    <div className="w-full max-w-[600px] border border-border rounded-xl bg-card text-card-foreground p-4 flex flex-col gap-4 shadow-sm">
+      {/* Header: User Info & Timestamp */}
+      <div className="flex justify-between items-start">
+        {/* User Info */}
+        <div className="flex items-center gap-3 cursor-pointer group flex-1">
+          <Avatar className="w-10 h-10 shrink-0">
+            <AvatarImage
+              src={invite.groupCoverImage || ""}
+              alt={`${invite.groupName || invite.creator.name}'s profile`}
+            />
+            <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">
+              <svg
+                className="w-6 h-6 text-gray-400"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <rect x="4" y="14" width="16" height="6" rx="3" />
+              </svg>
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col min-w-0 flex-1">
+             <div className="flex justify-between items-start gap-2 w-full">
+               <span className="text-sm font-semibold text-foreground truncate">
+                  {invite.groupName}
+               </span>
+               <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">
+                  {invite.inviteDate ? new Date(invite.inviteDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+               </span>
+             </div>
+             <span className="text-xs text-muted-foreground truncate">
+               @{invite.creator.username}
+             </span>
           </div>
         </div>
+      </div>
 
-        <div className="text-left mb-4">
-          <p className="text-muted-foreground text-xs leading-relaxed line-clamp-2">
-            {invite.description}
-          </p>
-        </div>
+      {/* Content: Destination & Bio */}
+      <div className="flex flex-col gap-3 py-1">
+         {invite.destination && (
+            <div className="flex items-start gap-2.5">
+               <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                     Planning a trip to
+                  </span>
+                  <span className="text-sm font-semibold text-foreground leading-tight capitalize">
+                     {invite.destination}
+                  </span>
+               </div>
+            </div>
+         )}
+      </div>
 
-        {/* Invitation Details */}
-        <div className="text-left">
-          {invite.dates && (
-            <div className="flex items-center gap-2 text-primary text-sm font-medium mb-2">
-              <Calendar className="w-4 h-4" />
-              <span className="text-xs">{invite.dates}</span>
-            </div>
-          )}
-          {invite.destination && (
-            <div className="flex items-center gap-2">
-              <MapPin
-                className="w-4 h-4 text-muted-foreground"
-                aria-label="Destination"
-              />
-              <span className="text-xs text-foreground">
-                {invite.destination}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Member Avatars Row with Count and Text */}
-        {/* {invite.teamMembers && invite.teamMembers.length > 0 && (
-          <div className="flex items-center gap-3 mt-4 mb-2">
-            <div className="flex -space-x-2">
-              {invite.teamMembers.slice(0, 2).map((member, idx) => (
-                <Avatar
-                  key={idx}
-                  src={member.avatar || ""}
-                  alt={member.initials}
-                  size="sm"
-                  className={`border-2 border-white ${member.color}`}
-                />
-              ))}
-              {invite.teamMembers.length < invite.acceptedCount && (
-                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-violet-300 text-white text-xs font-semibold border-2 border-white">
-                  +{invite.acceptedCount - invite.teamMembers.length}
-                </div>
-              )}
-            </div>
-            <span className="text-muted-foreground text-xs line-clamp-2">
-              {invite.acceptedCount} people already joined the group including{" "}
-              {invite.teamMembers[0]?.initials || "a member"}.
-            </span>
-          </div>
-        )} */}
-      </CardBody>
-      <div className="px-5 pb-5 mt-auto">
-        <div className="flex gap-2 justify-center items-center">
+      {/* Actions */}
+      <div className="grid grid-cols-2 gap-2 mt-auto pt-2">
           <Button
-            color="primary"
-            className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
-            aria-label="Accept Invitation"
-            tabIndex={0}
-            disabled={!!loadingAction}
-            onClick={async () => {
-              setLoadingAction("accept");
-              try {
-                await onAccept(invite.id);
-              } catch (error) {
-                console.error("Error accepting invitation:", error);
-              } finally {
-                setTimeout(() => setLoadingAction(null), 1000);
-              }
-            }}
-          >
-            {loadingAction === "accept" && (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            )}
-            Accept
-          </Button>
-          <Button
-            color="primary"
             variant="outline"
-            className="hover:bg-background border-1 w-1/2 gap-2 text-xs font-semibold rounded-lg"
-            aria-label="Decline Invitation"
-            tabIndex={0}
+            className="w-full h-9 text-xs font-semibold rounded-lg border-border hover:bg-accent/50"
             disabled={!!loadingAction}
             onClick={async () => {
               setLoadingAction("decline");
@@ -163,17 +124,42 @@ export function GroupInviteCard({
               } catch (error) {
                 console.error("Error declining invitation:", error);
               } finally {
-                setTimeout(() => setLoadingAction(null), 1000);
+               setLoadingAction(null);
               }
             }}
           >
-            {loadingAction === "decline" && (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            )}
-            Decline
+             {loadingAction === "decline" ? (
+             <Spinner
+                variant="spinner"
+                size="sm"
+                classNames={{ spinnerBars: "bg-foreground" }}
+              />
+            ) : "Decline"}
           </Button>
-        </div>
+
+          <Button
+            className="w-full h-9 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={!!loadingAction}
+            onClick={async () => {
+              setLoadingAction("accept");
+              try {
+                await onAccept(invite.id);
+              } catch (error) {
+                console.error("Error accepting invitation:", error);
+              } finally {
+               setLoadingAction(null);
+              }
+            }}
+          >
+             {loadingAction === "accept" ? (
+              <Spinner
+                variant="spinner"
+                size="sm"
+                classNames={{ spinnerBars: "bg-primary-foreground" }}
+              />
+            ) : "Accept"}
+          </Button>
       </div>
-    </Card>
+    </div>
   );
 }

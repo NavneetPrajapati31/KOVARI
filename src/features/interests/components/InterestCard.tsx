@@ -2,8 +2,12 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardBody } from "@heroui/react";
-import { Avatar } from "@heroui/react";
+import { Card, CardBody, Spinner } from "@heroui/react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { MapPin, Loader2, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -58,11 +62,12 @@ export function InterestCard({
   };
 
   return (
-    <Card className="w-full max-w-[600px] h-[240px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card text-card-foreground">
-      <CardBody className="px-5 py-4 relative">
-        {/* Profile Section with Avatar and User Info */}
+    <div className="w-full max-w-[600px] border border-border rounded-xl bg-card text-card-foreground p-4 flex flex-col gap-4 shadow-sm">
+      {/* Header: User Info & Timestamp */}
+      <div className="flex justify-between items-start">
+        {/* User Info */}
         <div 
-          className="flex items-center gap-4 mb-2 cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex items-center gap-3 cursor-pointer group flex-1"
           onClick={handleProfileClick}
           role="button"
           tabIndex={0}
@@ -73,81 +78,61 @@ export function InterestCard({
             }
           }}
         >
-          {/* Sender Avatar */}
-          <Avatar
-            src={interest.sender.avatar || ""}
-            alt={`${interest.sender.name}'s profile`}
-            size="md"
-          />
-          {/* User Info - Right of Avatar */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <h2 className="text-md font-bold text-foreground truncate">
-              {interest.sender.name}
-            </h2>
-            <p className="text-muted-foreground text-xs truncate">
-              @{interest.sender.username}
-            </p>
+          <Avatar className="w-10 h-10 shrink-0">
+            <AvatarImage
+              src={interest.sender.avatar || ""}
+              alt={`${interest.sender.name}'s profile`}
+            />
+            <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">
+              <svg
+                className="w-6 h-6 text-gray-400"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <rect x="4" y="14" width="16" height="6" rx="3" />
+              </svg>
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col min-w-0 flex-1">
+             <div className="flex justify-between items-start gap-2 w-full">
+               <span className="text-sm font-semibold text-foreground truncate">
+                  {interest.sender.name}
+               </span>
+               <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">
+                 {dateFormatted}
+               </span>
+             </div>
+             <span className="text-xs text-muted-foreground truncate">
+               @{interest.sender.username}
+             </span>
           </div>
         </div>
+      </div>
 
-        <div className="text-left mb-4 flex-1">
-          <p className="text-muted-foreground text-xs leading-relaxed line-clamp-2">
-            {interest.sender.bio || "No bio provided."}
-          </p>
-        </div>
-
-        {/* Interest Details */}
-        <div className="text-left mb-4">
-          <div className="flex flex-col gap-1.5">
-            {interest.destination && (
-              <div className="flex items-center gap-2">
-                <MapPin
-                  className="w-4 h-4 text-muted-foreground"
-                  aria-label="Destination"
-                />
-                <span className="text-xs text-foreground font-medium">
-                  Interested in {interest.destination}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-muted-foreground text-xs">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Sent on {dateFormatted}</span>
+      {/* Content: Destination & Bio */}
+      <div className="flex flex-col gap-3 py-1">
+         {interest.destination && (
+            <div className="flex items-start gap-2.5">
+               <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                     Interested in traveling to
+                  </span>
+                  <span className="text-sm font-semibold text-foreground leading-tight">
+                     {interest.destination}
+                  </span>
+               </div>
             </div>
-          </div>
-        </div>
-      </CardBody>
-      
-      <div className="px-5 pb-5 mt-auto">
-        <div className="flex gap-2 justify-center items-center">
+         )}
+      </div>
+
+       {/* Actions */}
+      <div className="grid grid-cols-2 gap-2 mt-auto pt-2">
           <Button
-            color="primary"
-            className="w-1/2 gap-2 text-xs font-semibold rounded-lg"
-            aria-label="Connect"
-            tabIndex={0}
-            disabled={!!loadingAction}
-            onClick={async () => {
-              setLoadingAction("accept");
-              try {
-                await onAccept(interest.id);
-              } catch (error) {
-                console.error("Error accepting interest:", error);
-              } finally {
-                setTimeout(() => setLoadingAction(null), 1000);
-              }
-            }}
-          >
-            {loadingAction === "accept" && (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            )}
-            Connect
-          </Button>
-          <Button
-            color="primary"
             variant="outline"
-            className="border-1 hover:bg-background w-1/2 gap-2 text-xs font-semibold rounded-lg"
-            aria-label="Delete"
-            tabIndex={0}
+            className="w-full h-9 text-xs font-semibold rounded-lg border-border hover:bg-accent/50"
             disabled={!!loadingAction}
             onClick={async () => {
               setLoadingAction("decline");
@@ -156,17 +141,41 @@ export function InterestCard({
               } catch (error) {
                 console.error("Error declining interest:", error);
               } finally {
-                setTimeout(() => setLoadingAction(null), 1000);
+               setLoadingAction(null);
               }
             }}
           >
-            {loadingAction === "decline" && (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            )}
-            Delete
+             {loadingAction === "decline" ? (
+              <Spinner variant="spinner"
+                              size="sm"
+                              classNames={{ spinnerBars: "bg-foreground" }}
+                            />
+            ) : "Delete"}
           </Button>
-        </div>
+
+          <Button
+            className="w-full h-9 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={!!loadingAction}
+            onClick={async () => {
+              setLoadingAction("accept");
+              try {
+                await onAccept(interest.id);
+              } catch (error) {
+                console.error("Error accepting interest:", error);
+              } finally {
+               setLoadingAction(null);
+              }
+            }}
+          >
+             {loadingAction === "accept" ? (
+              <Spinner
+                variant="spinner"
+                size="sm"
+                classNames={{ spinnerBars: "bg-primary-foreground" }}
+              />
+            ) : "Connect"}
+          </Button>
       </div>
-    </Card>
+    </div>
   );
 }

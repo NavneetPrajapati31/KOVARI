@@ -267,7 +267,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             <div className="relative w-fit">
               <Avatar
                 src={form.watch("avatar") || ""}
-                className="h-28 w-28 mx-auto bg-muted"
+                className="h-28 w-28 mx-auto bg-secondary"
                 showFallback
                 fallback={
                   <svg
@@ -337,7 +337,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
           <div className="flex items-center gap-1 pb-4 border-b-1 border-border">
             <Avatar
               src={form.watch("avatar") || ""}
-              className="h-20 w-20 bg-muted"
+              className="h-20 w-20 bg-secondary"
               showFallback
               fallback={
                 <svg

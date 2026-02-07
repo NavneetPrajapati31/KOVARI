@@ -25,6 +25,8 @@ export default function RequestsPage() {
   const [invitations, setInvitations] = useState<GroupInvite[]>([]);
   const [interests, setInterests] = useState<Interest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasFetchedInvitations, setHasFetchedInvitations] = useState(false);
+  const [hasFetchedInterests, setHasFetchedInterests] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { userId, isLoaded } = useAuth();
   const router = useRouter();
@@ -40,6 +42,7 @@ export default function RequestsPage() {
   }, [searchParams]);
 
   const handleTabChange = useCallback((index: number) => {
+    setIsLoading(true);
     setActiveTab(index);
   }, []);
 
@@ -100,6 +103,7 @@ export default function RequestsPage() {
 
       const data = await response.json();
       setInvitations(data);
+      setHasFetchedInvitations(true);
     } catch (err) {
       console.error("Error fetching invitations:", err);
       setError("Failed to load invitations. Please try again.");
@@ -121,6 +125,7 @@ export default function RequestsPage() {
 
       const data = await response.json();
       setInterests(data);
+      setHasFetchedInterests(true);
     } catch (err) {
       console.error("Error fetching interests:", err);
       setError("Failed to load interests. Please try again.");
@@ -150,7 +155,7 @@ export default function RequestsPage() {
       setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
 
       // Optionally redirect to the group page
-      router.push(`/groups/${invitationId}/home`);
+      // router.push(`/groups/${invitationId}/home`);
     } catch (err) {
       console.error("Error accepting invitation:", err);
       // You could show a toast notification here
@@ -287,7 +292,7 @@ export default function RequestsPage() {
       <div className="w-full flex-1 px-4">
         {REQUEST_TABS[activeTab].value === "interests" && (
           <>
-            {isLoading ? (
+            {isLoading || !hasFetchedInterests ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
                 {Array.from({ length: 16 }).map((_, i) => (
                   <InvitationCardSkeleton key={i} />
@@ -317,7 +322,7 @@ export default function RequestsPage() {
 
         {REQUEST_TABS[activeTab].value === "invitations" && (
           <>
-            {isLoading ? (
+            {isLoading || !hasFetchedInvitations ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 justify-items-start">
                 {Array.from({ length: 16 }).map((_, i) => (
                   <InvitationCardSkeleton key={i} />
