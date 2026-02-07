@@ -308,10 +308,10 @@ export const ConnectionRequestsCard = () => {
     <div className="w-full bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
       <div className="mb-3 p-4 border-b border-border flex-shrink-0">
         <h2 className="text-foreground font-semibold text-xs truncate">
-          Match Requests
+          Interests
         </h2>
         <p className="mt-0.5 text-muted-foreground text-xs">
-          {pendingRequests.length} pending requests
+          {pendingRequests.length} pending interests
         </p>
       </div>
 
@@ -336,10 +336,10 @@ export const ConnectionRequestsCard = () => {
             <div className="flex flex-col items-center justify-center h-48 text-center">
               {/* <Clock className="h-8 w-8 text-muted-foreground mb-2" /> */}
               <p className="text-xs text-muted-foreground">
-                No pending requests
+                No pending interests
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                New connection requests will appear here
+                New match interests will appear here
               </p>
             </div>
           ) : (

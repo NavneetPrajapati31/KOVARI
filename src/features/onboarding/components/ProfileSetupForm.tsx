@@ -19,6 +19,8 @@ import {
   X,
   Loader2,
   Trash2,
+  Check,
+  AlertCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -327,6 +329,9 @@ export default function ProfileSetupForm() {
   const [usernameCheckError, setUsernameCheckError] = useState<string | null>(
     null
   );
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
+    null
+  );
   const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
   const [syncUserError, setSyncUserError] = useState<string | null>(null);
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -396,7 +401,9 @@ export default function ProfileSetupForm() {
   // Async username uniqueness check
   const checkUsernameUnique = async (username: string) => {
     setUsernameCheckError(null);
+    setUsernameAvailable(null);
     if (!username || username.length < 3) return true;
+    
     setUsernameCheckLoading(true);
     try {
       const res = await fetch("/api/check-username", {
@@ -407,17 +414,55 @@ export default function ProfileSetupForm() {
       const data = await res.json();
       if (!data.available) {
         setUsernameCheckError("Username is already taken");
+        setUsernameAvailable(false);
         return false;
       }
       setUsernameCheckError(null);
+      setUsernameAvailable(true);
       return true;
     } catch (e) {
       setUsernameCheckError("Could not check username");
+      setUsernameAvailable(false);
       return false;
     } finally {
       setUsernameCheckLoading(false);
     }
   };
+
+  const usernameValue = step1Form.watch("username");
+  
+  // Debounced username check
+  useEffect(() => {
+    const check = async () => {
+      // Clear previous status on change
+      setUsernameCheckError(null);
+      setUsernameAvailable(null);
+      
+      const username = usernameValue;
+      if (!username) return;
+      
+      // Basic validation based on schema before API call
+      if (username.length < 3 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+         return;
+      }
+
+      if (usernameCheckTimeout.current) {
+        clearTimeout(usernameCheckTimeout.current);
+      }
+      
+      setUsernameCheckLoading(true);
+      usernameCheckTimeout.current = setTimeout(async () => {
+        await checkUsernameUnique(username);
+      }, 500);
+    };
+    check();
+    
+    return () => {
+      if (usernameCheckTimeout.current) {
+         clearTimeout(usernameCheckTimeout.current);
+      }
+    };
+  }, [usernameValue]);
 
   const handleAvatarUpload = async (file: File) => {
     const acceptedFormats = ["PNG", "JPG", "JPEG", "WEBP"];
@@ -509,11 +554,17 @@ export default function ProfileSetupForm() {
       );
       if (!valid) return;
       const username = step1Form.getValues("username");
-      const isUnique = await checkUsernameUnique(username);
-      if (!isUnique) {
-        toast.error("Username is already taken");
-        return;
-      }
+      // If we haven't checked availability yet or it's not available (and valid format), re-check
+       if (!usernameAvailable && !usernameCheckError) {
+           const isUnique = await checkUsernameUnique(username);
+           if (!isUnique) {
+              toast.error("Username is already taken or invalid");
+              return;
+           }
+       } else if (usernameCheckError || usernameAvailable === false) {
+           toast.error("Please fix username errors");
+           return;
+       }
       setStep(2);
       return;
     }
@@ -749,6 +800,8 @@ export default function ProfileSetupForm() {
 
       const profileData = {
         name: `${completeData.firstName} ${completeData.lastName}`,
+        firstName: completeData.firstName,
+        lastName: completeData.lastName,
         username: completeData.username,
         age: Number.isFinite(numericAge) ? numericAge : 18,
         gender: completeData.gender,
@@ -972,29 +1025,23 @@ export default function ProfileSetupForm() {
                   <div className="relative">
                     <Input
                       placeholder="your_username"
-                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground w-full"
+                      className={cn(
+                        "h-9 text-sm border-input rounded-lg placeholder:text-muted-foreground w-full pr-10",
+                        usernameCheckError && "border-destructive focus-visible:border-destructive",
+                        usernameAvailable && !usernameCheckError && "border-green-500 focus-visible:border-green-500"
+                      )}
                       autoComplete="username"
                       {...field}
-                      onBlur={async (e) => {
-                        field.onBlur?.();
-                        if (field.value) await checkUsernameUnique(field.value);
-                      }}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (field.value)
-                            await checkUsernameUnique(field.value);
-                        }
-                      }}
                     />
-                    {usernameCheckLoading && (
-                      <Spinner
-                        variant="spinner"
-                        size="sm"
-                        classNames={{ spinnerBars: "bg-primary" }}
-                        className="absolute right-2.5 top-2"
-                      />
-                    )}
+                    <div className="absolute right-2.5 top-2.5 select-none pointer-events-none">
+                     {usernameCheckLoading ? (
+                        <Spinner variant="spinner" size="sm" classNames={{ spinnerBars: "bg-primary" }}/>
+                      ) : usernameAvailable ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : usernameCheckError || (field.value && field.value.length >= 3 && !usernameCheckLoading && !usernameAvailable && usernameAvailable !== null) ? (
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      ) : null}
+                    </div>
                   </div>
                 </FormControl>
                 <FormMessage className="text-xs">

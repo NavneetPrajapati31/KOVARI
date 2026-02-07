@@ -5,6 +5,8 @@ import { z } from "zod";
 
 const schema = z.object({
   name: z.string().min(2),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
   username: z
     .string()
     .min(3)
@@ -148,6 +150,12 @@ export async function POST(req: Request) {
     ...result.data,
   };
 
+  // Remove keys that are not in the profiles table schema
+  // @ts-ignore
+  delete profileData.firstName;
+  // @ts-ignore
+  delete profileData.lastName;
+
   // Upsert profile data (insert or update)
   const { error: profileUpsertError } = await supabase
     .from("profiles")
@@ -168,6 +176,8 @@ export async function POST(req: Request) {
     const client = await clerkClient();
     await client.users.updateUser(userId, {
       username: result.data.username,
+      firstName: result.data.firstName,
+      lastName: result.data.lastName,
     });
   } catch (err) {
     console.error("Error updating clerk user", err);

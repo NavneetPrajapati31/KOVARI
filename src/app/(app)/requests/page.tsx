@@ -274,7 +274,7 @@ export default function RequestsPage() {
         </div>
         <div className="w-full flex-1 px-4">
           <div className="text-center text-muted-foreground py-8">
-            Please sign in to view your requests.
+            Please sign in to view your interests.
           </div>
         </div>
       </div>
