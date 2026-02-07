@@ -30,6 +30,7 @@ const DEFAULT_VALUES: ProfileEditForm = {
   languages: [],
   bio: "",
   location: "",
+  location_details: {},
   birthday: new Date().toISOString(),
   religion: "",
   smoking: "",

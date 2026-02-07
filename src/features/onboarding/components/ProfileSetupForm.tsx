@@ -68,6 +68,8 @@ import CheckIcon from "@mui/icons-material/Check";
 import CelebrationIcon from "@mui/icons-material/Celebration";
 import { Avatar, Spinner } from "@heroui/react";
 import { COUNTRIES } from "@/shared/utils/countries";
+import { LocationAutocomplete } from "@/shared/components/ui/location-autocomplete";
+import { type LocationData } from "@/lib/geocoding-client";
 
 // Define schemas for each step
 const step1Schema = z
@@ -311,7 +313,6 @@ export default function ProfileSetupForm() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
-  const [locationQuery, setLocationQuery] = useState("");
   const languageTriggerRef = useRef<HTMLDivElement>(null);
   const interestTriggerRef = useRef<HTMLDivElement>(null);
   const [languagePopoverWidth, setLanguagePopoverWidth] = useState<
@@ -320,7 +321,7 @@ export default function ProfileSetupForm() {
   const [interestPopoverWidth, setInterestPopoverWidth] = useState<
     number | undefined
   >(undefined);
-  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [locationDetails, setLocationDetails] = useState<LocationData | null>(null);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
   const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
@@ -626,67 +627,7 @@ export default function ProfileSetupForm() {
     setStep(3);
   };
 
-  // Location autocomplete (OpenStreetMap Nominatim)
-  useEffect(() => {
-    const controller = new AbortController();
-    const query = locationQuery.trim();
-    if (!query) {
-      setLocationSuggestions([]);
-      return () => controller.abort();
-    }
-    const timeout = setTimeout(async () => {
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-          query
-        )}&format=json&addressdetails=1&limit=5`;
-        const res = await fetch(url, {
-          signal: controller.signal,
-          headers: {
-            Accept: "application/json",
-            "Accept-Language": "en",
-            "User-Agent": "Kovari/1.0 (onboarding@kovari.app)",
-          },
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as Array<any>;
 
-        const labels = data.map((d) => {
-          const addr = d.address || {};
-          const city =
-            addr.city ||
-            addr.town ||
-            addr.village ||
-            addr.hamlet ||
-            addr.suburb ||
-            "";
-          const region = addr.state || addr.county || "";
-          const country = addr.country || "";
-
-          // Simplified label: prefer "City, Country".
-          // If no city, fall back to "Region, Country".
-          const main = city || region;
-          const parts = [main, country].filter(Boolean);
-          return parts.join(", ") || (d.display_name as string);
-        });
-
-        // De-duplicate by simplified label, preserve order, and keep list short
-        const seen = new Set<string>();
-        const simplified = [];
-        for (const label of labels) {
-          if (!label || seen.has(label)) continue;
-          seen.add(label);
-          simplified.push(label);
-          if (simplified.length >= 5) break;
-        }
-
-        setLocationSuggestions(simplified);
-      } catch {}
-    }, 300);
-    return () => {
-      controller.abort();
-      clearTimeout(timeout);
-    };
-  }, [locationQuery]);
 
   // Handle step 3 submission
   const onStep3Submit = async (data: Step3Data) => {
@@ -812,7 +753,17 @@ export default function ProfileSetupForm() {
           /^https?:\/\//i.test(completeData.profilePic)
             ? (completeData.profilePic as string)
             : undefined,
+        // Merge structured location data if available
         location: completeData.location || "",
+        location_details: locationDetails ? {
+          city: locationDetails.city,
+          state: locationDetails.state,
+          country: locationDetails.country,
+          latitude: locationDetails.lat,
+          longitude: locationDetails.lon,
+          formatted_address: locationDetails.formatted,
+          place_id: locationDetails.place_id
+        } : undefined,
         languages:
           Array.isArray(completeData.languages) &&
           completeData.languages.length > 0
@@ -1372,34 +1323,22 @@ export default function ProfileSetupForm() {
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Input
-                      placeholder="Search your location"
-                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
-                      value={locationQuery || field.value || ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setLocationQuery(value);
-                        field.onChange(value);
+                    <LocationAutocomplete
+                      value={field.value}
+                      onChange={(val) => {
+                          field.onChange(val);
+                          // Clear details if user types manually without selecting? 
+                          // Or we keep the last selected details? 
+                          // Ideally if they type something new that isn't selected, details might be invalid.
+                          // But typically we rely on onSelect.
                       }}
+                      onSelect={(data) => {
+                        field.onChange(data.formatted);
+                        setLocationDetails(data);
+                      }}
+                      placeholder="Search your location"
+                      className="bg-white"
                     />
-                    {locationSuggestions.length > 0 && (
-                      <div className="absolute z-20 mt-1 w-full rounded-lg border bg-popover shadow-lg max-h-56 overflow-auto">
-                        {locationSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            className="w-full px-3 py-2 text-left text-sm text-muted-foreground hover:bg-gray-100"
-                            onClick={() => {
-                              field.onChange(suggestion);
-                              setLocationQuery(suggestion);
-                              setLocationSuggestions([]);
-                            }}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </FormControl>
                 <FormMessage className="text-xs" />
@@ -1566,7 +1505,7 @@ export default function ProfileSetupForm() {
                               variant="outline"
                               role="combobox"
                               className={cn(
-                                "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
+                                "bg-white w-full h-9 text-sm font-normal justify-between border-input rounded-lg",
                                 !field.value?.length &&
                                   "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
                               )}
@@ -1596,7 +1535,7 @@ export default function ProfileSetupForm() {
                               {languageOptions.map((language) => (
                                 <div
                                   key={language}
-                                  className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                  className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-secondary flex items-center"
                                   onClick={() => {
                                     const newValue = field.value?.includes(
                                       language
@@ -1631,12 +1570,12 @@ export default function ProfileSetupForm() {
                                   <Badge
                                     key={language}
                                     variant="secondary"
-                                    className="text-xs bg-primary-light text-primary px-2 py-1"
+                                    className="text-xs font-medium bg-secondary text-foreground px-3 py-1.5"
                                   >
                                     {language}
                                     <button
                                       type="button"
-                                      className="ml-1 text-primary rounded-full"
+                                      className="ml-1 text-foreground rounded-full"
                                       onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -1674,12 +1613,12 @@ export default function ProfileSetupForm() {
                           <Badge
                             key={language}
                             variant="secondary"
-                            className="text-xs bg-primary-light text-primary"
+                            className="text-xs font-medium bg-secondary text-foreground"
                           >
                             {language}
                             <button
                               type="button"
-                              className="ml-1 text-primary"
+                              className="ml-1 text-foreground"
                               onClick={() => {
                                 field.onChange(
                                   field.value.filter((l) => l !== language)
@@ -1718,7 +1657,7 @@ export default function ProfileSetupForm() {
                               variant="outline"
                               role="combobox"
                               className={cn(
-                                "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
+                                "bg-white w-full h-9 text-sm font-normal justify-between border-input rounded-lg",
                                 !field.value?.length &&
                                   "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
                               )}
@@ -1748,7 +1687,7 @@ export default function ProfileSetupForm() {
                               {interestOptions.map((interest) => (
                                 <div
                                   key={interest.id}
-                                  className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                  className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-secondary flex items-center"
                                   onClick={() => {
                                     const newValue = field.value?.includes(
                                       interest.id
@@ -1787,12 +1726,12 @@ export default function ProfileSetupForm() {
                                     <Badge
                                       key={interest.id}
                                       variant="secondary"
-                                      className="text-xs bg-primary-light text-primary px-2 py-1"
+                                      className="text-xs font-medium bg-secondary text-foreground px-3 py-1.5"
                                     >
                                       {interest.label}
                                       <button
                                         type="button"
-                                        className="ml-1 text-primary rounded-full"
+                                        className="ml-1 text-foreground rounded-full"
                                         onClick={(e) => {
                                           e.preventDefault();
                                           e.stopPropagation();
@@ -1835,12 +1774,12 @@ export default function ProfileSetupForm() {
                             <Badge
                               key={interest.id}
                               variant="secondary"
-                              className="text-xs bg-primary-light text-primary"
+                              className="text-xs font-medium bg-secondary text-foreground"
                             >
                               {interest.label}
                               <button
                                 type="button"
-                                className="ml-1 text-primary"
+                                className="ml-1 text-foreground"
                                 onClick={() => {
                                   field.onChange(
                                     field.value.filter((i) => i !== interestId)
@@ -1921,7 +1860,7 @@ export default function ProfileSetupForm() {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
+                      <SelectTrigger className="w-full h-9 text-sm border-input rounded-lg">
                         <SelectValue placeholder="Select religion" />
                       </SelectTrigger>
                     </FormControl>

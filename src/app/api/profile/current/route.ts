@@ -85,6 +85,7 @@ export async function GET() {
       bio: profile.bio || "",
       birthday: profile.birthday || "",
       location: profile.location || "",
+      location_details: profile.location_details || {},
       religion: profile.religion || "",
       smoking: profile.smoking || "",
       drinking: profile.drinking || "",

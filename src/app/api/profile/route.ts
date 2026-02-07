@@ -18,6 +18,7 @@ const schema = z.object({
   bio: z.string().max(300),
   profile_photo: z.string().url().optional(),
   location: z.string().min(1),
+  location_details: z.any().optional(),
   languages: z.array(z.string()),
   nationality: z.string(),
   job: z.string(),

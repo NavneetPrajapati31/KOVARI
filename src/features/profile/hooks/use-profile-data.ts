@@ -40,7 +40,7 @@ export const useProfileData = () => {
 
   const updateProfileField = async (
     field: keyof ProfileEditForm,
-    value: string | number | string[]
+    value: any
   ) => {
     try {
       setIsUpdating(true);

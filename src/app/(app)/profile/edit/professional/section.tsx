@@ -20,7 +20,7 @@ interface ProfessionalSectionProps {
   isLoading: boolean;
   updateProfileField: (
     field: keyof ProfileEditForm,
-    value: string | number | string[]
+    value: any
   ) => Promise<any>;
 }
 

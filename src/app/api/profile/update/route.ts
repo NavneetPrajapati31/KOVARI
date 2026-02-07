@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const updateProfileSchema = z.object({
   field: z.string(),
-  value: z.union([z.string(), z.number(), z.array(z.string())]),
+  value: z.any(), // Allowed any for future-proofing, specifically need object for location_details
 });
 
 export async function PATCH(req: Request) {
@@ -92,6 +92,7 @@ export async function PATCH(req: Request) {
       bio: "bio",
       interests: "interests",
       location: "location",
+      location_details: "location_details",
       birthday: "birthday",
       religion: "religion",
       smoking: "smoking",

@@ -27,6 +27,7 @@ export const profileEditSchema = z.object({
   }),
   birthday: z.string().datetime({ message: "Invalid birthday" }),
   location: z.string().min(1, { message: "Location is required" }),
+  location_details: z.any().optional(),
   religion: z.string().min(1, { message: "Religion is required" }),
   smoking: z.string().min(1, { message: "Smoking preference is required" }),
   drinking: z.string().min(1, { message: "Drinking preference is required" }),

@@ -27,7 +27,7 @@ interface GeneralSectionProps {
   isLoading: boolean;
   updateProfileField: (
     field: keyof ProfileEditForm,
-    value: string | number | string[]
+    value: any
   ) => Promise<any>;
 }
 
@@ -95,7 +95,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   // Custom handleSaveField for username (with availability check)
   const handleSaveField = async (
     field: keyof ProfileEditForm,
-    value: string | number | string[]
+    value: any
   ): Promise<boolean> => {
     setFieldError(field, "");
     
@@ -474,7 +474,12 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
           <SectionRow
             label="Location"
             value={form.watch("location") || "Not set"}
-            onSave={(value) => handleSaveField("location", value as string)}
+            onSave={async (value, details) => {
+              if (details) {
+                 await handleSaveField("location_details", details);
+              }
+              await handleSaveField("location", value as string);
+            }}
             fieldType="location"
             error={fieldErrors.location}
             placeholder="Enter your location"

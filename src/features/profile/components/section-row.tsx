@@ -11,7 +11,7 @@ import {
 } from "@/shared/components/ui/select";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { DatePicker } from "@/shared/components/ui/date-picker";
-import { LocationInput } from "@/shared/components/ui/location-input";
+import { LocationAutocomplete } from "@/shared/components/ui/location-autocomplete";
 import { Avatar, Spinner } from "@heroui/react";
 import {
   Popover,
@@ -33,7 +33,7 @@ interface SectionRowProps {
   label: string;
   value: React.ReactNode;
   onEdit?: () => void;
-  onSave?: (value: any) => Promise<any>;
+  onSave?: (value: any, metadata?: any) => Promise<any>;
   editLabel?: string;
   children?: React.ReactNode;
   fieldType?:
@@ -88,7 +88,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
   const [isSavingField, setIsSavingField] = useState<string | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [locationDetails, setLocationDetails] = useState<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
@@ -114,7 +114,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
 
     setIsSaving(true);
     try {
-      const result = await onSave(editValue);
+      const result = await onSave(editValue, locationDetails);
       // Only close if it doesn't return exactly false
       if (result !== false) {
         setIsEditing(false);
@@ -131,80 +131,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
     setEditValue("");
   };
     
-  // Location autocomplete (OpenStreetMap Nominatim)
-  useEffect(() => {
-    if (fieldType !== "location") return;
-    
-    const controller = new AbortController();
-    const query = (editValue as string || "").trim();
-    
-    if (!query) {
-      setLocationSuggestions([]);
-      return () => controller.abort();
-    }
 
-    // Don't fetch if the query exactly matches one of our suggestions (user just selected it)
-    if (locationSuggestions.includes(query)) {
-      return () => controller.abort();
-    }
-
-    const timeout = setTimeout(async () => {
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-          query
-        )}&format=json&addressdetails=1&limit=10`;
-        const res = await fetch(url, {
-          signal: controller.signal,
-          headers: {
-            Accept: "application/json",
-            "Accept-Language": "en",
-            "User-Agent": "Kovari/1.0 (onboarding@kovari.app)",
-          },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const labels = data.map((d: any) => {
-          const addr = d.address || {};
-          const city =
-            addr.city ||
-            addr.town ||
-            addr.village ||
-            addr.hamlet ||
-            addr.suburb ||
-            "";
-          const region = addr.state || addr.county || "";
-          const country = addr.country || "";
-
-          // Simplified label: prefer "City, Country".
-          // If no city, fall back to "Region, Country".
-          const main = city || region;
-          const parts = [main, country].filter(Boolean);
-          return parts.join(", ") || (d.display_name as string);
-        });
-
-        // De-duplicate by simplified label
-        const seen = new Set<string>();
-        const simplified: string[] = [];
-        for (const label of labels) {
-          if (!label || seen.has(label)) continue;
-          seen.add(label);
-          simplified.push(label);
-          if (simplified.length >= 5) break;
-        }
-
-        setLocationSuggestions(simplified);
-      } catch (err: any) {
-        if (err.name !== "AbortError") {
-          console.error("Location lookup error:", err);
-        }
-      }
-    }, 300); // 300ms debounce
-
-    return () => {
-      controller.abort();
-      clearTimeout(timeout);
-    };
-  }, [editValue, fieldType]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -259,32 +186,25 @@ const SectionRow: React.FC<SectionRowProps> = ({
     if (fieldType === "location") {
       return (
         <div className="relative w-full">
-          <Input
-            ref={inputRef}
+          <LocationAutocomplete
             value={editValue as string || ""}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={`w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg bg-white ${error ? "border-destructive focus:border-destructive" : ""} placeholder:text-muted-foreground`}
-            disabled={isSaving}
+            onChange={(val) => setEditValue(val)}
+            onSelect={(data) => {
+              setEditValue(data.formatted);
+              setLocationDetails({
+                city: data.city,
+                state: data.state,
+                country: data.country,
+                latitude: data.lat,
+                longitude: data.lon,
+                formatted_address: data.formatted,
+                place_id: data.place_id
+              });
+            }}
             placeholder={placeholder || "Search your location"}
+            className="w-full bg-white"
+            disabled={isSaving}
           />
-          {locationSuggestions.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg max-h-60 overflow-y-auto">
-              {locationSuggestions.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  className="w-full px-3 py-2 text-left text-sm text-muted-foreground hover:bg-gray-100 transition-colors"
-                  onClick={() => {
-                    setEditValue(suggestion);
-                    setLocationSuggestions([]);
-                  }}
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       );
     }

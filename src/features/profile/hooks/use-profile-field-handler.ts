@@ -9,7 +9,7 @@ interface UseProfileFieldHandlerOptions {
   form: UseFormReturn<ProfileEditForm>;
   updateProfileField: (
     field: keyof ProfileEditForm,
-    value: string | number | string[]
+    value: any
   ) => Promise<any>;
   customValidateField?: (
     field: keyof ProfileEditForm,
@@ -17,7 +17,7 @@ interface UseProfileFieldHandlerOptions {
   ) => string | null;
   customHandleSaveField?: (
     field: keyof ProfileEditForm,
-    value: string | number | string[]
+    value: any
   ) => Promise<void>;
 }
 
@@ -54,7 +54,7 @@ export const useProfileFieldHandler = ({
   // Default save logic
   const handleSaveField = async (
     field: keyof ProfileEditForm,
-    value: string | number | string[]
+    value: any
   ): Promise<boolean> => {
     if (customHandleSaveField) {
       await customHandleSaveField(field, value);

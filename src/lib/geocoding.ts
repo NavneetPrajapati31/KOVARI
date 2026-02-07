@@ -1,20 +1,19 @@
+
 // -----------------------------------------------------------------------------
-//   File 2: Geocoding Service (Production Implementation with OpenStreetMap)
+//   File: Geocoding Service (Geoapify Implementation)
 // -----------------------------------------------------------------------------
 // Location: /lib/geocoding.ts
-// Purpose: To abstract the logic for converting location names into coordinates.
+// Purpose: Server-side geocoding logic with Redis caching.
 
 import redis, { ensureRedisConnection } from "./redis";
+import { searchLocation, Coordinates } from "./geocoding-client";
 
-interface Coordinates {
-  lat: number;
-  lon: number;
-}
+// Re-export client types and functions for convenience on server-side
+export * from "./geocoding-client";
 
 /**
- * Converts a location name into coordinates using OpenStreetMap Nominatim, with caching.
- * @param locationName The name of the location.
- * @returns A promise that resolves to an object with lat and lon, or null.
+ * Converts a location name into coordinates using Geoapify (replacing Nominatim), with Redis caching.
+ * Used by backend API routes.
  */
 export const getCoordinatesForLocation = async (
   locationName: string
@@ -40,69 +39,29 @@ export const getCoordinatesForLocation = async (
     // 2. Check cache first
     const cachedResult = await redisClient.get(cacheKey);
     if (cachedResult) {
-      console.log(
-        `Geocoding (Cache HIT): Found coordinates for "${sanitizedLocation}"`
-      );
+      // console.log(`Geocoding (Cache HIT): Found coordinates for "${sanitizedLocation}"`);
       return JSON.parse(cachedResult);
     }
 
-    console.log(
-      `Geocoding (Cache MISS): Looking up coordinates for "${sanitizedLocation}" with OpenStreetMap`
-    );
+    // console.log(`Geocoding (Cache MISS): Looking up coordinates for "${sanitizedLocation}" with Geoapify`);
 
-    // 3. If not in cache, call the OpenStreetMap Nominatim API
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(sanitizedLocation)}&format=json&limit=1`;
+    // 3. If not in cache, call Geoapify
+    // We reuse the searchLocation function from the client library but execute it server-side (node-fetch is polyfilled in Next.js)
+    const results = await searchLocation(sanitizedLocation);
+    
+    if (results && results.length > 0) {
+      const topResult = results[0];
+      const coords: Coordinates = { lat: topResult.lat, lon: topResult.lon };
 
-    const response = await fetch(url, {
-      headers: {
-        // IMPORTANT: OSM requires a custom User-Agent to identify your application.
-        "User-Agent":
-          "Kovari Social Travel App/1.0 (your-contact-email@example.com)",
-        "Accept-Language": "en",
-      },
-    });
+      // Cache it
+      await redisClient.setEx(cacheKey, 2592000, JSON.stringify(coords)); // 30 days
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        `Nominatim API failed for "${sanitizedLocation}" with status ${response.status}: ${errorText}`
-      );
-      return null;
-    }
-
-    const data = await response.json();
-
-    // 4. Parse the result and cache it
-    if (data && Array.isArray(data) && data.length > 0) {
-      const lat = parseFloat(data[0].lat);
-      const lon = parseFloat(data[0].lon);
-
-      // Validate coordinates
-      if (isNaN(lat) || isNaN(lon)) {
-        console.error(
-          `Geocoding: Invalid coordinates returned for "${sanitizedLocation}": lat=${data[0].lat}, lon=${data[0].lon}`
-        );
-        return null;
-      }
-
-      const coords: Coordinates = { lat, lon };
-
-      // FIX: Use setEx (Redis v4+) instead of setex (deprecated)
-      await redisClient.setEx(cacheKey, 2592000, JSON.stringify(coords)); // 2592000 seconds = 30 days
-
-      console.log(
-        `Geocoding: Successfully found coordinates for "${sanitizedLocation}": ${lat}, ${lon}`
-      );
       return coords;
     } else {
-      // Location not found by the API
-      console.warn(
-        `Geocoding: No results found for "${sanitizedLocation}". The location may be misspelled or not exist in OpenStreetMap.`
-      );
+      console.warn(`Geocoding: No results found for "${sanitizedLocation}"`);
       return null;
     }
   } catch (error) {
-    // Handle network errors or other exceptions
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Geocoding error for "${sanitizedLocation}":`, errorMessage);
     return null;
