@@ -13,7 +13,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useDirectChat } from "@/shared/hooks/useDirectChat";
 import { useDirectInbox } from "@/shared/hooks/use-direct-inbox";
 import { Button } from "@/shared/components/ui/button";
-import { Avatar, Image, Spinner } from "@heroui/react";
+import { Image, Spinner } from "@heroui/react";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import {
   Send,
   Loader2,
@@ -55,6 +56,7 @@ import { isUserBlocked } from "@/shared/utils/blocked-users";
 import { unblockUser } from "@/shared/utils/blocked-users";
 import { Skeleton } from "@heroui/react";
 import MediaViewerModal from "@/shared/components/media-viewer-modal";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 
 interface PartnerProfile {
   name?: string;
@@ -1335,24 +1337,27 @@ const DirectChatPage = () => {
             <Link href={`/profile/${partnerUuid}`}>
               <div className="flex items-center gap-3">
                 {isPartnerDeleted ? (
-                  <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-semibold text-lg select-none">
-                    <User className="h-5 w-5" />
-                  </div>
-                ) : partnerProfile?.profile_photo ? (
-                  <Avatar
-                    src={partnerProfile.profile_photo}
-                    alt={
-                      partnerProfile.name || partnerProfile.username || "User"
-                    }
-                    className="w-10 h-10"
-                  />
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage
+                      src={partnerProfile?.profile_photo || undefined}
+                      alt={
+                        partnerProfile?.name || partnerProfile?.username || "User"
+                      }
+                      className="object-cover"
+                    />
+                    <UserAvatarFallback />
+                  </Avatar>
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-semibold text-lg select-none">
-                    {partnerProfile?.name?.[0]?.toUpperCase() ||
-                      partnerProfile?.username?.[0]?.toUpperCase() || (
-                        <User className="h-5 w-5" />
-                      )}
-                  </div>
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage
+                      src={partnerProfile?.profile_photo || undefined}
+                      alt={
+                        partnerProfile?.name || partnerProfile?.username || "User"
+                      }
+                      className="object-cover"
+                    />
+                    <UserAvatarFallback />
+                  </Avatar>
                 )}
                 <div>
                   <div className="font-semibold text-sm text-foreground">

@@ -15,8 +15,8 @@ import { Input } from "@/shared/components/ui/input";
 import {
   Avatar,
   AvatarImage,
-  AvatarFallback,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import Link from "next/link";
 import { useNotifications } from "@/shared/hooks/useNotifications";
 import { Notification } from "@/shared/types/notifications";
@@ -145,27 +145,54 @@ export default function NotificationsPage() {
                   className={`flex items-start gap-3 p-4 transition-colors cursor-pointer border-b ${
                     !notification.is_read
                       ? "bg-primary-light border-border"
-                      : "hover:bg-muted/50 border-border"
+                      : "border-border"
                   }`}
                 >
                   {isReport ? (
-                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
-                      <Check className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-secondary flex items-center justify-center">
+                      <Check className="w-5 h-5 text-foreground" />
                     </div>
                   ) : showGroupIconFallback ? (
-                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
+                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-secondary flex items-center justify-center">
                       {isGroupInviteOrRequest ? (
-                        <UserPlus className="w-4 h-4 text-primary" />
+                        <svg
+                             className="w-3/5 h-3/5 text-gray-400"
+                             fill="currentColor"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false"
+                           >
+                             <circle cx="12" cy="8" r="4" />
+                             <rect x="4" y="14" width="16" height="6" rx="3" />
+                           </svg>
                       ) : (
-                        <Check className="w-5 h-5 text-primary" />
+                        <svg
+                             className="w-3/5 h-3/5 text-gray-400"
+                             fill="currentColor"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false"
+                           >
+                             <circle cx="12" cy="8" r="4" />
+                             <rect x="4" y="14" width="16" height="6" rx="3" />
+                           </svg>
                       )}
                     </div>
                   ) : !notification.image_url &&
                     (notification.type === "MATCH_INTEREST_RECEIVED" ||
                       notification.type === "MATCH_ACCEPTED" ||
                       notification.type === "NEW_MESSAGE") ? (
-                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-primary-light flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
+                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-secondary flex items-center justify-center">
+                      <svg
+                             className="w-3/5 h-3/5 text-gray-400"
+                             fill="currentColor"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false"
+                           >
+                             <circle cx="12" cy="8" r="4" />
+                             <rect x="4" y="14" width="16" height="6" rx="3" />
+                           </svg>
                     </div>
                   ) : (
                     <Avatar className="w-10 h-10 flex-shrink-0">
@@ -174,9 +201,7 @@ export default function NotificationsPage() {
                         alt={notification.title}
                         className="object-cover"
                       />
-                      <AvatarFallback className="bg-card text-muted-foreground border border-border">
-                        {avatarFallback}
-                      </AvatarFallback>
+                      <UserAvatarFallback className="" />
                     </Avatar>
                   )}
                   <div className="flex-1 min-w-0">

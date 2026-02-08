@@ -1,7 +1,8 @@
 "use client";
 
 import { Card } from "../ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Avatar, AvatarImage } from "../ui/avatar";
+import { UserAvatarFallback } from "../UserAvatarFallback";
 import { cn } from "../../utils/utils";
 import { Separator } from "../ui/separator";
 
@@ -29,7 +30,7 @@ export function GroupCard({ group, className }: GroupCardProps) {
   return (
     <Card
       className={cn(
-        "flex flex-row items-center gap-x-2 py-0 bg-white text-black shadow-none border-none",
+        "flex flex-row items-center gap-x-2 px-4 bg-card text-foreground shadow-none border-none",
         className
       )}
     >
@@ -40,9 +41,7 @@ export function GroupCard({ group, className }: GroupCardProps) {
             src={group.imageUrl || "/placeholder.svg"}
             alt={group.name}
           />
-          <AvatarFallback className="bg-card border border-border text-muted-foreground">
-            {group.name.charAt(0)}
-          </AvatarFallback>
+        <UserAvatarFallback className="" />
         </Avatar>
       </div>
 
@@ -55,7 +54,7 @@ export function GroupCard({ group, className }: GroupCardProps) {
           </p>
         </div>
         <div className="flex items-center justify-between mt-0.5 w-full">
-          <p className="text-xs text-foreground truncate">
+          <p className="text-xs text-muted-foreground truncate">
             {group.members === 1 ? "1 member" : `${group.members} members`}
           </p>
           {/* {group.timestampOrTag && (

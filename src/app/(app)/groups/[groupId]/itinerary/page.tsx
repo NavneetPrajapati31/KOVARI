@@ -16,7 +16,8 @@ import {
 } from "@/shared/components/ui/select";
 import { Label } from "@/shared/components/ui/label";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import {
   Dialog,
   DialogContent,
@@ -1310,15 +1311,13 @@ export default function ItineraryPage() {
                         }}
                         className="rounded border-border pointer-events-none shrink-0"
                       />
-                      <Avatar className="h-8 w-8 shrink-0 border border-border">
+                      <Avatar className="h-8 w-8 shrink-0">
                         <AvatarImage
                           src={member.avatar || undefined}
                           alt={member.name}
                           className="object-cover"
                         />
-                        <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
-                          {getInitials(member.name || "Unknown")}
-                        </AvatarFallback>
+                        <UserAvatarFallback className="text-xs font-medium" />
                       </Avatar>
                       <span className="text-sm font-medium text-foreground truncate min-w-0">
                         {member.name || "Unknown"}
@@ -1515,15 +1514,13 @@ export default function ItineraryPage() {
                         }}
                         className="rounded border-border pointer-events-none shrink-0"
                       />
-                      <Avatar className="h-8 w-8 shrink-0 border border-border">
+                      <Avatar className="h-8 w-8 shrink-0">
                         <AvatarImage
                           src={member.avatar || undefined}
                           alt={member.name}
                           className="object-cover"
                         />
-                        <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
-                          {getInitials(member.name || "Unknown")}
-                        </AvatarFallback>
+                        <UserAvatarFallback className="text-xs font-medium" />
                       </Avatar>
                       <span className="text-sm font-medium text-foreground truncate min-w-0">
                         {member.name || "Unknown"}

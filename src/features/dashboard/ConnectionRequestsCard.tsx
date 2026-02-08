@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
-import { Skeleton } from "@heroui/react";
+import { Skeleton, Spinner } from "@heroui/react";
 import { Check, X, Clock, Users, Trash2, Loader2 } from "lucide-react";
 import { cn, formatRelativeTime } from "@/shared/utils/utils";
 import * as Sentry from "@sentry/nextjs";
@@ -59,7 +59,7 @@ function ConnectionRequestCard({
   return (
     <Card
       className={cn(
-        "flex flex-row items-center gap-x-2 py-0 bg-card text-foreground shadow-none border-none",
+        "flex flex-row items-center gap-x-2 px-4 bg-card text-foreground shadow-none border-none",
         className
       )}
     >
@@ -67,9 +67,7 @@ function ConnectionRequestCard({
       <div className="flex-shrink-0">
         <Avatar className="h-10 w-10">
           <AvatarImage src={request.avatar} alt={request.name} />
-          <AvatarFallback className="bg-card border border-border text-muted-foreground">
-            {request.name.charAt(0)}
-          </AvatarFallback>
+<UserAvatarFallback className="" />
         </Avatar>
       </div>
 
@@ -77,7 +75,7 @@ function ConnectionRequestCard({
       <div className="flex-1 min-w-0">
         <div className="flex flex-col min-w-0">
           <h3 className="font-semibold text-xs truncate">{request.name}</h3>
-          <p className="text-xs text-foreground truncate mt-0.5">
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
             {request.location}
           </p>
         </div>
@@ -87,7 +85,7 @@ function ConnectionRequestCard({
       <div className="flex items-center space-x-2 flex-shrink-0">
         <Button
           size="sm"
-          className="bg-primary text-primary-foreground text-xs h-7 px-3 rounded-md whitespace-nowrap gap-2"
+          className="bg-primary text-primary-foreground text-xs h-7 px-3 rounded-lg whitespace-nowrap gap-2"
           disabled={!!loadingAction}
           onClick={async () => {
             setLoadingAction("accept");
@@ -101,15 +99,15 @@ function ConnectionRequestCard({
           }}
         >
           {loadingAction === "accept" && (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary-foreground" />
+            <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}} />
           )}
-          {!loadingAction && <span>Connect</span>}
+          {!loadingAction && <span className="text-xs">Connect</span>}
         </Button>
 
         <Button
           size="sm"
           variant="outline"
-          className="h-7 w-7 p-0 flex-shrink-0"
+          className="h-7 w-7 p-0 flex-shrink-0 rounded-lg"
           disabled={!!loadingAction}
           onClick={async () => {
             setLoadingAction("decline");
@@ -123,7 +121,7 @@ function ConnectionRequestCard({
           }}
         >
           {loadingAction === "decline" ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+             <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-foreground"}} />
           ) : (
             <X className="h-3.5 w-3.5 text-muted-foreground" />
           )}
@@ -138,7 +136,7 @@ const REQUEST_SKELETON_ROW_COUNT = 7;
 /** Skeleton row matching ConnectionRequestCard: avatar, name + location, Connect + X buttons */
 function ConnectionRequestCardSkeletonRow() {
   return (
-    <Card className="flex flex-row items-center gap-x-2 py-0 bg-card text-foreground shadow-none border-none">
+    <Card className="flex flex-row items-center gap-x-2 px-4 py-2 bg-card text-foreground shadow-none border-none">
       <div className="flex-shrink-0">
         <Skeleton className="h-10 w-10 rounded-full" />
       </div>
@@ -157,9 +155,11 @@ function ConnectionRequestCardSkeletonRow() {
 
 function MatchRequestsSkeleton() {
   return (
-    <div className="min-h-[10rem] space-y-3" aria-hidden aria-busy>
+    <div className="flex flex-col" aria-hidden aria-busy>
       {Array.from({ length: REQUEST_SKELETON_ROW_COUNT }).map((_, idx) => (
-        <ConnectionRequestCardSkeletonRow key={idx} />
+        <div key={idx} className="border-b border-border last:border-none">
+          <ConnectionRequestCardSkeletonRow />
+        </div>
       ))}
     </div>
   );
@@ -306,17 +306,17 @@ export const ConnectionRequestsCard = () => {
 
   return (
     <div className="w-full bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
-      <div className="mb-3 p-4 border-b border-border flex-shrink-0">
+      <div className="mb-0 p-4 border-b border-border flex-shrink-0">
         <h2 className="text-foreground font-semibold text-xs truncate">
           Interests
         </h2>
-        <p className="mt-0.5 text-muted-foreground text-xs">
+        <p className="text-xs text-muted-foreground mt-0.5">
           {pendingRequests.length} pending interests
         </p>
       </div>
 
-      <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto px-4 pb-3 hide-scrollbar flex-1">
-        <div className="space-y-3">
+      <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto px-0 hide-scrollbar flex-1">
+        <div className="flex flex-col">
           {loading ? (
             <MatchRequestsSkeleton />
           ) : error ? (
@@ -344,12 +344,14 @@ export const ConnectionRequestsCard = () => {
             </div>
           ) : (
             pendingRequests.map((request) => (
-              <ConnectionRequestCard
-                key={request.id}
-                request={request}
-                onAccept={handleAccept}
-                onDecline={handleDecline}
-              />
+              <div key={request.id} className="border-b border-border last:border-none">
+                <ConnectionRequestCard
+                  request={request}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
+                  className="py-2"
+                />
+              </div>
             ))
           )}
         </div>

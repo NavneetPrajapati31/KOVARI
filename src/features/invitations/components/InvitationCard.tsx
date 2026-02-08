@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Card, CardBody, Spinner } from "@heroui/react";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Calendar, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import InvitationCardSkeleton from "@/features/invitations/components/InvitationCardSkeleton";
@@ -66,18 +66,7 @@ export function GroupInviteCard({
               src={invite.groupCoverImage || ""}
               alt={`${invite.groupName || invite.creator.name}'s profile`}
             />
-            <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">
-              <svg
-                className="w-6 h-6 text-gray-400"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <rect x="4" y="14" width="16" height="6" rx="3" />
-              </svg>
-            </AvatarFallback>
+          <UserAvatarFallback className="" />
           </Avatar>
           <div className="flex flex-col min-w-0 flex-1">
              <div className="flex justify-between items-start gap-2 w-full">

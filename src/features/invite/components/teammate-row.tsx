@@ -2,9 +2,9 @@
 
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -43,9 +43,7 @@ export function TeammateRow({ teammate }: TeammateRowProps) {
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         <Avatar className="h-10 w-10">
           <AvatarImage src={teammate.avatar || ""} alt={teammate.name} />
-          <AvatarFallback className="bg-blue-100 text-blue-700 font-medium text-sm">
-            {getInitials(teammate.name)}
-          </AvatarFallback>
+<UserAvatarFallback className="" />
         </Avatar>
 
         <div className="flex-1 min-w-0 max-w-[200px] sm:max-w-none">

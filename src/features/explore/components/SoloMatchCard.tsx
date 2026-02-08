@@ -8,9 +8,9 @@
 import React, { useState } from "react";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import {
@@ -362,7 +362,7 @@ export function SoloMatchCard({
       >
         {/* Header Section */}
         <div className="flex flex-col md:flex-row items-start gap-4 pb-4 border-b border-border">
-          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-3xl md:rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0 relative">
+          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-3xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative">
             {match.user.avatar ? (
               <img
                 src={match.user.avatar}
@@ -375,13 +375,7 @@ export function SoloMatchCard({
                   src=""
                   alt={match.user.full_name || match.user.name || "Traveler"}
                 />
-                <AvatarFallback className="text-primary-foreground font-semibold">
-                  {match.user.full_name || match.user.name
-                    ? (match.user.full_name || match.user.name)!
-                        .charAt(0)
-                        .toUpperCase()
-                    : "T"}
-                </AvatarFallback>
+              <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
               </Avatar>
             )}
           </div>

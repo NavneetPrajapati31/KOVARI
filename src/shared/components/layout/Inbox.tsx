@@ -6,9 +6,9 @@ import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/shared/components/ui/input";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Badge } from "@/shared/components/ui/badge";
 import { Spinner } from "@heroui/react";
 import { Search, Check, CheckCheck, User } from "lucide-react";
@@ -319,22 +319,12 @@ export default function Inbox({ activeUserId }: InboxProps) {
                 <div
                   className={`relative mr-3 rounded-full ${isInit ? "ring-2 ring-primary ring-offset-2" : ""}`}
                 >
-                  <Avatar className="h-12 w-12 bg-muted">
+                  <Avatar className="h-12 w-12 bg-secondary">
                     <AvatarImage
                       src={isDeleted ? "" : profile?.profile_photo || ""}
                       alt={displayName}
                     />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium">
-                      {isDeleted ? (
-                        <User className="h-5 w-5" />
-                      ) : (
-                        displayName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)
-                      )}
-                    </AvatarFallback>
+<UserAvatarFallback className="" />
                   </Avatar>
                 </div>
 

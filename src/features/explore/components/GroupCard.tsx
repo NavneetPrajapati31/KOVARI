@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
+import { Avatar, Card, Image, Skeleton, Divider, Spinner } from "@heroui/react";
 import { MapPin, Calendar, Users, Loader2, Router } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
@@ -188,7 +188,7 @@ export function GroupCard({
         {/* Group name */}
         <div className="flex items-center">
           <span
-            className="text-md font-bold leading-tight truncate text-foreground"
+            className="text-sm font-bold leading-tight truncate text-foreground"
             title={group.name}
           >
             {group.name}
@@ -222,8 +222,20 @@ export function GroupCard({
             <Avatar
               src={group.creator.avatar || ""}
               alt={group.creator.name || "Creator"}
-              className="w-6 h-6"
+              className="w-6 h-6 bg-secondary"
               aria-label={`Avatar of ${group.creator.username || "Unknown"}`}
+              showFallback={true}
+              fallback={
+                <svg
+                  className="w-4 h-4 text-gray-400"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <rect x="4" y="14" width="16" height="6" rx="3" />
+                </svg>
+              }
             />
             <span className="text-muted-foreground font-medium text-xs truncate">
               Created by {`@${group.creator.username || "unknown"}`}
@@ -256,7 +268,7 @@ export function GroupCard({
             disabled={viewGroupLoading}
             onClick={handleViewGroup}
           >
-            {viewGroupLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            {viewGroupLoading && <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}} />}
             View Group
           </Button>
         ) : userStatus === "pending" || userStatus === "blocked" ? (
@@ -289,7 +301,7 @@ export function GroupCard({
               disabled={viewGroupLoading}
               onClick={handleViewGroup}
             >
-              {viewGroupLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+              {viewGroupLoading && <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}} />}
               View Group
             </Button>
             <Button
@@ -302,7 +314,7 @@ export function GroupCard({
               onClick={handleRequestToJoin}
             >
               {requestToJoinLoading && (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-foreground"}} />
               )}
               Request to Join
             </Button>

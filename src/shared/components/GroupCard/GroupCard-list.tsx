@@ -8,7 +8,7 @@ const SKELETON_ROW_COUNT = 7;
 /** Skeleton row matching GroupCard layout: avatar, name + destination row, members row */
 function GroupCardSkeletonRow() {
   return (
-    <Card className="flex flex-row items-center gap-x-2 py-0 bg-card text-foreground shadow-none border-none">
+    <Card className="flex flex-row items-center gap-x-2 px-4 py-2 bg-card text-foreground shadow-none border-none">
       <div className="flex-shrink-0">
         <Skeleton className="h-10 w-10 rounded-full" />
       </div>
@@ -27,9 +27,11 @@ function GroupCardSkeletonRow() {
 
 export function GroupListSkeleton() {
   return (
-    <div className="space-y-3" aria-hidden aria-busy>
+    <div className="flex flex-col" aria-hidden aria-busy>
       {Array.from({ length: SKELETON_ROW_COUNT }).map((_, idx) => (
-        <GroupCardSkeletonRow key={idx} />
+        <div key={idx} className="border-b border-border last:border-none">
+          <GroupCardSkeletonRow />
+        </div>
       ))}
     </div>
   );
@@ -45,7 +47,7 @@ export function GroupList({ title = "Groups" }: GroupListProps) {
 
   return (
     <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto hide-scrollbar h-full">
-      <div className="space-y-3">
+      <div className="flex flex-col">
         {loading ? (
           <GroupListSkeleton />
         ) : !hasGroups ? (
@@ -60,17 +62,19 @@ export function GroupList({ title = "Groups" }: GroupListProps) {
         ) : (
           groups.map((g) =>
             g.group ? (
-              <GroupCard
-                key={g.group.id}
-                group={{
-                  id: g.group.id,
-                  name: g.group.name,
-                  members: g.group.members_count,
-                  destination: g.group.destination || "",
-                  imageUrl: g.group.cover_image || undefined,
-                  timestampOrTag: g.group.start_date || undefined,
-                }}
-              />
+              <div key={g.group.id} className="border-b border-border last:border-none">
+                <GroupCard
+                  group={{
+                    id: g.group.id,
+                    name: g.group.name,
+                    members: g.group.members_count,
+                    destination: g.group.destination || "",
+                    imageUrl: g.group.cover_image || undefined,
+                    timestampOrTag: g.group.start_date || undefined,
+                  }}
+                  className="py-2"
+                />
+              </div>
             ) : null
           )
         )}

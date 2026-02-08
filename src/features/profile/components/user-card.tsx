@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useEffect } from "react";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -209,18 +209,7 @@ export default function UserCard({
                 src={user.avatar || "/placeholder.svg"}
                 alt={user.name}
               />
-              <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">
-                          <svg
-                            className="w-6 h-6 text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                            focusable="false"
-                          >
-                            <circle cx="12" cy="8" r="4" />
-                            <rect x="4" y="14" width="16" height="6" rx="3" />
-                          </svg>
-              </AvatarFallback>
+<UserAvatarFallback />
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex flex-col">
@@ -240,18 +229,7 @@ export default function UserCard({
                 src={user.avatar || "/placeholder.svg"}
                 alt={user.name}
               />
-             <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">
-                          <svg
-                            className="w-6 h-6 text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                            focusable="false"
-                          >
-                            <circle cx="12" cy="8" r="4" />
-                            <rect x="4" y="14" width="16" height="6" rx="3" />
-                          </svg>
-              </AvatarFallback>
+<UserAvatarFallback />
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex flex-col">

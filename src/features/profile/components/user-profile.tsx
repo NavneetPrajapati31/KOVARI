@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
-import { Image, Spinner, Avatar, User } from "@heroui/react";
+import { Image, Spinner, User } from "@heroui/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
@@ -80,9 +81,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
 
   // Modal state for profile image (mobile only)
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false);
-  const handleAvatarClick = () => setIsImageModalOpen(true);
+  const handleAvatarClick = () => {
+    if (profile.profileImage) {
+      setIsImageModalOpen(true);
+    }
+  };
   const handleAvatarKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
+    if ((event.key === "Enter" || event.key === " ") && profile.profileImage) {
       setIsImageModalOpen(true);
     }
   };
@@ -263,24 +268,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       role="button"
                     >
                       {profile.profileImage ? (
-                        <Avatar
-                          className="h-[70px] w-[70px]"
-                          src={profile.profileImage}
-                        />
+                        <Avatar className="h-[70px] w-[70px]">
+                          <AvatarImage src={profile.profileImage || ""} />
+                          <UserAvatarFallback className="h-[70px] w-[70px]" iconClassName="w-8 h-8" />
+                        </Avatar>
                       ) : (
-                        <div className="h-[70px] w-[70px] flex items-center justify-center bg-muted rounded-full">
-                          <svg
-                            className="w-8 h-8 text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                            focusable="false"
-                          >
-                            <circle cx="12" cy="8" r="4" />
-                            <rect x="4" y="14" width="16" height="6" rx="3" />
-                          </svg>
-                          {/* <UserRound className="w-20 h-20 text-gray-400" /> */}
-                        </div>
+                        <Avatar className="h-[70px] w-[70px]">
+                            <UserAvatarFallback className="h-[70px] w-[70px]" iconClassName="w-8 h-8" />
+                        </Avatar>
                       )}
                     </div>
                     <div className="flex flex-col">
@@ -403,10 +398,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 {/* <div className="flex flex-row items-center gap-x-6 w-full min-[376px]:hidden">
                   <div className="flex flex-row justify-start items-center flex-1 min-w-0 gap-x-4">
                     <div className="flex flex-col">
-                      <Avatar
-                        className="h-[70px] w-[70px]"
-                        src={profile.profileImage || ""}
-                      />
+                      <Avatar className="h-[70px] w-[70px]">
+                        <AvatarImage src={profile.profileImage || ""} />
+                        <UserAvatarFallback className="h-[70px] w-[70px]" iconClassName="w-8 h-8" />
+                      </Avatar>
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -821,7 +816,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     className="w-full h-full object-cover rounded-3xl"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-muted rounded-3xl">
+                  <div className="w-full h-full flex items-center justify-center bg-secondary rounded-3xl border border-border">
                     <svg
                       className="w-20 h-20 text-gray-400"
                       fill="currentColor"

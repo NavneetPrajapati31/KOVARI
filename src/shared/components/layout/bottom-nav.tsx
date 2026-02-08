@@ -7,9 +7,9 @@ import { Home, Search, MessageSquare, Users, User, Send } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { cn } from "@/shared/utils/utils";
 import { createClient } from "@/lib/supabase";
 
@@ -120,9 +120,7 @@ export function BottomNav() {
                   src={profileAvatarSrc}
                   alt={user?.fullName || "Profile"}
                 />
-                <AvatarFallback>
-                  {user?.firstName?.charAt(0) || "U"}
-                </AvatarFallback>
+                <UserAvatarFallback />
               </Avatar>
             ) : (
               Icon && (

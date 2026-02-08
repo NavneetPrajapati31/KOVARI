@@ -50,6 +50,7 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import Link from "next/link";
 
+
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
 
 // Utility: Check if message content is real text (not empty, not placeholder)
@@ -576,7 +577,7 @@ export default function GroupChatInterface() {
                 {members.length} member{members.length !== 1 ? "s" : ""}
               </p>
               {groupInfo?.description && (
-                <p className="text-xs text-muted-foreground mt-2 text-left mb-3">
+                <p className="text-xs text-muted-foreground mt-2 mb-3">
                   {groupInfo.description}
                 </p>
               )}
@@ -596,7 +597,7 @@ export default function GroupChatInterface() {
               </div>
               {membersLoading ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner variant="spinner" size="sm" color="primary" />
                 </div>
               ) : (
                 <AvatarGroup
@@ -618,9 +619,24 @@ export default function GroupChatInterface() {
                     <Avatar
                       key={member.id}
                       src={member.avatar}
-                      className="w-10 h-10"
+                      classNames={{
+                        base: "bg-secondary w-10 h-10",
+                      }}
                       name={member.name}
+                      showFallback={true}
+                      fallback={
+                        <svg
+                          className="w-5 h-5 text-gray-400"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="8" r="4" />
+                          <rect x="4" y="14" width="16" height="6" rx="3" />
+                        </svg>
+                      }
                     />
+
                   ))}
                 </AvatarGroup>
               )}
@@ -859,14 +875,40 @@ export default function GroupChatInterface() {
                       >
                         {!msg.isCurrentUser &&
                           (msg.sender === "Deleted User" ? (
-                            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-muted flex items-center justify-center">
-                              <User className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                          ) : (
-                            <Avatar
-                              className="w-8 h-8 flex-shrink-0"
+                           <Avatar
+                              className="w-8 h-8 flex-shrink-0 bg-secondary"
                               src={msg.avatar || ""}
                               name={msg.sender}
+                               showFallback={true}
+                               fallback={
+                              <svg
+                          className="w-5 h-5 text-gray-400"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="8" r="4" />
+                          <rect x="4" y="14" width="16" height="6" rx="3" />
+                        </svg>
+                        }
+                            />
+                          ) : (
+                            <Avatar
+                              className="w-10 h-10 flex-shrink-0 bg-secondary"
+                              src={msg.avatar || ""}
+                              name={msg.sender}
+                               showFallback={true}
+                               fallback={
+                              <svg
+                          className="w-5 h-5 text-gray-400"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="8" r="4" />
+                          <rect x="4" y="14" width="16" height="6" rx="3" />
+                        </svg>
+                        }
                             />
                           ))}
                         <div

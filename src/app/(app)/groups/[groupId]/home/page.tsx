@@ -638,7 +638,7 @@ const GroupHomePage = () => {
                     <div className="flex items-start justify-between gap-2 px-1 mb-1">
                       <div className="flex-1 min-w-0">
                         <h2 className="text-sm font-bold">{groupInfo?.name}</h2>
-                        <p className="text-xs font-medium text-muted-foreground mt-1 mb-3">
+                        <p className="text-sm font-medium text-muted-foreground mt-1 mb-3">
                           {groupInfo?.description}
                         </p>
                       </div>
@@ -737,7 +737,19 @@ const GroupHomePage = () => {
                             avatarProps={{
                               src: member.avatar,
                               size: "sm",
-                              className: "flex-shrink-0",
+                              className: "flex-shrink-0 h-10 w-10 bg-secondary",
+                              showFallback: true,
+                              fallback: (
+                                <svg
+                                  className="w-5 h-5 text-gray-400"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                >
+                                  <circle cx="12" cy="8" r="4" />
+                                  <rect x="4" y="14" width="16" height="6" rx="3" />
+                                </svg>
+                              ),
                             }}
                             name={
                               <div className="flex items-center gap-4">
@@ -1018,7 +1030,7 @@ const GroupHomePage = () => {
 
                 <div className="flex flex-row gap-2 mb-4">
                   <Card className="bg-card border-1 p-2 pt-4 border-border rounded-3xl shadow-sm flex-1 basis-2/3 lg:basis-3/4">
-                    <div className="flex flex-col items-start gap-2 mb-2 px-3">
+                    <div className="flex flex-col items-start gap-1 mb-2 px-3">
                       {groupInfoLoading ? (
                         <>
                           <Skeleton className="h-3 w-1/3 mb-2 mt-1 rounded-full" />
@@ -1028,12 +1040,12 @@ const GroupHomePage = () => {
                       ) : (
                         <>
                           <span
-                            className="text-md font-bold leading-tight truncate text-foreground"
+                            className="text-sm font-bold leading-tight truncate text-foreground"
                             title={groupInfo?.name}
                           >
                             {groupInfo?.name}
                           </span>
-                          <p className="text-sm font-medium">
+                          <p className="text-sm text-muted-foreground font-medium">
                             {groupInfo?.description}
                           </p>
                         </>
@@ -1074,7 +1086,19 @@ const GroupHomePage = () => {
                                   avatarProps={{
                                     src: member.avatar,
                                     size: "sm",
-                                    className: "flex-shrink-0",
+                                    className: "flex-shrink-0 bg-secondary h-10 w-10",
+                                    showFallback: true,
+                                    fallback: (
+                                      <svg
+                                        className="w-5 h-5 text-gray-400"
+                                        fill="currentColor"
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                      >
+                                        <circle cx="12" cy="8" r="4" />
+                                        <rect x="4" y="14" width="16" height="6" rx="3" />
+                                      </svg>
+                                    ),
                                   }}
                                   name={
                                     <div className="flex items-center gap-2">
@@ -1363,12 +1387,12 @@ const GroupHomePage = () => {
                     <div className="flex items-start justify-between gap-2 w-full">
                       <div className="flex-1 min-w-0">
                         <span
-                          className="text-md font-bold leading-tight truncate text-foreground block mb-2"
+                          className="text-sm font-bold leading-tight truncate text-foreground block mb-1"
                           title={groupInfo?.name}
                         >
                           {groupInfo?.name}
                         </span>
-                        <p className="text-sm font-medium">
+                        <p className="text-sm text-muted-foreground font-medium">
                           {groupInfo?.description}
                         </p>
                       </div>
@@ -1405,7 +1429,19 @@ const GroupHomePage = () => {
                             avatarProps={{
                               src: member.avatar,
                               size: "sm",
-                              className: "flex-shrink-0",
+                              className: "flex-shrink-0 h-10 w-10 bg-secondary",
+                              showFallback: true,
+                              fallback: (
+                                <svg
+                                  className="w-5 h-5 text-gray-400"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                >
+                                  <circle cx="12" cy="8" r="4" />
+                                  <rect x="4" y="14" width="16" height="6" rx="3" />
+                                </svg>
+                              ),
                             }}
                             name={
                               <div className="flex items-center gap-2">

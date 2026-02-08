@@ -271,7 +271,7 @@ export const GroupMediaSection = ({
           aria-label="Photos and videos gallery"
         >
           {/* Header */}
-          <div className="flex items-center gap-3 shrink-0 border-b border-border px-3 py-3 safe-area-top">
+          <div className="flex items-center gap-2 shrink-0 border-b border-border px-3 py-3 safe-area-top">
             <Button
               type="button"
               variant="ghost"
@@ -282,17 +282,17 @@ export const GroupMediaSection = ({
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <h2 className="text-base font-semibold text-foreground">
+            <h2 className="text-sm font-semibold text-foreground">
               Photos and videos
             </h2>
-            <span className="text-sm text-muted-foreground ml-1">
+            {/* <span className="text-sm text-muted-foreground ml-1">
               {media.length}
-            </span>
+            </span> */}
           </div>
 
           {/* Scrollable grid - 3 cols on small, 4 on sm+ */}
-          <div className="flex-1 overflow-y-auto hide-scrollbar p-4">
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          <div className="flex-1 overflow-y-auto hide-scrollbar p-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 sm:gap-3 gap-1.5">
               {loading ? (
                 Array.from({ length: 24 }).map((_, i) => (
                   <Skeleton

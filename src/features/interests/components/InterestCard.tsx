@@ -5,9 +5,9 @@ import { useState } from "react";
 import { Card, CardBody, Spinner } from "@heroui/react";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { MapPin, Loader2, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -83,18 +83,7 @@ export function InterestCard({
               src={interest.sender.avatar || ""}
               alt={`${interest.sender.name}'s profile`}
             />
-            <AvatarFallback className="bg-secondary text-foreground text-xs font-medium">
-              <svg
-                className="w-6 h-6 text-gray-400"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <rect x="4" y="14" width="16" height="6" rx="3" />
-              </svg>
-            </AvatarFallback>
+          <UserAvatarFallback className="" />
           </Avatar>
           <div className="flex flex-col min-w-0 flex-1">
              <div className="flex justify-between items-start gap-2 w-full">

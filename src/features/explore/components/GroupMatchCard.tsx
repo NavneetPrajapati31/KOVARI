@@ -8,7 +8,6 @@
 import React, { useState } from "react";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -65,6 +64,7 @@ import {
   createSkipRecord,
   createReportRecord,
 } from "../lib/matchingActions";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 
 interface GroupMatchCardProps {
   group: any;
@@ -359,9 +359,13 @@ export function GroupMatchCard({
                 className="w-full h-full object-cover cursor-pointer"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                <Users className="w-8 h-8 text-primary-foreground" />
-              </div>
+              <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground">
+                              <AvatarImage
+                                src=""
+                                alt={group.name || "Travel Group"}
+                              />
+                            <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
+                            </Avatar>
             )}
           </div>
           <div className="flex-1 min-w-0">

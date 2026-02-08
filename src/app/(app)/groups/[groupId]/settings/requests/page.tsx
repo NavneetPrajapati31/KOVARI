@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from "react";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import { Chip } from "@heroui/react";
 import { useParams } from "next/navigation";
@@ -213,12 +213,7 @@ export default function RequestsPage() {
                         src={request.avatar || ""}
                         alt={request.name}
                       />
-                      <AvatarFallback>
-                        {request.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
+                    <UserAvatarFallback />
                     </Avatar>
                     <span className="font-medium text-foreground text-sm">
                       {request.name}
@@ -232,7 +227,7 @@ export default function RequestsPage() {
                   <div className="col-span-2 flex items-center">
                     <Chip
                       size="sm"
-                      className="text-sm capitalize flex-shrink-0 self-center bg-yellow-100 text-yellow-600 px-2"
+                      className="text-sm capitalize flex-shrink-0 self-center bg-secondary text-muted-foreground px-2"
                     >
                       <span className="font-medium text-xs">Pending</span>
                     </Chip>
@@ -246,7 +241,7 @@ export default function RequestsPage() {
                     {isCurrentUserAdmin && (
                       <>
                         <Button
-                          className="text-primary-foreground bg-primary px-3 py-1 h-7 text-xs"
+                          className="text-primary-foreground bg-primary px-3 py-1 h-7 text-xs rounded-lg"
                           onClick={() => handleApproveRequest(request)}
                           aria-label={`Approve ${request.name}`}
                           tabIndex={0}
@@ -263,7 +258,7 @@ export default function RequestsPage() {
                         </Button>
                         <Button
                           variant="outline"
-                          className="px-3 py-1 h-7 w-7 text-xs"
+                          className="px-3 py-1 h-7 w-7 text-xs rounded-lg"
                           onClick={() => handleRejectRequest(request)}
                           aria-label={`Reject ${request.name}`}
                           tabIndex={0}
@@ -302,12 +297,7 @@ export default function RequestsPage() {
                       src={request.avatar || ""}
                       alt={request.name}
                     />
-                    <AvatarFallback>
-                      {request.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
+                    <UserAvatarFallback />
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-foreground truncate text-sm">
@@ -319,8 +309,7 @@ export default function RequestsPage() {
                   </div>
                   <Chip
                     size="sm"
-                    variant="bordered"
-                    className="text-sm capitalize flex-shrink-0 self-center bg-yellow-100 border-1 border-yellow-400 text-yellow-700 px-2"
+                    className="text-sm capitalize flex-shrink-0 self-center bg-secondary text-muted-foreground px-2"
                   >
                     <span className="font-medium text-xs">Pending</span>
                   </Chip>
@@ -332,8 +321,7 @@ export default function RequestsPage() {
                   {isCurrentUserAdmin && (
                     <div className="flex gap-2">
                       <Button
-                        variant="outline"
-                        className="text-success hover:text-success hover:bg-success/10 border-success bg-success/10 px-3 py-1 h-auto text-xs"
+                        className="text-primary-foreground bg-primary px-3 py-1 h-7 text-xs rounded-lg"
                         onClick={() => handleApproveRequest(request)}
                         aria-label={`Approve ${request.name}`}
                         tabIndex={0}
@@ -342,13 +330,15 @@ export default function RequestsPage() {
                           rejectLoadingId === request.id
                         }
                       >
-                        {approveLoadingId === request.id
-                          ? "Approving..."
-                          : "Approve"}
+                        {approveLoadingId === request.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary-foreground" />
+                        ) : (
+                          "Approve"
+                        )}
                       </Button>
                       <Button
                         variant="outline"
-                        className="text-destructive border-destructive bg-destructive/10 hover:text-destructive hover:bg-destructive/10 px-3 py-1 h-auto text-xs"
+                        className="px-3 py-1 h-7 w-7 text-xs rounded-lg"
                         onClick={() => handleRejectRequest(request)}
                         aria-label={`Reject ${request.name}`}
                         tabIndex={0}
@@ -357,9 +347,11 @@ export default function RequestsPage() {
                           approveLoadingId === request.id
                         }
                       >
-                        {rejectLoadingId === request.id
-                          ? "Rejecting..."
-                          : "Reject"}
+                        {rejectLoadingId === request.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                        ) : (
+                          <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
                       </Button>
                     </div>
                   )}

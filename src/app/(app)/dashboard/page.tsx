@@ -12,8 +12,8 @@ import { Button } from "@/shared/components/ui/button";
 import {
   Avatar,
   AvatarImage,
-  AvatarFallback,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 
 import { Skeleton } from "@heroui/react";
 import InboxChatListSkeleton from "@/shared/components/layout/inbox-chat-list-skeleton";
@@ -508,9 +508,7 @@ export default function Dashboard() {
                                       alt={notification.title}
                                       className="object-cover"
                                     />
-                                    <AvatarFallback className="bg-card text-muted-foreground border border-border">
-                                      {avatarFallback}
-                                    </AvatarFallback>
+                                    <UserAvatarFallback className="text-muted-foreground border border-border" />
                                   </Avatar>
                                 )}
                                 <div className="flex-1 min-w-0">
@@ -617,7 +615,7 @@ export default function Dashboard() {
               </div>
               <div className="flex flex-col md:flex-row gap-3 flex-1">
                 <div className="w-full md:flex-1 min-w-0 bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
-                  <div className="mb-3 p-4 border-b border-border flex-shrink-0">
+                  <div className="mb-0 p-4 border-b border-border flex-shrink-0">
                     <h2 className="text-foreground font-semibold text-xs truncate">
                       Travel Groups
                     </h2>
@@ -625,9 +623,9 @@ export default function Dashboard() {
                       Manage your collaborative travel experiences
                     </p>
                   </div>
-                  <div className="px-4 pb-3 flex-1 overflow-hidden">
+                  <div className="px-0 flex-1 overflow-hidden">
                     {groupsLoading ? (
-                      <div className="overflow-y-auto pr-1 scrollbar-hide">
+                      <div className="overflow-y-auto scrollbar-hide">
                         <GroupListSkeleton />
                       </div>
                     ) : (

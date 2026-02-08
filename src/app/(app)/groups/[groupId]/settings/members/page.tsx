@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import { InviteTeammatesModal } from "@/features/invite/components/invite-teammember";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Plus } from "lucide-react";
@@ -303,17 +303,12 @@ export default function Page() {
             {sortedMembers.map((member) => (
               <div
                 key={member.id}
-                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50"
+                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 last:rounded-b-3xl hover:bg-gray-50"
               >
                 <div className="col-span-3 flex items-center gap-3">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={member.avatar || ""} alt={member.name} />
-                    <AvatarFallback>
-                      {member.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
+                  <UserAvatarFallback />
                   </Avatar>
                   <span className="font-medium text-foreground text-sm">
                     {member.name}
@@ -337,7 +332,7 @@ export default function Page() {
                     <Chip
                       size="sm"
                       variant="bordered"
-                      className="text-sm capitalize flex-shrink-0 self-center bg-muted border-none text-muted-foreground px-2"
+                      className="text-sm capitalize flex-shrink-0 self-center bg-secondary border-none text-muted-foreground px-2"
                     >
                       <span className="font-medium text-xs">Member</span>
                     </Chip>
@@ -397,12 +392,7 @@ export default function Page() {
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
                   <AvatarImage src={member.avatar || ""} alt={member.name} />
-                  <AvatarFallback>
-                    {member.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
+                  <UserAvatarFallback />
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-foreground truncate text-sm">
@@ -425,7 +415,7 @@ export default function Page() {
                     <Chip
                       size="sm"
                       variant="bordered"
-                      className="text-sm capitalize flex-shrink-0 self-center bg-muted border-none text-muted-foreground px-2"
+                      className="text-sm capitalize flex-shrink-0 self-center bg-secondary border-none text-muted-foreground px-2"
                     >
                       <span className="font-medium text-xs">Member</span>
                     </Chip>

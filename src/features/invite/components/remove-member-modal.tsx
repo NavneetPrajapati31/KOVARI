@@ -10,9 +10,9 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { AlertTriangle } from "lucide-react";
 
 interface RemoveMemberModalProps {
@@ -71,12 +71,7 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={member.avatar || ""} alt={member.name} />
-            <AvatarFallback>
-              {member.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
+<UserAvatarFallback />
           </Avatar>
           <div className="min-w-0">
             <div className="font-medium text-foreground truncate">
