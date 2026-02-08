@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useSearchParams, useParams } from "next/navigation";
+import { useSearchParams, useParams, useRouter } from "next/navigation";
 import UserList from "@/features/profile/components/user-list";
 import { ArrowLeft, Search, X } from "lucide-react";
 import type { User } from "@/features/profile/lib/user";
@@ -10,10 +10,10 @@ import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { Skeleton } from "@heroui/react";
 
-
 export default function FollowersFollowing() {
   const searchParams = useSearchParams();
   const params = useParams();
+  const router = useRouter();
   const userId = params?.userId as string;
   // Get current user from auth store
   const currentUser = useAuthStore((state) => state.user);
@@ -26,6 +26,13 @@ export default function FollowersFollowing() {
   }, [currentUser?.id]);
   // Determine if this is the user's own profile
   const isOwnProfile = currentUserUuid === userId;
+
+  // Redirect to profile if viewing another user's followers/following (don't allow)
+  useEffect(() => {
+    if (userId && currentUserUuid !== null && currentUserUuid !== userId) {
+      router.replace(`/profile/${userId}`);
+    }
+  }, [userId, currentUserUuid, router]);
   const tabParam = searchParams.get("tab");
   const validTabs = ["followers", "following"];
 
@@ -98,7 +105,6 @@ export default function FollowersFollowing() {
     }
   };
 
-
   // Memoized fetch for following
   const fetchFollowing = async (force = false) => {
     if (!userId) return;
@@ -117,7 +123,6 @@ export default function FollowersFollowing() {
       setFollowingLoading(false);
     }
   };
-
 
   // Fetch on tab switch, but only if not already loaded
   useEffect(() => {
@@ -175,7 +180,6 @@ export default function FollowersFollowing() {
   //     .finally(() => setLikesLoading(false));
   // }, [activeTab, userId]);
 
-
   // Handlers (stubbed for now)
   const handleRemoveFollower = async (userId: number) => {
     // TODO: Implement backend call
@@ -209,8 +213,10 @@ export default function FollowersFollowing() {
               <Skeleton className="h-4 w-16 rounded-full" />
             ) : (
               <>
-                 {profileError && <span className="text-destructive">Error</span>}
-                 {!profileError && profileUsername}
+                {profileError && (
+                  <span className="text-destructive">Error</span>
+                )}
+                {!profileError && profileUsername}
               </>
             )}
           </h1>
@@ -288,7 +294,6 @@ export default function FollowersFollowing() {
               <span className="absolute left-0 -bottom-[1px] w-full h-0.5 bg-primary rounded" />
             )}
           </button> */}
-
         </div>
       </div>
 
@@ -334,8 +339,10 @@ export default function FollowersFollowing() {
 
       {/* Tab Content */}
       <div className="w-full">
-        {(activeTab === "followers" && (followersLoading || !hasFetchedFollowers)) ||
-        (activeTab === "following" && (followingLoading || !hasFetchedFollowing)) ? (
+        {(activeTab === "followers" &&
+          (followersLoading || !hasFetchedFollowers)) ||
+        (activeTab === "following" &&
+          (followingLoading || !hasFetchedFollowing)) ? (
           <div className="divide-y divide-border border-b border-border">
             {Array.from({ length: 8 }).map((_, i) => (
               <div

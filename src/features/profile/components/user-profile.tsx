@@ -123,7 +123,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   //   setPosts((prev) => [newPost, ...prev]);
   // };
 
-
   // Debug logging
   console.log("Profile data:", {
     isFollowing: profile.isFollowing,
@@ -270,11 +269,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       {profile.profileImage ? (
                         <Avatar className="h-[70px] w-[70px]">
                           <AvatarImage src={profile.profileImage || ""} />
-                          <UserAvatarFallback className="h-[70px] w-[70px]" iconClassName="w-8 h-8" />
+                          <UserAvatarFallback
+                            className="h-[70px] w-[70px]"
+                            iconClassName="w-8 h-8"
+                          />
                         </Avatar>
                       ) : (
                         <Avatar className="h-[70px] w-[70px]">
-                            <UserAvatarFallback className="h-[70px] w-[70px]" iconClassName="w-8 h-8" />
+                          <UserAvatarFallback
+                            className="h-[70px] w-[70px]"
+                            iconClassName="w-8 h-8"
+                          />
                         </Avatar>
                       )}
                     </div>
@@ -292,18 +297,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </p>
                       <div className="flex flex-row items-center gap-x-6 w-full mt-2">
                         <div className="flex flex-row gap-4 items-center flex-shrink-0">
-                          {/* Followers clickable */}
+                          {/* Followers - clickable only on own profile */}
                           <div
-                            className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
-                            tabIndex={0}
-                            role="button"
-                            aria-label="View followers"
-                            onClick={() =>
-                              handleNavigateConnections("followers")
-                            }
-                            onKeyDown={(e) =>
-                              handleKeyDownConnections(e, "followers")
-                            }
+                            className={`text-left flex flex-row justify-start items-center gap-1 focus:outline-none ${profile.isOwnProfile ? "cursor-pointer" : "cursor-default"}`}
+                            {...(profile.isOwnProfile && {
+                              tabIndex: 0,
+                              role: "button",
+                              "aria-label": "View followers",
+                              onClick: () =>
+                                handleNavigateConnections("followers"),
+                              onKeyDown: (
+                                e: React.KeyboardEvent<HTMLDivElement>
+                              ) => handleKeyDownConnections(e, "followers"),
+                            })}
                           >
                             <div className="text-xs font-black text-foreground">
                               {followersCount}
@@ -312,18 +318,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               Followers
                             </span>
                           </div>
-                          {/* Following clickable */}
+                          {/* Following - clickable only on own profile */}
                           <div
-                            className="text-left flex flex-row justify-start items-center gap-1 cursor-pointer focus:outline-none"
-                            tabIndex={0}
-                            role="button"
-                            aria-label="View following"
-                            onClick={() =>
-                              handleNavigateConnections("following")
-                            }
-                            onKeyDown={(e) =>
-                              handleKeyDownConnections(e, "following")
-                            }
+                            className={`text-left flex flex-row justify-start items-center gap-1 focus:outline-none ${profile.isOwnProfile ? "cursor-pointer" : "cursor-default"}`}
+                            {...(profile.isOwnProfile && {
+                              tabIndex: 0,
+                              role: "button",
+                              "aria-label": "View following",
+                              onClick: () =>
+                                handleNavigateConnections("following"),
+                              onKeyDown: (
+                                e: React.KeyboardEvent<HTMLDivElement>
+                              ) => handleKeyDownConnections(e, "following"),
+                            })}
                           >
                             <div className="text-xs font-black text-foreground">
                               {profile.following}
@@ -453,7 +460,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   {profile.bio || "No bio added."}
                 </div>
 
-
                 {/* Action Buttons */}
                 <div className="flex flex-row flex-wrap gap-1.5 mt-4">
                   {profile.isOwnProfile === true ? (
@@ -494,7 +500,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         </Button>
                       )} */}
                     </>
-
                   ) : (
                     // Other user's profile buttons
                     <>
@@ -710,7 +715,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           </Badge>
                         ))
                       ) : (
-                        <span className="text-xs font-medium text-foreground">Not specified</span>
+                        <span className="text-xs font-medium text-foreground">
+                          Not specified
+                        </span>
                       )}
                     </div>
                   </div>
@@ -729,13 +736,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           </Badge>
                         ))
                       ) : (
-                        <span className="text-xs font-medium text-foreground">Not specified</span>
+                        <span className="text-xs font-medium text-foreground">
+                          Not specified
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-
             )}
 
             {/* {activeTab === "Posts" && (
@@ -777,7 +785,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 )}
               </div>
             )} */}
-
           </CardContent>
         </Card>
       </Card>
@@ -849,16 +856,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     </p>
                   </div>
                   <div className="flex flex-row gap-10 items-center flex-shrink-0">
-                    {/* Followers clickable */}
+                    {/* Followers - clickable only on own profile */}
                     <div
-                      className="text-left cursor-pointer focus:outline-none"
-                      tabIndex={0}
-                      role="button"
-                      aria-label="View followers"
-                      onClick={() => handleNavigateConnections("followers")}
-                      onKeyDown={(e) =>
-                        handleKeyDownConnections(e, "followers")
-                      }
+                      className={`text-left focus:outline-none ${profile.isOwnProfile ? "cursor-pointer" : "cursor-default"}`}
+                      {...(profile.isOwnProfile && {
+                        tabIndex: 0,
+                        role: "button",
+                        "aria-label": "View followers",
+                        onClick: () => handleNavigateConnections("followers"),
+                        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) =>
+                          handleKeyDownConnections(e, "followers"),
+                      })}
                     >
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Followers
@@ -867,16 +875,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         {followersCount}
                       </div>
                     </div>
-                    {/* Following clickable */}
+                    {/* Following - clickable only on own profile */}
                     <div
-                      className="text-left cursor-pointer focus:outline-none"
-                      tabIndex={0}
-                      role="button"
-                      aria-label="View following"
-                      onClick={() => handleNavigateConnections("following")}
-                      onKeyDown={(e) =>
-                        handleKeyDownConnections(e, "following")
-                      }
+                      className={`text-left focus:outline-none ${profile.isOwnProfile ? "cursor-pointer" : "cursor-default"}`}
+                      {...(profile.isOwnProfile && {
+                        tabIndex: 0,
+                        role: "button",
+                        "aria-label": "View following",
+                        onClick: () => handleNavigateConnections("following"),
+                        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) =>
+                          handleKeyDownConnections(e, "following"),
+                      })}
                     >
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Following
@@ -945,7 +954,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         </Button>
                       )} */}
                     </>
-
                   ) : (
                     // Other user's profile buttons
                     <>
@@ -1094,7 +1102,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         {profile.location || "Not specified"}
                       </dd>
                     </div>
-                     <div className="flex flex-col">
+                    <div className="flex flex-col">
                       <dt className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
                         Religion
                       </dt>
@@ -1160,7 +1168,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           </Badge>
                         ))
                       ) : (
-                        <span className="text-sm font-medium text-foreground">Not specified</span>
+                        <span className="text-sm font-medium text-foreground">
+                          Not specified
+                        </span>
                       )}
                     </div>
                   </div>
@@ -1179,13 +1189,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           </Badge>
                         ))
                       ) : (
-                        <span className="text-sm font-medium text-foreground">Not specified</span>
+                        <span className="text-sm font-medium text-foreground">
+                          Not specified
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-
             )}
 
             {/* {activeTab === "Posts" && (
@@ -1250,7 +1261,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 )}
               </div>
             )} */}
-
           </CardContent>
         </Card>
       </Card>
@@ -1267,6 +1277,5 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
         onCreate={handleCreatePost}
       /> */}
     </>
-
   );
 };
