@@ -356,6 +356,29 @@ export default function ItineraryPage() {
     }
   };
 
+  const IST_TZ = "Asia/Kolkata";
+
+  /** Treat picker value (YYYY-MM-DDTHH:mm) as IST and send to API as ISO with +05:30 */
+  const datetimeToIST = (naive: string): string => {
+    if (!naive || naive.length < 16) return naive;
+    if (/[Z+]/.test(naive)) return naive;
+    return `${naive}:00+05:30`;
+  };
+
+  /** Convert API datetime (any ISO) to YYYY-MM-DDTHH:mm in IST for the picker so edit modal matches card display */
+  const datetimeFromAPIToPicker = (isoString: string): string => {
+    if (!isoString || isoString.length < 10) return isoString;
+    const date = new Date(isoString);
+    const datePart = date.toLocaleDateString("en-CA", { timeZone: IST_TZ });
+    const timePart = date.toLocaleTimeString("en-IN", {
+      timeZone: IST_TZ,
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${datePart}T${timePart}`;
+  };
+
   const handleAddItem = async () => {
     const latest = formDataRef.current;
     const title = latest.title?.trim();
@@ -376,7 +399,7 @@ export default function ItineraryPage() {
         body: JSON.stringify({
           ...latest,
           title,
-          datetime,
+          datetime: datetimeToIST(datetime),
           status: "pending",
           group_id: params.groupId,
           assigned_to: Array.isArray(latest.assigned_to)
@@ -426,7 +449,7 @@ export default function ItineraryPage() {
           body: JSON.stringify({
             ...latest,
             title,
-            datetime,
+            datetime: datetimeToIST(datetime),
             assigned_to: Array.isArray(latest.assigned_to)
               ? latest.assigned_to
               : [],
@@ -537,7 +560,7 @@ export default function ItineraryPage() {
     setFormData({
       title: item.title,
       description: item.description || "",
-      datetime: item.datetime,
+      datetime: datetimeFromAPIToPicker(item.datetime),
       type: item.type,
       location: item.location || "",
       priority: item.priority,
@@ -594,16 +617,21 @@ export default function ItineraryPage() {
     return filteredItems.filter((item) => item.status === status);
   };
 
+  const IST_TIMEZONE = "Asia/Kolkata";
+
   const formatDateTime = (datetime: string) => {
     const date = new Date(datetime);
     return {
-      date: date.toLocaleDateString("en-US", {
+      date: date.toLocaleDateString("en-IN", {
         month: "short",
         day: "numeric",
+        timeZone: IST_TIMEZONE,
       }),
-      time: date.toLocaleTimeString("en-US", {
+      time: date.toLocaleTimeString("en-IN", {
         hour: "2-digit",
         minute: "2-digit",
+        hour12: true,
+        timeZone: IST_TIMEZONE,
       }),
     };
   };
@@ -902,20 +930,22 @@ export default function ItineraryPage() {
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                        <button
-                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
-                    aria-label="Column actions"
-                  >
-                    <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                  </button>
+                          <button
+                            className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+                            aria-label="Column actions"
+                          >
+                            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                          </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 transition-all duration-300 ease-in-out border-border mr-4">
+                        <DropdownMenuContent
+                          align="end"
+                          className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 transition-all duration-300 ease-in-out border-border mr-4"
+                        >
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditDialog(item);
                             }}
-
                             className="text-foreground font-medium hover:cursor-pointer focus:bg-transparent focus:text-foreground focus-within:!border-none focus-within:!outline-none"
                           >
                             <Pencil className="w-4 h-4 mr-0" />
@@ -927,7 +957,6 @@ export default function ItineraryPage() {
                               e.stopPropagation();
                               setItemToDelete(item);
                             }}
-                            
                           >
                             <Trash2 className="w-4 h-4 mr-0 text-destructive" />
                             Delete
@@ -988,11 +1017,12 @@ export default function ItineraryPage() {
                             <div className="flex flex-col leading-tight">
                               <span>
                                 {new Date(item.datetime).toLocaleDateString(
-                                  "en-US",
+                                  "en-IN",
                                   {
                                     weekday: "short",
                                     month: "short",
                                     day: "2-digit",
+                                    timeZone: IST_TIMEZONE,
                                   }
                                 )}
                               </span>
@@ -1017,11 +1047,12 @@ export default function ItineraryPage() {
                             <div className="flex flex-col leading-tight">
                               <span>
                                 {new Date(item.datetime).toLocaleTimeString(
-                                  "en-US",
+                                  "en-IN",
                                   {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                     hour12: true,
+                                    timeZone: IST_TIMEZONE,
                                   }
                                 )}
                               </span>
@@ -1161,7 +1192,14 @@ export default function ItineraryPage() {
                 }
                 onFocus={(e) => {
                   // Prevent full text selection when dialog opens and this field gets focus
-                  setTimeout(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length), 0);
+                  setTimeout(
+                    () =>
+                      e.target.setSelectionRange(
+                        e.target.value.length,
+                        e.target.value.length
+                      ),
+                    0
+                  );
                 }}
                 placeholder="Activity title"
                 className="rounded-lg border-border h-10 sm:h-11"
@@ -1175,7 +1213,10 @@ export default function ItineraryPage() {
                 id="edit-description"
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, description: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
                 }
                 placeholder="Activity description"
                 rows={3}
@@ -1187,7 +1228,9 @@ export default function ItineraryPage() {
                 <Label className="text-foreground">Date & Time</Label>
                 <DateTimePicker
                   value={formData.datetime}
-                  onChange={(v) => setFormData((prev) => ({ ...prev, datetime: v }))}
+                  onChange={(v) =>
+                    setFormData((prev) => ({ ...prev, datetime: v }))
+                  }
                   placeholder="Select date and time"
                   variant="compact"
                   className="w-full"
@@ -1226,7 +1269,10 @@ export default function ItineraryPage() {
                   id="edit-location"
                   value={formData.location}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, location: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
                   }
                   placeholder="Location"
                   className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full"
@@ -1284,7 +1330,9 @@ export default function ItineraryPage() {
                         if (isChecked) {
                           setFormData((prev) => ({
                             ...prev,
-                            assigned_to: prev.assigned_to.filter((id) => id !== member.id),
+                            assigned_to: prev.assigned_to.filter(
+                              (id) => id !== member.id
+                            ),
                           }));
                         } else {
                           setFormData((prev) => ({
@@ -1305,7 +1353,9 @@ export default function ItineraryPage() {
                           } else {
                             setFormData((prev) => ({
                               ...prev,
-                              assigned_to: prev.assigned_to.filter((id) => id !== member.id),
+                              assigned_to: prev.assigned_to.filter(
+                                (id) => id !== member.id
+                              ),
                             }));
                           }
                         }}
@@ -1338,27 +1388,27 @@ export default function ItineraryPage() {
           </div>
           <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background sm:justify-between">
             <div className="flex gap-2 order-1 sm:order-2 ml-auto">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-              className="rounded-lg min-w-[80px]"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpdateItem}
-              disabled={isSubmittingEdit}
-              className="rounded-lg min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2"
-            >
-              {isSubmittingEdit ? (
-                <Spinner
-                  variant="spinner"
-                  size="sm"
-                  classNames={{ spinnerBars: "bg-white" }}
-                />
-              ) : null}
-              {isSubmittingEdit ? "Updating..." : "Update Item"}
-            </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+                className="rounded-lg min-w-[80px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateItem}
+                disabled={isSubmittingEdit}
+                className="rounded-lg min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2"
+              >
+                {isSubmittingEdit ? (
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-white" }}
+                  />
+                ) : null}
+                {isSubmittingEdit ? "Updating..." : "Update Item"}
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
@@ -1401,7 +1451,10 @@ export default function ItineraryPage() {
                 id="add-description"
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, description: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
                 }
                 placeholder="Activity description"
                 rows={3}
@@ -1413,7 +1466,9 @@ export default function ItineraryPage() {
                 <Label className="text-foreground">Date & Time</Label>
                 <DateTimePicker
                   value={formData.datetime}
-                  onChange={(v) => setFormData((prev) => ({ ...prev, datetime: v }))}
+                  onChange={(v) =>
+                    setFormData((prev) => ({ ...prev, datetime: v }))
+                  }
                   placeholder="Select date and time"
                   variant="compact"
                   className="w-full"
@@ -1429,7 +1484,10 @@ export default function ItineraryPage() {
                   id="add-location"
                   value={formData.location}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, location: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
                   }
                   placeholder="Location"
                   className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full"
@@ -1487,7 +1545,9 @@ export default function ItineraryPage() {
                         if (isChecked) {
                           setFormData((prev) => ({
                             ...prev,
-                            assigned_to: prev.assigned_to.filter((id) => id !== member.id),
+                            assigned_to: prev.assigned_to.filter(
+                              (id) => id !== member.id
+                            ),
                           }));
                         } else {
                           setFormData((prev) => ({
@@ -1508,7 +1568,9 @@ export default function ItineraryPage() {
                           } else {
                             setFormData((prev) => ({
                               ...prev,
-                              assigned_to: prev.assigned_to.filter((id) => id !== member.id),
+                              assigned_to: prev.assigned_to.filter(
+                                (id) => id !== member.id
+                              ),
                             }));
                           }
                         }}
@@ -1540,28 +1602,28 @@ export default function ItineraryPage() {
             </div>
           </div>
           <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background">
-          <div className="flex gap-2 order-1 sm:order-2 ml-auto">
-            <Button
-              variant="outline"
-              onClick={() => setIsAddDialogOpen(false)}
-              className="rounded-lg order-2 sm:order-1 min-w-[80px]"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddItem}
-              disabled={isSubmittingAdd}
-              className="rounded-lg order-1 sm:order-2 min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2"
-            >
-              {isSubmittingAdd ? (
-                <Spinner
-                  variant="spinner"
-                  size="sm"
-                  classNames={{ spinnerBars: "bg-white" }}
-                />
-              ) : null}
-              {isSubmittingAdd ? "Adding..." : "Add Item"}
-            </Button>
+            <div className="flex gap-2 order-1 sm:order-2 ml-auto">
+              <Button
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+                className="rounded-lg order-2 sm:order-1 min-w-[80px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddItem}
+                disabled={isSubmittingAdd}
+                className="rounded-lg order-1 sm:order-2 min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2"
+              >
+                {isSubmittingAdd ? (
+                  <Spinner
+                    variant="spinner"
+                    size="sm"
+                    classNames={{ spinnerBars: "bg-white" }}
+                  />
+                ) : null}
+                {isSubmittingAdd ? "Adding..." : "Add Item"}
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
@@ -1582,8 +1644,8 @@ export default function ItineraryPage() {
             <DialogDescription className="text-sm text-muted-foreground">
               {itemToDelete ? (
                 <>
-                  Are you sure you want to delete &quot;{itemToDelete.title}&quot;?
-                  This action cannot be undone.
+                  Are you sure you want to delete &quot;{itemToDelete.title}
+                  &quot;? This action cannot be undone.
                 </>
               ) : (
                 "This action cannot be undone."
@@ -1591,35 +1653,35 @@ export default function ItineraryPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background justify-end">
-          <div className="flex gap-2 order-1 sm:order-2 ml-auto">
-            <Button
-              variant="outline"
-              onClick={() => setItemToDelete(null)}
-              disabled={isDeleting}
-              className="rounded-lg min-w-[80px] border-border text-muted-foreground hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={async () => {
-                if (itemToDelete) await handleDeleteItem(itemToDelete.id);
-              }}
-              disabled={isDeleting}
-              className="rounded-lg min-w-[80px] bg-destructive text-primary-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
-            >
-              {isDeleting ? (
-                <>
-                  <Spinner
-                    variant="spinner"
-                    size="sm"
-                    classNames={{ spinnerBars: "bg-white" }}
-                  />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </Button>
+            <div className="flex gap-2 order-1 sm:order-2 ml-auto">
+              <Button
+                variant="outline"
+                onClick={() => setItemToDelete(null)}
+                disabled={isDeleting}
+                className="rounded-lg min-w-[80px] border-border text-muted-foreground hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (itemToDelete) await handleDeleteItem(itemToDelete.id);
+                }}
+                disabled={isDeleting}
+                className="rounded-lg min-w-[80px] bg-destructive text-primary-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                {isDeleting ? (
+                  <>
+                    <Spinner
+                      variant="spinner"
+                      size="sm"
+                      classNames={{ spinnerBars: "bg-white" }}
+                    />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>

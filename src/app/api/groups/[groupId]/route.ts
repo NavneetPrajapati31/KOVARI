@@ -14,7 +14,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, creator_id, ai_overview"
+      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, destination_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, creator_id, ai_overview"
     )
     .eq("id", groupId)
     .single();
@@ -76,6 +76,7 @@ export async function PATCH(
     destination_details,
     description,
     cover_image,
+    destination_image,
     notes,
     start_date,
     end_date,
@@ -120,7 +121,6 @@ export async function PATCH(
     );
   }
 
-  // Only creator or admin can update
   const { data: membership } = await supabase
     .from("group_memberships")
     .select("role")
@@ -131,11 +131,38 @@ export async function PATCH(
 
   const isCreator = groupCheck.creator_id === userRow.id;
   const isAdmin = membership?.role === "admin";
-  if (!isCreator && !isAdmin) {
-    return NextResponse.json(
-      { error: "Only group creator or admin can update group" },
-      { status: 403 }
-    );
+  const isMember = !!membership;
+
+  // Any accepted member can update only destination_image; other fields require creator or admin
+  const onlyDestinationImage =
+    body.destination_image !== undefined &&
+    name === undefined &&
+    destination === undefined &&
+    destination_details === undefined &&
+    description === undefined &&
+    cover_image === undefined &&
+    notes === undefined &&
+    start_date === undefined &&
+    end_date === undefined &&
+    budget === undefined &&
+    non_smokers === undefined &&
+    non_drinkers === undefined &&
+    is_public === undefined;
+
+  if (onlyDestinationImage) {
+    if (!isMember) {
+      return NextResponse.json(
+        { error: "You must be a group member to update the destination image" },
+        { status: 403 }
+      );
+    }
+  } else {
+    if (!isCreator && !isAdmin) {
+      return NextResponse.json(
+        { error: "Only group creator or admin can update group" },
+        { status: 403 }
+      );
+    }
   }
 
   // Build update object with only provided fields
@@ -174,6 +201,12 @@ export async function PATCH(
     updates.cover_image =
       typeof cover_image === "string" && cover_image.length > 0
         ? cover_image
+        : null;
+  }
+  if (destination_image !== undefined) {
+    updates.destination_image =
+      typeof destination_image === "string" && destination_image.length > 0
+        ? destination_image
         : null;
   }
   if (notes !== undefined) {
@@ -268,7 +301,7 @@ export async function PATCH(
     .update(updates)
     .eq("id", groupId)
     .select(
-      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, ai_overview"
+      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, destination_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, ai_overview"
     )
     .single();
 

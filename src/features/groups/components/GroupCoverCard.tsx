@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
+import { Card, Image, Skeleton, Divider } from "@heroui/react";
 import { MapPin, Calendar, Users, Loader2, ArrowUpRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import GroupCardSkeleton from "../../explore/components/GroupCardSkeleton";
 import { useRouter } from "next/navigation";
 
@@ -61,14 +63,19 @@ export function GroupCoverCard({
     >
       {/* Background Image - now covers full card */}
       <div className="relative w-full h-full overflow-hidden bg-muted">
-        <ImageStretch
-          src={
-            imageUrl ||
-            "https://images.pexels.com/photos/281260/pexels-photo-281260.jpeg"
-          }
-          alt={"Group cover"}
-          ariaLabel={"Group cover"}
-        />
+        {imageUrl ? (
+          <ImageStretch
+            src={imageUrl}
+            alt={"Group cover"}
+            ariaLabel={"Group cover"}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-secondary rounded-t-2xl">
+            <Avatar className="w-16 h-16 flex-shrink-0">
+              <UserAvatarFallback iconClassName="w-2/3 h-2/3" />
+            </Avatar>
+          </div>
+        )}
       </div>
 
       {/* Glassmorphism content overlay */}

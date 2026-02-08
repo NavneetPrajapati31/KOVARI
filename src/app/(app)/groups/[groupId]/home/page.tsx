@@ -32,6 +32,7 @@ import {
   CalendarDays,
   ChevronDown,
 } from "lucide-react";
+import NextLink from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import React, {
   KeyboardEvent,
@@ -74,6 +75,8 @@ const ITINERARY_STATUS_BADGES: Record<
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
 };
 
+const IST_TIMEZONE = "Asia/Kolkata";
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const today = new Date();
@@ -89,16 +92,30 @@ const formatDate = (dateString: string) => {
       month: "short",
       day: "numeric",
       weekday: "short",
+      timeZone: IST_TIMEZONE,
     });
   }
 };
+
+// Destination details from groups.destination_details (jsonb)
+interface DestinationDetails {
+  city?: string;
+  state?: string;
+  country?: string;
+  formatted_address?: string;
+  latitude?: number;
+  longitude?: number;
+  place_id?: string;
+}
 
 // Types for fetched data
 interface GroupInfo {
   id: string;
   name: string;
   destination: string;
+  destination_details?: DestinationDetails | null;
   cover_image: string;
+  destination_image?: string | null;
   description: string;
   notes: string;
   start_date: string;
@@ -108,6 +125,7 @@ interface GroupInfo {
 }
 
 interface GroupMember {
+  id: string;
   name: string;
   avatar: string;
   username: string;
@@ -392,10 +410,17 @@ const GroupHomePage = () => {
     }
   }, [membershipError]);
 
-  // Helper to extract name and country from destination
-  const getNameAndCountry = (
-    destination?: string
+  // Helper to get destination city and country from groups table (destination_details first, else parse destination text)
+  const getDestinationCityAndCountry = (
+    destination?: string,
+    destinationDetails?: DestinationDetails | null
   ): { name: string; country: string } => {
+    if (destinationDetails?.city || destinationDetails?.country) {
+      return {
+        name: destinationDetails.city?.trim() || "",
+        country: destinationDetails.country?.trim() || "",
+      };
+    }
     if (!destination) return { name: "", country: "" };
     const parts = destination.split(",").map((part) => part.trim());
     return {
@@ -404,13 +429,64 @@ const GroupHomePage = () => {
     };
   };
 
-  const { name, country } = getNameAndCountry(groupInfo?.destination);
+  const { name, country } = getDestinationCityAndCountry(
+    groupInfo?.destination,
+    groupInfo?.destination_details
+  );
 
   const handleExplore = () => {
     if (!name) return;
     const query = encodeURIComponent(name);
     const url = `https://maps.apple.com/search?query=${query}`;
     window.open(url, "_blank");
+  };
+
+  const handleDestinationImageUpload = async (url: string) => {
+    if (!params.groupId) return;
+    try {
+      const res = await fetch(`/api/groups/${params.groupId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination_image: url }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update");
+      }
+      const data = await res.json();
+      setGroupInfo((prev) =>
+        prev ? { ...prev, destination_image: data.destination_image } : null
+      );
+    } catch (err) {
+      console.error("Destination image update error:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to save image");
+    }
+  };
+
+  const handleDestinationImageDelete = async () => {
+    if (!params.groupId) return;
+    try {
+      const res = await fetch(`/api/groups/${params.groupId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination_image: null }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to remove");
+      }
+      const data = await res.json();
+      setGroupInfo((prev) =>
+        prev
+          ? { ...prev, destination_image: data.destination_image ?? null }
+          : null
+      );
+    } catch (err) {
+      console.error("Destination image delete error:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to remove image"
+      );
+    }
   };
 
   // Membership check and error handling must be before any layout rendering
@@ -556,36 +632,36 @@ const GroupHomePage = () => {
         </DialogHeader>
         <div className="space-y-4 max-h-96 overflow-y-auto">
           {sortedMembers.map((member, index) => (
-            <div key={index} className="flex items-center gap-4">
-              <User
-                avatarProps={{
-                  src: member.avatar,
-                  size: "sm",
-                  className: "flex-shrink-0",
-                }}
-                name={
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground text-sm">
-                      {member.name}
+            <div key={member.id ?? index} className="flex items-center gap-4">
+              <NextLink
+                href={`/profile/${member.id}`}
+                className="flex items-center gap-4 flex-1 min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <User
+                  avatarProps={{
+                    src: member.avatar,
+                    size: "sm",
+                    className: "flex-shrink-0",
+                  }}
+                  name={
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground text-sm">
+                        {member.name}
+                      </span>
+                    </div>
+                  }
+                  description={
+                    <span className="text-muted-foreground text-xs">
+                      @{member.username ?? ""}
                     </span>
-                  </div>
-                }
-                description={
-                  <Link
-                    isExternal
-                    href={`https://x.com/${member.username}`}
-                    size="sm"
-                    className="text-muted-foreground text-xs"
-                  >
-                    @{member.username}
-                  </Link>
-                }
-                classNames={{
-                  wrapper: "flex-1 min-w-0",
-                  name: "text-left",
-                  description: "text-left",
-                }}
-              />
+                  }
+                  classNames={{
+                    wrapper: "flex-1 min-w-0",
+                    name: "text-left",
+                    description: "text-left",
+                  }}
+                />
+              </NextLink>
               {member.role === "admin" && (
                 <Chip
                   size="sm"
@@ -618,8 +694,8 @@ const GroupHomePage = () => {
                     <Skeleton className="w-full h-[200px] rounded-3xl" />
                   ) : (
                     <GroupCoverCard
-                      name={groupInfo?.destination || ""}
-                      country="Japan"
+                      name={name || groupInfo?.destination || ""}
+                      country={country}
                       imageUrl={groupInfo?.cover_image || ""}
                       onExplore={() => {}}
                       forMobile
@@ -732,48 +808,58 @@ const GroupHomePage = () => {
                         </div>
                       ))
                     : sortedMembers.map((member, index) => (
-                        <div key={index} className="flex items-center gap-4">
-                          <User
-                            avatarProps={{
-                              src: member.avatar,
-                              size: "sm",
-                              className: "flex-shrink-0 h-10 w-10 bg-secondary",
-                              showFallback: true,
-                              fallback: (
-                                <svg
-                                  className="w-5 h-5 text-gray-400"
-                                  fill="currentColor"
-                                  viewBox="0 0 24 24"
-                                  aria-hidden="true"
-                                >
-                                  <circle cx="12" cy="8" r="4" />
-                                  <rect x="4" y="14" width="16" height="6" rx="3" />
-                                </svg>
-                              ),
-                            }}
-                            name={
-                              <div className="flex items-center gap-4">
-                                <span className="font-medium text-foreground text-xs">
-                                  {member.name}
+                        <div
+                          key={member.id ?? index}
+                          className="flex items-center gap-4"
+                        >
+                          <NextLink
+                            href={`/profile/${member.id}`}
+                            className="flex items-center gap-4 flex-1 min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          >
+                            <User
+                              avatarProps={{
+                                src: member.avatar,
+                                size: "sm",
+                                className:
+                                  "flex-shrink-0 h-10 w-10 bg-secondary",
+                                showFallback: true,
+                                fallback: (
+                                  <svg
+                                    className="w-5 h-5 text-gray-400"
+                                    fill="currentColor"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                  >
+                                    <circle cx="12" cy="8" r="4" />
+                                    <rect
+                                      x="4"
+                                      y="14"
+                                      width="16"
+                                      height="6"
+                                      rx="3"
+                                    />
+                                  </svg>
+                                ),
+                              }}
+                              name={
+                                <div className="flex items-center gap-4">
+                                  <span className="font-medium text-foreground text-xs">
+                                    {member.name}
+                                  </span>
+                                </div>
+                              }
+                              description={
+                                <span className="text-muted-foreground text-[10px]">
+                                  @{member.username ?? ""}
                                 </span>
-                              </div>
-                            }
-                            description={
-                              <Link
-                                isExternal
-                                href={`https://x.com/${member.username}`}
-                                size="sm"
-                                className="text-muted-foreground text-[10px]"
-                              >
-                                @{member.username}
-                              </Link>
-                            }
-                            classNames={{
-                              wrapper: "flex-1 min-w-0",
-                              name: "text-left",
-                              description: "text-left",
-                            }}
-                          />
+                              }
+                              classNames={{
+                                wrapper: "flex-1 min-w-0",
+                                name: "text-left",
+                                description: "text-left",
+                              }}
+                            />
+                          </NextLink>
                           {member.role === "admin" ? (
                             <Chip
                               size="sm"
@@ -787,17 +873,128 @@ const GroupHomePage = () => {
                       ))}
                 </div>
 
-                {groupInfoLoading ? (
+                {/* {groupInfoLoading ? (
                   <Skeleton className="w-full h-[180px] rounded-3xl" />
                 ) : (
                   <DestinationCard
                     name={name}
                     country={country}
-                    imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                    imageUrl={groupInfo?.destination_image ?? ""}
                     onExplore={handleExplore}
                     forMobile
+                    editable
+                    onUploadSuccess={handleDestinationImageUpload}
+                    onDelete={handleDestinationImageDelete}
                   />
-                )}
+                )} */}
+
+                {/* Upcoming Itinerary */}
+                <div className="pb-1 mt-2">
+                  <Card className="bg-transparent border border-border py-1 px-4 rounded-3xl shadow-none">
+                    <CardBody className="py-2 px-1">
+                      <div className="flex items-center justify-between mb-4 mx-1">
+                        <div>
+                          <h3 className="text-xs font-semibold text-foreground mb-1">
+                            Upcoming Itinerary
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            {itineraryItems.length === 0
+                              ? "No events yet"
+                              : `${itineraryItems.length} item${itineraryItems.length === 1 ? "" : "s"} scheduled`}
+                          </p>
+                        </div>
+                        <Link href={`/groups/${params.groupId}/itinerary`}>
+                          <p className="text-primary text-xs font-medium cursor-pointer">
+                            View all
+                          </p>
+                        </Link>
+                      </div>
+
+                      <div className="space-y-3">
+                        {itineraryLoading ? (
+                          Array.from({ length: 3 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className="border-1 border-border rounded-2xl p-3 py-4"
+                            >
+                              <Skeleton className="h-3 w-1/3 mb-2 mt-1 rounded-full" />
+                              <Skeleton className="h-3 w-full mb-2 rounded-full" />
+                              <Skeleton className="h-3 w-full mb-4 rounded-full" />
+                            </div>
+                          ))
+                        ) : sortedItineraryItems.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-10 px-4 rounded-2xl">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-secondary mb-3">
+                              <CalendarDays className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <p className="text-xs font-medium text-foreground mb-1">
+                              No events scheduled yet
+                            </p>
+                            <p className="text-xs text-muted-foreground text-center max-w-[260px] mb-4">
+                              Add activities to your trip in the full itinerary.
+                            </p>
+                          </div>
+                        ) : (
+                          sortedItineraryItems.map((item) => (
+                            <div
+                              key={item.id}
+                              className="border-1 border-border rounded-2xl p-3"
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <h4 className="font-medium text-xs leading-tight capitalize">
+                                  {item.title}
+                                </h4>
+                                <Chip
+                                  className={`inline-flex items-center text-[10px] font-medium rounded-full p-1 flex-shrink-0 ${
+                                    ITINERARY_STATUS_BADGES[item.status]
+                                      ?.color || "bg-secondary text-foreground"
+                                  }`}
+                                >
+                                  <span className="font-medium">
+                                    {ITINERARY_STATUS_BADGES[item.status]
+                                      ?.label || item.status}
+                                  </span>
+                                </Chip>
+                              </div>
+
+                              <p className="text-xs text-muted-foreground mb-1 capitalize">
+                                {item.description}
+                              </p>
+
+                              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>{formatDate(item.datetime)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    <span>
+                                      {new Date(
+                                        item.datetime
+                                      ).toLocaleTimeString("en-IN", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                        timeZone: IST_TIMEZONE,
+                                      })}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  <span className="truncate capitalize">
+                                    {item.location}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </CardBody>
+                  </Card>
+                </div>
 
                 {/* AI Overview */}
                 <div className="mt-2">
@@ -817,87 +1014,6 @@ const GroupHomePage = () => {
                   )}
                 </div>
 
-                {/* Upcoming Itinerary */}
-                <div className="pb-1 mt-2">
-                  <Card className="bg-transparent border-none rounded-3xl shadow-none">
-                    <CardBody className="py-2 px-1">
-                      <div className="flex items-center justify-between mb-4 mx-1">
-                        <div>
-                          <h3 className="text-sm font-semibold text-foreground mb-1">
-                            Upcoming Itinerary
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            {itineraryItems.length} items scheduled
-                          </p>
-                        </div>
-                        <Link href={`/groups/${params.groupId}/itinerary`}>
-                          <p className="text-primary text-xs font-medium cursor-pointer">
-                            View all
-                          </p>
-                        </Link>
-                      </div>
-
-                      <div className="space-y-3">
-                        {itineraryLoading
-                          ? Array.from({ length: 3 }).map((_, i) => (
-                              <div
-                                key={i}
-                                className="border-1 border-border rounded-2xl p-3 py-4"
-                              >
-                                <Skeleton className="h-3 w-1/3 mb-2 mt-1 rounded-full" />
-                                <Skeleton className="h-3 w-full mb-2 rounded-full" />
-                                <Skeleton className="h-3 w-full mb-4 rounded-full" />
-                              </div>
-                            ))
-                          : sortedItineraryItems.map((item) => (
-                              <div
-                                key={item.id}
-                                className="border-1 border-border rounded-2xl p-3"
-                              >
-                                <div className="flex items-start justify-between gap-2 mb-2">
-                                  <h4 className="font-semibold text-xs leading-tight">
-                                    {item.title}
-                                  </h4>
-                                  <Chip
-                                    className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 flex-shrink-0 ${
-                                      ITINERARY_STATUS_BADGES[item.status]
-                                        ?.color || "bg-gray-100 text-foreground"
-                                    }`}
-                                  >
-                                    <span className="font-semibold">
-                                      {ITINERARY_STATUS_BADGES[item.status]
-                                        ?.label || item.status}
-                                    </span>
-                                  </Chip>
-                                </div>
-
-                                <p className="text-xs text-muted-foreground mb-2">
-                                  {item.description}
-                                </p>
-
-                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>{formatDate(item.datetime)}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    <span>{item.datetime.split("T")[1]}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    <span className="truncate">
-                                      {item.location}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                      </div>
-                    </CardBody>
-                  </Card>
-                </div>
-
                 {/* Travel Note */}
 
                 {groupInfoLoading ? (
@@ -905,7 +1021,7 @@ const GroupHomePage = () => {
                     <Skeleton className="w-full h-[150px] rounded-3xl" />
                   </div>
                 ) : (
-                  <div className="mt-2 bg-[#fff2c0] border-none p-3 mx-1 rounded-3xl shadow-sm relative">
+                  <div className="mt-3 bg-[#fff2c0] border-none p-3 mx-1 rounded-3xl shadow-sm relative">
                     <>
                       {isEditing ? (
                         <textarea
@@ -995,8 +1111,8 @@ const GroupHomePage = () => {
                     <div className="flex flex-row gap-2">
                       <div className="flex-1 basis-1/3 lg:basis-1/4">
                         <GroupCoverCard
-                          name={groupInfo?.destination || ""}
-                          country="Japan"
+                          name={name || groupInfo?.destination || ""}
+                          country={country}
                           imageUrl={groupInfo?.cover_image || ""}
                           onExplore={() => {}}
                           // forMobile
@@ -1007,10 +1123,12 @@ const GroupHomePage = () => {
                         <DestinationCard
                           name={name}
                           country={country}
-                          imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                          imageUrl={groupInfo?.destination_image ?? ""}
                           onExplore={handleExplore}
-                          // forMobile
                           forTablet
+                          editable
+                          onUploadSuccess={handleDestinationImageUpload}
+                          onDelete={handleDestinationImageDelete}
                         />
                       </div>
                       {/* AI Overview */}
@@ -1079,50 +1197,57 @@ const GroupHomePage = () => {
                             ))
                           : sortedMembers.map((member, index) => (
                               <div
-                                key={index}
+                                key={member.id ?? index}
                                 className="flex items-center gap-4"
                               >
-                                <User
-                                  avatarProps={{
-                                    src: member.avatar,
-                                    size: "sm",
-                                    className: "flex-shrink-0 bg-secondary h-10 w-10",
-                                    showFallback: true,
-                                    fallback: (
-                                      <svg
-                                        className="w-5 h-5 text-gray-400"
-                                        fill="currentColor"
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
-                                      >
-                                        <circle cx="12" cy="8" r="4" />
-                                        <rect x="4" y="14" width="16" height="6" rx="3" />
-                                      </svg>
-                                    ),
-                                  }}
-                                  name={
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium text-foreground text-sm">
-                                        {member.name}
+                                <NextLink
+                                  href={`/profile/${member.id}`}
+                                  className="flex items-center gap-4 flex-1 min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                >
+                                  <User
+                                    avatarProps={{
+                                      src: member.avatar,
+                                      size: "sm",
+                                      className:
+                                        "flex-shrink-0 bg-secondary h-10 w-10",
+                                      showFallback: true,
+                                      fallback: (
+                                        <svg
+                                          className="w-5 h-5 text-gray-400"
+                                          fill="currentColor"
+                                          viewBox="0 0 24 24"
+                                          aria-hidden="true"
+                                        >
+                                          <circle cx="12" cy="8" r="4" />
+                                          <rect
+                                            x="4"
+                                            y="14"
+                                            width="16"
+                                            height="6"
+                                            rx="3"
+                                          />
+                                        </svg>
+                                      ),
+                                    }}
+                                    name={
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium text-foreground text-sm">
+                                          {member.name}
+                                        </span>
+                                      </div>
+                                    }
+                                    description={
+                                      <span className="text-muted-foreground text-xs">
+                                        @{member.username ?? ""}
                                       </span>
-                                    </div>
-                                  }
-                                  description={
-                                    <Link
-                                      isExternal
-                                      href={`https://x.com/${member.username}`}
-                                      size="sm"
-                                      className="text-muted-foreground text-xs"
-                                    >
-                                      @{member.username}
-                                    </Link>
-                                  }
-                                  classNames={{
-                                    wrapper: "flex-1 min-w-0",
-                                    name: "text-left",
-                                    description: "text-left",
-                                  }}
-                                />
+                                    }
+                                    classNames={{
+                                      wrapper: "flex-1 min-w-0",
+                                      name: "text-left",
+                                      description: "text-left",
+                                    }}
+                                  />
+                                </NextLink>
                                 {member.role === "admin" ? (
                                   <Chip
                                     size="sm"
@@ -1140,7 +1265,7 @@ const GroupHomePage = () => {
                     </CardBody>
                   </Card>
                   <Card className="bg-card border-1 p-2 border-border rounded-3xl shadow-sm flex-1 basis-1/3 lg:basis-1/4">
-                    <span className="text-md font-bold leading-tight truncate text-foreground mt-3 ml-4">
+                    <span className="text-sm font-bold leading-tight truncate text-foreground mt-3 text-center">
                       Mark The Dates!
                     </span>
 
@@ -1243,7 +1368,7 @@ const GroupHomePage = () => {
                   </Card>
                 </div>
 
-                <Card className="bg-card border-1 py-1 px-4 border-border w-full h-full rounded-3xl shadow-sm">
+                <Card className="bg-card border-1 py-1 px-2 border-border w-full h-full rounded-3xl shadow-sm">
                   <CardBody className="py-2 px-3">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-4">
@@ -1256,7 +1381,9 @@ const GroupHomePage = () => {
                             Upcoming Itinerary
                           </h3>
                           <p className="text-xs text-muted-foreground">
-                            {itineraryItems.length} items scheduled
+                            {itineraryItems.length === 0
+                              ? "No events yet"
+                              : `${itineraryItems.length} item${itineraryItems.length === 1 ? "" : "s"} scheduled`}
                           </p>
                         </div>
                       </div>
@@ -1277,74 +1404,89 @@ const GroupHomePage = () => {
                           : ""
                       }`}
                     >
-                      {itineraryLoading
-                        ? Array.from({ length: 4 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className="flex items-start gap-0 group border-1 border-border rounded-3xl p-4"
-                            >
-                              <div className="flex-1 min-w-0 space-y-2 my-2">
-                                <Skeleton className="h-3 w-1/3 mb-2 mt-1 rounded-full" />
-                                <Skeleton className="h-3 w-full rounded-full" />
-                                <Skeleton className="h-3 w-full rounded-full" />
+                      {itineraryLoading ? (
+                        Array.from({ length: 4 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="flex items-start gap-0 group border-1 border-border rounded-3xl p-4"
+                          >
+                            <div className="flex-1 min-w-0 space-y-2 my-2">
+                              <Skeleton className="h-3 w-1/3 mb-2 mt-1 rounded-full" />
+                              <Skeleton className="h-3 w-full rounded-full" />
+                              <Skeleton className="h-3 w-full rounded-full" />
+                            </div>
+                          </div>
+                        ))
+                      ) : sortedItineraryItems.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 px-4 rounded-2xl">
+                          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-secondary mb-3">
+                            <CalendarDays className="w-5 h-5 text-gray-400" />
+                          </div>
+                          <p className="text-xs font-medium text-foreground mb-1">
+                            No events scheduled yet
+                          </p>
+                          <p className="text-xs text-muted-foreground text-center max-w-[260px] mb-4">
+                            Add activities to your trip in the full itinerary.
+                          </p>
+                        </div>
+                      ) : (
+                        sortedItineraryItems.map((item, index) => (
+                          <div
+                            key={item.id}
+                            className="border-1 border-border rounded-2xl p-3"
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <h4 className="font-medium text-xs leading-tight capitalize">
+                                {item.title}
+                              </h4>
+                              <Chip
+                                className={`inline-flex items-center text-xs font-normal rounded-full p-1 flex-shrink-0 ${
+                                  ITINERARY_STATUS_BADGES[item.status]?.color ||
+                                  "bg-secondary text-foreground"
+                                }`}
+                              >
+                                <span className="font-medium">
+                                  {ITINERARY_STATUS_BADGES[item.status]
+                                    ?.label || item.status}
+                                </span>
+                              </Chip>
+                            </div>
+
+                            <p className="text-xs text-muted-foreground mb-1 capitalize">
+                              {item.description}
+                            </p>
+
+                            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{formatDate(item.datetime)}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  <span>
+                                    {new Date(item.datetime).toLocaleTimeString(
+                                      "en-IN",
+                                      {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                        timeZone: IST_TIMEZONE,
+                                      }
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                <span className="truncate capitalize">
+                                  {item.location}
+                                </span>
                               </div>
                             </div>
-                          ))
-                        : sortedItineraryItems.map((item, index) => (
-                            <div key={item.id}>
-                              <div className="flex items-start gap-2 group hover:bg-background border-1 border-border rounded-3xl p-3  m-0 transition-colors">
-                                {/* Icon & Type */}
-                                <div className="h-4 flex items-center flex-shrink-0">
-                                  <Dot />
-                                </div>
-
-                                {/* Content */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-2 mb-1">
-                                    <h4 className="font-semibold text-foreground text-sm leading-tight">
-                                      {item.title}
-                                    </h4>
-                                    <Chip
-                                      className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 flex-shrink-0 ${
-                                        ITINERARY_STATUS_BADGES[item.status]
-                                          ?.color ||
-                                        "bg-gray-100 text-foreground"
-                                      }`}
-                                    >
-                                      <span className="font-semibold">
-                                        {ITINERARY_STATUS_BADGES[item.status]
-                                          ?.label || item.status}
-                                      </span>
-                                    </Chip>
-                                  </div>
-
-                                  <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
-                                    {item.description}
-                                  </p>
-
-                                  {/* Date, Time, Location */}
-                                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" />
-                                      <span className="font-medium">
-                                        {formatDate(item.datetime)}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="w-3 h-3" />
-                                      <span>{item.datetime.split("T")[1]}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="w-3 h-3" />
-                                      <span className="truncate max-w-24">
-                                        {item.location}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                          </div>
+                        ))
+                      )}
                     </div>
                   </CardBody>
                 </Card>
@@ -1364,8 +1506,8 @@ const GroupHomePage = () => {
               <Skeleton className="relative w-full h-[200px] rounded-3xl shadow-sm" />
             ) : (
               <GroupCoverCard
-                name={groupInfo?.destination || ""}
-                country="Japan"
+                name={name || groupInfo?.destination || ""}
+                country={country}
                 imageUrl={groupInfo?.cover_image || ""}
                 onExplore={() => {}}
               />
@@ -1424,48 +1566,58 @@ const GroupHomePage = () => {
                         </div>
                       ))
                     : sortedMembers.map((member, index) => (
-                        <div key={index} className="flex items-center gap-4">
-                          <User
-                            avatarProps={{
-                              src: member.avatar,
-                              size: "sm",
-                              className: "flex-shrink-0 h-10 w-10 bg-secondary",
-                              showFallback: true,
-                              fallback: (
-                                <svg
-                                  className="w-5 h-5 text-gray-400"
-                                  fill="currentColor"
-                                  viewBox="0 0 24 24"
-                                  aria-hidden="true"
-                                >
-                                  <circle cx="12" cy="8" r="4" />
-                                  <rect x="4" y="14" width="16" height="6" rx="3" />
-                                </svg>
-                              ),
-                            }}
-                            name={
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-foreground text-sm">
-                                  {member.name}
+                        <div
+                          key={member.id ?? index}
+                          className="flex items-center gap-4"
+                        >
+                          <NextLink
+                            href={`/profile/${member.id}`}
+                            className="flex items-center gap-4 flex-1 min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          >
+                            <User
+                              avatarProps={{
+                                src: member.avatar,
+                                size: "sm",
+                                className:
+                                  "flex-shrink-0 h-10 w-10 bg-secondary",
+                                showFallback: true,
+                                fallback: (
+                                  <svg
+                                    className="w-5 h-5 text-gray-400"
+                                    fill="currentColor"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                  >
+                                    <circle cx="12" cy="8" r="4" />
+                                    <rect
+                                      x="4"
+                                      y="14"
+                                      width="16"
+                                      height="6"
+                                      rx="3"
+                                    />
+                                  </svg>
+                                ),
+                              }}
+                              name={
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-foreground text-sm">
+                                    {member.name}
+                                  </span>
+                                </div>
+                              }
+                              description={
+                                <span className="text-muted-foreground text-xs">
+                                  @{member.username ?? ""}
                                 </span>
-                              </div>
-                            }
-                            description={
-                              <Link
-                                isExternal
-                                href={`https://x.com/${member.username}`}
-                                size="sm"
-                                className="text-muted-foreground text-xs"
-                              >
-                                @{member.username}
-                              </Link>
-                            }
-                            classNames={{
-                              wrapper: "flex-1 min-w-0",
-                              name: "text-left",
-                              description: "text-left",
-                            }}
-                          />
+                              }
+                              classNames={{
+                                wrapper: "flex-1 min-w-0",
+                                name: "text-left",
+                                description: "text-left",
+                              }}
+                            />
+                          </NextLink>
                           {member.role === "admin" ? (
                             <Chip
                               size="sm"
@@ -1495,8 +1647,11 @@ const GroupHomePage = () => {
                 <DestinationCard
                   name={name}
                   country={country}
-                  imageUrl="https://images.unsplash.com/photo-1706708779845-ce24aa579d40?q=80&w=1044&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                  imageUrl={groupInfo?.destination_image ?? ""}
                   onExplore={handleExplore}
+                  editable
+                  onUploadSuccess={handleDestinationImageUpload}
+                  onDelete={handleDestinationImageDelete}
                 />
               )}
             </div>
@@ -1624,7 +1779,7 @@ const GroupHomePage = () => {
               </Card>
             </div>
             <div className="flex-1">
-              <Card className="bg-card border-1 py-1 px-4 border-border w-full h-full rounded-3xl shadow-sm">
+              <Card className="bg-card border-1 py-1 px-2 border-border w-full h-full rounded-3xl shadow-sm">
                 <CardBody className="py-2 px-3">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-4">
@@ -1637,7 +1792,9 @@ const GroupHomePage = () => {
                           Upcoming Itinerary
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          {itineraryItems.length} items scheduled
+                          {itineraryItems.length === 0
+                            ? "No events yet"
+                            : `${itineraryItems.length} item${itineraryItems.length === 1 ? "" : "s"} scheduled`}
                         </p>
                       </div>
                     </div>
@@ -1658,79 +1815,89 @@ const GroupHomePage = () => {
                         : ""
                     }`}
                   >
-                    {itineraryLoading
-                      ? Array.from({ length: 4 }).map((_, i) => (
-                          <div
-                            key={i}
-                            className="flex items-start gap-0 group border-1 border-border rounded-3xl p-4"
-                          >
-                            <div className="flex-1 min-w-0 space-y-2 my-2">
-                              <Skeleton className="h-3 w-1/3 mb-2 mt-1 rounded-full" />
-                              <Skeleton className="h-3 w-full rounded-full" />
-                              <Skeleton className="h-3 w-full rounded-full" />
+                    {itineraryLoading ? (
+                      Array.from({ length: 4 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start gap-0 group border-1 border-border rounded-3xl p-4"
+                        >
+                          <div className="flex-1 min-w-0 space-y-2 my-2">
+                            <Skeleton className="h-3 w-1/3 mb-2 mt-1 rounded-full" />
+                            <Skeleton className="h-3 w-full rounded-full" />
+                            <Skeleton className="h-3 w-full rounded-full" />
+                          </div>
+                        </div>
+                      ))
+                    ) : sortedItineraryItems.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 px-4 rounded-2xl">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-secondary mb-3">
+                          <CalendarDays className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <p className="text-xs font-medium text-foreground mb-1">
+                          No events scheduled yet
+                        </p>
+                        <p className="text-xs text-muted-foreground text-center max-w-[260px] mb-4">
+                          Add activities to your trip in the full itinerary.
+                        </p>
+                      </div>
+                    ) : (
+                      sortedItineraryItems.map((item, index) => (
+                        <div
+                          key={item.id}
+                          className="border-1 border-border rounded-2xl p-3"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <h4 className="font-medium text-xs leading-tight capitalize">
+                              {item.title}
+                            </h4>
+                            <Chip
+                              className={`inline-flex items-center text-xs font-medium rounded-full p-1 flex-shrink-0 ${
+                                ITINERARY_STATUS_BADGES[item.status]?.color ||
+                                "bg-secondary text-foreground"
+                              }`}
+                            >
+                              <span className="font-medium">
+                                {ITINERARY_STATUS_BADGES[item.status]?.label ||
+                                  item.status}
+                              </span>
+                            </Chip>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground mb-1 capitalize">
+                            {item.description}
+                          </p>
+
+                          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>{formatDate(item.datetime)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>
+                                  {new Date(item.datetime).toLocaleTimeString(
+                                    "en-IN",
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                      timeZone: IST_TIMEZONE,
+                                    }
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              <span className="truncate capitalize">
+                                {item.location}
+                              </span>
                             </div>
                           </div>
-                        ))
-                      : sortedItineraryItems.map((item, index) => (
-                          <div key={item.id}>
-                            <div className="flex items-start gap-2 group hover:bg-background border-1 border-border rounded-3xl p-3  m-0 transition-colors">
-                              {/* Icon & Type */}
-                              <div className="h-4 flex items-center flex-shrink-0">
-                                <Dot />
-                              </div>
-
-                              {/* Content */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                  <h4 className="font-semibold text-foreground text-sm leading-tight">
-                                    {item.title}
-                                  </h4>
-                                  <Chip
-                                    className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 flex-shrink-0 ${
-                                      ITINERARY_STATUS_BADGES[item.status]
-                                        ?.color || "bg-gray-100 text-foreground"
-                                    }`}
-                                  >
-                                    <span className="font-semibold">
-                                      {ITINERARY_STATUS_BADGES[item.status]
-                                        ?.label || item.status}
-                                    </span>
-                                  </Chip>
-                                </div>
-
-                                <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
-                                  {item.description}
-                                </p>
-
-                                {/* Date, Time, Location */}
-                                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>{formatDate(item.datetime)}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    <span>
-                                      {new Date(
-                                        item.datetime
-                                      ).toLocaleTimeString("en-US", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        hour12: true,
-                                      })}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    <span className="truncate max-w-24">
-                                      {item.location}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardBody>
               </Card>

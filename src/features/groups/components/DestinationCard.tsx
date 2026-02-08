@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Avatar, Card, Image, Skeleton, Divider } from "@heroui/react";
-import { MapPin, Calendar, Users, Loader2, ArrowUpRight } from "lucide-react";
+import { useState, useRef } from "react";
+import { Card, Spinner } from "@heroui/react";
+import { Upload, Trash2, Loader2, Plus } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
-import { useRouter } from "next/navigation";
+import { cn } from "@/shared/utils/utils";
 
 interface DestinationCardProps {
   imageUrl?: string;
@@ -14,6 +13,10 @@ interface DestinationCardProps {
   onExplore: () => void;
   forMobile?: boolean;
   forTablet?: boolean;
+  /** When true, show upload (when no image) or trash (when image) and call onUploadSuccess / onDelete */
+  editable?: boolean;
+  onUploadSuccess?: (url: string) => void;
+  onDelete?: () => void;
 }
 
 // Client-side image stretch component
@@ -36,7 +39,10 @@ const ImageStretch = ({
         src={src}
         alt={alt}
         aria-label={ariaLabel}
-        className={`w-full h-full object-fill object-bottom object-right transition-all duration-500 ${className}`}
+        className={cn(
+          "w-full h-full object-fill object-bottom object-right transition-all duration-500",
+          className
+        )}
         style={{ display: "block" }}
       />
     </div>
@@ -50,29 +56,133 @@ export function DestinationCard({
   onExplore,
   forMobile = false,
   forTablet = false,
+  editable = false,
+  onUploadSuccess,
+  onDelete,
 }: DestinationCardProps) {
-  const [actionLoading, setActionLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const router = useRouter();
+  const hasImage = Boolean(imageUrl?.trim());
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !editable || !onUploadSuccess) return;
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+    setUploading(true);
+    try {
+      const { uploadFiles } = await import("@/lib/uploadthing");
+      const uploaded = await uploadFiles("profileImageUploader", {
+        files: [file],
+      });
+      const url = uploaded?.[0]?.url;
+      if (url) {
+        onUploadSuccess(url);
+      }
+    } catch (err) {
+      console.error("Destination image upload error:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!editable || !onDelete) return;
+    onDelete();
+  };
 
   return (
     <Card
-      className={`relative ${forMobile === true ? "w-full h-[180px]" : forTablet === true ? "w-full h-[220px] " : "w-[250px] h-[200px]"}  rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground`}
+      className={cn(
+        "group relative rounded-3xl shadow-sm border-3 border-card overflow-hidden flex flex-col bg-card text-card-foreground",
+        forMobile === true && "w-full h-[180px]",
+        forTablet === true && "w-full h-[220px]",
+        !forMobile && !forTablet && "w-[250px] h-[200px]"
+      )}
     >
-      {/* Background Image - now covers full card */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl">
-        <ImageStretch
-          src={imageUrl || ""}
-          alt={"Group cover"}
-          ariaLabel={"Group cover"}
-          className="rounded-3xl sm:rounded-3xl md:rounded-3xl lg:rounded-3xl"
-        />
+      {/* Background: image or placeholder */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden bg-secondary rounded-3xl">
+        {hasImage ? (
+          <ImageStretch
+            src={imageUrl!}
+            alt="Destination"
+            ariaLabel="Destination"
+            className="rounded-3xl"
+          />
+        ) : (
+          <div className="w-full h-full rounded-3xl bg-secondary" />
+        )}
+
+        {/* Upload when no image: button triggers file input (user-initiated click opens dialog) */}
+        {!hasImage && (
+          <div
+            className={cn(
+              "absolute inset-0 z-20 flex items-center justify-center rounded-3xl transition-colors",
+              editable ? "bg-secondary" : "bg-secondary pointer-events-none"
+            )}
+          >
+            {/* Hidden file input - off-screen so programmatic .click() works in all browsers */}
+            {editable && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="absolute w-0 h-0 overflow-hidden opacity-0 pointer-events-none"
+                aria-label="Upload destination image"
+                title="Upload destination image"
+                tabIndex={-1}
+              />
+            )}
+            {uploading ? (
+              <Spinner
+                variant="spinner"
+                size="sm"
+                classNames={{ spinnerBars: "bg-gray-400" }}
+              />
+            ) : editable ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center gap-1.5 rounded-3xl p-4 focus:outline-none focus:ring-0"
+                aria-label="Upload destination image"
+              >
+                <div className="rounded-full p-1">
+                  <Upload className="w-5 h-5 text-gray-400" />
+                </div>
+              </button>
+            ) : (
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="rounded-full p-1">
+                  <Plus className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Trash icon at top-right when image and editable */}
+        {editable && hasImage && (
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            className="absolute top-2 right-2 z-20 p-1.5 rounded-full text-primary-foreground opacity-0 pointer-events-none transition-opacity duration-200 group-hover:opacity-100 group-hover:pointer-events-auto focus:outline-none focus:ring-0"
+            aria-label="Remove destination image"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      {/* Glassmorphism content overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-3xl sm:rounded-b-3xl md:rounded-b-3xl lg:rounded-b-3xl">
+      {/* Glassmorphism content overlay - higher z so Explore stays clickable */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 w-full rounded-b-3xl">
         <div
-          className="backdrop-blur-md w-full rounded-b-3xl sm:rounded-b-3xl md:rounded-b-3xl lg:rounded-b-3xl"
+          className="backdrop-blur-md w-full rounded-b-3xl"
           style={{
             maskImage:
               "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
@@ -80,22 +190,35 @@ export function DestinationCard({
               "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
           }}
         >
-          {/* Content section - keeping your exact structure */}
           <div className="flex flex-row gap-1 px-4 py-3">
-            {/* Creator avatar and name */}
-            <div className="flex flex-col items-start flex-1">
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
+            <div className="flex flex-col items-start flex-1 min-w-0">
+              <span
+                className={cn(
+                  "font-medium text-[12px] sm:text-xs truncate",
+                  hasImage ? "text-primary-foreground" : "text-gray-400"
+                )}
+              >
                 {name}
               </span>
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate">
+              <span
+                className={cn(
+                  "font-medium text-[12px] sm:text-xs truncate",
+                  hasImage ? "text-primary-foreground" : "text-gray-400"
+                )}
+              >
                 {country}
               </span>
             </div>
             <div className="flex justify-end items-end flex-shrink-0">
               <Button
-                variant={"outline"}
-                size={"sm"}
-                className="bg-transparent text-xs px-5 py-1 text-white border-white rounded-full hover:text-white hover:bg-white/20"
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "bg-transparent text-xs px-5 py-1 rounded-full",
+                  hasImage
+                    ? "text-primary-foreground hover:text-white hover:bg-white/20"
+                    : "text-gray-400 border-gray-400 hover:bg-gray-400/20 hover:text-gray-400"
+                )}
                 onClick={onExplore}
               >
                 Explore
