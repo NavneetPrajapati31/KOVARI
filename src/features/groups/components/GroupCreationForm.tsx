@@ -21,8 +21,6 @@ import { useRouter } from "next/navigation";
 import { Switch } from "@/shared/components/ui/switch";
 import { ImageUpload } from "@/shared/components/image-upload";
 
-
-
 const formSchema = z
   .object({
     groupName: z
@@ -73,7 +71,6 @@ export function GroupCreationForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
 
   const todayJs = new Date();
   const tomorrowJs = new Date(todayJs);
@@ -183,7 +180,10 @@ export function GroupCreationForm() {
         formData.append("name", data.groupName);
         formData.append("destination", data.destination);
         if (data.destinationDetails) {
-          formData.append("destination_details", JSON.stringify(data.destinationDetails));
+          formData.append(
+            "destination_details",
+            JSON.stringify(data.destinationDetails)
+          );
         }
         formData.append("start_date", format(data.startDate, "yyyy-MM-dd"));
         formData.append("end_date", format(data.endDate, "yyyy-MM-dd"));
@@ -245,11 +245,11 @@ export function GroupCreationForm() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 md:p-6 custom-autofill-white">
+    <div className="min-h-screen bg-background flex items-center justify-center p-3 pb-16 md:p-6 custom-autofill-white">
       <Card className="w-full max-w-4xl bg-card shadow-none border-border py-2">
-        <CardContent className="p-7">
+        <CardContent className="p-4 md:p-6">
           <div className="text-center mb-8">
-            <h1 className="text-lg font-bold text-foreground mb-2">
+            <h1 className="text-md sm:text-lg font-bold text-foreground mb-1">
               Create a new group
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -258,8 +258,8 @@ export function GroupCreationForm() {
           </div>
 
           {error && (
-            <div className="mb-4 px-3 py-2 bg-[#F13260]/25 border border-[#F13260] rounded-md">
-              <p className="text-sm text-[#F13260]">{error}</p>
+            <div className="mb-4 px-3 py-2 bg-destructive/25 border border-destructive rounded-md">
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
@@ -281,11 +281,11 @@ export function GroupCreationForm() {
                 className={cn(
                   "h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-md placeholder:text-muted-foreground",
                   errors.groupName &&
-                    "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260] placeholder:text-[#F31260]"
+                    "border-destructive focus:border-destructive focus:ring-destructive placeholder:text-destructive"
                 )}
               />
               {errors.groupName && (
-                <p className="text-sm text-[#F31260]">
+                <p className="text-sm text-destructive">
                   {errors.groupName.message}
                 </p>
               )}
@@ -302,7 +302,10 @@ export function GroupCreationForm() {
                   if (val) trigger("destination");
                 }}
                 onSelect={(data) => {
-                  setValue("destination", data.city || data.formatted.split(",")[0].trim()); // Store only city name or first part
+                  setValue(
+                    "destination",
+                    data.city || data.formatted.split(",")[0].trim()
+                  ); // Store only city name or first part
                   setValue("destinationDetails", {
                     city: data.city,
                     state: data.state,
@@ -310,25 +313,30 @@ export function GroupCreationForm() {
                     latitude: data.lat,
                     longitude: data.lon,
                     formatted_address: data.formatted,
-                    place_id: data.place_id
+                    place_id: data.place_id,
                   });
                   trigger("destination");
                 }}
                 placeholder="Search destination"
                 className={cn(
                   "bg-white",
-                  errors.destination && "border-[#F31260]"
+                  errors.destination && "border-destructive"
                 )}
               />
               {errors.destination && (
-                <p className="text-sm text-[#F31260]">
+                <p className="text-sm text-destructive">
                   {errors.destination.message}
                 </p>
               )}
             </div>
 
             <div className="mb-4 space-y-2">
-              <Label htmlFor="budget" className="text-sm font-medium text-muted-foreground">Budget (INR)</Label>
+              <Label
+                htmlFor="budget"
+                className="text-sm font-medium text-muted-foreground"
+              >
+                Budget (INR)
+              </Label>
               <Input
                 id="budget"
                 type="number"
@@ -339,7 +347,7 @@ export function GroupCreationForm() {
                 className="mt-1"
               />
               {errors.budget && (
-                <p className="text-sm text-[#F31260]">
+                <p className="text-sm text-destructive">
                   {errors.budget.message}
                 </p>
               )}
@@ -381,13 +389,13 @@ export function GroupCreationForm() {
                     inputWrapper: cn(
                       "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
                       errors.startDate &&
-                        "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
+                        "border-destructive focus:border-destructive focus:ring-destructive"
                     ),
                     calendarContent: cn("!bg-white !opacity-1"),
                   }}
                 />
                 {errors.startDate && (
-                  <p className="text-sm text-[#F31260]">
+                  <p className="text-sm text-destructive">
                     {errors.startDate.message}
                   </p>
                 )}
@@ -423,13 +431,13 @@ export function GroupCreationForm() {
                     inputWrapper: cn(
                       "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
                       errors.endDate &&
-                        "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
+                        "border-destructive focus:border-destructive focus:ring-destructive"
                     ),
                     calendarContent: cn("!bg-white !opacity-1"),
                   }}
                 />
                 {errors.endDate && (
-                  <p className="text-sm text-[#F31260]">
+                  <p className="text-sm text-destructive">
                     {errors.endDate.message}
                   </p>
                 )}
@@ -459,7 +467,7 @@ export function GroupCreationForm() {
                   className={cn(
                     "min-h-[120px] px-4 py-3 text-sm border-input focus:border-primary focus:ring-primary rounded-md resize-none placeholder:text-muted-foreground",
                     errors.description &&
-                      "border-[#F13260] focus:border-[#F13260] focus:ring-[#F13260]"
+                      "border-destructive focus:border-destructive focus:ring-destructive"
                   )}
                   maxLength={500}
                 />
@@ -468,7 +476,7 @@ export function GroupCreationForm() {
                 </div>
               </div>
               {errors.description && (
-                <p className="text-sm text-[#F13260]">
+                <p className="text-sm text-destructive">
                   {errors.description.message}
                 </p>
               )}
