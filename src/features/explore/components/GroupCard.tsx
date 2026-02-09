@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Avatar, Card, Image, Skeleton, Divider, Spinner } from "@heroui/react";
+import { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import { Card, Image, Skeleton, Divider, Spinner } from "@heroui/react";
 import { MapPin, Calendar, Users, Loader2, Router } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 
 interface GroupCardProps {
   group: {
@@ -51,9 +55,32 @@ export function GroupCard({
   onShowLoading,
 }: GroupCardProps) {
   const router = useRouter();
+  const { user } = useUser();
+  const [currentUserInternalId, setCurrentUserInternalId] = useState<
+    string | null
+  >(null);
   const [viewGroupLoading, setViewGroupLoading] = useState(false);
   const [requestToJoinLoading, setRequestToJoinLoading] = useState(false);
   const [userStatus, setUserStatus] = useState(group.userStatus);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setCurrentUserInternalId(null);
+      return;
+    }
+    let cancelled = false;
+    getUserUuidByClerkId(user.id).then((id) => {
+      if (!cancelled) setCurrentUserInternalId(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const isCreatedByCurrentUser =
+    group.creatorId != null &&
+    currentUserInternalId != null &&
+    group.creatorId === currentUserInternalId;
 
   const formatDateRange = () => {
     if (!group.dateRange || !group.dateRange.start)
@@ -171,44 +198,50 @@ export function GroupCard({
 
   return (
     <Card className="w-full max-w-[400px] h-[330px] rounded-2xl shadow-sm overflow-hidden flex flex-col bg-card border border-border text-card-foreground">
-      {/* Top image section */}
+      {/* Top image section or fallback when no cover */}
       <div className="relative w-full h-[160px] overflow-hidden bg-muted">
-        <Image
-          src={
-            group.cover_image ||
-            "https://images.pexels.com/photos/158063/bellingrath-gardens-alabama-landscape-scenic-158063.jpeg"
-          }
-          alt={group.name || "Group cover"}
-          className="w-full h-full object-cover object-top rounded-t-2xl rounded-b-none transition-all duration-500"
-          aria-label={group.name || "Group cover"}
-        />
+        {group.cover_image?.trim() ? (
+          <Image
+            src={group.cover_image}
+            alt={group.name || "Group cover"}
+            className="w-full h-full object-cover object-top rounded-t-2xl rounded-b-none transition-all duration-500"
+            aria-label={group.name || "Group cover"}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-secondary rounded-t-2xl rounded-b-none">
+            <Avatar className="w-16 h-16 flex-shrink-0">
+              <UserAvatarFallback iconClassName="w-2/3 h-2/3" />
+            </Avatar>
+          </div>
+        )}
       </div>
       {/* Content section */}
       <div className="flex flex-col gap-2 px-5 pt-4">
         {/* Group name */}
         <div className="flex items-center">
           <span
-            className="text-sm font-bold leading-tight truncate text-foreground"
+            className="text-sm font-semibold leading-tight truncate text-foreground"
             title={group.name}
           >
             {group.name}
           </span>
         </div>
         {/* Date/time */}
-        <div className="flex items-center gap-2 text-primary text-xs font-medium mb-1 min-w-0">
-          <Calendar className="w-4 h-4 shrink-0" />
-          <span className="truncate min-w-0" title={formatDateRange()}>
+        <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium mb-0 min-w-0">
+          <span
+            className="truncate min-w-0 flex items-center gap-1"
+            title={formatDateRange()}
+          >
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
             {formatDateRange()}
           </span>
-          <Divider
-            orientation="vertical"
-            className="h-4 shrink-0 text-muted-foreground"
-          />
-          <MapPin className="w-4 h-4 shrink-0 text-primary" />
+          <span className="h-4 text-muted-foreground">|</span>
+
           <span
-            className="capitalize truncate min-w-0"
+            className="capitalize truncate min-w-0 flex items-center gap-1"
             title={formatDestinationCity(group.destination)}
           >
+            <MapPin className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
             {formatDestinationCity(group.destination)}
           </span>
         </div>
@@ -219,7 +252,7 @@ export function GroupCard({
         {/* Creator avatar and name */}
         {group.creator ? (
           <div className="flex items-center gap-2">
-            <Avatar
+            {/* <Avatar
               src={group.creator.avatar || ""}
               alt={group.creator.name || "Creator"}
               className="w-6 h-6 bg-secondary"
@@ -236,14 +269,18 @@ export function GroupCard({
                   <rect x="4" y="14" width="16" height="6" rx="3" />
                 </svg>
               }
-            />
+            /> */}
             <span className="text-muted-foreground font-medium text-xs truncate">
-              Created by {`@${group.creator.username || "unknown"}`}
+              <span>{formatMemberCount()}</span>
+              <span className="h-4 text-muted-foreground px-2">|</span>
+              {isCreatedByCurrentUser
+                ? "Created by you"
+                : `Created by @${group.creator.username || "unknown"}`}
             </span>
           </div>
         ) : (
           <div className="text-muted-foreground text-xs">
-            Created by Unknown
+            {isCreatedByCurrentUser ? "Created by you" : "Created by Unknown"}
           </div>
         )}
       </div>
@@ -268,7 +305,13 @@ export function GroupCard({
             disabled={viewGroupLoading}
             onClick={handleViewGroup}
           >
-            {viewGroupLoading && <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}} />}
+            {viewGroupLoading && (
+              <Spinner
+                variant="spinner"
+                size="sm"
+                classNames={{ spinnerBars: "bg-primary-foreground" }}
+              />
+            )}
             View Group
           </Button>
         ) : userStatus === "pending" || userStatus === "blocked" ? (
@@ -301,7 +344,13 @@ export function GroupCard({
               disabled={viewGroupLoading}
               onClick={handleViewGroup}
             >
-              {viewGroupLoading && <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}} />}
+              {viewGroupLoading && (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-primary-foreground" }}
+                />
+              )}
               View Group
             </Button>
             <Button
@@ -314,7 +363,11 @@ export function GroupCard({
               onClick={handleRequestToJoin}
             >
               {requestToJoinLoading && (
-                <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-foreground"}} />
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-foreground" }}
+                />
               )}
               Request to Join
             </Button>
