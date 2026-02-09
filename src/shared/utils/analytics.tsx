@@ -15,6 +15,30 @@ export function getMostFrequentDestinations(groups: Group[]): string {
   return sorted[0]?.[0] || "N/A";
 }
 
+/** Image for top destination: from the most recent matching group. Prefers destination_image, then cover_image. */
+export function getMostRecentGroupCoverForDestination(
+  groups: Group[],
+  destination: string
+): string | null {
+  if (!destination || destination === "N/A") return null;
+  const matching = groups
+    .filter(
+      (g) =>
+        g.group?.destination === destination &&
+        (g.group?.destination_image ?? g.group?.cover_image)
+    )
+    .sort((a, b) => {
+      const aDate = a.group?.start_date;
+      const bDate = b.group?.start_date;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return new Date(bDate).getTime() - new Date(aDate).getTime();
+    });
+  const group = matching[0]?.group;
+  if (!group) return null;
+  return group.destination_image ?? group.cover_image ?? null;
+}
+
 // 2. Total Travel Days
 export function getTotalTravelDays(groups: Group[]): number {
   let totalDays = 0;

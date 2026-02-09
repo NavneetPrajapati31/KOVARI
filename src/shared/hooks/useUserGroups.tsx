@@ -13,8 +13,10 @@ export type Group = {
     end_date: string | null;
     description: string | null;
     cover_image: string | null;
+    destination_image: string | null;
     members_count: number;
     is_public: boolean | null;
+    status?: string;
   } | null;
   status: string;
   role: string;
@@ -66,8 +68,10 @@ export function useUserGroups() {
               end_date,
               description,
               cover_image,
+              destination_image,
               members_count,
-              is_public
+              is_public,
+              status
             )
           `
           )
@@ -83,8 +87,8 @@ export function useUserGroups() {
         }
 
         if (data) {
-          setGroups(
-            data.map((item: any) => ({
+          const mapped = data
+            .map((item: any) => ({
               group_id: item.group_id,
               status: item.status,
               role: item.role,
@@ -92,7 +96,11 @@ export function useUserGroups() {
                 ? (item.group[0] ?? null)
                 : item.group,
             }))
-          );
+            .filter(
+              (entry: Group) =>
+                entry.group != null && entry.group.status !== "removed"
+            );
+          setGroups(mapped);
         }
       } catch (err) {
         const errorMessage =

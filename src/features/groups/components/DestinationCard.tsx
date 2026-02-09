@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { Card, Spinner } from "@heroui/react";
-import { Upload, Trash2, Loader2, Plus } from "lucide-react";
+import { Upload, Trash2, Loader2, Plus, Search } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/utils/utils";
 
@@ -61,6 +61,7 @@ export function DestinationCard({
   onDelete,
 }: DestinationCardProps) {
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasImage = Boolean(imageUrl?.trim());
@@ -89,11 +90,16 @@ export function DestinationCard({
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
+  const handleDeleteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!editable || !onDelete) return;
-    onDelete();
+    if (!editable || !onDelete || deleting) return;
+    setDeleting(true);
+    try {
+      await Promise.resolve(onDelete());
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -165,66 +171,65 @@ export function DestinationCard({
             )}
           </div>
         )}
-
-        {/* Trash icon at top-right when image and editable */}
-        {editable && hasImage && (
-          <button
-            type="button"
-            onClick={handleDeleteClick}
-            className="absolute top-2 right-2 z-20 p-1.5 rounded-full text-primary-foreground opacity-0 pointer-events-none transition-opacity duration-200 group-hover:opacity-100 group-hover:pointer-events-auto focus:outline-none focus:ring-0"
-            aria-label="Remove destination image"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
       </div>
 
-      {/* Glassmorphism content overlay - higher z so Explore stays clickable */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 w-full rounded-b-3xl">
-        <div
-          className="backdrop-blur-md w-full rounded-b-3xl"
-          style={{
-            maskImage:
-              "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
-          }}
+      {/* Content overlay - glassmorphism on city label, search and delete buttons */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 w-full rounded-b-3xl px-3 py-3 flex flex-row justify-between items-center gap-2">
+        <span
+          className={cn(
+            "font-medium text-[12px] sm:text-xs truncate rounded-3xl px-3 py-2 h-8 text-center max-w-[140px] min-w-0",
+            "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)] transition-all duration-200",
+            hasImage
+              ? "text-primary-foreground"
+              : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
+          )}
         >
-          <div className="flex flex-row gap-1 px-4 py-3">
-            <div className="flex flex-col items-start flex-1 min-w-0">
-              <span
-                className={cn(
-                  "font-medium text-[12px] sm:text-xs truncate",
-                  hasImage ? "text-primary-foreground" : "text-gray-400"
-                )}
-              >
-                {name}
-              </span>
-              <span
-                className={cn(
-                  "font-medium text-[12px] sm:text-xs truncate",
-                  hasImage ? "text-primary-foreground" : "text-gray-400"
-                )}
-              >
-                {country}
-              </span>
-            </div>
-            <div className="flex justify-end items-end flex-shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "bg-transparent text-xs px-5 py-1 rounded-full",
-                  hasImage
-                    ? "text-primary-foreground hover:text-white hover:bg-white/20"
-                    : "text-gray-400 border-gray-400 hover:bg-gray-400/20 hover:text-gray-400"
-                )}
-                onClick={onExplore}
-              >
-                Explore
-              </Button>
-            </div>
-          </div>
+          {name}
+        </span>
+        <div className="flex flex-row items-center gap-2 shrink-0">
+          {editable && hasImage && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleDeleteClick}
+              disabled={deleting}
+              className={cn(
+                "h-8 w-8 rounded-full text-primary-foreground transition-opacity duration-200 focus:outline-none focus:ring-0",
+                deleting
+                  ? "opacity-100 pointer-events-none"
+                  : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
+                "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)]"
+              )}
+              aria-label={
+                deleting ? "Removing image…" : "Remove destination image"
+              }
+            >
+              {deleting ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-primary-foreground" }}
+                />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn(
+              "rounded-full shrink-0 font-medium w-8 h-8",
+              "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)]",
+              hasImage
+                ? "text-primary-foreground"
+                : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
+            )}
+            onClick={onExplore}
+            aria-label="Explore destination"
+          >
+            <Search className="w-3.5 h-3.5" />
+          </Button>
         </div>
       </div>
     </Card>

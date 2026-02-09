@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Avatar,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
+import Link from "next/link";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
@@ -15,6 +13,7 @@ import * as Sentry from "@sentry/nextjs";
 
 interface ConnectionRequest {
   id: string;
+  senderId: string;
   name: string;
   avatar: string;
   mutualConnections: number;
@@ -63,23 +62,26 @@ function ConnectionRequestCard({
         className
       )}
     >
-      {/* Avatar */}
-      <div className="flex-shrink-0">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={request.avatar} alt={request.name} />
-<UserAvatarFallback className="" />
-        </Avatar>
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-col min-w-0">
-          <h3 className="font-semibold text-xs truncate">{request.name}</h3>
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {request.location}
-          </p>
+      {/* Avatar + Info: link to profile */}
+      <Link
+        href={`/profile/${request.senderId}`}
+        className="flex flex-1 min-w-0 items-center gap-x-2 cursor-pointer transition-colors rounded-md -m-1 p-1 hover:bg-muted/50"
+      >
+        <div className="flex-shrink-0">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={request.avatar} alt={request.name} />
+            <UserAvatarFallback className="" />
+          </Avatar>
         </div>
-      </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col min-w-0">
+            <h3 className="font-semibold text-xs truncate">{request.name}</h3>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {request.location}
+            </p>
+          </div>
+        </div>
+      </Link>
 
       {/* Action Buttons */}
       <div className="flex items-center space-x-2 flex-shrink-0">
@@ -99,7 +101,11 @@ function ConnectionRequestCard({
           }}
         >
           {loadingAction === "accept" && (
-            <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}} />
+            <Spinner
+              variant="spinner"
+              size="sm"
+              classNames={{ spinnerBars: "bg-primary-foreground" }}
+            />
           )}
           {!loadingAction && <span className="text-xs">Connect</span>}
         </Button>
@@ -121,7 +127,11 @@ function ConnectionRequestCard({
           }}
         >
           {loadingAction === "decline" ? (
-             <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-foreground"}} />
+            <Spinner
+              variant="spinner"
+              size="sm"
+              classNames={{ spinnerBars: "bg-foreground" }}
+            />
           ) : (
             <X className="h-3.5 w-3.5 text-muted-foreground" />
           )}
@@ -209,6 +219,7 @@ export const ConnectionRequestsCard = () => {
 
               return {
                 id: interest.id,
+                senderId: interest.sender.id,
                 name: interest.sender.name,
                 avatar: interest.sender.avatar || "",
                 mutualConnections: interest.sender.mutualConnections || 0,
@@ -344,7 +355,10 @@ export const ConnectionRequestsCard = () => {
             </div>
           ) : (
             pendingRequests.map((request) => (
-              <div key={request.id} className="border-b border-border last:border-none">
+              <div
+                key={request.id}
+                className="border-b border-border last:border-none"
+              >
                 <ConnectionRequestCard
                   request={request}
                   onAccept={handleAccept}

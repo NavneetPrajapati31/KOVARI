@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Card } from "@heroui/react";
 import { ArrowUp, MapPin } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
+import { cn } from "@/shared/utils/utils";
 import { Skeleton } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
@@ -54,7 +57,7 @@ export function TopDestinationCard({
   isLoading = false,
 }: DestinationCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
-
+  const hasImage = Boolean(imageUrl?.trim());
   const router = useRouter();
 
   if (isLoading) {
@@ -92,52 +95,52 @@ export function TopDestinationCard({
     <Card
       className={`relative w-full h-full rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-none border-none overflow-hidden flex flex-col bg-card text-card-foreground`}
     >
-      {/* Background Image - now covers full card */}
+      {/* Background Image or empty state fallback (matches GroupCoverCard) */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl">
-        <ImageStretch
-          src={imageUrl || ""}
-          alt={"Group cover"}
-          ariaLabel={"Group cover"}
-          className="rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl"
-        />
+        {imageUrl?.trim() ? (
+          <ImageStretch
+            src={imageUrl}
+            alt="Top destination"
+            ariaLabel="Top destination"
+            className="rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-secondary rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl border border-border">
+            <Avatar className="w-16 h-16 flex-shrink-0">
+              <UserAvatarFallback iconClassName="w-2/3 h-2/3" />
+            </Avatar>
+          </div>
+        )}
       </div>
 
-      {/* Glassmorphism content overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl">
-        <div
-          className="backdrop-blur-md w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl"
-          style={{
-            maskImage:
-              "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
-          }}
+      {/* Content overlay - glassmorphism only on label and button (matches DestinationCard) */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl px-3 py-3 flex flex-row justify-between items-center gap-2">
+        <span
+          className={cn(
+            "font-medium text-[12px] sm:text-xs truncate rounded-3xl px-3 py-2 h-8 text-center max-w-[160px] min-w-0 flex items-center justify-center",
+            "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)] transition-all duration-200",
+            hasImage
+              ? "text-primary-foreground"
+              : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
+          )}
         >
-          {/* Content section - keeping your exact structure */}
-          <div className="flex flex-row px-3 py-3">
-            {/* Creator avatar and name */}
-            <div className="flex flex-col w-full min-w-0">
-              <div className="flex flex-row justify-between items-center w-full">
-                <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate w-full">
-                  Top Destination
-                </span>
-              </div>
-              <span className="text-primary-foreground font-semibold text-[12px] sm:text-xs truncate w-full">
-                {name}
-              </span>
-            </div>
-            <div className="flex justify-end items-end flex-shrink-0">
-              <Button
-                variant={"outline"}
-                size={"sm"}
-                className="bg-transparent !text-[11px] p-1 px-5 text-white border-white rounded-full hover:text-white hover:bg-white/20"
-                onClick={onExplore}
-              >
-                <ArrowUp className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
+          {name}
+        </span>
+        <Button
+          variant="outline"
+          size="icon"
+          className={cn(
+            "rounded-full shrink-0 font-medium w-8 h-8",
+            "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)]",
+            hasImage
+              ? "text-primary-foreground"
+              : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
+          )}
+          onClick={onExplore}
+          aria-label="Explore top destination"
+        >
+          <ArrowUp className="w-3.5 h-3.5" />
+        </Button>
       </div>
     </Card>
   );

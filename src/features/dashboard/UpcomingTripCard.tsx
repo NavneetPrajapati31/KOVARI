@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Avatar } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
+import { cn } from "@/shared/utils/utils";
+import { Calendar, CalendarClock } from "lucide-react";
 import { Skeleton } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
@@ -50,7 +53,7 @@ const ImageStretch = ({
 export function UpcomingTripCard({
   name,
   country,
-  imageUrl,
+  imageUrl: imageUrlProp,
   startDate,
   endDate,
   groupId,
@@ -60,8 +63,32 @@ export function UpcomingTripCard({
   isLoading = false,
 }: DestinationCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
-
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const router = useRouter();
+
+  // Fetch group cover image by groupId (direct fetch as requested)
+  useEffect(() => {
+    if (!groupId) {
+      setCoverImage(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/groups/${groupId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.cover_image) setCoverImage(data.cover_image);
+        else if (!cancelled) setCoverImage(null);
+      })
+      .catch(() => {
+        if (!cancelled) setCoverImage(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId]);
+
+  const imageUrl = coverImage ?? imageUrlProp ?? "";
+  const hasImage = Boolean(imageUrl?.trim());
 
   if (isLoading) {
     return (
@@ -147,50 +174,52 @@ export function UpcomingTripCard({
     <Card
       className={`relative w-full h-full rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl shadow-none border-none overflow-hidden flex flex-col bg-card text-card-foreground`}
     >
-      {/* Background Image - now covers full card */}
+      {/* Background Image or empty state fallback (matches GroupCoverCard) */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl">
-        <ImageStretch
-          src={imageUrl || ""}
-          alt={"Group cover"}
-          ariaLabel={"Group cover"}
-          className="rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl"
-        />
+        {imageUrl?.trim() ? (
+          <ImageStretch
+            src={imageUrl}
+            alt="Upcoming trip"
+            ariaLabel="Upcoming trip"
+            className="rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-secondary rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl border border-border">
+            <Avatar className="w-16 h-16 flex-shrink-0">
+              <UserAvatarFallback iconClassName="w-2/3 h-2/3" />
+            </Avatar>
+          </div>
+        )}
       </div>
 
-      {/* Glassmorphism content overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl">
+      {/* Content overlay - glassmorphism only on label and button (matches DestinationCard) */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl px-3 py-3 flex flex-row justify-between items-center gap-2">
         <div
-          className="backdrop-blur-md w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl"
-          style={{
-            maskImage:
-              "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to top, black 0%, black 85%, transparent 100%)",
-          }}
+          className={cn(
+            "font-medium text-[12px] sm:text-xs rounded-3xl px-3 py-2 h-8 flex justify-center items-center max-w-[180px] min-w-0",
+            "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)] transition-all duration-200",
+            hasImage
+              ? "text-primary-foreground"
+              : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
+          )}
         >
-          {/* Content section - keeping your exact structure */}
-          <div className="flex flex-row gap-1 px-3 py-3">
-            {/* Creator avatar and name */}
-            <div className="flex flex-col items-start flex-1 min-w-0">
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate w-full">
-                {name}, {country}
-              </span>
-              <span className="text-white font-semibold text-[12px] sm:text-xs truncate w-full">
-                {tripDates}
-              </span>
-            </div>
-            <div className="flex justify-end items-end flex-shrink-0">
-              <Button
-                variant={"outline"}
-                size={"sm"}
-                className="bg-transparent !text-[11px] p-1 px-2 text-white border-white rounded-full hover:text-white hover:bg-white/20"
-                onClick={() => router.push(`/groups/${groupId}/home`)}
-              >
-                Upcoming
-              </Button>
-            </div>
-          </div>
+          <span className="truncate">{name}</span>
         </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className={cn(
+            "rounded-full shrink-0 font-medium w-8 h-8",
+            "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)]",
+            hasImage
+              ? "text-primary-foreground"
+              : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
+          )}
+          onClick={() => router.push(`/groups/${groupId}/home`)}
+          aria-label="View upcoming trip"
+        >
+          <CalendarClock className="w-3.5 h-3.5" />
+        </Button>
       </div>
     </Card>
   );

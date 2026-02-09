@@ -17,6 +17,13 @@ const formatTimeWithOptionalMinutes = (date: Date) => {
   return format(date, getMinutes(date) === 0 ? "ha" : "h:mma").toLowerCase();
 };
 
+/** Formatted start time only, e.g. "9:00 AM" or "9 AM" */
+const formatStartTime = (date: Date) => {
+  return getMinutes(date) === 0
+    ? format(date, "h a") // "9 AM"
+    : format(date, "h:mm a"); // "9:30 AM"
+};
+
 interface EventWrapperProps {
   event: CalendarEvent;
   isFirstDay?: boolean;
@@ -234,26 +241,25 @@ export function EventItem({
       {...dndListeners}
       {...dndAttributes}
     >
-      <div className="text-xs font-medium">{event.title}</div>
-      <div className="text-xs opacity-70">
+      <div className="text-xs font-medium capitalize">{event.title}</div>
+      {event.description && (
+        <div className="mt-1 text-xs opacity-90 capitalize">
+          {event.description}
+        </div>
+      )}
+      <div className="text-xs opacity-90 flex items-center gap-1">
         {event.allDay ? (
           <span>All day</span>
         ) : (
-          <span className="uppercase">
-            {formatTimeWithOptionalMinutes(displayStart)} -{" "}
-            {formatTimeWithOptionalMinutes(displayEnd)}
-          </span>
+          <span>{formatStartTime(displayStart)}</span>
         )}
+        <span className="text-[10px] opacity-90">|</span>
         {event.location && (
           <>
-            <span className="px-1 opacity-35"> · </span>
-            <span>{event.location}</span>
+            <span className="text-xs capitalize">{event.location}</span>
           </>
         )}
       </div>
-      {event.description && (
-        <div className="mt-1 text-xs opacity-90">{event.description}</div>
-      )}
     </button>
   );
 }

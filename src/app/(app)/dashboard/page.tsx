@@ -61,6 +61,7 @@ import { formatNotificationTime } from "@/shared/utils/utils";
 
 import {
   getMostFrequentDestinations,
+  getMostRecentGroupCoverForDestination,
   getTotalTravelDays,
   getUniqueCoTravelers,
   getTripsPerYear,
@@ -376,7 +377,14 @@ export default function Dashboard() {
     };
   };
 
-  // Get the most recent or upcoming group for destination card
+  // Top destination: most frequent destination + cover from most recent matching group
+  const topDestinationNameCountry = getNameAndCountry(
+    mostVisited === "N/A" ? undefined : mostVisited
+  );
+  const topDestinationCoverImage =
+    getMostRecentGroupCoverForDestination(groups, mostVisited) ?? undefined;
+
+  // Upcoming trip: selected group (nearest upcoming or most recent past)
   const selectedGroup = upcoming[0] || past[0];
   const { name, country } = getNameAndCountry(
     selectedGroup?.group?.destination || undefined
@@ -389,6 +397,14 @@ export default function Dashboard() {
   const handleExplore = () => {
     if (!name) return;
     const query = encodeURIComponent(name);
+    const url = `https://maps.apple.com/search?query=${query}`;
+    window.open(url, "_blank");
+  };
+
+  const handleExploreTopDestination = () => {
+    const topName = topDestinationNameCountry.name;
+    if (!topName) return;
+    const query = encodeURIComponent(topName);
     const url = `https://maps.apple.com/search?query=${query}`;
     window.open(url, "_blank");
   };
@@ -571,7 +587,6 @@ export default function Dashboard() {
                       country={country}
                       startDate={startDate}
                       endDate={endDate}
-                      imageUrl="https://images.pexels.com/photos/8776666/pexels-photo-8776666.jpeg"
                       onExplore={handleExplore}
                       isLoading={groupsLoading}
                     />
@@ -580,10 +595,10 @@ export default function Dashboard() {
                 <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
                   <div className="h-full min-h-0">
                     <TopDestinationCard
-                      name={name}
-                      country={country}
-                      imageUrl="https://images.pexels.com/photos/1486222/pexels-photo-1486222.jpeg"
-                      onExplore={handleExplore}
+                      name={topDestinationNameCountry.name}
+                      country={topDestinationNameCountry.country}
+                      imageUrl={topDestinationCoverImage}
+                      onExplore={handleExploreTopDestination}
                       isLoading={groupsLoading}
                     />
                   </div>
