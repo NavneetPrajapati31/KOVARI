@@ -288,13 +288,6 @@ const MessageList = ({
     messages.forEach((msg, index) => {
       const messageDate = msg.created_at;
 
-      // Debug logging
-      console.log(`Message ${index}:`, {
-        date: messageDate,
-        formatted: formatMessageDate(messageDate),
-        parsed: new Date(messageDate).toLocaleString(),
-      });
-
       // Add date separator if this is the first message or if the date changed
       if (
         index === 0 ||
@@ -640,13 +633,6 @@ const DirectChatPage = () => {
     }
     return "";
   });
-  // Debug log for user IDs
-  useEffect(() => {
-    console.log("[DEBUG] Clerk user:", user);
-    console.log("[DEBUG] currentUserId:", currentUserId);
-    console.log("[DEBUG] currentUserUuid:", currentUserUuid);
-    console.log("[DEBUG] partnerUuid:", partnerUuid);
-  }, [user, currentUserId, currentUserUuid, partnerUuid]);
   const {
     profile: partnerProfile,
     isDeleted: isPartnerDeleted,
@@ -656,7 +642,7 @@ const DirectChatPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isUnblocking, setIsUnblocking] = useState(false);
   const { toast } = useToast();
-  const supabase = require("@/lib/supabase").createClient();
+  const supabase = useMemo(() => require("@/lib/supabase").createClient(), []);
   const [iBlockedThem, setIBlockedThem] = useState(false);
   const [theyBlockedMe, setTheyBlockedMe] = useState(false);
   const [blockLoading, setBlockLoading] = useState(true);
@@ -818,11 +804,14 @@ const DirectChatPage = () => {
   }, [error, toast]);
 
   // Retry handler for failed messages
-  const handleRetry = (msg: any) => {
-    if (msg.plain_content) {
-      sendMessage(msg.plain_content, msg.mediaUrl, msg.mediaType);
-    }
-  };
+  const handleRetry = useCallback(
+    (msg: any) => {
+      if (msg.plain_content) {
+        sendMessage(msg.plain_content, msg.mediaUrl, msg.mediaType);
+      }
+    },
+    [sendMessage],
+  );
 
   // Helper to get displayable message content
   const getDisplayableContent = (msg: any) => {
@@ -920,12 +909,15 @@ const DirectChatPage = () => {
   };
 
   // Helper to get sender display name
-  const getSenderName = (msg: any) => {
-    if (msg.sender_profile?.name) return msg.sender_profile.name;
-    if (msg.sender_profile?.username) return msg.sender_profile.username;
-    if (msg.sender_id === currentUserUuid) return "You";
-    return "Unknown";
-  };
+  const getSenderName = useCallback(
+    (msg: any) => {
+      if (msg.sender_profile?.name) return msg.sender_profile.name;
+      if (msg.sender_profile?.username) return msg.sender_profile.username;
+      if (msg.sender_id === currentUserUuid) return "You";
+      return "Unknown";
+    },
+    [currentUserUuid],
+  );
 
   // Patch MessageRow to support modal opening for media
   interface PatchedMessageRowProps {
@@ -937,148 +929,207 @@ const DirectChatPage = () => {
     onRetry?: (msg: any) => void;
     isSenderDeleted?: boolean;
   }
-  const PatchedMessageRow: React.FC<PatchedMessageRowProps> = React.memo(
-    ({
-      msg,
-      isSent,
-      content,
-      showSpinner,
-      showError,
-      onRetry,
-      isSenderDeleted,
-    }) => {
-      const hasMedia = !!msg.mediaUrl;
-      const hasText = isRealTextMessage(content);
-      const senderName = getSenderName(msg);
-      // Format timestamp from created_at
-      const timeString = new Date(msg.created_at).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      // Any media: show only media card (no bubble)
-      if (hasMedia && msg.mediaType === "image") {
-        return (
-          <div
-            className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
-          >
-            <button
-              type="button"
-              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
-              aria-label="View image in full screen"
-              tabIndex={0}
-              onClick={() => {
-                setModalMediaUrl(msg.mediaUrl);
-                setModalMediaType("image");
-                setModalTimestamp(msg.created_at);
-                setModalSender(senderName);
-                setModalOpen(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
+  const PatchedMessageRow = useMemo(() => {
+    const Comp: React.FC<PatchedMessageRowProps> = React.memo(
+      ({
+        msg,
+        isSent,
+        content,
+        showSpinner,
+        showError,
+        onRetry,
+        isSenderDeleted,
+      }) => {
+        const hasMedia = !!msg.mediaUrl;
+        const hasText = isRealTextMessage(content);
+        const senderName = getSenderName(msg);
+        // Format timestamp from created_at
+        const timeString = new Date(msg.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        // Any media: show only media card (no bubble)
+        if (hasMedia && msg.mediaType === "image") {
+          return (
+            <div
+              className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
+            >
+              <button
+                type="button"
+                className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
+                aria-label="View image in full screen"
+                tabIndex={0}
+                onClick={() => {
                   setModalMediaUrl(msg.mediaUrl);
                   setModalMediaType("image");
                   setModalTimestamp(msg.created_at);
                   setModalSender(senderName);
                   setModalOpen(true);
-                }
-              }}
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    setModalMediaUrl(msg.mediaUrl);
+                    setModalMediaType("image");
+                    setModalTimestamp(msg.created_at);
+                    setModalSender(senderName);
+                    setModalOpen(true);
+                  }
+                }}
+              >
+                <MediaWithSkeleton url={msg.mediaUrl} timestamp={timeString} />
+              </button>
+            </div>
+          );
+        }
+        if (hasMedia && msg.mediaType === "video") {
+          return (
+            <div
+              className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
             >
-              <MediaWithSkeleton url={msg.mediaUrl} timestamp={timeString} />
-            </button>
-          </div>
-        );
-      }
-      if (hasMedia && msg.mediaType === "video") {
-        return (
-          <div
-            className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
-          >
-            <button
-              type="button"
-              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
-              aria-label="View video in full screen"
-              tabIndex={0}
-              onClick={() => {
-                setModalMediaUrl(msg.mediaUrl);
-                setModalMediaType("video");
-                setModalTimestamp(msg.created_at);
-                setModalSender(senderName);
-                setModalOpen(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
+              <button
+                type="button"
+                className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
+                aria-label="View video in full screen"
+                tabIndex={0}
+                onClick={() => {
                   setModalMediaUrl(msg.mediaUrl);
                   setModalMediaType("video");
                   setModalTimestamp(msg.created_at);
                   setModalSender(senderName);
                   setModalOpen(true);
-                }
-              }}
-            >
-              <VideoWithSkeleton url={msg.mediaUrl} timestamp={timeString} />
-            </button>
-          </div>
-        );
-      }
-      // Only text: show bubble
-      if (hasText) {
-        return (
-          <MessageRow
-            msg={msg}
-            isSent={isSent}
-            content={content}
-            showSpinner={showSpinner}
-            showError={showError}
-            onRetry={onRetry}
-            isSenderDeleted={isSenderDeleted}
-          />
-        );
-      }
-      return null;
-    },
-  );
-  PatchedMessageRow.displayName = "PatchedMessageRow";
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    setModalMediaUrl(msg.mediaUrl);
+                    setModalMediaType("video");
+                    setModalTimestamp(msg.created_at);
+                    setModalSender(senderName);
+                    setModalOpen(true);
+                  }
+                }}
+              >
+                <VideoWithSkeleton url={msg.mediaUrl} timestamp={timeString} />
+              </button>
+            </div>
+          );
+        }
+
+        // Only text: show bubble
+        if (hasText) {
+          return (
+            <MessageRow
+              msg={msg}
+              isSent={isSent}
+              content={content}
+              showSpinner={showSpinner}
+              showError={showError}
+              onRetry={onRetry}
+              isSenderDeleted={isSenderDeleted}
+            />
+          );
+        }
+        return null;
+      },
+    );
+    Comp.displayName = "PatchedMessageRow";
+    return Comp;
+  }, [getSenderName]);
 
   // Patch MessageList to use PatchedMessageRow
-  const PatchedMessageList = (props: any) => {
-    const { messages, currentUserUuid, sharedSecret, onRetry } = props;
-    const messagesWithSeparators = useMemo(() => {
-      const result: Array<{
-        type: "message" | "separator";
-        data: any;
-        date?: string;
-      }> = [];
-      messages.forEach((msg: any, index: number) => {
-        const messageDate = msg.created_at;
-        if (
-          index === 0 ||
-          !isSameDay(messageDate, messages[index - 1].created_at)
-        ) {
+  const PatchedMessageList = useMemo(() => {
+    const Comp = (props: any) => {
+      const { messages, currentUserUuid, sharedSecret, onRetry } = props;
+
+      const items = useMemo(() => {
+        const result: Array<
+          | { type: "separator"; date: string }
+          | {
+              type: "message";
+              key: string;
+              msg: any;
+              isSent: boolean;
+              content: string;
+              showSpinner: boolean;
+              showError: boolean;
+              isSenderDeleted: boolean;
+            }
+        > = [];
+
+        messages.forEach((msg: any, index: number) => {
+          const messageDate = msg.created_at;
+          if (
+            index === 0 ||
+            !isSameDay(messageDate, messages[index - 1].created_at)
+          ) {
+            result.push({ type: "separator", date: messageDate });
+          }
+
+          const isSent = msg.sender_id === currentUserUuid;
+          const isSenderDeleted = msg.sender_profile?.deleted === true;
+          let content = "";
+          let showSpinner = false;
+          let showError = false;
+
+          if (msg.status === "sending" || msg.status === "failed") {
+            content = msg.plain_content || "";
+            showSpinner = msg.status === "sending";
+            showError = msg.status === "failed";
+          } else {
+            let decryptedContent = "[Encrypted message]";
+            if (
+              msg.is_encrypted &&
+              msg.encrypted_content &&
+              msg.encryption_iv &&
+              msg.encryption_salt
+            ) {
+              try {
+                decryptedContent =
+                  decryptMessage(
+                    {
+                      encryptedContent: msg.encrypted_content,
+                      iv: msg.encryption_iv,
+                      salt: msg.encryption_salt,
+                    },
+                    sharedSecret,
+                  ) || "[Encrypted message]";
+              } catch {
+                decryptedContent = "[Failed to decrypt message]";
+              }
+            }
+            content = decryptedContent;
+          }
+
           result.push({
-            type: "separator",
-            data: { date: messageDate },
-            date: messageDate,
+            type: "message",
+            key: msg.tempId || msg.id,
+            msg,
+            isSent,
+            content,
+            showSpinner,
+            showError,
+            isSenderDeleted,
           });
-        }
-        result.push({ type: "message", data: msg });
-      });
-      return result;
-    }, [messages]);
-    if (messages.length === 0) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <span className="text-sm text-muted-foreground">
-              No messages yet. Start a conversation!
-            </span>
+        });
+
+        return result;
+      }, [messages, currentUserUuid, sharedSecret]);
+
+      if (messages.length === 0) {
+        return (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <span className="text-sm text-muted-foreground">
+                No messages yet. Start a conversation!
+              </span>
+            </div>
           </div>
-        </div>
-      );
-    }
-    return (
-      <>
+        );
+      }
+
+      return (
         <div role="list">
-          {messagesWithSeparators.map((item, index) => {
+          {items.map((item) => {
             if (item.type === "separator") {
               return (
                 <div
@@ -1086,63 +1137,32 @@ const DirectChatPage = () => {
                   className="text-center my-4"
                 >
                   <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
-                    {formatMessageDate(item.date!)}
+                    {formatMessageDate(item.date)}
                   </span>
                 </div>
               );
             }
-            const msg = item.data;
-            const isSent = msg.sender_id === currentUserUuid;
-            let content: string = "";
-            let showSpinner = false;
-            let showError = false;
-            const isSenderDeleted = msg.sender_profile?.deleted === true;
-            if (msg.status === "sending" || msg.status === "failed") {
-              content = msg.plain_content || "";
-              showSpinner = msg.status === "sending";
-              showError = msg.status === "failed";
-            } else {
-              let decryptedContent = "[Encrypted message]";
-              if (
-                msg.is_encrypted &&
-                msg.encrypted_content &&
-                msg.encryption_iv &&
-                msg.encryption_salt
-              ) {
-                try {
-                  decryptedContent =
-                    decryptMessage(
-                      {
-                        encryptedContent: msg.encrypted_content,
-                        iv: msg.encryption_iv,
-                        salt: msg.encryption_salt,
-                      },
-                      sharedSecret,
-                    ) || "[Encrypted message]";
-                } catch {
-                  decryptedContent = "[Failed to decrypt message]";
-                }
-              }
-              content = decryptedContent;
-            }
             return (
-              <div role="listitem" key={msg.tempId || msg.id}>
+              <div role="listitem" key={item.key}>
                 <PatchedMessageRow
-                  msg={msg}
-                  isSent={isSent}
-                  content={content}
-                  showSpinner={showSpinner}
-                  showError={showError}
+                  msg={item.msg}
+                  isSent={item.isSent}
+                  content={item.content}
+                  showSpinner={item.showSpinner}
+                  showError={item.showError}
                   onRetry={onRetry}
-                  isSenderDeleted={isSenderDeleted}
+                  isSenderDeleted={item.isSenderDeleted}
                 />
               </div>
             );
           })}
         </div>
-      </>
-    );
-  };
+      );
+    };
+
+    Comp.displayName = "PatchedMessageList";
+    return Comp;
+  }, [PatchedMessageRow]);
 
   if (
     blockLoading ||
