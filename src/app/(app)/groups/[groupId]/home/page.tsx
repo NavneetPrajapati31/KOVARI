@@ -378,7 +378,7 @@ const GroupHomePage = () => {
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -413,7 +413,7 @@ const GroupHomePage = () => {
   // Helper to get destination city and country from groups table (destination_details first, else parse destination text)
   const getDestinationCityAndCountry = (
     destination?: string,
-    destinationDetails?: DestinationDetails | null
+    destinationDetails?: DestinationDetails | null,
   ): { name: string; country: string } => {
     if (destinationDetails?.city || destinationDetails?.country) {
       return {
@@ -431,7 +431,7 @@ const GroupHomePage = () => {
 
   const { name, country } = getDestinationCityAndCountry(
     groupInfo?.destination,
-    groupInfo?.destination_details
+    groupInfo?.destination_details,
   );
 
   const handleExplore = () => {
@@ -455,7 +455,7 @@ const GroupHomePage = () => {
       }
       const data = await res.json();
       setGroupInfo((prev) =>
-        prev ? { ...prev, destination_image: data.destination_image } : null
+        prev ? { ...prev, destination_image: data.destination_image } : null,
       );
     } catch (err) {
       console.error("Destination image update error:", err);
@@ -479,12 +479,12 @@ const GroupHomePage = () => {
       setGroupInfo((prev) =>
         prev
           ? { ...prev, destination_image: data.destination_image ?? null }
-          : null
+          : null,
       );
     } catch (err) {
       console.error("Destination image delete error:", err);
       toast.error(
-        err instanceof Error ? err.message : "Failed to remove image"
+        err instanceof Error ? err.message : "Failed to remove image",
       );
     }
   };
@@ -687,7 +687,7 @@ const GroupHomePage = () => {
           {/* Group Info + Members */}
           <div>
             <Card className="bg-card border-1 border-border rounded-3xl shadow-sm">
-              <CardBody className="p-4">
+              <CardBody className="p-3">
                 {/* Image Cards */}
                 <div className="space-y-4 mb-4">
                   {groupInfoLoading ? (
@@ -742,8 +742,22 @@ const GroupHomePage = () => {
                           <h3 className="font-semibold text-sm">
                             Mark the dates!
                           </h3>
-                          <p className="text-xs text-muted-foreground font-medium mb-3">
-                            June 23 - June 29
+                          <p className="text-sm text-muted-foreground font-medium mb-3 mt-1">
+                            {new Date(groupInfo.start_date).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "long",
+                                day: "numeric",
+                              },
+                            )}{" "}
+                            -{" "}
+                            {new Date(groupInfo.end_date).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "long",
+                                day: "numeric",
+                              },
+                            )}
                           </p>
                         </>
                       )}
@@ -849,7 +863,7 @@ const GroupHomePage = () => {
                                 </div>
                               }
                               description={
-                                <span className="text-muted-foreground text-[10px]">
+                                <span className="text-muted-foreground text-xs">
                                   @{member.username ?? ""}
                                 </span>
                               }
@@ -873,25 +887,10 @@ const GroupHomePage = () => {
                       ))}
                 </div>
 
-                {/* {groupInfoLoading ? (
-                  <Skeleton className="w-full h-[180px] rounded-3xl" />
-                ) : (
-                  <DestinationCard
-                    name={name}
-                    country={country}
-                    imageUrl={groupInfo?.destination_image ?? ""}
-                    onExplore={handleExplore}
-                    forMobile
-                    editable
-                    onUploadSuccess={handleDestinationImageUpload}
-                    onDelete={handleDestinationImageDelete}
-                  />
-                )} */}
-
                 {/* Upcoming Itinerary */}
-                <div className="pb-1 mt-2">
-                  <Card className="bg-transparent border border-border py-1 px-4 rounded-3xl shadow-none">
-                    <CardBody className="py-2 px-1">
+                <div className="pb-1 mt-2 mb-1">
+                  <Card className="bg-transparent border border-border p-2 rounded-3xl shadow-none">
+                    <CardBody className="p-1">
                       <div className="flex items-center justify-between mb-4 mx-1">
                         <div>
                           <h3 className="text-xs font-semibold text-foreground mb-1">
@@ -971,7 +970,7 @@ const GroupHomePage = () => {
                                     <Clock className="w-3 h-3" />
                                     <span>
                                       {new Date(
-                                        item.datetime
+                                        item.datetime,
                                       ).toLocaleTimeString("en-IN", {
                                         hour: "2-digit",
                                         minute: "2-digit",
@@ -995,6 +994,21 @@ const GroupHomePage = () => {
                     </CardBody>
                   </Card>
                 </div>
+
+                {groupInfoLoading ? (
+                  <Skeleton className="w-full h-[180px] rounded-3xl" />
+                ) : (
+                  <DestinationCard
+                    name={name}
+                    country={country}
+                    imageUrl={groupInfo?.destination_image ?? ""}
+                    onExplore={handleExplore}
+                    forMobile
+                    editable
+                    onUploadSuccess={handleDestinationImageUpload}
+                    onDelete={handleDestinationImageDelete}
+                  />
+                )}
 
                 {/* AI Overview */}
                 <div className="mt-2">
@@ -1472,7 +1486,7 @@ const GroupHomePage = () => {
                                         minute: "2-digit",
                                         hour12: true,
                                         timeZone: IST_TIMEZONE,
-                                      }
+                                      },
                                     )}
                                   </span>
                                 </div>
@@ -1883,7 +1897,7 @@ const GroupHomePage = () => {
                                       minute: "2-digit",
                                       hour12: true,
                                       timeZone: IST_TIMEZONE,
-                                    }
+                                    },
                                   )}
                                 </span>
                               </div>
