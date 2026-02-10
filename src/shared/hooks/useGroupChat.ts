@@ -14,6 +14,7 @@ export interface ChatMessage {
   timestamp: string;
   sender: string;
   senderUsername?: string;
+  senderId?: string;
   avatar?: string;
   isCurrentUser: boolean;
   createdAt: string;
@@ -427,6 +428,7 @@ export const useGroupChat = (groupId: string) => {
                   const isDeleted = profile?.deleted === true;
                   return isDeleted ? undefined : profile?.username;
                 })(),
+                senderId: messageData.user_id ?? (messageData.users as any)?.id,
                 avatar: (() => {
                   const profile = (messageData.users as any)?.profiles;
                   const isDeleted = profile?.deleted === true;

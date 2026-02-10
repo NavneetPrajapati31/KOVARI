@@ -100,6 +100,7 @@ export async function GET(
           }),
           sender: isDeleted ? "Deleted User" : profile?.name || "Unknown User",
           senderUsername: isDeleted ? undefined : profile?.username,
+          senderId: message.user_id ?? message.users?.id,
           avatar: isDeleted ? undefined : profile?.profile_photo,
           isCurrentUser: message.user_id === userRow.id,
           createdAt: message.created_at,

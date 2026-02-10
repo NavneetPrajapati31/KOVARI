@@ -12,14 +12,13 @@ import {
   Loader2,
   Smile,
   AlertCircle,
-  Users,
   Lock,
   User,
   Plus,
   Flag,
   Image,
 } from "lucide-react";
-import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import { PiPaperclip } from "react-icons/pi";
 import { HiPlay } from "react-icons/hi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
@@ -50,6 +49,24 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import Link from "next/link";
 
+/** Standalone user icon fallback for HeroUI Avatar (cannot use UserAvatarFallback - it requires Radix Avatar context). */
+function GroupCoverAvatarFallback({ className }: { className?: string }) {
+  return (
+    <span
+      className={`flex size-full items-center justify-center rounded-full bg-secondary ${className ?? ""}`}
+    >
+      <svg
+        className="w-4/5 h-4/5 text-gray-400"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden
+      >
+        <circle cx="12" cy="8" r="4" />
+        <rect x="4" y="14" width="16" height="6" rx="3" />
+      </svg>
+    </span>
+  );
+}
 
 const MAX_MESSAGE_LENGTH = 1000; // Maximum message length in characters
 
@@ -66,7 +83,7 @@ function ChatPageSkeleton() {
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden h-[90vh] min-h-[50dvh] sm:min-h-[60dvh]">
       <div className="flex h-full min-h-0">
         {/* Sidebar skeleton - hidden on small/medium like real sidebar */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-hidden hidden lg:block shrink-0">
+        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-card overflow-hidden hidden lg:block shrink-0">
           <div className="p-4 sm:p-5 overflow-y-auto h-full">
             <div className="text-center mb-3 sm:mb-4 border-b border-border pb-3 sm:pb-4">
               <Skeleton className="mx-auto mb-2 sm:mb-3 rounded-full w-14 h-14 sm:w-16 sm:h-16" />
@@ -80,7 +97,10 @@ function ChatPageSkeleton() {
               </div>
               <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <Skeleton key={i} className="rounded-full w-8 h-8 sm:w-10 sm:h-10 shrink-0" />
+                  <Skeleton
+                    key={i}
+                    className="rounded-full w-8 h-8 sm:w-10 sm:h-10 shrink-0"
+                  />
                 ))}
               </div>
             </div>
@@ -90,8 +110,11 @@ function ChatPageSkeleton() {
                 <Skeleton className="h-3 w-12 sm:w-14 rounded-lg" />
               </div>
               <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="aspect-[4/3] w-full rounded-lg sm:rounded-xl min-h-0" />
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton
+                    key={i}
+                    className="aspect-[4/3] w-full rounded-lg sm:rounded-xl min-h-0"
+                  />
                 ))}
               </div>
             </div>
@@ -101,22 +124,32 @@ function ChatPageSkeleton() {
         {/* Main chat area skeleton */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Header */}
-          <div className="shrink-0 px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 border-b border-border">
-            <div className="flex items-center justify-between gap-2">
+          <div className="shrink-0 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border">
+            <div className="flex items-center justify-between gap-3">
+              <Skeleton className="h-9 w-9 flex-shrink-0 rounded-full" />
               <div className="min-w-0 flex-1">
                 <Skeleton className="h-3 w-[60%] min-w-[6rem] max-w-[8rem] sm:max-w-[10rem] md:max-w-[11rem] mb-1.5 sm:mb-2 rounded-lg" />
                 <Skeleton className="h-3 w-14 sm:w-20 rounded-lg" />
               </div>
-              {/* <div className="flex items-center gap-1 shrink-0">
-                <Skeleton className="rounded-full w-8 h-8 sm:w-9 sm:h-9" />
-                <Skeleton className="rounded-full w-8 h-8 sm:w-9 sm:h-9" />
-              </div> */}
             </div>
           </div>
 
           {/* Messages area - scrollable */}
           <div className="flex-1 min-h-0 overflow-hidden p-3 sm:p-4 space-y-3 sm:space-y-4">
-            {(["sender", "user", "sender", "user", "sender", "user", "sender", "user","sender","user"] as const).map((type, i) =>
+            {(
+              [
+                "sender",
+                "user",
+                "sender",
+                "user",
+                "sender",
+                "user",
+                "sender",
+                "user",
+                "sender",
+                "user",
+              ] as const
+            ).map((type, i) =>
               type === "sender" ? (
                 <div key={i} className="flex justify-start">
                   <div className="flex items-end gap-1.5 sm:gap-2 w-[70%] min-w-[4rem] max-w-[12rem] sm:max-w-[14rem]">
@@ -128,7 +161,7 @@ function ChatPageSkeleton() {
                 <div key={i} className="flex justify-end">
                   <Skeleton className="h-9 sm:h-10 w-[55%] min-w-[3.5rem] max-w-[10rem] sm:max-w-[11rem] rounded-2xl rounded-br-md shrink-0" />
                 </div>
-              )
+              ),
             )}
           </div>
 
@@ -176,7 +209,7 @@ export default function GroupChatInterface() {
     "image" | "video" | null
   >(null);
   const [modalTimestamp, setModalTimestamp] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [modalSender, setModalSender] = useState<string | undefined>(undefined);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
@@ -212,7 +245,7 @@ export default function GroupChatInterface() {
     "membershipError",
     membershipError,
     "membershipInfo",
-    membershipInfo
+    membershipInfo,
   );
 
   const { user } = useUser();
@@ -278,20 +311,20 @@ export default function GroupChatInterface() {
     };
   }, [showEmoji]);
 
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      container.scrollTop = container.scrollHeight;
-      console.log("[Chat Scroll Debug] scrollHeight:", container.scrollHeight);
-      console.log("[Chat Scroll Debug] clientHeight:", container.clientHeight);
-      console.log("[Chat Scroll Debug] children:", container.children.length);
-      if (container.lastElementChild) {
-        console.log(
-          "[Chat Scroll Debug] last child:",
-          container.lastElementChild
-        );
+  // Scroll to bottom when chat is opened or messages/groupId change (e.g. initial load or switching group)
+  useLayoutEffect(() => {
+    const scrollToBottom = () => {
+      const container = messagesContainerRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
       }
-    }
+    };
+    scrollToBottom();
+    // Run again after layout/paint in case content wasn't fully measured yet
+    const raf = requestAnimationFrame(() => {
+      scrollToBottom();
+    });
+    return () => cancelAnimationFrame(raf);
   }, [messages, groupId]);
 
   // Show error toast if there's an error
@@ -355,7 +388,7 @@ export default function GroupChatInterface() {
   // const userId = /* get user id from props, context, or hook */;
 
   const handleChatFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return; // Only proceed if userId is loaded
@@ -563,21 +596,28 @@ export default function GroupChatInterface() {
     <div className="max-w-full mx-0 bg-card rounded-3xl shadow-none border border-border overflow-hidden">
       <div className="flex h-[90vh]">
         {/* Right Sidebar */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-muted/30 overflow-y-auto scrollbar-none hidden lg:block">
+        <div className="w-full md:w-80 lg:w-96 border-r border-border bg-card overflow-y-auto scrollbar-none hidden lg:block">
           <div className="p-5">
             {/* Company Info */}
             <div className="text-center mb-3 border-b-1 border-border">
               <div className="flex items-center justify-center mx-auto mb-3">
-                <Avatar src={groupInfo?.cover_image} size={"lg"} />
+                <Avatar
+                  src={groupInfo?.cover_image}
+                  name={groupInfo?.name}
+                  size="lg"
+                  className="bg-secondary"
+                  showFallback
+                  fallback={<GroupCoverAvatarFallback className="size-full" />}
+                />
               </div>
-              <h2 className="text-md font-semibold text-foreground">
+              <h2 className="text-sm font-semibold text-foreground">
                 {groupInfo?.name || "Loading..."}
               </h2>
-              <p className="text-xs text-muted-foreground font-medium">
+              {/* <p className="text-xs text-muted-foreground font-medium">
                 {members.length} member{members.length !== 1 ? "s" : ""}
-              </p>
+              </p> */}
               {groupInfo?.description && (
-                <p className="text-xs text-muted-foreground mt-2 mb-3">
+                <p className="text-xs text-muted-foreground mt-1 mb-3">
                   {groupInfo.description}
                 </p>
               )}
@@ -596,7 +636,7 @@ export default function GroupChatInterface() {
                 </Link>
               </div>
               {membersLoading ? (
-                <div className="flex items-center justify-center py-4">
+                <div className="flex items-center justify-center p-4">
                   <Spinner variant="spinner" size="sm" color="primary" />
                 </div>
               ) : (
@@ -616,27 +656,32 @@ export default function GroupChatInterface() {
                   }}
                 >
                   {members.map((member) => (
-                    <Avatar
+                    <Link
                       key={member.id}
-                      src={member.avatar}
-                      classNames={{
-                        base: "bg-secondary w-10 h-10",
-                      }}
-                      name={member.name}
-                      showFallback={true}
-                      fallback={
-                        <svg
-                          className="w-5 h-5 text-gray-400"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <circle cx="12" cy="8" r="4" />
-                          <rect x="4" y="14" width="16" height="6" rx="3" />
-                        </svg>
-                      }
-                    />
-
+                      href={`/profile/${member.id}`}
+                      className="inline-block rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                      aria-label={`View ${member.name ?? "member"}'s profile`}
+                    >
+                      <Avatar
+                        src={member.avatar}
+                        classNames={{
+                          base: "bg-secondary w-10 h-10",
+                        }}
+                        name={member.name}
+                        showFallback={true}
+                        fallback={
+                          <svg
+                            className="w-5 h-5 text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="8" r="4" />
+                            <rect x="4" y="14" width="16" height="6" rx="3" />
+                          </svg>
+                        }
+                      />
+                    </Link>
                   ))}
                 </AvatarGroup>
               )}
@@ -646,7 +691,7 @@ export default function GroupChatInterface() {
             {userId ? (
               <GroupMediaSection groupId={groupId} userId={userId} />
             ) : (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center p-4">
                 <Spinner variant="spinner" size="sm" color="primary" />
                 <span className="ml-2 text-sm text-muted-foreground">
                   Loading media...
@@ -751,11 +796,18 @@ export default function GroupChatInterface() {
         {/* Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="px-3 sm:px-5 py-3 border-b border-border bg-transparent">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="px-3 sm:px-4 py-3 border-b border-border bg-transparent">
+            <div className="flex items-center justify-between gap-3">
+              <Avatar
+                src={groupInfo?.cover_image}
+                name={groupInfo?.name}
+                className="h-9 w-9 flex-shrink-0 rounded-full bg-secondary"
+                showFallback
+                fallback={<GroupCoverAvatarFallback className="size-full" />}
+              />
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-3">
-                  <h1 className="text-xs font-semibold text-foreground">
+                  <h1 className="text-xs font-semibold text-foreground truncate">
                     {groupInfo?.name || "Loading..."}
                   </h1>
                   {/* {isEncryptionAvailable && keyFingerprint && (
@@ -798,18 +850,21 @@ export default function GroupChatInterface() {
                       <MoreVertical className="h-5 w-5" />
                     </button>
                   </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 transition-all duration-300 ease-in-out border-border">
-                  <DropdownMenuItem
-                    onClick={() => setIsReportDialogOpen(true)}
-                     className="text-destructive font-semibold hover:cursor-pointer focus:bg-transparent focus:text-destructive focus-within:!border-none focus-within:!outline-none"
+                  <DropdownMenuContent
+                    align="end"
+                    className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 transition-all duration-300 ease-in-out border-border"
                   >
-                    {/* <Flag className="h-4 w-4" /> */}
-                    <span className="flex items-center gap-2">
-              {/* <Flag className="h-4 w-4" /> */}
-              Report Group
-            </span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
+                    <DropdownMenuItem
+                      onClick={() => setIsReportDialogOpen(true)}
+                      className="text-destructive font-semibold hover:cursor-pointer focus:bg-transparent focus:text-destructive focus-within:!border-none focus-within:!outline-none"
+                    >
+                      {/* <Flag className="h-4 w-4" /> */}
+                      <span className="flex items-center gap-2">
+                        {/* <Flag className="h-4 w-4" /> */}
+                        Report Group
+                      </span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </div>
@@ -855,9 +910,9 @@ export default function GroupChatInterface() {
                     return (
                       <div
                         key={`separator-${item.date}`}
-                        className="text-center my-4"
+                        className="text-center pt-4 pb-4 first:pt-2 shrink-0"
                       >
-                        <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                        <span className="text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">
                           {formatMessageDate(item.date!)}
                         </span>
                       </div>
@@ -871,58 +926,78 @@ export default function GroupChatInterface() {
                       className={`flex ${msg.isCurrentUser ? "justify-end" : "justify-start"} mb-0.5`}
                     >
                       <div
-                        className={`flex max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
+                        className={`flex min-w-0 max-w-[75%] ${msg.isCurrentUser ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
                       >
                         {!msg.isCurrentUser &&
                           (msg.sender === "Deleted User" ? (
-                           <Avatar
+                            <Avatar
                               className="w-8 h-8 flex-shrink-0 bg-secondary"
                               src={msg.avatar || ""}
                               name={msg.sender}
-                               showFallback={true}
-                               fallback={
-                              <svg
-                          className="w-5 h-5 text-gray-400"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <circle cx="12" cy="8" r="4" />
-                          <rect x="4" y="14" width="16" height="6" rx="3" />
-                        </svg>
-                        }
+                              showFallback={true}
+                              fallback={
+                                <svg
+                                  className="w-4 h-4 text-gray-400"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                >
+                                  <circle cx="12" cy="8" r="4" />
+                                  <rect
+                                    x="4"
+                                    y="14"
+                                    width="16"
+                                    height="6"
+                                    rx="3"
+                                  />
+                                </svg>
+                              }
                             />
                           ) : (
                             <Avatar
-                              className="w-10 h-10 flex-shrink-0 bg-secondary"
+                              className="w-8 h-8 flex-shrink-0 bg-secondary"
                               src={msg.avatar || ""}
                               name={msg.sender}
-                               showFallback={true}
-                               fallback={
-                              <svg
-                          className="w-5 h-5 text-gray-400"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <circle cx="12" cy="8" r="4" />
-                          <rect x="4" y="14" width="16" height="6" rx="3" />
-                        </svg>
-                        }
+                              showFallback={true}
+                              fallback={
+                                <svg
+                                  className="w-4 h-4 text-gray-400"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                >
+                                  <circle cx="12" cy="8" r="4" />
+                                  <rect
+                                    x="4"
+                                    y="14"
+                                    width="16"
+                                    height="6"
+                                    rx="3"
+                                  />
+                                </svg>
+                              }
                             />
                           ))}
                         <div
-                          className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
+                          className={`flex min-w-0 flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
                         >
                           {/* MEDIA: Render outside the bubble, Telegram style */}
                           {!msg.isCurrentUser &&
                             msg.sender &&
                             (msg.mediaType === "image" ||
-                              msg.mediaType === "video") && (
+                              msg.mediaType === "video") &&
+                            (msg.senderId && msg.sender !== "Deleted User" ? (
+                              <Link
+                                href={`/profile/${msg.senderId}`}
+                                className="inline-block font-semibold text-xs mb-1 mt-1 ml-1 text-muted-foreground hover:text-foreground hover:underline"
+                              >
+                                {msg.sender}
+                              </Link>
+                            ) : (
                               <span className="inline-block font-semibold text-xs mb-1 mt-1 ml-1 text-muted-foreground">
                                 {msg.sender}
                               </span>
-                            )}
+                            ))}
                           {msg.mediaUrl && msg.mediaType === "image" && (
                             <button
                               type="button"
@@ -984,28 +1059,37 @@ export default function GroupChatInterface() {
                           {/* TEXT: Only wrap in bubble if content is real */}
                           {isRealTextMessage(msg.content) && (
                             <div
-                              className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+                              className={`relative min-w-0 max-w-full px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
                                 msg.isCurrentUser
                                   ? "bg-primary text-primary-foreground rounded-br-md"
-                                  : "bg-gray-100 text-foreground rounded-bl-md"
+                                  : "bg-secondary text-foreground rounded-bl-md"
                               }`}
                             >
-                              {!msg.isCurrentUser && (
-                                <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
-                                  {msg.sender}
-                                </span>
-                              )}
+                              {!msg.isCurrentUser &&
+                                (msg.senderId &&
+                                msg.sender !== "Deleted User" ? (
+                                  <Link
+                                    href={`/profile/${msg.senderId}`}
+                                    className="block text-xs font-semibold text-muted-foreground mb-1 mt-1 hover:text-foreground hover:underline"
+                                  >
+                                    {msg.sender}
+                                  </Link>
+                                ) : (
+                                  <span className="block text-xs font-semibold text-muted-foreground mb-1 mt-1">
+                                    {msg.sender}
+                                  </span>
+                                ))}
                               <span
-                                className={`text-xs ${
+                                className={`block break-words text-xs [overflow-wrap:anywhere] ${
                                   msg.isCurrentUser
                                     ? "text-primary-foreground "
                                     : "text-foreground"
-                                } `}
+                                }`}
                                 dangerouslySetInnerHTML={{
                                   __html: linkifyMessage(msg.content),
                                 }}
                               />
-                              <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+                              <span className="flex items-center gap-1 justify-end ml-3 mt-0.5 float-right">
                                 <span
                                   className={`text-[10px] ${msg.isCurrentUser ? "text-white/70" : "text-muted-foreground"}`}
                                 >
@@ -1028,17 +1112,17 @@ export default function GroupChatInterface() {
             <div className="flex items-center space-x-1">
               <button
                 type="button"
-                className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0"
+                className="rounded-full bg-transparent hover:bg-primary/10 text-primary flex items-center justify-center p-2 focus:outline-none focus:ring-0 disabled:opacity-50"
                 aria-label="Attach photo or video"
                 tabIndex={0}
                 onClick={() => chatFileInputRef.current?.click()}
                 disabled={chatUploading}
               >
-                {/* {chatUploading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : ( */}
-                <PiPaperclip className="h-5 w-5" />
-                {/* )} */}
+                {chatUploading ? (
+                  <Spinner variant="spinner" size="sm" color="primary" />
+                ) : (
+                  <PiPaperclip className="h-5 w-5" />
+                )}
               </button>
               <input
                 ref={chatFileInputRef}
@@ -1061,7 +1145,7 @@ export default function GroupChatInterface() {
                     messageLengthError ? "border-red-500" : ""
                   }`}
                   aria-label="Type your message"
-                  disabled={sending}
+                  disabled={sending || chatUploading}
                   rows={1}
                   tabIndex={0}
                   style={{ lineHeight: "1.5" }}
@@ -1115,10 +1199,15 @@ export default function GroupChatInterface() {
               )}
               <button
                 onClick={handleSendMessage}
-                disabled={!message.trim() || sending || messageLengthError}
-                className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3"
+                disabled={
+                  (!message.trim() && !chatUploading) ||
+                  sending ||
+                  chatUploading ||
+                  messageLengthError
+                }
+                className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3 min-w-[2.5rem]"
               >
-                {sending ? (
+                {sending || chatUploading ? (
                   <Spinner variant="spinner" size="sm" color="primary" />
                 ) : (
                   <Send className="h-5 w-5" />

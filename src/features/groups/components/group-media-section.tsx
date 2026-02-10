@@ -42,7 +42,7 @@ export const GroupMediaSection = ({
     "image" | "video" | null
   >(null);
   const [modalTimestamp, setModalTimestamp] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [modalSender, setModalSender] = useState<string | undefined>(undefined);
   const [modalCurrentIndex, setModalCurrentIndex] = useState(0);
@@ -172,7 +172,7 @@ export const GroupMediaSection = ({
       </div>
       {loading ? (
         <div className="grid grid-cols-2 gap-2 mb-4">
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <Skeleton
               key={i}
               className="aspect-[4/3] w-full h-full rounded-xl"
@@ -195,7 +195,7 @@ export const GroupMediaSection = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 mb-4">
-          {media.slice(0, 4).map((item, idx) => {
+          {media.slice(0, 6).map((item, idx) => {
             return (
               <button
                 key={item.id}
@@ -249,10 +249,10 @@ export const GroupMediaSection = ({
                     </div>
                   </>
                 )}
-                {idx === 3 && media.length > 4 && (
+                {idx === 5 && media.length > 6 && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-xl">
                     <span className="text-primary-foreground font-semibold text-sm">
-                      +{media.length - 4}
+                      +{media.length - 6}
                     </span>
                   </div>
                 )}
@@ -293,56 +293,54 @@ export const GroupMediaSection = ({
           {/* Scrollable grid - 3 cols on small, 4 on sm+ */}
           <div className="flex-1 overflow-y-auto hide-scrollbar p-3">
             <div className="grid grid-cols-3 sm:grid-cols-4 sm:gap-3 gap-1.5">
-              {loading ? (
-                Array.from({ length: 24 }).map((_, i) => (
-                  <Skeleton
-                    key={i}
-                    className="aspect-[4/3] w-full rounded-lg"
-                  />
-                ))
-              ) : (
-                media.map((item, idx) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="aspect-[4/3] rounded-lg overflow-hidden relative group focus:outline-none focus:ring-0 focus:ring-offset-0"
-                    aria-label={`View ${item.type} ${idx + 1} of ${media.length}`}
-                    onClick={() => {
-                      setModalCurrentIndex(idx);
-                      const displayName =
-                        members.find((m) => m.id === item.uploaded_by)?.name ||
-                        "Unknown";
-                      setModalMediaUrl(item.url);
-                      setModalMediaType(item.type);
-                      setModalTimestamp(item.created_at);
-                      setModalSender(displayName);
-                      setModalOpen(true);
-                    }}
-                  >
-                    {item.type === "image" ? (
-                      <img
-                        src={item.url}
-                        alt=""
-                        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                      />
-                    ) : (
-                      <>
-                        <video
+              {loading
+                ? Array.from({ length: 24 }).map((_, i) => (
+                    <Skeleton
+                      key={i}
+                      className="aspect-[4/3] w-full rounded-lg"
+                    />
+                  ))
+                : media.map((item, idx) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="aspect-[4/3] rounded-lg overflow-hidden relative group focus:outline-none focus:ring-0 focus:ring-offset-0"
+                      aria-label={`View ${item.type} ${idx + 1} of ${media.length}`}
+                      onClick={() => {
+                        setModalCurrentIndex(idx);
+                        const displayName =
+                          members.find((m) => m.id === item.uploaded_by)
+                            ?.name || "Unknown";
+                        setModalMediaUrl(item.url);
+                        setModalMediaType(item.type);
+                        setModalTimestamp(item.created_at);
+                        setModalSender(displayName);
+                        setModalOpen(true);
+                      }}
+                    >
+                      {item.type === "image" ? (
+                        <img
                           src={item.url}
+                          alt=""
                           className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                          muted
-                          playsInline
-                          preload="metadata"
-                          aria-hidden
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-                          <HiPlay className="h-8 w-8 text-white drop-shadow" />
-                        </div>
-                      </>
-                    )}
-                  </button>
-                ))
-              )}
+                      ) : (
+                        <>
+                          <video
+                            src={item.url}
+                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                            muted
+                            playsInline
+                            preload="metadata"
+                            aria-hidden
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                            <HiPlay className="h-8 w-8 text-white drop-shadow" />
+                          </div>
+                        </>
+                      )}
+                    </button>
+                  ))}
             </div>
           </div>
         </div>
@@ -377,7 +375,7 @@ export const GroupMediaSection = ({
           setModalMediaType(m.type);
           setModalTimestamp(m.created_at);
           setModalSender(
-            members.find((mb) => mb.id === m.uploaded_by)?.name || "Unknown"
+            members.find((mb) => mb.id === m.uploaded_by)?.name || "Unknown",
           );
         }}
       />

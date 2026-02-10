@@ -192,10 +192,10 @@ const MessageRow = React.memo(
           aria-label={isSent ? "Sent message" : "Received message"}
         >
           <div
-            className={`relative max-w-[75%] ${isSent ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
+            className={`relative min-w-0 max-w-[75%] ${isSent ? "flex-row-reverse" : "flex-row"} flex items-end gap-2`}
           >
             <div
-              className={`relative px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line ${
+              className={`relative min-w-0 max-w-full px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-line ${
                 isSent
                   ? "bg-primary text-primary-foreground rounded-br-md"
                   : "bg-gray-100 text-foreground rounded-bl-md"
@@ -205,16 +205,18 @@ const MessageRow = React.memo(
               role="document"
             >
               {msg.status === "sending" || msg.status === "failed" ? (
-                <span className="text-xs">{content}</span>
+                <span className="block text-xs [overflow-wrap:anywhere]">
+                  {content}
+                </span>
               ) : (
                 <span
-                  className="text-xs"
+                  className="block text-xs [overflow-wrap:anywhere]"
                   dangerouslySetInnerHTML={{
                     __html: linkifyMessage(content),
                   }}
                 />
               )}
-              <span className="flex items-center gap-1 justify-end ml-3 mt-2 float-right">
+              <span className="flex items-center gap-1 justify-end ml-3 mt-0.5 float-right">
                 <span
                   className={`text-[10px] ${
                     isSent ? "text-white/70" : "text-gray-500"
@@ -260,7 +262,7 @@ const MessageRow = React.memo(
     }
     // If neither media nor real text, render nothing
     return null;
-  }
+  },
 );
 MessageRow.displayName = "MessageRow";
 
@@ -370,7 +372,7 @@ const MessageList = ({
                       iv: msg.encryption_iv,
                       salt: msg.encryption_salt,
                     },
-                    sharedSecret
+                    sharedSecret,
                   ) || "[Encrypted message]";
               } catch {
                 decryptedContent = "[Failed to decrypt message]";
@@ -407,7 +409,7 @@ const MessageInput = ({
   handleSend: (
     value: string,
     mediaUrl?: string,
-    mediaType?: string
+    mediaType?: string,
   ) => Promise<void>;
   sending: boolean;
   disabled: boolean;
@@ -519,11 +521,11 @@ const MessageInput = ({
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading || sending || disabled}
       >
-        {/* {isUploading ? (
+        {isUploading ? (
           <Spinner variant="spinner" size="sm" color="primary" />
-        ) : ( */}
-        <PiPaperclip className="h-5 w-5" />
-        {/* )} */}
+        ) : (
+          <PiPaperclip className="h-5 w-5" />
+        )}
       </button>
       <input
         ref={fileInputRef}
@@ -542,7 +544,7 @@ const MessageInput = ({
           placeholder="Your message"
           className="w-full h-full px-0 py-3 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none max-h-10 overflow-y-auto scrollbar-hide align-middle"
           aria-label="Type your message"
-          disabled={sending || disabled}
+          disabled={sending || isUploading || disabled}
           rows={1}
           tabIndex={0}
           style={{ lineHeight: "1.5" }}
@@ -609,11 +611,13 @@ const MessageInput = ({
             setText("");
           }
         }}
-        disabled={sending || !text.trim() || disabled}
-        className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3"
+        disabled={
+          sending || isUploading || disabled || (!text.trim() && !isUploading)
+        }
+        className="rounded-full bg-transparent hover:bg-primary/90 text-primary disabled:opacity-50 flex items-center justify-center hover:cursor-pointer pr-3 min-w-[2.5rem]"
         aria-label="Send message"
       >
-        {sending ? (
+        {sending || isUploading ? (
           <Spinner variant="spinner" size="sm" color="primary" />
         ) : (
           <Send className="h-5 w-5" />
@@ -649,6 +653,7 @@ const DirectChatPage = () => {
     loading: partnerLoading,
   } = useUserProfile(partnerUuid);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isUnblocking, setIsUnblocking] = useState(false);
   const { toast } = useToast();
   const supabase = require("@/lib/supabase").createClient();
@@ -663,7 +668,7 @@ const DirectChatPage = () => {
     "image" | "video" | null
   >(null);
   const [modalTimestamp, setModalTimestamp] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [modalSender, setModalSender] = useState<string | undefined>(undefined);
 
@@ -713,7 +718,7 @@ const DirectChatPage = () => {
             ) {
               checkBlocks();
             }
-          }
+          },
         )
         .subscribe();
     }
@@ -761,23 +766,15 @@ const DirectChatPage = () => {
   // Use the inbox hook to get markConversationRead
   const { markConversationRead } = useDirectInbox(currentUserUuid, partnerUuid);
 
-  // Scroll to bottom function
   const scrollToBottom = useCallback(() => {
     const container = messagesContainerRef.current;
-    if (container) {
-      // Use requestAnimationFrame for smooth scrolling
-      requestAnimationFrame(() => {
-        if (container) {
-          container.scrollTop = container.scrollHeight;
-        }
-      });
-      // Additional scroll after a frame to ensure it works
-      requestAnimationFrame(() => {
-        if (container) {
-          container.scrollTop = container.scrollHeight;
-        }
-      });
+    const end = messagesEndRef.current;
+    if (!container) return;
+    if (end) {
+      end.scrollIntoView({ block: "end" });
+      return;
     }
+    container.scrollTop = container.scrollHeight;
   }, []);
 
   // Track if we're loading more messages to prevent scroll to bottom
@@ -788,128 +785,26 @@ const DirectChatPage = () => {
     setIsLoadingMore(loadingMore);
   }, [loadingMore]);
 
-  // Scroll to bottom on new messages and initial load
-  const lastMessageId =
-    messages.length > 0
-      ? messages[messages.length - 1].tempId || messages[messages.length - 1].id
-      : null;
-
-  // Consolidated scroll effect for all scenarios
+  // Auto-scroll to bottom when opening/switching chats and when new messages arrive.
+  // (Guarded so we don't yank the user to bottom while they're loading older messages.)
   useLayoutEffect(() => {
-    // Don't scroll to bottom if we're loading more messages
-    if (!isLoadingMore && messages.length > 0) {
-      scrollToBottom();
-    }
-  }, [lastMessageId, messages.length, isLoadingMore, scrollToBottom]);
-
-  // Scroll trigger for initial load completion and chat switching
-  useEffect(() => {
-    // Don't scroll to bottom if we're loading more messages
-    if (!loading && !isLoadingMore && messages.length > 0) {
-      // Small delay to ensure all content is rendered
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-    }
-  }, [loading, isLoadingMore, messages.length, scrollToBottom]);
-
-  // Force scroll to bottom when partnerUuid changes (chat switching)
-  useEffect(() => {
-    if (partnerUuid && messages.length > 0 && !loading && !isLoadingMore) {
-      // Immediate scroll for chat switching
-      scrollToBottom();
-      // Additional scroll after a short delay to ensure content is rendered
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-    }
-  }, [partnerUuid, messages.length, loading, isLoadingMore, scrollToBottom]);
-
-  // Additional scroll trigger specifically for chat switching
-  useEffect(() => {
-    if (partnerUuid && !loading && !isLoadingMore) {
-      // When switching chats, wait for messages to load and then scroll
-      const timer = setTimeout(() => {
-        if (messages.length > 0) {
-          scrollToBottom();
-        }
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [partnerUuid, loading, isLoadingMore, messages.length, scrollToBottom]);
-
-  // Scroll trigger for when loading completes after chat switch
-  useEffect(() => {
-    // When loading transitions from true to false and we have messages, scroll to bottom
-    if (!loading && !isLoadingMore && messages.length > 0) {
-      // Use a longer delay to ensure all content is fully rendered
-      const timer = setTimeout(() => {
-        scrollToBottom();
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, isLoadingMore, messages.length, scrollToBottom]);
-
-  // Track previous loading state to detect transitions
-  const prevLoadingRef = useRef(loading);
-  useEffect(() => {
-    // Debug logging for chat switching
-    console.log("[DEBUG] Loading state:", {
-      prevLoading: prevLoadingRef.current,
-      currentLoading: loading,
-      isLoadingMore,
-      messagesLength: messages.length,
-      partnerUuid,
-    });
-
-    // If loading just finished (transitioned from true to false) and we have messages
-    if (
-      prevLoadingRef.current &&
-      !loading &&
-      !isLoadingMore &&
-      messages.length > 0
-    ) {
-      console.log("[DEBUG] Loading finished, scrolling to bottom");
-      // Immediate scroll
-      scrollToBottom();
-      // Additional scroll after delay to ensure content is rendered
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-    }
-    prevLoadingRef.current = loading;
-  }, [loading, isLoadingMore, messages.length, scrollToBottom, partnerUuid]);
-
-  // Direct scroll trigger for partnerUuid changes
-  useEffect(() => {
-    if (partnerUuid) {
-      console.log("[DEBUG] Partner UUID changed to:", partnerUuid);
-      // Wait for loading to complete and messages to be available
-      const checkAndScroll = () => {
-        if (!loading && !isLoadingMore && messages.length > 0) {
-          console.log("[DEBUG] Conditions met, scrolling to bottom");
-          scrollToBottom();
-          return true; // Stop checking
-        }
-        return false; // Keep checking
-      };
-
-      // Try immediately
-      if (!checkAndScroll()) {
-        // If not ready, set up polling
-        const interval = setInterval(() => {
-          if (checkAndScroll()) {
-            clearInterval(interval);
-          }
-        }, 50); // Check every 50ms
-
-        // Cleanup after 2 seconds
-        setTimeout(() => {
-          clearInterval(interval);
-        }, 2000);
-      }
-    }
-  }, [partnerUuid, loading, isLoadingMore, messages.length, scrollToBottom]);
+    // If the UI is still showing skeleton/blocked-loading states, the messages container isn't mounted yet.
+    if (blockLoading || partnerLoading || !currentUserUuid) return;
+    if (loading || isLoadingMore) return;
+    if (!messagesContainerRef.current) return;
+    scrollToBottom();
+    const raf = requestAnimationFrame(() => scrollToBottom());
+    return () => cancelAnimationFrame(raf);
+  }, [
+    partnerUuid,
+    blockLoading,
+    partnerLoading,
+    currentUserUuid,
+    loading,
+    isLoadingMore,
+    messages.length,
+    scrollToBottom,
+  ]);
 
   // Error toast
   useEffect(() => {
@@ -951,7 +846,7 @@ const DirectChatPage = () => {
                 iv: msg.encryption_iv,
                 salt: msg.encryption_salt,
               },
-              sharedSecret
+              sharedSecret,
             ) || "[Encrypted message]";
         } catch {
           decryptedContent = "[Failed to decrypt message]";
@@ -974,7 +869,7 @@ const DirectChatPage = () => {
           createdAt: lastMsg.created_at,
           mediaType: lastMsg.mediaType || "",
         },
-      })
+      }),
     );
   }, [messages, partnerUuid, sharedSecret]);
 
@@ -1140,7 +1035,7 @@ const DirectChatPage = () => {
         );
       }
       return null;
-    }
+    },
   );
   PatchedMessageRow.displayName = "PatchedMessageRow";
 
@@ -1222,7 +1117,7 @@ const DirectChatPage = () => {
                         iv: msg.encryption_iv,
                         salt: msg.encryption_salt,
                       },
-                      sharedSecret
+                      sharedSecret,
                     ) || "[Encrypted message]";
                 } catch {
                   decryptedContent = "[Failed to decrypt message]";
@@ -1341,7 +1236,9 @@ const DirectChatPage = () => {
                     <AvatarImage
                       src={partnerProfile?.profile_photo || undefined}
                       alt={
-                        partnerProfile?.name || partnerProfile?.username || "User"
+                        partnerProfile?.name ||
+                        partnerProfile?.username ||
+                        "User"
                       }
                       className="object-cover"
                     />
@@ -1352,7 +1249,9 @@ const DirectChatPage = () => {
                     <AvatarImage
                       src={partnerProfile?.profile_photo || undefined}
                       alt={
-                        partnerProfile?.name || partnerProfile?.username || "User"
+                        partnerProfile?.name ||
+                        partnerProfile?.username ||
+                        "User"
                       }
                       className="object-cover"
                     />
@@ -1426,6 +1325,7 @@ const DirectChatPage = () => {
           sharedSecret={sharedSecret}
           onRetry={handleRetry}
         />
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input - Always at Bottom */}
@@ -1434,7 +1334,7 @@ const DirectChatPage = () => {
           handleSend={async (
             value: string,
             mediaUrl?: string,
-            mediaType?: string
+            mediaType?: string,
           ) => {
             // Always check latest block status before sending
             const [iBlocked, theyBlocked] = await Promise.all([
