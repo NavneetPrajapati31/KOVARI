@@ -71,7 +71,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   const [activeTab, setActiveTab] = React.useState("About");
 
   const [isFollowing, setIsFollowing] = React.useState(
-    profile.isFollowing || false
+    profile.isFollowing || false,
   );
   const [isLoading, setIsLoading] = React.useState(false);
   const [followersCount, setFollowersCount] = React.useState(profile.followers);
@@ -142,7 +142,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   React.useEffect(() => {
     console.log(
       "useEffect triggered - profile.isFollowing:",
-      profile.isFollowing
+      profile.isFollowing,
     );
     setIsFollowing(profile.isFollowing || false);
     setFollowersCount(profile.followers);
@@ -216,7 +216,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
   };
 
   const handleNavigateConnections = (
-    tab: "followers" | "following" | "likes"
+    tab: "followers" | "following" | "likes",
   ) => {
     if (!profile.userId) return;
     router.push(`/profile/${profile.userId}/connections?tab=${tab}`);
@@ -224,7 +224,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
 
   const handleKeyDownConnections = (
     event: React.KeyboardEvent<HTMLDivElement>,
-    tab: "followers" | "following" | "likes"
+    tab: "followers" | "following" | "likes",
   ) => {
     if (event.key === "Enter" || event.key === " ") {
       handleNavigateConnections(tab);
@@ -307,7 +307,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               onClick: () =>
                                 handleNavigateConnections("followers"),
                               onKeyDown: (
-                                e: React.KeyboardEvent<HTMLDivElement>
+                                e: React.KeyboardEvent<HTMLDivElement>,
                               ) => handleKeyDownConnections(e, "followers"),
                             })}
                           >
@@ -328,7 +328,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               onClick: () =>
                                 handleNavigateConnections("following"),
                               onKeyDown: (
-                                e: React.KeyboardEvent<HTMLDivElement>
+                                e: React.KeyboardEvent<HTMLDivElement>,
                               ) => handleKeyDownConnections(e, "following"),
                             })}
                           >
@@ -367,9 +367,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
-                            variant="ghost"
                             size="icon"
-                            className="h-8 w-8 -mr-2"
+                            className="h-8 w-8 -mr-2 bg-transparent hover:bg-transparent focus:ring-0 focus:outline-none text-foreground hover:text-foreground focus-visible:border-none focus-visible:outline-none
+                            focus-visible:ring-0"
                           >
                             <Menu className="h-5 w-5" />
                           </Button>
@@ -380,9 +380,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                         >
                           <DropdownMenuItem
                             onClick={() => router.push("/settings")}
-                            className="cursor-pointer hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-foreground"
+                            className="px-2 cursor-pointer hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-foreground"
                           >
-                            <Settings className="mr-2 h-4 w-4" />
+                            <Settings className="mr-1 h-4 w-4" />
                             <span>Settings</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -391,9 +391,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               await signOut({ redirectUrl: "/sign-in" });
                               router.push("/sign-in");
                             }}
-                            className="cursor-pointer text-destructive focus:text-destructive hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-destructive"
+                            className="px-2 cursor-pointer text-destructive focus:text-destructive hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-destructive"
                           >
-                            <LogOut className="mr-2 h-4 w-4 text-destructive" />
+                            <LogOut className="mr-1 h-4 w-4 text-destructive" />
                             <span>Log out</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
