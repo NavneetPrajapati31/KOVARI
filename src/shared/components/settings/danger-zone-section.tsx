@@ -5,6 +5,8 @@ import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { toast } from "sonner";
+import { useClerk } from "@clerk/nextjs";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +21,9 @@ const CONFIRM_TEXT = "DELETE";
 export function DangerZoneSection() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
   const isMobile = useIsMobile();
+  const { signOut } = useClerk();
 
   const canConfirm = confirmInput === CONFIRM_TEXT;
 
@@ -28,9 +32,34 @@ export function DangerZoneSection() {
     setConfirmInput("");
   };
 
-  const handleConfirmDelete = () => {
-    if (!canConfirm) return;
-    handleCloseModal();
+  const handleConfirmDelete = async () => {
+    if (!canConfirm || isDeleting) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/settings/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        toast.error(data?.error || "Failed to delete account");
+        return;
+      }
+
+      toast.success("Account deleted successfully.");
+      handleCloseModal();
+
+      // Ensure client-side Clerk state is cleared immediately after server-side session revocation.
+      await signOut({ redirectUrl: "/sign-in" });
+    } catch (err) {
+      console.error("Delete account error:", err);
+      toast.error("Failed to delete account. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -65,6 +94,7 @@ export function DangerZoneSection() {
               size="sm"
               className="w-full md:w-auto rounded-lg px-3 py-1"
               onClick={() => setDeleteModalOpen(true)}
+              disabled={isDeleting}
             >
               Delete Account
             </Button>
@@ -95,16 +125,21 @@ export function DangerZoneSection() {
             />
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={handleCloseModal}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCloseModal}
+              disabled={isDeleting}
+            >
               Cancel
             </Button>
             <Button
               type="button"
               variant="destructive"
-              disabled={!canConfirm}
+              disabled={!canConfirm || isDeleting}
               onClick={handleConfirmDelete}
             >
-              Confirm Delete
+              {isDeleting ? "Deleting..." : "Confirm Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

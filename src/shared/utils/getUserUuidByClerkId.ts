@@ -8,6 +8,7 @@ export const getUserUuidByClerkId = async (
     .from("users")
     .select("id")
     .eq("clerk_user_id", clerkId)
+    .eq("isDeleted", false)
     .single();
 
   if (error || !data) {

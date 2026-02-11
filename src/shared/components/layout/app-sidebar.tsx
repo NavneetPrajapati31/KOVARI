@@ -113,7 +113,7 @@ const navMain = [
 const navFooter = [
   {
     title: "Settings",
-    url: "#",
+    url: "/settings",
     icon: Settings,
   },
   // {

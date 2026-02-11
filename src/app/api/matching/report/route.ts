@@ -9,26 +9,31 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { 
-      reporterId, 
-      reportedUserId, 
+    const {
+      reporterId,
+      reportedUserId,
       targetId, // generic alias
-      reason, 
-      type = "user", 
-      evidenceUrl, 
-      evidencePublicId 
+      reason,
+      type = "user",
+      evidenceUrl,
+      evidencePublicId,
     } = body;
 
     // Normalize type: 'solo' (legacy) -> 'user'
-    const reportType = (type === "solo" || type === "user") ? "user" : (type === "group" ? "group" : type);
+    const reportType =
+      type === "solo" || type === "user"
+        ? "user"
+        : type === "group"
+          ? "group"
+          : type;
 
     // Determine target ID (reportedUserId is legacy for matching)
     let targetIdentifier = targetId || reportedUserId;
 
     // Normalize evidenceUrl
-    const normalizedEvidenceUrl = 
-      evidenceUrl && typeof evidenceUrl === "string" && evidenceUrl.trim() 
-        ? evidenceUrl.trim() 
+    const normalizedEvidenceUrl =
+      evidenceUrl && typeof evidenceUrl === "string" && evidenceUrl.trim()
+        ? evidenceUrl.trim()
         : null;
 
     if (!reporterId || !targetIdentifier || !reason) {
@@ -36,19 +41,19 @@ export async function POST(request: Request) {
         reporterId,
         targetIdentifier,
         reason,
-        type: reportType
+        type: reportType,
       });
       return NextResponse.json(
         { success: false, error: "Missing parameters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
+
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
       console.error("Report API: Missing Supabase environment variables");
       return NextResponse.json(
         { success: false, error: "Server configuration error" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -56,32 +61,32 @@ export async function POST(request: Request) {
     if (!reason.trim()) {
       return NextResponse.json(
         { success: false, error: "Report reason cannot be empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Resolve identifiers to UUIDs if needed
     const resolve = async (identifier: string) => {
-      // If it's already a UUID, return it
       const uuidRegex =
         /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-      if (uuidRegex.test(identifier)) return identifier;
+      const isUuid = uuidRegex.test(identifier);
       const { data, error } = await supabaseAdmin
         .from("users")
         .select("id")
-        .eq("clerk_user_id", identifier)
+        .eq(isUuid ? "id" : "clerk_user_id", identifier)
+        .eq("isDeleted", false)
         .maybeSingle();
       if (error) throw error;
       return data?.id || null;
     };
 
     const reporterUuid = await resolve(reporterId);
-    
+
     // Validating reporter
     if (!reporterUuid) {
-       return NextResponse.json(
+      return NextResponse.json(
         { success: false, error: "Invalid reporter ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -89,126 +94,133 @@ export async function POST(request: Request) {
     // For user/solo type, resolve the target user ID (in case it's a clerk ID)
     // For groups, we assume it's already a UUID (group ID)
     if (reportType === "user") {
-       targetUuid = await resolve(targetIdentifier);
-       if (!targetUuid) {
+      targetUuid = await resolve(targetIdentifier);
+      if (!targetUuid) {
         return NextResponse.json(
           { success: false, error: "Invalid target user ID" },
-          { status: 400 }
+          { status: 400 },
         );
-       }
+      }
     }
 
     if (reportType === "user") {
-       // Check duplicate in user_flags
-       const { data: existing } = await supabaseAdmin
-         .from("user_flags")
-         .select("id")
-         .eq("reporter_id", reporterUuid)
-         .eq("user_id", targetUuid)
-         .maybeSingle();
+      // Check duplicate in user_flags
+      const { data: existing } = await supabaseAdmin
+        .from("user_flags")
+        .select("id")
+        .eq("reporter_id", reporterUuid)
+        .eq("user_id", targetUuid)
+        .maybeSingle();
 
-       if (existing) {
-         return NextResponse.json({
-           success: true,
-           message: "User already reported",
-         });
-       }
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          message: "User already reported",
+        });
+      }
 
-       // Insert into user_flags
-       const { data, error } = await supabaseAdmin
-         .from("user_flags")
-         .insert([
-           {
-             reporter_id: reporterUuid,
-             user_id: targetUuid,
-             reason,
-             status: "pending",
-             evidence_url: normalizedEvidenceUrl,
-             evidence_public_id: evidencePublicId || null,
-           },
-         ])
-         .select("id")
-         .single();
+      // Insert into user_flags
+      const { data, error } = await supabaseAdmin
+        .from("user_flags")
+        .insert([
+          {
+            reporter_id: reporterUuid,
+            user_id: targetUuid,
+            reason,
+            status: "pending",
+            evidence_url: normalizedEvidenceUrl,
+            evidence_public_id: evidencePublicId || null,
+          },
+        ])
+        .select("id")
+        .single();
 
-       if (error) throw error;
+      if (error) throw error;
 
-       // Send notification to reporter
-       try {
-         const { createNotification } = await import("@/lib/notifications/createNotification");
-         const { NotificationType } = await import("@/shared/types/notifications");
-         
-         await createNotification({
-           userId: reporterUuid,
-           type: NotificationType.REPORT_SUBMITTED,
-           title: "Report received",
-           message: "We've received your report and will review it shortly.",
-           entityType: "report",
-           entityId: data.id,
-         });
-       } catch (notifError) {
-         console.error("Report API: Failed to send notification", notifError);
-       }
-
-       return NextResponse.json({ success: true, reportId: data.id });
-       
-    } else if (reportType === "group") {
-       // Check duplicate in group_flags
-       const { data: existing } = await supabaseAdmin
-         .from("group_flags")
-         .select("id")
-         .eq("reporter_id", reporterUuid)
-         .eq("group_id", targetUuid)
-         .maybeSingle();
-
-       if (existing) {
-         return NextResponse.json({
-           success: true,
-           message: "Group already reported",
-         });
-       }
-
-       // Insert into group_flags
-       const { data, error } = await supabaseAdmin
-         .from("group_flags")
-         .insert([
-           {
-             reporter_id: reporterUuid,
-             group_id: targetUuid, // targetUuid is group ID
-             reason,
-             status: "pending",
-             evidence_url: normalizedEvidenceUrl,
-             evidence_public_id: evidencePublicId || null,
-           },
-         ])
-         .select("id")
-         .single();
-
-       if (error) throw error;
-
-       // Send notification to reporter
-       try {
-         const { createNotification } = await import("@/lib/notifications/createNotification");
-         const { NotificationType } = await import("@/shared/types/notifications");
-         
-         await createNotification({
-           userId: reporterUuid,
-           type: NotificationType.REPORT_SUBMITTED,
-           title: "Report received",
-           message: "We've received your report and will review it shortly.",
-           entityType: "report",
-           entityId: data.id,
-         });
-       } catch (notifError) {
-         console.error("Report API: Failed to send notification", notifError);
-       }
-
-       return NextResponse.json({ success: true, reportId: data.id });
-    } else {
-        // Unknown report type
-        return NextResponse.json(
-            { success: false, error: "Invalid report type" },
-            { status: 400 }
+      // Send notification to reporter
+      try {
+        const { createNotification } = await import(
+          "@/lib/notifications/createNotification"
         );
+        const { NotificationType } = await import(
+          "@/shared/types/notifications"
+        );
+
+        await createNotification({
+          userId: reporterUuid,
+          type: NotificationType.REPORT_SUBMITTED,
+          title: "Report received",
+          message: "We've received your report and will review it shortly.",
+          entityType: "report",
+          entityId: data.id,
+        });
+      } catch (notifError) {
+        console.error("Report API: Failed to send notification", notifError);
+      }
+
+      return NextResponse.json({ success: true, reportId: data.id });
+    } else if (reportType === "group") {
+      // Check duplicate in group_flags
+      const { data: existing } = await supabaseAdmin
+        .from("group_flags")
+        .select("id")
+        .eq("reporter_id", reporterUuid)
+        .eq("group_id", targetUuid)
+        .maybeSingle();
+
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          message: "Group already reported",
+        });
+      }
+
+      // Insert into group_flags
+      const { data, error } = await supabaseAdmin
+        .from("group_flags")
+        .insert([
+          {
+            reporter_id: reporterUuid,
+            group_id: targetUuid, // targetUuid is group ID
+            reason,
+            status: "pending",
+            evidence_url: normalizedEvidenceUrl,
+            evidence_public_id: evidencePublicId || null,
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      // Send notification to reporter
+      try {
+        const { createNotification } = await import(
+          "@/lib/notifications/createNotification"
+        );
+        const { NotificationType } = await import(
+          "@/shared/types/notifications"
+        );
+
+        await createNotification({
+          userId: reporterUuid,
+          type: NotificationType.REPORT_SUBMITTED,
+          title: "Report received",
+          message: "We've received your report and will review it shortly.",
+          entityType: "report",
+          entityId: data.id,
+        });
+      } catch (notifError) {
+        console.error("Report API: Failed to send notification", notifError);
+      }
+
+      return NextResponse.json({ success: true, reportId: data.id });
+    } else {
+      // Unknown report type
+      return NextResponse.json(
+        { success: false, error: "Invalid report type" },
+        { status: 400 },
+      );
     }
   } catch (error: any) {
     console.error("Report API error:", error);
@@ -217,7 +229,7 @@ export async function POST(request: Request) {
         success: false,
         error: error?.message || "Failed to create report",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

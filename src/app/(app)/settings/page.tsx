@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft } from "lucide-react";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -33,8 +33,8 @@ export default function SettingsPage() {
       <div className="px-1 py-2 md:px-4">
         <Link href="/profile">
           <Button className="inline-flex items-center gap-1 text-xs md:text-sm bg-transparent text-foreground transition-colors">
-            <ChevronLeft className="md:h-4 md:w-4 h-3 w-3" />
-            Back to Profile
+            <ArrowLeft className="md:h-4 md:w-4 h-3 w-3" />
+            Settings
           </Button>
         </Link>
       </div>

@@ -11,13 +11,41 @@ export async function GET(
   const { userId } = await context.params;
   const supabase = createRouteHandlerSupabaseClient();
 
+  // Resolve `userId` param (can be internal UUID or Clerk ID) and ensure the
+  // account is not soft-deleted. Soft delete is used so we can preserve history
+  // and relationships (matches/chats/groups/etc.) without breaking foreign keys.
+  const uuidRegex =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  const isUuid = uuidRegex.test(userId);
+
+  let targetInternalUserId: string | null = null;
+  try {
+    const { data: userRow, error: userRowError } = await supabase
+      .from("users")
+      .select("id")
+      .eq(isUuid ? "id" : "clerk_user_id", userId)
+      .eq("isDeleted", false)
+      .maybeSingle();
+    if (!userRowError && userRow?.id) {
+      targetInternalUserId = userRow.id;
+    }
+  } catch {
+    // ignore and fall through to 404 below
+  }
+  if (!targetInternalUserId) {
+    return new Response(JSON.stringify({ error: "User not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // 1. Fetch profile (include interests from profiles)
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select(
       `name, username, age, gender, nationality, bio, languages, profile_photo, job, interests`
     )
-    .eq("user_id", userId)
+    .eq("user_id", targetInternalUserId)
     .single();
 
   const interests = profileData?.interests || [];
@@ -26,7 +54,7 @@ export async function GET(
   const { data: postsData } = await supabase
     .from("user_posts")
     .select("id, image_url")
-    .eq("user_id", userId)
+    .eq("user_id", targetInternalUserId)
     .order("created_at", { ascending: false });
 
   const posts = Array.isArray(postsData) ? postsData : [];
@@ -49,19 +77,19 @@ export async function GET(
   const { count: followersCount } = await supabase
     .from("user_follows")
     .select("id", { count: "exact", head: true })
-    .eq("following_id", userId);
+    .eq("following_id", targetInternalUserId);
 
   // 5. Count following
   const { count: followingCount } = await supabase
     .from("user_follows")
     .select("id", { count: "exact", head: true })
-    .eq("follower_id", userId);
+    .eq("follower_id", targetInternalUserId);
 
   // 6. Count posts and sum likes
   const { count: postsCount, data: postsLikesData } = await supabase
     .from("user_posts")
     .select("likes", { count: "exact" })
-    .eq("user_id", userId);
+    .eq("user_id", targetInternalUserId);
 
   const likesSum =
     postsLikesData?.reduce((acc, post) => acc + (post.likes || 0), 0) || 0;
@@ -101,6 +129,7 @@ export async function GET(
           .from("users")
           .select("id")
           .eq("clerk_user_id", clerkUserId)
+          .eq("isDeleted", false)
           .single();
 
       console.log("[DEBUG] currentUserRow.id (follower):", currentUserRow?.id);
@@ -110,13 +139,14 @@ export async function GET(
         console.error("Error finding current user:", currentUserError);
       } else {
         // Always map the target userId param to internal UUID
-        let targetUserId = userId;
+        let targetUserId = targetInternalUserId;
         if (userId.length !== 36) {
           // If not a UUID, assume it's a Clerk ID
           const { data: targetUserRow } = await serverSupabase
             .from("users")
             .select("id")
             .eq("clerk_user_id", userId)
+            .eq("isDeleted", false)
             .single();
           if (targetUserRow?.id) targetUserId = targetUserRow.id;
         }
@@ -167,7 +197,7 @@ export async function GET(
     posts,
     isFollowing,
     isOwnProfile,
-    userId,
+    userId: targetInternalUserId,
   };
 
   return new Response(JSON.stringify(profile), {

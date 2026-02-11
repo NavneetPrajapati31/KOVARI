@@ -25,6 +25,7 @@ async function resolveUserUuid(identifier: string): Promise<string | null> {
       .from("users")
       .select("id, clerk_user_id")
       .eq("clerk_user_id", identifier)
+      .eq("isDeleted", false)
       .maybeSingle();
 
     if (error) {

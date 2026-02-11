@@ -33,14 +33,14 @@ export async function POST(request: Request) {
 
     // Resolve identifiers to UUIDs if needed
     const resolve = async (identifier: string) => {
-      // If it's already a UUID, return it
       const uuidRegex =
         /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-      if (uuidRegex.test(identifier)) return identifier;
+      const isUuid = uuidRegex.test(identifier);
       const { data, error } = await supabaseAdmin
         .from("users")
         .select("id")
-        .eq("clerk_user_id", identifier)
+        .eq(isUuid ? "id" : "clerk_user_id", identifier)
+        .eq("isDeleted", false)
         .maybeSingle();
       if (error) throw error;
       return data?.id || null;

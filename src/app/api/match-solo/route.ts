@@ -35,6 +35,7 @@ const getTravelInterestsByClerkId = async (
       .from("users")
       .select("id")
       .eq("clerk_user_id", clerkUserId)
+      .eq("isDeleted", false)
       .single();
     if (userErr || !userRow) {
       return [];
@@ -135,6 +136,7 @@ export async function GET(request: NextRequest) {
       .from("users")
       .select("id")
       .eq("clerk_user_id", userId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !userData) {
@@ -274,15 +276,39 @@ export async function GET(request: NextRequest) {
         return true;
       });
 
+    // Exclude candidates whose accounts have been soft-deleted.
+    // This prevents deleted users from appearing in matching even if they still
+    // have stale Redis sessions.
+    try {
+      const candidateClerkIds = Array.from(
+        new Set(allSessions.map((s) => s.userId).filter(Boolean))
+      ) as string[];
+      if (candidateClerkIds.length > 0) {
+        const { data: deletedUsers } = await supabaseAdmin
+          .from("users")
+          .select("clerk_user_id")
+          .in("clerk_user_id", candidateClerkIds)
+          .eq("isDeleted", true);
+        deletedUsers?.forEach((u: any) => excludedClerkIds.add(u.clerk_user_id));
+      }
+    } catch (e) {
+      console.warn("Failed to filter soft-deleted candidates:", e);
+    }
+
+    const filteredSessions = allSessions.filter((session) => {
+      if (session.userId && excludedClerkIds.has(session.userId)) return false;
+      return true;
+    });
+
     console.log(
-      `✅ Found ${allSessions.length} valid candidates after filtering`
+      `✅ Found ${filteredSessions.length} valid candidates after filtering`
     );
 
     // 3. Score all sessions and perform filtering with enhanced compatibility check
     console.log(`🔍 Calculating compatibility scores...`);
     const scoredMatches = (
       await Promise.all(
-        allSessions.map(async (matchSession) => {
+        filteredSessions.map(async (matchSession) => {
           if (!matchSession.destination) {
             return null;
           }
@@ -332,21 +358,22 @@ export async function GET(request: NextRequest) {
           let staticAttributes = matchSession.static_attributes;
           if (!staticAttributes) {
             try {
+              const { data: matchUserRow } = await supabase
+                .from("users")
+                .select("id")
+                .eq("clerk_user_id", matchSession.userId)
+                .eq("isDeleted", false)
+                .maybeSingle();
+              if (!matchUserRow?.id) {
+                return null;
+              }
+
               const { data: profile } = await supabase
                 .from("profiles")
                 .select(
                   "name, age, gender, personality, smoking, drinking, religion, job, languages, nationality, location, bio, interests, profile_photo"
                 )
-                .eq(
-                  "user_id",
-                  (
-                    await supabase
-                      .from("users")
-                      .select("id")
-                      .eq("clerk_user_id", matchSession.userId)
-                      .single()
-                  ).data?.id
-                )
+                .eq("user_id", matchUserRow.id)
                 .single();
 
               if (profile) {
@@ -418,6 +445,7 @@ export async function GET(request: NextRequest) {
                   .from("users")
                   .select("id")
                   .eq("clerk_user_id", match.user.userId)
+                  .eq("isDeleted", false)
                   .maybeSingle();
 
               if (userError) {

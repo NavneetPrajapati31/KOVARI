@@ -89,10 +89,13 @@ export const fetchSoloTravelers = async (
         gender,
         created_at,
         users (
-          clerk_user_id
+          clerk_user_id,
+          "isDeleted"
         )
       `
       )
+      // Hide soft-deleted accounts from explore lists
+      .eq("users.isDeleted", false)
       .not("created_at", "is", null)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -300,6 +303,7 @@ export const fetchPublicGroups = async (
         .from("users")
         .select("id")
         .eq("clerk_user_id", currentUserId)
+        .eq("isDeleted", false)
         .single();
       if (userData?.id) internalUserId = userData.id;
     }
@@ -407,6 +411,7 @@ export const fetchMyGroups = async (
     .from("users")
     .select("id")
     .eq("clerk_user_id", clerkUserId)
+    .eq("isDeleted", false)
     .single();
 
   if (userError || !userData) {
