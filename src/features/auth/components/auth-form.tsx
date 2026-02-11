@@ -297,7 +297,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
             <button
               type="button"
               className="text-sm text-foreground hover:underline font-medium"
-              onClick={() => router.push("/forgot-password")}
+              onClick={() => router.push("/forgot-password?from=sign-in")}
               disabled={isLoading}
             >
               Forgot password

@@ -33,7 +33,7 @@ export async function PATCH(req: Request) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore }
+    { cookies: cookieStore },
   );
 
   try {
@@ -61,11 +61,11 @@ export async function PATCH(req: Request) {
       if (interestsUpdateError) {
         console.error(
           "Error updating profile interests:",
-          interestsUpdateError
+          interestsUpdateError,
         );
         return new Response(
           JSON.stringify({ error: "Failed to update interests" }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
+          { status: 500, headers: { "Content-Type": "application/json" } },
         );
       }
 
@@ -75,7 +75,62 @@ export async function PATCH(req: Request) {
           field,
           value,
         }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // Directly handle email so we can return a clear error if DB/RLS fails
+    if (field === "email") {
+      const emailValue =
+        typeof value === "string" ? value.trim() : String(value ?? "");
+      if (!emailValue) {
+        return new Response(
+          JSON.stringify({ error: "Email value is required" }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      const { data: updated, error: emailUpdateError } = await supabase
+        .from("profiles")
+        .update({ email: emailValue })
+        .eq("user_id", user.id)
+        .select("user_id, email");
+
+      if (emailUpdateError) {
+        console.error("Error updating profile email:", emailUpdateError);
+        return new Response(
+          JSON.stringify({
+            error: "Failed to update profile email",
+            details: emailUpdateError.message,
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      // If no row was updated, the profile row may not exist for this user
+      if (!updated?.length) {
+        const { error: upsertError } = await supabase
+          .from("profiles")
+          .upsert(
+            { user_id: user.id, email: emailValue },
+            { onConflict: "user_id" },
+          );
+        if (upsertError) {
+          console.error("Error upserting profile email:", upsertError);
+          return new Response(
+            JSON.stringify({
+              error: "Failed to sync email to profile",
+              details: upsertError.message,
+            }),
+            { status: 500, headers: { "Content-Type": "application/json" } },
+          );
+        }
+      }
+      return new Response(
+        JSON.stringify({
+          message: "Profile email updated successfully",
+          field: "email",
+          value: emailValue,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -84,6 +139,7 @@ export async function PATCH(req: Request) {
       avatar: "profile_photo",
       name: "name",
       username: "username",
+      email: "email",
       age: "age",
       gender: "gender",
       nationality: "nationality",
@@ -122,7 +178,7 @@ export async function PATCH(req: Request) {
         console.error("Error updating travel preferences:", travelUpdateError);
         return new Response(
           JSON.stringify({ error: "Failed to update travel preferences" }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
+          { status: 500, headers: { "Content-Type": "application/json" } },
         );
       }
 
@@ -132,7 +188,7 @@ export async function PATCH(req: Request) {
           field,
           value,
         }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -161,14 +217,14 @@ export async function PATCH(req: Request) {
         console.error("Error checking username:", existingProfileError);
         return new Response(
           JSON.stringify({ error: "Error checking username availability" }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
+          { status: 500, headers: { "Content-Type": "application/json" } },
         );
       }
 
       if (existingProfile) {
         return new Response(
           JSON.stringify({ error: "Username is already taken" }),
-          { status: 409, headers: { "Content-Type": "application/json" } }
+          { status: 409, headers: { "Content-Type": "application/json" } },
         );
       }
     }
@@ -183,7 +239,7 @@ export async function PATCH(req: Request) {
       console.error("Error updating profile:", updateError);
       return new Response(
         JSON.stringify({ error: "Failed to update profile" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -218,7 +274,7 @@ export async function PATCH(req: Request) {
         field,
         value: transformedValue,
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error in profile update:", error);

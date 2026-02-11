@@ -23,14 +23,22 @@ type ForgotPasswordStep =
   | "password_set";
 
 const MIN_PASSWORD_LENGTH = 8;
+const FROM_STORAGE_KEY = "forgot_password_from";
 
 function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tokenFromUrl = useMemo(
     () => (searchParams.get("token") ?? "").trim(),
-    [searchParams]
+    [searchParams],
   );
+
+  const fromFromUrl = useMemo(
+    () => (searchParams.get("from") ?? "").trim().toLowerCase(),
+    [searchParams],
+  );
+
+  const [from, setFrom] = useState<"sign-in" | "settings">("sign-in");
 
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -38,14 +46,41 @@ function ForgotPasswordContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [step, setStep] = useState<ForgotPasswordStep>(() =>
-    tokenFromUrl ? "set_password" : "initial"
+    tokenFromUrl ? "set_password" : "initial",
   );
+
+  useEffect(() => {
+    // Priority: URL param, then localStorage (so token links keep context)
+    if (fromFromUrl === "settings" || fromFromUrl === "sign-in") {
+      const resolved = fromFromUrl as "settings" | "sign-in";
+      setFrom(resolved);
+      try {
+        localStorage.setItem(FROM_STORAGE_KEY, resolved);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    try {
+      const saved = localStorage.getItem(FROM_STORAGE_KEY);
+      if (saved === "settings" || saved === "sign-in") {
+        setFrom(saved);
+      }
+    } catch {
+      // ignore
+    }
+  }, [fromFromUrl]);
 
   useEffect(() => {
     if (tokenFromUrl && step === "initial") {
       setStep("set_password");
     }
   }, [tokenFromUrl, step]);
+
+  const backHref = from === "settings" ? "/settings" : "/sign-in";
+  const backLabel =
+    from === "settings" ? "Back to settings" : "Back to sign in";
 
   const handleSendResetLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +92,7 @@ function ForgotPasswordContent() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, from }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -67,7 +102,7 @@ function ForgotPasswordContent() {
       }
 
       setSuccess(
-        "If that email is registered, you will receive a reset link shortly."
+        "If that email is registered, you will receive a reset link shortly.",
       );
       setStep("email_sent");
     } catch {
@@ -106,9 +141,13 @@ function ForgotPasswordContent() {
         return;
       }
 
-      setSuccess("Your password has been reset. Redirecting to sign in...");
+      setSuccess(
+        from === "settings"
+          ? "Your password has been reset. Redirecting to settings..."
+          : "Your password has been reset. Redirecting to sign in...",
+      );
       setStep("password_set");
-      setTimeout(() => router.replace("/sign-in"), 3000);
+      setTimeout(() => router.replace(backHref), 3000);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -124,12 +163,12 @@ function ForgotPasswordContent() {
       <div className="w-full max-w-md">
         {/* Back link */}
         <Link
-          href="/sign-in"
+          href={backHref}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-          aria-label="Back to sign in"
+          aria-label={backLabel}
         >
           <ArrowLeft className="w-4 h-4 shrink-0" />
-          Back to sign in
+          {backLabel}
         </Link>
 
         {/* Card - matches auth form styling */}
@@ -174,7 +213,9 @@ function ForgotPasswordContent() {
                 token &&
                 "Choose a new password. This link can only be used once."}
               {step === "password_set" &&
-                "Your password has been updated. Redirecting you to sign in."}
+                (from === "settings"
+                  ? "Your password has been updated. Redirecting you to settings."
+                  : "Your password has been updated. Redirecting you to sign in.")}
             </p>
           </div>
 
@@ -311,7 +352,9 @@ function ForgotPasswordContent() {
           {step === "password_set" && (
             <div className="text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                Redirecting you to sign in...
+                {from === "settings"
+                  ? "Redirecting you to settings..."
+                  : "Redirecting you to sign in..."}
               </p>
               <div className="flex justify-center">
                 <Loader2

@@ -60,7 +60,7 @@ const SectionContent = memo(
     isLoading: boolean;
     updateProfileField: (
       field: keyof ProfileEditForm,
-      value: string | number | string[]
+      value: string | number | string[],
     ) => Promise<any>;
   }) => {
     if (activeTab === "general") {
@@ -104,7 +104,7 @@ const SectionContent = memo(
         <p className="text-muted-foreground">Select a section to get started</p>
       </div>
     );
-  }
+  },
 );
 SectionContent.displayName = "SectionContent";
 
@@ -125,7 +125,7 @@ export default function ProfileEditLayoutWrapper() {
       Object.keys(profileData).forEach((key) => {
         form.setValue(
           key as keyof ProfileEditForm,
-          profileData[key as keyof ProfileEditForm]
+          profileData[key as keyof ProfileEditForm],
         );
       });
     }
@@ -135,7 +135,7 @@ export default function ProfileEditLayoutWrapper() {
     (key: string) => {
       setActiveTab(key);
     },
-    [setActiveTab]
+    [setActiveTab],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -181,7 +181,7 @@ export default function ProfileEditLayoutWrapper() {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row min-h-screen h-full bg-card text-foreground border-1 border-border rounded-3xl mx-3 mb-6 md:mx-6">
+      <div className="flex flex-col md:flex-row min-h-[90vh] h-full bg-card text-foreground border-1 border-border rounded-3xl mx-3 mb-6 md:mx-6">
         {/* Sidebar (hide on mobile) */}
         {!isMobile && (
           <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">

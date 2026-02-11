@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const email = typeof body?.email === "string" ? body.email.trim() : "";
+    const fromRaw = typeof body?.from === "string" ? body.from.trim() : "";
+    const from =
+      fromRaw === "settings" || fromRaw === "sign-in" ? fromRaw : undefined;
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -39,7 +42,7 @@ export async function POST(req: NextRequest) {
           message:
             "If that email is registered, you will receive a reset link shortly.",
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -51,7 +54,9 @@ export async function POST(req: NextRequest) {
     await redis.setEx(redisKey, RESET_TOKEN_TTL_SECONDS, userId);
 
     const baseUrl = getBaseUrl(req);
-    const resetLink = `${baseUrl}/forgot-password?token=${token}`;
+    const resetLink = `${baseUrl}/forgot-password?token=${token}${
+      from ? `&from=${encodeURIComponent(from)}` : ""
+    }`;
 
     const result = await sendPasswordResetEmail({
       to: email,
@@ -67,7 +72,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json(
         { error: "Failed to send reset email. Please try again later." },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -77,7 +82,7 @@ export async function POST(req: NextRequest) {
         message:
           "If that email is registered, you will receive a reset link shortly.",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Forgot password API error:", error);
@@ -86,7 +91,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(
       { error: "Something went wrong. Please try again later." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
