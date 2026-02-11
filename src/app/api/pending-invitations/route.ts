@@ -27,7 +27,7 @@ export async function GET() {
             cookieStore.delete(name);
           },
         },
-      }
+      },
     );
 
     // Get the internal Supabase user_id from the clerk_user_id
@@ -51,7 +51,7 @@ export async function GET() {
         `
         group_id,
         joined_at
-      `
+      `,
       )
       .eq("user_id", internalUserId)
       .eq("status", "pending");
@@ -84,7 +84,7 @@ export async function GET() {
         cover_image,
         creator_id,
         created_at
-      `
+      `,
       )
       .in("id", groupIds)
       .eq("status", "active") // Only show invitations for approved groups
@@ -134,7 +134,7 @@ export async function GET() {
           id,
           profiles!inner(name, username, profile_photo)
         )
-      `
+      `,
       )
       .in("group_id", groupIds)
       .eq("status", "accepted")
@@ -171,7 +171,7 @@ export async function GET() {
         }
         return acc;
       },
-      {}
+      {},
     );
 
     // Map to the expected format for InvitationResults
@@ -182,7 +182,7 @@ export async function GET() {
 
       // Calculate days until expiration (30 days from join date)
       const joinDate = pendingMemberships.find(
-        (m) => m.group_id === group.id
+        (m) => m.group_id === group.id,
       )?.joined_at;
       const expirationDate = joinDate ? new Date(joinDate) : new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
@@ -190,8 +190,8 @@ export async function GET() {
         0,
         Math.ceil(
           (expirationDate.getTime() - new Date().getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
+            (1000 * 60 * 60 * 24),
+        ),
       );
 
       // Format dates
@@ -203,7 +203,7 @@ export async function GET() {
             month: "short",
             day: "numeric",
             year: "numeric",
-          }
+          },
         );
         if (!group.end_date) return startDate;
         const endDate = new Date(group.end_date).toLocaleDateString("en-US", {
@@ -239,6 +239,7 @@ export async function GET() {
         groupName: group.name,
         groupCoverImage: group.cover_image,
         creator: {
+          id: group.creator_id,
           name: creator?.name || "Unknown",
           username: creator?.username || "unknown",
           avatar: creator?.profile_photo || "",
