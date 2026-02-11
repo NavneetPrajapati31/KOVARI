@@ -82,23 +82,22 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
 
         {error && <p className="text-xs text-destructive">{error}</p>}
 
-        <DialogFooter className="flex-row gap-2 sm:space-x-0">
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}
             disabled={isLoading}
             aria-label="Cancel removal"
-            className="h-9 flex-1 hover:bg-background"
+            className="h-9"
           >
             Cancel
           </Button>
           <Button
-            variant="outline"
-            size="sm"
+            variant="destructive"
             onClick={onConfirm}
             disabled={isLoading}
             aria-label="Confirm remove member"
-            className="h-9 flex-1 text-destructive hover:text-destructive hover:bg-background border-border"
+            className="h-9"
           >
             {isLoading ? "Removing..." : "Remove"}
           </Button>
