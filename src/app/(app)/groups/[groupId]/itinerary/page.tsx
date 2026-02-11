@@ -38,6 +38,7 @@ import {
   AlertCircle,
   Trash2,
   Pencil,
+  Clock,
 } from "lucide-react";
 import { Chip, Spinner } from "@heroui/react";
 import { DateTimePicker } from "@/shared/components/ui/time-picker";
@@ -115,7 +116,7 @@ const COLUMNS = [
 const PRIORITY_COLORS = {
   low: "bg-gray-100 text-gray-700 border-gray-300",
   medium: "bg-yellow-100 text-yellow-700 border-yellow-300",
-  high: "bg-red-100 text-red-700 border-red-300",
+  high: "bg-green-100 text-green-700 border-green-300",
 };
 
 // Updated type icons based on database schema
@@ -157,7 +158,7 @@ function getInitials(name: string): string {
 const PRIORITY_BADGES: Record<string, string> = {
   low: "bg-[#F4F4F5] text-[#71717A]",
   medium: "bg-[#FEF3C7] text-[#B54708]",
-  high: "bg-[#FEE2E2] text-[#B91C1C]",
+  high: "bg-green-100 text-green-700",
 };
 
 // Meta info icons (SVG inline for comments, links, checklist)
@@ -215,7 +216,7 @@ export default function ItineraryPage() {
     "membershipError",
     membershipError,
     "membershipInfo",
-    membershipInfo
+    membershipInfo,
   );
 
   const [itineraryItems, setItineraryItems] = useState<ItineraryItem[]>([]);
@@ -300,6 +301,7 @@ export default function ItineraryPage() {
     description: "",
     datetime: "",
     type: "other" as ItineraryItem["type"],
+    status: "pending" as ItineraryItem["status"],
     location: "",
     priority: "medium" as "low" | "medium" | "high",
     notes: "",
@@ -400,7 +402,7 @@ export default function ItineraryPage() {
           ...latest,
           title,
           datetime: datetimeToIST(datetime),
-          status: "pending",
+          status: latest.status || "pending",
           group_id: params.groupId,
           assigned_to: Array.isArray(latest.assigned_to)
             ? latest.assigned_to
@@ -455,7 +457,7 @@ export default function ItineraryPage() {
               : [],
             group_id: params.groupId,
           }),
-        }
+        },
       );
 
       const data = await response.json().catch(() => ({}));
@@ -481,7 +483,7 @@ export default function ItineraryPage() {
     try {
       const response = await fetch(
         `/api/groups/${params.groupId}/itinerary/${itemId}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Failed to delete item");
@@ -504,7 +506,7 @@ export default function ItineraryPage() {
 
   const handleStatusUpdate = async (
     itemId: string,
-    newStatus: ItineraryItem["status"]
+    newStatus: ItineraryItem["status"],
   ) => {
     try {
       // Find the full item
@@ -525,7 +527,7 @@ export default function ItineraryPage() {
               : [],
             group_id: params.groupId,
           }),
-        }
+        },
       );
 
       if (!response.ok) throw new Error("Failed to update status");
@@ -541,6 +543,7 @@ export default function ItineraryPage() {
       description: "",
       datetime: "",
       type: "other",
+      status: "pending",
       location: "",
       priority: "medium",
       notes: "",
@@ -562,6 +565,7 @@ export default function ItineraryPage() {
       description: item.description || "",
       datetime: datetimeFromAPIToPicker(item.datetime),
       type: item.type,
+      status: item.status,
       location: item.location || "",
       priority: item.priority,
       notes: item.notes || "",
@@ -589,8 +593,8 @@ export default function ItineraryPage() {
       // Optimistically update local state
       setItineraryItems((prev) =>
         prev.map((item) =>
-          item.id === draggedItem.id ? { ...item, status } : item
-        )
+          item.id === draggedItem.id ? { ...item, status } : item,
+        ),
       );
       // Send update to backend
       handleStatusUpdate(draggedItem.id, status);
@@ -619,14 +623,40 @@ export default function ItineraryPage() {
 
   const IST_TIMEZONE = "Asia/Kolkata";
 
+  const withOrdinal = (n: number) => {
+    const mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+    switch (n % 10) {
+      case 1:
+        return `${n}st`;
+      case 2:
+        return `${n}nd`;
+      case 3:
+        return `${n}rd`;
+      default:
+        return `${n}th`;
+    }
+  };
+
   const formatDateTime = (datetime: string) => {
     const date = new Date(datetime);
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: IST_TIMEZONE,
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).formatToParts(date);
+
+    const month = parts.find((p) => p.type === "month")?.value ?? "";
+    const dayRaw = parts.find((p) => p.type === "day")?.value ?? "";
+    const year = parts.find((p) => p.type === "year")?.value ?? "";
+    const dayNum = Number(dayRaw);
+
     return {
-      date: date.toLocaleDateString("en-IN", {
-        month: "short",
-        day: "numeric",
-        timeZone: IST_TIMEZONE,
-      }),
+      date:
+        month && year && Number.isFinite(dayNum)
+          ? `${month} ${withOrdinal(dayNum)}, ${year}`
+          : date.toLocaleDateString("en-IN", { timeZone: IST_TIMEZONE }),
       time: date.toLocaleTimeString("en-IN", {
         hour: "2-digit",
         minute: "2-digit",
@@ -876,7 +906,7 @@ export default function ItineraryPage() {
       <div className="flex flex-col md:grid md:grid-cols-2 xl:flex xl:flex-row gap-4 pb-4">
         {COLUMNS.map((column) => {
           const filteredItems = itineraryItems.filter(
-            (item) => item.status === column.id
+            (item) => item.status === column.id,
           );
 
           return (
@@ -898,7 +928,7 @@ export default function ItineraryPage() {
                   <span className="font-medium text-foreground text-sm">
                     {column.title}
                   </span>
-                  <span className="ml-1 text-xs bg-gray-100 text-muted-foreground rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  <span className="ml-1 text-xs bg-secondary text-muted-foreground rounded-full px-2 py-0.5 min-w-[20px] text-center">
                     {filteredItems.length}
                   </span>
                 </div>
@@ -971,7 +1001,7 @@ export default function ItineraryPage() {
                         <div className="flex gap-1">
                           <Chip
                             className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
-                              badge?.color || "bg-gray-100 text-foreground"
+                              badge?.color || "bg-secondary text-foreground"
                             }`}
                           >
                             <span className="font-semibold">
@@ -981,7 +1011,7 @@ export default function ItineraryPage() {
                           <Chip
                             className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
                               item.priority === "high"
-                                ? "bg-red-50 text-red-700"
+                                ? "bg-green-50 text-green-700"
                                 : item.priority === "medium"
                                   ? "bg-yellow-50 text-yellow-700"
                                   : "bg-blue-50 text-blue-700"
@@ -1010,60 +1040,40 @@ export default function ItineraryPage() {
 
                     <div className="space-y-1">
                       <div className="flex items-center gap-4 text-muted-foreground text-xs">
-                        {/* Date */}
-                        {item.datetime && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-3 h-3" aria-label="Date" />
-                            <div className="flex flex-col leading-tight">
-                              <span>
-                                {new Date(item.datetime).toLocaleDateString(
-                                  "en-IN",
-                                  {
-                                    weekday: "short",
-                                    month: "short",
-                                    day: "2-digit",
-                                    timeZone: IST_TIMEZONE,
-                                  }
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        {/* Time */}
-                        {item.datetime && (
-                          <div className="flex items-center gap-2">
-                            <ClockIcon className="h-3 w-3" />
-                            {/* <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                              aria-label="Time"
-                            >
-                              <circle cx="12" cy="12" r="10" />
-                              <path d="M12 6v6l4 2" />
-                            </svg> */}
-                            <div className="flex flex-col leading-tight">
-                              <span>
-                                {new Date(item.datetime).toLocaleTimeString(
-                                  "en-IN",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                    timeZone: IST_TIMEZONE,
-                                  }
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        )}
+                        {item.datetime &&
+                          (() => {
+                            const { date, time } = formatDateTime(
+                              item.datetime,
+                            );
+                            return (
+                              <div className="flex flex-row gap-4 min-w-0">
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <Calendar
+                                    className="w-3 h-3 shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span
+                                    className="truncate whitespace-nowrap"
+                                    title={date}
+                                  >
+                                    {date}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 whitespace-nowrap">
+                                  <Clock
+                                    className="w-3 h-3 shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span title={time}>{time}</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                       </div>
                       {/* Location */}
                       <div className="flex items-center gap-4 text-muted-foreground text-xs">
                         {item.location && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             <div className="flex flex-col leading-tight">
                               <span className="text-xs">{item.location}</span>
@@ -1077,14 +1087,14 @@ export default function ItineraryPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">
-                          Assignees ({item.assigned_to?.length || 0}):
+                          Assignees :
                         </span>
                         <div className="flex -space-x-1">
                           {(item.assigned_to || [])
                             .slice(0, 3)
                             .map((uid, index) => {
                               const member = groupMembers.find(
-                                (m) => m.id === uid
+                                (m) => m.id === uid,
                               );
                               console.log(`Assignee ${index}:`, {
                                 uid,
@@ -1092,23 +1102,30 @@ export default function ItineraryPage() {
                                 groupMembers: groupMembers.length,
                               });
                               return member ? (
-                                <img
+                                <Avatar
                                   key={uid}
-                                  src={member.avatar || "/placeholder-user.jpg"}
-                                  alt={member.name}
                                   className="w-6 h-6 rounded-full shadow-sm"
                                   title={member.name}
-                                />
-                              ) : (
-                                <div
-                                  key={index}
-                                  className="w-6 h-6 rounded-full shadow-sm bg-gray-200 flex items-center justify-center"
-                                  title={`Unknown user: ${uid}`}
                                 >
-                                  <span className="text-xs text-muted-foreground">
-                                    ?
-                                  </span>
-                                </div>
+                                  <AvatarImage
+                                    src={member.avatar || undefined}
+                                    alt={member.name}
+                                    className="object-cover"
+                                  />
+                                  <UserAvatarFallback className="text-[10px]" />
+                                </Avatar>
+                              ) : (
+                                <Avatar
+                                  key={uid}
+                                  className="w-6 h-6 rounded-full shadow-sm"
+                                >
+                                  <AvatarImage
+                                    src={""}
+                                    alt="Unknown"
+                                    className="object-cover"
+                                  />
+                                  <UserAvatarFallback className="text-[10px]" />
+                                </Avatar>
                               );
                             })}
                           {(item.assigned_to || []).length > 3 && (
@@ -1171,7 +1188,7 @@ export default function ItineraryPage() {
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(800px,calc(100vw-2rem))] max-h-[90dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
-          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 bg-background text-left">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 text-left">
             <DialogTitle className="text-md font-semibold text-foreground">
               Edit Itinerary Item
             </DialogTitle>
@@ -1196,9 +1213,9 @@ export default function ItineraryPage() {
                     () =>
                       e.target.setSelectionRange(
                         e.target.value.length,
-                        e.target.value.length
+                        e.target.value.length,
                       ),
-                    0
+                    0,
                   );
                 }}
                 placeholder="Activity title"
@@ -1224,7 +1241,7 @@ export default function ItineraryPage() {
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              <div className="space-y-2 sm:col-span-2">
+              <div className="space-y-2">
                 <Label className="text-foreground">Date & Time</Label>
                 <DateTimePicker
                   value={formData.datetime}
@@ -1234,6 +1251,23 @@ export default function ItineraryPage() {
                   placeholder="Select date and time"
                   variant="compact"
                   className="w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-location" className="text-foreground">
+                  Location
+                </Label>
+                <Input
+                  id="edit-location"
+                  value={formData.location}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
+                  }
+                  placeholder="Location"
+                  className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full"
                 />
               </div>
               {/* <div className="space-y-2">
@@ -1262,21 +1296,23 @@ export default function ItineraryPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <div className="space-y-2">
-                <Label htmlFor="edit-location" className="text-foreground">
-                  Location
-                </Label>
-                <Input
-                  id="edit-location"
-                  value={formData.location}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      location: e.target.value,
-                    }))
+                <Label className="text-foreground">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: ItineraryItem["status"]) =>
+                    setFormData((prev) => ({ ...prev, status: value }))
                   }
-                  placeholder="Location"
-                  className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full"
-                />
+                >
+                  <SelectTrigger className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground">Priority</Label>
@@ -1314,7 +1350,7 @@ export default function ItineraryPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-foreground">Assign To</Label>
-              <div className="rounded-lg border border-border bg-background max-h-44 sm:max-h-48 overflow-y-auto overflow-x-hidden p-1.5 space-y-0.5">
+              <div className="rounded-lg border border-border max-h-44 sm:max-h-48 overflow-y-auto overflow-x-hidden p-1.5 space-y-0.5">
                 {groupMembers.map((member) => {
                   const isChecked = formData.assigned_to.includes(member.id);
                   return (
@@ -1323,7 +1359,7 @@ export default function ItineraryPage() {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors outline-none",
                         "hover:bg-muted/60 active:bg-muted/80",
-                        isChecked && "bg-primary/5 hover:bg-primary/10"
+                        isChecked && "bg-primary/5 hover:bg-primary/10",
                       )}
                       onClick={(e) => {
                         e.preventDefault();
@@ -1331,7 +1367,7 @@ export default function ItineraryPage() {
                           setFormData((prev) => ({
                             ...prev,
                             assigned_to: prev.assigned_to.filter(
-                              (id) => id !== member.id
+                              (id) => id !== member.id,
                             ),
                           }));
                         } else {
@@ -1354,7 +1390,7 @@ export default function ItineraryPage() {
                             setFormData((prev) => ({
                               ...prev,
                               assigned_to: prev.assigned_to.filter(
-                                (id) => id !== member.id
+                                (id) => id !== member.id,
                               ),
                             }));
                           }
@@ -1377,7 +1413,7 @@ export default function ItineraryPage() {
                 })}
                 {Array.isArray(groupMembers) && groupMembers.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <Users className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                    <Users className="h-6 w-6 text-gray-400 mb-2" />
                     <p className="text-sm text-muted-foreground">
                       No group members available
                     </p>
@@ -1386,7 +1422,7 @@ export default function ItineraryPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background sm:justify-between">
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap sm:justify-between">
             <div className="flex gap-2 order-1 sm:order-2 ml-auto">
               <Button
                 variant="outline"
@@ -1420,7 +1456,7 @@ export default function ItineraryPage() {
           <div className="hidden" aria-hidden />
         </DialogTrigger>
         <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(800px,calc(100vw-2rem))] max-h-[90dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
-          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 bg-background text-left">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 text-left">
             <DialogTitle className="text-md font-semibold text-foreground">
               Add Itinerary Item
             </DialogTitle>
@@ -1462,7 +1498,7 @@ export default function ItineraryPage() {
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              <div className="space-y-2 sm:col-span-2">
+              <div className="space-y-2">
                 <Label className="text-foreground">Date & Time</Label>
                 <DateTimePicker
                   value={formData.datetime}
@@ -1474,8 +1510,6 @@ export default function ItineraryPage() {
                   className="w-full"
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <div className="space-y-2">
                 <Label htmlFor="add-location" className="text-foreground">
                   Location
@@ -1492,6 +1526,27 @@ export default function ItineraryPage() {
                   placeholder="Location"
                   className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full"
                 />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              <div className="space-y-2">
+                <Label className="text-foreground">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: ItineraryItem["status"]) =>
+                    setFormData((prev) => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger className="rounded-lg border-border h-[2.5rem] sm:h-11 min-h-[2.5rem] sm:min-h-11 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground">Priority</Label>
@@ -1529,7 +1584,7 @@ export default function ItineraryPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-foreground">Assign To</Label>
-              <div className="rounded-lg border border-border bg-background max-h-44 sm:max-h-48 overflow-y-auto overflow-x-hidden p-1.5 space-y-0.5">
+              <div className="rounded-lg border border-border max-h-44 sm:max-h-48 overflow-y-auto overflow-x-hidden p-1.5 space-y-0.5">
                 {groupMembers.map((member) => {
                   const isChecked = formData.assigned_to.includes(member.id);
                   return (
@@ -1538,7 +1593,7 @@ export default function ItineraryPage() {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors outline-none",
                         "hover:bg-muted/60 active:bg-muted/80",
-                        isChecked && "bg-primary/5 hover:bg-primary/10"
+                        isChecked && "bg-primary/5 hover:bg-primary/10",
                       )}
                       onClick={(e) => {
                         e.preventDefault();
@@ -1546,7 +1601,7 @@ export default function ItineraryPage() {
                           setFormData((prev) => ({
                             ...prev,
                             assigned_to: prev.assigned_to.filter(
-                              (id) => id !== member.id
+                              (id) => id !== member.id,
                             ),
                           }));
                         } else {
@@ -1569,7 +1624,7 @@ export default function ItineraryPage() {
                             setFormData((prev) => ({
                               ...prev,
                               assigned_to: prev.assigned_to.filter(
-                                (id) => id !== member.id
+                                (id) => id !== member.id,
                               ),
                             }));
                           }
@@ -1601,7 +1656,7 @@ export default function ItineraryPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background">
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap">
             <div className="flex gap-2 order-1 sm:order-2 ml-auto">
               <Button
                 variant="outline"
@@ -1637,7 +1692,7 @@ export default function ItineraryPage() {
         }}
       >
         <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-[min(400px,calc(100vw-2rem))] rounded-2xl border border-border p-0 gap-0 shadow-xl overflow-hidden">
-          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 bg-background text-left">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 text-left">
             <DialogTitle className="text-md font-semibold text-foreground">
               Delete itinerary item?
             </DialogTitle>
@@ -1652,7 +1707,7 @@ export default function ItineraryPage() {
               )}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap bg-background justify-end">
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap justify-end">
             <div className="flex gap-2 order-1 sm:order-2 ml-auto">
               <Button
                 variant="outline"

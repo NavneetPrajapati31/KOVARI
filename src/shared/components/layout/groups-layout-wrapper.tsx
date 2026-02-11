@@ -56,14 +56,14 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         });
       }
     },
-    [activeTab, router, params.groupId]
+    [activeTab, router, params.groupId],
   );
 
   const handleTabClick = useCallback(
     (index: number) => {
       handleTabChange(index);
     },
-    [handleTabChange]
+    [handleTabChange],
   );
 
   const handleTabKeyDown = useCallback(
@@ -85,7 +85,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         handleTabChange(TABS.length - 1);
       }
     },
-    [activeTab, handleTabChange]
+    [activeTab, handleTabChange],
   );
 
   const tabButtons = useMemo(
@@ -105,11 +105,11 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
           {tab.label}
         </Button>
       )),
-    [activeTab, handleTabClick, handleTabKeyDown]
+    [activeTab, handleTabClick, handleTabKeyDown],
   );
 
   return (
-    <div className="flex bg-background text-foreground px-2 py-0 sm:px-4">
+    <div className="flex bg-background text-foreground px-2 py-0 sm:px-4 pb-4">
       {/* Sidebar can go here */}
       <div className="flex-1 flex flex-col">
         <header className="flex sticky top-0 z-50 bg-background py-4">
