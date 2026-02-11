@@ -5,8 +5,8 @@ import {
   MapPin,
   Shield,
   Users,
-  AlertTriangle,
-  Trash2,
+  UserPlus,
+  LogOut,
   ChevronRight,
 } from "lucide-react";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
@@ -26,10 +26,10 @@ const TABS = [
   {
     key: "requests",
     label: "Join Requests",
-    icon: AlertTriangle,
+    icon: UserPlus,
     category: "management",
   },
-  { key: "delete", label: "Leave Group", icon: Trash2, category: "danger" },
+  { key: "delete", label: "Leave Group", icon: LogOut, category: "danger" },
 ] as const;
 
 interface SettingsSidebarProps {
@@ -61,7 +61,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         setActiveTab(key);
       }
     },
-    [activeTab, setActiveTab]
+    [activeTab, setActiveTab],
   );
 
   const handleKeyDown = useCallback(
@@ -108,7 +108,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         }
       }
     },
-    [activeTab, setActiveTab]
+    [activeTab, setActiveTab],
   );
 
   const groupedTabs = useMemo(() => {
@@ -123,7 +123,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const renderTabGroup = (
     groupKey: string,
     tabs: Array<(typeof TABS)[number]>,
-    title?: string
+    title?: string,
   ) => (
     <div key={groupKey} className="space-y-0">
       {title && (
@@ -153,9 +153,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             onMouseDown={(e) => e.preventDefault()}
             onTouchStart={(e) => e.preventDefault()}
           >
-            <span className="flex items-center gap-2">
-              <Icon className="h-4 w-4" />
-              <span className="truncate">{tab.label}</span>
+            <span className="flex min-w-0 items-center gap-2">
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              <span className="block min-w-0 truncate">{tab.label}</span>
             </span>
             {isMobile && (
               <ChevronRight

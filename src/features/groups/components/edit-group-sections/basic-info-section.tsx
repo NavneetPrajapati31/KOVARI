@@ -72,16 +72,24 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 setValue("destination", val, { shouldDirty: true });
               }}
               onSelect={(data) => {
-                setValue("destination", data.city || data.formatted.split(",")[0].trim(), { shouldDirty: true });
-                setValue("destinationDetails", {
-                  city: data.city,
-                  state: data.state,
-                  country: data.country,
-                  latitude: data.lat,
-                  longitude: data.lon,
-                  formatted_address: data.formatted,
-                  place_id: data.place_id
-                }, { shouldDirty: true });
+                setValue(
+                  "destination",
+                  data.city || data.formatted.split(",")[0].trim(),
+                  { shouldDirty: true },
+                );
+                setValue(
+                  "destinationDetails",
+                  {
+                    city: data.city,
+                    state: data.state,
+                    country: data.country,
+                    latitude: data.lat,
+                    longitude: data.lon,
+                    formatted_address: data.formatted,
+                    place_id: data.place_id,
+                  },
+                  { shouldDirty: true },
+                );
               }}
               placeholder="e.g., Tokyo, Japan"
               className={errors.destination ? "border-destructive" : ""}
@@ -147,7 +155,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 <Spinner
                   variant="spinner"
                   size="sm"
-                  classNames={{ spinnerBars: "bg-primary" }}
+                  classNames={{ spinnerBars: "bg-foreground" }}
                 />
                 Saving...
               </>

@@ -6,7 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Card, CardContent } from "@/shared/components/ui/card";
-import { cn, DatePicker } from "@heroui/react";
+import { cn, DatePicker, Spinner } from "@heroui/react";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
 
 interface TravelDetailsSectionProps {
@@ -128,7 +128,7 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                   inputWrapper: cn(
                     "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
                     errors.startDate &&
-                      "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
+                      "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]",
                   ),
                   calendarContent: cn("!bg-white !opacity-1"),
                 }}
@@ -170,7 +170,7 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
                   inputWrapper: cn(
                     "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
                     errors.endDate &&
-                      "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]"
+                      "border-[#F31260] focus:border-[#F31260] focus:ring-[#F31260]",
                   ),
                   calendarContent: cn("!bg-white !opacity-1"),
                 }}
@@ -193,7 +193,8 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
               {...form.register("budget", { valueAsNumber: true })}
               className={cn(
                 "h-9 text-sm w-full",
-                errors.budget && "border-destructive focus-visible:ring-destructive"
+                errors.budget &&
+                  "border-destructive focus-visible:ring-destructive",
               )}
               disabled={isSubmitting}
             />
@@ -212,7 +213,18 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
             variant="outline"
             className="w-full h-9 text-sm border-border bg-background hover:bg-muted"
           >
-            {isSubmitting ? "Saving..." : "Save Travel Details"}
+            {isSubmitting ? (
+              <>
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-foreground" }}
+                />
+                Saving...
+              </>
+            ) : (
+              "Save Travel Details"
+            )}
           </Button>
         </CardContent>
       </Card>

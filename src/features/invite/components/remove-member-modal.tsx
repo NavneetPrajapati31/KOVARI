@@ -8,10 +8,7 @@ import {
   DialogFooter,
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Avatar,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { AlertTriangle } from "lucide-react";
 
@@ -71,7 +68,7 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={member.avatar || ""} alt={member.name} />
-<UserAvatarFallback />
+            <UserAvatarFallback />
           </Avatar>
           <div className="min-w-0">
             <div className="font-medium text-foreground truncate">
@@ -85,22 +82,23 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
 
         {error && <p className="text-xs text-destructive">{error}</p>}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="flex-row gap-2 sm:space-x-0">
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}
             disabled={isLoading}
             aria-label="Cancel removal"
-            className="h-9"
+            className="h-9 flex-1 hover:bg-background"
           >
             Cancel
           </Button>
           <Button
-            variant="destructive"
+            variant="outline"
+            size="sm"
             onClick={onConfirm}
             disabled={isLoading}
             aria-label="Confirm remove member"
-            className="h-9"
+            className="h-9 flex-1 text-destructive hover:text-destructive hover:bg-background border-border"
           >
             {isLoading ? "Removing..." : "Remove"}
           </Button>

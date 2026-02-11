@@ -29,7 +29,7 @@ export default function DangerPage() {
   const groupId = params.groupId as string;
 
   const [membershipInfo, setMembershipInfo] = useState<MembershipInfo | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export default function DangerPage() {
         setMembershipInfo(data);
       } catch (err: unknown) {
         setError(
-          err instanceof Error ? err.message : "An unknown error occurred"
+          err instanceof Error ? err.message : "An unknown error occurred",
         );
       } finally {
         setIsLoading(false);
@@ -97,7 +97,7 @@ export default function DangerPage() {
       router.push("/groups");
     } catch (err: unknown) {
       setLeaveError(
-        err instanceof Error ? err.message : "An unknown error occurred"
+        err instanceof Error ? err.message : "An unknown error occurred",
       );
     } finally {
       setIsLeaving(false);
@@ -131,7 +131,7 @@ export default function DangerPage() {
       router.push("/groups");
     } catch (err: unknown) {
       setDeleteError(
-        err instanceof Error ? err.message : "An unknown error occurred"
+        err instanceof Error ? err.message : "An unknown error occurred",
       );
     } finally {
       setIsDeleting(false);
@@ -266,6 +266,7 @@ export default function DangerPage() {
               size="sm"
               onClick={() => setIsLeaveDialogOpen(false)}
               disabled={isLeaving}
+              className="hover:bg-background"
             >
               Cancel
             </Button>
@@ -323,6 +324,7 @@ export default function DangerPage() {
                 setDeleteError(null);
               }}
               disabled={isDeleting}
+              className="hover:bg-background"
             >
               Cancel
             </Button>

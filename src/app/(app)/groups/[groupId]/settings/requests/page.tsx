@@ -1,12 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import {
-  Avatar,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
-import { Chip } from "@heroui/react";
+import { Chip, Spinner } from "@heroui/react";
 import { useParams } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 
@@ -34,7 +31,7 @@ export default function RequestsPage() {
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [isJoinRequestsLoading, setIsJoinRequestsLoading] = useState(true);
   const [joinRequestsError, setJoinRequestsError] = useState<string | null>(
-    null
+    null,
   );
   const [isProcessingRequest, setIsProcessingRequest] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -73,7 +70,7 @@ export default function RequestsPage() {
         setJoinRequests(data.joinRequests || []);
       } catch (err: unknown) {
         setJoinRequestsError(
-          err instanceof Error ? err.message : "An unknown error occurred"
+          err instanceof Error ? err.message : "An unknown error occurred",
         );
       } finally {
         setIsJoinRequestsLoading(false);
@@ -103,27 +100,27 @@ export default function RequestsPage() {
             userIdFromUserTable: m.userIdFromUserTable,
             matches: m.id === currentUserId,
             matchesUserTable: m.userIdFromUserTable === currentUserId,
-          }))
+          })),
         );
         // Compare using both fields
         const current = (data.members || []).find(
           (m: any) =>
-            m.id === currentUserId || m.userIdFromUserTable === currentUserId
+            m.id === currentUserId || m.userIdFromUserTable === currentUserId,
         );
         console.log(
           "[REQUESTS_PAGE] My role in this group:",
-          current?.role || "unknown"
+          current?.role || "unknown",
         );
         const isAdmin = current?.role === "admin";
         setIsCurrentUserAdmin(isAdmin);
         // Log current user's role
         console.log(
-          `[REQUESTS_PAGE] Current user role: ${current?.role || "unknown"}, Is admin: ${isAdmin}`
+          `[REQUESTS_PAGE] Current user role: ${current?.role || "unknown"}, Is admin: ${isAdmin}`,
         );
       } catch {
         setIsCurrentUserAdmin(false);
         console.log(
-          `[REQUESTS_PAGE] Error fetching membership, setting admin to false`
+          `[REQUESTS_PAGE] Error fetching membership, setting admin to false`,
         );
       }
     };
@@ -213,7 +210,7 @@ export default function RequestsPage() {
                         src={request.avatar || ""}
                         alt={request.name}
                       />
-                    <UserAvatarFallback />
+                      <UserAvatarFallback />
                     </Avatar>
                     <span className="font-medium text-foreground text-sm">
                       {request.name}
@@ -251,7 +248,13 @@ export default function RequestsPage() {
                           }
                         >
                           {approveLoadingId === request.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary-foreground" />
+                            <Spinner
+                              variant="spinner"
+                              size="sm"
+                              classNames={{
+                                spinnerBars: "bg-primary-foreground",
+                              }}
+                            />
                           ) : (
                             "Approve"
                           )}
@@ -268,7 +271,13 @@ export default function RequestsPage() {
                           }
                         >
                           {rejectLoadingId === request.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                            <Spinner
+                              variant="spinner"
+                              size="sm"
+                              classNames={{
+                                spinnerBars: "bg-foreground",
+                              }}
+                            />
                           ) : (
                             <X className="h-3.5 w-3.5 text-muted-foreground" />
                           )}
@@ -331,7 +340,13 @@ export default function RequestsPage() {
                         }
                       >
                         {approveLoadingId === request.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary-foreground" />
+                          <Spinner
+                            variant="spinner"
+                            size="sm"
+                            classNames={{
+                              spinnerBars: "bg-primary-foreground",
+                            }}
+                          />
                         ) : (
                           "Approve"
                         )}
@@ -348,7 +363,13 @@ export default function RequestsPage() {
                         }
                       >
                         {rejectLoadingId === request.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          <Spinner
+                            variant="spinner"
+                            size="sm"
+                            classNames={{
+                              spinnerBars: "bg-foreground",
+                            }}
+                          />
                         ) : (
                           <X className="h-3.5 w-3.5 text-muted-foreground" />
                         )}
@@ -434,13 +455,11 @@ export default function RequestsPage() {
         !joinRequestsError &&
         joinRequests.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="rounded-full bg-muted/50 p-4 mb-4"></div>
-            <h2 className="text-base font-semibold text-foreground mb-1">
+            <h2 className="text-sm font-semibold text-foreground mb-1">
               No pending requests
             </h2>
             <p className="text-sm text-muted-foreground max-w-sm">
-              There are no join requests awaiting review. New requests will
-              appear here when users ask to join this group.
+              There are no join requests awaiting review.
             </p>
           </div>
         )}
