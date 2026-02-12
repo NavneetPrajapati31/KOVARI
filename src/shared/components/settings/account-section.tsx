@@ -139,34 +139,18 @@ export function AccountSection() {
         const newPrimaryId = emailAddress.id;
         const newPrimaryEmail = emailAddress.emailAddress;
 
-        const idsToRemove = user.emailAddresses
-          .filter((ea) => ea.id !== newPrimaryId)
-          .map((ea) => ea.id);
-
         await user.update({ primaryEmailAddressId: newPrimaryId });
-
-        if (idsToRemove.length > 0) {
-          try {
-            const removeRes = await fetch(
-              "/api/settings/remove-email-addresses",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ emailAddressIds: idsToRemove }),
-              },
-            );
-            if (!removeRes.ok) {
-              console.warn(
-                "Failed to remove old emails:",
-                await removeRes.text(),
-              );
-            }
-          } catch (err) {
-            console.warn("Failed to remove old emails:", err);
-          }
-        }
+        // MVP rule:
+        // - Do NOT delete any existing emails (including secondary emails)
+        // - Do NOT attempt to unlink OAuth identities (Google/Apple/Facebook)
+        //
+        // Reason:
+        // - OAuth-linked emails/identities may be required for users to sign in.
+        // - Removing secondary emails can break login recovery flows and cause account lockouts.
         await user.reload();
 
+        // Primary email update succeeded at this point (Clerk-side).
+        // We still best-effort sync to our DB, but we don't block success on it.
         let profileSyncOk = false;
         try {
           const res = await fetch("/api/profile/update", {
@@ -194,9 +178,11 @@ export function AccountSection() {
           toast.error("Failed to sync email to profile. Please try again.");
         }
 
-        if (profileSyncOk) {
-          toast.success("Email updated successfully.");
-        }
+        toast.success(
+          profileSyncOk
+            ? "Email updated successfully."
+            : "Email updated (profile sync pending).",
+        );
         handleCancelEmail();
         setShowEmailForm(false);
       } else {
