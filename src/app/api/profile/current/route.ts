@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import * as Sentry from "@sentry/nextjs";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET() {
   const { userId } = await auth();
@@ -11,12 +11,7 @@ export async function GET() {
     });
   }
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore }
-  );
+  const supabase = createAdminSupabaseClient();
 
   try {
     // Get user from users table
@@ -28,6 +23,13 @@ export async function GET() {
       .single();
 
     if (userError || !user) {
+      console.error("[api/profile/current] User lookup failed", {
+        clerkUserId: userId,
+        code: userError?.code,
+        message: userError?.message,
+        details: (userError as any)?.details,
+        hint: (userError as any)?.hint,
+      });
       return new Response(JSON.stringify({ error: "User not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
@@ -43,9 +45,13 @@ export async function GET() {
 
     if (profileError) {
       console.error("Error fetching profile:", profileError);
+      Sentry.captureException(profileError, {
+        tags: { endpoint: "/api/profile/current", action: "fetch_profile" },
+        extra: { clerkUserId: userId, internalUserId: user.id },
+      });
       return new Response(
         JSON.stringify({ error: "Failed to fetch profile data" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -65,7 +71,7 @@ export async function GET() {
     if (!hasCompletedOnboarding) {
       return new Response(
         JSON.stringify({ error: "Profile incomplete", incomplete: true }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
+        { status: 404, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -104,6 +110,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error in profile fetch:", error);
+    Sentry.captureException(error, {
+      tags: { endpoint: "/api/profile/current", action: "handler_error" },
+      extra: { clerkUserId: userId },
+    });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

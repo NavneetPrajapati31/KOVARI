@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { z } from "zod";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 const updateProfileSchema = z.object({
   field: z.string(),
@@ -29,12 +28,7 @@ export async function PATCH(req: Request) {
 
   const { field, value } = result.data;
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore },
-  );
+  const supabase = createAdminSupabaseClient();
 
   try {
     // Get user from users table

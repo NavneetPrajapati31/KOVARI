@@ -1,7 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { randomBytes } from "crypto";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 // import { Resend } from "resend";
 
 // Helper to generate a random token
@@ -41,6 +40,14 @@ function getInviteBaseUrl(req: Request): string {
 
 export async function GET(req: Request) {
   try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const { searchParams } = new URL(req.url);
     const groupId = searchParams.get("groupId");
     if (!groupId) {
@@ -49,25 +56,48 @@ export async function GET(req: Request) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name) => {
-            const cookie = cookieStore.get(name);
-            return cookie?.value;
-          },
-          set: (name, value, options) => {
-            cookieStore.set(name, value, options);
-          },
-          remove: (name, options) => {
-            cookieStore.delete(name);
-          },
-        },
+    const supabase = createAdminSupabaseClient();
+
+    const { data: currentUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_user_id", clerkUserId)
+      .eq("isDeleted", false)
+      .maybeSingle();
+    if (!currentUser?.id) {
+      return new Response(JSON.stringify({ error: "User not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: group, error: groupError } = await supabase
+      .from("groups")
+      .select("id, status, creator_id")
+      .eq("id", groupId)
+      .maybeSingle();
+    if (groupError || !group || group.status === "removed") {
+      return new Response(JSON.stringify({ error: "Group not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const isCreator = group.creator_id === currentUser.id;
+    if (!isCreator) {
+      const { data: membership } = await supabase
+        .from("group_memberships")
+        .select("status")
+        .eq("group_id", groupId)
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+      if (membership?.status !== "accepted") {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-    );
+    }
     // Check for existing link
     const { data: linkRow, error: linkError } = await supabase
       .from("group_invite_links")
@@ -130,25 +160,7 @@ export async function POST(req: Request) {
         }
       );
     }
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name) => {
-            const cookie = cookieStore.get(name);
-            return cookie?.value;
-          },
-          set: (name, value, options) => {
-            cookieStore.set(name, value, options);
-          },
-          remove: (name, options) => {
-            cookieStore.delete(name);
-          },
-        },
-      }
-    );
+    const supabase = createAdminSupabaseClient();
 
     // Map Clerk userId to internal UUID
     const { data: userRow, error: userLookupError } = await supabase
@@ -302,6 +314,34 @@ export async function POST(req: Request) {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
+    }
+
+    // For sending invites, require accepted membership or creator
+    const { data: groupAccess, error: groupAccessError } = await supabase
+      .from("groups")
+      .select("id, status, creator_id")
+      .eq("id", groupId)
+      .single();
+    if (groupAccessError || !groupAccess || groupAccess.status === "removed") {
+      return new Response(JSON.stringify({ error: "Group not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const isCreator = groupAccess.creator_id === userUuid;
+    if (!isCreator) {
+      const { data: membership } = await supabase
+        .from("group_memberships")
+        .select("status")
+        .eq("group_id", groupId)
+        .eq("user_id", userUuid)
+        .maybeSingle();
+      if (membership?.status !== "accepted") {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Fallback: original invite logic

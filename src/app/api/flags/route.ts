@@ -1,9 +1,8 @@
 // src/app/api/flags/route.ts
 import { auth } from "@clerk/nextjs/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 /**
  * POST /api/flags
@@ -76,25 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create Supabase client
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name) => {
-            const cookie = cookieStore.get(name);
-            return cookie?.value;
-          },
-          set: (name, value, options) => {
-            cookieStore.set(name, value, options);
-          },
-          remove: (name, options) => {
-            cookieStore.delete(name);
-          },
-        },
-      }
-    );
+    const supabase = createAdminSupabaseClient();
 
     // Get current user's UUID from Clerk userId
     const { data: currentUserRow, error: currentUserError } = await supabase

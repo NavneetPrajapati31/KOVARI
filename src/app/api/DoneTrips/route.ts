@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     // SQL to fetch done trips with calculated duration
     const sql = `

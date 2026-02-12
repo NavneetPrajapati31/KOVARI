@@ -1,6 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
@@ -10,25 +9,7 @@ export async function GET() {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name) => {
-            const cookie = cookieStore.get(name);
-            return cookie?.value;
-          },
-          set: (name, value, options) => {
-            cookieStore.set(name, value, options);
-          },
-          remove: (name, options) => {
-            cookieStore.delete(name);
-          },
-        },
-      },
-    );
+    const supabase = createAdminSupabaseClient();
 
     // Get the internal Supabase user_id from the clerk_user_id
     const { data: userData, error: userError } = await supabase

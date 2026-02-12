@@ -4,12 +4,7 @@
  * Uses actual schema: match_interests, match_skips, matches, user_flags, group_flags tables
  */
 
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createClient } from "@/lib/supabase";
 
 // Helper: resolve a given identifier to the user's UUID stored in `users.id`.
 // Accepts either a UUID string or a Clerk ID like "user_xxx" and returns the UUID.
@@ -20,6 +15,9 @@ async function resolveUserUuid(identifier: string): Promise<string | null> {
     /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
   if (uuidRegex.test(identifier)) return identifier;
 
+  if (uuidRegex.test(identifier)) return identifier;
+
+  const supabase = createClient();
   try {
     const { data, error } = await supabase
       .from("users")
@@ -146,6 +144,7 @@ async function checkAndCreateMatch(
   type: "solo" | "group"
 ): Promise<void> {
   try {
+    const supabase = createClient();
     // Look for reverse interest (userId2 interested in userId1)
     const { data: reverseInterest, error: selectError } = await supabase
       .from("match_interests")
@@ -369,6 +368,9 @@ export async function hasSkippedProfile(
     const targetUuid = await resolveUserUuid(targetUserId);
     if (!userUuid || !targetUuid) return false;
 
+    if (!userUuid || !targetUuid) return false;
+
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("match_skips")
       .select("id")
@@ -401,6 +403,7 @@ export async function getUserMatches(
   destinationId: string
 ): Promise<any[]> {
   try {
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("matches")
       .select(
@@ -441,6 +444,7 @@ export async function getReceivedInterests(
   destinationId: string
 ): Promise<any[]> {
   try {
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("match_interests")
       .select(
@@ -482,6 +486,7 @@ export async function getSentInterests(
   destinationId: string
 ): Promise<any[]> {
   try {
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("match_interests")
       .select(

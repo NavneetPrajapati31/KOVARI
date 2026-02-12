@@ -1,12 +1,7 @@
-
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { auth } from "@clerk/nextjs/server";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
 export async function GET() {
   try {
@@ -20,6 +15,7 @@ export async function GET() {
     }
 
     // Get the user's UUID from their Clerk ID
+    const supabaseAdmin = createAdminSupabaseClient();
     const { data: userData, error: userError } = await supabaseAdmin
       .from("users")
       .select("id")

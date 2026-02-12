@@ -1,15 +1,13 @@
 import { NextRequest } from "next/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ userId: string }> },
 ) {
   const { userId } = await context.params;
-  const supabase = createRouteHandlerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
 
   // Resolve `userId` param (can be internal UUID or Clerk ID) and ensure the
   // account is not soft-deleted. Soft delete is used so we can preserve history
@@ -162,25 +160,7 @@ export async function GET(
     console.log("[DEBUG] clerkUserId:", clerkUserId);
 
     if (clerkUserId) {
-      const cookieStore = await cookies();
-      const serverSupabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get: (name) => {
-              const cookie = cookieStore.get(name);
-              return cookie?.value;
-            },
-            set: (name, value, options) => {
-              cookieStore.set(name, value, options);
-            },
-            remove: (name, options) => {
-              cookieStore.delete(name);
-            },
-          },
-        },
-      );
+      const serverSupabase = createAdminSupabaseClient();
 
       // Get current user's internal UUID from Clerk userId
       const { data: currentUserRow, error: currentUserError } =

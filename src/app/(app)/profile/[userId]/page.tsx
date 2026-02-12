@@ -1,8 +1,8 @@
 import { UserProfile } from "@/features/profile/components/user-profile";
 import type { UserProfile as UserProfileType } from "@/features/profile/components/user-profile";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { auth } from "@clerk/nextjs/server";
+
 
 interface ProfilePageProps {
   params: Promise<{ userId: string }>;
@@ -15,12 +15,8 @@ const getInternalUserId = async (userId: string): Promise<string> => {
     console.log("[DEBUG] getInternalUserId output (already UUID):", userId);
     return userId; // Already a UUID
   }
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore },
-  );
+  const supabase = createAdminSupabaseClient();
+
   const { data: userRow } = await supabase
     .from("users")
     .select("id")
@@ -35,12 +31,8 @@ const fetchUserProfile = async (
   userId: string,
 ): Promise<UserProfileType | null> => {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: cookieStore },
-    );
+    const supabase = createAdminSupabaseClient();
+
 
     // 1. Fetch profile
     const { data: profileData, error: profileError } = await supabase

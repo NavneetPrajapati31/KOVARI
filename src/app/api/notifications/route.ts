@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 /**
  * GET /api/notifications
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
     const { searchParams } = new URL(request.url);
 
     // Get user UUID from Clerk ID
@@ -26,6 +26,7 @@ export async function GET(request: Request) {
       .from("users")
       .select("id")
       .eq("clerk_user_id", clerkUserId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !userRow) {
@@ -90,7 +91,7 @@ export async function GET(request: Request) {
       groupIdsToFetch.size > 0
         ? supabase
             .from("groups")
-            .select("id, cover_image")
+            .select("id, cover_image, status")
             .in("id", Array.from(groupIdsToFetch))
         : Promise.resolve({ data: [] }),
     ]);
@@ -105,6 +106,10 @@ export async function GET(request: Request) {
     const groupMap = new Map();
     if (groupsResult.data) {
       groupsResult.data.forEach((g: any) => {
+        if (g?.status === "removed") {
+          groupMap.set(g.id, null);
+          return;
+        }
         groupMap.set(g.id, g.cover_image);
       });
     }

@@ -28,7 +28,42 @@ export function useSyncUserToSupabase() {
       } catch {}
 
       try {
-        const token = await getToken();
+        const debugPrefix = "[syncUserToSupabase]";
+
+        // Prefer server-side sync using the Service Role key (bypasses RLS safely).
+        // This avoids requiring INSERT policies on the public.users mapping table.
+        try {
+          const syncRes = await fetch("/api/supabase/sync-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (syncRes.ok) {
+            // Mark as synced for the session
+            try {
+              if (typeof window !== "undefined") {
+                sessionStorage.setItem(storageKey, "1");
+              }
+            } catch {}
+
+            return true;
+          }
+
+          const body = await syncRes.json().catch(() => null);
+          console.warn(`${debugPrefix} Server sync failed`, {
+            status: syncRes.status,
+            body,
+          });
+        } catch (e) {
+          console.warn(`${debugPrefix} Server sync threw`, e);
+        }
+
+        // IMPORTANT: Use the Supabase JWT template so the token includes
+        // `role: "authenticated"` and is signed for Supabase verification.
+        const token = await getToken({ template: "supabase" });
+        if (!token) {
+          console.warn(`${debugPrefix} Missing supabase token`, { userId });
+        }
 
         const supabase = createBrowserClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,10 +71,10 @@ export function useSyncUserToSupabase() {
           {
             global: {
               headers: {
-                Authorization: `Bearer ${token}`,
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
             },
-          }
+          },
         );
 
         // Try to get the user to check if they exist
@@ -51,7 +86,12 @@ export function useSyncUserToSupabase() {
 
         // If fetchError is not a "no rows" error, log and retry
         if (fetchError && fetchError.code !== "PGRST116") {
-          console.error("Error checking user existence:", fetchError);
+          console.error(`${debugPrefix} Error checking user existence`, {
+            code: fetchError.code,
+            message: fetchError.message,
+            details: (fetchError as any).details,
+            hint: (fetchError as any).hint,
+          });
           if (retries > 0) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return syncUser(retries - 1);
@@ -76,7 +116,12 @@ export function useSyncUserToSupabase() {
             .single();
 
           if (insertError || !newUser) {
-            console.error("Failed to create user in Supabase:", insertError);
+            console.error(`${debugPrefix} Failed to create user in Supabase`, {
+              code: insertError?.code,
+              message: insertError?.message,
+              details: (insertError as any)?.details,
+              hint: (insertError as any)?.hint,
+            });
             if (retries > 0) {
               await new Promise((resolve) => setTimeout(resolve, 1000));
               return syncUser(retries - 1);
@@ -101,7 +146,7 @@ export function useSyncUserToSupabase() {
         console.log("✅ User synced to Supabase successfully");
         return true;
       } catch (error) {
-        console.error("Error in syncUser:", error);
+        console.error("[syncUserToSupabase] Error in syncUser:", error);
         if (retries > 0) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           return syncUser(retries - 1);
@@ -109,7 +154,7 @@ export function useSyncUserToSupabase() {
         return false;
       }
     },
-    [userId, user, getToken]
+    [userId, user, getToken],
   );
 
   return { syncUser };

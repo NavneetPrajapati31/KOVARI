@@ -1,15 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { getAuth } from "@clerk/nextjs/server"; // Adjust if you use a different auth
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET(req: NextRequest) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore }
-  );
+  const supabase = createAdminSupabaseClient();
 
   // 1. Get the Clerk user ID
   const { userId: clerkUserId } = getAuth(req);

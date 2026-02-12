@@ -84,7 +84,7 @@ function ChatPageSkeleton() {
       <div className="flex h-full min-h-0">
         {/* Sidebar skeleton - hidden on small/medium like real sidebar */}
         <div className="w-full md:w-80 lg:w-96 border-r border-border bg-card overflow-hidden hidden lg:block shrink-0">
-          <div className="p-4 sm:p-5 overflow-y-auto h-full">
+          <div className="p-4 sm:p-5 overflow-y-auto hide-scrollbar h-full">
             <div className="text-center mb-3 sm:mb-4 border-b border-border pb-3 sm:pb-4">
               <Skeleton className="mx-auto mb-2 sm:mb-3 rounded-full w-14 h-14 sm:w-16 sm:h-16" />
               <Skeleton className="h-3.5 sm:h-4 w-24 sm:w-32 mx-auto mb-1.5 sm:mb-2 rounded-lg" />

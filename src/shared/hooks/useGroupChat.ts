@@ -99,7 +99,7 @@ export const useGroupChat = (groupId: string) => {
           "mediaUrl:",
           msg.mediaUrl,
           "mediaType:",
-          msg.mediaType
+          msg.mediaType,
         );
       });
 
@@ -122,7 +122,7 @@ export const useGroupChat = (groupId: string) => {
                 "GroupKey:",
                 currentGroupKey,
                 "GroupKeyRef:",
-                groupKeyRef.current
+                groupKeyRef.current,
               );
 
               const decryptedContent = currentGroupKey
@@ -146,7 +146,7 @@ export const useGroupChat = (groupId: string) => {
             }
           }
           return message;
-        })
+        }),
       );
 
       // Debug: Log decryptedMessages for media fields
@@ -157,7 +157,7 @@ export const useGroupChat = (groupId: string) => {
           "mediaUrl:",
           msg.mediaUrl,
           "mediaType:",
-          msg.mediaType
+          msg.mediaType,
         );
       });
 
@@ -190,7 +190,7 @@ export const useGroupChat = (groupId: string) => {
     async (
       content: string,
       mediaUrl?: string,
-      mediaType?: "image" | "video"
+      mediaType?: "image" | "video",
     ) => {
       if (!user || (!content.trim() && !mediaUrl)) return;
 
@@ -204,10 +204,10 @@ export const useGroupChat = (groupId: string) => {
           encryptedMessage = await encryptMessage(content.trim());
           if (!encryptedMessage) {
             setError(
-              "Encryption failed: No encryption key or error in encryption."
+              "Encryption failed: No encryption key or error in encryption.",
             );
             console.error(
-              "[E2EE] Encryption failed: encryptMessage returned null"
+              "[E2EE] Encryption failed: encryptMessage returned null",
             );
             return;
           }
@@ -259,7 +259,7 @@ export const useGroupChat = (groupId: string) => {
           }
 
           throw new Error(
-            `Failed to send message: ${errorData.error || response.statusText}`
+            `Failed to send message: ${errorData.error || response.statusText}`,
           );
         }
 
@@ -295,7 +295,7 @@ export const useGroupChat = (groupId: string) => {
         setSending(false);
       }
     },
-    [groupId, user, encryptMessage, isEncryptionAvailable]
+    [groupId, user, encryptMessage, isEncryptionAvailable],
   );
 
   // Set up real-time subscription
@@ -315,149 +315,15 @@ export const useGroupChat = (groupId: string) => {
           table: "group_messages",
           filter: `group_id=eq.${groupId}`,
         },
-        async (payload) => {
-          console.log("[Realtime] New message payload:", payload);
+        async () => {
+          // With RLS enabled, client-side selects with joins (users/profiles) can be blocked.
+          // The API route enforces membership and uses server-side DB access, so refetch via API.
           try {
-            // Fetch the complete message with user profile info
-            const { data: messageData, error } = await supabase
-              .from("group_messages")
-              .select(
-                `
-                id,
-                encrypted_content,
-                encryption_iv,
-                encryption_salt,
-                is_encrypted,
-                created_at,
-                user_id,
-                media_url,
-                media_type,
-                users(
-                  id,
-                  profiles(
-                    name,
-                    username,
-                    profile_photo,
-                    deleted
-                  )
-                )
-              `
-              )
-              .eq("id", payload.new.id)
-              .single();
-
-            if (error || !messageData) {
-              console.error("[Realtime] Error fetching new message:", error);
-              return;
-            }
-            console.log("[Realtime] Fetched messageData:", messageData);
-
-            // Get current user's internal ID to determine if it's their message
-            const currentUserUuid = await getUserUuidByClerkId(user.id);
-            const isCurrentUser = messageData.user_id === currentUserUuid;
-
-            // Skip adding the message if it's from the current user and we already have it
-            // (due to optimistic updates)
-            setMessages((prev) => {
-              const messageExists = prev.some(
-                (msg) => msg.id === messageData.id
-              );
-              if (messageExists && isCurrentUser) {
-                console.log(
-                  "[Realtime] Skipping duplicate message from current user"
-                );
-                return prev;
-              }
-
-              // Decrypt the message if it's encrypted
-              let decryptedContent = "[Encrypted message]";
-              if (messageData.is_encrypted && messageData.encrypted_content) {
-                try {
-                  const encryptedMessage: EncryptedMessage = {
-                    encryptedContent: messageData.encrypted_content,
-                    iv: messageData.encryption_iv,
-                    salt: messageData.encryption_salt,
-                  };
-
-                  // Use the current group key for decryption
-                  const currentGroupKey = groupKeyRef.current;
-                  console.log(
-                    "[Realtime] Decrypting with key:",
-                    currentGroupKey ? "Available" : "Not available",
-                    "Encrypted message:",
-                    encryptedMessage
-                  );
-
-                  decryptedContent = currentGroupKey
-                    ? decryptGroupMessage(encryptedMessage, currentGroupKey)
-                    : "[Encrypted message]";
-
-                  console.log(
-                    "[Realtime] Decryption result:",
-                    decryptedContent
-                  );
-                } catch (err) {
-                  console.error(
-                    "[Realtime] Error decrypting real-time message:",
-                    err
-                  );
-                  decryptedContent = "[Failed to decrypt message]";
-                }
-              }
-
-              const formattedMessage: ChatMessage = {
-                id: messageData.id,
-                content: decryptedContent,
-                timestamp: new Date(messageData.created_at).toLocaleTimeString(
-                  [],
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "Asia/Kolkata",
-                  }
-                ),
-                sender: (() => {
-                  const profile = (messageData.users as any)?.profiles;
-                  const isDeleted = profile?.deleted === true;
-                  return isDeleted
-                    ? "Deleted User"
-                    : profile?.name || "Unknown User";
-                })(),
-                senderUsername: (() => {
-                  const profile = (messageData.users as any)?.profiles;
-                  const isDeleted = profile?.deleted === true;
-                  return isDeleted ? undefined : profile?.username;
-                })(),
-                senderId: messageData.user_id ?? (messageData.users as any)?.id,
-                avatar: (() => {
-                  const profile = (messageData.users as any)?.profiles;
-                  const isDeleted = profile?.deleted === true;
-                  return isDeleted ? undefined : profile?.profile_photo;
-                })(),
-                isCurrentUser,
-                createdAt: messageData.created_at,
-                mediaUrl: messageData.media_url ?? undefined,
-                mediaType: messageData.media_type ?? undefined,
-              };
-
-              // If it's a new message (not from current user or not already in state)
-              if (!messageExists) {
-                console.log(
-                  "[Realtime] Adding new message to state:",
-                  formattedMessage
-                );
-                return [...prev, formattedMessage];
-              }
-
-              return prev;
-            });
-          } catch (err) {
-            console.error(
-              "[Realtime] Error processing real-time message:",
-              err
-            );
+            await fetchMessages();
+          } catch (e) {
+            // ignore; fetchMessages already sets error state
           }
-        }
+        },
       )
       .subscribe();
 

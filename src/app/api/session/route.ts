@@ -10,6 +10,7 @@ import { SoloSession, StaticAttributes } from "../../../types";
 import redis, { ensureRedisConnection } from "../../../lib/redis";
 import { getSetting } from "../../../lib/settings";
 import * as Sentry from "@sentry/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 // Mock user data for testing
 const mockUsers = {
@@ -309,24 +310,40 @@ const mockUsers = {
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json(
+        { message: "Unauthorized", error: "UNAUTHORIZED" },
+        { status: 401 },
+      );
+    }
+
     // Check maintenance mode
     const maintenance = await getSetting("maintenance_mode");
     if (maintenance && (maintenance as { enabled: boolean }).enabled) {
       return NextResponse.json(
         { error: "System under maintenance. Please try later." },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     const body = await request.json();
     const { userId, destinationName, budget, startDate, endDate } = body;
 
+    // Prevent user-id spoofing; session can only be created for caller.
+    if (!userId || userId !== clerkUserId) {
+      return NextResponse.json(
+        { message: "Forbidden", error: "FORBIDDEN" },
+        { status: 403 },
+      );
+    }
+
     // 1. Geocode the destination name
     const destinationCoords = await getCoordinatesForLocation(destinationName);
     if (!destinationCoords) {
       return NextResponse.json(
         { message: `Could not find location: ${destinationName}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -352,14 +369,14 @@ export async function POST(request: NextRequest) {
             error: "PROFILE_NOT_FOUND",
             hint: "Visit /onboarding to complete your profile",
           },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
       // Check if user has required location data
       if (!(userProfile as any).location) {
         console.error(
-          `User profile found but missing location for Clerk ID: ${userId}`
+          `User profile found but missing location for Clerk ID: ${userId}`,
         );
         return NextResponse.json(
           {
@@ -368,7 +385,7 @@ export async function POST(request: NextRequest) {
             error: "PROFILE_INCOMPLETE",
             hint: "Visit /profile/edit to update your profile",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -390,14 +407,14 @@ export async function POST(request: NextRequest) {
     const ttlHours = (ttlSetting as { hours: number } | null)?.hours || 168; // Default: 7 days
     const ttlSeconds = ttlHours * 3600;
     console.log(
-      `📅 Setting session TTL to ${ttlHours} hours (${ttlSeconds} seconds)`
+      `📅 Setting session TTL to ${ttlHours} hours (${ttlSeconds} seconds)`,
     );
 
     const redisClient = await ensureRedisConnection();
     await redisClient.setEx(
       `session:${userId}`,
       ttlSeconds,
-      JSON.stringify(sessionData)
+      JSON.stringify(sessionData),
     );
 
     // Track session creation for safety signals (non-blocking)
@@ -411,7 +428,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { message: "Session created successfully" },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error in /api/session:", error);
@@ -423,7 +440,7 @@ export async function POST(request: NextRequest) {
         message: "Internal Server Error",
         error: "INTERNAL_ERROR",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

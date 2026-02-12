@@ -1,19 +1,24 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
+import { auth } from "@clerk/nextjs/server";
 import { createNotification } from "@/lib/notifications/createNotification";
 import { NotificationType } from "@/shared/types/notifications";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
-
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { fromUserId, toUserId, destinationId } = body;
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const supabaseAdmin = createAdminSupabaseClient();
 
-    if (!fromUserId || !toUserId || !destinationId) {
+    const body = await request.json();
+    const { toUserId, destinationId } = body;
+
+    // Use authenticated user as sender
+    const fromUserId = clerkUserId;
+
+    if (!toUserId || !destinationId) {
       return NextResponse.json(
         { success: false, error: "Missing parameters" },
         { status: 400 }

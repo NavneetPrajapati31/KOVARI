@@ -1,9 +1,8 @@
 // src/app/api/flags/test/route.ts
 // Temporary test endpoint to debug flags insert
 import { auth } from "@clerk/nextjs/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,26 +10,11 @@ export async function GET(req: NextRequest) {
     if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (process.env.NODE_ENV !== "development") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name) => {
-            const cookie = cookieStore.get(name);
-            return cookie?.value;
-          },
-          set: (name, value, options) => {
-            cookieStore.set(name, value, options);
-          },
-          remove: (name, options) => {
-            cookieStore.delete(name);
-          },
-        },
-      }
-    );
+    const supabase = createAdminSupabaseClient();
 
     // Get current user
     const { data: currentUserRow, error: currentUserError } = await supabase

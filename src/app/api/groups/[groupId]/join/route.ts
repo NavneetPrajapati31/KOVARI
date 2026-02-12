@@ -1,108 +1,125 @@
 import { auth } from "@clerk/nextjs/server";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
   try {
     const { userId: clerkUserId } = await auth();
     const { groupId } = await params;
 
     if (!clerkUserId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!groupId) {
-      return new NextResponse("Missing groupId", { status: 400 });
+      return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set(name, value, options);
-          },
-          remove(name: string) {
-            cookieStore.delete(name);
-          },
-        },
-      }
-    );
+    const supabase = createAdminSupabaseClient();
 
-    let targetClerkUserId = clerkUserId;
+    // Resolve acting user (internal uuid)
+    const { data: actingUser, error: actingUserError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_user_id", clerkUserId)
+      .eq("isDeleted", false)
+      .single();
+
+    if (actingUserError || !actingUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     let body: any = {};
     try {
       body = await req.json();
-      if (
-        body.userId &&
-        typeof body.userId === "string" &&
-        body.userId !== clerkUserId
-      ) {
-        // Check if current user is admin of the group
-        const { data: adminMembership, error: adminError } = await supabase
-          .from("group_memberships")
-          .select("role")
-          .eq("group_id", groupId)
-          .eq("status", "accepted")
-          .eq(
-            "user_id",
-            (
-              await supabase
-                .from("users")
-                .select("id")
-                .eq("clerk_user_id", clerkUserId)
-                .single()
-            ).data?.id
-          )
-          .maybeSingle();
-        if (adminError) {
-          return new NextResponse("Database error", { status: 500 });
-        }
-        if (adminMembership && adminMembership.role === "admin") {
-          targetClerkUserId = body.userId;
-        } else {
-          return new NextResponse(
-            "Only admins can approve join requests for others",
-            { status: 403 }
-          );
-        }
-      }
-    } catch (e) {
-      // ignore, fallback to default
+    } catch {
+      body = {};
     }
 
-    // Get user UUID from Clerk userId (target)
+    const targetClerkUserId: string =
+      typeof body?.userId === "string" && body.userId.length > 0
+        ? body.userId
+        : clerkUserId;
+    const viaInvite = body?.viaInvite === true;
+    const approvingOther = targetClerkUserId !== clerkUserId;
+
+    // Validate group exists and access rules
+    const { data: groupRow, error: groupErr } = await supabase
+      .from("groups")
+      .select("id, status, creator_id, name")
+      .eq("id", groupId)
+      .single();
+    if (groupErr || !groupRow) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+    if (groupRow.status === "removed") {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+    if (groupRow.status === "pending") {
+      return NextResponse.json(
+        { error: "Cannot modify group while it's under review" },
+        { status: 403 },
+      );
+    }
+
+    const isCreator = groupRow.creator_id === actingUser.id;
+
+    const { data: actingMembership, error: actingMembershipError } =
+      await supabase
+        .from("group_memberships")
+        .select("role, status")
+        .eq("group_id", groupId)
+        .eq("user_id", actingUser.id)
+        .maybeSingle();
+
+    if (actingMembershipError) {
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
+    }
+
+    const isAdmin =
+      actingMembership?.status === "accepted" &&
+      actingMembership?.role === "admin";
+
+    if (approvingOther && !isCreator && !isAdmin) {
+      return NextResponse.json(
+        { error: "Only admins can approve join requests" },
+        { status: 403 },
+      );
+    }
+
+    // Get target user (internal uuid)
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("clerk_user_id", targetClerkUserId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !user) {
-      console.error("Error finding user:", userError);
-      return new NextResponse("User not found", { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Validate group exists, is not removed, and is not full (unless admin is adding someone else)
-    const { data: groupRow, error: groupErr } = await supabase
-      .from("groups")
-      .select("id, status")
-      .eq("id", groupId)
-      .maybeSingle();
-    if (groupErr || !groupRow) {
-      return new NextResponse("Group not found", { status: 404 });
-    }
-    if (groupRow.status === "removed") {
-      return new NextResponse("Group not found", { status: 404 });
+    // If approving a request (not invite flow), ensure a pending_request exists
+    if (approvingOther && !viaInvite) {
+      const { data: pendingReq, error: pendingErr } = await supabase
+        .from("group_memberships")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("user_id", user.id)
+        .eq("status", "pending_request")
+        .maybeSingle();
+      if (pendingErr) {
+        return NextResponse.json({ error: "Database error" }, { status: 500 });
+      }
+      if (!pendingReq) {
+        return NextResponse.json(
+          { error: "No pending join request found" },
+          { status: 404 },
+        );
+      }
     }
     const { count, error: countErr } = await supabase
       .from("group_memberships")
@@ -110,9 +127,9 @@ export async function POST(
       .eq("group_id", groupId)
       .eq("status", "accepted");
     if (!countErr && count != null && count >= 10) {
-      return new NextResponse(
-        JSON.stringify({ error: "Group is full (maximum 10 members)" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+      return NextResponse.json(
+        { error: "Group is full (maximum 10 members)" },
+        { status: 400 },
       );
     }
 
@@ -126,25 +143,18 @@ export async function POST(
           role: "member",
           joined_at: new Date().toISOString(),
         },
-        { onConflict: "group_id, user_id" }
+        { onConflict: "group_id, user_id" },
       );
 
     if (upsertError) {
       console.error("Error joining group:", upsertError);
-      return new NextResponse("Database error", { status: 500 });
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    // Send notification only when this is an admin approving a request, not when user joins via invite link
-    const viaInvite = body?.viaInvite === true;
-    if (!viaInvite) {
+    // Send notification only when this is an admin approving a request (not invite flow)
+    if (approvingOther && !viaInvite) {
       try {
-        const { data: groupData } = await supabase
-          .from("groups")
-          .select("name")
-          .eq("id", groupId)
-          .single();
-
-        const groupName = groupData?.name || "a group";
+        const groupName = groupRow?.name || "a group";
 
         const { createNotification } = await import(
           "@/lib/notifications/createNotification"
@@ -164,7 +174,7 @@ export async function POST(
       } catch (notifyError) {
         console.error(
           "[GROUP_JOIN_POST] Error sending notification:",
-          notifyError
+          notifyError,
         );
       }
     }
@@ -172,6 +182,9 @@ export async function POST(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[GROUP_JOIN_POST]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

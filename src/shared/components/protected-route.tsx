@@ -30,6 +30,7 @@ export default function ProtectedRoute({
   const router = useRouter();
   const pathname = usePathname();
   const { syncUser } = useSyncUserToSupabase();
+  const debug = process.env.NODE_ENV !== "production";
 
   const [phase, setPhase] = useState<
     "sync" | "check_profile" | "allow" | "redirect"
@@ -42,6 +43,7 @@ export default function ProtectedRoute({
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
+      if (debug) console.warn("[ProtectedRoute] Not signed in -> /sign-in");
       router.push("/sign-in");
     }
   }, [isLoaded, isSignedIn, router]);
@@ -51,8 +53,12 @@ export default function ProtectedRoute({
     if (!isLoaded || !isSignedIn || syncedRef.current) return;
     syncedRef.current = true;
     setPhase("sync");
+    if (debug) console.log("[ProtectedRoute] Syncing user to Supabase…");
     syncUser()
-      .catch((err) => console.error("ProtectedRoute: sync failed", err))
+      .then((ok) => {
+        if (debug) console.log("[ProtectedRoute] Sync result", { ok });
+      })
+      .catch((err) => console.error("[ProtectedRoute] sync failed", err))
       .finally(() => setPhase("check_profile"));
   }, [isLoaded, isSignedIn, syncUser]);
 
@@ -88,6 +94,13 @@ export default function ProtectedRoute({
         headers: { "Content-Type": "application/json" },
       })
         .then((res) => {
+          if (debug) {
+            console.log("[ProtectedRoute] /api/profile/current", {
+              status: res.status,
+              ok: res.ok,
+              path,
+            });
+          }
           if (res.ok) {
             profileConfirmedRef.current = true;
             setPhase("allow");
@@ -96,7 +109,9 @@ export default function ProtectedRoute({
             router.replace(ONBOARDING_PATH_PREFIX);
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          if (debug)
+            console.error("[ProtectedRoute] profile check failed", err);
           setPhase("redirect");
           router.replace(ONBOARDING_PATH_PREFIX);
         });

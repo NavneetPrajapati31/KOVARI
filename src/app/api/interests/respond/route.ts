@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { auth } from "@clerk/nextjs/server";
 import { createNotification } from "@/lib/notifications/createNotification";
 import { NotificationType } from "@/shared/types/notifications";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
 export async function POST(request: Request) {
   try {
@@ -28,6 +23,7 @@ export async function POST(request: Request) {
 
     const status = action === "accept" ? "accepted" : "rejected";
 
+    const supabaseAdmin = createAdminSupabaseClient();
     const { data: updatedInterest, error } = await supabaseAdmin
       .from("match_interests")
       .update({ status })

@@ -1,10 +1,10 @@
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
   try {
     const { userId } = await auth();
@@ -14,7 +14,7 @@ export async function GET(
 
     const { groupId } = await params;
     // REMOVE: limit/offset logic
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     // Get user's internal ID
     const { data: userRow, error: userError } = await supabase
@@ -28,20 +28,39 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if user is a member of the group
-    const { data: membership, error: membershipError } = await supabase
-      .from("group_memberships")
-      .select("status")
-      .eq("group_id", groupId)
-      .eq("user_id", userRow.id)
-      .eq("status", "accepted")
+    // Check group + access (creator or accepted member)
+    const { data: group, error: groupError } = await supabase
+      .from("groups")
+      .select("id, status, creator_id")
+      .eq("id", groupId)
       .single();
 
-    if (membershipError || !membership) {
-      return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 403 }
-      );
+    if (groupError || !group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+    if (group.status === "removed") {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    const isCreator = group.creator_id === userRow.id;
+    if (group.status === "pending" && !isCreator) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    if (!isCreator) {
+      const { data: membership } = await supabase
+        .from("group_memberships")
+        .select("status")
+        .eq("group_id", groupId)
+        .eq("user_id", userRow.id)
+        .maybeSingle();
+
+      if (membership?.status !== "accepted") {
+        return NextResponse.json(
+          { error: "Not a member of this group" },
+          { status: 403 },
+        );
+      }
     }
 
     // Fetch messages with sender information
@@ -67,7 +86,7 @@ export async function GET(
             deleted
           )
         )
-      `
+      `,
       )
       .eq("group_id", groupId)
       .order("created_at", { ascending: true });
@@ -76,11 +95,9 @@ export async function GET(
       console.error("Error fetching messages:", messagesError);
       return NextResponse.json(
         { error: "Failed to fetch messages" },
-        { status: 500 }
+        { status: 500 },
       );
     }
-
-    console.log("[GET_MESSAGES] Raw messages from DB:", messages);
 
     // Transform messages to include sender info and format timestamps
     const formattedMessages =
@@ -110,21 +127,19 @@ export async function GET(
         };
       }) || [];
 
-    console.log("[GET_MESSAGES] Formatted messages:", formattedMessages);
-
     return NextResponse.json(formattedMessages);
   } catch (error) {
     console.error("[GET_MESSAGES]", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
   try {
     const { userId } = await auth();
@@ -145,13 +160,14 @@ export async function POST(
       mediaType,
     } = body;
 
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     // Get user's internal ID
     const { data: userRow, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("clerk_user_id", userId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !userRow) {
@@ -161,7 +177,7 @@ export async function POST(
     // Check if group exists and is not removed
     const { data: group, error: groupError } = await supabase
       .from("groups")
-      .select("id, status")
+      .select("id, status, creator_id")
       .eq("id", groupId)
       .single();
 
@@ -178,24 +194,26 @@ export async function POST(
     if (group.status === "pending") {
       return NextResponse.json(
         { error: "Cannot send messages while group is under review" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // Check if user is a member of the group
-    const { data: membership, error: membershipError } = await supabase
-      .from("group_memberships")
-      .select("status")
-      .eq("group_id", groupId)
-      .eq("user_id", userRow.id)
-      .eq("status", "accepted")
-      .single();
+    // Check creator or accepted membership
+    const isCreator = group.creator_id === userRow.id;
+    if (!isCreator) {
+      const { data: membership } = await supabase
+        .from("group_memberships")
+        .select("status")
+        .eq("group_id", groupId)
+        .eq("user_id", userRow.id)
+        .maybeSingle();
 
-    if (membershipError || !membership) {
-      return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 403 }
-      );
+      if (membership?.status !== "accepted") {
+        return NextResponse.json(
+          { error: "Not a member of this group" },
+          { status: 403 },
+        );
+      }
     }
 
     // Allow: (A) encrypted text message, (B) media-only message, (C) both
@@ -217,18 +235,40 @@ export async function POST(
         messageData.media_url = mediaUrl;
         messageData.media_type = mediaType;
       }
-      console.log("[POST_MESSAGE] Inserting message:", messageData);
       const { data: inserted, error: insertError } = await supabase
         .from("group_messages")
         .insert([messageData])
-        .select()
+        .select(
+          `
+          id,
+          encrypted_content,
+          encryption_iv,
+          encryption_salt,
+          is_encrypted,
+          created_at,
+          user_id,
+          media_url,
+          media_type,
+          users(
+            id,
+            profiles(
+              name,
+              username,
+              profile_photo,
+              deleted
+            )
+          )
+        `,
+        )
         .single();
       if (insertError) {
         return NextResponse.json(
           { error: "Failed to insert message", details: insertError.message },
-          { status: 500 }
+          { status: 500 },
         );
       }
+      const profile = (inserted as any).users?.profiles;
+      const isDeleted = profile?.deleted === true;
       // Return the inserted message (with encrypted and media fields)
       return NextResponse.json({
         id: inserted.id,
@@ -237,9 +277,12 @@ export async function POST(
         encryptionSalt: inserted.encryption_salt,
         isEncrypted: inserted.is_encrypted,
         createdAt: inserted.created_at,
-        sender: userRow.id,
-        mediaUrl: inserted.media_url,
-        mediaType: inserted.media_type,
+        sender: isDeleted ? "Deleted User" : profile?.name || "Unknown User",
+        senderUsername: isDeleted ? undefined : profile?.username,
+        senderId: inserted.user_id,
+        avatar: isDeleted ? undefined : profile?.profile_photo,
+        mediaUrl: inserted.media_url ?? undefined,
+        mediaType: inserted.media_type ?? undefined,
       });
     } else {
       return NextResponse.json(
@@ -247,14 +290,14 @@ export async function POST(
           error:
             "Only encrypted or media messages are supported. Missing required fields.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
   } catch (error) {
     console.error("[POST_MESSAGE]", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

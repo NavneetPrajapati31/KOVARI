@@ -4,9 +4,8 @@ export const fetchCache = "force-no-store";
 
 import { UserProfile } from "@/features/profile/components/user-profile";
 import type { UserProfile as UserProfileType } from "@/features/profile/components/user-profile";
-import { createServerClient } from "@supabase/ssr";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { Suspense } from "react";
 import { CardContent } from "@/shared/components/ui/card";
@@ -128,35 +127,23 @@ const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
       redirect("/sign-in");
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name) => {
-            const cookie = cookieStore.get(name);
-            return cookie?.value;
-          },
-          set: (name, value, options) => {
-            cookieStore.set(name, value, options);
-          },
-          remove: (name, options) => {
-            cookieStore.delete(name);
-          },
-        },
-      }
-    );
+    const supabase = createAdminSupabaseClient();
 
     // Get user UUID from Clerk userId
     const { data: userRow, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("clerk_user_id", clerkUserId)
-      .single();
+      .maybeSingle();
 
-    if (userError || !userRow) {
-      console.error("Error finding user:", userError);
+    if (userError) {
+      console.error(
+        "Error finding user:",
+        JSON.stringify(userError, null, 2)
+      );
+      return null;
+    } else if (!userRow) {
+      console.warn("Current user not found in database (sync issue?)");
       return null;
     }
 

@@ -52,11 +52,11 @@ import {
   DropdownMenuItem,
 } from "@/shared/components/ui/dropdown-menu";
 import ChatActionsDropdown from "@/shared/components/chat/chat-actions-dropdown";
-import { isUserBlocked } from "@/shared/utils/blocked-users";
-import { unblockUser } from "@/shared/utils/blocked-users";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
+import { isUserBlocked, unblockUser, checkBlockStatus } from "@/shared/utils/blocked-users";
 import { Skeleton } from "@heroui/react";
 import MediaViewerModal from "@/shared/components/media-viewer-modal";
-import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
+
 
 interface PartnerProfile {
   name?: string;
@@ -663,14 +663,13 @@ const DirectChatPage = () => {
     const checkBlocks = async () => {
       setBlockLoading(true);
       try {
-        const [iBlocked, theyBlocked] = await Promise.all([
-          isUserBlocked(currentUserUuid, partnerUuid),
-          isUserBlocked(partnerUuid, currentUserUuid),
-        ]);
+        const { iBlockedThem, theyBlockedMe } = await checkBlockStatus(partnerUuid);
         if (!cancelled) {
-          setIBlockedThem(iBlocked);
-          setTheyBlockedMe(theyBlocked);
+          setIBlockedThem(iBlockedThem);
+          setTheyBlockedMe(theyBlockedMe);
         }
+      } catch (err) {
+        console.error("Error checking blocks:", err);
       } finally {
         if (!cancelled) setBlockLoading(false);
       }
@@ -1175,7 +1174,7 @@ const DirectChatPage = () => {
   }
   if (iBlockedThem) {
     return (
-      <div className="relative flex flex-col h-full items-center justify-center text-center p-3">
+      <div className="relative bg-card flex flex-col h-full items-center justify-center text-center p-3">
         <button
           onClick={handleBackClick}
           className="absolute top-4 left-3 bg-transparent text-foreground md:hidden p-0 gap-1 inline-flex items-center text-xs md:text-sm transition-colors"

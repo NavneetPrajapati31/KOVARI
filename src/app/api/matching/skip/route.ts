@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(request: Request) {
   try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const supabaseAdmin = createAdminSupabaseClient();
+
     const body = await request.json();
-    const { skipperId, skippedUserId, destinationId, type = "solo" } = body;
+    const { skippedUserId, destinationId, type = "solo" } = body;
+
+    // Use authenticated user as skipper
+    const skipperId = clerkUserId;
 
     if (!skipperId || !skippedUserId || !destinationId) {
       console.error("Skip API: Missing parameters", {
@@ -23,13 +28,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
-      console.error("Skip API: Missing Supabase environment variables");
-      return NextResponse.json(
-        { success: false, error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
+
 
     // Resolve identifiers to UUIDs if needed
     const resolve = async (identifier: string) => {

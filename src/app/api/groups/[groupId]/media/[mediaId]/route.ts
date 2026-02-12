@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
+import { auth } from "@clerk/nextjs/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { deleteFromCloudinary } from "@/lib/cloudinary";
 
 function getParamsFromUrl(request: NextRequest): {
@@ -26,12 +27,59 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const supabase = createRouteHandlerSupabaseClient();
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const supabase = createAdminSupabaseClient();
+
+    const { data: userRow, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_user_id", clerkUserId)
+      .eq("isDeleted", false)
+      .single();
+    if (userError || !userRow) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const { data: group, error: groupError } = await supabase
+      .from("groups")
+      .select("id, status, creator_id")
+      .eq("id", groupId)
+      .single();
+    if (groupError || !group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+    if (group.status === "removed") {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    const isCreator = group.creator_id === userRow.id;
+    let isAdmin = isCreator;
+    let isAcceptedMember = isCreator;
+    if (!isCreator) {
+      const { data: membership } = await supabase
+        .from("group_memberships")
+        .select("status, role")
+        .eq("group_id", groupId)
+        .eq("user_id", userRow.id)
+        .maybeSingle();
+      isAcceptedMember = membership?.status === "accepted";
+      isAdmin = membership?.role === "admin";
+      if (!isAcceptedMember) {
+        return NextResponse.json(
+          { error: "Not a member of this group" },
+          { status: 403 },
+        );
+      }
+    }
 
     // Get the media record first
     const { data: mediaData, error: fetchError } = await supabase
       .from("group_media")
-      .select("id, url, cloudinary_public_id")
+      .select("id, url, cloudinary_public_id, uploaded_by")
       .eq("id", mediaId)
       .eq("group_id", groupId)
       .single();
@@ -39,6 +87,12 @@ export async function DELETE(request: NextRequest) {
     if (fetchError || !mediaData) {
       console.error("[MEDIA][DELETE] Media not found:", fetchError);
       return NextResponse.json({ error: "Media not found" }, { status: 404 });
+    }
+
+    // Only uploader, group admin, or creator can delete media
+    const isUploader = mediaData.uploaded_by === userRow.id;
+    if (!isUploader && !isAdmin && !isCreator) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Delete from Cloudinary if it's a Cloudinary URL

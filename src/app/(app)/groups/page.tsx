@@ -4,7 +4,7 @@ import { Button } from "@/shared/components/ui/button";
 
 // Update the imports at the top
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { GroupCard } from "@/features/explore/components/GroupCard";
 import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
 import { fetchMyGroups, Group } from "@/features/explore/lib/fetchExploreData";
@@ -17,6 +17,7 @@ const SKELETON_COUNT = 16;
 
 export default function GroupsPage() {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -35,7 +36,12 @@ export default function GroupsPage() {
       setIsLoading(true);
       setHasError(false);
       try {
-        const { data } = await fetchMyGroups(user.id, SKELETON_COUNT);
+        const supabaseToken = await getToken({ template: "supabase" });
+        const { data } = await fetchMyGroups(
+          user.id,
+          SKELETON_COUNT,
+          supabaseToken
+        );
         setGroups(data);
       } catch (error) {
         setHasError(true);

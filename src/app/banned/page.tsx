@@ -2,7 +2,7 @@ import { SignOutButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { format } from "date-fns";
 
 export default async function BannedPage() {
@@ -29,11 +29,11 @@ export default async function BannedPage() {
 
   let banDetails: BanDetails = defaultBanDetails;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  /* const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; */
 
-  if (supabaseUrl && supabaseKey) {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+  if (true) {
+    const supabase = createAdminSupabaseClient();
 
     try {
       const { data: user, error } = await supabase

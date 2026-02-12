@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
-import { useUser } from "@clerk/nextjs";
+import { createClientWithAuth } from "@/lib/supabase";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 
 export type Group = {
@@ -24,6 +24,7 @@ export type Group = {
 
 export function useUserGroups() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,14 +46,21 @@ export function useUserGroups() {
           );
         }
 
-        const userUuid = await getUserUuidByClerkId(user.id);
+        const supabaseToken = await getToken({ template: "supabase" });
+        if (!supabaseToken) {
+          setError("Missing auth token. Please sign in again.");
+          setLoading(false);
+          return;
+        }
+
+        const userUuid = await getUserUuidByClerkId(user.id, supabaseToken);
         if (!userUuid) {
           setError("User not found in database.");
           setLoading(false);
           return;
         }
 
-        const supabase = createClient();
+        const supabase = createClientWithAuth(supabaseToken);
         const { data, error: supabaseError } = await supabase
           .from("group_memberships")
           .select(

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerSupabaseClient();
+    if (process.env.NODE_ENV !== "development") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    const supabase = createAdminSupabaseClient();
 
     // Fetch groups with all necessary fields from the schema
     const { data: groups, error } = await supabase

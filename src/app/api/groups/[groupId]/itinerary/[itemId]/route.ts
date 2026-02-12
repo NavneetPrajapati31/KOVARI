@@ -1,12 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
-async function checkGroupAccess(
+async function getGroupAccessContext(
   supabase: any,
   groupId: string,
-  requireActive: boolean = false
-): Promise<{ allowed: boolean; error?: string }> {
+): Promise<
+  | {
+      ok: true;
+      userId: string;
+      group: { id: string; status: string; creator_id: string | null };
+      isCreator: boolean;
+      isAcceptedMember: boolean;
+    }
+  | { ok: false; status: number; error: string }
+> {
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) {
+    return { ok: false, status: 401, error: "Unauthorized" };
+  }
+
+  const { data: userRow, error: userError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("clerk_user_id", clerkUserId)
+    .eq("isDeleted", false)
+    .single();
+
+  if (userError || !userRow) {
+    return { ok: false, status: 404, error: "User not found" };
+  }
+
   const { data: group, error: groupError } = await supabase
     .from("groups")
     .select("id, status, creator_id")
@@ -14,53 +38,55 @@ async function checkGroupAccess(
     .single();
 
   if (groupError || !group) {
-    return { allowed: false, error: "Group not found" };
+    return { ok: false, status: 404, error: "Group not found" };
   }
 
   if (group.status === "removed") {
-    return { allowed: false, error: "Group not found" };
+    return { ok: false, status: 404, error: "Group not found" };
   }
 
-  if (group.status === "pending") {
-    if (requireActive) {
-      return {
-        allowed: false,
-        error: "Cannot modify group while it's under review",
-      };
-    }
-    // For read access, check if user is creator
-    const { userId } = await auth();
-    if (!userId) {
-      return { allowed: false, error: "Group not found" };
-    }
+  const isCreator = group.creator_id === userRow.id;
 
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .single();
-
-    if (userError || !userData || group.creator_id !== userData.id) {
-      return { allowed: false, error: "Group not found" };
-    }
+  // Pending groups are only accessible to creator
+  if (group.status === "pending" && !isCreator) {
+    return { ok: false, status: 404, error: "Group not found" };
   }
 
-  return { allowed: true };
+  let isAcceptedMember = false;
+  if (!isCreator) {
+    const { data: membership } = await supabase
+      .from("group_memberships")
+      .select("status")
+      .eq("group_id", groupId)
+      .eq("user_id", userRow.id)
+      .maybeSingle();
+    isAcceptedMember = membership?.status === "accepted";
+    if (!isAcceptedMember) {
+      return { ok: false, status: 403, error: "Not a member of this group" };
+    }
+  } else {
+    isAcceptedMember = true;
+  }
+
+  return {
+    ok: true,
+    userId: userRow.id,
+    group,
+    isCreator,
+    isAcceptedMember,
+  };
 }
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string; itemId: string }> }
 ) {
-  const supabase = createRouteHandlerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { groupId, itemId } = await params;
 
-  const accessCheck = await checkGroupAccess(supabase, groupId, false);
-  if (!accessCheck.allowed) {
-    return NextResponse.json(
-      { error: accessCheck.error || "Group not found" },
-      { status: 404 }
-    );
+  const ctx = await getGroupAccessContext(supabase, groupId);
+  if (!ctx.ok) {
+    return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
 
   const { data, error } = await supabase
@@ -80,17 +106,17 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string; itemId: string }> }
 ) {
-  const supabase = createRouteHandlerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { groupId, itemId } = await params;
 
-  // Block updates if group is pending
-  const accessCheck = await checkGroupAccess(supabase, groupId, true);
-  if (!accessCheck.allowed) {
+  const ctx = await getGroupAccessContext(supabase, groupId);
+  if (!ctx.ok) {
+    return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+  }
+  if (ctx.group.status === "pending") {
     return NextResponse.json(
-      {
-        error: accessCheck.error || "Cannot update while group is under review",
-      },
-      { status: accessCheck.error?.includes("not found") ? 404 : 403 }
+      { error: "Cannot modify group while it's under review" },
+      { status: 403 },
     );
   }
 
@@ -158,17 +184,17 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string; itemId: string }> }
 ) {
-  const supabase = createRouteHandlerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { groupId, itemId } = await params;
 
-  // Block deletions if group is pending
-  const accessCheck = await checkGroupAccess(supabase, groupId, true);
-  if (!accessCheck.allowed) {
+  const ctx = await getGroupAccessContext(supabase, groupId);
+  if (!ctx.ok) {
+    return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+  }
+  if (ctx.group.status === "pending") {
     return NextResponse.json(
-      {
-        error: accessCheck.error || "Cannot delete while group is under review",
-      },
-      { status: accessCheck.error?.includes("not found") ? 404 : 403 }
+      { error: "Cannot modify group while it's under review" },
+      { status: 403 },
     );
   }
 

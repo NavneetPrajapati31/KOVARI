@@ -1,7 +1,7 @@
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { getGeminiPlaceOverview } from "@/lib/gemini";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function POST(
   req: NextRequest,
@@ -12,7 +12,7 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createRouteHandlerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { groupId } = await params;
 
   const { data: userRow, error: userError } = await supabase

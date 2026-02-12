@@ -1,13 +1,29 @@
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
-  const supabase = createRouteHandlerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createAdminSupabaseClient();
   const { groupId } = await params;
+
+  // Map Clerk -> internal UUID
+  const { data: userRow, error: userError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("clerk_user_id", userId)
+    .eq("isDeleted", false)
+    .single();
+  if (userError || !userRow) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
   // Check if group exists and is not removed
   const { data: group, error: groupError } = await supabase
@@ -26,33 +42,31 @@ export async function GET(
   }
 
   // Block access to pending groups for non-creators
-  if (group.status === "pending") {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
-    }
+  const isCreator = group.creator_id === userRow.id;
+  if (group.status === "pending" && !isCreator) {
+    return NextResponse.json({ error: "Group not found" }, { status: 404 });
+  }
 
-    // Get user's internal ID
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .single();
-
-    if (userError || !userData) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
-    }
-
-    // Only allow creator to access pending groups
-    if (group.creator_id !== userData.id) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+  // For active groups, require accepted membership or creator.
+  if (!isCreator) {
+    const { data: membership } = await supabase
+      .from("group_memberships")
+      .select("status")
+      .eq("group_id", groupId)
+      .eq("user_id", userRow.id)
+      .maybeSingle();
+    if (membership?.status !== "accepted") {
+      return NextResponse.json(
+        { error: "Not a member of this group" },
+        { status: 403 },
+      );
     }
   }
 
   const { data, error } = await supabase
     .from("itinerary_items")
     .select(
-      "id, title, description, datetime, type, status, location, priority, assigned_to, notes, image_url, external_link"
+      "id, title, description, datetime, type, status, location, priority, assigned_to, notes, image_url, external_link",
     )
     .eq("group_id", groupId)
     .order("datetime", { ascending: true });
@@ -65,10 +79,25 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
-  const supabase = createRouteHandlerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createAdminSupabaseClient();
   const { groupId } = await params;
+
+  const { data: userRow, error: userError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("clerk_user_id", userId)
+    .eq("isDeleted", false)
+    .single();
+  if (userError || !userRow) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
   const { data: group, error: groupError } = await supabase
     .from("groups")
@@ -81,6 +110,34 @@ export async function POST(
   }
   if (group.status === "removed") {
     return NextResponse.json({ error: "Group not found" }, { status: 404 });
+  }
+  if (group.status === "pending") {
+    return NextResponse.json(
+      { error: "Cannot modify group while it's under review" },
+      { status: 403 },
+    );
+  }
+
+  // Require accepted membership (or creator) to create itinerary items
+  const { data: groupRow } = await supabase
+    .from("groups")
+    .select("creator_id")
+    .eq("id", groupId)
+    .single();
+  const isCreator = groupRow?.creator_id === userRow.id;
+  if (!isCreator) {
+    const { data: membership } = await supabase
+      .from("group_memberships")
+      .select("status")
+      .eq("group_id", groupId)
+      .eq("user_id", userRow.id)
+      .maybeSingle();
+    if (membership?.status !== "accepted") {
+      return NextResponse.json(
+        { error: "Not a member of this group" },
+        { status: 403 },
+      );
+    }
   }
 
   const body = await req.json();
@@ -98,19 +155,19 @@ export async function POST(
   if (!body.title || !body.datetime || !body.type) {
     return NextResponse.json(
       { error: "Missing required fields (title, datetime, type)" },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (!allowedTypes.includes(body.type)) {
     return NextResponse.json(
       { error: `Invalid type: ${body.type}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (body.priority && !allowedPriority.includes(body.priority)) {
     return NextResponse.json(
       { error: `Invalid priority: ${body.priority}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 

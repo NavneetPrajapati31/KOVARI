@@ -17,7 +17,6 @@ import {
   Conversation as BaseConversation,
 } from "@/shared/hooks/use-direct-inbox";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
-import { createClient } from "@/lib/supabase";
 import InboxChatListSkeleton from "./inbox-chat-list-skeleton";
 
 /**
@@ -95,7 +94,6 @@ export default function Inbox({ activeUserId }: InboxProps) {
   };
   const inbox = useDirectInbox(currentUserUuid);
   // Use only inbox.conversations as the source of truth
-  const supabase = createClient();
 
   useEffect(() => {
     if (!user?.id) return;
@@ -109,12 +107,16 @@ export default function Inbox({ activeUserId }: InboxProps) {
 
     const fetchUserProfiles = async () => {
       const userIds = inbox.conversations.map((conv) => conv.userId);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, name, username, profile_photo, deleted")
-        .in("user_id", userIds);
-
-      if (!error && data) {
+      const response = await fetch("/api/direct-chat/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userIds }),
+      });
+      if (!response.ok) return;
+      const payload = await response.json();
+      const data = Array.isArray(payload?.profiles) ? payload.profiles : [];
+      if (data.length > 0) {
         const profilesMap: Record<string, UserProfile> = {};
         data.forEach((profile: any) => {
           profilesMap[profile.user_id] = {
@@ -129,7 +131,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
     };
 
     fetchUserProfiles();
-  }, [inbox.conversations, supabase]);
+  }, [inbox.conversations]);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -166,7 +168,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
     return (
       <div className="h-full flex flex-col bg-gray-50">
         {/* Search Bar */}
-        <div className="p-3 bg-card flex-shrink-0 border-b border-border sticky top-0 z-50 bg-card">
+        <div className="p-3 bg-card flex-shrink-0 border-b border-border sticky top-0 z-50">
           <div className="relative">
             <Input
               type="text"
@@ -184,7 +186,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
   return (
     <div className="h-full flex flex-col bg-card">
       {/* Search Bar */}
-      <div className="p-3 bg-card flex-shrink-0 border-b border-border sticky top-0 z-50 bg-card">
+      <div className="p-3 bg-card flex-shrink-0 border-b border-border sticky top-0 z-50">
         <div className="relative">
           <input
             type="text"

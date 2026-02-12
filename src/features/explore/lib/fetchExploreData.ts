@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase";
+import { createClient, createClientWithAuth } from "@/lib/supabase";
 
 // Traveler type for TravelerCard
 export interface Traveler {
@@ -70,7 +70,7 @@ export const fetchSoloTravelers = async (
   currentUserId: string,
   filters: FiltersState,
   cursor: string | null = null,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<{ data: Traveler[]; nextCursor: string | null }> => {
   try {
     const supabase = createClient();
@@ -92,7 +92,7 @@ export const fetchSoloTravelers = async (
           clerk_user_id,
           "isDeleted"
         )
-      `
+      `,
       )
       // Hide soft-deleted accounts from explore lists
       .eq("users.isDeleted", false)
@@ -127,7 +127,7 @@ export const fetchSoloTravelers = async (
 
     // Filter out current user after the join
     const filteredProfiles = (profiles || []).filter(
-      (profile: any) => profile.user_id !== currentUserId
+      (profile: any) => profile.user_id !== currentUserId,
     );
 
     // Then fetch travel preferences for these profiles
@@ -153,7 +153,7 @@ export const fetchSoloTravelers = async (
         console.error("Error fetching following info:", followingError);
       }
       followingIds = new Set(
-        (followingRows || []).map((row: any) => row.following_id)
+        (followingRows || []).map((row: any) => row.following_id),
       );
     }
 
@@ -208,7 +208,7 @@ export const fetchSoloTravelers = async (
           if (!start) return "";
           if (!end) return new Date(start).toLocaleDateString();
           return `${new Date(start).toLocaleDateString()} - ${new Date(
-            end
+            end,
           ).toLocaleDateString()}`;
         };
 
@@ -251,7 +251,7 @@ export const fetchPublicGroups = async (
   currentUserId: string,
   filters: FiltersState,
   cursor: string | null = null,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<{ data: Group[]; nextCursor: string | null }> => {
   const supabase = createClient();
   let query = supabase
@@ -267,7 +267,7 @@ export const fetchPublicGroups = async (
       creator_id,
       created_at,
       cover_image
-    `
+    `,
     )
     .eq("is_public", true)
     .eq("status", "active") // Only show approved groups
@@ -402,9 +402,35 @@ export const fetchPublicGroups = async (
  */
 export const fetchMyGroups = async (
   clerkUserId: string,
-  limit: number = 20
+  limit: number = 20,
+  supabaseToken?: string | null,
 ): Promise<{ data: Group[]; nextCursor: string | null }> => {
-  const supabase = createClient();
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/1dbb8357-361a-4325-a091-9ae65e96fbbb", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      runId: "run1",
+      hypothesisId: "H_entry_values",
+      location: "fetchExploreData.ts:fetchMyGroups:entry",
+      message: "fetchMyGroups called",
+      data: {
+        clerkUserIdLen: clerkUserId?.length ?? null,
+        clerkUserIdHasUserPrefix:
+          typeof clerkUserId === "string"
+            ? clerkUserId.startsWith("user_")
+            : null,
+        hasSupabaseToken: !!supabaseToken,
+        limit,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion agent log
+
+  const supabase = supabaseToken
+    ? createClientWithAuth(supabaseToken)
+    : createClient();
 
   // 1. Get the internal Supabase user_id from the clerk_user_id.
   const { data: userData, error: userError } = await supabase
@@ -415,10 +441,41 @@ export const fetchMyGroups = async (
     .single();
 
   if (userError || !userData) {
-    console.error("Error fetching user:", userError);
+    console.error("Error fetching user:", {
+      clerkUserId,
+      code: userError?.code,
+      message: userError?.message,
+      details: (userError as any)?.details,
+      hint: (userError as any)?.hint,
+      hasSupabaseToken: !!supabaseToken,
+    });
     return { data: [], nextCursor: null };
   }
   const internalUserId = userData.id;
+
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/1dbb8357-361a-4325-a091-9ae65e96fbbb", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      runId: "run1",
+      hypothesisId: "H_users_lookup",
+      location: "fetchExploreData.ts:fetchMyGroups:after_users_lookup",
+      message: "Mapped clerk user to internal user id",
+      data: {
+        internalUserIdLen:
+          typeof internalUserId === "string" ? internalUserId.length : null,
+        internalUserIdLooksUuid:
+          typeof internalUserId === "string"
+            ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                internalUserId,
+              )
+            : null,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion agent log
 
   // 2. Get the group_ids for the user where membership is 'accepted'.
   const { data: memberships, error: membershipError } = await supabase
@@ -428,9 +485,99 @@ export const fetchMyGroups = async (
     .eq("status", "accepted");
 
   if (membershipError) {
-    console.error("Error fetching group memberships:", membershipError);
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/1dbb8357-361a-4325-a091-9ae65e96fbbb", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        runId: "run1",
+        hypothesisId: "H_memberships_error",
+        location: "fetchExploreData.ts:fetchMyGroups:membership_error",
+        message: "group_memberships query failed",
+        data: {
+          code: membershipError.code ?? null,
+          messageHasInvalidUuid:
+            typeof membershipError.message === "string"
+              ? membershipError.message.includes(
+                  "invalid input syntax for type uuid",
+                )
+              : null,
+          messageMentionsUserPrefix:
+            typeof membershipError.message === "string"
+              ? membershipError.message.includes("user_")
+              : null,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+
+    // #region agent log
+    fetch("/api/debug/rls-policies?schema=public&table=group_memberships")
+      .then((r) => r.json())
+      .then((payload) => {
+        const policies = Array.isArray(payload?.policies)
+          ? payload.policies
+          : [];
+        const simplified = policies.map((p: any) => {
+          const qual = typeof p?.qual === "string" ? p.qual : "";
+          const withCheck =
+            typeof p?.with_check === "string" ? p.with_check : "";
+          const hay = `${qual} ${withCheck}`;
+          return {
+            policyname: p?.policyname ?? null,
+            cmd: p?.cmd ?? null,
+            hasJwtSub: hay.includes("auth.jwt()") && hay.includes("sub"),
+            hasUuidCast: hay.includes("::uuid"),
+            comparesUserIdToSub:
+              hay.includes("user_id") &&
+              hay.includes("auth.jwt()") &&
+              hay.includes("sub"),
+          };
+        });
+        fetch(
+          "http://127.0.0.1:7242/ingest/1dbb8357-361a-4325-a091-9ae65e96fbbb",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              runId: "run1",
+              hypothesisId: "H_policy_inspect",
+              location: "fetchExploreData.ts:fetchMyGroups:policy_inspect",
+              message: "Fetched RLS policies for group_memberships",
+              data: { count: simplified.length, simplified },
+              timestamp: Date.now(),
+            }),
+          },
+        ).catch(() => {});
+      })
+      .catch(() => {});
+    // #endregion agent log
+
+    console.error("Error fetching group memberships:", {
+      internalUserId,
+      code: membershipError?.code,
+      message: membershipError?.message,
+      details: (membershipError as any)?.details,
+      hint: (membershipError as any)?.hint,
+    });
     return { data: [], nextCursor: null };
   }
+
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/1dbb8357-361a-4325-a091-9ae65e96fbbb", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      runId: "run1",
+      hypothesisId: "H_memberships_ok",
+      location: "fetchExploreData.ts:fetchMyGroups:memberships_ok",
+      message: "group_memberships query succeeded",
+      data: { membershipRows: Array.isArray(memberships) ? memberships.length : null },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion agent log
 
   const groupIds = memberships.map((m) => m.group_id);
 
@@ -452,8 +599,9 @@ export const fetchMyGroups = async (
       creator_id,
       created_at,
       cover_image,
+      members_count,
       status
-    `
+    `,
     )
     .in("id", groupIds)
     .in("status", ["active", "pending"]) // Show active groups and pending groups (user can see their own pending groups)
@@ -472,37 +620,20 @@ export const fetchMyGroups = async (
 
   // 4. Fetch additional data for mapping
   const creatorIds = [...new Set(groupsData.map((g) => g.creator_id))];
-  const allGroupIds = groupsData.map((g) => g.id);
 
-  const [
-    { data: profilesData, error: profilesError },
-    { data: memberCountsData, error: countsError },
-  ] = await Promise.all([
+  const [{ data: profilesData, error: profilesError }] = await Promise.all([
     supabase
       .from("profiles")
       .select("user_id, name, username, profile_photo")
       .in("user_id", creatorIds),
-    supabase
-      .from("group_memberships")
-      .select("group_id")
-      .in("group_id", allGroupIds)
-      .eq("status", "accepted"),
   ]);
 
   if (profilesError) {
     console.error("Error fetching creator profiles:", profilesError);
   }
-  if (countsError) {
-    console.error("Error fetching member counts:", countsError);
-  }
 
   const profilesMap = (profilesData || []).reduce((acc: any, profile) => {
     acc[profile.user_id] = profile;
-    return acc;
-  }, {});
-
-  const memberCountMap = (memberCountsData || []).reduce((acc: any, gm) => {
-    acc[gm.group_id] = (acc[gm.group_id] || 0) + 1;
     return acc;
   }, {});
 
@@ -519,7 +650,7 @@ export const fetchMyGroups = async (
         end: group.end_date ? new Date(group.end_date) : undefined,
         isOngoing: !group.end_date,
       },
-      memberCount: memberCountMap[group.id] || 0,
+      memberCount: group.members_count || 0,
       userStatus: "member", // User is always a member in "My Groups"
       creator: {
         name: creator?.name || "Unknown",

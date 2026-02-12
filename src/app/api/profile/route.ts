@@ -1,7 +1,6 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { z } from "zod";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -48,12 +47,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore },
-  );
+  const supabase = createAdminSupabaseClient();
 
   // First, try to get the user
   let { data: userRow, error: userFetchError } = await supabase

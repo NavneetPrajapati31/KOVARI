@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 /**
  * PATCH /api/notifications/[id]
@@ -8,7 +8,7 @@ import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -18,13 +18,14 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     // Get user UUID from Clerk ID
     const { data: userRow, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("clerk_user_id", clerkUserId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !userRow) {
@@ -46,14 +47,14 @@ export async function PATCH(
       console.error("Error updating notification:", error);
       return NextResponse.json(
         { error: "Failed to update notification" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     if (!data) {
       return NextResponse.json(
         { error: "Notification not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -62,7 +63,7 @@ export async function PATCH(
     console.error("Exception in PATCH /api/notifications/[id]:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

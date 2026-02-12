@@ -43,7 +43,6 @@ import {
 import { Chip, Spinner } from "@heroui/react";
 import { DateTimePicker } from "@/shared/components/ui/time-picker";
 import { cn } from "@/shared/utils/utils";
-import { createClient } from "@/lib/supabase";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -91,25 +90,25 @@ const COLUMNS = [
     id: "pending",
     title: "To do",
     color: "bg-yellow-50 text-yellow-700",
-    dot: "#F59E0B",
+    dotClass: "bg-[#F59E0B]",
   },
   {
     id: "confirmed",
     title: "In Progress",
     color: "bg-blue-50 text-blue-700",
-    dot: "#007aff",
+    dotClass: "bg-[#007aff]",
   },
   {
     id: "completed",
     title: "Done",
     color: "bg-purple-50 text-purple-700",
-    dot: "#34c759",
+    dotClass: "bg-[#34c759]",
   },
   {
     id: "cancelled",
     title: "Cancelled",
     color: "bg-red-50 text-red-700",
-    dot: "#f31260",
+    dotClass: "bg-[#f31260]",
   },
 ] as const;
 
@@ -922,8 +921,7 @@ export default function ItineraryPage() {
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div className="flex items-center gap-2">
                   <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: column.dot }}
+                    className={cn("w-2 h-2 rounded-full", column.dotClass)}
                   ></span>
                   <span className="font-medium text-foreground text-sm">
                     {column.title}

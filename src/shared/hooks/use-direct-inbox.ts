@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { createClient } from "@/lib/supabase";
 import { decryptMessage } from "@/shared/utils/encryption";
 
 export interface Conversation {
@@ -19,11 +18,10 @@ interface UseDirectInboxResult {
 // Add optional activeConversationUserId to track which chat is open
 export const useDirectInbox = (
   currentUserUuid: string,
-  activeConversationUserId?: string
+  activeConversationUserId?: string,
 ): UseDirectInboxResult => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const supabase = createClient();
   // Track last processed message ID per conversation to avoid double-increment
   const lastProcessedMsgIds = useRef<Record<string, string>>({});
 
@@ -48,7 +46,7 @@ export const useDirectInbox = (
       unreadMap[userId] = 0;
       setUnreadMap(unreadMap);
       setConversations((prev) =>
-        prev.map((c) => (c.userId === userId ? { ...c, unreadCount: 0 } : c))
+        prev.map((c) => (c.userId === userId ? { ...c, unreadCount: 0 } : c)),
       );
     }
   };
@@ -79,8 +77,8 @@ export const useDirectInbox = (
           c.userId === partnerId &&
           new Date(createdAt) > new Date(c.lastMessageAt)
             ? { ...c, lastMessage: message, lastMessageAt: createdAt }
-            : c
-        )
+            : c,
+        ),
       );
     };
     window.addEventListener("inbox-message-update", handler);
@@ -93,16 +91,20 @@ export const useDirectInbox = (
       setLoading(true);
       return;
     }
+
+    setLoading(true);
     const fetchInbox = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("direct_messages")
-        .select(
-          "id, encrypted_content, encryption_iv, encryption_salt, is_encrypted, created_at, sender_id, receiver_id, read_at, media_url, media_type"
-        )
-        .or(`sender_id.eq.${currentUserUuid},receiver_id.eq.${currentUserUuid}`)
-        .order("created_at", { ascending: false });
-      if (!error && data) {
+      try {
+        const response = await fetch("/api/direct-chat/inbox", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!response.ok) {
+          setConversations([]);
+          return;
+        }
+        const payload = await response.json();
+        const data = Array.isArray(payload?.messages) ? payload.messages : [];
         // Calculate unread counts from messages if localStorage is missing
         let unreadMap = getUnreadMap();
         let unreadMapChanged = false;
@@ -131,7 +133,8 @@ export const useDirectInbox = (
                 ? `${currentUserUuid}:${partnerId}`
                 : `${partnerId}:${currentUserUuid}`;
             let lastMessage = "[Encrypted message]";
-            let lastMediaType: "image" | "video" | "init" | undefined = undefined;
+            let lastMediaType: "image" | "video" | "init" | undefined =
+              undefined;
             if (msg.media_url && msg.media_type) {
               // Media message: show icon/label in inbox
               lastMessage = "";
@@ -150,7 +153,7 @@ export const useDirectInbox = (
                       iv: msg.encryption_iv,
                       salt: msg.encryption_salt,
                     },
-                    sharedSecret
+                    sharedSecret,
                   ) || "[Encrypted message]";
               } catch {
                 lastMessage = "[Failed to decrypt message]";
@@ -179,108 +182,18 @@ export const useDirectInbox = (
         });
         if (unreadMapChanged) setUnreadMap(unreadMap);
         setConversations(Array.from(map.values()));
+      } catch {
+        setConversations([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchInbox();
-
-    // Realtime subscription
-    const channel = supabase
-      .channel("direct_messages_inbox")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "direct_messages" },
-        (payload) => {
-          const msg = payload.new;
-          if (!msg) return;
-          const partnerId =
-            msg.sender_id === currentUserUuid ? msg.receiver_id : msg.sender_id;
-          if (
-            partnerId &&
-            (msg.sender_id === currentUserUuid ||
-              msg.receiver_id === currentUserUuid)
-          ) {
-            setConversations((prev) => {
-              const idx = prev.findIndex((c) => c.userId === partnerId);
-              let unreadMap = getUnreadMap();
-              // If the message is for the current user
-              if (msg.receiver_id === currentUserUuid) {
-                // Only process if this message hasn't been processed yet
-                if (lastProcessedMsgIds.current[partnerId] !== msg.id) {
-                  lastProcessedMsgIds.current[partnerId] = msg.id;
-                  // If the conversation is open, mark as read immediately
-                  if (activeConversationUserId === partnerId) {
-                    unreadMap[partnerId] = 0;
-                  } else {
-                    unreadMap[partnerId] = (unreadMap[partnerId] || 0) + 1;
-                  }
-                  setUnreadMap(unreadMap);
-                }
-              }
-              const sharedSecret =
-                currentUserUuid < partnerId
-                  ? `${currentUserUuid}:${partnerId}`
-                  : `${partnerId}:${currentUserUuid}`;
-              let lastMessage = "[Encrypted message]";
-              let lastMediaType: "image" | "video" | "init" | undefined = undefined;
-              if (msg.media_url && msg.media_type) {
-                // Media message: show icon/label in inbox
-                lastMessage = "";
-                lastMediaType = msg.media_type;
-              } else if (
-                msg.is_encrypted &&
-                msg.encrypted_content &&
-                msg.encryption_iv &&
-                msg.encryption_salt
-              ) {
-                try {
-                  lastMessage =
-                    decryptMessage(
-                      {
-                        encryptedContent: msg.encrypted_content,
-                        iv: msg.encryption_iv,
-                        salt: msg.encryption_salt,
-                      },
-                      sharedSecret
-                    ) || "[Encrypted message]";
-                } catch {
-                  lastMessage = "[Failed to decrypt message]";
-                }
-              }
-              // Always update lastMessage and lastMessageAt for this conversation
-              if (idx !== -1) {
-                // Update existing conversation
-                const updated = [...prev];
-                updated[idx] = {
-                  ...updated[idx],
-                  lastMessage,
-                  lastMessageAt: msg.created_at,
-                  unreadCount: unreadMap[partnerId] || 0,
-                  lastMediaType,
-                };
-                return updated;
-              } else {
-                // New conversation
-                return [
-                  {
-                    userId: partnerId,
-                    lastMessage,
-                    lastMessageAt: msg.created_at,
-                    unreadCount: unreadMap[partnerId] || 0,
-                    lastMediaType,
-                  },
-                  ...prev,
-                ];
-              }
-            });
-          }
-        }
-      )
-      .subscribe();
+    const interval = window.setInterval(fetchInbox, 8000);
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(interval);
     };
-  }, [currentUserUuid, supabase, activeConversationUserId]);
+  }, [currentUserUuid, activeConversationUserId]);
 
   // When activeConversationUserId changes, mark as read
   useEffect(() => {

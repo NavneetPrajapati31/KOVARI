@@ -1,20 +1,41 @@
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 const ISO_DATE_REGEX = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
-  const supabase = createRouteHandlerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createAdminSupabaseClient();
   const { groupId } = await params;
+
+  // Map Clerk user id -> internal uuid
+  const { data: userRow, error: userError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("clerk_user_id", userId)
+    .eq("isDeleted", false)
+    .single();
+
+  if (userError || !userRow) {
+    console.error("[GET /api/groups/:id] user lookup failed", {
+      code: userError?.code,
+      message: userError?.message,
+    });
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, destination_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, creator_id, ai_overview"
+      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, destination_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, creator_id, ai_overview",
     )
     .eq("id", groupId)
     .single();
@@ -31,28 +52,28 @@ export async function GET(
     return NextResponse.json({ error: "Group not found" }, { status: 404 });
   }
 
+  const isCreator = data.creator_id === userRow.id;
+
   // Block access to pending groups for non-creators
-  if (data.status === "pending") {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
-    }
+  if (data.status === "pending" && !isCreator) {
+    return NextResponse.json({ error: "Group not found" }, { status: 404 });
+  }
 
-    // Get user's internal ID
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .eq("isDeleted", false)
-      .single();
-
-    if (userError || !userData) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
-    }
-
-    // Only allow creator to access pending groups
-    if (data.creator_id !== userData.id) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+  // For active groups, require accepted membership or creator.
+  if (!isCreator) {
+    const { data: membership } = await supabase
+      .from("group_memberships")
+      .select("status")
+      .eq("group_id", groupId)
+      .eq("user_id", userRow.id)
+      .maybeSingle();
+    const isAccepted = membership?.status === "accepted";
+    const hasPendingRequest = membership?.status === "pending_request";
+    if (!isAccepted && !hasPendingRequest) {
+      return NextResponse.json(
+        { error: "Not a member of this group" },
+        { status: 403 },
+      );
     }
   }
 
@@ -61,14 +82,14 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
-  const supabase = createRouteHandlerSupabaseClient();
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const supabase = createAdminSupabaseClient();
   const { groupId } = await params;
   const body = await req.json();
   const {
@@ -118,7 +139,7 @@ export async function PATCH(
   if (groupCheck.status === "pending") {
     return NextResponse.json(
       { error: "Cannot update group while it's under review" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -154,14 +175,14 @@ export async function PATCH(
     if (!isMember) {
       return NextResponse.json(
         { error: "You must be a group member to update the destination image" },
-        { status: 403 }
+        { status: 403 },
       );
     }
   } else {
     if (!isCreator && !isAdmin) {
       return NextResponse.json(
         { error: "Only group creator or admin can update group" },
-        { status: 403 }
+        { status: 403 },
       );
     }
   }
@@ -172,7 +193,7 @@ export async function PATCH(
     if (typeof name !== "string" || name.length < 3 || name.length > 50) {
       return NextResponse.json(
         { error: "Group name must be 3-50 characters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     updates.name = name;
@@ -181,7 +202,7 @@ export async function PATCH(
     if (typeof destination !== "string" || destination.trim().length < 1) {
       return NextResponse.json(
         { error: "Destination is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     updates.destination = destination;
@@ -214,7 +235,7 @@ export async function PATCH(
     if (typeof notes !== "string") {
       return NextResponse.json(
         { error: "Invalid notes value" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     updates.notes = notes;
@@ -224,7 +245,7 @@ export async function PATCH(
     if (typeof is_public !== "boolean") {
       return NextResponse.json(
         { error: "Invalid is_public value" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     updates.is_public = is_public;
@@ -236,21 +257,21 @@ export async function PATCH(
     if (typeof start_date !== "string" || typeof end_date !== "string") {
       return NextResponse.json(
         { error: "Both start_date and end_date must be provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!ISO_DATE_REGEX.test(start_date) || !ISO_DATE_REGEX.test(end_date)) {
       return NextResponse.json(
         { error: "Invalid date format. Use YYYY-MM-DD" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (start_date >= end_date) {
       return NextResponse.json(
         { error: "End date must be after start date" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -262,7 +283,7 @@ export async function PATCH(
     if (typeof budget !== "number" || budget < 0) {
       return NextResponse.json(
         { error: "Budget must be a positive number" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     updates.budget = budget;
@@ -272,7 +293,7 @@ export async function PATCH(
     if (typeof non_smokers !== "boolean") {
       return NextResponse.json(
         { error: "Invalid non_smokers value" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     updates.non_smokers = non_smokers;
@@ -282,7 +303,7 @@ export async function PATCH(
     if (typeof non_drinkers !== "boolean") {
       return NextResponse.json(
         { error: "Invalid non_drinkers value" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     updates.non_drinkers = non_drinkers;
@@ -293,7 +314,7 @@ export async function PATCH(
       { error: "No valid fields to update" },
       {
         status: 400,
-      }
+      },
     );
   }
 
@@ -302,7 +323,7 @@ export async function PATCH(
     .update(updates)
     .eq("id", groupId)
     .select(
-      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, destination_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, ai_overview"
+      "id, name, destination, destination_details, destination_lat, destination_lon, cover_image, destination_image, description, notes, start_date, end_date, budget, non_smokers, non_drinkers, is_public, status, ai_overview",
     )
     .single();
 

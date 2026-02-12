@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Check against Supabase profiles table (using admin client to bypass RLS)
     // Using ilike for case-insensitive check
+    const supabaseAdmin = createAdminSupabaseClient();
     const { data: existingProfile, error } = await supabaseAdmin
       .from("profiles")
       .select("username")

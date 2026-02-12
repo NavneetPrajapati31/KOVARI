@@ -1,6 +1,6 @@
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
@@ -13,7 +13,7 @@ export async function GET(
     }
 
     const { groupId } = await params;
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     // Get user's internal ID
     const { data: userRow, error: userError } = await supabase
@@ -48,20 +48,23 @@ export async function GET(
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
-    // Check if user is a member of the group
-    const { data: membership, error: membershipError } = await supabase
-      .from("group_memberships")
-      .select("status")
-      .eq("group_id", groupId)
-      .eq("user_id", userRow.id)
-      .eq("status", "accepted")
-      .single();
+    // Check if user is a member of the group OR the creator
+    const isCreator = group.creator_id === userRow.id;
+    if (!isCreator) {
+      const { data: membership } = await supabase
+        .from("group_memberships")
+        .select("status")
+        .eq("group_id", groupId)
+        .eq("user_id", userRow.id)
+        .maybeSingle();
 
-    if (membershipError || !membership) {
-      return NextResponse.json(
-        { error: "Not a member of this group" },
-        { status: 403 }
-      );
+      const isAccepted = membership?.status === "accepted";
+      if (!isAccepted) {
+        return NextResponse.json(
+          { error: "Not a member of this group" },
+          { status: 403 },
+        );
+      }
     }
 
     // Fetch group members with profile information
@@ -88,8 +91,8 @@ export async function GET(
       .eq("status", "accepted")
       .order("joined_at", { ascending: true });
 
-    // Debug: log the raw members data
-    console.log("[API][members route] Raw members data:", members);
+    // Debug: log shape only (avoid logging whole dataset)
+    console.log("[API][members route] members count:", members?.length ?? 0);
 
     if (membersError) {
       console.error("Error fetching members:", membersError);
@@ -137,7 +140,7 @@ export async function DELETE(
     }
 
     const { groupId } = await params;
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     // Parse request body
     let memberId: string | undefined;

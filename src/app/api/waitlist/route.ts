@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
 import * as Sentry from "@sentry/nextjs";
 import { waitlistConfirmationEmail } from "@/lib/email-templates/waitlist-confirmation";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 /**
  * Sends waitlist confirmation email using Brevo
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Create Supabase client
-        const supabase = createRouteHandlerSupabaseClient();
+        const supabase = createAdminSupabaseClient();
 
         // Insert email into waitlist table
         const { data, error } = await supabase

@@ -11,14 +11,15 @@ import {
 import { SoloSession } from "../../../types";
 // FIX: Add missing import for redis client
 import redis, { ensureRedisConnection } from "../../../lib/redis";
-import { createRouteHandlerSupabaseClient } from "../../../lib/supabase";
 import { getSetting } from "../../../lib/settings";
 import { getMatchingPresetConfig } from "../../../lib/matching/config";
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@supabase/supabase-js";
+import { auth } from "@clerk/nextjs/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 // Initialize Supabase client for this route
-const supabase = createRouteHandlerSupabaseClient();
+const supabase = createAdminSupabaseClient();
 
 // Admin client for impression tracking (needs service role for writes)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -30,7 +31,7 @@ const getTravelInterestsByClerkId = async (
   clerkUserId: string
 ): Promise<string[]> => {
   try {
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
     const { data: userRow, error: userErr } = await supabase
       .from("users")
       .select("id")
@@ -69,6 +70,11 @@ const computeCommonInterests = (a?: string[], b?: string[]): string[] => {
 
 export async function GET(request: NextRequest) {
   try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     // Check maintenance mode
     const maintenance = await getSetting("maintenance_mode");
     if (maintenance && (maintenance as { enabled: boolean }).enabled) {
@@ -88,6 +94,9 @@ export async function GET(request: NextRequest) {
         { message: "User ID is required" },
         { status: 400 }
       );
+    }
+    if (userId !== clerkUserId) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
     // Get matching preset configuration

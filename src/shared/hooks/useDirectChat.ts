@@ -1,7 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useUser } from "@clerk/nextjs";
-import { createClient } from "@/lib/supabase";
-import { encryptMessage, decryptMessage } from "@/shared/utils/encryption";
+import { useState, useEffect, useCallback } from "react";
+import { encryptMessage } from "@/shared/utils/encryption";
 import { v4 as uuidv4 } from "uuid";
 
 export interface DirectChatMessage {
@@ -37,7 +35,7 @@ export interface UseDirectChatResult {
   sendMessage: (
     value: string,
     mediaUrl?: string,
-    mediaType?: "image" | "video"
+    mediaType?: "image" | "video",
   ) => Promise<void>;
   markMessagesRead: () => Promise<void>;
   loadMoreMessages: () => Promise<void>;
@@ -47,7 +45,7 @@ export interface UseDirectChatResult {
 
 export const useDirectChat = (
   currentUserUuid: string,
-  partnerUuid: string
+  partnerUuid: string,
 ): UseDirectChatResult => {
   const [messages, setMessages] = useState<DirectChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,8 +54,6 @@ export const useDirectChat = (
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [offset, setOffset] = useState(0);
-  const supabase = createClient();
-  const isMounted = useRef(true);
 
   // Shared secret for encryption
   const sharedSecret =
@@ -76,42 +72,26 @@ export const useDirectChat = (
 
       if (loadMore) {
         setLoadingMore(true);
-      } else {
-        setLoading(true);
       }
 
-      const orFilter = `and(sender_id.eq.${currentUserUuid},receiver_id.eq.${partnerUuid}),and(sender_id.eq.${partnerUuid},receiver_id.eq.${currentUserUuid})`;
 
       try {
-        let query = supabase
-          .from("direct_messages")
-          .select(
-            `
-          *,
-          sender:users!direct_messages_sender_id_fkey(
-            id,
-            profiles(
-              name,
-              username,
-              profile_photo,
-              deleted
-            )
-          )
-        `
-          )
-          .or(orFilter)
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
-          .range(offset, offset + 29); // Fetch 30 messages per page
-
-        const { data, error } = await query;
-
-        if (error) {
-          setError(error.message);
+        const effectiveOffset = loadMore ? offset : 0;
+        const response = await fetch(
+          `/api/direct-chat/messages?partnerId=${encodeURIComponent(
+            partnerUuid,
+          )}&offset=${effectiveOffset}&limit=30`,
+          { method: "GET", credentials: "include" },
+        );
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          setError(errorBody?.error || "Failed to fetch messages");
           if (!loadMore) {
             setMessages([]);
           }
-        } else if (data) {
+        } else {
+          const payload = await response.json();
+          const data = Array.isArray(payload?.messages) ? payload.messages : [];
           // Transform messages to include sender profile information and normalize media fields
           const transformedMessages = data.map((msg: any) => ({
             ...msg,
@@ -127,7 +107,7 @@ export const useDirectChat = (
             setMessages((prev) => {
               const existingIds = new Set(prev.map((m) => m.id));
               const newMessages = chronologicalMessages.filter(
-                (msg) => !existingIds.has(msg.id)
+                (msg: DirectChatMessage) => !existingIds.has(msg.id),
               );
               return [...newMessages, ...prev];
             });
@@ -152,7 +132,7 @@ export const useDirectChat = (
         }
       }
     },
-    [currentUserUuid, partnerUuid, supabase, offset]
+    [currentUserUuid, partnerUuid, offset],
   );
 
   // Load more messages function
@@ -195,167 +175,90 @@ export const useDirectChat = (
           encrypted = await encryptMessage(value.trim(), sharedSecret);
           isEncrypted = true;
         }
-        const { data, error: insertError } = await supabase
-          .from("direct_messages")
-          .insert([
-            {
-              sender_id: currentUserUuid,
-              receiver_id: partnerUuid,
-              encrypted_content: isEncrypted
-                ? encrypted.encryptedContent
-                : null,
-              encryption_iv: isEncrypted ? encrypted.iv : null,
-              encryption_salt: isEncrypted ? encrypted.salt : null,
-              is_encrypted: isEncrypted,
-              client_id: clientId,
-              media_url: mediaUrl,
-              media_type: mediaType,
-            },
-          ])
-          .select()
-          .single();
-        if (insertError || !data) {
-          throw new Error(insertError?.message || "Failed to send message");
+        const response = await fetch("/api/direct-chat/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            partnerId: partnerUuid,
+            encrypted_content: isEncrypted ? encrypted.encryptedContent : null,
+            encryption_iv: isEncrypted ? encrypted.iv : null,
+            encryption_salt: isEncrypted ? encrypted.salt : null,
+            is_encrypted: isEncrypted,
+            clientId,
+            media_url: mediaUrl ?? null,
+            media_type: mediaType ?? null,
+          }),
+        });
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          throw new Error(errorBody?.error || "Failed to send message");
         }
-        // Optimistic message will be replaced by real-time update
+        const payload = await response.json();
+        const data = payload?.message;
+        const serverMessage: DirectChatMessage = {
+          ...data,
+          sender_profile: data?.sender?.profiles?.[0] || undefined,
+          mediaUrl: data?.media_url || data?.mediaUrl,
+          mediaType: data?.media_type || data?.mediaType,
+          status: "sent",
+        };
+        setMessages((prev) =>
+          prev.map((msg) => (msg.tempId === tempId ? serverMessage : msg)),
+        );
       } catch (err: any) {
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.tempId === tempId ? { ...msg, status: "failed" } : msg
-          )
+            msg.tempId === tempId ? { ...msg, status: "failed" } : msg,
+          ),
         );
         setError(err.message || "Failed to send message");
       } finally {
         setSending(false);
       }
     },
-    [currentUserUuid, partnerUuid, sharedSecret, supabase]
+    [currentUserUuid, partnerUuid, sharedSecret],
   );
 
   // Add markMessagesRead function
   const markMessagesRead = useCallback(async () => {
     if (!currentUserUuid || !partnerUuid) return;
     try {
-      await supabase
-        .from("direct_messages")
-        .update({ read_at: new Date().toISOString() })
-        .eq("receiver_id", currentUserUuid)
-        .eq("sender_id", partnerUuid)
-        .is("read_at", null);
+      await fetch("/api/direct-chat/messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ partnerId: partnerUuid }),
+      });
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.receiver_id === currentUserUuid &&
+          msg.sender_id === partnerUuid &&
+          !msg.read_at
+            ? { ...msg, read_at: new Date().toISOString() }
+            : msg,
+        ),
+      );
     } catch (err) {
       // Optionally handle error
     }
-  }, [currentUserUuid, partnerUuid, supabase]);
-
-  // Real-time subscription
-  useEffect(() => {
-    isMounted.current = true;
-    if (!currentUserUuid || !partnerUuid) return;
-    const channel = supabase
-      .channel("direct_messages")
-      .on(
-        "postgres_changes" as any,
-        { event: "INSERT", schema: "public", table: "direct_messages" },
-        async (payload: any) => {
-          const msg = payload.new as DirectChatMessage;
-          // Only add if it's for this chat
-          const isRelevant =
-            (msg.sender_id === currentUserUuid &&
-              msg.receiver_id === partnerUuid) ||
-            (msg.sender_id === partnerUuid &&
-              msg.receiver_id === currentUserUuid);
-          if (!isRelevant) return;
-
-          // Fetch sender profile information for the new message
-          try {
-            const { data: senderData } = await supabase
-              .from("users")
-              .select(
-                `
-                id,
-                profiles(
-                  name,
-                  username,
-                  profile_photo,
-                  deleted
-                )
-              `
-              )
-              .eq("id", msg.sender_id)
-              .single();
-
-            const messageWithProfile: DirectChatMessage = {
-              ...msg,
-              sender_profile: senderData?.profiles?.[0] || undefined,
-              mediaUrl: (msg as any)["media_url"] || msg.mediaUrl,
-              mediaType: (msg as any)["media_type"] || msg.mediaType,
-            };
-
-            setMessages((prev) => {
-              // Remove optimistic message if client_id matches
-              const filtered = prev.filter((optimisticMsg) => {
-                if (!optimisticMsg.client_id) return true;
-                return optimisticMsg.client_id !== msg.client_id;
-              });
-              // Add the real message if not already present
-              if (filtered.some((m) => m.id === msg.id)) return filtered;
-              return [...filtered, messageWithProfile];
-            });
-          } catch (err) {
-            console.error(
-              "Error fetching sender profile for real-time message:",
-              err
-            );
-            // Add message without profile info if fetch fails
-            setMessages((prev) => {
-              const filtered = prev.filter((optimisticMsg) => {
-                if (!optimisticMsg.client_id) return true;
-                return optimisticMsg.client_id !== msg.client_id;
-              });
-              if (filtered.some((m) => m.id === msg.id)) return filtered;
-              return [
-                ...filtered,
-                {
-                  ...msg,
-                  mediaUrl: (msg as any)["media_url"] || msg.mediaUrl,
-                  mediaType: (msg as any)["media_type"] || msg.mediaType,
-                },
-              ];
-            });
-          }
-        }
-      )
-      .on(
-        "postgres_changes" as any,
-        { event: "UPDATE", schema: "public", table: "direct_messages" },
-        (payload: any) => {
-          const msg = payload.new as DirectChatMessage;
-          // Only update if it's for this chat
-          const isRelevant =
-            (msg.sender_id === currentUserUuid &&
-              msg.receiver_id === partnerUuid) ||
-            (msg.sender_id === partnerUuid &&
-              msg.receiver_id === currentUserUuid);
-          if (!isRelevant) return;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === msg.id ? { ...m, read_at: msg.read_at } : m
-            )
-          );
-        }
-      )
-      .subscribe();
-    return () => {
-      isMounted.current = false;
-      supabase.removeChannel(channel);
-    };
-  }, [currentUserUuid, partnerUuid, sharedSecret, supabase]);
+  }, [currentUserUuid, partnerUuid]);
 
   // Initial fetch
   useEffect(() => {
+    setLoading(true);
     fetchMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserUuid, partnerUuid]);
+
+  // Poll messages to keep direct chat synced when RLS blocks client subscriptions
+  useEffect(() => {
+    if (!currentUserUuid || !partnerUuid) return;
+    const interval = window.setInterval(() => {
+      fetchMessages(false);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [currentUserUuid, partnerUuid, fetchMessages]);
 
   // Reset offset when chat changes
   useEffect(() => {

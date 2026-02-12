@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function POST(
   req: NextRequest,
@@ -19,30 +18,14 @@ export async function POST(
       return new NextResponse("Missing groupId", { status: 400 });
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set(name, value, options);
-          },
-          remove(name: string, options: any) {
-            cookieStore.delete(name);
-          },
-        },
-      }
-    );
+    const supabase = createAdminSupabaseClient();
 
     // Get user UUID from Clerk userId
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("clerk_user_id", userId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !user) {
@@ -64,6 +47,14 @@ export async function POST(
     // Block access to removed groups
     if (group.status === "removed") {
       return new NextResponse("Group not found", { status: 404 });
+    }
+
+    // Block leave while pending
+    if (group.status === "pending") {
+      return NextResponse.json(
+        { error: "Cannot modify group while it's under review" },
+        { status: 403 },
+      );
     }
 
     // Check if user is a member of the group

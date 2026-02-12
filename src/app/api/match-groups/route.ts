@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { findGroupMatchesForUser } from "@/lib/matching/group";
 import { getCoordinatesForLocation } from "@/lib/geocoding";
 import { getSetting } from "@/lib/settings";
 import { getMatchingPresetConfig } from "@/lib/matching/config";
 import redis, { ensureRedisConnection } from "@/lib/redis";
 import * as Sentry from "@sentry/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 // Define the types based on what the matching function expects
 interface Location {
@@ -81,6 +82,10 @@ const calculateDistance = (loc1: Location, loc2: Location): number => {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     // Check maintenance mode
     const maintenance = await getSetting("maintenance_mode");
     if (maintenance && (maintenance as { enabled: boolean }).enabled) {
@@ -137,6 +142,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!userId || userId !== clerkUserId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // Get coordinates for user's destination
     let userDestinationCoords: Location;
@@ -177,7 +185,7 @@ export async function POST(req: NextRequest) {
 
     console.log("User profile for matching:", userProfile);
 
-    const supabase = createRouteHandlerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     // Resolve internal User UUID for filtering
     const { data: userData, error: userError } = await supabase

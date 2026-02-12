@@ -1,6 +1,6 @@
-import { cookies } from "next/headers";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import Link from "next/link";
+
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { JoinGroupButton } from "@/features/groups/components/join-group-button";
@@ -57,24 +57,8 @@ export default async function InvitePage({
   const { token } = await params;
   const { userId } = await auth();
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string) {
-          cookieStore.delete(name);
-        },
-      },
-    }
-  );
+  const supabase = createAdminSupabaseClient();
+
 
   const { data: linkRow, error: linkError } = await supabase
     .from("group_invite_links")

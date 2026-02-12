@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
 export async function DELETE(
   req: NextRequest,
@@ -19,30 +18,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set(name, value, options);
-          },
-          remove(name: string, options: any) {
-            cookieStore.delete(name);
-          },
-        },
-      }
-    );
+    const supabase = createAdminSupabaseClient();
 
     // Get user UUID from Clerk userId
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("clerk_user_id", userId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !user) {
@@ -76,6 +59,48 @@ export async function DELETE(
 
     // Delete all related data in a transaction-like manner
     // Start with dependent tables first
+
+    // Delete group media
+    const { error: mediaError } = await supabase
+      .from("group_media")
+      .delete()
+      .eq("group_id", groupId);
+
+    if (mediaError) {
+      console.error("Error deleting group media:", mediaError);
+      return NextResponse.json(
+        { error: "Failed to delete group data" },
+        { status: 500 },
+      );
+    }
+
+    // Delete group messages
+    const { error: messagesError } = await supabase
+      .from("group_messages")
+      .delete()
+      .eq("group_id", groupId);
+
+    if (messagesError) {
+      console.error("Error deleting group messages:", messagesError);
+      return NextResponse.json(
+        { error: "Failed to delete group data" },
+        { status: 500 },
+      );
+    }
+
+    // Delete group encryption keys
+    const { error: encryptionKeysError } = await supabase
+      .from("group_encryption_keys")
+      .delete()
+      .eq("group_id", groupId);
+
+    if (encryptionKeysError) {
+      console.error("Error deleting group encryption keys:", encryptionKeysError);
+      return NextResponse.json(
+        { error: "Failed to delete group data" },
+        { status: 500 },
+      );
+    }
 
     // Delete group email invitations
     const { error: emailInviteError } = await supabase
