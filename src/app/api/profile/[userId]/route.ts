@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ userId: string }> }
+  context: { params: Promise<{ userId: string }> },
 ) {
   const { userId } = await context.params;
   const supabase = createRouteHandlerSupabaseClient();
@@ -43,7 +43,7 @@ export async function GET(
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select(
-      `name, username, age, gender, nationality, bio, languages, profile_photo, job, interests`
+      `name, username, age, gender, nationality, bio, languages, profile_photo, job, interests`,
     )
     .eq("user_id", targetInternalUserId)
     .single();
@@ -73,17 +73,76 @@ export async function GET(
     });
   }
 
-  // 4. Count followers
-  const { count: followersCount } = await supabase
+  // 4. Count followers (exclude soft-deleted users)
+  // We do NOT delete follow rows for history/analytics, so we must filter counts here.
+  const { data: followerRows, error: followerRowsError } = await supabase
     .from("user_follows")
-    .select("id", { count: "exact", head: true })
+    .select("follower_id")
     .eq("following_id", targetInternalUserId);
 
-  // 5. Count following
-  const { count: followingCount } = await supabase
+  if (followerRowsError) {
+    console.error("Error fetching follower ids:", followerRowsError);
+    return new Response(JSON.stringify({ error: "Failed to fetch profile" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const followerIds = (followerRows || []).map((r: any) => r.follower_id);
+  let followersCount = 0;
+  if (followerIds.length > 0) {
+    const { count, error: countError } = await supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .in("id", followerIds)
+      .eq("isDeleted", false);
+    if (countError) {
+      console.error("Error counting followers:", countError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch profile" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+    followersCount = count ?? 0;
+  }
+
+  // 5. Count following (exclude soft-deleted users)
+  const { data: followingRows, error: followingRowsError } = await supabase
     .from("user_follows")
-    .select("id", { count: "exact", head: true })
+    .select("following_id")
     .eq("follower_id", targetInternalUserId);
+
+  if (followingRowsError) {
+    console.error("Error fetching following ids:", followingRowsError);
+    return new Response(JSON.stringify({ error: "Failed to fetch profile" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const followingIds = (followingRows || []).map((r: any) => r.following_id);
+  let followingCount = 0;
+  if (followingIds.length > 0) {
+    const { count, error: countError } = await supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .in("id", followingIds)
+      .eq("isDeleted", false);
+    if (countError) {
+      console.error("Error counting following:", countError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch profile" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+    followingCount = count ?? 0;
+  }
 
   // 6. Count posts and sum likes
   const { count: postsCount, data: postsLikesData } = await supabase
@@ -120,7 +179,7 @@ export async function GET(
               cookieStore.delete(name);
             },
           },
-        }
+        },
       );
 
       // Get current user's internal UUID from Clerk userId

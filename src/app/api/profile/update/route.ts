@@ -42,11 +42,12 @@ export async function PATCH(req: Request) {
       .from("users")
       .select("id")
       .eq("clerk_user_id", userId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404,
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { "Content-Type": "application/json" },
       });
     }

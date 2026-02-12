@@ -45,7 +45,7 @@ export function useSyncUserToSupabase() {
         // Try to get the user to check if they exist
         const { data: existingUser, error: fetchError } = await supabase
           .from("users")
-          .select("id")
+          .select('id, "isDeleted"')
           .eq("clerk_user_id", userId)
           .single();
 
@@ -56,6 +56,13 @@ export function useSyncUserToSupabase() {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return syncUser(retries - 1);
           }
+          return false;
+        }
+
+        // If user exists but is soft-deleted in our DB, block access.
+        // This ensures deleted users cannot continue using the app even if they still have a stale session.
+        if (existingUser && (existingUser as any).isDeleted === true) {
+          console.warn("User is soft-deleted in DB; blocking sync:", userId);
           return false;
         }
 

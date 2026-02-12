@@ -4,10 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/shared/components/ui/input";
-import {
-  Avatar,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Badge } from "@/shared/components/ui/badge";
 import { Spinner } from "@heroui/react";
@@ -84,7 +81,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
   const router = useRouter();
   const [currentUserUuid, setCurrentUserUuid] = useState<string>("");
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfile>>(
-    {}
+    {},
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +100,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
   useEffect(() => {
     if (!user?.id) return;
     getUserUuidByClerkId(user.id).then((uuid) =>
-      setCurrentUserUuid(uuid || "")
+      setCurrentUserUuid(uuid || ""),
     );
   }, [user?.id]);
 
@@ -142,7 +139,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
       const conv = inbox.conversations.find(
         (c) =>
           c.userId === partnerId &&
-          new Date(createdAt) > new Date(c.lastMessageAt)
+          new Date(createdAt) > new Date(c.lastMessageAt),
       );
       if (conv) {
         (conv as any).lastMediaType = mediaType;
@@ -233,7 +230,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
           if (inbox.conversations.length === 0) {
             return (
               <div className="flex items-center justify-center p-8 h-full">
-                <span className="text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   No conversations found.
                 </span>
               </div>
@@ -262,7 +259,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                 username.toLowerCase().includes(query)
                 // lastMessage.toLowerCase().includes(query)
               );
-            }
+            },
           );
           if (
             !inbox.loading &&
@@ -271,7 +268,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
           ) {
             return (
               <div className="flex items-center justify-center p-8 h-full">
-                <span className="text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   No conversations found.
                 </span>
               </div>
@@ -324,7 +321,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                       src={isDeleted ? "" : profile?.profile_photo || ""}
                       alt={displayName}
                     />
-<UserAvatarFallback className="" />
+                    <UserAvatarFallback className="" />
                   </Avatar>
                 </div>
 

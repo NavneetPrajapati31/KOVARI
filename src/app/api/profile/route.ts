@@ -52,22 +52,31 @@ export async function POST(req: Request) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore }
+    { cookies: cookieStore },
   );
 
   // First, try to get the user
   let { data: userRow, error: userFetchError } = await supabase
     .from("users")
-    .select("id")
+    .select('id, "isDeleted"')
     .eq("clerk_user_id", userId)
     .maybeSingle();
+
+  // Block access if the user is soft-deleted in our DB.
+  if (userRow && (userRow as any).isDeleted === true) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   // If user is not found, try to create them (always attempt creation if not found)
   if ((!userRow || !userRow.id) && !userFetchError) {
     const { data: newUser, error: createError } = await supabase
       .from("users")
       .insert({ clerk_user_id: userId })
-      .select("id")
+      // Select the same shape as the fetch above to satisfy TS
+      .select('id, "isDeleted"')
       .single();
 
     if (createError || !newUser) {
@@ -76,7 +85,7 @@ export async function POST(req: Request) {
         JSON.stringify({
           error: "Failed to create user record in Supabase. Please try again.",
         }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
     userRow = newUser;
@@ -86,7 +95,7 @@ export async function POST(req: Request) {
       JSON.stringify({
         error: "Error accessing user record in Supabase. Please try again.",
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -96,7 +105,7 @@ export async function POST(req: Request) {
         error:
           "User record not found in Supabase and could not be created. Please try again.",
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -111,13 +120,13 @@ export async function POST(req: Request) {
   if (existingProfileError) {
     console.error(
       "Error checking for existing username:",
-      existingProfileError
+      existingProfileError,
     );
     return new Response(
       JSON.stringify({
         error: "Error checking username availability. Please try again.",
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -126,7 +135,7 @@ export async function POST(req: Request) {
       JSON.stringify({
         error: "Username is already taken. Please choose a different one.",
       }),
-      { status: 409, headers: { "Content-Type": "application/json" } }
+      { status: 409, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -169,7 +178,7 @@ export async function POST(req: Request) {
         error: "Error saving profile. Please try again.",
         details: profileUpsertError.message,
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -186,12 +195,12 @@ export async function POST(req: Request) {
       JSON.stringify({
         error: "Profile saved, but failed to sync username with Clerk.",
       }),
-      { status: 500 }
+      { status: 500 },
     );
   }
 
   return new Response(
     JSON.stringify({ message: "Profile saved successfully" }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
+    { status: 200, headers: { "Content-Type": "application/json" } },
   );
 }

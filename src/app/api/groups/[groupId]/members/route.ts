@@ -20,6 +20,7 @@ export async function GET(
       .from("users")
       .select("id")
       .eq("clerk_user_id", userId)
+      .eq("isDeleted", false)
       .single();
 
     if (userError || !userRow) {

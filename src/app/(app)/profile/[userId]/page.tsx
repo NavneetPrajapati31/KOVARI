@@ -19,7 +19,7 @@ const getInternalUserId = async (userId: string): Promise<string> => {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: cookieStore }
+    { cookies: cookieStore },
   );
   const { data: userRow } = await supabase
     .from("users")
@@ -32,21 +32,21 @@ const getInternalUserId = async (userId: string): Promise<string> => {
 
 // Fetch user profile directly (SSR)
 const fetchUserProfile = async (
-  userId: string
+  userId: string,
 ): Promise<UserProfileType | null> => {
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: cookieStore }
+      { cookies: cookieStore },
     );
 
     // 1. Fetch profile
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select(
-        `name, username, age, gender, nationality, bio, languages, profile_photo, job, location, religion, smoking, drinking, personality, food_preference, birthday, verified`
+        `name, username, age, gender, nationality, bio, languages, profile_photo, job, location, religion, smoking, drinking, personality, food_preference, birthday, verified`,
       )
       .eq("user_id", userId)
       .single();
@@ -74,17 +74,50 @@ const fetchUserProfile = async (
 
     const posts: any[] = [];
 
-    // 4. Count followers
-    const { count: followersCount } = await supabase
-      .from("user_follows")
-      .select("id", { count: "exact", head: true })
-      .eq("following_id", userId);
+    // 4. Count followers/following (exclude soft-deleted users)
+    // We keep follow rows for history/analytics, so counts must filter deleted accounts.
+    const [
+      { data: followerRows, error: followerErr },
+      { data: followingRows, error: followingErr },
+    ] = await Promise.all([
+      supabase
+        .from("user_follows")
+        .select("follower_id")
+        .eq("following_id", userId),
+      supabase
+        .from("user_follows")
+        .select("following_id")
+        .eq("follower_id", userId),
+    ]);
 
-    // 5. Count following
-    const { count: followingCount } = await supabase
-      .from("user_follows")
-      .select("id", { count: "exact", head: true })
-      .eq("follower_id", userId);
+    if (followerErr || followingErr) {
+      console.error("Error fetching follow ids:", {
+        followerErr,
+        followingErr,
+      });
+      return null;
+    }
+
+    const followerIds = (followerRows || []).map((r: any) => r.follower_id);
+    const followingIds = (followingRows || []).map((r: any) => r.following_id);
+
+    const [{ count: followersCount }, { count: followingCount }] =
+      await Promise.all([
+        followerIds.length
+          ? supabase
+              .from("users")
+              .select("id", { count: "exact", head: true })
+              .in("id", followerIds)
+              .eq("isDeleted", false)
+          : Promise.resolve({ count: 0 } as any),
+        followingIds.length
+          ? supabase
+              .from("users")
+              .select("id", { count: "exact", head: true })
+              .in("id", followingIds)
+              .eq("isDeleted", false)
+          : Promise.resolve({ count: 0 } as any),
+      ]);
 
     // 6. Count posts and sum likes
     // const { count: postsCount, data: postsLikesData } = await supabase
@@ -113,7 +146,7 @@ const fetchUserProfile = async (
 
         console.log(
           "[DEBUG] currentUserRow.id (follower):",
-          currentUserRow?.id
+          currentUserRow?.id,
         );
         console.log("[DEBUG] currentUserError:", currentUserError);
 

@@ -47,6 +47,7 @@ export async function POST(
       .from("users")
       .select("id")
       .eq("clerk_user_id", currentUserId)
+      .eq("isDeleted", false)
       .single();
 
     if (currentUserError || !currentUserRow) {
@@ -62,6 +63,7 @@ export async function POST(
       .from("users")
       .select("id")
       .eq("id", targetUserId)
+      .eq("isDeleted", false)
       .single();
 
     if (targetUserError || !targetUserRow) {
@@ -190,6 +192,7 @@ export async function GET(
       .from("users")
       .select("id")
       .eq("clerk_user_id", currentUserId)
+      .eq("isDeleted", false)
       .single();
 
     if (currentUserError || !currentUserRow) {

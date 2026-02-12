@@ -52,8 +52,13 @@ export function DangerZoneSection() {
       toast.success("Account deleted successfully.");
       handleCloseModal();
 
-      // Ensure client-side Clerk state is cleared immediately after server-side session revocation.
-      await signOut({ redirectUrl: "/sign-in" });
+      // After deletion we hard-delete the Clerk user. `signOut()` may fail because
+      // the user/session might no longer exist. Always redirect to sign-in.
+      try {
+        await signOut({ redirectUrl: "/sign-in?reason=deleted" });
+      } catch {
+        window.location.href = "/sign-in?reason=deleted";
+      }
     } catch (err) {
       console.error("Delete account error:", err);
       toast.error("Failed to delete account. Please try again.");

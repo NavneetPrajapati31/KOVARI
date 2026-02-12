@@ -189,17 +189,45 @@ const fetchCurrentUserProfile = async (): Promise<UserProfileType | null> => {
     const posts: any[] = [];
 
 
-    // 3. Count followers
-    const { count: followersCount } = await supabase
-      .from("user_follows")
-      .select("id", { count: "exact", head: true })
-      .eq("following_id", userId);
+    // 3. Count followers/following (exclude soft-deleted users)
+    // We keep follow rows for history/analytics, so counts must filter deleted accounts.
+    const [{ data: followerRows, error: followerErr }, { data: followingRows, error: followingErr }] =
+      await Promise.all([
+        supabase
+          .from("user_follows")
+          .select("follower_id")
+          .eq("following_id", userId),
+        supabase
+          .from("user_follows")
+          .select("following_id")
+          .eq("follower_id", userId),
+      ]);
 
-    // 4. Count following
-    const { count: followingCount } = await supabase
-      .from("user_follows")
-      .select("id", { count: "exact", head: true })
-      .eq("follower_id", userId);
+    if (followerErr || followingErr) {
+      console.error("Error fetching follow ids:", { followerErr, followingErr });
+      return null;
+    }
+
+    const followerIds = (followerRows || []).map((r: any) => r.follower_id);
+    const followingIds = (followingRows || []).map((r: any) => r.following_id);
+
+    const [{ count: followersCount }, { count: followingCount }] =
+      await Promise.all([
+        followerIds.length
+          ? supabase
+              .from("users")
+              .select("id", { count: "exact", head: true })
+              .in("id", followerIds)
+              .eq("isDeleted", false)
+          : Promise.resolve({ count: 0 } as any),
+        followingIds.length
+          ? supabase
+              .from("users")
+              .select("id", { count: "exact", head: true })
+              .in("id", followingIds)
+              .eq("isDeleted", false)
+          : Promise.resolve({ count: 0 } as any),
+      ]);
 
     // 5. Count posts and sum likes
     // const { count: postsCount, data: postsLikesData } = await supabase

@@ -26,6 +26,7 @@ export async function GET(
         .from("users")
         .select("id")
         .eq("clerk_user_id", clerkUserId)
+        .eq("isDeleted", false)
         .single();
       currentUserId = currentUserRow?.id || null;
     }
@@ -57,7 +58,8 @@ export async function GET(
   const { data: users, error: usersError } = await supabase
     .from("users")
     .select("id, profiles(name, username, profile_photo)")
-    .in("id", followerIds);
+    .in("id", followerIds)
+    .eq("isDeleted", false);
 
   if (usersError) {
     return new Response(JSON.stringify({ error: usersError.message }), {
