@@ -67,17 +67,21 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
       >
         <XIcon className="size-4" />
       </button>
-      <motion.img
-        src={src}
-        alt="Profile"
-        className="max-h-[80vh] max-w-[80vw] rounded-full shadow-md object-contain"
-        draggable={false}
+      <motion.div
+        className="h-[min(80vw,80vh)] w-[min(80vw,80vh)] overflow-hidden rounded-full bg-black/10 shadow-md"
         initial="hidden"
         animate="visible"
         exit="exit"
         variants={imageVariants}
         transition={transition}
-      />
+      >
+        <img
+          src={src}
+          alt="Profile"
+          className="h-full w-full object-cover"
+          draggable={false}
+        />
+      </motion.div>
     </motion.div>
   );
 };
