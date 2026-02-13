@@ -9,6 +9,7 @@ import { Label } from "@/shared/components/ui/label";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Spinner } from "@heroui/react";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -19,7 +20,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingState, setLoadingState] = useState<string | null>(null);
+  const isLoading = loadingState !== null;
   const [error, setError] = useState("");
 
   const { signIn, setActive } = useSignIn();
@@ -30,7 +32,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoadingState("email");
     setError("");
 
     try {
@@ -74,14 +76,14 @@ export default function AuthForm({ mode }: AuthFormProps) {
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "An error occurred");
     } finally {
-      setIsLoading(false);
+      setLoadingState(null);
     }
   };
 
   const handleSocialAuth = async (
     provider: "oauth_google" | "oauth_facebook" | "oauth_apple"
   ) => {
-    setIsLoading(true);
+    setLoadingState(provider);
     setError("");
 
     try {
@@ -100,12 +102,12 @@ export default function AuthForm({ mode }: AuthFormProps) {
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "An error occurred");
-      setIsLoading(false);
+      setLoadingState(null);
     }
   };
 
   return (
-    <div className="w-full px-7 mx-auto max-w-md space-y-4 py-7 sm:px-7 sm:max-w-md md:max-w-lg lg:max-w-xl custom-autofill border-1 border-border rounded-lg bg-card shadow-none">
+    <div className="w-full px-5 mx-auto max-w-md space-y-4 py-5 sm:py-7 sm:px-7 sm:max-w-md md:max-w-lg lg:max-w-xl custom-autofill border-1 border-border rounded-lg bg-card shadow-none">
       {/* Logo */}
       {/* <div className="flex items-center space-x-2">
         <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
@@ -120,10 +122,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
       {/* Header */}
       <div className="space-y-0.5">
-        <h1 className="text-xl font-bold text-foreground">
+        <h1 className="text-md sm:text-lg font-bold text-foreground">
           {isSignUp ? "Join KOVARI" : "Welcome back to KOVARI"}
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm sm:text-md text-muted-foreground">
           {isSignUp
             ? "Create your account to get started"
             : "Log in back to your account"}
@@ -132,7 +134,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="p-2.5 text-sm text-[#F13260] bg-[#F13260]/15 border border-[#F13260] rounded-md">
+        <div className="p-2.5 text-sm text-destructive bg-[#F13260]/15 rounded-md">
           {error}
         </div>
       )}
@@ -145,8 +147,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
           onClick={() => handleSocialAuth("oauth_google")}
           disabled={isLoading}
         >
-          {isLoading ? (
-            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+          {loadingState === "oauth_google" ? (
+            <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-foreground"}} className="mr-3" />
           ) : (
             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
               <path
@@ -176,8 +178,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
           onClick={() => handleSocialAuth("oauth_facebook")}
           disabled={isLoading}
         >
-          {isLoading ? (
-            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+          {loadingState === "oauth_facebook" ? (
+             <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-foreground"}} className="mr-3" />
           ) : (
             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="#1877F2">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -192,8 +194,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
           onClick={() => handleSocialAuth("oauth_apple")}
           disabled={isLoading}
         >
-          {isLoading ? (
-            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+          {loadingState === "oauth_apple" ? (
+             <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-foreground"}} className="mr-3" />
           ) : (
             <svg
               className="w-5 h-5 mr-3"
@@ -310,9 +312,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
           className="w-full h-10 bg-primary hover:bg-primary-hover text-primary-foreground font-medium"
           disabled={isLoading}
         >
-          {isLoading ? (
+          {loadingState === "email" ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+               <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}} className="mr-3" />
               {isSignUp ? "Creating account..." : "Signing in..."}
             </>
           ) : (
