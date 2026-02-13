@@ -299,12 +299,6 @@ export default function Dashboard() {
   const nearestUpcomingGroupId = upcoming[0]?.group?.id;
   const selectedGroupId = nearestUpcomingGroupId || past[0]?.group?.id;
 
-  console.log(
-    "User groups:",
-    groups.map((g) => g.group?.id)
-  );
-  console.log("Selected Group ID for itinerary:", selectedGroupId);
-
   // Fetch itinerary
   useEffect(() => {
     if (!selectedGroupId) {
@@ -317,11 +311,9 @@ export default function Dashboard() {
 
     fetch(`/api/Itinerary?groupId=${selectedGroupId}`)
       .then((res) => {
-        console.log("API /api/Itinerary status:", res.status);
         return res.json();
       })
       .then((data) => {
-        console.log("API /api/Itinerary data:", data);
         const byDay: { [date: string]: any[] } = {};
         data.forEach((item: any) => {
           const date = item.datetime?.split("T")[0];
@@ -350,7 +342,6 @@ export default function Dashboard() {
             };
           }),
         }));
-        console.log("Mapped itineraryDays:", mapped);
         setItineraryDays(mapped);
       })
       .catch((err) => {

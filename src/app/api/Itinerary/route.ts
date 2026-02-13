@@ -11,10 +11,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const groupId = searchParams.get("groupId");
 
-  console.log("Requested groupId:", groupId);
-
   if (!groupId) {
-    console.log("No groupId provided");
     return NextResponse.json(
       { error: "Missing groupId parameter" },
       { status: 400 }
@@ -62,8 +59,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  console.log("🔍 Querying itinerary_items table for groupId:", groupId);
-
   const { data, error } = await supabase
     .from("itinerary_items")
     .select(
@@ -72,15 +67,7 @@ export async function GET(req: NextRequest) {
     .eq("group_id", groupId)
     .order("datetime", { ascending: true });
 
-  console.log("📊 Fetched itinerary data:", data);
-  console.log("📈 Total items found:", data?.length || 0);
-
-  if (data && data.length > 0) {
-    console.log("📝 Sample item:", data[0]);
-  }
-
   if (error) {
-    console.log("Supabase error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json(data);

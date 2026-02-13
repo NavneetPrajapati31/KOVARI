@@ -34,16 +34,16 @@ export const getUserUuidByClerkId = async (
     .select("id")
     .eq("clerk_user_id", clerkId)
     .eq("isDeleted", false)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
-    console.error("Failed to fetch user UUID for Clerk ID:", {
-      clerkId,
-      code: error?.code,
-      message: error?.message,
-      details: (error as any)?.details,
-      hint: (error as any)?.hint,
-    });
+    // console.error("Failed to fetch user UUID for Clerk ID:", {
+    //   clerkId,
+    //   code: error?.code,
+    //   message: error?.message,
+    //   details: (error as any)?.details,
+    //   hint: (error as any)?.hint,
+    // });
     return null;
   }
   return data.id;

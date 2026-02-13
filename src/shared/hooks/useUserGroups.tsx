@@ -86,7 +86,7 @@ export function useUserGroups() {
           .eq("user_id", userUuid)
           .eq("status", "accepted");
 
-        console.log("📦 Supabase GROUPS DATA ===>", data);
+        // console.log("📦 Supabase GROUPS DATA ===>", data);
 
         if (supabaseError) {
           console.error("❌ Supabase ERROR:", supabaseError);

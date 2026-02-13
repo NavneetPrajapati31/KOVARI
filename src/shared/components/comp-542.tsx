@@ -37,12 +37,10 @@ const useItineraryEvents = () => {
   useEffect(() => {
     // Only proceed if groups are loaded and we have groups
     if (groupsLoading) {
-      console.log("⏳ Still loading user groups...");
       return;
     }
 
     if (groups.length === 0) {
-      console.log("📭 No user groups found");
       setEvents([]);
       setLoading(false);
       return;
@@ -50,15 +48,8 @@ const useItineraryEvents = () => {
 
     const fetchAllGroupEvents = async () => {
       try {
-        console.log("🚀 Starting to fetch itinerary data for all user groups");
         setLoading(true);
         setError(null);
-
-        console.log("📊 Total user groups:", groups.length);
-        console.log(
-          "📋 User group IDs:",
-          groups.map((g) => g.group?.id).filter(Boolean)
-        );
 
         const allEvents: CalendarEvent[] = [];
         // Only get groups where user is a member (status is 'accepted')
@@ -67,30 +58,14 @@ const useItineraryEvents = () => {
         );
         const groupIds = memberGroups.map((g) => g.group!.id);
 
-        console.log("👥 Groups where user is a member:", groupIds);
-        console.log("📊 Total member groups:", groupIds.length);
-
         if (groupIds.length === 0) {
-          console.log(
-            "📭 No member groups found - user is not a member of any groups"
-          );
           setEvents([]);
           return;
         }
 
         for (const groupId of groupIds) {
           try {
-            console.log(`🔍 Fetching itinerary for group: ${groupId}`);
             const response = await fetch(`/api/Itinerary?groupId=${groupId}`);
-
-            console.log(
-              `📡 API Response status for group ${groupId}:`,
-              response.status
-            );
-            console.log(
-              `📡 API Response ok for group ${groupId}:`,
-              response.ok
-            );
 
             if (!response.ok) {
               console.error(
@@ -100,31 +75,6 @@ const useItineraryEvents = () => {
             }
 
             const data: ItineraryItem[] = await response.json();
-
-            // Log all raw itinerary data for this group
-            console.log(`📋 Raw itinerary data for group ${groupId}:`, data);
-            console.log(`📊 Total items for group ${groupId}:`, data.length);
-
-            // Log each item individually for detailed inspection
-            data.forEach((item, index) => {
-              console.log(`📝 Group ${groupId} - Item ${index + 1}:`, {
-                id: item.id,
-                group_id: item.group_id,
-                title: item.title,
-                description: item.description,
-                datetime: item.datetime,
-                status: item.status,
-                location: item.location,
-                priority: item.priority,
-                notes: item.notes,
-                assigned_to: item.assigned_to,
-                image_url: item.image_url,
-                external_link: item.external_link,
-                created_at: item.created_at,
-                is_archived: item.is_archived,
-                duration: item.duration,
-              });
-            });
 
             // Transform itinerary data to CalendarEvent format
             const transformedEvents: CalendarEvent[] = data
@@ -158,15 +108,6 @@ const useItineraryEvents = () => {
                 };
               });
 
-            console.log(
-              `🔄 Transformed events for group ${groupId}:`,
-              transformedEvents
-            );
-            console.log(
-              `✅ Final events count for group ${groupId}:`,
-              transformedEvents.length
-            );
-
             allEvents.push(...transformedEvents);
           } catch (err) {
             console.error(
@@ -181,8 +122,6 @@ const useItineraryEvents = () => {
           }
         }
 
-        console.log("🎯 All events combined:", allEvents);
-        console.log("🎯 Total combined events count:", allEvents.length);
         setEvents(allEvents);
       } catch (err) {
         console.error("❌ Error in fetchAllGroupEvents:", err);
@@ -259,17 +198,14 @@ export default function ItineraryUI() {
 
   const handleEventAdd = (event: CalendarEvent) => {
     // This would need to be implemented to add events to the backend
-    console.log("Add event:", event);
   };
 
   const handleEventUpdate = (updatedEvent: CalendarEvent) => {
     // This would need to be implemented to update events in the backend
-    console.log("Update event:", updatedEvent);
   };
 
   const handleEventDelete = (eventId: string) => {
     // This would need to be implemented to delete events from the backend
-    console.log("Delete event:", eventId);
   };
 
   if (loading) {

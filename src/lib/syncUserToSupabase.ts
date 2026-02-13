@@ -12,7 +12,7 @@ export function useSyncUserToSupabase() {
   const syncUser = useCallback(
     async (retries = 3): Promise<boolean> => {
       if (!userId || !user) {
-        console.warn("Clerk user not found");
+        // console.warn("Clerk user not found");
         return false;
       }
 
@@ -50,19 +50,19 @@ export function useSyncUserToSupabase() {
           }
 
           const body = await syncRes.json().catch(() => null);
-          console.warn(`${debugPrefix} Server sync failed`, {
-            status: syncRes.status,
-            body,
-          });
+          // console.warn(`${debugPrefix} Server sync failed`, {
+          //   status: syncRes.status,
+          //   body,
+          // });
         } catch (e) {
-          console.warn(`${debugPrefix} Server sync threw`, e);
+          // console.warn(`${debugPrefix} Server sync threw`, e);
         }
 
         // IMPORTANT: Use the Supabase JWT template so the token includes
         // `role: "authenticated"` and is signed for Supabase verification.
         const token = await getToken({ template: "supabase" });
         if (!token) {
-          console.warn(`${debugPrefix} Missing supabase token`, { userId });
+          // console.warn(`${debugPrefix} Missing supabase token`, { userId });
         }
 
         const supabase = createBrowserClient(
@@ -82,16 +82,16 @@ export function useSyncUserToSupabase() {
           .from("users")
           .select('id, "isDeleted"')
           .eq("clerk_user_id", userId)
-          .single();
+          .maybeSingle();
 
         // If fetchError is not a "no rows" error, log and retry
         if (fetchError && fetchError.code !== "PGRST116") {
-          console.error(`${debugPrefix} Error checking user existence`, {
-            code: fetchError.code,
-            message: fetchError.message,
-            details: (fetchError as any).details,
-            hint: (fetchError as any).hint,
-          });
+          // console.error(`${debugPrefix} Error checking user existence`, {
+          //   code: fetchError.code,
+          //   message: fetchError.message,
+          //   details: (fetchError as any).details,
+          //   hint: (fetchError as any).hint,
+          // });
           if (retries > 0) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return syncUser(retries - 1);
@@ -113,15 +113,15 @@ export function useSyncUserToSupabase() {
             .from("users")
             .insert({ clerk_user_id: userId })
             .select("id")
-            .single();
+            .maybeSingle();
 
           if (insertError || !newUser) {
-            console.error(`${debugPrefix} Failed to create user in Supabase`, {
-              code: insertError?.code,
-              message: insertError?.message,
-              details: (insertError as any)?.details,
-              hint: (insertError as any)?.hint,
-            });
+            // console.error(`${debugPrefix} Failed to create user in Supabase`, {
+            //   code: insertError?.code,
+            //   message: insertError?.message,
+            //   details: (insertError as any)?.details,
+            //   hint: (insertError as any)?.hint,
+            // });
             if (retries > 0) {
               await new Promise((resolve) => setTimeout(resolve, 1000));
               return syncUser(retries - 1);
@@ -132,7 +132,7 @@ export function useSyncUserToSupabase() {
         }
 
         if (!userIdInSupabase) {
-          console.error("User ID in Supabase is undefined after sync.");
+          // console.error("User ID in Supabase is undefined after sync.");
           return false;
         }
 
@@ -143,10 +143,10 @@ export function useSyncUserToSupabase() {
           }
         } catch {}
 
-        console.log("✅ User synced to Supabase successfully");
+        // console.log("✅ User synced to Supabase successfully");
         return true;
       } catch (error) {
-        console.error("[syncUserToSupabase] Error in syncUser:", error);
+        // console.error("[syncUserToSupabase] Error in syncUser:", error);
         if (retries > 0) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           return syncUser(retries - 1);

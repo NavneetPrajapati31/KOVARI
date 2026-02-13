@@ -162,9 +162,6 @@ export async function GET() {
     }
 
     const impressionCount = count || 0;
-    console.log(
-      `📊 Profile impressions count for user ${userId}: ${impressionCount}`
-    );
 
     return NextResponse.json({
       impressions: impressionCount,

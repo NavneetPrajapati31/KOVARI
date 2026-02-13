@@ -139,7 +139,8 @@ export function DateTimePicker({
                 "hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed",
               )}
             >
-              <Clock className="h-4 w-4" />
+              {/* <Clock className="h-4 w-4" /> */}
+              <ChevronDownIcon className="h-4 w-4 shrink-0 inline-end" />
             </button>
           </div>
         </Field>
@@ -210,7 +211,8 @@ export function DateTimePicker({
             "hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed",
           )}
         >
-          <Clock className="h-4 w-4" />
+          {/* <Clock className="h-4 w-4" /> */}
+          <ChevronDownIcon className="h-4 w-4 mr-1 shrink-0 inline-end" />
         </button>
       </div>
     </div>
