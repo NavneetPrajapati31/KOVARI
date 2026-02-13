@@ -20,7 +20,7 @@ const InterestResults: React.FC<InterestResultsProps> = ({
 
   if (hasError) {
     return (
-      <div className="text-center font-medium text-xs sm:text-sm text-destructive py-20" role="alert">
+      <div className="text-center font-medium text-sm text-destructive py-20" role="alert">
         Failed to load interests. Please try again.
       </div>
     );
@@ -28,7 +28,7 @@ const InterestResults: React.FC<InterestResultsProps> = ({
 
   if (!interests || interests.length === 0) {
     return (
-      <div className="text-center font-medium text-xs sm:text-sm text-muted-foreground py-20">
+      <div className="text-center font-medium text-sm text-muted-foreground py-20">
         No interests found.
       </div>
     );

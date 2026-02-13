@@ -521,7 +521,7 @@ export default function LayoutWrapper() {
   // Responsive layout
   if (isMobile) {
     return (
-      <div className="flex flex-col min-h-screen h-full bg-card text-foreground border-1 border-border rounded-3xl">
+      <div className="flex flex-col min-h-[90vh] h-full bg-card text-foreground border-1 border-border rounded-3xl">
         {activeTab == null ? (
           <div className="w-full">
             <SettingsSidebar
@@ -559,9 +559,9 @@ export default function LayoutWrapper() {
                   }
                 }}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-5 w-5" />
               </button>
-              <h2 className="text-xs font-semibold text-foreground">
+              <h2 className="text-sm font-semibold text-foreground">
                 {(() => {
                   const tabLabels: Record<string, string> = {
                     basic: "Basic Info",

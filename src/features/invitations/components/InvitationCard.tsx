@@ -50,6 +50,7 @@ export function GroupInviteCard({
   const [loadingAction, setLoadingAction] = useState<
     "accept" | "decline" | null
   >(null);
+  const [isAccepted, setIsAccepted] = useState(false);
 
   const handleCreatorClick = () => {
     if (!invite.creator?.id) return;
@@ -124,57 +125,66 @@ export function GroupInviteCard({
       </div>
 
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-2 mt-auto pt-2">
-        <Button
-          variant="outline"
-          className="w-full h-9 text-xs font-semibold rounded-lg border-border hover:bg-accent/50"
-          disabled={!!loadingAction}
-          onClick={async () => {
-            setLoadingAction("decline");
-            try {
-              await onDecline(invite.id);
-            } catch (error) {
-              console.error("Error declining invitation:", error);
-            } finally {
-              setLoadingAction(null);
-            }
-          }}
-        >
-          {loadingAction === "decline" ? (
-            <Spinner
-              variant="spinner"
-              size="sm"
-              classNames={{ spinnerBars: "bg-foreground" }}
-            />
-          ) : (
-            "Decline"
-          )}
-        </Button>
+      <div className="mt-auto pt-2">
+        {isAccepted ? (
+          <div className="w-full h-9 flex items-center justify-center text-xs font-medium text-primary-foreground bg-primary rounded-lg">
+            You're in! Plan the trip.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              className="w-full h-9 text-xs font-semibold rounded-lg border-border hover:bg-accent/50"
+              disabled={!!loadingAction}
+              onClick={async () => {
+                setLoadingAction("decline");
+                try {
+                  await onDecline(invite.id);
+                } catch (error) {
+                  console.error("Error declining invitation:", error);
+                } finally {
+                  setLoadingAction(null);
+                }
+              }}
+            >
+              {loadingAction === "decline" ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-foreground" }}
+                />
+              ) : (
+                "Decline"
+              )}
+            </Button>
 
-        <Button
-          className="w-full h-9 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-          disabled={!!loadingAction}
-          onClick={async () => {
-            setLoadingAction("accept");
-            try {
-              await onAccept(invite.id);
-            } catch (error) {
-              console.error("Error accepting invitation:", error);
-            } finally {
-              setLoadingAction(null);
-            }
-          }}
-        >
-          {loadingAction === "accept" ? (
-            <Spinner
-              variant="spinner"
-              size="sm"
-              classNames={{ spinnerBars: "bg-primary-foreground" }}
-            />
-          ) : (
-            "Accept"
-          )}
-        </Button>
+            <Button
+              className="w-full h-9 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={!!loadingAction}
+              onClick={async () => {
+                setLoadingAction("accept");
+                try {
+                  await onAccept(invite.id);
+                  setIsAccepted(true);
+                } catch (error) {
+                  console.error("Error accepting invitation:", error);
+                } finally {
+                  setLoadingAction(null);
+                }
+              }}
+            >
+              {loadingAction === "accept" ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-primary-foreground" }}
+                />
+              ) : (
+                "Accept"
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

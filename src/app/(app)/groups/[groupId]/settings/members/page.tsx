@@ -10,7 +10,7 @@ import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Plus } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Chip } from "@heroui/react";
 import { RemoveMemberModal } from "@/features/invite/components/remove-member-modal";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
@@ -116,6 +116,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const params = useParams<{ groupId: string }>();
+  const router = useRouter();
   const groupId = params.groupId;
   const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<GroupMember | null>(
@@ -248,8 +249,7 @@ export default function Page() {
           <h1 className="text-md font-bold text-foreground">Members</h1>
           <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
             Manage your group&apos;s members. Invite new people and remove
-            members as needed. Group admins can control who participates and
-            help keep your group organized and secure.
+            members as needed.
           </p>
         </div>
         <Button
@@ -303,7 +303,15 @@ export default function Page() {
             {sortedMembers.map((member) => (
               <div
                 key={member.id}
-                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 last:rounded-b-3xl hover:bg-gray-50"
+                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 last:rounded-b-3xl hover:bg-gray-50 cursor-pointer transition-colors"
+                onClick={() => router.push(`/profile/${member.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        router.push(`/profile/${member.id}`);
+                    }
+                }}
               >
                 <div className="col-span-3 flex items-center gap-3">
                   <Avatar className="h-8 w-8">
@@ -364,8 +372,11 @@ export default function Page() {
                       showButton && (
                         <Button
                           variant="ghost"
-                          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 px-3 py-1 h-auto text-xs"
-                          onClick={() => handleOpenRemoveModal(member)}
+                          className="text-destructive hover:text-destructive hover:bg-transparent px-3 py-1 h-auto text-sm font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenRemoveModal(member);
+                          }}
                           aria-label={`Remove ${member.name}`}
                           tabIndex={0}
                         >
@@ -387,7 +398,15 @@ export default function Page() {
           {sortedMembers.map((member) => (
             <div
               key={member.id}
-              className="bg-card rounded-lg border border-border p-4 space-y-3"
+              className="bg-card rounded-lg border border-border p-4 space-y-3 cursor-pointer transition-colors hover:bg-accent/50"
+              onClick={() => router.push(`/profile/${member.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                      router.push(`/profile/${member.id}`);
+                  }
+              }}
             >
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
@@ -435,7 +454,10 @@ export default function Page() {
                     <Button
                       variant="ghost"
                       className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 px-3 py-1 h-auto text-xs"
-                      onClick={() => handleOpenRemoveModal(member)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenRemoveModal(member);
+                      }}
                       aria-label={`Remove ${member.name}`}
                       tabIndex={0}
                     >

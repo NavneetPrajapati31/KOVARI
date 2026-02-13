@@ -19,7 +19,7 @@ const InvitationResults: React.FC<InvitationResultsProps> = ({
 
   if (hasError) {
     return (
-      <div className="text-center font-medium text-xs sm:text-sm text-destructive py-20" role="alert">
+      <div className="text-center font-medium text-sm text-destructive py-20" role="alert">
         Failed to load invitations. Please try again.
       </div>
     );
@@ -27,7 +27,7 @@ const InvitationResults: React.FC<InvitationResultsProps> = ({
 
   if (!invitations || invitations.length === 0) {
     return (
-      <div className="text-center font-medium text-xs sm:text-sm text-muted-foreground py-20">
+      <div className="text-center font-medium text-sm text-muted-foreground py-20">
         No invitations found.
       </div>
     );

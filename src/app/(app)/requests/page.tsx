@@ -151,8 +151,10 @@ export default function RequestsPage() {
         throw new Error("Failed to accept invitation");
       }
 
-      // Remove the accepted invitation from the list
-      setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
+      // Show success message for a moment before removing
+      setTimeout(() => {
+        setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
+      }, 3000);
 
       // Optionally redirect to the group page
       // router.push(`/groups/${invitationId}/home`);
@@ -204,8 +206,10 @@ export default function RequestsPage() {
         throw new Error("Failed to connect");
       }
 
-      // Remove the accepted interest from the list
-      setInterests((prev) => prev.filter((i) => i.id !== interestId));
+      // Show success message for a moment before removing
+      setTimeout(() => {
+        setInterests((prev) => prev.filter((i) => i.id !== interestId));
+      }, 3000);
       
       // TODO: Maybe redirect to a chat or show a success message
     } catch (err) {

@@ -88,16 +88,16 @@ export const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
             onClick={() => handleOpenChange(false)}
             disabled={isLoading}
             aria-label="Cancel removal"
-            className="h-9"
+            className="h-9 hover:bg-background"
           >
             Cancel
           </Button>
           <Button
-            variant="destructive"
+            variant="outline"
             onClick={onConfirm}
             disabled={isLoading}
             aria-label="Confirm remove member"
-            className="h-9"
+            className="h-9 text-destructive hover:text-destructive hover:bg-background"
           >
             {isLoading ? "Removing..." : "Remove"}
           </Button>

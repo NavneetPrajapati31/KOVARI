@@ -125,7 +125,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     tabs: Array<(typeof TABS)[number]>,
     title?: string,
   ) => (
-    <div key={groupKey} className="space-y-0">
+    <div key={groupKey} className="space-y-0.5">
       {title && (
         <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {title}
@@ -140,7 +140,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               tabRefs.current[index] = el;
             }}
             type="button"
-            className={`w-full text-left font-medium text-xs sm:text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20  transition-colors flex items-center justify-between gap-2 ${
+            className={`w-full text-left font-medium text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20  transition-colors flex items-center justify-between gap-2 ${
               activeTab === tab.key
                 ? "text-primary bg-primary-light font-semibold"
                 : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
@@ -172,7 +172,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="flex flex-col gap-4 p-2 md:p-4 border-gray-200 overflow-y-auto"
+      className="flex flex-col gap-4 md:p-4 px-2 py-4 border-gray-200 overflow-y-auto"
     >
       {renderTabGroup("edit", groupedTabs.edit, "Edit Group")}
       <div className="border-t border-gray-200 mb-0.5" />

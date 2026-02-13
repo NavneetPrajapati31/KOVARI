@@ -45,6 +45,7 @@ export function InterestCard({
   const [loadingAction, setLoadingAction] = useState<
     "accept" | "decline" | null
   >(null);
+  const [isAccepted, setIsAccepted] = useState(false);
 
   if (isLoading) {
     return <InvitationCardSkeleton />;
@@ -118,52 +119,66 @@ export function InterestCard({
       </div>
 
        {/* Actions */}
-      <div className="grid grid-cols-2 gap-2 mt-auto pt-2">
-          <Button
-            variant="outline"
-            className="w-full h-9 text-xs font-semibold rounded-lg border-border hover:bg-accent/50"
-            disabled={!!loadingAction}
-            onClick={async () => {
-              setLoadingAction("decline");
-              try {
-                await onDecline(interest.id);
-              } catch (error) {
-                console.error("Error declining interest:", error);
-              } finally {
-               setLoadingAction(null);
-              }
-            }}
-          >
-             {loadingAction === "decline" ? (
-              <Spinner variant="spinner"
-                              size="sm"
-                              classNames={{ spinnerBars: "bg-foreground" }}
-                            />
-            ) : "Delete"}
-          </Button>
+      <div className="mt-auto pt-2">
+        {isAccepted ? (
+           <div className="w-full h-9 flex items-center justify-center text-xs font-medium text-primary-foreground bg-primary rounded-lg">
+              It's a match! Chat now.
+           </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              className="w-full h-9 text-xs font-semibold rounded-lg border-border hover:bg-accent/50"
+              disabled={!!loadingAction}
+              onClick={async () => {
+                setLoadingAction("decline");
+                try {
+                  await onDecline(interest.id);
+                } catch (error) {
+                  console.error("Error declining interest:", error);
+                } finally {
+                  setLoadingAction(null);
+                }
+              }}
+            >
+              {loadingAction === "decline" ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-foreground" }}
+                />
+              ) : (
+                "Delete"
+              )}
+            </Button>
 
-          <Button
-            className="w-full h-9 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-            disabled={!!loadingAction}
-            onClick={async () => {
-              setLoadingAction("accept");
-              try {
-                await onAccept(interest.id);
-              } catch (error) {
-                console.error("Error accepting interest:", error);
-              } finally {
-               setLoadingAction(null);
-              }
-            }}
-          >
-             {loadingAction === "accept" ? (
-              <Spinner
-                variant="spinner"
-                size="sm"
-                classNames={{ spinnerBars: "bg-primary-foreground" }}
-              />
-            ) : "Connect"}
-          </Button>
+            <Button
+              className="w-full h-9 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={!!loadingAction}
+              onClick={async () => {
+                setLoadingAction("accept");
+                try {
+                  await onAccept(interest.id);
+                  setIsAccepted(true);
+                } catch (error) {
+                  console.error("Error accepting interest:", error);
+                } finally {
+                  setLoadingAction(null);
+                }
+              }}
+            >
+              {loadingAction === "accept" ? (
+                <Spinner
+                  variant="spinner"
+                  size="sm"
+                  classNames={{ spinnerBars: "bg-primary-foreground" }}
+                />
+              ) : (
+                "Connect"
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
