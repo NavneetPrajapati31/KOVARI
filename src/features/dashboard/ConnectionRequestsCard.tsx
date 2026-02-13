@@ -318,7 +318,7 @@ export const ConnectionRequestsCard = () => {
   return (
     <div className="w-full bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
       <div className="mb-0 p-4 border-b border-border flex-shrink-0">
-        <h2 className="text-foreground font-semibold text-xs truncate">
+        <h2 className="text-foreground font-medium text-xs truncate">
           Interests
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">

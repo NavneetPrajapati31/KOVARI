@@ -422,7 +422,7 @@ export default function Dashboard() {
               <h1 className="text-sm font-semibold">
                 Hi, {user?.firstName || "User"}
               </h1>
-              <p className="text-muted-foreground font-medium text-xs">
+              <p className="text-muted-foreground font-medium text-sm">
                 Welcome back to KOVARI 👋🏻
               </p>
             </div>
@@ -579,7 +579,19 @@ export default function Dashboard() {
           <div className="flex flex-col lg:flex-row gap-3 h-full">
             <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
               <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
+               
                 <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
+                  <div className="h-full min-h-0">
+                    <TopDestinationCard
+                      name={topDestinationNameCountry.name}
+                      country={topDestinationNameCountry.country}
+                      imageUrl={topDestinationCoverImage}
+                      onExplore={handleExploreTopDestination}
+                      isLoading={groupsLoading}
+                    />
+                  </div>
+                </div>
+                 <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
                   <div className="h-full min-h-0">
                     <UpcomingTripCard
                       groupId={selectedGroupId || ""}
@@ -588,17 +600,6 @@ export default function Dashboard() {
                       startDate={startDate}
                       endDate={endDate}
                       onExplore={handleExplore}
-                      isLoading={groupsLoading}
-                    />
-                  </div>
-                </div>
-                <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
-                  <div className="h-full min-h-0">
-                    <TopDestinationCard
-                      name={topDestinationNameCountry.name}
-                      country={topDestinationNameCountry.country}
-                      imageUrl={topDestinationCoverImage}
-                      onExplore={handleExploreTopDestination}
                       isLoading={groupsLoading}
                     />
                   </div>
@@ -631,7 +632,7 @@ export default function Dashboard() {
               <div className="flex flex-col md:flex-row gap-3 flex-1">
                 <div className="w-full md:flex-1 min-w-0 bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
                   <div className="mb-0 p-4 border-b border-border flex-shrink-0">
-                    <h2 className="text-foreground font-semibold text-xs truncate">
+                    <h2 className="text-foreground font-medium text-xs truncate">
                       Travel Groups
                     </h2>
                     <p className="mt-0.5 text-muted-foreground text-xs">

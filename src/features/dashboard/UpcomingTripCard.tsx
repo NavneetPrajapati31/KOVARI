@@ -196,7 +196,7 @@ export function UpcomingTripCard({
       <div className="absolute bottom-0 left-0 right-0 z-10 w-full rounded-b-xl sm:rounded-b-xl md:rounded-b-xl lg:rounded-b-xl px-3 py-3 flex flex-row justify-between items-center gap-2">
         <div
           className={cn(
-            "font-medium text-[12px] sm:text-xs rounded-3xl px-3 py-2 h-8 flex justify-center items-center max-w-[180px] min-w-0",
+            "font-medium text-[12px] sm:text-xs rounded-full px-3 py-2 h-8 flex justify-center items-center max-w-[180px] min-w-0",
             "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)] transition-all duration-200",
             hasImage
               ? "text-primary-foreground"
@@ -207,9 +207,8 @@ export function UpcomingTripCard({
         </div>
         <Button
           variant="outline"
-          size="icon"
           className={cn(
-            "rounded-full shrink-0 font-medium w-8 h-8",
+            "rounded-full shrink-0 font-medium h-8 text-[12px] sm:text-xs",
             "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)]",
             hasImage
               ? "text-primary-foreground"
@@ -218,6 +217,7 @@ export function UpcomingTripCard({
           onClick={() => router.push(`/groups/${groupId}/home`)}
           aria-label="View upcoming trip"
         >
+          Upcoming
           <CalendarClock className="w-3.5 h-3.5" />
         </Button>
       </div>
