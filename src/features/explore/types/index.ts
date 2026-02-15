@@ -1,5 +1,14 @@
 export interface SearchData {
   destination: string;
+  destinationDetails?: {
+      city?: string;
+      state?: string;
+      country?: string;
+      lat?: number;
+      lon?: number;
+      formatted?: string;
+      place_id?: string;
+  };
   budget: number;
   startDate: Date;
   endDate: Date;

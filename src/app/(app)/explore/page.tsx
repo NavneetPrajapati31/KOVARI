@@ -207,17 +207,29 @@ export default function ExplorePage() {
         }
 
         // Step 1: Store enhanced dynamic session (for solo matching)
-        const sessionResponse = await fetch("/api/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const sessionPayload: any = {
             userId,
             destinationName: fullSearchData.destination,
             budget: fullSearchData.budget,
             startDate: fullSearchData.startDate.toISOString().split("T")[0],
             endDate: fullSearchData.endDate.toISOString().split("T")[0],
             travelMode: fullSearchData.travelMode,
-          }),
+        };
+
+        if (fullSearchData.destinationDetails) {
+            sessionPayload.destination = {
+                name: fullSearchData.destinationDetails.formatted || fullSearchData.destination,
+                lat: fullSearchData.destinationDetails.lat,
+                lon: fullSearchData.destinationDetails.lon,
+                city: fullSearchData.destinationDetails.city,
+                country: fullSearchData.destinationDetails.country
+            };
+        }
+
+        const sessionResponse = await fetch("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sessionPayload),
         });
 
         if (!sessionResponse.ok) {
@@ -299,7 +311,7 @@ export default function ExplorePage() {
       } else {
         // GROUP TRAVEL MODE - Only search for groups with filter data
         console.log("Searching for groups with filters:", filters);
-        const requestBody = {
+        const requestBody: any = {
           destination: fullSearchData.destination,
           budget: fullSearchData.budget,
           startDate: fullSearchData.startDate.toISOString().split("T")[0],
@@ -315,6 +327,11 @@ export default function ExplorePage() {
           nationality:
             filters.nationality !== "Any" ? filters.nationality : "Unknown",
         };
+
+        if (fullSearchData.destinationDetails) {
+             requestBody.lat = fullSearchData.destinationDetails.lat;
+             requestBody.lon = fullSearchData.destinationDetails.lon;
+        }
 
         console.log("Request body for group search:", requestBody);
 
@@ -466,7 +483,7 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="min-h-screen px-4">
+    <div className="min-h-screen px-4 pb-4">
       <div className="max-w-full mx-auto flex flex-col gap-0">
         {/* Tabs Header - Outside containers like groups layout */}
         <header className="flex w-full items-center gap-2 sticky top-0 z-50 bg-background py-4">

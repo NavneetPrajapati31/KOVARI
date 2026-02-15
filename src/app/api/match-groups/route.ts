@@ -107,6 +107,8 @@ export async function POST(req: NextRequest) {
     const data = await req.json();
     const {
       destination,
+      lat,
+      lon,
       budget,
       startDate,
       endDate,
@@ -122,6 +124,8 @@ export async function POST(req: NextRequest) {
 
     console.log("Received request data:", {
       destination,
+      lat,
+      lon,
       budget,
       startDate,
       endDate,
@@ -149,7 +153,11 @@ export async function POST(req: NextRequest) {
 
     // Get coordinates for user's destination
     let userDestinationCoords: Location;
-    if (typeof destination === "string") {
+    
+    if (lat && lon) {
+         console.log("Using provided coordinates for destination:", lat, lon);
+         userDestinationCoords = { lat, lon };
+    } else if (typeof destination === "string") {
       console.log("Getting coordinates for destination:", destination);
       const coords = await getCoordinatesForLocation(destination);
       if (!coords) {

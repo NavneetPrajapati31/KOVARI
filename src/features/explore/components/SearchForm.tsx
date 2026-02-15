@@ -28,6 +28,8 @@ function dateToCalendarDate(date?: Date): CalendarDate | undefined {
   );
 }
 
+import { LocationAutocomplete } from "@/shared/components/ui/location-autocomplete";
+
 interface SearchFormProps {
   searchData: SearchData;
   onSearchDataChange: (data: SearchData) => void;
@@ -37,175 +39,6 @@ interface SearchFormProps {
   datePickerPortalContainer?: HTMLElement | null;
 }
 
-const DESTINATION_OPTIONS = [
-  "Abu Dhabi, UAE",
-  "Adelaide, Australia",
-  "Agra, India",
-  "Ahmedabad, Gujarat",
-  "Aihole, Karnataka",
-  "Ajmer, Rajasthan",
-  "Alexandria, Egypt",
-  "Almora, Uttarakhand",
-  "Amboli, Maharashtra",
-  "Amman, Jordan",
-  "Amsterdam, Netherlands",
-  "Antwerp, Belgium",
-  "Arambol, Goa",
-  "Athens, Greece",
-  "Auckland, New Zealand",
-  "Auli, Uttarakhand",
-  "Badami, Karnataka",
-  "Badrinath, Uttarakhand",
-  "Bali, Indonesia",
-  "Bangalore, Karnataka",
-  "Bangkok, Thailand",
-  "Barcelona, Spain",
-  "Bekal, Kerala",
-  "Berlin, Germany",
-  "Bhandardara, Maharashtra",
-  "Bharatpur, Rajasthan",
-  "Bhimashankar, Maharashtra",
-  "Bhopal, Madhya Pradesh",
-  "Bhuj, Gujarat",
-  "Bidar, Karnataka",
-  "Bikaner, Rajasthan",
-  "Binsar, Uttarakhand",
-  "Birmingham, UK",
-  "Bogota, Colombia",
-  "Bordeaux, France",
-  "Brisbane, Australia",
-  "Brussels, Belgium",
-  "Budapest, Hungary",
-  "Bundi, Rajasthan",
-  "Busan, South Korea",
-  "Cairo, Egypt",
-  "Calgary, Canada",
-  "Canberra, Australia",
-  "Cape Town, South Africa",
-  "Cartagena, Colombia",
-  "Chandigarh, India",
-  "Chennai, Tamil Nadu",
-  "Chiang Mai, Thailand",
-  "Chikhaldara, Maharashtra",
-  "Coorg, Karnataka",
-  "Copenhagen, Denmark",
-  "Cusco, Peru",
-  "Dalhousie, Himachal Pradesh",
-  "Daman, Daman & Diu",
-  "Darjeeling, West Bengal",
-  "Delhi, India",
-  "Dharamshala, Himachal Pradesh",
-  "Diu, Daman & Diu",
-  "Dubai, UAE",
-  "Dublin, Ireland",
-  "Dwarka, Gujarat",
-  "Edinburgh, UK",
-  "Florence, Italy",
-  "Ganapatipule, Maharashtra",
-  "Gangtok, Sikkim",
-  "Geneva, Switzerland",
-  "Girnar, Gujarat",
-  "Goa, India",
-  "Gokarna, Karnataka",
-  "Graz, Austria",
-  "Halebidu, Karnataka",
-  "Hampi, Karnataka",
-  "Haridwar, Uttarakhand",
-  "Harishchandragad, Maharashtra",
-  "Helsinki, Finland",
-  "Hong Kong",
-  "Hyderabad, Telangana",
-  "Igatpuri, Maharashtra",
-  "Innsbruck, Austria",
-  "Istanbul, Turkey",
-  "Jaipur, Rajasthan",
-  "Jaisalmer, Rajasthan",
-  "Jakarta, Indonesia",
-  "Jibhi, Himachal Pradesh",
-  "Jodhpur, Rajasthan",
-  "Junagadh, Gujarat",
-  "Kalsubai, Maharashtra",
-  "Kanchipuram, Tamil Nadu",
-  "Karjat, Maharashtra",
-  "Kasol, Himachal Pradesh",
-  "Kedarnath, Uttarakhand",
-  "Khandala, Maharashtra",
-  "Khirganga, Himachal Pradesh",
-  "Kodaikanal, Tamil Nadu",
-  "Kolkata, West Bengal",
-  "Krakow, Poland",
-  "Kuala Lumpur, Malaysia",
-  "Kumta, Karnataka",
-  "Kyoto, Japan",
-  "Leh, Ladakh",
-  "Lima, Peru",
-  "Linz, Austria",
-  "Lisbon, Portugal",
-  "London, UK",
-  "Lonavala, Maharashtra",
-  "Los Angeles, USA",
-  "Lucknow, Uttar Pradesh",
-  "Madrid, Spain",
-  "Mahabaleshwar, Maharashtra",
-  "Malpe, Karnataka",
-  "Malshej Ghat, Maharashtra",
-  "Manali, Himachal Pradesh",
-  "Manila, Philippines",
-  "Mapusa, Goa",
-  "Marrakech, Morocco",
-  "Matheran, Maharashtra",
-  "Melbourne, Australia",
-  "Mumbai, Maharashtra",
-  "Munnar, Kerala",
-  "Murudeshwar, Karnataka",
-  "Mussoorie, Uttarakhand",
-  "Mysore, Karnataka",
-  "Nainital, Uttarakhand",
-  "Nairobi, Kenya",
-  "New York City, USA",
-  "Nice, France",
-  "Ooty, Tamil Nadu",
-  "Oslo, Norway",
-  "Pachmarhi, Madhya Pradesh",
-  "Palitana, Gujarat",
-  "Panchgani, Maharashtra",
-  "Paris, France",
-  "Petra, Jordan",
-  "Phuket, Thailand",
-  "Prague, Czech Republic",
-  "Pune, Maharashtra",
-  "Pushkar, Rajasthan",
-  "Raigad, Maharashtra",
-  "Rajgir, Bihar",
-  "Rishikesh, Uttarakhand",
-  "Rome, Italy",
-  "Salzburg, Austria",
-  "San Francisco, USA",
-  "Santorini, Greece",
-  "Saputara, Gujarat",
-  "Seoul, South Korea",
-  "Shimla, Himachal Pradesh",
-  "Singapore",
-  "Spiti Valley, Himachal Pradesh",
-  "Stockholm, Sweden",
-  "Sydney, Australia",
-  "Tadoba, Maharashtra",
-  "Tawang, Arunachal Pradesh",
-  "Tel Aviv, Israel",
-  "Tokyo, Japan",
-  "Toranmal, Maharashtra",
-  "Udaipur, Rajasthan",
-  "Udupi, Karnataka",
-  "Ujjain, Madhya Pradesh",
-  "Valley of Flowers, Uttarakhand",
-  "Varanasi, Uttar Pradesh",
-  "Vienna, Austria",
-  "Visakhapatnam, Andhra Pradesh",
-  "Wayanad, Kerala",
-  "Yamunotri, Uttarakhand",
-  "Zurich, Switzerland",
-];
-
 export const SearchForm = ({
   searchData,
   onSearchDataChange,
@@ -213,21 +46,6 @@ export const SearchForm = ({
   isLoading,
   datePickerPortalContainer,
 }: SearchFormProps) => {
-  const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
-
-  // Close destination dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest(".destination-dropdown-container")) {
-        setShowDestinationDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const handleSearchDataChange = (updates: Partial<SearchData>) => {
     onSearchDataChange({ ...searchData, ...updates });
   };
@@ -243,72 +61,28 @@ export const SearchForm = ({
           {/* <MapPin className="w-4 h-4" /> */}
           Destination
         </Label>
-        <div className="relative destination-dropdown-container">
-          <Input
-            id="destination"
-            type="text"
-            value={searchData.destination}
-            onChange={(e) =>
-              handleSearchDataChange({ destination: e.target.value })
-            }
-            onFocus={() => setShowDestinationDropdown(true)}
-            placeholder="Where do you want to go?"
-            className="w-full text-sm"
-          />
-          {showDestinationDropdown && (
-            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              <div className="p-2">
-                <div className="text-xs font-medium text-gray-500 mb-2 px-2">
-                  {searchData.destination.trim()
-                    ? `Destinations starting with "${searchData.destination}"`
-                    : "All Destinations (A-Z)"}
-                </div>
-                {DESTINATION_OPTIONS.filter((dest) => {
-                  const searchTerm = searchData.destination
-                    .toLowerCase()
-                    .trim();
-                  if (!searchTerm) return true;
-
-                  const startsWith = dest.toLowerCase().startsWith(searchTerm);
-                  const contains = dest.toLowerCase().includes(searchTerm);
-
-                  if (searchTerm.length === 1) {
-                    return startsWith;
-                  }
-
-                  return startsWith || contains;
-                })
-                  .sort((a, b) => {
-                    const searchTerm = searchData.destination
-                      .toLowerCase()
-                      .trim();
-                    if (!searchTerm) return a.localeCompare(b);
-
-                    const aStartsWith = a.toLowerCase().startsWith(searchTerm);
-                    const bStartsWith = b.toLowerCase().startsWith(searchTerm);
-
-                    if (aStartsWith && !bStartsWith) return -1;
-                    if (!aStartsWith && bStartsWith) return 1;
-
-                    return a.localeCompare(b);
-                  })
-                  .slice(0, 20)
-                  .map((destination) => (
-                    <div
-                      key={destination}
-                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer rounded-md text-sm"
-                      onClick={() => {
-                        handleSearchDataChange({ destination });
-                        setShowDestinationDropdown(false);
-                      }}
-                    >
-                      {destination}
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <LocationAutocomplete
+          value={searchData.destination}
+          onChange={(val) => handleSearchDataChange({ destination: val })}
+          onSelect={(details) => {
+            // We want to store the city name as the primary destination string
+            // and the full details for the backend
+            handleSearchDataChange({
+              destination: details.city || details.formatted.split(",")[0],
+              destinationDetails: {
+                  city: details.city,
+                  state: details.state,
+                  country: details.country,
+                  lat: details.lat,
+                  lon: details.lon,
+                  formatted: details.formatted,
+                  place_id: details.place_id,
+              }
+            });
+          }}
+          placeholder="Where do you want to go?"
+          className="w-full text-sm"
+        />
       </div>
 
       {/* Dates */}

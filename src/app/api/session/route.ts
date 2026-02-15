@@ -328,7 +328,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, destinationName, budget, startDate, endDate } = body;
+    const { userId, destinationName, budget, startDate, endDate, destination } = body;
 
     // Prevent user-id spoofing; session can only be created for caller.
     if (!userId || userId !== clerkUserId) {
@@ -338,8 +338,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Geocode the destination name
-    const destinationCoords = await getCoordinatesForLocation(destinationName);
+    // 1. Resolve Destination Coordinates
+    let destinationCoords;
+    let finalDestinationName = destinationName;
+
+    if (destination && destination.lat && destination.lon) {
+         destinationCoords = {
+             lat: destination.lat,
+             lon: destination.lon
+         };
+         if (destination.name) {
+             finalDestinationName = destination.name;
+         }
+    } else {
+         // Fallback to geocoding if explicit coords not provided
+         destinationCoords = await getCoordinatesForLocation(destinationName);
+    }
+
     if (!destinationCoords) {
       return NextResponse.json(
         { message: `Could not find location: ${destinationName}` },
@@ -393,7 +408,7 @@ export async function POST(request: NextRequest) {
     // 3. Construct the session object - ONLY dynamic attributes in Redis
     const sessionData: SoloSession = {
       userId,
-      destination: { name: destinationName, ...destinationCoords },
+      destination: { name: finalDestinationName, ...destinationCoords },
       budget: Number(budget),
       startDate,
       endDate,
