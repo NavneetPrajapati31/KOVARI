@@ -167,7 +167,7 @@ export async function POST(
           userId: user.id,
           type: NotificationType.GROUP_JOIN_APPROVED,
           title: "Request Approved",
-          message: `Your request to join ${groupName} has been approved.`,
+          message: `Your request to join ${groupName} has been approve d.`,
           entityType: "group",
           entityId: groupId,
         });
@@ -177,6 +177,61 @@ export async function POST(
           notifyError,
         );
       }
+    }
+
+    // --- Recalculate Dominant Languages ---
+    try {
+      // 1. Get all accepted members
+      const { data: members, error: membersError } = await supabase
+        .from("group_memberships")
+        .select("user_id")
+        .eq("group_id", groupId)
+        .eq("status", "accepted");
+
+      if (!membersError && members && members.length > 0) {
+        const memberIds = members.map(m => m.user_id);
+        
+        // 2. Fetch languages for all members
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("languages")
+          .in("user_id", memberIds);
+        
+        if (!profilesError && profiles) {
+          // 3. Count language occurrences
+          const languageCounts: Record<string, number> = {};
+          profiles.forEach(p => {
+             if (Array.isArray(p.languages)) {
+                p.languages.forEach((lang: string) => {
+                   languageCounts[lang] = (languageCounts[lang] || 0) + 1;
+                });
+             }
+          });
+
+          // 4. Sort and pick top languages (e.g., top 3)
+          const sortedLanguages = Object.entries(languageCounts)
+            .sort(([, countA], [, countB]) => countB - countA)
+            .slice(0, 3)
+            .map(([lang]) => lang);
+          
+          if (sortedLanguages.length > 0) {
+             // 5. Update group
+             const { error: updateError } = await supabase
+               .from("groups")
+               .update({ dominant_languages: sortedLanguages })
+               .eq("id", groupId);
+             
+             if (updateError) {
+                console.error("Failed to update group dominant languages:", updateError);
+             } else {
+                console.log(`Updated group ${groupId} dominant languages to:`, sortedLanguages);
+             }
+          }
+        }
+      }
+    } catch (calcError) {
+      console.error("Error recalculating dominant languages:", calcError);
+      // Don't fail the request on calculation error
     }
 
     return NextResponse.json({ success: true });

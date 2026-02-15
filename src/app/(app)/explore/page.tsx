@@ -242,7 +242,26 @@ export default function ExplorePage() {
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         // Step 2: Get solo matches using enhanced matching
-        const soloMatchesRes = await fetch(`/api/match-solo?userId=${userId}`);
+        const queryParams = new URLSearchParams({
+          userId,
+          ageMin: filters.ageRange[0].toString(),
+          ageMax: filters.ageRange[1].toString(),
+          gender: filters.gender,
+          personality: filters.personality,
+          smoking: filters.smoking,
+          drinking: filters.drinking,
+          nationality: filters.nationality,
+        });
+        
+        if (filters.interests && filters.interests.length > 0) {
+          queryParams.append("interests", filters.interests.join(","));
+        }
+        
+        if (filters.languages && filters.languages.length > 0) {
+          queryParams.append("languages", filters.languages.join(","));
+        }
+
+        const soloMatchesRes = await fetch(`/api/match-solo?${queryParams.toString()}`);
         if (soloMatchesRes.ok) {
           const soloMatches = await soloMatchesRes.json();
           console.log("Solo matches found:", soloMatches.length);
@@ -287,7 +306,8 @@ export default function ExplorePage() {
           endDate: fullSearchData.endDate.toISOString().split("T")[0],
           userId: userId,
           // Include filter data for better matching
-          age: filters.ageRange[0], // Use minimum age as default
+          ageMin: filters.ageRange[0],
+          ageMax: filters.ageRange[1],
           languages: filters.languages,
           interests: filters.interests,
           smoking: filters.smoking === "Yes",

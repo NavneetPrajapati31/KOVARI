@@ -111,7 +111,8 @@ export async function POST(req: NextRequest) {
       startDate,
       endDate,
       userId,
-      age,
+      ageMin,
+      ageMax,
       languages,
       interests,
       smoking,
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
       startDate,
       endDate,
       userId,
-      age,
+      ageRange: `${ageMin}-${ageMax}`,
       languages,
       interests,
       smoking,
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest) {
       budget: Number(budget),
       startDate,
       endDate,
-      age: age || 25,
+      age: ageMin || 25,
       languages: languages || ["English"],
       interests: interests || [],
       smoking: smoking || false,
@@ -286,6 +287,37 @@ export async function POST(req: NextRequest) {
     if (excludedIdsArray.length > 0) {
       groupsQuery = groupsQuery.not("id", "in", `(${excludedIdsArray.join(",")})`);
     }
+
+    // --- APPLY FILTERS ---
+    // 1. Age Filter
+    if (ageMin !== undefined) groupsQuery = groupsQuery.gte("average_age", ageMin);
+    if (ageMax !== undefined) groupsQuery = groupsQuery.lte("average_age", ageMax);
+
+    // 2. Smoking Filter
+    if (smoking === false) {
+      // User selected "Strictly non-smoking" -> Show ONLY non-smoking groups
+      groupsQuery = groupsQuery.eq("non_smokers", true);
+    } else if (smoking === true) {
+      // User selected "I'm okay with smoking" -> Exclude strictly non-smoking groups (assuming user might smoke)
+      groupsQuery = groupsQuery.not("non_smokers", "eq", true);
+    }
+
+    // 3. Drinking Filter
+    if (drinking === false) {
+      // User selected "Strictly non-drinking" -> Show ONLY non-drinking groups
+      groupsQuery = groupsQuery.eq("non_drinkers", true);
+    } else if (drinking === true) {
+      // User selected "I'm okay with drinking" -> Exclude strictly non-drinking groups
+      groupsQuery = groupsQuery.not("non_drinkers", "eq", true);
+    }
+
+    // 4. Nationality Filter (Strict?)
+    // This is tricky as nationality is on the Creator, not the group table directly?
+    // Wait, typical schema: user profile has nationality.
+    // The query fetches groups.
+    // We already fetch creator profiles later. We can filter there.
+    // Or if we need strict filter, we might need a join or filter in memory.
+    // I'll filter in memory after fetching creators.
 
     const { data: groups, error } = await groupsQuery;
 
@@ -409,10 +441,19 @@ export async function POST(req: NextRequest) {
       groupProfiles
     );
 
+    // Filter by Nationality (In-Memory)
+    let filteredGroupProfiles = groupProfiles;
+    if (nationality && nationality !== "Unknown" && nationality !== "Any") {
+       filteredGroupProfiles = groupProfiles.filter(g => 
+         g.dominantNationalities.some(n => n.toLowerCase() === nationality.toLowerCase())
+       );
+       console.log(`Filtered down to ${filteredGroupProfiles.length} groups matching nationality: ${nationality}`);
+    }
+
     // Use the group matching algorithm to get scored matches
     const matches = findGroupMatchesForUser(
       userProfile,
-      groupProfiles,
+      filteredGroupProfiles,
       presetConfig.maxDistanceKm
     );
     console.log(

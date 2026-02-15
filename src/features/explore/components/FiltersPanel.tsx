@@ -18,6 +18,7 @@ import { Filters } from "../types";
 interface FiltersPanelProps {
   filters: Filters;
   onFilterChange: (key: string, value: any) => void;
+  activeTab: number;
 }
 
 const INTEREST_OPTIONS = [
@@ -82,6 +83,7 @@ const LANGUAGE_OPTIONS = [
 export const FiltersPanel = ({
   filters,
   onFilterChange,
+  activeTab, 
 }: FiltersPanelProps) => {
   return (
     <div className="pt-6 space-y-6">
@@ -112,52 +114,56 @@ export const FiltersPanel = ({
         />
       </div>
 
-      {/* 2. Gender */}
-      <div className="space-y-2">
-        <Label htmlFor="gender" className="text-sm font-medium text-foreground">
-          Gender Preference
-        </Label>
-        <Select
-          value={filters.gender}
-          onValueChange={(value) => onFilterChange("gender", value)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select gender" />
-          </SelectTrigger>
-          <SelectContent>
-            {GENDER_OPTIONS.map((gender) => (
-              <SelectItem key={gender} value={gender}>
-                {gender}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* 2. Gender - Solo Only */}
+      {activeTab === 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="gender" className="text-sm font-medium text-foreground">
+            Gender Preference
+          </Label>
+          <Select
+            value={filters.gender}
+            onValueChange={(value) => onFilterChange("gender", value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select gender" />
+            </SelectTrigger>
+            <SelectContent>
+              {GENDER_OPTIONS.map((gender) => (
+                <SelectItem key={gender} value={gender}>
+                  {gender}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
-      {/* 3. Personality */}
-      <div className="space-y-2">
-        <Label
-          htmlFor="personality"
-          className="text-sm font-medium text-foreground"
-        >
-          Personality
-        </Label>
-        <Select
-          value={filters.personality}
-          onValueChange={(value) => onFilterChange("personality", value)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select personality" />
-          </SelectTrigger>
-          <SelectContent>
-            {PERSONALITY_OPTIONS.map((personality) => (
-              <SelectItem key={personality} value={personality}>
-                {personality}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* 3. Personality - Solo Only */}
+      {activeTab === 0 && (
+        <div className="space-y-2">
+          <Label
+            htmlFor="personality"
+            className="text-sm font-medium text-foreground"
+          >
+            Personality
+          </Label>
+          <Select
+            value={filters.personality}
+            onValueChange={(value) => onFilterChange("personality", value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select personality" />
+            </SelectTrigger>
+            <SelectContent>
+              {PERSONALITY_OPTIONS.map((personality) => (
+                <SelectItem key={personality} value={personality}>
+                  {personality}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* 8. Nationality */}
       {/* <div className="space-y-2">
@@ -185,7 +191,7 @@ export const FiltersPanel = ({
       </div> */}
 
       {/* 4. Interests */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">Interests</Label>
         <div className="flex flex-wrap gap-2">
           {INTEREST_OPTIONS.map((interest) => (
@@ -206,7 +212,7 @@ export const FiltersPanel = ({
             </Badge>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* 5. Languages */}
       <div className="space-y-2">
@@ -232,19 +238,19 @@ export const FiltersPanel = ({
         </div>
       </div>
 
-      {/* 6. Smoking */}
+      {/* 6. Smoking Preference */}
       <div className="flex items-center justify-between p-4 border border-border rounded-xl">
         <div className="space-y-1">
           <Label
             htmlFor="smoking"
             className="text-sm font-medium text-foreground"
           >
-            Smoking
+            Smoking Preference
           </Label>
           <p className="text-xs text-muted-foreground">
             {filters.smoking === "Yes"
-              ? "Comfortable with smokers"
-              : "Non-smoking preferred"}
+              ? "I'm okay with smoking"
+              : "Strictly non-smoking"}
           </p>
         </div>
         <Switch
@@ -257,19 +263,19 @@ export const FiltersPanel = ({
         />
       </div>
 
-      {/* 7. Drinking */}
+      {/* 7. Drinking Preference */}
       <div className="flex items-center justify-between p-4 border border-border rounded-xl">
         <div className="space-y-1">
           <Label
             htmlFor="drinking"
             className="text-sm font-medium text-foreground"
           >
-            Drinking
+            Drinking Preference
           </Label>
           <p className="text-xs text-muted-foreground">
             {filters.drinking === "Yes"
-              ? "Comfortable with drinkers"
-              : "Non-drinking preferred"}
+              ? "I'm okay with drinking"
+              : "Strictly non-drinking"}
           </p>
         </div>
         <Switch

@@ -51,7 +51,11 @@ export const ExploreSidebar = ({
         </div>
 
         {/* Additional Filters */}
-        <FiltersPanel filters={filters} onFilterChange={onFilterChange} />
+        <FiltersPanel
+          filters={filters}
+          onFilterChange={onFilterChange}
+          activeTab={activeTab}
+        />
       </div>
     </div>
   );

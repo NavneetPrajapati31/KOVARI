@@ -86,8 +86,28 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
+    
+    // Parse filter parameters
+    const ageMin = searchParams.get("ageMin") ? parseInt(searchParams.get("ageMin")!) : 18;
+    const ageMax = searchParams.get("ageMax") ? parseInt(searchParams.get("ageMax")!) : 100;
+    const gender = searchParams.get("gender") || "Any";
+    const personality = searchParams.get("personality") || "Any";
+    const smokingPref = searchParams.get("smoking") || "Any";
+    const drinkingPref = searchParams.get("drinking") || "Any";
+    const nationality = searchParams.get("nationality") || "Any";
+    const interestsFilter = searchParams.get("interests")?.split(",").filter(Boolean) || [];
+    const languagesFilter = searchParams.get("languages")?.split(",").filter(Boolean) || [];
 
-    console.log(`🔍 Match-solo request for userId: ${userId}`);
+    console.log(`🔍 Match-solo request for userId: ${userId} with filters:`, {
+      age: `${ageMin}-${ageMax}`,
+      gender,
+      personality,
+      smoking: smokingPref,
+      drinking: drinkingPref,
+      nationality,
+      interests: interestsFilter.length,
+      languages: languagesFilter.length
+    });
 
     if (!userId) {
       return NextResponse.json(
@@ -407,12 +427,84 @@ export async function GET(request: NextRequest) {
                 };
               }
             } catch (error) {
-              console.log(
-                `⚠️ Could not fetch profile for ${matchSession.userId}:`,
-                error
-              );
+                console.log(
+                  `⚠️ Could not fetch profile for ${matchSession.userId}:`,
+                  error
+                );
+              }
             }
-          }
+
+            // --- APPLY FILTERS ---
+            if (staticAttributes) {
+              // 1. Age Filter
+              const candidateAge = staticAttributes.age;
+              if (candidateAge && (candidateAge < ageMin || candidateAge > ageMax)) {
+                return null;
+              }
+
+              // 2. Gender Filter
+              if (gender !== "Any" && staticAttributes.gender) {
+                if (staticAttributes.gender.toLowerCase() !== gender.toLowerCase()) {
+                  return null;
+                }
+              }
+
+              // 3. Personality Filter
+              if (personality !== "Any" && staticAttributes.personality) {
+                 if (staticAttributes.personality.toLowerCase() !== personality.toLowerCase()) {
+                   return null;
+                 }
+              }
+
+              // 4. Smoking Filter
+              if (smokingPref === "No" && staticAttributes.smoking) {
+                // If user prefers non-smokers, exclude anyone who smokes (Yes, Occasionally)
+                // We keep "No". We might exclude "Prefer not to say" to be safe.
+                const smokeStatus = staticAttributes.smoking.toLowerCase();
+                if (smokeStatus === "yes" || smokeStatus === "occasionally" || smokeStatus === "socially") {
+                  return null;
+                }
+              }
+
+               // 5. Drinking Filter
+              if (drinkingPref === "No" && staticAttributes.drinking) {
+                // If user prefers non-drinkers, exclude anyone who drinks
+                const drinkStatus = staticAttributes.drinking.toLowerCase();
+                if (drinkStatus === "yes" || drinkStatus === "socially" || drinkStatus === "occasionally") {
+                  return null;
+                }
+              }
+
+              // 6. Nationality Filter
+              if (nationality !== "Any" && staticAttributes.nationality) {
+                if (staticAttributes.nationality.toLowerCase() !== nationality.toLowerCase()) {
+                  return null;
+                }
+              }
+
+              // 7. Languages Filter (Match at least one)
+              if (languagesFilter.length > 0) {
+                 const userLangs = (staticAttributes.languages || [])
+                    .concat(staticAttributes.language ? [staticAttributes.language] : [])
+                    .map(l => l.toLowerCase());
+                 
+                 const hasCommonLang = languagesFilter.some(l => userLangs.includes(l.toLowerCase()));
+                 if (!hasCommonLang) {
+                   return null;
+                 }
+              }
+
+              // 8. Interests Filter (Match at least one if strict filtering desired)
+              // The user requested "use all the provided filters actually in the algo to filter"
+              // COMMENTED OUT as per request
+              /* if (interestsFilter.length > 0) {
+                 const userInterests = (staticAttributes.interests || []).map(i => i.toLowerCase());
+                 const hasCommonInterest = interestsFilter.some(i => userInterests.includes(i.toLowerCase()));
+                 if (!hasCommonInterest) {
+                   return null;
+                 }
+              } */
+            }
 
           return {
             user: {

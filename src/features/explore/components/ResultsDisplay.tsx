@@ -247,20 +247,20 @@ export const ResultsDisplay = ({
           <div className="text-center max-w-lg">
             {lastSearchData ? (
               <>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+                <h3 className="sm:text-md text-sm font-medium text-foreground mb-2">
                   No matches found
                 </h3>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground sm:text-sm text-xs">
                   Try adjusting your search criteria or dates to find more{" "}
                   {activeTab === 0 ? "travel companions" : "travel groups"}.
                 </p>
               </>
             ) : (
               <>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+                <h3 className="sm:text-md text-sm font-medium text-foreground mb-2">
                   Start your search
                 </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
+                <p className="text-muted-foreground sm:text-sm text-xs leading-relaxed">
                   <span className="min-[930px]:hidden">
                     Tap &apos;Filters&apos; to find compatible{" "}
                   </span>

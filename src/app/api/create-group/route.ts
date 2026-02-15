@@ -110,6 +110,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Fetch creator's profile to get languages
+    const { data: creatorProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("languages")
+      .eq("user_id", userRow.id)
+      .single();
+
+    if (profileError) {
+       console.error("Error fetching creator profile:", profileError);
+       // Iterate without failing, use default
+    }
+
+    const creatorLanguages = creatorProfile?.languages || ["English"];
+
     const payload = {
       creator_id: userRow.id,
       ...parsed.data,
@@ -125,6 +139,7 @@ export async function POST(req: Request) {
           ? null
           : parsed.data.non_drinkers,
       status: "pending", // New groups are pending admin approval
+      dominant_languages: creatorLanguages,
     };
 
     console.log("Attempting to insert payload:", payload);
