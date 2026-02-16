@@ -5,13 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, MessageSquare, Users, User, Send } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
-import {
-  Avatar,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { cn } from "@/shared/utils/utils";
-import { createClient } from "@/lib/supabase";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -25,22 +21,15 @@ export function BottomNav() {
         return;
       }
       try {
-        const supabase = createClient();
-        const { data: userRow } = await supabase
-          .from("users")
-          .select("id")
-          .eq("clerk_user_id", user.id)
-          .maybeSingle();
-        if (!userRow?.id) {
+        const res = await fetch("/api/profile/current");
+        if (!res.ok) {
           setProfilePhotoUrl(null);
           return;
         }
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("profile_photo")
-          .eq("user_id", userRow.id)
-          .maybeSingle();
-        setProfilePhotoUrl(profile?.profile_photo ?? null);
+        const data = (await res.json()) as { avatar?: string };
+        setProfilePhotoUrl(
+          data?.avatar && data.avatar.trim() !== "" ? data.avatar : null,
+        );
       } catch {
         setProfilePhotoUrl(null);
       }
@@ -106,14 +95,14 @@ export function BottomNav() {
             href={tab.href}
             className={cn(
               "flex flex-col items-center justify-center w-full h-full space-y-1",
-              active ? "text-primary" : "text-foreground "
+              active ? "text-primary" : "text-foreground ",
             )}
           >
             {tab.label === "Profile" ? (
               <Avatar
                 className={cn(
                   "h-6 w-6",
-                  active ? "ring-2 ring-primary ring-offset-2" : "ring-0"
+                  active ? "ring-2 ring-primary ring-offset-2" : "ring-0",
                 )}
               >
                 <AvatarImage
@@ -131,7 +120,7 @@ export function BottomNav() {
                       ? tab.label === "Explore"
                         ? "text-primary"
                         : "text-primary fill-current"
-                      : "text-foreground"
+                      : "text-foreground",
                   )}
                   strokeWidth={
                     active && tab.label === "Explore" ? 3 : undefined

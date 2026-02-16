@@ -49,7 +49,6 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { Avatar } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
 import { Switch } from "@/shared/components/ui/switch";
-import { createClient } from "@/lib/supabase";
 
 // Section 1: Main Navigation
 const mainItems = [
@@ -174,22 +173,15 @@ export function AppSidebar() {
         return;
       }
       try {
-        const supabase = createClient();
-        const { data: userRow, error: userError } = await supabase
-          .from("users")
-          .select("id")
-          .eq("clerk_user_id", user.id)
-          .maybeSingle();
-        if (userError || !userRow?.id) {
+        const res = await fetch("/api/profile/current");
+        if (!res.ok) {
           setProfilePhotoUrl(null);
           return;
         }
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("profile_photo")
-          .eq("user_id", userRow.id)
-          .maybeSingle();
-        setProfilePhotoUrl(profile?.profile_photo ?? null);
+        const data = (await res.json()) as { avatar?: string };
+        setProfilePhotoUrl(
+          data?.avatar && data.avatar.trim() !== "" ? data.avatar : null,
+        );
       } catch {
         setProfilePhotoUrl(null);
       }

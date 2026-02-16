@@ -53,13 +53,13 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
           },
           aspect,
           mediaWidth,
-          mediaHeight
+          mediaHeight,
         ),
         mediaWidth,
-        mediaHeight
+        mediaHeight,
       );
     },
-    []
+    [],
   );
 
   // Handle image load to set initial crop
@@ -70,7 +70,7 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
         setCrop(centerAspectCrop(width, height, aspect));
       }
     },
-    [aspect, centerAspectCrop]
+    [aspect, centerAspectCrop],
   );
 
   // Handle rotation
@@ -100,9 +100,14 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
-    canvas.width = completedCrop.width;
-    canvas.height = completedCrop.height;
+    // Output at full resolution (natural image size) for highest quality
+    const outputWidth = Math.round(completedCrop.width * scaleX);
+    const outputHeight = Math.round(completedCrop.height * scaleY);
 
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+
+    ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
 
     // Apply rotation if needed
@@ -121,8 +126,8 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
       completedCrop.height * scaleY,
       0,
       0,
-      completedCrop.width,
-      completedCrop.height
+      outputWidth,
+      outputHeight,
     );
 
     if (rotation !== 0) {
@@ -130,6 +135,7 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
     }
 
     return new Promise((resolve) => {
+      // Use quality 1.0 for maximum JPEG quality (no compression artifacts)
       canvas.toBlob(
         (blob) => {
           if (blob) {
@@ -138,7 +144,7 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
           }
         },
         "image/jpeg",
-        0.9
+        1.0,
       );
     });
   }, [completedCrop, rotation]);
