@@ -23,22 +23,28 @@ import {
   Heart,
   Loader2,
   Briefcase,
-  Globe,
-  Sparkles,
-  Moon,
-  Scale,
-  User as UserIcon,
+  GraduationCap,
+  Flag,
+  Zap,
+  BookOpen,
+  CircleDot,
+  MessageCircle,
+  UserCircle2,
   Beer,
   Wine,
   Cigarette,
   Wine as Glass,
-  Languages,
   DollarSign,
-  Flag,
   AlertCircle,
   ThumbsDown,
   Eye,
   X,
+  Check,
+  Home,
+  Salad,
+  BookMarked,
+  IndianRupee,
+  Globe,
 } from "lucide-react";
 import { Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
@@ -81,6 +87,8 @@ interface SoloMatchCardProps {
       religion?: string;
       languages?: string[];
       location?: { lat: number; lon: number };
+      locationDisplay?: string;
+      foodPreference?: string;
       bio?: string;
     };
     is_solo_match: boolean;
@@ -268,22 +276,44 @@ export function SoloMatchCard({
   const getPersonalityIcon = (personality?: string) => {
     switch (personality?.toLowerCase()) {
       case "extrovert":
-        return <Sparkles className="w-4 h-4" />;
+        return <Zap className="w-4 h-4" />;
       case "introvert":
-        return <Moon className="w-4 h-4" />;
+        return <BookOpen className="w-4 h-4" />;
       case "ambivert":
-        return <Scale className="w-4 h-4" />;
+        return <CircleDot className="w-4 h-4" />;
       default:
-        return <UserIcon className="w-4 h-4" />;
+        return <UserCircle2 className="w-4 h-4" />;
     }
   };
 
+  const getProfessionIcon = (profession?: string) => {
+    const p = profession?.toLowerCase() ?? "";
+    if (
+      p === "student" ||
+      p.includes("student") ||
+      p === "graduate" ||
+      p.includes("graduate")
+    )
+      return <GraduationCap className="w-4 h-4" />;
+    return <Briefcase className="w-4 h-4" />;
+  };
+
   const getSmokingIcon = (smoking?: string) => {
-    return <Cigarette className="w-4 h-4 text-muted-foreground" />;
+    return (
+      <Cigarette
+        className="w-4 h-4 shrink-0 text-muted-foreground"
+        strokeWidth={2}
+      />
+    );
   };
 
   const getDrinkingIcon = (drinking?: string) => {
-    return <Glass className="w-4 h-4 text-muted-foreground" />;
+    return (
+      <Glass
+        className="w-4 h-4 shrink-0 text-muted-foreground"
+        strokeWidth={2}
+      />
+    );
   };
 
   // Derived display values for Bumble-like sections
@@ -320,21 +350,23 @@ export function SoloMatchCard({
     : undefined;
   const languagesList = Array.isArray(user.languages) ? user.languages : [];
 
-  // Pill component helper
+  // Pill component helper - modern SaaS styling
   const Pill = ({
     icon,
     text,
+    variant = "default",
     className = "",
   }: {
     icon?: React.ReactNode;
     text: string;
+    variant?: "default" | "highlight";
     className?: string;
   }) => (
     <span
       className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm bg-background text-foreground border border-border ${className}`}
     >
       {icon && (
-        <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
+        <span className="flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4 [&_svg]:shrink-0 [&_svg]:text-current">
           {icon}
         </span>
       )}
@@ -351,10 +383,10 @@ export function SoloMatchCard({
         </div>
       )}
 
-      <div key={match.id} className="flex flex-col gap-6">
+      <div key={match.id} className="flex flex-col gap-5">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row items-start gap-4 pb-4 border-b border-border">
-          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-3xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative">
+        <div className="flex flex-col md:flex-row items-start gap-4 pb-5 border-b border-border/60">
+          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative shadow-sm">
             {user.avatar ? (
               <img
                 src={user.avatar}
@@ -405,52 +437,51 @@ export function SoloMatchCard({
 
         {/* Trip Details Section */}
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Trip Details
           </h2>
           <div className="flex flex-wrap gap-2">
             <Pill
-              icon={<MapPin className="w-4 h-4" />}
-              text={match.destination}
+              icon={<MapPin />}
+              text={
+                match.destination?.split(",")[0]?.trim() ?? match.destination
+              }
             />
-            <Pill
-              icon={<Calendar className="w-4 h-4" />}
-              text={formatDateRange()}
-            />
-            <Pill
-              icon={<DollarSign className="w-4 h-4" />}
-              text={`₹${match.budget}`}
-            />
+            <Pill icon={<Calendar />} text={formatDateRange()} />
             {getTripLengthDays() && (
-              <Pill
-                icon={<Calendar className="w-4 h-4" />}
-                text={`${getTripLengthDays()} days`}
-              />
+              <Pill icon={<Calendar />} text={`${getTripLengthDays()} days`} />
             )}
+            <Pill
+              icon={<IndianRupee />}
+              text={Number(match.budget).toLocaleString("en-IN")}
+              variant="highlight"
+            />
           </div>
         </div>
 
         {/* About Section */}
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-foreground">About me</h2>
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            About me
+          </h2>
           <div className="flex flex-wrap gap-2">
             {user.gender && (
               <Pill
-                icon={<UserIcon className="w-4 h-4" />}
+                icon={<UserCircle2 />}
                 text={
                   user.gender.charAt(0).toUpperCase() + user.gender.slice(1)
                 }
               />
             )}
             {user.nationality && (
-              <Pill
-                icon={<Globe className="w-4 h-4" />}
-                text={user.nationality}
-              />
+              <Pill icon={<Globe />} text={user.nationality} />
+            )}
+            {user.locationDisplay && (
+              <Pill icon={<Home />} text={user.locationDisplay} />
             )}
             {formattedProfession && (
               <Pill
-                icon={<Briefcase className="w-4 h-4" />}
+                icon={getProfessionIcon(user.profession)}
                 text={
                   formattedProfession.charAt(0).toUpperCase() +
                   formattedProfession.slice(1)
@@ -466,13 +497,17 @@ export function SoloMatchCard({
                 }
               />
             )}
+            {user.religion && (
+              <Pill
+                icon={<BookMarked />}
+                text={
+                  user.religion.charAt(0).toUpperCase() + user.religion.slice(1)
+                }
+              />
+            )}
             {languagesList.length > 0 &&
               languagesList.map((lang, i) => (
-                <Pill
-                  key={i}
-                  icon={<Languages className="w-4 h-4" />}
-                  text={lang}
-                />
+                <Pill key={i} icon={<MessageCircle />} text={lang} />
               ))}
           </div>
         </div>
@@ -480,7 +515,7 @@ export function SoloMatchCard({
         {/* Interests Section */}
         {user.interests && user.interests.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-sm font-semibold text-foreground">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               My interests
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -495,9 +530,20 @@ export function SoloMatchCard({
         )}
 
         {/* Lifestyle Section */}
-        <div className="space-y-4 pb-6 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">Lifestyle</h2>
+        <div className="space-y-4 pb-6 border-b border-border/60">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Lifestyle
+          </h2>
           <div className="flex flex-wrap gap-2">
+            {user.foodPreference && (
+              <Pill
+                icon={<Salad />}
+                text={
+                  user.foodPreference.charAt(0).toUpperCase() +
+                  user.foodPreference.slice(1)
+                }
+              />
+            )}
             {user.smoking && (
               <Pill
                 icon={getSmokingIcon(user.smoking)}
@@ -561,34 +607,26 @@ export function SoloMatchCard({
         )} */}
 
         {/* Action Buttons */}
-        <div className="flex flex-col md:flex-row gap-3 pt-4 pb-2">
+        <div className="flex flex-row gap-2 pt-4 pb-2">
           {/* 1. Skip Button */}
           <Button
             variant="secondary"
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
+            className="flex-1 h-11 rounded-full text-foreground bg-background border border-border"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <p className="text-md font-bold">Skip</p>
+              <>
+                <X className="w-5 h-5 md:hidden shrink-0" aria-hidden />
+                <span className="hidden md:inline text-md font-bold">Skip</span>
+              </>
             )}
           </Button>
 
-          {/* 3. View Profile Button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleViewProfile}
-            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
-          >
-            {/* <Eye className="w-4 h-4" /> */}
-            <p className="text-md font-bold">View Profile</p>
-          </Button>
-
-          {/* 4. Report Button */}
+          {/* 3. Report Button */}
           <Button
             variant="secondary"
             size="sm"
@@ -599,10 +637,10 @@ export function SoloMatchCard({
                 setShowReportDialog(true);
               }
             }}
-            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
+            className="flex-1 h-11 rounded-full text-foreground bg-background border border-border"
           >
-            {/* <Flag className="w-4 h-4" /> */}
-            <p className="text-md font-bold">Report</p>
+            <Flag className="w-5 h-5 md:hidden shrink-0" aria-hidden />
+            <span className="hidden md:inline text-md font-bold">Report</span>
           </Button>
 
           {/* 2. Interested Button */}
@@ -611,19 +649,24 @@ export function SoloMatchCard({
             size="sm"
             onClick={handleInterested}
             disabled={isInteresting || interestSent}
-            className="order-first md:order-none md:flex-1 h-11 rounded-full"
+            className="order-first md:order-none flex-1 h-11 rounded-full"
           >
             {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : interestSent ? (
               <>
-                <Heart className="w-4 h-4 fill-current" />
-                <span className="text-xs ml-1">Sent</span>
+                <Heart
+                  className="w-5 h-5 fill-current md:hidden shrink-0"
+                  aria-hidden
+                />
+                <span className="hidden md:inline text-xs ml-1">Sent</span>
               </>
             ) : (
               <>
-                {/* <Heart className="w-4 h-4" /> */}
-                <p className="text-md font-bold">Interested</p>
+                <Check className="w-5 h-5 md:hidden shrink-0" aria-hidden />
+                <span className="hidden md:inline text-md font-bold">
+                  Interested
+                </span>
               </>
             )}
           </Button>

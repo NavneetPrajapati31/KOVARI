@@ -28,7 +28,11 @@ interface ResultsDisplayProps {
   onViewGroup: (groupId: string) => void;
   onConnect?: (matchId: string) => Promise<void>;
   onSuperLike?: (matchId: string) => Promise<void>;
-  onComment?: (matchId: string, attribute: string, comment: string) => Promise<void>;
+  onComment?: (
+    matchId: string,
+    attribute: string,
+    comment: string,
+  ) => Promise<void>;
   onRequestJoin?: (groupId: string) => Promise<void>;
   currentUserId?: string;
   destinationId?: string;
@@ -173,7 +177,7 @@ export const ResultsDisplay = ({
 
       {/* Results Display */}
       {matchedGroups.length > 0 ? (
-        <div className="flex-1 relative flex items-center justify-center p-6">
+        <div className="flex-1 relative flex items-center justify-center p-5 md:p-6">
           {/* Navigation arrows */}
           {/* {matchedGroups.length > 1 && (
             <>
@@ -265,7 +269,8 @@ export const ResultsDisplay = ({
                     Tap &apos;Filters&apos; to find compatible{" "}
                   </span>
                   <span className="hidden min-[930px]:inline">
-                    Enter your travel details in the sidebar to find compatible{" "}
+                    Enter your travel details in the sidebar to find
+                    compatible{" "}
                   </span>
                   {activeTab === 0 ? "travel companions" : "travel groups"}.
                 </p>
@@ -283,7 +288,12 @@ export const ResultsDisplay = ({
         targetType={reportDialogState.targetType}
         targetId={reportDialogState.targetId}
         targetName={reportDialogState.targetName}
-        onSubmit={async (reason, evidenceUrl, evidencePublicId, additionalNotes) => {
+        onSubmit={async (
+          reason,
+          evidenceUrl,
+          evidencePublicId,
+          additionalNotes,
+        ) => {
           if (!currentUserId) return false;
 
           const result = await createReportRecord(
@@ -292,9 +302,9 @@ export const ResultsDisplay = ({
             reason,
             activeTab === 0 ? "solo" : "group",
             evidenceUrl,
-            evidencePublicId
+            evidencePublicId,
           );
-          
+
           if (!result.success) {
             console.error("Failed to submit report:", result.error);
             toast({
@@ -304,17 +314,16 @@ export const ResultsDisplay = ({
             });
             throw new Error(result.error || "Failed to submit report");
           }
-          
-          
+
           // Toast removed - handled within ReportDialog UI
-          
+
           // Skip to the next match
           if (activeTab === 0) {
             onPass(reportDialogState.targetId);
           } else {
             onPassGroup(reportDialogState.targetId);
           }
-          
+
           return true;
         }}
       />

@@ -27,13 +27,12 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
 /** MVP: Single bulk fetch for profiles + interests (1 users query + 2 parallel fetches instead of 4 round-trips) */
 const getBulkCandidateData = async (
-  clerkIds: string[]
+  clerkIds: string[],
 ): Promise<{
   profiles: Record<string, any>;
   interests: Record<string, string[]>;
 }> => {
-  if (clerkIds.length === 0)
-    return { profiles: {}, interests: {} };
+  if (clerkIds.length === 0) return { profiles: {}, interests: {} };
   const supabase = createAdminSupabaseClient();
   const { data: users, error: userErr } = await supabase
     .from("users")
@@ -50,7 +49,9 @@ const getBulkCandidateData = async (
   const [profilesRes, prefsRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("user_id, name, age, gender, personality, smoking, drinking, religion, job, languages, nationality, location, bio, interests, profile_photo")
+      .select(
+        "user_id, name, age, gender, personality, smoking, drinking, religion, job, languages, nationality, location, location_details, food_preference, bio, interests, profile_photo",
+      )
       .in("user_id", uuids),
     supabase
       .from("travel_preferences")
@@ -60,7 +61,29 @@ const getBulkCandidateData = async (
   const profiles: Record<string, any> = {};
   (profilesRes.data || []).forEach((p) => {
     const clerkId = uuidToClerk.get(p.user_id);
-    if (clerkId)
+    if (clerkId) {
+      const locDetails = p.location_details as {
+        city?: string;
+        formatted_address?: string;
+        latitude?: number;
+        longitude?: number;
+      } | null;
+      const locationCoords =
+        locDetails?.latitude != null && locDetails?.longitude != null
+          ? { lat: locDetails.latitude, lon: locDetails.longitude }
+          : typeof p.location === "object" && p.location?.lat != null
+            ? {
+                lat: (p.location as { lat: number; lon: number }).lat,
+                lon: (p.location as { lat: number; lon: number }).lon,
+              }
+            : { lat: 0, lon: 0 };
+      const locationDisplay =
+        locDetails?.city ||
+        (typeof locDetails?.formatted_address === "string"
+          ? locDetails.formatted_address.split(",")[0]?.trim()
+          : null) ||
+        (typeof p.location === "string" ? p.location : null);
+
       profiles[clerkId] = {
         name: p.name,
         age: p.age,
@@ -72,18 +95,23 @@ const getBulkCandidateData = async (
         profession: p.job,
         languages: p.languages,
         nationality: p.nationality,
-        location: p.location || { lat: 0, lon: 0 },
+        location: locationCoords,
+        locationDisplay: locationDisplay || undefined,
+        foodPreference: p.food_preference || undefined,
         bio: p.bio,
         interests: Array.isArray(p.interests) ? p.interests : [],
         avatar: p.profile_photo || undefined,
         language: "english",
       };
+    }
   });
   const interests: Record<string, string[]> = {};
   (prefsRes.data || []).forEach((p) => {
     const clerkId = uuidToClerk.get(p.user_id);
     if (clerkId)
-      interests[clerkId] = Array.isArray(p.interests) ? (p.interests as string[]) : [];
+      interests[clerkId] = Array.isArray(p.interests)
+        ? (p.interests as string[])
+        : [];
   });
   return { profiles, interests };
 };
@@ -113,7 +141,7 @@ export async function GET(request: NextRequest) {
     if (maintenance && (maintenance as { enabled: boolean }).enabled) {
       return NextResponse.json(
         { error: "System under maintenance. Please try later." },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -149,7 +177,7 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { message: "User ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (userId !== clerkUserId) {
@@ -161,7 +189,7 @@ export async function GET(request: NextRequest) {
     const presetConfig = getMatchingPresetConfig(presetMode);
 
     console.log(
-      `📊 Using matching preset: ${presetMode} (minScore: ${presetConfig.minScore}, maxDistance: ${presetConfig.maxDistanceKm}km)`
+      `📊 Using matching preset: ${presetMode} (minScore: ${presetConfig.minScore}, maxDistance: ${presetConfig.maxDistanceKm}km)`,
     );
 
     // 1. Get the searching user's session from Redis
@@ -173,12 +201,12 @@ export async function GET(request: NextRequest) {
           message:
             "Active session for user not found. Please start a new search.",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const searchingUserSession: SoloSession = JSON.parse(
-      searchingUserSessionJSON
+      searchingUserSessionJSON,
     );
 
     if (!searchingUserSession.destination) {
@@ -187,7 +215,7 @@ export async function GET(request: NextRequest) {
           message:
             "Your session data is incomplete. Please start a new search.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -202,7 +230,7 @@ export async function GET(request: NextRequest) {
     if (userError || !userData) {
       return NextResponse.json(
         { message: "User profile not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     const searchingUserUuid = userData.id;
@@ -218,21 +246,22 @@ export async function GET(request: NextRequest) {
         .filter((k) => k !== `session:${userId}`)
         .slice(0, MAX_SESSIONS_FETCH);
       if (filteredKeys.length === 0) return [];
-      
+
       // Batch MGET to avoid blocking if keys are many
       const chunks = [];
       const chunkSize = 500;
       for (let i = 0; i < filteredKeys.length; i += chunkSize) {
-          chunks.push(filteredKeys.slice(i, i + chunkSize));
+        chunks.push(filteredKeys.slice(i, i + chunkSize));
       }
-      
+
       const sessionChunks = await Promise.all(
-          chunks.map(chunk => redisClient.mGet(chunk))
+        chunks.map((chunk) => redisClient.mGet(chunk)),
       );
-      
-      return sessionChunks.flat()
-          .filter((s): s is string => s !== null)
-          .map(s => JSON.parse(s));
+
+      return sessionChunks
+        .flat()
+        .filter((s): s is string => s !== null)
+        .map((s) => JSON.parse(s));
     };
 
     const [
@@ -247,14 +276,14 @@ export async function GET(request: NextRequest) {
         .from("matches")
         .select("user_a_id, user_b_id")
         .or(
-          `user_a_id.eq.${searchingUserUuid},user_b_id.eq.${searchingUserUuid}`
+          `user_a_id.eq.${searchingUserUuid},user_b_id.eq.${searchingUserUuid}`,
         )
         .eq("destination_id", currentDestination),
       supabase
         .from("match_skips")
         .select("user_id, skipped_user_id")
         .or(
-          `user_id.eq.${searchingUserUuid},skipped_user_id.eq.${searchingUserUuid}`
+          `user_id.eq.${searchingUserUuid},skipped_user_id.eq.${searchingUserUuid}`,
         )
         .eq("destination_id", currentDestination)
         .eq("match_type", "solo"),
@@ -262,7 +291,7 @@ export async function GET(request: NextRequest) {
         .from("user_flags")
         .select("reporter_id, user_id")
         .or(
-          `reporter_id.eq.${searchingUserUuid},user_id.eq.${searchingUserUuid}`
+          `reporter_id.eq.${searchingUserUuid},user_id.eq.${searchingUserUuid}`,
         ),
       supabase
         .from("match_interests")
@@ -295,7 +324,7 @@ export async function GET(request: NextRequest) {
     });
     interestsSentResult.data?.forEach((i) => excludedUuids.add(i.to_user_id));
     interestsReceivedResult.data?.forEach((i) =>
-      excludedUuids.add(i.from_user_id)
+      excludedUuids.add(i.from_user_id),
     );
     // Exclude self
     excludedUuids.add(searchingUserUuid);
@@ -311,13 +340,13 @@ export async function GET(request: NextRequest) {
     // We need to fetch internal IDs for ALL candidates to filter them by exclusion list
     // Optimization: Only fetch IDs/ClerkIDs for candidates
     const candidateClerkIds = candidates.map((s) => s.userId!);
-    
+
     // Batch fetch candidate UUIDs
     const { data: candidateUsers } = await supabase
-        .from("users")
-        .select("id, clerk_user_id")
-        .in("clerk_user_id", candidateClerkIds)
-        .eq("isDeleted", false);
+      .from("users")
+      .select("id, clerk_user_id")
+      .in("clerk_user_id", candidateClerkIds)
+      .eq("isDeleted", false);
 
     const validCandidateClerkIds = new Set<string>();
     const clerkToUuidMap = new Map<string, string>(); // Map ClerkID -> UUID
@@ -329,12 +358,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const activeCandidates = candidates.filter((s) =>
-      s.userId && validCandidateClerkIds.has(s.userId)
+    const activeCandidates = candidates.filter(
+      (s) => s.userId && validCandidateClerkIds.has(s.userId),
     );
 
     console.log(
-      `✅ Found ${activeCandidates.length} valid candidates after exclusions`
+      `✅ Found ${activeCandidates.length} valid candidates after exclusions`,
     );
 
     // 4. Bulk Fetch Profiles + Interests (MVP: single consolidated query)
@@ -347,7 +376,7 @@ export async function GET(request: NextRequest) {
           .filter(
             (s) =>
               !s.static_attributes?.interests ||
-              s.static_attributes.interests.length === 0
+              s.static_attributes.interests.length === 0,
           )
           .map((s) => s.userId!),
         searchingUserSession.userId!,
@@ -367,7 +396,7 @@ export async function GET(request: NextRequest) {
     const scoredMatches = activeCandidates
       .map((matchSession) => {
         const clerkId = matchSession.userId!;
-        
+
         // Merge Profile Data
         let staticAttributes = matchSession.static_attributes;
         if (!staticAttributes && bulkProfiles[clerkId]) {
@@ -383,7 +412,7 @@ export async function GET(request: NextRequest) {
 
         // Apply to staticAttributes for filtering
         if (staticAttributes) {
-            staticAttributes.interests = interests;
+          staticAttributes.interests = interests;
         }
 
         if (!matchSession.destination) return null;
@@ -393,7 +422,7 @@ export async function GET(request: NextRequest) {
           !isCompatibleMatch(
             searchingUserSession,
             matchSession,
-            presetConfig.maxDistanceKm
+            presetConfig.maxDistanceKm,
           )
         ) {
           return null;
@@ -401,33 +430,63 @@ export async function GET(request: NextRequest) {
 
         // B. Attribute Filters
         if (staticAttributes) {
-            const { age, gender: g, personality: p, smoking, drinking, nationality: n } = staticAttributes;
-            
-            if (age && (age < ageMin || age > ageMax)) return null;
-            if (gender !== "Any" && g && g.toLowerCase() !== gender.toLowerCase()) return null;
-            if (personality !== "Any" && p && p.toLowerCase() !== personality.toLowerCase()) return null;
-            
-            // Smoking: If "No" (Strictly Non), exclude 'yes', 'occasionally'
-            if (smokingPref === "No" && smoking) {
-                 if (["yes", "occasionally", "socially"].includes(smoking.toLowerCase())) return null;
-            }
-            // Drinking: If "No" (Strictly Non), exclude 'yes', 'socially'
-            if (drinkingPref === "No" && drinking) {
-                 if (["yes", "occasionally", "socially"].includes(drinking.toLowerCase())) return null;
-            }
+          const {
+            age,
+            gender: g,
+            personality: p,
+            smoking,
+            drinking,
+            nationality: n,
+          } = staticAttributes;
 
-            if (nationality !== "Any" && n && n.toLowerCase() !== nationality.toLowerCase()) return null;
+          if (age && (age < ageMin || age > ageMax)) return null;
+          if (gender !== "Any" && g && g.toLowerCase() !== gender.toLowerCase())
+            return null;
+          if (
+            personality !== "Any" &&
+            p &&
+            p.toLowerCase() !== personality.toLowerCase()
+          )
+            return null;
 
-            // Languages
-            if (languagesFilter.length > 0) {
-                  const userLangs = (staticAttributes.languages || [])
-                    .concat(staticAttributes.language ? [staticAttributes.language] : [])
-                    .map((l) => l.toLowerCase());
-                  const hasCommon = languagesFilter.some((l) =>
-                    userLangs.includes(l.toLowerCase())
-                  );
-                  if (!hasCommon) return null;
-            }
+          // Smoking: If "No" (Strictly Non), exclude 'yes', 'occasionally'
+          if (smokingPref === "No" && smoking) {
+            if (
+              ["yes", "occasionally", "socially"].includes(
+                smoking.toLowerCase(),
+              )
+            )
+              return null;
+          }
+          // Drinking: If "No" (Strictly Non), exclude 'yes', 'socially'
+          if (drinkingPref === "No" && drinking) {
+            if (
+              ["yes", "occasionally", "socially"].includes(
+                drinking.toLowerCase(),
+              )
+            )
+              return null;
+          }
+
+          if (
+            nationality !== "Any" &&
+            n &&
+            n.toLowerCase() !== nationality.toLowerCase()
+          )
+            return null;
+
+          // Languages
+          if (languagesFilter.length > 0) {
+            const userLangs = (staticAttributes.languages || [])
+              .concat(
+                staticAttributes.language ? [staticAttributes.language] : [],
+              )
+              .map((l) => l.toLowerCase());
+            const hasCommon = languagesFilter.some((l) =>
+              userLangs.includes(l.toLowerCase()),
+            );
+            if (!hasCommon) return null;
+          }
         }
 
         // C. Scoring
@@ -440,7 +499,7 @@ export async function GET(request: NextRequest) {
 
         const commonInterests = computeCommonInterests(
           searchingInterests,
-          interests
+          interests,
         );
 
         return {
@@ -474,33 +533,33 @@ export async function GET(request: NextRequest) {
         try {
           const newImpressions = [];
           const timestamp = new Date().toISOString();
-          
+
           for (const match of sortedMatches) {
             if (!match?.user?.userId) continue;
             // Get internal UUID for the viewed user
             const viewedId = clerkToUuidMap.get(match.user.userId);
             if (viewedId) {
-                newImpressions.push({
-                  viewer_id: searchingUserUuid,
-                  viewed_user_id: viewedId,
-                  destination_id: destinationName,
-                  created_at: timestamp,
-                });
+              newImpressions.push({
+                viewer_id: searchingUserUuid,
+                viewed_user_id: viewedId,
+                destination_id: destinationName,
+                created_at: timestamp,
+              });
             }
           }
 
           if (newImpressions.length > 0) {
-             const { error } = await supabaseAdmin
-                 .from("profile_impressions")
-                 .insert(newImpressions);
-             
-             if (error) {
-                 console.warn("Impression tracking error:", error);
-             } else {
-                 // Metrics
-                 const redis = await ensureRedisConnection();
-                 await redis.incr("metrics:matches:daily");
-             }
+            const { error } = await supabaseAdmin
+              .from("profile_impressions")
+              .insert(newImpressions);
+
+            if (error) {
+              console.warn("Impression tracking error:", error);
+            } else {
+              // Metrics
+              const redis = await ensureRedisConnection();
+              await redis.incr("metrics:matches:daily");
+            }
           }
         } catch (e) {
           console.warn("Background tracking error:", e);
@@ -519,7 +578,7 @@ export async function GET(request: NextRequest) {
     console.error("Error in /api/match-solo:", error);
     return NextResponse.json(
       { message: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

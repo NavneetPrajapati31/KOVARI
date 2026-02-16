@@ -53,6 +53,8 @@ export interface SoloMatch {
     religion?: string;
     languages?: string[];
     location?: { lat: number; lon: number };
+    locationDisplay?: string;
+    foodPreference?: string;
     bio?: string;
   };
   is_solo_match: boolean;
