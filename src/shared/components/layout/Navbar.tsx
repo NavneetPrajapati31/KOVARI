@@ -23,7 +23,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
-import { Compass, MessageCircle } from "lucide-react";
+import { Compass, MessageCircle, Shield } from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
 import SidebarMenu from "./sidebar-menu";
@@ -133,6 +133,7 @@ export default function App({
   const navigationItems = [
     { name: "How It Works", href: "#how-it-works", icon: MessageCircle },
     { name: "Features", href: "#features", icon: Compass },
+    { name: "Safety", href: "#safety", icon: Shield },
   ];
 
   const menuItems = [

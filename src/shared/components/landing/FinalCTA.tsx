@@ -3,6 +3,7 @@
 import React, { useCallback } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { Button } from "@heroui/react";
+import { motion } from "framer-motion";
 
 interface FinalCTAProps {
   onJoinWaitlist?: () => void;
@@ -28,10 +29,16 @@ export default function FinalCTA({ onJoinWaitlist }: FinalCTAProps) {
 
   return (
     <section className="py-20 sm:py-24 md:py-28">
-      <div className="container mx-auto px-4 sm:px-6 md:px-8">
-        <div className="max-w-2xl mx-auto text-center px-4">
+      <div className="container mx-auto px-6 md:px-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="max-w-2xl mx-auto text-center px-4"
+        >
           {/* Heading */}
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight mb-3 sm:mb-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight mb-3 sm:mb-4">
             Ready to Travel Together?
           </h2>
 
@@ -50,7 +57,7 @@ export default function FinalCTA({ onJoinWaitlist }: FinalCTAProps) {
           >
             Join the Waitlist
           </Button>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
