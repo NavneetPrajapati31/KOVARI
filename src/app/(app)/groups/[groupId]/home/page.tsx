@@ -258,11 +258,15 @@ const GroupHomePage = () => {
   }, [fetchGroupInfo, params.groupId]);
 
   useEffect(() => {
+    const aiText = groupInfo?.ai_overview?.trim() || "";
+    const isComplete = /[.!?]['"]?$/.test(aiText);
+    const overviewExists = aiText.length > 50 && isComplete;
+
     if (
       groupInfoLoading ||
       groupInfoError ||
       !groupInfo ||
-      groupInfo.ai_overview ||
+      overviewExists ||
       hasRequestedOverviewRef.current
     ) {
       return;
@@ -272,9 +276,13 @@ const GroupHomePage = () => {
       setIsOverviewGenerating(true);
       hasRequestedOverviewRef.current = true;
       try {
-        const res = await fetch(`/api/groups/${params.groupId}/ai-overview`, {
-          method: "POST",
-        });
+        const shouldForce = groupInfo?.ai_overview ? "?force=true" : "";
+        const res = await fetch(
+          `/api/groups/${params.groupId}/ai-overview${shouldForce}`,
+          {
+            method: "POST",
+          }
+        );
         if (!res.ok) {
           throw new Error("Failed to generate overview");
         }

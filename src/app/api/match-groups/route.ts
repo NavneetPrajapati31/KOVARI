@@ -91,18 +91,25 @@ export async function POST(req: NextRequest) {
     if (maintenance && (maintenance as { enabled: boolean }).enabled) {
       return NextResponse.json(
         { error: "System under maintenance. Please try later." },
-        { status: 503 }
+        { status: 503 },
       );
     }
+
+    const log = (msg: string, data?: object) => {
+      const payload = data ? ` ${JSON.stringify(data)}` : "";
+      console.log(`[MATCH-GROUPS] ${msg}${payload}`);
+    };
 
     // Get matching preset configuration
     const presetSetting = await getSetting("matching_preset");
     const presetMode =
       (presetSetting as { mode: string } | null)?.mode || "balanced";
     const presetConfig = getMatchingPresetConfig(presetMode);
-    console.log(
-      `📊 Using matching preset: ${presetMode} (minScore: ${presetConfig.minScore}, maxDistance: ${presetConfig.maxDistanceKm}km)`
-    );
+    log("Using matching preset", {
+      presetMode,
+      minScore: presetConfig.minScore,
+      maxDistanceKm: presetConfig.maxDistanceKm,
+    });
 
     const data = await req.json();
     const {
@@ -122,7 +129,7 @@ export async function POST(req: NextRequest) {
       nationality,
     } = data;
 
-    console.log("Received request data:", {
+    log("Request received", {
       destination,
       lat,
       lon,
@@ -144,7 +151,7 @@ export async function POST(req: NextRequest) {
           error:
             "Missing required fields: destination, budget, startDate, endDate",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (!userId || userId !== clerkUserId) {
@@ -153,27 +160,24 @@ export async function POST(req: NextRequest) {
 
     // Get coordinates for user's destination
     let userDestinationCoords: Location;
-    
+
     if (lat && lon) {
-         console.log("Using provided coordinates for destination:", lat, lon);
-         userDestinationCoords = { lat, lon };
+      log("Using provided coordinates for destination", { lat, lon });
+      userDestinationCoords = { lat: Number(lat), lon: Number(lon) };
     } else if (typeof destination === "string") {
-      console.log("Getting coordinates for destination:", destination);
+      log("Geocoding destination string", { destination });
       const coords = await getCoordinatesForLocation(destination);
       if (!coords) {
-        console.error(
-          "Could not find coordinates for destination:",
-          destination
-        );
+        log("Geocoding failed for destination", { destination });
         return NextResponse.json(
           { error: "Could not find coordinates for the specified destination" },
-          { status: 400 }
+          { status: 400 },
         );
       }
-      console.log("Found coordinates for destination:", coords);
+      log("Geocoding successful", { destination, coords });
       userDestinationCoords = coords;
     } else {
-      console.log("Destination is already coordinates:", destination);
+      log("Destination provided as coordinates", { destination });
       userDestinationCoords = destination;
     }
 
@@ -192,7 +196,7 @@ export async function POST(req: NextRequest) {
       nationality: nationality || "Unknown",
     };
 
-    console.log("User profile for matching:", userProfile);
+    log("User profile for matching", userProfile);
 
     const supabase = createAdminSupabaseClient();
 
@@ -207,66 +211,82 @@ export async function POST(req: NextRequest) {
       console.error("❌ Could not resolve internal UUID for user:", userId);
       return NextResponse.json(
         { message: "User profile not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     const searchingUserUuid = userData.id;
 
-    const userDestName = typeof destination === "string" ? destination : "Custom Coordinates";
+    const userDestName =
+      typeof destination === "string" ? destination : "Custom Coordinates";
 
     // Fetch Exclusion Lists for Groups
-    console.log("🔍 Fetching group exclusion lists...");
-    const [
-      skipsResult,
-      reportsResult,
-      membershipsResult,
-      interestsResult
-    ] = await Promise.all([
-      // 1. Skips: Exclude if I skipped the group
-      supabase
-        .from("match_skips")
-        .select("skipped_user_id") // Stores group ID for 'group' type
-        .eq("user_id", searchingUserUuid)
-        .eq("match_type", "group")
-        .eq("destination_id", userDestName), 
+    log("Fetching group exclusion lists");
+    const [skipsResult, reportsResult, membershipsResult, interestsResult] =
+      await Promise.all([
+        // 1. Skips: Exclude if I skipped the group
+        supabase
+          .from("match_skips")
+          .select("skipped_user_id") // Stores group ID for 'group' type
+          .eq("user_id", searchingUserUuid)
+          .eq("match_type", "group")
+          .eq("destination_id", userDestName),
 
-      // 2. Reports: Exclude if I reported the group (Global)
-      supabase
-        .from("group_flags")
-        .select("group_id")
-        .eq("reporter_id", searchingUserUuid),
+        // 2. Reports: Exclude if I reported the group (Global)
+        supabase
+          .from("group_flags")
+          .select("group_id")
+          .eq("reporter_id", searchingUserUuid),
 
-      // 3. Memberships: Exclude if already a member or pending request (Global)
-      supabase
-        .from("group_memberships")
-        .select("group_id")
-        .eq("user_id", searchingUserUuid),
+        // 3. Memberships: Exclude if already a member or pending request (Global)
+        supabase
+          .from("group_memberships")
+          .select("group_id")
+          .eq("user_id", searchingUserUuid),
 
-      // 4. Interests: Exclude if I already expressed interest (Redundant but safe)
-      supabase
-        .from("match_interests")
-        .select("to_user_id") // Stores group ID for 'group' type
-        .eq("from_user_id", searchingUserUuid)
-        .eq("match_type", "group")
-        .eq("destination_id", userDestName)
-    ]);
+        // 4. Interests: Exclude if I already expressed interest (Redundant but safe)
+        supabase
+          .from("match_interests")
+          .select("to_user_id") // Stores group ID for 'group' type
+          .eq("from_user_id", searchingUserUuid)
+          .eq("match_type", "group")
+          .eq("destination_id", userDestName),
+      ]);
 
     const excludedGroupIds = new Set<string>();
-    
+
     // Add Skips
-    skipsResult.data?.forEach(s => excludedGroupIds.add(s.skipped_user_id));
+    skipsResult.data?.forEach((s) => excludedGroupIds.add(s.skipped_user_id));
     // Add Reports
-    reportsResult.data?.forEach(r => excludedGroupIds.add(r.group_id));
+    reportsResult.data?.forEach((r) => excludedGroupIds.add(r.group_id));
     // Add Memberships
-    membershipsResult.data?.forEach(m => excludedGroupIds.add(m.group_id));
+    membershipsResult.data?.forEach((m) => excludedGroupIds.add(m.group_id));
     // Add Interests
-    interestsResult.data?.forEach(i => excludedGroupIds.add(i.to_user_id));
+    interestsResult.data?.forEach((i) => excludedGroupIds.add(i.to_user_id));
 
     const excludedIdsArray = Array.from(excludedGroupIds);
-    console.log(`🚫 Excluding ${excludedIdsArray.length} groups based on history`);
+    log("Exclusion lists fetched", {
+      excludedCount: excludedIdsArray.length,
+      fromSkips: skipsResult.data?.length ?? 0,
+      fromReports: reportsResult.data?.length ?? 0,
+      fromMemberships: membershipsResult.data?.length ?? 0,
+      fromInterests: interestsResult.data?.length ?? 0,
+      excludedIds: excludedIdsArray.slice(0, 10),
+      userDestName,
+    });
 
     // Fetch groups with all necessary fields from the schema
-    console.log("Fetching groups from database...");
+    log("Fetching groups from database", {
+      filters: {
+        status: "active",
+        is_public: true,
+        creatorExcluded: searchingUserUuid,
+        ageRange:
+          ageMin !== undefined || ageMax !== undefined
+            ? { ageMin, ageMax }
+            : null,
+        smokingDrinking: "soft-filter-via-scoring (no hard DB filter)",
+      },
+    });
     let groupsQuery = supabase
       .from("groups")
       .select(
@@ -285,39 +305,37 @@ export async function POST(req: NextRequest) {
         average_age,
         members_count,
         cover_image,
-        description
-      `
+        description,
+        destination_lat,
+        destination_lon
+      `,
       )
       .eq("status", "active") // Only match approved groups
+      .eq("is_public", true) // Only match public groups (discoverable in explore)
       .neq("creator_id", searchingUserUuid); // Exclude my own groups
 
     // Apply exclusion filter if there are IDs to exclude
     if (excludedIdsArray.length > 0) {
-      groupsQuery = groupsQuery.not("id", "in", `(${excludedIdsArray.join(",")})`);
+      groupsQuery = groupsQuery.not(
+        "id",
+        "in",
+        `(${excludedIdsArray.join(",")})`,
+      );
     }
 
     // --- APPLY FILTERS ---
     // 1. Age Filter
-    if (ageMin !== undefined) groupsQuery = groupsQuery.gte("average_age", ageMin);
-    if (ageMax !== undefined) groupsQuery = groupsQuery.lte("average_age", ageMax);
+    if (ageMin !== undefined)
+      groupsQuery = groupsQuery.gte("average_age", ageMin);
+    if (ageMax !== undefined)
+      groupsQuery = groupsQuery.lte("average_age", ageMax);
 
-    // 2. Smoking Filter
-    if (smoking === false) {
-      // User selected "Strictly non-smoking" -> Show ONLY non-smoking groups
-      groupsQuery = groupsQuery.eq("non_smokers", true);
-    } else if (smoking === true) {
-      // User selected "I'm okay with smoking" -> Exclude strictly non-smoking groups (assuming user might smoke)
-      groupsQuery = groupsQuery.not("non_smokers", "eq", true);
-    }
+    // 2. Smoking Filter - REMOVED hard filter; lifestyle scoring in findGroupMatchesForUser handles this.
+    // Previously, smoking:false (user prefers non-smoking) filtered to ONLY non_smokers=true groups,
+    // which excluded "Smokers Welcome" and "Mixed" groups entirely. That was too strict.
+    // Now we let all groups through; lifestyle compatibility is factored into the score.
 
-    // 3. Drinking Filter
-    if (drinking === false) {
-      // User selected "Strictly non-drinking" -> Show ONLY non-drinking groups
-      groupsQuery = groupsQuery.eq("non_drinkers", true);
-    } else if (drinking === true) {
-      // User selected "I'm okay with drinking" -> Exclude strictly non-drinking groups
-      groupsQuery = groupsQuery.not("non_drinkers", "eq", true);
-    }
+    // 3. Drinking Filter - REMOVED for same reason as smoking.
 
     // 4. Nationality Filter (Strict?)
     // This is tricky as nationality is on the Creator, not the group table directly?
@@ -330,59 +348,124 @@ export async function POST(req: NextRequest) {
     const { data: groups, error } = await groupsQuery;
 
     if (error) {
-      console.error("Database error fetching groups:", error);
+      log("Database error fetching groups", {
+        error: error.message,
+        code: error.code,
+      });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    log("Raw groups from DB (before distance filter)", {
+      count: groups?.length ?? 0,
+      groupIds: groups?.map((g: any) => g.id) ?? [],
+      destinations:
+        groups?.map((g: any) => ({
+          id: g.id,
+          dest: g.destination,
+          lat: g.destination_lat,
+          lon: g.destination_lon,
+        })) ?? [],
+    });
+
     if (!groups || groups.length === 0) {
+      log("No groups from DB - possible causes", {
+        hints: [
+          "status must be 'active'",
+          "is_public must be true",
+          "creator_id must not be searching user",
+          "age filter: groups with null average_age are excluded (gte/lte)",
+          "smoking/drinking filters may exclude groups",
+          "exclusion lists (skips, reports, memberships, interests)",
+        ],
+      });
       return NextResponse.json({ groups: [] });
     }
     const groupsWithCoords: GroupWithCoords[] = [];
+    const distanceExcluded: {
+      id: string;
+      reason: string;
+      distance?: number;
+    }[] = [];
+
     for (const group of groups) {
-      if (group.destination) {
-        console.log(
-          `Getting coordinates for group ${group.id} destination: ${group.destination}`
-        );
+      // Check name similarity for robustness
+      const namesMatch =
+        typeof destination === "string" &&
+        group.destination &&
+        (group.destination.toLowerCase().includes(destination.toLowerCase()) ||
+          destination.toLowerCase().includes(group.destination.toLowerCase()));
+
+      if (group.destination_lat && group.destination_lon) {
+        const groupCoords = {
+          lat: Number(group.destination_lat),
+          lon: Number(group.destination_lon),
+        };
+        const distance = calculateDistance(userDestinationCoords, groupCoords);
+
+        if (distance <= presetConfig.maxDistanceKm || namesMatch) {
+          const effectiveDistance =
+            namesMatch && distance > presetConfig.maxDistanceKm ? 0 : distance;
+          groupsWithCoords.push({
+            ...group,
+            destinationCoords: groupCoords,
+            distance: effectiveDistance,
+          });
+        } else {
+          distanceExcluded.push({ id: group.id, reason: "too_far", distance });
+        }
+      } else if (group.destination) {
         const groupCoords = await getCoordinatesForLocation(group.destination);
         if (groupCoords) {
           const distance = calculateDistance(
             userDestinationCoords,
-            groupCoords
+            groupCoords,
           );
-          console.log(`Group ${group.id} is ${distance.toFixed(2)}km away`);
-          if (distance <= presetConfig.maxDistanceKm) {
-            // Only include groups within preset maxDistanceKm
+
+          if (distance <= presetConfig.maxDistanceKm || namesMatch) {
+            const effectiveDistance =
+              namesMatch && distance > presetConfig.maxDistanceKm
+                ? 0
+                : distance;
             groupsWithCoords.push({
               ...group,
               destinationCoords: groupCoords,
-              distance,
+              distance: effectiveDistance,
             });
           } else {
-            console.log(
-              `Group ${group.id} is too far (${distance.toFixed(2)}km > 200km)`
-            );
+            distanceExcluded.push({
+              id: group.id,
+              reason: "too_far",
+              distance,
+            });
           }
         } else {
-          console.log(
-            `Could not get coordinates for group ${group.id} destination: ${group.destination}`
-          );
+          distanceExcluded.push({
+            id: group.id,
+            reason: "geocoding_failed",
+            distance: undefined,
+          });
         }
       } else {
-        console.log(`Group ${group.id} has no destination`);
+        distanceExcluded.push({
+          id: group.id,
+          reason: "no_destination",
+          distance: undefined,
+        });
       }
     }
 
+    log("Distance filter results", {
+      userDestinationCoords,
+      maxDistanceKm: presetConfig.maxDistanceKm,
+      passed: groupsWithCoords.length,
+      excluded: distanceExcluded.length,
+      excludedDetails: distanceExcluded.slice(0, 20),
+    });
+
     if (groupsWithCoords.length === 0) {
-      console.log(
-        `No groups found within ${presetConfig.maxDistanceKm}km distance`
-      );
+      log("No groups within distance - all excluded", { distanceExcluded });
       return NextResponse.json({ groups: [] });
     }
-
-    console.log(
-      `Found ${groupsWithCoords.length} groups within distance limit:`,
-      groupsWithCoords
-    );
 
     // Get creator profiles for nationality information
     const creatorIds = [...new Set(groupsWithCoords.map((g) => g.creator_id))];
@@ -402,7 +485,7 @@ export async function POST(req: NextRequest) {
     }, {});
 
     // Transform groups into the expected format for matching
-    console.log("Transforming groups into profiles for matching...");
+    log("Transforming groups into profiles for matching");
     const groupProfiles: GroupProfile[] = groupsWithCoords.map((group: any) => {
       const creator = profilesMap[group.creator_id];
 
@@ -444,43 +527,62 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    console.log(
-      `Created ${groupProfiles.length} group profiles for matching:`,
-      groupProfiles
-    );
+    log("Group profiles created", {
+      count: groupProfiles.length,
+      profileIds: groupProfiles.map((p) => p.groupId),
+    });
 
     // Filter by Nationality (In-Memory)
     let filteredGroupProfiles = groupProfiles;
     if (nationality && nationality !== "Unknown" && nationality !== "Any") {
-       filteredGroupProfiles = groupProfiles.filter(g => 
-         g.dominantNationalities.some(n => n.toLowerCase() === nationality.toLowerCase())
-       );
-       console.log(`Filtered down to ${filteredGroupProfiles.length} groups matching nationality: ${nationality}`);
+      const beforeNationality = filteredGroupProfiles.length;
+      filteredGroupProfiles = groupProfiles.filter((g) =>
+        g.dominantNationalities.some(
+          (n) => n.toLowerCase() === nationality.toLowerCase(),
+        ),
+      );
+      log("Nationality filter", {
+        requestedNationality: nationality,
+        before: beforeNationality,
+        after: filteredGroupProfiles.length,
+        excluded: beforeNationality - filteredGroupProfiles.length,
+      });
     }
 
     // Use the group matching algorithm to get scored matches
     const matches = findGroupMatchesForUser(
       userProfile,
       filteredGroupProfiles,
-      presetConfig.maxDistanceKm
+      presetConfig.maxDistanceKm,
     );
-    console.log(
-      `Matching algorithm returned ${matches.length} matches:`,
-      matches
-    );
+    log("Matching algorithm completed", {
+      matchCount: matches.length,
+      scores: matches.map((m) => ({ id: m.group.groupId, score: m.score })),
+    });
 
     // Filter by preset minScore
     const filteredMatches = matches.filter(
-      (match) => match.score >= presetConfig.minScore
+      (match) => match.score >= presetConfig.minScore,
     );
-    console.log(
-      `After applying minScore filter (${presetConfig.minScore}): ${filteredMatches.length} matches remain`
-    );
+    log("Scoring and minScore filter", {
+      preset: presetMode,
+      minScore: presetConfig.minScore,
+      beforeMinScore: matches.length,
+      afterMinScore: filteredMatches.length,
+      scoresBeforeFilter: matches.map((m) => ({
+        id: m.group.groupId,
+        name: m.group.name,
+        score: m.score,
+      })),
+      excludedByMinScore: matches
+        .filter((m) => m.score < presetConfig.minScore)
+        .map((m) => ({ id: m.group.groupId, score: m.score })),
+    });
 
     // Transform the results to include group details and maintain distance info
     const safeMatches = filteredMatches.map((match) => {
       const originalGroup = groupsWithCoords.find(
-        (g) => g.id === match.group.groupId
+        (g) => g.id === match.group.groupId,
       );
       const creator = originalGroup
         ? profilesMap[originalGroup.creator_id]
@@ -522,7 +624,10 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    console.log(`Returning ${safeMatches.length} final matches:`, safeMatches);
+    log("Final response", {
+      count: safeMatches.length,
+      groupIds: safeMatches.map((m) => m.id),
+    });
 
     // Increment match generation counter for metrics
     if (safeMatches.length > 0) {
@@ -547,7 +652,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(
       { error: err.message || "Unknown error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

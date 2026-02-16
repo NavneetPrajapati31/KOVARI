@@ -69,8 +69,13 @@ const calculateBudgetScore = (
   userBudget: number,
   groupAverageBudget: number
 ): number => {
-  const budgetDifference = Math.abs(userBudget - groupAverageBudget);
-  return Math.max(0, 1 - budgetDifference / 40000); // Score is 0 if difference is 40k or more
+  // If the group is within (or cheaper than) the user's budget, it's a perfect match.
+  if (groupAverageBudget <= userBudget) return 1.0;
+  
+  const budgetDifference = groupAverageBudget - userBudget;
+  // Score decreases as the group gets more expensive than the user's budget.
+  // It reaches 0 if the difference is 40k or more.
+  return Math.max(0, 1 - budgetDifference / 40000); 
 };
 
 /**

@@ -1,14 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
+const DEFAULT_GEMINI_MODEL = "gemini-1.5-flash";
 const MAX_OVERVIEW_LENGTH = 900;
 
 const buildOverviewPrompt = (destination: string) => {
   return [
-    "Write a concise travel overview in 3-5 sentences.",
-    "Use plain text only. No bullet points or markdown.",
-    "Include 2-3 highlights and the best time of year to visit.",
-    `Destination: ${destination}.`,
+    `Provide a captivating travel overview for ${destination}.`,
+    "Write a short, engaging summary (approx 60-80 words).",
+    "Mention key highlights and the best time to visit.",
+    "Do not use markdown, bullet points, or special formatting.",
   ].join(" ");
 };
 
@@ -37,8 +37,8 @@ export const getGeminiPlaceOverview = async (
         },
       ],
       generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 220,
+        temperature: 0.7,
+        maxOutputTokens: 1000,
       },
     });
 

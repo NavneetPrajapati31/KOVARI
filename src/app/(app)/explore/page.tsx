@@ -310,7 +310,26 @@ export default function ExplorePage() {
         }
       } else {
         // GROUP TRAVEL MODE - Only search for groups with filter data
-        console.log("Searching for groups with filters:", filters);
+        console.log("[EXPLORE][GROUP] Search started", {
+          destination: fullSearchData.destination,
+          destinationDetails: fullSearchData.destinationDetails
+            ? { lat: fullSearchData.destinationDetails.lat, lon: fullSearchData.destinationDetails.lon }
+            : null,
+          budget: fullSearchData.budget,
+          dates: {
+            start: fullSearchData.startDate.toISOString().split("T")[0],
+            end: fullSearchData.endDate.toISOString().split("T")[0],
+          },
+          userId,
+          filters: {
+            ageRange: filters.ageRange,
+            languages: filters.languages,
+            interests: filters.interests,
+            smoking: filters.smoking,
+            drinking: filters.drinking,
+            nationality: filters.nationality,
+          },
+        });
         const requestBody: any = {
           destination: fullSearchData.destination,
           budget: fullSearchData.budget,
@@ -333,7 +352,7 @@ export default function ExplorePage() {
              requestBody.lon = fullSearchData.destinationDetails.lon;
         }
 
-        console.log("Request body for group search:", requestBody);
+        console.log("[EXPLORE][GROUP] Request body", requestBody);
 
         const res = await fetch("/api/match-groups", {
           method: "POST",
@@ -341,11 +360,15 @@ export default function ExplorePage() {
           body: JSON.stringify(requestBody),
         });
 
-        console.log("Response status:", res.status);
         const data = await res.json();
+        console.log("[EXPLORE][GROUP] API response", {
+          status: res.status,
+          ok: res.ok,
+          groupCount: data.groups?.length ?? 0,
+          groupIds: data.groups?.map((g: any) => g.id) ?? [],
+          error: data.error,
+        });
         if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
-
-        console.log("API Response for groups:", data);
 
         // Transform the API response to match GroupMatchCard's expected format
         const transformedGroups = (data.groups || []).map((group: any) => ({
@@ -372,7 +395,10 @@ export default function ExplorePage() {
           tags: group.tags || [],
         }));
 
-        console.log("Transformed groups:", transformedGroups);
+        console.log("[EXPLORE][GROUP] Transformed groups for display", {
+          count: transformedGroups.length,
+          ids: transformedGroups.map((g: any) => g.id),
+        });
 
         setMatchedGroups(transformedGroups);
         setCurrentGroupIndex(0);

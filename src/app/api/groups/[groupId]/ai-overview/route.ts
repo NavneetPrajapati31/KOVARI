@@ -60,7 +60,12 @@ export async function POST(
     }
   }
 
-  if (group.ai_overview) {
+  const force = req.nextUrl.searchParams.get("force") === "true";
+  
+  const currentOverview = group.ai_overview?.trim() || "";
+  const isComplete = /[.!?]['"]?$/.test(currentOverview);
+
+  if (currentOverview.length > 50 && isComplete && !force) {
     return NextResponse.json({ ai_overview: group.ai_overview });
   }
 
