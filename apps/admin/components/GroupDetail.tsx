@@ -94,8 +94,61 @@ export function GroupDetail({
   const { toasts, toast, removeToast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = React.useState(false);
+  const [warnDialogOpen, setWarnDialogOpen] = React.useState(false);
+  const [warnReason, setWarnReason] = React.useState('');
   const [removeDialogOpen, setRemoveDialogOpen] = React.useState(false);
   const [removeReason, setRemoveReason] = React.useState('');
+
+  const handleWarn = async () => {
+    if (!warnReason.trim()) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/groups/${group.id}/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'warn',
+          reason: warnReason.trim(),
+          flagId: flagId,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to warn group');
+      }
+
+      const result = await res.json();
+      
+      let description = 'Group warning sent successfully';
+      if (result.emailSent) {
+        description += ' via email.';
+      } else if (result.emailError) {
+        description += ` but email failed: ${result.emailError}`;
+      }
+
+      toast({
+        title: 'Success',
+        description,
+        variant: 'success',
+      });
+
+      setWarnDialogOpen(false);
+      setWarnReason('');
+      router.refresh();
+    } catch (error) {
+      console.error('Error warning group:', error);
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error ? error.message : 'Failed to warn group',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleApprove = async () => {
     setIsLoading(true);
@@ -496,6 +549,16 @@ export function GroupDetail({
                 Approve Group
               </Button>
             )}
+
+            <Button
+              variant="outline"
+              onClick={() => setWarnDialogOpen(true)}
+              disabled={isLoading}
+              className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 dark:border-yellow-400 dark:text-yellow-400 dark:hover:bg-yellow-950"
+            >
+              Warn Group
+            </Button>
+
             {group.status !== 'removed' && (
               <Button
                 variant="destructive"
@@ -624,6 +687,29 @@ export function GroupDetail({
         confirmText="Approve"
         onConfirm={handleApprove}
       />
+
+      {/* Warn Dialog */}
+      <ConfirmDialog
+        open={warnDialogOpen}
+        onOpenChange={setWarnDialogOpen}
+        title="Warn Group"
+        description="This will send a warning email to the group organizer. A reason is required."
+        confirmText="Send Warning"
+        onConfirm={handleWarn}
+        validate={() => warnReason.trim().length > 0}
+      >
+        <div className="space-y-2">
+          <Label htmlFor="warn-reason">Reason (required)</Label>
+          <textarea
+            id="warn-reason"
+            value={warnReason}
+            onChange={(e) => setWarnReason(e.target.value)}
+            placeholder="Enter reason for warning..."
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            required
+          />
+        </div>
+      </ConfirmDialog>
 
       {/* Remove Dialog */}
       <ConfirmDialog

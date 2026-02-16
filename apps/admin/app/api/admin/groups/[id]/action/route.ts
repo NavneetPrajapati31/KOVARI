@@ -9,12 +9,14 @@ import {
   categorizeRemovalReason,
   handleOrganizerTrustImpact,
 } from "@/admin-lib/groupSafetyHandler";
+import { sendEmail } from "@/admin-lib/send-email";
+import { groupWarningEmail, groupRemovedEmail } from "@/admin-lib/email-templates/admin-actions";
 
 interface Params {
   params: Promise<{ id: string }>;
 }
 
-type GroupAction = "approve" | "remove";
+type GroupAction = "approve" | "remove" | "warn";
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest, { params }: Params) {
           .update(fullUpdateData)
           .eq("id", flagId)
           .select('id'); 
-
+          
         if (updateError && (updateError.code === "42703" || updateError.message?.includes("column") || updateError.code === "PGRST204")) {
            const retry = await supabaseAdmin
              .from("user_flags")
@@ -104,19 +106,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     };
 
     // Validate action
-    if (action !== "approve" && action !== "remove") {
+    if (!["approve", "remove", "warn"].includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    // Require reason for remove action
-    if (action === "remove" && (!reason || !reason.trim())) {
+    // Require reason for remove/warn actions
+    if ((action === "remove" || action === "warn") && (!reason || !reason.trim())) {
       return NextResponse.json(
-        { error: "Reason is required for remove action" },
+        { error: `Reason is required for ${action} action` },
         { status: 400 }
       );
     }
 
-    // Rate limit destructive actions (remove, approve)
+    // Rate limit destructive actions (remove, approve, warn)
     // Prevent rapid repeated actions on the same group
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
     const { data: recent } = await supabaseAdmin
@@ -125,7 +127,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       .eq("admin_id", adminId)
       .eq("target_id", groupId)
       .eq("target_type", "group")
-      .eq("action", action === "remove" ? "REMOVE_GROUP" : "APPROVE_GROUP")
+      .eq("action", action === "remove" ? "REMOVE_GROUP" : action === "approve" ? "APPROVE_GROUP" : "WARN_GROUP")
       .gt("created_at", oneMinuteAgo)
       .limit(1);
 
@@ -154,7 +156,65 @@ export async function POST(req: NextRequest, { params }: Params) {
     const previousFlagCount = currentGroup.flag_count || 0;
     const organizerId = currentGroup.creator_id;
 
-    // Prepare update object
+    // Handle Warn Action
+    if (action === "warn") {
+      let emailSent = false;
+      let emailError: string | undefined = undefined;
+
+      // Find organizer email
+      let contactEmail: string | null = null;
+      if (organizerId) {
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("email")
+          .eq("user_id", organizerId)
+          .maybeSingle();
+        contactEmail = profile?.email || null;
+      }
+
+      // Send Email
+      if (contactEmail) {
+        const result = await sendEmail({
+          to: contactEmail,
+          subject: `Warning: Issue reported in your group "${currentGroup.name}"`,
+          html: groupWarningEmail({
+            groupName: currentGroup.name,
+            reason
+          }),
+          category: "group_warning"
+        });
+        emailSent = result.success;
+        if (!result.success) emailError = result.error;
+      }
+
+      // Log Action
+      await logAdminAction({
+        adminId,
+        targetType: "group",
+        targetId: groupId,
+        action: "WARN_GROUP",
+        reason,
+        metadata: {
+          groupName: currentGroup.name,
+          emailSent,
+          flagId
+        }
+      });
+
+      // Resolve flag if provided
+      if (flagId) {
+        await resolveFlag(flagId, "warn");
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        message: "Warning sent successfully",
+        emailSent,
+        emailError
+      });
+    }
+
+    // Prepare update object for status changes
     const updateData: Record<string, unknown> = {};
 
     if (action === "approve") {
@@ -183,7 +243,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    // Prepare metadata
+    // Prepare metadata for status change logging
     const metadata: Record<string, unknown> = {
       groupName: currentGroup.name,
       previousStatus,
@@ -212,9 +272,36 @@ export async function POST(req: NextRequest, { params }: Params) {
 
       // Handle organizer trust impact
       await handleOrganizerTrustImpact(organizerId, severity, adminId, groupId);
+
+      // Send email for removal
+      let contactEmail: string | null = null;
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("email")
+          .eq("user_id", organizerId)
+          .maybeSingle();
+        contactEmail = profile?.email || null;
+      } catch (err) {
+          console.error("Error fetching organizer email:", err);
+      }
+
+      if (contactEmail) {
+        const result = await sendEmail({
+          to: contactEmail,
+          subject: `Group Removed: ${currentGroup.name}`,
+          html: groupRemovedEmail({
+            groupName: currentGroup.name,
+            reason: reason
+          }),
+          category: "group_removed"
+        });
+        metadata.emailSent = result.success;
+        if (!result.success) metadata.emailError = result.error;
+      }
     }
 
-    // Always log admin action
+    // Always log admin action for status changes
     await logAdminAction({
       adminId,
       targetType: "group",
@@ -229,7 +316,11 @@ export async function POST(req: NextRequest, { params }: Params) {
       await resolveFlag(flagId, action);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+        success: true,
+        emailSent: metadata.emailSent as boolean,
+        emailError: metadata.emailError as string
+    });
   } catch (error) {
     await incrementErrorCounter();
     Sentry.captureException(error, {

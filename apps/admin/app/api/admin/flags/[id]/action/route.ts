@@ -10,6 +10,13 @@ import {
   categorizeRemovalReason,
   handleOrganizerTrustImpact,
 } from "@/admin-lib/groupSafetyHandler";
+import {
+  userWarningEmail,
+  groupWarningEmail,
+  userSuspensionEmail,
+  groupRemovedEmail,
+  userBanEmail,
+} from "@/admin-lib/email-templates/admin-actions";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -258,15 +265,10 @@ export async function POST(req: NextRequest, { params }: Params) {
         }
 
         emailSubject = `Warning: Issue reported in your group "${groupData.name}"`;
-        emailHtml = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #ea580c;">Group Warning</h2>
-              <p>Your group <strong>${groupData.name}</strong> has received a warning due to a reported violation of our community guidelines.</p>
-              ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-              <p>Please review our community guidelines and ensure your group complies with our terms of service.</p>
-              <p>Best regards,<br>The Kovari Team</p>
-            </div>
-          `;
+        emailHtml = groupWarningEmail({
+          groupName: groupData.name,
+          reason,
+        });
       } else {
         // USER TARGET
         try {
@@ -284,15 +286,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         }
 
         emailSubject = "Warning: Account Violation";
-        emailHtml = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #dc2626;">Account Warning</h2>
-              <p>Your account has received a warning due to a reported violation of our community guidelines.</p>
-              ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-              <p>Please review our community guidelines and ensure your future behavior complies with our terms of service.</p>
-              <p>Best regards,<br>The Kovari Team</p>
-            </div>
-          `;
+        emailHtml = userWarningEmail({ reason });
       }
 
       // Send warning email using Brevo
@@ -405,17 +399,10 @@ export async function POST(req: NextRequest, { params }: Params) {
         const result = await sendEmail({
              to: userEmail,
              subject: "Account Suspension Notice",
-             html: `
-               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                 <h2 style="color: #dc2626;">Account Suspended</h2>
-                 <p>Your account has been temporarily suspended due to a reported violation of our community guidelines.</p>
-                 <p><strong>Suspension Period:</strong> Until ${suspendUntilDate}</p>
-                 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                 <p>During this suspension period, you will not be able to access your account. After the suspension period ends, your account access will be automatically restored.</p>
-                 <p>If you have any questions or concerns, please contact our support team.</p>
-                 <p>Best regards,<br>The Kovari Team</p>
-               </div>
-             `,
+             html: userSuspensionEmail({
+               reason,
+               suspendUntil: suspendUntilDate,
+             }),
              category: "user_suspension"
         });
         emailSent = result.success;
@@ -512,15 +499,10 @@ export async function POST(req: NextRequest, { params }: Params) {
              const result = await sendEmail({
                  to: profile.email,
                  subject: `Group Removed: ${groupData.name}`,
-                 html: `
-                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                     <h2 style="color: #dc2626;">Group Removed</h2>
-                     <p>Your group <strong>${groupData.name}</strong> has been removed due to a violation of our community guidelines.</p>
-                     ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                     <p>Continued violations may result in the suspension of your account.</p>
-                     <p>Best regards,<br>The Kovari Team</p>
-                   </div>
-                 `,
+                 html: groupRemovedEmail({
+                   groupName: groupData.name,
+                   reason,
+                 }),
                  category: "group_removed"
              });
              emailSent = result.success;
@@ -597,16 +579,7 @@ export async function POST(req: NextRequest, { params }: Params) {
           const result = await sendEmail({
               to: userEmail,
               subject: "Account Permanently Banned",
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                  <h2 style="color: #dc2626;">Account Permanently Banned</h2>
-                  <p>Your account has been permanently banned due to a serious violation of our community guidelines.</p>
-                  ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                  <p>This ban is permanent and cannot be reversed. You will no longer be able to access your account or use our services.</p>
-                  <p>If you believe this ban was issued in error, you may contact our support team to appeal this decision. However, please note that permanent bans are only issued for severe violations.</p>
-                  <p>Best regards,<br>The Kovari Team</p>
-                </div>
-              `,
+              html: userBanEmail({ reason }),
               category: "user_ban"
           });
           emailSent = result.success;

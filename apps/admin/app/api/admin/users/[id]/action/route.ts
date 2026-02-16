@@ -5,6 +5,7 @@ import { logAdminAction } from "@/admin-lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
 import { sendEmail } from "@/admin-lib/send-email";
+import { userWarningEmail, userBanEmail, userSuspensionEmail } from "@/admin-lib/email-templates/admin-actions";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -213,16 +214,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         const result = await sendEmail({
           to: profile.email,
           subject: "Warning: Account Violation",
-          html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #dc2626;">Account Warning</h2>
-                <p>Your account has received a warning due to a reported violation of our community guidelines.</p>
-                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                <p>Please review our community guidelines and ensure your future behavior complies with our terms of service.</p>
-                <p>If you have any questions or concerns, please contact our support team.</p>
-                <p>Best regards,<br>The Kovari Team</p>
-              </div>
-            `,
+          html: userWarningEmail({ reason }),
            category: "user_warning"
         });
         emailSent = result.success;
@@ -312,19 +304,12 @@ export async function POST(req: NextRequest, { params }: Params) {
         const title = isBan ? "Account Permanently Banned" : "Account Suspended";
         const suspendUntilDate = banExpiresAt ? new Date(banExpiresAt).toLocaleString() : "";
         
-        const html = `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #dc2626;">${title}</h2>
-                <p>Your account has been ${isBan ? "permanently banned" : "temporarily suspended"} due to a ${isBan ? "serious" : "reported"} violation of our community guidelines.</p>
-                ${!isBan ? `<p><strong>Suspension Period:</strong> Until ${suspendUntilDate}</p>` : ""}
-                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
-                <p>${isBan 
-                  ? "This ban is permanent and cannot be reversed. You will no longer be able to access your account or use our services." 
-                  : "During this suspension period, you will not be able to access your account. After the suspension period ends, your account access will be automatically restored."}</p>
-                <p>If you have any questions or concerns, please contact our support team.</p>
-                <p>Best regards,<br>The Kovari Team</p>
-              </div>
-            `;
+        const html = isBan
+          ? userBanEmail({ reason: reason?.trim() })
+          : userSuspensionEmail({
+              reason: reason?.trim(),
+              suspendUntil: suspendUntilDate,
+            });
 
         const result = await sendEmail({
           to: profile.email,
