@@ -62,7 +62,7 @@ const formSchema = z
     {
       message: "End date must be after start date",
       path: ["endDate"],
-    }
+    },
   );
 
 type FormData = z.infer<typeof formSchema>;
@@ -139,7 +139,7 @@ export function GroupCreationForm() {
       watchedValues.groupName &&
         watchedValues.destination &&
         watchedValues.startDate &&
-        watchedValues.endDate
+        watchedValues.endDate,
     );
 
     const hasNoErrors = Object.keys(errors).length === 0;
@@ -148,7 +148,7 @@ export function GroupCreationForm() {
       watchedValues.startDate &&
         watchedValues.endDate &&
         new Date(watchedValues.endDate).getTime() >
-          new Date(watchedValues.startDate).getTime()
+          new Date(watchedValues.startDate).getTime(),
     );
 
     console.log("Form Validation State:", {
@@ -182,7 +182,7 @@ export function GroupCreationForm() {
         if (data.destinationDetails) {
           formData.append(
             "destination_details",
-            JSON.stringify(data.destinationDetails)
+            JSON.stringify(data.destinationDetails),
           );
         }
         formData.append("start_date", format(data.startDate, "yyyy-MM-dd"));
@@ -281,7 +281,7 @@ export function GroupCreationForm() {
                 className={cn(
                   "h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-md placeholder:text-muted-foreground",
                   errors.groupName &&
-                    "border-destructive focus:border-destructive focus:ring-destructive placeholder:text-destructive"
+                    "border-destructive focus:border-destructive focus:ring-destructive placeholder:text-destructive",
                 )}
               />
               {errors.groupName && (
@@ -304,7 +304,7 @@ export function GroupCreationForm() {
                 onSelect={(data) => {
                   setValue(
                     "destination",
-                    data.city || data.formatted.split(",")[0].trim()
+                    data.city || data.formatted.split(",")[0].trim(),
                   ); // Store only city name or first part
                   setValue("destinationDetails", {
                     city: data.city,
@@ -320,7 +320,7 @@ export function GroupCreationForm() {
                 placeholder="Search destination"
                 className={cn(
                   "bg-white",
-                  errors.destination && "border-destructive"
+                  errors.destination && "border-destructive",
                 )}
               />
               {errors.destination && (
@@ -335,7 +335,7 @@ export function GroupCreationForm() {
                 htmlFor="budget"
                 className="text-sm font-medium text-muted-foreground"
               >
-                Budget (INR)
+                Budget per person (INR)
               </Label>
               <Input
                 id="budget"
@@ -371,7 +371,7 @@ export function GroupCreationForm() {
                       if (watchedValues.endDate) {
                         await validateDates(
                           newStartDate,
-                          watchedValues.endDate
+                          watchedValues.endDate,
                         );
                       }
 
@@ -389,7 +389,7 @@ export function GroupCreationForm() {
                     inputWrapper: cn(
                       "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
                       errors.startDate &&
-                        "border-destructive focus:border-destructive focus:ring-destructive"
+                        "border-destructive focus:border-destructive focus:ring-destructive",
                     ),
                     calendarContent: cn("!bg-white !opacity-1"),
                   }}
@@ -422,7 +422,7 @@ export function GroupCreationForm() {
                       if (watchedValues.startDate) {
                         await validateDates(
                           watchedValues.startDate,
-                          newEndDate
+                          newEndDate,
                         );
                       }
                     }
@@ -431,7 +431,7 @@ export function GroupCreationForm() {
                     inputWrapper: cn(
                       "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
                       errors.endDate &&
-                        "border-destructive focus:border-destructive focus:ring-destructive"
+                        "border-destructive focus:border-destructive focus:ring-destructive",
                     ),
                     calendarContent: cn("!bg-white !opacity-1"),
                   }}
@@ -467,7 +467,7 @@ export function GroupCreationForm() {
                   className={cn(
                     "min-h-[120px] px-4 py-3 text-sm border-input focus:border-primary focus:ring-primary rounded-md resize-none placeholder:text-muted-foreground",
                     errors.description &&
-                      "border-destructive focus:border-destructive focus:ring-destructive"
+                      "border-destructive focus:border-destructive focus:ring-destructive",
                   )}
                   maxLength={500}
                 />

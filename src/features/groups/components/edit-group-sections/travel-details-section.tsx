@@ -184,7 +184,7 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="budget" className="text-xs font-medium">
-              Budget (INR) *
+              Budget per person (INR) *
             </Label>
             <Input
               id="budget"

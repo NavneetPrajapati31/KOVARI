@@ -421,11 +421,13 @@ export default function ExplorePage() {
           },
           cover_image: group.cover_image || undefined,
           description: group.description || undefined,
-          // Add matching score and breakdown for display
           score: group.score,
           breakdown: group.breakdown,
           distance: group.distance,
           tags: group.tags || [],
+          smokingPolicy: group.smokingPolicy || "Mixed",
+          drinkingPolicy: group.drinkingPolicy || "Mixed",
+          languages: group.languages || [],
         }));
 
         console.log("[EXPLORE][GROUP] Transformed groups for display", {

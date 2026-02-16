@@ -656,6 +656,9 @@ export async function POST(req: NextRequest) {
           avatar: creator?.profile_photo || "",
         },
         tags: match.group.topInterests || [],
+        smokingPolicy: match.group.smokingPolicy || "Mixed",
+        drinkingPolicy: match.group.drinkingPolicy || "Mixed",
+        languages: match.group.dominantLanguages || [],
       };
     });
 

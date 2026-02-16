@@ -6,10 +6,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Avatar,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -17,33 +14,20 @@ import {
   Users,
   MapPin,
   Calendar,
-  DollarSign,
   MessageCircle,
-  Eye,
   Loader2,
-  Plane,
   Globe,
   Star,
-  TrendingUp,
-  ThumbsDown,
-  ThumbsUp,
-  User,
-  Building2,
+  UserCircle2,
   Users2,
   Heart,
-  MessageSquare,
-  Sparkles,
-  Moon,
-  Scale,
-  User as UserIcon,
-  Ban,
-  Beer,
-  Wine,
-  Coffee as CoffeeIcon,
-  Cigarette,
   Flag,
   AlertCircle,
   X,
+  Check,
+  IndianRupee,
+  Cigarette,
+  Wine as Glass,
 } from "lucide-react";
 import { Spinner } from "@heroui/react";
 import {
@@ -95,8 +79,6 @@ export function GroupMatchCard({
   const [isReporting, setIsReporting] = useState(false);
   const [isViewingGroup, setIsViewingGroup] = useState(false);
 
-  console.log("GroupMatchCard received group:", group);
-
   // Add error boundary for missing group data
   if (!group) {
     return (
@@ -120,21 +102,21 @@ export function GroupMatchCard({
       const result = await createGroupInterest(
         currentUserId,
         group.id,
-        destinationId
+        destinationId,
       );
       if (!result.success) {
         console.error("Failed to create interest:", result.error);
         setIsInteresting(false);
         return;
       }
-      
+
       setInterestSent(true);
 
       // Call onInterested handler to move to next match
       if (onInterested) {
         await onInterested(group.id, destinationId);
       }
-      
+
       setIsInteresting(false);
     } catch (error) {
       console.error("Error sending interest:", error);
@@ -150,7 +132,7 @@ export function GroupMatchCard({
         currentUserId,
         group.id,
         destinationId,
-        "group"
+        "group",
       );
       if (!result.success) {
         console.error("Failed to skip:", result.error);
@@ -190,7 +172,7 @@ export function GroupMatchCard({
           currentUserId,
           group.id,
           reportReason,
-          "group"
+          "group",
         );
         if (!result.success) {
           console.error("Failed to report:", result.error);
@@ -270,26 +252,31 @@ export function GroupMatchCard({
     }
   };
 
-  const getGroupTypeIcon = (privacy?: string) => {
+  const getPrivacyIcon = (privacy?: string) => {
     switch (privacy?.toLowerCase()) {
       case "public":
-        return <Globe className="w-4 h-4" />;
+        return <Globe />;
       case "private":
-        return <Building2 className="w-4 h-4" />;
+        return <Users2 />;
       default:
-        return <Users2 className="w-4 h-4" />;
+        return <Globe />;
     }
   };
 
-  const getGroupTypeColor = (privacy?: string) => {
-    switch (privacy?.toLowerCase()) {
-      case "public":
-        return "bg-green-100 text-green-700";
-      case "private":
-        return "bg-blue-100 text-blue-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
+  const formatSmokingPolicy = (p?: string) => {
+    if (!p) return null;
+    const s = p.toLowerCase();
+    if (s === "non-smoking") return "No smoking";
+    if (s === "smokers welcome") return "Smoking allowed";
+    return "Smoking flexible";
+  };
+
+  const formatDrinkingPolicy = (p?: string) => {
+    if (!p) return null;
+    const s = p.toLowerCase();
+    if (s === "non-drinking") return "No alcohol";
+    if (s === "drinkers welcome") return "Alcohol allowed";
+    return "Alcohol flexible";
   };
 
   // Derived display values for Bumble-like sections
@@ -320,21 +307,23 @@ export function GroupMatchCard({
     return tags;
   })();
 
-  // Pill component helper
+  // Pill component helper - modern SaaS styling (matches SoloMatchCard)
   const Pill = ({
     icon,
     text,
+    variant = "default",
     className = "",
   }: {
     icon?: React.ReactNode;
     text: string;
+    variant?: "default" | "highlight";
     className?: string;
   }) => (
     <span
       className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm bg-background text-foreground border border-border ${className}`}
     >
       {icon && (
-        <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
+        <span className="flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4 [&_svg]:shrink-0 [&_svg]:text-current">
           {icon}
         </span>
       )}
@@ -344,14 +333,10 @@ export function GroupMatchCard({
 
   return (
     <div className="w-full h-full flex flex-col overflow-y-auto relative">
-      <div
-        key={group.id}
-        className="flex flex-col gap-6"
-      >
+      <div key={group.id} className="flex flex-col gap-5">
         {/* Header Section */}
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row items-start gap-4 pb-4 border-b border-border">
-          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-3xl md:rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0 relative">
+        <div className="flex flex-col md:flex-row items-start gap-4 pb-5 border-b border-border/60">
+          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-muted/60 flex items-center justify-center flex-shrink-0 relative shadow-sm">
             {group.cover_image ? (
               <img
                 src={group.cover_image}
@@ -360,12 +345,9 @@ export function GroupMatchCard({
               />
             ) : (
               <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground">
-                              <AvatarImage
-                                src=""
-                                alt={group.name || "Travel Group"}
-                              />
-                            <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
-                            </Avatar>
+                <AvatarImage src="" alt={group.name || "Travel Group"} />
+                <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
+              </Avatar>
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -394,50 +376,43 @@ export function GroupMatchCard({
 
         {/* Trip Details Section */}
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Trip Details
           </h2>
           <div className="flex flex-wrap gap-2">
             <Pill
-              icon={<MapPin className="w-4 h-4" />}
-              text={group.destination || "Destination"}
+              icon={<MapPin />}
+              text={
+                typeof group.destination === "string"
+                  ? group.destination.split(",")[0]?.trim() || group.destination
+                  : "Destination"
+              }
             />
-            <Pill
-              icon={<Calendar className="w-4 h-4" />}
-              text={formatDateRange()}
-            />
-            {group.budget && (
-              <Pill
-                icon={<DollarSign className="w-4 h-4" />}
-                text={`₹${group.budget.toLocaleString()}`}
-              />
-            )}
+            <Pill icon={<Calendar />} text={formatDateRange()} />
             {getTripLengthDays() && (
+              <Pill icon={<Calendar />} text={`${getTripLengthDays()} days`} />
+            )}
+            {group.budget != null && (
               <Pill
-                icon={<Calendar className="w-4 h-4" />}
-                text={`${getTripLengthDays()} days`}
+                icon={<IndianRupee />}
+                text={`${Number(group.budget).toLocaleString("en-IN")} per person`}
+                variant="highlight"
               />
             )}
           </div>
         </div>
 
         {/* Match Score Section */}
-        {group.score !== undefined && (
+        {/* {group.score !== undefined && (
           <div className="space-y-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Match Score
             </h2>
             <div className="flex flex-wrap gap-2">
               <Pill
-                icon={<Star className="w-4 h-4" />}
+                icon={<Star />}
                 text={`${Math.round(group.score * 100)}% compatibility`}
               />
-              {/* {group.distance !== undefined && (
-                <Pill
-                  icon={<MapPin className="w-4 h-4" />}
-                  text={`${Math.round(group.distance)}km away`}
-                />
-              )} */}
             </div>
             {group.breakdown && (
               <div className="flex flex-wrap gap-2 mt-2">
@@ -454,26 +429,81 @@ export function GroupMatchCard({
               </div>
             )}
           </div>
-        )}
+        )} */}
 
         {/* About Section */}
-        <div className="space-y-4 pb-6 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">About</h2>
+        <div
+          className={`space-y-4 ${!(group.smokingPolicy || group.drinkingPolicy) ? "pb-6 border-b border-border/60" : ""}`}
+        >
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            About
+          </h2>
           <div className="flex flex-wrap gap-2">
             {group.creator?.name && (
               <Pill
-                icon={<User className="w-4 h-4" />}
+                icon={<UserCircle2 />}
                 text={`Created by ${group.creator.name}`}
               />
             )}
-            {group.memberCount && (
-              <Pill
-                icon={<Users className="w-4 h-4" />}
-                text={`${group.memberCount} members`}
-              />
+            {group.memberCount != null && (
+              <Pill icon={<Users />} text={`${group.memberCount} members`} />
             )}
           </div>
         </div>
+
+        {/* Group Interests / Tags Section */}
+        {group.tags && group.tags.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Group interests
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {group.tags.slice(0, 6).map((tag: string, i: number) => (
+                <Pill
+                  key={i}
+                  text={tag.charAt(0).toUpperCase() + tag.slice(1)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Languages Section */}
+        {group.languages && group.languages.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Languages
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {group.languages.map((lang: string, i: number) => (
+                <Pill key={i} icon={<MessageCircle />} text={lang} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Lifestyle Section */}
+        {(group.smokingPolicy || group.drinkingPolicy) && (
+          <div className="space-y-4 pb-6 border-b border-border/60">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Group lifestyle
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {formatSmokingPolicy(group.smokingPolicy) && (
+                <Pill
+                  icon={<Cigarette strokeWidth={2} />}
+                  text={formatSmokingPolicy(group.smokingPolicy)!}
+                />
+              )}
+              {formatDrinkingPolicy(group.drinkingPolicy) && (
+                <Pill
+                  icon={<Glass strokeWidth={2} />}
+                  text={formatDrinkingPolicy(group.drinkingPolicy)!}
+                />
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Travel Style Section */}
         {/* <div className="space-y-4">
@@ -512,28 +542,23 @@ export function GroupMatchCard({
         )} */}
 
         {/* Action Buttons */}
-        <div className="flex flex-col md:flex-row gap-3 pt-4 pb-2">
+        <div className="flex flex-row gap-2 pt-4 pb-2">
           <Button
             variant="secondary"
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
+            className="flex-1 h-11 rounded-full text-foreground bg-background border border-border"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <p className="text-md font-bold">Skip</p>
+              <>
+                <X className="w-5 h-5 md:hidden shrink-0" aria-hidden />
+                <span className="hidden md:inline text-md font-bold">Skip</span>
+              </>
             )}
           </Button>
-          {/* <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleViewGroup}
-            className="md:flex-1 h-11 rounded-full"
-          >
-            <p className="text-md font-bold">View Group</p>
-          </Button> */}
           <Button
             variant="secondary"
             size="sm"
@@ -544,26 +569,35 @@ export function GroupMatchCard({
                 setShowReportDialog(true);
               }
             }}
-            className="md:flex-1 h-11 rounded-full text-foreground bg-background border border-border"
+            className="flex-1 h-11 rounded-full text-foreground bg-background border border-border"
           >
-            <p className="text-md font-bold">Report</p>
+            <Flag className="w-5 h-5 md:hidden shrink-0" aria-hidden />
+            <span className="hidden md:inline text-md font-bold">Report</span>
           </Button>
           <Button
             variant="default"
             size="sm"
             onClick={handleJoinGroup}
             disabled={isInteresting || interestSent}
-            className="order-first md:order-none md:flex-1 h-11 rounded-full"
+            className="order-first md:order-none flex-1 h-11 rounded-full"
           >
             {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : interestSent ? (
               <>
-                <Heart className="w-4 h-4 fill-current" />
-                <span className="text-xs ml-1">Sent</span>
+                <Heart
+                  className="w-5 h-5 fill-current md:hidden shrink-0"
+                  aria-hidden
+                />
+                <span className="hidden md:inline text-xs ml-1">Sent</span>
               </>
             ) : (
-              <p className="text-md font-bold">Interested</p>
+              <>
+                <Check className="w-5 h-5 md:hidden shrink-0" aria-hidden />
+                <span className="hidden md:inline text-md font-bold">
+                  Interested
+                </span>
+              </>
             )}
           </Button>
         </div>

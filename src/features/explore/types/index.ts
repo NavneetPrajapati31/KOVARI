@@ -1,13 +1,13 @@
 export interface SearchData {
   destination: string;
   destinationDetails?: {
-      city?: string;
-      state?: string;
-      country?: string;
-      lat?: number;
-      lon?: number;
-      formatted?: string;
-      place_id?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    lat?: number;
+    lon?: number;
+    formatted?: string;
+    place_id?: string;
   };
   budget: number;
   startDate: Date;
@@ -78,8 +78,13 @@ export interface GroupMatch {
   };
   creator?: {
     name: string;
+    username?: string;
+    avatar?: string;
   };
   memberCount?: number;
   tags?: string[];
   privacy?: "public" | "private";
+  smokingPolicy?: "Smokers Welcome" | "Mixed" | "Non-Smoking";
+  drinkingPolicy?: "Drinkers Welcome" | "Mixed" | "Non-Drinking";
+  languages?: string[];
 }
