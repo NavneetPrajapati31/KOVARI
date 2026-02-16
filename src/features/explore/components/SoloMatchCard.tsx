@@ -6,10 +6,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Avatar,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
@@ -107,6 +104,7 @@ export function SoloMatchCard({
   onReport,
   onReportClick,
 }: SoloMatchCardProps) {
+  const user = match.user ?? {};
   const [isInteresting, setIsInteresting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const [interestSent, setInterestSent] = useState(false);
@@ -121,13 +119,13 @@ export function SoloMatchCard({
     setIsInteresting(true);
     try {
       // Validate required IDs
-      if (!currentUserId || !match.user?.userId) {
+      if (!currentUserId || !user?.userId) {
         console.error(
           "handleInterested: missing currentUserId or target userId",
           {
             currentUserId,
-            targetUserId: match.user?.userId,
-          }
+            targetUserId: user?.userId,
+          },
         );
         setIsInteresting(false);
         return;
@@ -136,22 +134,22 @@ export function SoloMatchCard({
       // Create interest record first
       const result = await createSoloInterest(
         currentUserId,
-        match.user.userId,
-        destinationId
+        user.userId,
+        destinationId,
       );
       if (!result.success) {
         console.error("Failed to create interest:", result.error);
         setIsInteresting(false);
         return;
       }
-      
+
       setInterestSent(true);
 
       // Call onInterested handler to move to next match
       if (onInterested) {
-        await onInterested(match.user.userId, destinationId);
+        await onInterested(user.userId, destinationId);
       }
-      
+
       setIsInteresting(false);
     } catch (error) {
       console.error("Error sending interest:", error);
@@ -163,10 +161,10 @@ export function SoloMatchCard({
     setIsSkipping(true);
     try {
       // Validate required IDs
-      if (!currentUserId || !match.user?.userId) {
+      if (!currentUserId || !user?.userId) {
         console.error("handleSkip: missing currentUserId or target userId", {
           currentUserId,
-          targetUserId: match.user?.userId,
+          targetUserId: user?.userId,
         });
         setIsSkipping(false);
         return;
@@ -175,9 +173,9 @@ export function SoloMatchCard({
       // Create skip record
       const result = await createSkipRecord(
         currentUserId,
-        match.user.userId,
+        user.userId,
         destinationId,
-        "solo"
+        "solo",
       );
       if (!result.success) {
         console.error("Failed to skip:", result.error);
@@ -187,7 +185,7 @@ export function SoloMatchCard({
 
       // Call onSkip handler to move to next match
       if (onSkip) {
-        await onSkip(match.user.userId, destinationId);
+        await onSkip(user.userId, destinationId);
       }
 
       setIsSkipping(false);
@@ -198,10 +196,9 @@ export function SoloMatchCard({
   };
 
   const handleViewProfile = () => {
+    if (!user.userId || !onViewProfile) return;
     setIsViewingProfile(true);
-    if (onViewProfile) {
-      onViewProfile(match.user.userId);
-    }
+    onViewProfile(user.userId);
   };
 
   const handleReport = async () => {
@@ -211,13 +208,13 @@ export function SoloMatchCard({
     try {
       // Use provided handler or fall back to default action
       if (onReport) {
-        await onReport(match.user.userId, reportReason);
+        await onReport(user.userId, reportReason);
       } else {
         const result = await createReportRecord(
           currentUserId,
-          match.user.userId,
+          user.userId,
           reportReason,
-          "solo"
+          "solo",
         );
         if (!result.success) {
           console.error("Failed to report:", result.error);
@@ -292,11 +289,11 @@ export function SoloMatchCard({
   // Derived display values for Bumble-like sections
   const aboutText = (() => {
     const parts: string[] = [];
-    if (match.user.profession)
-      parts.push(`${String(match.user.profession).replace(/_/g, " ")}`);
-    if (match.user.personality) parts.push(`${String(match.user.personality)}`);
-    if (match.user.interests && match.user.interests.length > 0) {
-      parts.push(`Loves ${match.user.interests.slice(0, 3).join(", ")}`);
+    if (user.profession)
+      parts.push(`${String(user.profession).replace(/_/g, " ")}`);
+    if (user.personality) parts.push(`${String(user.personality)}`);
+    if (user.interests && user.interests.length > 0) {
+      parts.push(`Loves ${user.interests.slice(0, 3).join(", ")}`);
     }
     return parts.length > 0 ? parts.join(". ") + "." : "No bio provided.";
   })();
@@ -312,18 +309,16 @@ export function SoloMatchCard({
       "history",
       "beach",
     ];
-    const interests = (match.user.interests || []).map((i) => i.toLowerCase());
+    const interests = (user.interests || []).map((i) => i.toLowerCase());
     const filtered = interests.filter((i) => candidates.includes(i));
     const tags = (filtered.length > 0 ? filtered : interests).slice(0, 3);
     return tags;
   })();
 
-  const formattedProfession = match.user.profession
-    ? String(match.user.profession).replace(/_/g, " ")
+  const formattedProfession = user.profession
+    ? String(user.profession).replace(/_/g, " ")
     : undefined;
-  const languagesList = Array.isArray(match.user.languages)
-    ? match.user.languages
-    : [];
+  const languagesList = Array.isArray(user.languages) ? user.languages : [];
 
   // Pill component helper
   const Pill = ({
@@ -356,34 +351,31 @@ export function SoloMatchCard({
         </div>
       )}
 
-      <div
-        key={match.id}
-        className="flex flex-col gap-6"
-      >
+      <div key={match.id} className="flex flex-col gap-6">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row items-start gap-4 pb-4 border-b border-border">
           <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-3xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative">
-            {match.user.avatar ? (
+            {user.avatar ? (
               <img
-                src={match.user.avatar}
-                alt={match.user.full_name || match.user.name || "Traveler"}
+                src={user.avatar}
+                alt={user.full_name || user.name || "Traveler"}
                 className="w-full h-full object-cover cursor-pointer"
               />
             ) : (
               <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground">
                 <AvatarImage
                   src=""
-                  alt={match.user.full_name || match.user.name || "Traveler"}
+                  alt={user.full_name || user.name || "Traveler"}
                 />
-              <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
+                <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
               </Avatar>
             )}
           </div>
           <div className="flex-1 min-w-0 w-full">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h1 className="text-md font-semibold text-foreground mt-1">
-                {match.user.full_name || match.user.name || "Traveler"}
-                {match.user.age ? `, ${match.user.age}` : ""}
+                {user.full_name || user.name || "Traveler"}
+                {user.age ? `, ${user.age}` : ""}
               </h1>
               {/* <Badge
                 variant="default"
@@ -398,12 +390,12 @@ export function SoloMatchCard({
                 {match.compatibility_score}% trip overlap
               </Badge> */}
             </div>
-            {match.user.bio && (
+            {user.bio && (
               <p className="text-sm text-muted-foreground leading-relaxed mt-2">
-                {match.user.bio}
+                {user.bio}
               </p>
             )}
-            {!match.user.bio && (
+            {!user.bio && (
               <p className="text-sm text-muted-foreground italic">
                 No bio provided.
               </p>
@@ -442,19 +434,18 @@ export function SoloMatchCard({
         <div className="space-y-4">
           <h2 className="text-sm font-semibold text-foreground">About me</h2>
           <div className="flex flex-wrap gap-2">
-            {match.user.gender && (
+            {user.gender && (
               <Pill
                 icon={<UserIcon className="w-4 h-4" />}
                 text={
-                  match.user.gender.charAt(0).toUpperCase() +
-                  match.user.gender.slice(1)
+                  user.gender.charAt(0).toUpperCase() + user.gender.slice(1)
                 }
               />
             )}
-            {match.user.nationality && (
+            {user.nationality && (
               <Pill
                 icon={<Globe className="w-4 h-4" />}
-                text={match.user.nationality}
+                text={user.nationality}
               />
             )}
             {formattedProfession && (
@@ -466,12 +457,12 @@ export function SoloMatchCard({
                 }
               />
             )}
-            {match.user.personality && (
+            {user.personality && (
               <Pill
-                icon={getPersonalityIcon(match.user.personality)}
+                icon={getPersonalityIcon(user.personality)}
                 text={
-                  match.user.personality.charAt(0).toUpperCase() +
-                  match.user.personality.slice(1)
+                  user.personality.charAt(0).toUpperCase() +
+                  user.personality.slice(1)
                 }
               />
             )}
@@ -487,13 +478,13 @@ export function SoloMatchCard({
         </div>
 
         {/* Interests Section */}
-        {match.user.interests && match.user.interests.length > 0 && (
+        {user.interests && user.interests.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-sm font-semibold text-foreground">
               My interests
             </h2>
             <div className="flex flex-wrap gap-2">
-              {match.user.interests.map((interest, i) => (
+              {user.interests.map((interest, i) => (
                 <Pill
                   key={i}
                   text={interest.charAt(0).toUpperCase() + interest.slice(1)}
@@ -507,29 +498,29 @@ export function SoloMatchCard({
         <div className="space-y-4 pb-6 border-b border-border">
           <h2 className="text-sm font-semibold text-foreground">Lifestyle</h2>
           <div className="flex flex-wrap gap-2">
-            {match.user.smoking && (
+            {user.smoking && (
               <Pill
-                icon={getSmokingIcon(match.user.smoking)}
+                icon={getSmokingIcon(user.smoking)}
                 text={
-                  match.user.smoking === "no"
+                  user.smoking === "no"
                     ? "No"
-                    : match.user.smoking === "yes"
+                    : user.smoking === "yes"
                       ? "Yes"
-                      : match.user.smoking.charAt(0).toUpperCase() +
-                        match.user.smoking.slice(1)
+                      : user.smoking.charAt(0).toUpperCase() +
+                        user.smoking.slice(1)
                 }
               />
             )}
-            {match.user.drinking && (
+            {user.drinking && (
               <Pill
-                icon={getDrinkingIcon(match.user.drinking)}
+                icon={getDrinkingIcon(user.drinking)}
                 text={
-                  match.user.drinking === "no"
+                  user.drinking === "no"
                     ? "No"
-                    : match.user.drinking === "yes"
+                    : user.drinking === "yes"
                       ? "Yes"
-                      : match.user.drinking.charAt(0).toUpperCase() +
-                        match.user.drinking.slice(1)
+                      : user.drinking.charAt(0).toUpperCase() +
+                        user.drinking.slice(1)
                 }
               />
             )}
@@ -553,13 +544,13 @@ export function SoloMatchCard({
         </div> */}
 
         {/* Shared Interests Section */}
-        {/* {match.user.interests && match.user.interests.length > 0 && (
+        {/* {user.interests && user.interests.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-base font-semibold text-foreground">
               Shared Interests
             </h2>
             <div className="flex flex-wrap gap-2">
-              {match.user.interests.slice(0, 8).map((interest, i) => (
+              {user.interests.slice(0, 8).map((interest, i) => (
                 <Pill
                   key={i}
                   text={interest.charAt(0).toUpperCase() + interest.slice(1)}
@@ -585,8 +576,6 @@ export function SoloMatchCard({
               <p className="text-md font-bold">Skip</p>
             )}
           </Button>
-
-
 
           {/* 3. View Profile Button */}
           <Button
