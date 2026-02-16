@@ -25,116 +25,67 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
-// Helper: Bulk fetch interests from travel_preferences
-const getBulkTravelInterests = async (
-  userIds: string[]
-): Promise<Record<string, string[]>> => {
-  if (userIds.length === 0) return {};
-  try {
-    const supabase = createAdminSupabaseClient();
-
-    // 1. Resolve Clerk IDs to Internal User UUIDs
-    const { data: users, error: userErr } = await supabase
-      .from("users")
-      .select("id, clerk_user_id")
-      .in("clerk_user_id", userIds)
-      .eq("isDeleted", false);
-
-    if (userErr || !users || users.length === 0) return {};
-
-    const uuidToClerkMap = new Map<string, string>();
-    const userUuids: string[] = [];
-    users.forEach((u) => {
-      uuidToClerkMap.set(u.id, u.clerk_user_id);
-      userUuids.push(u.id);
-    });
-
-    // 2. Fetch Interests
-    const { data: prefs, error: prefsErr } = await supabase
+/** MVP: Single bulk fetch for profiles + interests (1 users query + 2 parallel fetches instead of 4 round-trips) */
+const getBulkCandidateData = async (
+  clerkIds: string[]
+): Promise<{
+  profiles: Record<string, any>;
+  interests: Record<string, string[]>;
+}> => {
+  if (clerkIds.length === 0)
+    return { profiles: {}, interests: {} };
+  const supabase = createAdminSupabaseClient();
+  const { data: users, error: userErr } = await supabase
+    .from("users")
+    .select("id, clerk_user_id")
+    .in("clerk_user_id", clerkIds)
+    .eq("isDeleted", false);
+  if (userErr || !users?.length) return { profiles: {}, interests: {} };
+  const uuidToClerk = new Map<string, string>();
+  const uuids: string[] = [];
+  users.forEach((u) => {
+    uuidToClerk.set(u.id, u.clerk_user_id);
+    uuids.push(u.id);
+  });
+  const [profilesRes, prefsRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("user_id, name, age, gender, personality, smoking, drinking, religion, job, languages, nationality, location, bio, interests, profile_photo")
+      .in("user_id", uuids),
+    supabase
       .from("travel_preferences")
       .select("user_id, interests")
-      .in("user_id", userUuids);
-
-    if (prefsErr || !prefs) return {};
-
-    const result: Record<string, string[]> = {};
-    prefs.forEach((p) => {
-      const clerkId = uuidToClerkMap.get(p.user_id);
-      if (clerkId) {
-        result[clerkId] = Array.isArray(p.interests)
-          ? (p.interests as string[])
-          : [];
-      }
-    });
-    return result;
-  } catch (err) {
-    console.error("Error fetching bulk travel interests:", err);
-    return {};
-  }
-};
-
-// Helper: Bulk fetch profiles
-const getBulkProfiles = async (
-  userIds: string[]
-): Promise<Record<string, any>> => {
-  if (userIds.length === 0) return {};
-  try {
-    const supabase = createAdminSupabaseClient();
-
-    // 1. Resolve Clerk IDs to Internal User UUIDs
-    const { data: users, error: userErr } = await supabase
-      .from("users")
-      .select("id, clerk_user_id")
-      .in("clerk_user_id", userIds)
-      .eq("isDeleted", false);
-
-    if (userErr || !users || users.length === 0) return {};
-
-    const uuidToClerkMap = new Map<string, string>();
-    const userUuids: string[] = [];
-    users.forEach((u) => {
-      uuidToClerkMap.set(u.id, u.clerk_user_id);
-      userUuids.push(u.id);
-    });
-
-    // 2. Fetch Profiles
-    const { data: profiles, error: profileErr } = await supabase
-      .from("profiles")
-      .select(
-        "user_id, name, age, gender, personality, smoking, drinking, religion, job, languages, nationality, location, bio, interests, profile_photo"
-      )
-      .in("user_id", userUuids);
-
-    if (profileErr || !profiles) return {};
-
-    const result: Record<string, any> = {};
-    profiles.forEach((p) => {
-      const clerkId = uuidToClerkMap.get(p.user_id);
-      if (clerkId) {
-        result[clerkId] = {
-          name: p.name,
-          age: p.age,
-          gender: p.gender,
-          personality: p.personality,
-          smoking: p.smoking,
-          drinking: p.drinking,
-          religion: p.religion,
-          profession: p.job,
-          languages: p.languages,
-          nationality: p.nationality,
-          location: p.location || { lat: 0, lon: 0 },
-          bio: p.bio,
-          interests: Array.isArray(p.interests) ? p.interests : [],
-          avatar: p.profile_photo || undefined,
-          language: "english", // Default
-        };
-      }
-    });
-    return result;
-  } catch (err) {
-    console.error("Error fetching bulk profiles:", err);
-    return {};
-  }
+      .in("user_id", uuids),
+  ]);
+  const profiles: Record<string, any> = {};
+  (profilesRes.data || []).forEach((p) => {
+    const clerkId = uuidToClerk.get(p.user_id);
+    if (clerkId)
+      profiles[clerkId] = {
+        name: p.name,
+        age: p.age,
+        gender: p.gender,
+        personality: p.personality,
+        smoking: p.smoking,
+        drinking: p.drinking,
+        religion: p.religion,
+        profession: p.job,
+        languages: p.languages,
+        nationality: p.nationality,
+        location: p.location || { lat: 0, lon: 0 },
+        bio: p.bio,
+        interests: Array.isArray(p.interests) ? p.interests : [],
+        avatar: p.profile_photo || undefined,
+        language: "english",
+      };
+  });
+  const interests: Record<string, string[]> = {};
+  (prefsRes.data || []).forEach((p) => {
+    const clerkId = uuidToClerk.get(p.user_id);
+    if (clerkId)
+      interests[clerkId] = Array.isArray(p.interests) ? (p.interests as string[]) : [];
+  });
+  return { profiles, interests };
 };
 
 const computeCommonInterests = (a?: string[], b?: string[]): string[] => {
@@ -154,8 +105,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Check maintenance mode
-    const maintenance = await getSetting("maintenance_mode");
+    // Parallel: maintenance + preset (MVP optimization)
+    const [maintenance, presetSetting] = await Promise.all([
+      getSetting("maintenance_mode"),
+      getSetting("matching_preset"),
+    ]);
     if (maintenance && (maintenance as { enabled: boolean }).enabled) {
       return NextResponse.json(
         { error: "System under maintenance. Please try later." },
@@ -202,8 +156,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
-    // Get matching preset configuration
-    const presetSetting = await getSetting("matching_preset");
     const presetMode =
       (presetSetting as { mode: string } | null)?.mode || "balanced";
     const presetConfig = getMatchingPresetConfig(presetMode);
@@ -259,11 +211,12 @@ export async function GET(request: NextRequest) {
     // 3. Fetch Exclusion Lists & Sessions in Parallel
     console.log("🔍 Fetching exclusion lists and candidate sessions...");
 
-    // Helper to fetch sessions (Optimization: could use SCAN)
+    const MAX_SESSIONS_FETCH = 500; // MVP: cap Redis scan for fast response
     const fetchAllSessions = async () => {
-      // For moderate scale, KEYS is acceptable. For larger scale, migration to SETs is recommended.
       const keys = await redisClient.keys("session:*");
-      const filteredKeys = keys.filter((k) => k !== `session:${userId}`);
+      const filteredKeys = keys
+        .filter((k) => k !== `session:${userId}`)
+        .slice(0, MAX_SESSIONS_FETCH);
       if (filteredKeys.length === 0) return [];
       
       // Batch MGET to avoid blocking if keys are many
@@ -384,33 +337,32 @@ export async function GET(request: NextRequest) {
       `✅ Found ${activeCandidates.length} valid candidates after exclusions`
     );
 
-    // 4. Bulk Fetch Missing Data
-    const candidatesMissingProfile = activeCandidates
-      .filter((s) => !s.static_attributes)
-      .map((s) => s.userId!);
-    
-    const candidatesMissingInterests = activeCandidates
-      .filter(
-        (s) =>
-          !s.static_attributes?.interests ||
-          s.static_attributes.interests.length === 0
-      )
-      .map((s) => s.userId!);
+    // 4. Bulk Fetch Profiles + Interests (MVP: single consolidated query)
+    const clerkIdsNeedingData = [
+      ...new Set([
+        ...activeCandidates
+          .filter((s) => !s.static_attributes)
+          .map((s) => s.userId!),
+        ...activeCandidates
+          .filter(
+            (s) =>
+              !s.static_attributes?.interests ||
+              s.static_attributes.interests.length === 0
+          )
+          .map((s) => s.userId!),
+        searchingUserSession.userId!,
+      ]),
+    ].filter(Boolean);
+    const { profiles: bulkProfiles, interests: bulkInterests } =
+      await getBulkCandidateData(clerkIdsNeedingData);
 
-    const [bulkProfiles, bulkInterests] = await Promise.all([
-      getBulkProfiles(candidatesMissingProfile),
-      getBulkTravelInterests(candidatesMissingInterests),
-    ]);
-
-    // 5. Score and Filter (In-Memory)
-    console.log("🔍 Calculating compatibility scores...");
-    
-    // Pre-fetch searching user interests once
     const searchingInterests =
       searchingUserSession.static_attributes?.interests ||
       searchingUserSession.interests ||
-      (await getBulkTravelInterests([searchingUserSession.userId!]))[searchingUserSession.userId!] || 
+      bulkInterests[searchingUserSession.userId!] ||
       [];
+
+    // 5. Score and Filter (In-Memory)
 
     const scoredMatches = activeCandidates
       .map((matchSession) => {

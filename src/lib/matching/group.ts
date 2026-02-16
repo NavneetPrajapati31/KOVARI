@@ -1,5 +1,5 @@
-// finalGroupMatchingLogic_with_DetailedWeights.ts
-// Matches a user against groups with a distance filter and a comprehensive, detailed weighted score.
+// Optimized group matching: weighted scoring, distance decay, pre-computed Jaccard.
+// Industry patterns: content-based filtering, distance decay, weighted multi-factor scoring.
 
 // --- 1. DATA TYPE DEFINITIONS ---
 
@@ -22,60 +22,58 @@ interface UserProfile {
   nationality: string;
 }
 
-// Assumes 'averageAge' is automatically calculated by your database trigger
 interface GroupProfile {
   groupId: string;
   name: string;
   destination: Location;
   averageBudget: number;
-  startDate: string; // ISO: YYYY-MM-DD
-  endDate: string; // ISO: YYYY-MM-DD
+  startDate: string;
+  endDate: string;
   averageAge: number;
   dominantLanguages: string[];
   topInterests: string[];
   smokingPolicy: "Smokers Welcome" | "Mixed" | "Non-Smoking";
   drinkingPolicy: "Drinkers Welcome" | "Mixed" | "Non-Drinking";
   dominantNationalities: string[];
+  /** Optional: pre-computed distance in km for distance decay scoring */
+  distanceKm?: number;
 }
 
 // --- 2. HELPER & SCORING FUNCTIONS ---
 
-/**
- * HARD FILTER: Calculates distance and checks if it's within the specified limit.
- */
+/** Haversine distance in km (optimized, single computation) */
+const haversineKm = (a: Location, b: Location): number => {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * (Math.PI / 180);
+  const dLon = (b.lon - a.lon) * (Math.PI / 180);
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * (Math.PI / 180)) *
+      Math.cos(b.lat * (Math.PI / 180)) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+};
+
 const isWithinDistance = (
   loc1: Location,
   loc2: Location,
-  maxDistanceKm: number = 200
-): boolean => {
-  const R = 6371; // Earth's radius in km
-  const dLat = (loc2.lat - loc1.lat) * (Math.PI / 180);
-  const dLon = (loc2.lon - loc1.lon) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(loc1.lat * (Math.PI / 180)) *
-      Math.cos(loc2.lat * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  return distance <= maxDistanceKm;
-};
+  maxDistanceKm: number = 200,
+): boolean => haversineKm(loc1, loc2) <= maxDistanceKm;
 
 /**
  * SCORE: Calculates budget similarity from 0 to 1.
  */
 const calculateBudgetScore = (
   userBudget: number,
-  groupAverageBudget: number
+  groupAverageBudget: number,
 ): number => {
   // If the group is within (or cheaper than) the user's budget, it's a perfect match.
   if (groupAverageBudget <= userBudget) return 1.0;
-  
+
   const budgetDifference = groupAverageBudget - userBudget;
   // Score decreases as the group gets more expensive than the user's budget.
   // It reaches 0 if the difference is 40k or more.
-  return Math.max(0, 1 - budgetDifference / 40000); 
+  return Math.max(0, 1 - budgetDifference / 40000);
 };
 
 /**
@@ -85,7 +83,7 @@ const calculateDateOverlapScore = (
   userStart: string,
   userEnd: string,
   groupStart: string,
-  groupEnd: string
+  groupEnd: string,
 ): number => {
   const uStart = new Date(userStart).getTime();
   const uEnd = new Date(userEnd).getTime();
@@ -105,27 +103,27 @@ const calculateDateOverlapScore = (
 };
 
 /**
- * SCORE: Calculates age similarity score.
+ * SCORE: Calculates age similarity score. MVP: neutral when group has no average_age.
  */
 const calculateAgeScore = (
   userAge: number,
-  groupAverageAge: number
+  groupAverageAge: number,
 ): number => {
-  if (!groupAverageAge) return 0;
+  if (!groupAverageAge) return 0.5; // No age data: neutral, don't penalize
   const ageDifference = Math.abs(userAge - groupAverageAge);
   return Math.max(0, 1 - ageDifference / 20);
 };
 
-/**
- * SCORE: Calculates Jaccard similarity for arrays (languages, interests).
- */
-const calculateJaccardSimilarity = (setA: string[], setB: string[]): number => {
-  const uniqueA = new Set(setA);
-  const uniqueB = new Set(setB);
-  const intersectionSize = new Set([...uniqueA].filter((x) => uniqueB.has(x)))
-    .size;
-  const unionSize = uniqueA.size + uniqueB.size - intersectionSize;
-  return unionSize === 0 ? 0 : intersectionSize / unionSize;
+/** Jaccard similarity using pre-computed Sets. Empty signals => neutral 0.5 (MVP: avoid penalizing sparse data) */
+const jaccardFromSets = (setA: Set<string>, setB: Set<string>): number => {
+  if (setA.size === 0 && setB.size === 0) return 0.5; // Both empty: neutral, don't penalize
+  if (setA.size === 0 || setB.size === 0) return 0.5; // One empty: neutral (can't compute Jaccard meaningfully)
+  let intersection = 0;
+  const smaller = setA.size <= setB.size ? setA : setB;
+  const larger = setA.size <= setB.size ? setB : setA;
+  for (const x of smaller) if (larger.has(x)) intersection++;
+  const union = setA.size + setB.size - intersection;
+  return union === 0 ? 0.5 : intersection / union;
 };
 
 /**
@@ -133,7 +131,7 @@ const calculateJaccardSimilarity = (setA: string[], setB: string[]): number => {
  */
 const calculateLifestyleScore = (
   user: UserProfile,
-  group: GroupProfile
+  group: GroupProfile,
 ): number => {
   let smokingScore = 0;
   if (
@@ -158,73 +156,83 @@ const calculateLifestyleScore = (
   return (smokingScore + drinkingScore) / 2;
 };
 
-/**
- * SCORE: Calculates background compatibility (nationality only).
- */
 const calculateBackgroundScore = (
   user: UserProfile,
-  group: GroupProfile
+  group: GroupProfile,
 ): number => {
-  const nationalityScore = group.dominantNationalities.includes(
-    user.nationality
+  if (!user.nationality || user.nationality === "Unknown" || user.nationality === "Any") return 0.5;
+  if (!group.dominantNationalities?.length) return 0.5; // No nationality data: neutral
+  return group.dominantNationalities.some(
+    (n) => n.toLowerCase() === user.nationality.toLowerCase(),
   )
     ? 1.0
     : 0.0;
-  return nationalityScore;
+};
+
+/** Distance decay: closer groups get a small boost (0–1, higher = closer) */
+const distanceDecayScore = (distanceKm: number, maxKm: number): number => {
+  if (distanceKm <= 0) return 1;
+  if (distanceKm >= maxKm) return 0;
+  return 1 - distanceKm / maxKm;
 };
 
 // --- 3. CORE MATCHING FUNCTION ---
 
 /**
- * Finds the best group matches for a user with a distance filter and a comprehensive weighted score.
- * @param user The profile of the user searching.
- * @param allGroups An array of group profiles fetched from your database.
- * @returns A ranked list of matched groups.
+ * Finds the best group matches using weighted multi-factor scoring.
+ * Groups are expected to already be distance-filtered; no redundant filter.
+ * Uses pre-computed user Sets for Jaccard and distance decay for proximity boost.
  */
 export const findGroupMatchesForUser = (
   user: UserProfile,
   allGroups: GroupProfile[],
-  maxDistanceKm: number = 200
+  maxDistanceKm: number = 200,
 ) => {
-  // Step 1: Apply the hard distance filter. Only groups within maxDistanceKm are considered.
-  const nearbyGroups = allGroups.filter((group) =>
-    isWithinDistance(user.destination, group.destination, maxDistanceKm)
+  // Pre-compute user sets once for Jaccard (avoids O(n) Set creations)
+  const userLangSet = new Set(
+    (user.languages || []).map((s) => s.toLowerCase().trim()).filter(Boolean),
+  );
+  const userInterestSet = new Set(
+    (user.interests || []).map((s) => s.toLowerCase().trim()).filter(Boolean),
   );
 
-  // Step 2: Calculate a comprehensive, weighted score for every nearby group.
-  const scoredMatches = nearbyGroups.map((group) => {
-    // Define the importance of each attribute in the final score. Total must be 1.0.
-    const weights = {
-      budget: 0.2,
-      dateOverlap: 0.2,
-      interests: 0.15,
-      age: 0.15,
-      language: 0.1,
-      lifestyle: 0.1, // Smoking & Drinking
-      background: 0.1, // Profession & Nationality
-    };
+  const weights = {
+    budget: 0.18,
+    dateOverlap: 0.2,
+    interests: 0.15,
+    age: 0.12,
+    language: 0.1,
+    lifestyle: 0.1,
+    background: 0.05,
+    distance: 0.1, // Proximity boost (industry standard: closer = better)
+  };
 
-    // --- Calculate a score for each individual attribute ---
+  const scoredMatches = allGroups.map((group) => {
     const budgetScore = calculateBudgetScore(user.budget, group.averageBudget);
     const dateOverlapScore = calculateDateOverlapScore(
       user.startDate,
       user.endDate,
       group.startDate,
-      group.endDate
+      group.endDate,
     );
-    const interestScore = calculateJaccardSimilarity(
-      user.interests,
-      group.topInterests
+    const groupInterestSet = new Set(
+      (group.topInterests || []).map((s) => String(s).toLowerCase().trim()),
     );
+    const groupLangSet = new Set(
+      (group.dominantLanguages || []).map((s) =>
+        String(s).toLowerCase().trim(),
+      ),
+    );
+    const interestScore = jaccardFromSets(userInterestSet, groupInterestSet);
     const ageScore = calculateAgeScore(user.age, group.averageAge);
-    const languageScore = calculateJaccardSimilarity(
-      user.languages,
-      group.dominantLanguages
-    );
+    const languageScore = jaccardFromSets(userLangSet, groupLangSet);
     const lifestyleScore = calculateLifestyleScore(user, group);
     const backgroundScore = calculateBackgroundScore(user, group);
+    const distanceScore =
+      group.distanceKm !== undefined
+        ? distanceDecayScore(group.distanceKm, maxDistanceKm)
+        : 1; // No distance info: neutral
 
-    // --- Calculate the Final Weighted Score ---
     const finalScore =
       budgetScore * weights.budget +
       dateOverlapScore * weights.dateOverlap +
@@ -232,22 +240,22 @@ export const findGroupMatchesForUser = (
       ageScore * weights.age +
       languageScore * weights.language +
       lifestyleScore * weights.lifestyle +
-      backgroundScore * weights.background;
+      backgroundScore * weights.background +
+      distanceScore * weights.distance;
 
     return {
       group,
-      score: parseFloat(finalScore.toFixed(3)),
+      score: Math.round(finalScore * 1000) / 1000,
       breakdown: {
-        // Optional: include for debugging or more detailed UI
-        budget: parseFloat(budgetScore.toFixed(3)),
-        dates: parseFloat(dateOverlapScore.toFixed(3)),
-        interests: parseFloat(interestScore.toFixed(3)),
-        age: parseFloat(ageScore.toFixed(3)),
-        //... add other scores if needed for the UI
+        budget: Math.round(budgetScore * 1000) / 1000,
+        dates: Math.round(dateOverlapScore * 1000) / 1000,
+        interests: Math.round(interestScore * 1000) / 1000,
+        age: Math.round(ageScore * 1000) / 1000,
       },
     };
   });
 
-  // Step 3: Rank the scored matches from highest to lowest.
-  return scoredMatches.sort((a, b) => b.score - a.score);
+  // Single-pass sort: highest score first
+  scoredMatches.sort((a, b) => b.score - a.score);
+  return scoredMatches;
 };

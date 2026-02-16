@@ -86,30 +86,25 @@ export async function POST(req: NextRequest) {
     if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    // Check maintenance mode
-    const maintenance = await getSetting("maintenance_mode");
+    const log = (msg: string, data?: object) => {
+      const payload = data ? ` ${JSON.stringify(data)}` : "";
+      console.log(`[MATCH-GROUPS] ${msg}${payload}`);
+    };
+
+    // Parallel fetch: maintenance + preset (avoids sequential round-trips)
+    const [maintenance, presetSetting] = await Promise.all([
+      getSetting("maintenance_mode"),
+      getSetting("matching_preset"),
+    ]);
     if (maintenance && (maintenance as { enabled: boolean }).enabled) {
       return NextResponse.json(
         { error: "System under maintenance. Please try later." },
         { status: 503 },
       );
     }
-
-    const log = (msg: string, data?: object) => {
-      const payload = data ? ` ${JSON.stringify(data)}` : "";
-      console.log(`[MATCH-GROUPS] ${msg}${payload}`);
-    };
-
-    // Get matching preset configuration
-    const presetSetting = await getSetting("matching_preset");
     const presetMode =
       (presetSetting as { mode: string } | null)?.mode || "balanced";
     const presetConfig = getMatchingPresetConfig(presetMode);
-    log("Using matching preset", {
-      presetMode,
-      minScore: presetConfig.minScore,
-      maxDistanceKm: presetConfig.maxDistanceKm,
-    });
 
     const data = await req.json();
     const {
@@ -158,30 +153,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get coordinates for user's destination
-    let userDestinationCoords: Location;
+    const supabase = createAdminSupabaseClient();
 
+    // Parallel: user lookup + geocoding user destination (when needed)
+    const userDestName =
+      typeof destination === "string" ? destination : "Custom Coordinates";
+    const needsGeocode =
+      !lat || !lon
+        ? typeof destination === "string"
+          ? getCoordinatesForLocation(destination)
+          : Promise.resolve(null)
+        : null;
+
+    const [userResult, userDestCoords] = await Promise.all([
+      supabase.from("users").select("id").eq("clerk_user_id", userId).single(),
+      needsGeocode ?? Promise.resolve(null),
+    ]);
+
+    const { data: userData, error: userError } = userResult;
+    if (userError || !userData) {
+      return NextResponse.json(
+        { message: "User profile not found" },
+        { status: 404 },
+      );
+    }
+    const searchingUserUuid = userData.id;
+
+    let userDestinationCoords: Location;
     if (lat && lon) {
-      log("Using provided coordinates for destination", { lat, lon });
       userDestinationCoords = { lat: Number(lat), lon: Number(lon) };
-    } else if (typeof destination === "string") {
-      log("Geocoding destination string", { destination });
-      const coords = await getCoordinatesForLocation(destination);
-      if (!coords) {
-        log("Geocoding failed for destination", { destination });
-        return NextResponse.json(
-          { error: "Could not find coordinates for the specified destination" },
-          { status: 400 },
-        );
-      }
-      log("Geocoding successful", { destination, coords });
-      userDestinationCoords = coords;
-    } else {
-      log("Destination provided as coordinates", { destination });
+    } else if (userDestCoords) {
+      userDestinationCoords = userDestCoords;
+    } else if (typeof destination === "object" && destination?.lat != null) {
       userDestinationCoords = destination;
+    } else {
+      return NextResponse.json(
+        { error: "Could not find coordinates for the specified destination" },
+        { status: 400 },
+      );
     }
 
-    // Create a user profile with provided filter data or defaults
     const userProfile: UserProfile = {
       userId: userId || "anonymous",
       destination: userDestinationCoords,
@@ -196,31 +207,7 @@ export async function POST(req: NextRequest) {
       nationality: nationality || "Unknown",
     };
 
-    log("User profile for matching", userProfile);
-
-    const supabase = createAdminSupabaseClient();
-
-    // Resolve internal User UUID for filtering
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .single();
-
-    if (userError || !userData) {
-      console.error("❌ Could not resolve internal UUID for user:", userId);
-      return NextResponse.json(
-        { message: "User profile not found" },
-        { status: 404 },
-      );
-    }
-    const searchingUserUuid = userData.id;
-
-    const userDestName =
-      typeof destination === "string" ? destination : "Custom Coordinates";
-
-    // Fetch Exclusion Lists for Groups
-    log("Fetching group exclusion lists");
+    // Fetch Exclusion Lists (all 4 in parallel)
     const [skipsResult, reportsResult, membershipsResult, interestsResult] =
       await Promise.all([
         // 1. Skips: Exclude if I skipped the group
@@ -287,8 +274,9 @@ export async function POST(req: NextRequest) {
         smokingDrinking: "soft-filter-via-scoring (no hard DB filter)",
       },
     });
+    // Single query: use view with groups + creator profiles (1 round-trip instead of 2)
     let groupsQuery = supabase
-      .from("groups")
+      .from("matchable_groups_with_creator")
       .select(
         `
         id,
@@ -307,14 +295,17 @@ export async function POST(req: NextRequest) {
         cover_image,
         description,
         destination_lat,
-        destination_lon
+        destination_lon,
+        creator_name,
+        creator_username,
+        creator_profile_photo,
+        creator_nationality
       `,
       )
       .eq("status", "active") // Only match approved groups
       .eq("is_public", true) // Only match public groups (discoverable in explore)
       .neq("creator_id", searchingUserUuid); // Exclude my own groups
 
-    // Apply exclusion filter if there are IDs to exclude
     if (excludedIdsArray.length > 0) {
       groupsQuery = groupsQuery.not(
         "id",
@@ -322,6 +313,10 @@ export async function POST(req: NextRequest) {
         `(${excludedIdsArray.join(",")})`,
       );
     }
+
+    // Cap fetch to prevent unbounded queries (industry: limit candidate pool)
+    const MAX_GROUPS_FETCH = 300;
+    groupsQuery = groupsQuery.limit(MAX_GROUPS_FETCH);
 
     // --- APPLY FILTERS ---
     // 1. Age Filter
@@ -345,13 +340,34 @@ export async function POST(req: NextRequest) {
     // Or if we need strict filter, we might need a join or filter in memory.
     // I'll filter in memory after fetching creators.
 
-    const { data: groups, error } = await groupsQuery;
+    let { data: groups, error } = await groupsQuery;
+    let usedView = !error;
+
+    // Fallback: if view doesn't exist (pre-migration), use groups table then profiles
+    const viewNotFound = error?.message?.includes("matchable_groups_with_creator") ||
+      error?.code === "42P01" ||
+      error?.message?.toLowerCase().includes("does not exist");
+    if (error && viewNotFound) {
+      log("View not found, falling back to groups + profiles", { hint: "Run supabase/migrations/MVP_MATCH_GROUPS_OPTIMIZATION.sql" });
+      const baseSelect = `id,name,destination,budget,start_date,end_date,creator_id,non_smokers,non_drinkers,dominant_languages,top_interests,average_age,members_count,cover_image,description,destination_lat,destination_lon`;
+      const fallback = supabase
+        .from("groups")
+        .select(baseSelect)
+        .eq("status", "active")
+        .eq("is_public", true)
+        .neq("creator_id", searchingUserUuid);
+      if (excludedIdsArray.length > 0) fallback.not("id", "in", `(${excludedIdsArray.join(",")})`);
+      fallback.limit(MAX_GROUPS_FETCH);
+      if (ageMin !== undefined) fallback.gte("average_age", ageMin);
+      if (ageMax !== undefined) fallback.lte("average_age", ageMax);
+      const fallbackResult = await fallback;
+      groups = fallbackResult.data as any;
+      error = fallbackResult.error;
+      usedView = false;
+    }
 
     if (error) {
-      log("Database error fetching groups", {
-        error: error.message,
-        code: error.code,
-      });
+      log("Database error fetching groups", { error: error.message, code: error.code });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -387,68 +403,78 @@ export async function POST(req: NextRequest) {
       distance?: number;
     }[] = [];
 
-    for (const group of groups) {
-      // Check name similarity for robustness
-      const namesMatch =
-        typeof destination === "string" &&
-        group.destination &&
-        (group.destination.toLowerCase().includes(destination.toLowerCase()) ||
-          destination.toLowerCase().includes(group.destination.toLowerCase()));
+    const destStr =
+      typeof destination === "string" ? destination.toLowerCase() : "";
+    const namesMatch = (g: { destination?: string | null }) =>
+      destStr &&
+      g.destination &&
+      (g.destination.toLowerCase().includes(destStr) ||
+        destStr.includes(g.destination.toLowerCase()));
 
-      if (group.destination_lat && group.destination_lon) {
-        const groupCoords = {
-          lat: Number(group.destination_lat),
-          lon: Number(group.destination_lon),
-        };
-        const distance = calculateDistance(userDestinationCoords, groupCoords);
-
-        if (distance <= presetConfig.maxDistanceKm || namesMatch) {
-          const effectiveDistance =
-            namesMatch && distance > presetConfig.maxDistanceKm ? 0 : distance;
-          groupsWithCoords.push({
-            ...group,
-            destinationCoords: groupCoords,
-            distance: effectiveDistance,
-          });
-        } else {
-          distanceExcluded.push({ id: group.id, reason: "too_far", distance });
-        }
-      } else if (group.destination) {
-        const groupCoords = await getCoordinatesForLocation(group.destination);
-        if (groupCoords) {
-          const distance = calculateDistance(
-            userDestinationCoords,
-            groupCoords,
-          );
-
-          if (distance <= presetConfig.maxDistanceKm || namesMatch) {
-            const effectiveDistance =
-              namesMatch && distance > presetConfig.maxDistanceKm
-                ? 0
-                : distance;
-            groupsWithCoords.push({
-              ...group,
-              destinationCoords: groupCoords,
-              distance: effectiveDistance,
-            });
-          } else {
-            distanceExcluded.push({
-              id: group.id,
-              reason: "too_far",
-              distance,
-            });
-          }
-        } else {
-          distanceExcluded.push({
-            id: group.id,
-            reason: "geocoding_failed",
-            distance: undefined,
-          });
-        }
+    // Split: groups with coords (fast path) vs need geocoding (batch)
+    const withCoords: typeof groups = [];
+    const needGeocode: typeof groups = [];
+    for (const g of groups) {
+      if (g.destination_lat != null && g.destination_lon != null) {
+        withCoords.push(g);
+      } else if (g.destination) {
+        needGeocode.push(g);
       } else {
         distanceExcluded.push({
-          id: group.id,
+          id: g.id,
           reason: "no_destination",
+          distance: undefined,
+        });
+      }
+    }
+
+    // Batch geocode: unique destinations only (Redis cache = fast hits)
+    const uniqueDestinations = [
+      ...new Set(needGeocode.map((g) => g.destination!)),
+    ];
+    const coordsByDest = new Map<string, Location>();
+    if (uniqueDestinations.length > 0) {
+      const results = await Promise.all(
+        uniqueDestinations.map((d) => getCoordinatesForLocation(d)),
+      );
+      uniqueDestinations.forEach((d, i) => {
+        if (results[i]) coordsByDest.set(d, results[i]!);
+      });
+    }
+
+    const processGroup = (
+      g: (typeof groups)[0],
+      groupCoords: Location,
+    ): void => {
+      const distance = calculateDistance(userDestinationCoords, groupCoords);
+      if (distance <= presetConfig.maxDistanceKm || namesMatch(g)) {
+        const effectiveDistance =
+          namesMatch(g) && distance > presetConfig.maxDistanceKm ? 0 : distance;
+        groupsWithCoords.push({
+          ...g,
+          destinationCoords: groupCoords,
+          distance: effectiveDistance,
+        });
+      } else {
+        distanceExcluded.push({ id: g.id, reason: "too_far", distance });
+      }
+    };
+
+    for (const g of withCoords) {
+      const groupCoords = {
+        lat: Number(g.destination_lat),
+        lon: Number(g.destination_lon),
+      };
+      processGroup(g, groupCoords);
+    }
+    for (const g of needGeocode) {
+      const groupCoords = coordsByDest.get(g.destination!);
+      if (groupCoords) {
+        processGroup(g, groupCoords);
+      } else {
+        distanceExcluded.push({
+          id: g.id,
+          reason: "geocoding_failed",
           distance: undefined,
         });
       }
@@ -467,22 +493,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ groups: [] });
     }
 
-    // Get creator profiles for nationality information
-    const creatorIds = [...new Set(groupsWithCoords.map((g) => g.creator_id))];
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("user_id, name, username, profile_photo, nationality")
-      .in("user_id", creatorIds);
-
-    if (profilesError) {
-      console.error("Error fetching creator profiles:", profilesError);
+    // Creator profiles: from view (single query) or fallback fetch
+    let profilesMap: Record<string, { name: string; username: string; profile_photo: string | null; nationality: string | null }> = {};
+    if (usedView) {
+      for (const g of groupsWithCoords) {
+        if (g.creator_id && (g as any).creator_name !== undefined) {
+          profilesMap[g.creator_id] = {
+            name: (g as any).creator_name ?? "Unknown",
+            username: (g as any).creator_username ?? "unknown",
+            profile_photo: (g as any).creator_profile_photo ?? null,
+            nationality: (g as any).creator_nationality ?? null,
+          };
+        }
+      }
+    } else {
+      const creatorIds = [...new Set(groupsWithCoords.map((g) => g.creator_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, name, username, profile_photo, nationality")
+        .in("user_id", creatorIds);
+      profilesMap = (profiles || []).reduce((acc: any, p) => {
+        acc[p.user_id] = { name: p.name, username: p.username, profile_photo: p.profile_photo, nationality: p.nationality };
+        return acc;
+      }, {});
     }
-
-    // Create a map of profiles by user_id
-    const profilesMap = (profiles || []).reduce((acc: any, profile) => {
-      acc[profile.user_id] = profile;
-      return acc;
-    }, {});
 
     // Transform groups into the expected format for matching
     log("Transforming groups into profiles for matching");
@@ -524,6 +558,7 @@ export async function POST(req: NextRequest) {
         dominantNationalities: creator?.nationality
           ? [creator.nationality]
           : [],
+        distanceKm: group.distance,
       };
     });
 

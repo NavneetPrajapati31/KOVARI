@@ -89,25 +89,29 @@ const NATIONALITY_OPTIONS = [
 ];
 
 const LANGUAGE_OPTIONS = [
-  "Any",
   "English",
   "Hindi",
-  "Spanish",
-  "French",
-  "German",
-  "Italian",
-  "Portuguese",
-  "Russian",
-  "Chinese",
-  "Japanese",
-  "Korean",
-  "Arabic",
-  "Thai",
-  "Vietnamese",
-  "Indonesian",
-  "Malay",
-  "Tagalog",
-  "Other",
+  "Bengali",
+  "Telugu",
+  "Marathi",
+  "Tamil",
+  "Gujarati",
+  "Urdu",
+  "Kannada",
+  "Odia",
+  "Malayalam",
+  "Punjabi",
+  "Assamese",
+  "Sanskrit",
+  "Konkani",
+  "Sindhi",
+  "Nepali",
+  "Maithili",
+  "Kashmiri",
+  "Manipuri",
+  "Dogri",
+  "Bodo",
+  "Santali",
 ];
 const DESTINATION_OPTIONS = [
   "Any",
@@ -167,7 +171,7 @@ const DESKTOP_AGE_DEBOUNCE_MS = 600;
 
 // Helper to convert CalendarDate to JS Date (UTC)
 function calendarDateToDate(
-  cd: CalendarDate | null | undefined
+  cd: CalendarDate | null | undefined,
 ): Date | undefined {
   if (!cd) return undefined;
   return new Date(Date.UTC(cd.year, cd.month - 1, cd.day));
@@ -179,7 +183,7 @@ function dateToCalendarDate(date?: Date): CalendarDate | undefined {
   return new CalendarDate(
     date.getUTCFullYear(),
     date.getUTCMonth() + 1,
-    date.getUTCDate()
+    date.getUTCDate(),
   );
 }
 
@@ -222,7 +226,7 @@ const filtersSchema = z
     {
       message: "Start date must be before end date.",
       path: ["dateStart"],
-    }
+    },
   );
 
 const ExploreFilters: React.FC<ExploreFiltersProps> = ({
@@ -250,7 +254,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const desktopAgeDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [destinationInput, setDestinationInput] = useState(
-    safeFilters.destination || ""
+    safeFilters.destination || "",
   );
   const [filteredDestinations, setFilteredDestinations] =
     useState<string[]>(DESTINATION_OPTIONS);
@@ -262,12 +266,12 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
       safeFilters.destination && safeFilters.destination !== ANY_DESTINATION
         ? safeFilters.destination
         : ANY_DESTINATION,
-    ])
+    ]),
   );
 
   const selectedValue = useMemo(
     () => Array.from(selectedKeys).join(", "),
-    [selectedKeys]
+    [selectedKeys],
   );
 
   // Add local state for mobile filters
@@ -285,7 +289,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
           safeFilters.destination && safeFilters.destination !== ANY_DESTINATION
             ? safeFilters.destination
             : ANY_DESTINATION,
-        ])
+        ]),
       );
     }
     prevIsOpen.current = isOpen;
@@ -352,7 +356,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
       setFilteredDestinations(DESTINATION_OPTIONS);
     } else {
       setFilteredDestinations(
-        DESTINATION_OPTIONS.filter((opt) => opt.toLowerCase().includes(input))
+        DESTINATION_OPTIONS.filter((opt) => opt.toLowerCase().includes(input)),
       );
     }
   }, [destinationInput]);
@@ -363,7 +367,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
       if (
         destinationInput !== safeFilters.destination &&
         !DESTINATION_OPTIONS.some(
-          (opt) => opt.toLowerCase() === destinationInput.trim().toLowerCase()
+          (opt) => opt.toLowerCase() === destinationInput.trim().toLowerCase(),
         )
       ) {
         if (destinationDebounceTimeout.current)
@@ -424,7 +428,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
             ...safeFilters,
             interests: safeFilters.interests.filter((i) => i !== interest),
           }
-        : { ...safeFilters, interests: [...safeFilters.interests, interest] }
+        : { ...safeFilters, interests: [...safeFilters.interests, interest] },
     );
   };
 
@@ -616,7 +620,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                       !filteredDestinations.some(
                         (opt) =>
                           opt.toLowerCase() ===
-                          destinationInput.trim().toLowerCase()
+                          destinationInput.trim().toLowerCase(),
                       )
                     ) {
                       setMobileFilters((prev) => ({
@@ -779,7 +783,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                         >
                           {option}
                         </HeroButton>
-                      )
+                      ),
                     )}
                   </ButtonGroup>
                 </div>
@@ -816,32 +820,32 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     Personality
                   </h3>
                   <ButtonGroup className="w-full">
-                    {PERSONALITY_OPTIONS.filter((option) => option !== "Any").map(
-                      (option) => (
-                        <HeroButton
-                          key={option}
-                          variant={
-                            mobileFilters.personality === option
-                              ? "solid"
-                              : "bordered"
-                          }
-                          color={
-                            mobileFilters.personality === option
-                              ? "primary"
-                              : "default"
-                          }
-                          onPress={() =>
-                            setMobileFilters((prev) => ({
-                              ...prev,
-                              personality: option,
-                            }))
-                          }
-                          className="flex-1"
-                        >
-                          {option}
-                        </HeroButton>
-                      )
-                    )}
+                    {PERSONALITY_OPTIONS.filter(
+                      (option) => option !== "Any",
+                    ).map((option) => (
+                      <HeroButton
+                        key={option}
+                        variant={
+                          mobileFilters.personality === option
+                            ? "solid"
+                            : "bordered"
+                        }
+                        color={
+                          mobileFilters.personality === option
+                            ? "primary"
+                            : "default"
+                        }
+                        onPress={() =>
+                          setMobileFilters((prev) => ({
+                            ...prev,
+                            personality: option,
+                          }))
+                        }
+                        className="flex-1"
+                      >
+                        {option}
+                      </HeroButton>
+                    ))}
                   </ButtonGroup>
                 </div>
 
@@ -875,7 +879,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                         >
                           {option}
                         </HeroButton>
-                      )
+                      ),
                     )}
                   </ButtonGroup>
                 </div>
@@ -910,7 +914,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                         >
                           {option}
                         </HeroButton>
-                      )
+                      ),
                     )}
                   </ButtonGroup>
                 </div>
@@ -921,32 +925,32 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     Budget Range
                   </h3>
                   <ButtonGroup className="w-full">
-                    {BUDGET_RANGE_OPTIONS.filter((option) => option !== "Any").map(
-                      (option) => (
-                        <HeroButton
-                          key={option}
-                          variant={
-                            mobileFilters.budgetRange === option
-                              ? "solid"
-                              : "bordered"
-                          }
-                          color={
-                            mobileFilters.budgetRange === option
-                              ? "primary"
-                              : "default"
-                          }
-                          onPress={() =>
-                            setMobileFilters((prev) => ({
-                              ...prev,
-                              budgetRange: option,
-                            }))
-                          }
-                          className="flex-1"
-                        >
-                          {option}
-                        </HeroButton>
-                      )
-                    )}
+                    {BUDGET_RANGE_OPTIONS.filter(
+                      (option) => option !== "Any",
+                    ).map((option) => (
+                      <HeroButton
+                        key={option}
+                        variant={
+                          mobileFilters.budgetRange === option
+                            ? "solid"
+                            : "bordered"
+                        }
+                        color={
+                          mobileFilters.budgetRange === option
+                            ? "primary"
+                            : "default"
+                        }
+                        onPress={() =>
+                          setMobileFilters((prev) => ({
+                            ...prev,
+                            budgetRange: option,
+                          }))
+                        }
+                        className="flex-1"
+                      >
+                        {option}
+                      </HeroButton>
+                    ))}
                   </ButtonGroup>
                 </div>
 
@@ -956,32 +960,32 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                     Nationality
                   </h3>
                   <ButtonGroup className="w-full">
-                    {NATIONALITY_OPTIONS.filter((option) => option !== "Any").map(
-                      (option) => (
-                        <HeroButton
-                          key={option}
-                          variant={
-                            mobileFilters.nationality === option
-                              ? "solid"
-                              : "bordered"
-                          }
-                          color={
-                            mobileFilters.nationality === option
-                              ? "primary"
-                              : "default"
-                          }
-                          onPress={() =>
-                            setMobileFilters((prev) => ({
-                              ...prev,
-                              nationality: option,
-                            }))
-                          }
-                          className="flex-1"
-                        >
-                          {option}
-                        </HeroButton>
-                      )
-                    )}
+                    {NATIONALITY_OPTIONS.filter(
+                      (option) => option !== "Any",
+                    ).map((option) => (
+                      <HeroButton
+                        key={option}
+                        variant={
+                          mobileFilters.nationality === option
+                            ? "solid"
+                            : "bordered"
+                        }
+                        color={
+                          mobileFilters.nationality === option
+                            ? "primary"
+                            : "default"
+                        }
+                        onPress={() =>
+                          setMobileFilters((prev) => ({
+                            ...prev,
+                            nationality: option,
+                          }))
+                        }
+                        className="flex-1"
+                      >
+                        {option}
+                      </HeroButton>
+                    ))}
                   </ButtonGroup>
                 </div>
 
@@ -1103,7 +1107,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                   !filteredDestinations.some(
                     (opt) =>
                       opt.toLowerCase() ===
-                      destinationInput.trim().toLowerCase()
+                      destinationInput.trim().toLowerCase(),
                   )
                 ) {
                   handleValidatedFilterChange({
@@ -1317,7 +1321,7 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
                       />
                     )}
                   </DropdownMenuItem>
-                )
+                ),
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1378,7 +1382,9 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
           {/* Personality */}
           <DropdownMenu
             open={openDropdown === "personality"}
-            onOpenChange={(open) => setOpenDropdown(open ? "personality" : null)}
+            onOpenChange={(open) =>
+              setOpenDropdown(open ? "personality" : null)
+            }
           >
             <DropdownMenuTrigger asChild>
               <Button
@@ -1516,7 +1522,9 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
           {/* Budget Range */}
           <DropdownMenu
             open={openDropdown === "budgetRange"}
-            onOpenChange={(open) => setOpenDropdown(open ? "budgetRange" : null)}
+            onOpenChange={(open) =>
+              setOpenDropdown(open ? "budgetRange" : null)
+            }
           >
             <DropdownMenuTrigger asChild>
               <Button
@@ -1562,7 +1570,9 @@ const ExploreFilters: React.FC<ExploreFiltersProps> = ({
           {/* Nationality */}
           <DropdownMenu
             open={openDropdown === "nationality"}
-            onOpenChange={(open) => setOpenDropdown(open ? "nationality" : null)}
+            onOpenChange={(open) =>
+              setOpenDropdown(open ? "nationality" : null)
+            }
           >
             <DropdownMenuTrigger asChild>
               <Button

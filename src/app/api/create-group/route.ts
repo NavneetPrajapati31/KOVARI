@@ -124,12 +124,23 @@ export async function POST(req: Request) {
 
     const creatorLanguages = creatorProfile?.languages || ["English"];
 
+    // MVP: Enforce destination coords - geocode if destination_details missing
+    let destLat = parsed.data.destination_details?.latitude ?? null;
+    let destLon = parsed.data.destination_details?.longitude ?? null;
+    if ((destLat == null || destLon == null) && parsed.data.destination) {
+      const coords = await getCoordinatesForLocation(parsed.data.destination);
+      if (coords) {
+        destLat = coords.lat;
+        destLon = coords.lon;
+      }
+    }
+
     const payload = {
       creator_id: userRow.id,
       ...parsed.data,
       destination_details: parsed.data.destination_details || null,
-      destination_lat: parsed.data.destination_details?.latitude || null,
-      destination_lon: parsed.data.destination_details?.longitude || null,
+      destination_lat: destLat,
+      destination_lon: destLon,
       cover_image: parsed.data.cover_image || null,
       // Preserve explicit boolean false; only coerce undefined to null
       non_smokers:

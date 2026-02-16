@@ -12,7 +12,7 @@ import { SearchData } from "../types";
 
 // Helper to convert CalendarDate to JS Date
 function calendarDateToDate(
-  cd: CalendarDate | null | undefined
+  cd: CalendarDate | null | undefined,
 ): Date | undefined {
   if (!cd) return undefined;
   return new Date(cd.year, cd.month - 1, cd.day);
@@ -24,7 +24,7 @@ function dateToCalendarDate(date?: Date): CalendarDate | undefined {
   return new CalendarDate(
     date.getFullYear(),
     date.getMonth() + 1,
-    date.getDate()
+    date.getDate(),
   );
 }
 
@@ -70,14 +70,14 @@ export const SearchForm = ({
             handleSearchDataChange({
               destination: details.city || details.formatted.split(",")[0],
               destinationDetails: {
-                  city: details.city,
-                  state: details.state,
-                  country: details.country,
-                  lat: details.lat,
-                  lon: details.lon,
-                  formatted: details.formatted,
-                  place_id: details.place_id,
-              }
+                city: details.city,
+                state: details.state,
+                country: details.country,
+                lat: details.lat,
+                lon: details.lon,
+                formatted: details.formatted,
+                place_id: details.place_id,
+              },
             });
           }}
           placeholder="Where do you want to go?"

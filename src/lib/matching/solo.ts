@@ -250,15 +250,15 @@ const calculateJaccardSimilarity = (
   set1?: string[],
   set2?: string[]
 ): number => {
-  // Fallback: If interests are missing, return neutral score instead of 0
-  if (!set1 || !set2 || set1.length === 0 || set2.length === 0) return 0.3;
+  // MVP: Empty signals => neutral 0.5 (avoid penalizing sparse data)
+  if (!set1 || !set2 || set1.length === 0 || set2.length === 0) return 0.5;
 
   const s1 = new Set(set1);
   const s2 = new Set(set2);
   const intersection = new Set([...s1].filter((x) => s2.has(x)));
   const union = new Set([...s1, ...s2]);
 
-  if (union.size === 0) return 0.5; // Both empty - neutral score
+  if (union.size === 0) return 0.5;
 
   const jaccardScore = intersection.size / union.size;
 

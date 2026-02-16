@@ -61,6 +61,7 @@ export default function ExplorePage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [lastSearchData, setLastSearchData] = useState<SearchData | null>(null);
+  const [lastFilters, setLastFilters] = useState<Filters | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [datePickerPortalContainer, setDatePickerPortalContainer] =
     useState<HTMLDivElement | null>(null);
@@ -113,7 +114,7 @@ export default function ExplorePage() {
         router.push(`/explore?tab=${tabValue}`, { scroll: false });
       }
     },
-    [activeTab, router]
+    [activeTab, router],
   );
 
   // Keyboard navigation for tabs
@@ -125,7 +126,7 @@ export default function ExplorePage() {
       } else if (event.key === "ArrowLeft") {
         event.preventDefault();
         handleTabChange(
-          (activeTab - 1 + EXPLORE_TABS.length) % EXPLORE_TABS.length
+          (activeTab - 1 + EXPLORE_TABS.length) % EXPLORE_TABS.length,
         );
       } else if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -138,7 +139,7 @@ export default function ExplorePage() {
         handleTabChange(EXPLORE_TABS.length - 1);
       }
     },
-    [activeTab, handleTabChange]
+    [activeTab, handleTabChange],
   );
 
   // Tab buttons with groups layout styling
@@ -159,20 +160,45 @@ export default function ExplorePage() {
           {tab.label}
         </Button>
       )),
-    [activeTab, handleTabChange, handleTabKeyDown]
+    [activeTab, handleTabChange, handleTabKeyDown],
   );
 
-  // Helper function to check if search data has changed
-  const hasSearchDataChanged = (newSearchData: SearchData): boolean => {
-    if (!lastSearchData) return true;
-
+  const filtersEqual = (a: Filters, b: Filters): boolean => {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    const arrEq = (x: string[], y: string[]) =>
+      x.length === y.length &&
+      [...x].sort().join(",") === [...y].sort().join(",");
     return (
+      a.ageRange[0] === b.ageRange[0] &&
+      a.ageRange[1] === b.ageRange[1] &&
+      a.gender === b.gender &&
+      a.personality === b.personality &&
+      a.smoking === b.smoking &&
+      a.drinking === b.drinking &&
+      a.nationality === b.nationality &&
+      a.travelStyle === b.travelStyle &&
+      arrEq(a.interests || [], b.interests || []) &&
+      arrEq(a.languages || [], b.languages || []) &&
+      a.budgetRange[0] === b.budgetRange[0] &&
+      a.budgetRange[1] === b.budgetRange[1]
+    );
+  };
+
+  const hasSearchParamsChanged = (
+    newSearchData: SearchData,
+    newFilters: Filters,
+  ): boolean => {
+    if (!lastSearchData) return true;
+    const searchDataChanged =
       newSearchData.destination !== lastSearchData.destination ||
       newSearchData.budget !== lastSearchData.budget ||
       newSearchData.startDate.getTime() !==
         lastSearchData.startDate.getTime() ||
-      newSearchData.endDate.getTime() !== lastSearchData.endDate.getTime()
-    );
+      newSearchData.endDate.getTime() !== lastSearchData.endDate.getTime();
+    const filtersChanged =
+      !lastFilters || !filtersEqual(newFilters, lastFilters);
+    return searchDataChanged || filtersChanged;
   };
 
   const handleSearch = () => {
@@ -182,8 +208,7 @@ export default function ExplorePage() {
       travelMode: activeTab === 0 ? "solo" : "group",
     };
 
-    if (!hasSearchDataChanged(fullSearchData)) {
-      console.log("Search data unchanged, skipping search");
+    if (!hasSearchParamsChanged(fullSearchData, filters)) {
       return;
     }
 
@@ -208,22 +233,24 @@ export default function ExplorePage() {
 
         // Step 1: Store enhanced dynamic session (for solo matching)
         const sessionPayload: any = {
-            userId,
-            destinationName: fullSearchData.destination,
-            budget: fullSearchData.budget,
-            startDate: fullSearchData.startDate.toISOString().split("T")[0],
-            endDate: fullSearchData.endDate.toISOString().split("T")[0],
-            travelMode: fullSearchData.travelMode,
+          userId,
+          destinationName: fullSearchData.destination,
+          budget: fullSearchData.budget,
+          startDate: fullSearchData.startDate.toISOString().split("T")[0],
+          endDate: fullSearchData.endDate.toISOString().split("T")[0],
+          travelMode: fullSearchData.travelMode,
         };
 
         if (fullSearchData.destinationDetails) {
-            sessionPayload.destination = {
-                name: fullSearchData.destinationDetails.formatted || fullSearchData.destination,
-                lat: fullSearchData.destinationDetails.lat,
-                lon: fullSearchData.destinationDetails.lon,
-                city: fullSearchData.destinationDetails.city,
-                country: fullSearchData.destinationDetails.country
-            };
+          sessionPayload.destination = {
+            name:
+              fullSearchData.destinationDetails.formatted ||
+              fullSearchData.destination,
+            lat: fullSearchData.destinationDetails.lat,
+            lon: fullSearchData.destinationDetails.lon,
+            city: fullSearchData.destinationDetails.city,
+            country: fullSearchData.destinationDetails.country,
+          };
         }
 
         const sessionResponse = await fetch("/api/session", {
@@ -243,7 +270,7 @@ export default function ExplorePage() {
             errorData.error === "PROFILE_INCOMPLETE"
           ) {
             throw new Error(
-              `${errorMessage}${errorHint ? ` ${errorHint}` : ""}`
+              `${errorMessage}${errorHint ? ` ${errorHint}` : ""}`,
             );
           }
 
@@ -264,16 +291,18 @@ export default function ExplorePage() {
           drinking: filters.drinking,
           nationality: filters.nationality,
         });
-        
+
         if (filters.interests && filters.interests.length > 0) {
           queryParams.append("interests", filters.interests.join(","));
         }
-        
+
         if (filters.languages && filters.languages.length > 0) {
           queryParams.append("languages", filters.languages.join(","));
         }
 
-        const soloMatchesRes = await fetch(`/api/match-solo?${queryParams.toString()}`);
+        const soloMatchesRes = await fetch(
+          `/api/match-solo?${queryParams.toString()}`,
+        );
         if (soloMatchesRes.ok) {
           const soloMatches = await soloMatchesRes.json();
           console.log("Solo matches found:", soloMatches.length);
@@ -298,12 +327,13 @@ export default function ExplorePage() {
                     : match.user?.interests,
               },
               is_solo_match: true,
-            })
+            }),
           );
 
           setMatchedGroups(soloMatchesAsGroups);
           setCurrentGroupIndex(0);
           setLastSearchData(fullSearchData);
+          setLastFilters(filters);
         } else {
           const errorData = await soloMatchesRes.json();
           throw new Error(errorData.message || "Failed to fetch solo matches");
@@ -313,7 +343,10 @@ export default function ExplorePage() {
         console.log("[EXPLORE][GROUP] Search started", {
           destination: fullSearchData.destination,
           destinationDetails: fullSearchData.destinationDetails
-            ? { lat: fullSearchData.destinationDetails.lat, lon: fullSearchData.destinationDetails.lon }
+            ? {
+                lat: fullSearchData.destinationDetails.lat,
+                lon: fullSearchData.destinationDetails.lon,
+              }
             : null,
           budget: fullSearchData.budget,
           dates: {
@@ -348,8 +381,8 @@ export default function ExplorePage() {
         };
 
         if (fullSearchData.destinationDetails) {
-             requestBody.lat = fullSearchData.destinationDetails.lat;
-             requestBody.lon = fullSearchData.destinationDetails.lon;
+          requestBody.lat = fullSearchData.destinationDetails.lat;
+          requestBody.lon = fullSearchData.destinationDetails.lon;
         }
 
         console.log("[EXPLORE][GROUP] Request body", requestBody);
@@ -403,6 +436,7 @@ export default function ExplorePage() {
         setMatchedGroups(transformedGroups);
         setCurrentGroupIndex(0);
         setLastSearchData(fullSearchData);
+        setLastFilters(filters);
       }
     } catch (err: any) {
       setSearchError(err.message || "Unknown error");
@@ -415,6 +449,7 @@ export default function ExplorePage() {
   // Reset search data when tab changes
   useEffect(() => {
     setLastSearchData(null);
+    setLastFilters(null);
     setMatchedGroups([]);
     setCurrentGroupIndex(0);
     setSearchError(null);
@@ -468,7 +503,7 @@ export default function ExplorePage() {
   const handleComment = async (
     matchId: string,
     attribute: string,
-    comment: string
+    comment: string,
   ) => {
     console.log(
       "Commenting on",
@@ -476,7 +511,7 @@ export default function ExplorePage() {
       "for traveler:",
       matchId,
       "Comment:",
-      comment
+      comment,
     );
     // TODO: Implement comment logic
   };

@@ -63,27 +63,35 @@ const NATIONALITY_OPTIONS = [
   "Other",
 ];
 const LANGUAGE_OPTIONS = [
-  "Any",
   "English",
   "Hindi",
   "Bengali",
   "Telugu",
   "Marathi",
   "Tamil",
-  "Urdu",
   "Gujarati",
+  "Urdu",
   "Kannada",
-  "Malayalam",
   "Odia",
+  "Malayalam",
   "Punjabi",
+  "Assamese",
+  "Sanskrit",
+  "Konkani",
   "Sindhi",
-  "Other",
+  "Nepali",
+  "Maithili",
+  "Kashmiri",
+  "Manipuri",
+  "Dogri",
+  "Bodo",
+  "Santali",
 ];
 
 export const FiltersPanel = ({
   filters,
   onFilterChange,
-  activeTab, 
+  activeTab,
 }: FiltersPanelProps) => {
   return (
     <div className="pt-6 space-y-6">
@@ -106,7 +114,7 @@ export const FiltersPanel = ({
           onChange={(value) =>
             onFilterChange(
               "ageRange",
-              Array.isArray(value) ? value : [value, value]
+              Array.isArray(value) ? value : [value, value],
             )
           }
           className="w-full"
@@ -117,7 +125,10 @@ export const FiltersPanel = ({
       {/* 2. Gender - Solo Only */}
       {activeTab === 0 && (
         <div className="space-y-2">
-          <Label htmlFor="gender" className="text-sm font-medium text-foreground">
+          <Label
+            htmlFor="gender"
+            className="text-sm font-medium text-foreground"
+          >
             Gender Preference
           </Label>
           <Select

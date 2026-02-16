@@ -23,6 +23,7 @@
     "comprehensive-test-data": "node create-comprehensive-test-data.js",
     "test-algorithm": "node test-algorithm-flow.js",
     "create-supabase-users": "node create-supabase-users.js",
+    "backfill-group-coords": "npx tsx scripts/backfill-group-destination-coords.ts",
     "create-profiles-for-existing-users": "node create-profiles-for-existing-users.js",
     "create-redis-sessions-for-existing-users": "node create-redis-sessions-for-existing-users.js",
     "test-solo-matching-algorithm": "node test-solo-matching-algorithm.js",
