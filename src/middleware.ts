@@ -67,9 +67,21 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.next();
     }
 
-    const { userId } = await auth();
-    if (userId && (await isLaunchBypassUser(userId))) {
-      return NextResponse.next();
+    const { userId, sessionId } = await auth();
+    if (userId) {
+      if (await isLaunchBypassUser(userId)) {
+        return NextResponse.next();
+      }
+
+      // User present but not a bypass user? Sign them out immediately.
+      if (sessionId) {
+        try {
+          const client = await clerkClient();
+          await client.sessions.revokeSession(sessionId);
+        } catch (e) {
+          console.error("Failed to revoke session for non-bypass user:", e);
+        }
+      }
     }
 
     if (isApiRoute) {

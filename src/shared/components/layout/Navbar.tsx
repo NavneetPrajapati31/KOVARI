@@ -195,7 +195,11 @@ export default function App({
   // Prepare sidebar menu items for MVP (simplified for waitlist launch)
   const sidebarMenuItems = showWaitlistNavbar
     ? [
-        { label: "About", href: "/about" },
+        ...navigationItems.map((item) => ({
+          label: item.name,
+          href: item.href,
+          icon: item.icon,
+        })),
         {
           label: "Join Waitlist",
           href: "#",
@@ -432,9 +436,9 @@ export default function App({
                       }}
                     />
                   </div>
-                  <span className="sm:text-sm text-xs font-medium uppercase select-none">
+                  {/* <span className="sm:text-sm text-xs font-medium uppercase select-none">
                     MENU
-                  </span>
+                  </span> */}
                 </button>
               </>
             )}
