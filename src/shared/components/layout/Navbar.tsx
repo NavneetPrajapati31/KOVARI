@@ -201,7 +201,7 @@ export default function App({
           icon: item.icon,
         })),
         {
-          label: "Join Waitlist",
+          label: "Get Early Access",
           href: "#",
           onClick: () => {
             setIsSidebarOpen(false);
@@ -216,7 +216,7 @@ export default function App({
           icon: item.icon,
         })),
         {
-          label: "Join Waitlist",
+          label: "Get Early Access",
           href: "#",
           onClick: () => {
             setIsSidebarOpen(false);
@@ -297,7 +297,7 @@ export default function App({
                   className="hidden sm:flex px-4 h-9 rounded-full"
                   onClick={handleJoinWaitlist}
                 >
-                  Join Waitlist
+                  Early Access
                 </Button>
                 <button
                   type="button"

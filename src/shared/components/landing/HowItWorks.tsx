@@ -24,12 +24,12 @@ export default function HowItWorks() {
       description:
         "Collaborate on itineraries, ideas, and plans together — all in one place.",
     },
-    {
-      number: 4,
-      title: "Travel with Confidence",
-      description:
-        "Explore with confidence, knowing you're traveling with people you trust.",
-    },
+    // {
+    //   number: 4,
+    //   title: "Travel with Confidence",
+    //   description:
+    //     "Explore with confidence, knowing you're traveling with people you trust.",
+    // },
   ];
 
   const containerVariants = {
@@ -84,11 +84,11 @@ export default function HowItWorks() {
           </p>
         </motion.div>
 
-        <div className="max-w-8xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           {/* Steps container with visual flow connection */}
           <div className="relative">
             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 relative"
+              className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 relative"
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"

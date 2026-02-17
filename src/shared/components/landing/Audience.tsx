@@ -13,12 +13,12 @@ export default function Audience() {
       description:
         "Find people heading to the same destination and build trusted travel circles — without awkward DMs.",
     },
-    {
-      icon: Users,
-      title: "Friends & Groups",
-      description:
-        "Plan trips together, stay aligned, and avoid the chaos of scattered messages and plans.",
-    },
+    // {
+    //   icon: Users,
+    //   title: "Friends & Groups",
+    //   description:
+    //     "Plan trips together, stay aligned, and avoid the chaos of scattered messages and plans.",
+    // },
     {
       icon: Compass,
       title: "Small Travel Circles",
@@ -78,9 +78,9 @@ export default function Audience() {
           </p>
         </motion.div>
 
-        <div className="max-w-8xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <motion.div 
-            className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
