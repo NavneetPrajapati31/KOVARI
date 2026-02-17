@@ -9,10 +9,7 @@ import {
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Avatar,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 
 import { Skeleton } from "@heroui/react";
@@ -29,7 +26,7 @@ import dynamic from "next/dynamic";
 
 const TravelHeatmap = dynamic(
   () => import("@/shared/components/heatmap/TravelHeatmap"),
-  { ssr: false }
+  { ssr: false },
 );
 
 const UpcomingTripCard = dynamic(
@@ -44,7 +41,7 @@ const UpcomingTripCard = dynamic(
         <Skeleton className="absolute inset-0 size-full rounded-xl" />
       </div>
     ),
-  }
+  },
 );
 
 import { useUserGroups } from "@/shared/hooks/useUserGroups";
@@ -170,7 +167,7 @@ export default function Dashboard() {
   const [itineraryLoading, setItineraryLoading] = useState(false);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
   const [profileImpressions, setProfileImpressions] = useState<number | null>(
-    null
+    null,
   );
   const [impressionsLoading, setImpressionsLoading] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -245,17 +242,17 @@ export default function Dashboard() {
   }, [fetchProfileImpressions]);
 
   const formattedTravelDays = travelDays.filter((d) =>
-    /^\d{4}-\d{2}-\d{2}$/.test(d)
+    /^\d{4}-\d{2}-\d{2}$/.test(d),
   );
   const years = useMemo(
     () =>
       [...new Set(formattedTravelDays.map((d) => +d.split("-")[0]))].sort(
-        (a, b) => b - a
+        (a, b) => b - a,
       ),
-    [formattedTravelDays]
+    [formattedTravelDays],
   );
   const [selectedYear, setSelectedYear] = useState(
-    () => years[0] || new Date().getFullYear()
+    () => years[0] || new Date().getFullYear(),
   );
 
   useEffect(() => {
@@ -271,14 +268,14 @@ export default function Dashboard() {
       groups
         .filter(
           (g) =>
-            g.group?.start_date && isBefore(new Date(g.group.start_date), now)
+            g.group?.start_date && isBefore(new Date(g.group.start_date), now),
         )
         .sort(
           (a, b) =>
             new Date(b.group?.start_date!).getTime() -
-            new Date(a.group?.start_date!).getTime()
+            new Date(a.group?.start_date!).getTime(),
         ),
-    [groups]
+    [groups],
   );
 
   const upcoming = useMemo(
@@ -286,14 +283,14 @@ export default function Dashboard() {
       groups
         .filter(
           (g) =>
-            g.group?.start_date && isAfter(new Date(g.group.start_date), now)
+            g.group?.start_date && isAfter(new Date(g.group.start_date), now),
         )
         .sort(
           (a, b) =>
             new Date(a.group?.start_date!).getTime() -
-            new Date(b.group?.start_date!).getTime()
+            new Date(b.group?.start_date!).getTime(),
         ),
-    [groups]
+    [groups],
   );
 
   const nearestUpcomingGroupId = upcoming[0]?.group?.id;
@@ -358,7 +355,7 @@ export default function Dashboard() {
 
   // Helper to extract name and country from destination
   const getNameAndCountry = (
-    destination?: string
+    destination?: string,
   ): { name: string; country: string } => {
     if (!destination) return { name: "", country: "" };
     const parts = destination.split(",").map((part) => part.trim());
@@ -370,7 +367,7 @@ export default function Dashboard() {
 
   // Top destination: most frequent destination + cover from most recent matching group
   const topDestinationNameCountry = getNameAndCountry(
-    mostVisited === "N/A" ? undefined : mostVisited
+    mostVisited === "N/A" ? undefined : mostVisited,
   );
   const topDestinationCoverImage =
     getMostRecentGroupCoverForDestination(groups, mostVisited) ?? undefined;
@@ -378,7 +375,7 @@ export default function Dashboard() {
   // Upcoming trip: selected group (nearest upcoming or most recent past)
   const selectedGroup = upcoming[0] || past[0];
   const { name, country } = getNameAndCountry(
-    selectedGroup?.group?.destination || undefined
+    selectedGroup?.group?.destination || undefined,
   );
 
   // Get trip dates from the selected group
@@ -424,7 +421,7 @@ export default function Dashboard() {
                 <div className="relative cursor-pointer">
                   <Bell className="w-5 h-5 text-foreground" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
+                    <span className="absolute -top-1 -right-0.5 w-3 h-3 bg-primary rounded-full border-[2px] border-background" />
                   )}
                 </div>
               </Link>
@@ -438,7 +435,7 @@ export default function Dashboard() {
                     <div className="relative cursor-pointer">
                       <Bell className="w-5 h-5 text-foreground" />
                       {unreadCount > 0 && (
-                        <span className="absolute -top-0.5 right-0 w-2.5 h-2.5 bg-primary rounded-full border-[2px] border-background" />
+                        <span className="absolute -top-1 -right-0.5 w-3 h-3 bg-primary rounded-full border-[2px] border-background" />
                       )}
                     </div>
                   </PopoverTrigger>
@@ -529,7 +526,7 @@ export default function Dashboard() {
                                         {" · "}
                                         <span className="text-muted-foreground/80">
                                           {formatNotificationTime(
-                                            notification.created_at
+                                            notification.created_at,
                                           )}
                                         </span>
                                       </>
@@ -570,7 +567,6 @@ export default function Dashboard() {
           <div className="flex flex-col lg:flex-row gap-3 h-full">
             <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
               <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
-               
                 <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
                   <div className="h-full min-h-0">
                     <TopDestinationCard
@@ -582,7 +578,7 @@ export default function Dashboard() {
                     />
                   </div>
                 </div>
-                 <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
+                <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
                   <div className="h-full min-h-0">
                     <UpcomingTripCard
                       groupId={selectedGroupId || ""}

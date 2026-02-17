@@ -116,7 +116,7 @@ export default function App({
 
   const handleSignOut = async () => {
     try {
-      await signOut({ redirectUrl: "/sign-in" });
+      await signOut({ redirectUrl: "/landing" });
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -246,7 +246,7 @@ export default function App({
         }}
       >
         {/* Navigation Links - hidden during waitlist launch for public users */}
-        {!showWaitlistNavbar && (
+        {/* {!showWaitlistNavbar && (
           <NavbarContent className="hidden xl:flex gap-10" justify="start">
             {navigationItems.map((item) => (
               <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
@@ -262,13 +262,12 @@ export default function App({
                   }`}
                   aria-current={isActiveRoute(item.href) ? "page" : undefined}
                 >
-                  {/* <item.icon className="w-4 h-4" /> */}
                   {item.name}
                 </Link>
               </NavbarItem>
             ))}
           </NavbarContent>
-        )}
+        )} */}
 
         {/* Logo */}
         <NavbarBrand>

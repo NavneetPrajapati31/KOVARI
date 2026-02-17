@@ -24,6 +24,11 @@ const isWaitlistPublicPath = createRouteMatcher([
   "/about-us",
   "/privacy",
   "/terms",
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/verify-email",
+  "/sso-callback",
 ]);
 
 /** Check if user is in launch_bypass_users table */
@@ -76,7 +81,7 @@ export default clerkMiddleware(async (auth, req) => {
       );
     }
 
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/landing", req.url));
   }
 
   const { userId, sessionId } = await auth();
