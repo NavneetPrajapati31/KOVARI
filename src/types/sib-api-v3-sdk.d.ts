@@ -6,6 +6,8 @@ declare module "sib-api-v3-sdk" {
         apiKey: string;
       };
     };
+    /** HTTP timeout in ms (default 60000) */
+    timeout: number;
   }
 
   export class TransactionalEmailsApi {

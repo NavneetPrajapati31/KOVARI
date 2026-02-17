@@ -1,110 +1,145 @@
 import "server-only";
-import { waitlistConfirmationEmail } from "./email-templates/waitlist-confirmation";
 import * as Sentry from "@sentry/nextjs";
+import { waitlistConfirmationEmail } from "./email-templates/waitlist-confirmation";
+import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 
-// Lazy load Brevo SDK only on server-side to avoid client bundling issues
-async function getBrevoClient() {
-  // Dynamic import to ensure this only runs on the server
-  const SibApiV3Sdk = await import("sib-api-v3-sdk");
+const MAX_RETRIES = 3;
+const RETRY_DELAYS_MS = [2000, 4000, 8000];
 
-  // Configure Brevo API client
-  const defaultClient = SibApiV3Sdk.ApiClient.instance;
-  const apiKey = defaultClient.authentications["api-key"];
-
-  if (!process.env.BREVO_API_KEY) {
-    throw new Error("BREVO_API_KEY is not configured");
-  }
-
-  apiKey.apiKey = process.env.BREVO_API_KEY;
-
-  return {
-    TransactionalEmailsApi: SibApiV3Sdk.TransactionalEmailsApi,
-    SendSmtpEmail: SibApiV3Sdk.SendSmtpEmail,
-  };
-}
-
-interface SendWaitlistConfirmationParams {
+export interface SendWaitlistConfirmationParams {
   to: string;
+  /** If provided, updates waitlist row on success (for confirmation_email_sent_at) */
+  waitlistId?: string;
 }
 
 /**
- * Sends a waitlist confirmation email using Brevo
- * @param params - Email parameters
- * @returns Promise that resolves when email is sent successfully
+ * Sends waitlist confirmation email using Brevo with retries.
+ * Retries on timeout, network errors, and Brevo 5xx.
+ * Updates waitlist.confirmation_email_sent_at on success when waitlistId is provided.
+ * @returns true if sent successfully, false otherwise
  */
-export const sendWaitlistConfirmation = async ({
+export async function sendWaitlistConfirmation({
   to,
-}: SendWaitlistConfirmationParams): Promise<void> => {
+  waitlistId,
+}: SendWaitlistConfirmationParams): Promise<boolean> {
+  if (!process.env.BREVO_API_KEY) {
+    console.warn("BREVO_API_KEY is not set. Skipping email send.");
+    return false;
+  }
+
   return Sentry.startSpan(
     {
       op: "email.send",
       name: "Send Waitlist Confirmation Email",
     },
     async (span) => {
-      // Check if API key is configured
-      if (!process.env.BREVO_API_KEY) {
-        const errorMessage = "BREVO_API_KEY is not configured";
-        console.warn(errorMessage);
-        span.setAttribute("error", "missing_api_key");
-        // Don't throw error - allow signup to succeed even if email fails
-        return;
-      }
-
-      // Get sender email from environment or use default
-      const senderEmail = process.env.BREVO_FROM_EMAIL || "noreply@kovari.com";
-      const senderName = process.env.BREVO_FROM_NAME || "KOVARI";
-
-      span.setAttribute("recipient", to);
-      span.setAttribute("sender", senderEmail);
-
       try {
-        // Lazy load Brevo SDK
-        const { TransactionalEmailsApi, SendSmtpEmail } =
-          await getBrevoClient();
-        const apiInstance = new TransactionalEmailsApi();
+        const SibApiV3Sdk = await import("sib-api-v3-sdk");
 
-        const sendSmtpEmail = new SendSmtpEmail();
+        const defaultClient = SibApiV3Sdk.ApiClient.instance;
+        const apiKey = defaultClient.authentications["api-key"];
+        apiKey.apiKey = process.env.BREVO_API_KEY!;
+        defaultClient.timeout = 90000;
+
+        const senderEmail =
+          process.env.BREVO_FROM_EMAIL || "noreply@kovari.com";
+        const senderName = process.env.BREVO_FROM_NAME || "KOVARI";
+
+        span.setAttribute("recipient", to);
+        span.setAttribute("sender", senderEmail);
+
+        const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+        const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
         sendSmtpEmail.to = [{ email: to }];
         sendSmtpEmail.sender = { email: senderEmail, name: senderName };
         sendSmtpEmail.subject = "You're on the KOVARI waitlist";
         sendSmtpEmail.htmlContent = waitlistConfirmationEmail();
 
-        const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+        const isRetriable = (err: unknown) => {
+          const e = err as {
+            message?: string;
+            code?: string;
+            response?: { status?: number };
+          };
+          return (
+            e?.message?.includes("Timeout") ||
+            e?.code === "ECONNRESET" ||
+            e?.code === "ETIMEDOUT" ||
+            e?.code === "ENOTFOUND" ||
+            (e?.response?.status != null && e.response.status >= 500)
+          );
+        };
 
-        span.setAttribute("success", true);
-        span.setAttribute("message_id", data.messageId || "unknown");
-        console.log("Waitlist confirmation email sent successfully:", {
-          to,
-          messageId: data.messageId,
-        });
-      } catch (error: any) {
-        // Log error but don't throw - we don't want email failures to break signup
+        let lastError: unknown;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          try {
+            const emailData =
+              await apiInstance.sendTransacEmail(sendSmtpEmail);
+            span.setAttribute("success", true);
+            span.setAttribute("message_id", emailData.messageId || "unknown");
+            console.log("Waitlist confirmation email sent successfully:", {
+              to,
+              messageId: emailData.messageId,
+              attempt: attempt + 1,
+            });
+
+            if (waitlistId) {
+              const supabase = createAdminSupabaseClient();
+              await supabase
+                .from("waitlist")
+                .update({ confirmation_email_sent_at: new Date().toISOString() })
+                .eq("id", waitlistId);
+            }
+            return true;
+          } catch (err) {
+            lastError = err;
+            if (attempt < MAX_RETRIES - 1 && isRetriable(err)) {
+              await new Promise((r) =>
+                setTimeout(r, RETRY_DELAYS_MS[attempt])
+              );
+            } else {
+              break;
+            }
+          }
+        }
+
         const errorMessage =
-          error?.response?.body?.message ||
-          error?.message ||
+          (lastError as {
+            response?: { body?: { message?: string } };
+            message?: string;
+          })?.response?.body?.message ||
+          (lastError as { message?: string })?.message ||
+          "Unknown error sending email";
+        console.error("Error sending waitlist confirmation email:", {
+          to,
+          error: errorMessage,
+          attempts: MAX_RETRIES,
+        });
+
+        Sentry.captureException(lastError, {
+          tags: { scope: "email", type: "waitlist_confirmation" },
+          contexts: { email: { recipient: to } },
+        });
+
+        span.setAttribute("error", true);
+        span.setAttribute("error_message", errorMessage);
+        return false;
+      } catch (error: unknown) {
+        const errorMessage =
+          (error as { message?: string })?.message ||
           "Unknown error sending email";
         console.error("Error sending waitlist confirmation email:", {
           to,
           error: errorMessage,
         });
-
         Sentry.captureException(error, {
-          tags: {
-            scope: "email",
-            type: "waitlist_confirmation",
-          },
-          contexts: {
-            email: {
-              recipient: to,
-              sender: senderEmail,
-            },
-          },
+          tags: { scope: "email", type: "waitlist_confirmation" },
+          contexts: { email: { recipient: to } },
         });
-
         span.setAttribute("error", true);
         span.setAttribute("error_message", errorMessage);
-        // Silently fail - don't throw error
+        return false;
       }
     }
   );
-};
+}
