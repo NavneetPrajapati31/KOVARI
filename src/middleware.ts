@@ -8,10 +8,75 @@ import { createClient } from "@supabase/supabase-js";
 
 const isBannedPage = createRouteMatcher(["/banned"]);
 
+/** When true, only landing + waitlist are public; devs/admins bypass via launch_bypass_users table */
+const isWaitlistLaunchMode = () =>
+  process.env.LAUNCH_WAITLIST_MODE === "true" ||
+  process.env.LAUNCH_WAITLIST_MODE === "1";
+
+/** Public paths allowed during waitlist launch (everyone). Waitlist form is in landing modal. */
+const isWaitlistPublicPath = createRouteMatcher([
+  "/",
+  "/landing",
+  "/api/waitlist",
+  "/api/cron/send-waitlist-emails",
+  "/pricing",
+  "/about",
+  "/about-us",
+  "/privacy",
+  "/terms",
+]);
+
+/** Check if user is in launch_bypass_users table */
+async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) return false;
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
+    const { data, error } = await supabase
+      .from("launch_bypass_users")
+      .select("clerk_user_id")
+      .eq("clerk_user_id", clerkUserId)
+      .maybeSingle();
+    return !error && !!data?.clerk_user_id;
+  } catch {
+    return false;
+  }
+}
+
 export default clerkMiddleware(async (auth, req) => {
   // Allow access to the banned page to prevent redirect loops
   if (isBannedPage(req)) {
     return NextResponse.next();
+  }
+
+  // Waitlist launch mode: restrict to landing + waitlist; devs/admins bypass
+  if (isWaitlistLaunchMode()) {
+    const pathname = req.nextUrl.pathname;
+    const isApiRoute =
+      pathname.startsWith("/api") || pathname.startsWith("/trpc");
+
+    if (isWaitlistPublicPath(req)) {
+      return NextResponse.next();
+    }
+
+    const { userId } = await auth();
+    if (userId && (await isLaunchBypassUser(userId))) {
+      return NextResponse.next();
+    }
+
+    if (isApiRoute) {
+      return NextResponse.json(
+        {
+          error: "App is in waitlist mode. Join the waitlist for early access.",
+        },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   const { userId, sessionId } = await auth();

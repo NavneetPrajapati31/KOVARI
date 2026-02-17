@@ -59,7 +59,7 @@ export default function App({
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [profilePhotoLoading, setProfilePhotoLoading] = useState(false);
   const [profilePhotoError, setProfilePhotoError] = useState<string | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -186,22 +186,40 @@ export default function App({
     setIsWaitlistModalOpen(true);
   };
 
-  // Prepare sidebar menu items for MVP
-  const sidebarMenuItems = [
-    ...navigationItems.map((item) => ({
-      label: item.name,
-      href: item.href,
-      icon: item.icon,
-    })),
-    {
-      label: "Join Waitlist",
-      href: "#",
-      onClick: () => {
-        setIsSidebarOpen(false);
-        handleJoinWaitlist();
-      },
-    },
-  ];
+  /** Waitlist launch: public sees minimal navbar (brand + Join Waitlist); signed-in = bypass, full navbar */
+  const isWaitlistLaunchMode =
+    process.env.NEXT_PUBLIC_LAUNCH_WAITLIST_MODE === "true" ||
+    process.env.NEXT_PUBLIC_LAUNCH_WAITLIST_MODE === "1";
+  const showWaitlistNavbar = isWaitlistLaunchMode && !isSignedIn;
+
+  // Prepare sidebar menu items for MVP (simplified for waitlist launch)
+  const sidebarMenuItems = showWaitlistNavbar
+    ? [
+        { label: "About", href: "/about" },
+        {
+          label: "Join Waitlist",
+          href: "#",
+          onClick: () => {
+            setIsSidebarOpen(false);
+            handleJoinWaitlist();
+          },
+        },
+      ]
+    : [
+        ...navigationItems.map((item) => ({
+          label: item.name,
+          href: item.href,
+          icon: item.icon,
+        })),
+        {
+          label: "Join Waitlist",
+          href: "#",
+          onClick: () => {
+            setIsSidebarOpen(false);
+            handleJoinWaitlist();
+          },
+        },
+      ];
 
   return (
     <>
@@ -220,40 +238,40 @@ export default function App({
 
       {/* {isNavigating && <Spinner />} */}
       <Navbar
-        height={"5rem"}
-        shouldHideOnScroll
-        isBordered
+        height={"4rem"}
         onMenuOpenChange={setIsMenuOpen}
-        className="backdrop-blur-3xl border-border"
+        className="backdrop-blur-2xl border-border"
         classNames={{
           wrapper: "max-w-full px-8",
         }}
       >
-        {/* Navigation Links - only visible on xl screens (>=1280px, close to 1300px) */}
-        <NavbarContent className="hidden xl:flex gap-10" justify="start">
-          {navigationItems.map((item) => (
-            <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
-              <Link
-                // color={isActiveRoute(item.href) ? "primary" : "foreground"}
-                color={"foreground"}
-                href={item.href}
-                onClick={() => handleNavigation(item.href)}
-                className={`text-sm font-medium transition-all duration-300 ease-in-out flex items-center gap-2 ${
-                  isActiveRoute(item.href)
-                    ? "text-primary"
-                    : "hover:text-primary"
-                }`}
-                aria-current={isActiveRoute(item.href) ? "page" : undefined}
-              >
-                {/* <item.icon className="w-4 h-4" /> */}
-                {item.name}
-              </Link>
-            </NavbarItem>
-          ))}
-        </NavbarContent>
+        {/* Navigation Links - hidden during waitlist launch for public users */}
+        {!showWaitlistNavbar && (
+          <NavbarContent className="hidden xl:flex gap-10" justify="start">
+            {navigationItems.map((item) => (
+              <NavbarItem key={item.name} isActive={isActiveRoute(item.href)}>
+                <Link
+                  // color={isActiveRoute(item.href) ? "primary" : "foreground"}
+                  color={"foreground"}
+                  href={item.href}
+                  onClick={() => handleNavigation(item.href)}
+                  className={`text-sm font-medium transition-all duration-300 ease-in-out flex items-center gap-2 ${
+                    isActiveRoute(item.href)
+                      ? "text-primary"
+                      : "hover:text-primary"
+                  }`}
+                  aria-current={isActiveRoute(item.href) ? "page" : undefined}
+                >
+                  {/* <item.icon className="w-4 h-4" /> */}
+                  {item.name}
+                </Link>
+              </NavbarItem>
+            ))}
+          </NavbarContent>
+        )}
 
-        {/* Logo - centered on xl screens, left-aligned on smaller screens */}
-        <NavbarBrand className="xl:absolute xl:left-1/2 xl:transform xl:-translate-x-1/2">
+        {/* Logo */}
+        <NavbarBrand>
           <Link
             href="/"
             className="text-foreground !opacity-100"
@@ -268,86 +286,159 @@ export default function App({
 
         <NavbarContent as="div" justify="end">
           <div className="flex items-center gap-x-3">
-            {/* Avatar/Sign In - only visible on xl screens (>=1280px) */}
-            <div className="hidden xl:flex items-center gap-x-3">
-              {!isLoaded || profilePhotoLoading ? (
-                <Skeleton className="w-8 h-8 rounded-full" />
-              ) : isSignedIn ? (
-                <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
-                  <DropdownMenuTrigger asChild>
-                    <Avatar
-                      isBordered
-                      as="button"
-                      className={"transition-transform"}
-                      color="secondary"
-                      name={user?.fullName || user?.username || "User"}
-                      size="sm"
-                      src={profilePhotoUrl || user?.imageUrl}
+            {/* Waitlist launch: Join Waitlist CTA instead of Log In / Avatar */}
+            {showWaitlistNavbar ? (
+              <>
+                <Button
+                  variant="default"
+                  className="hidden sm:flex px-4 h-9 rounded-full"
+                  onClick={handleJoinWaitlist}
+                >
+                  Join Waitlist
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none sm:hidden"
+                  aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
+                >
+                  <div className="relative w-6 h-4 flex flex-col justify-center items-center">
+                    <motion.div
+                      className="w-4 h-[1.5px] bg-black absolute"
+                      animate={{
+                        rotate: isSidebarOpen ? 45 : 0,
+                        y: isSidebarOpen ? 0 : -4,
+                      }}
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeInOut",
+                      }}
                     />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
-                    {menuItems.map((item) => (
-                      <Link
-                        key={item.key}
-                        href={item.href}
-                        className="flex flex-col"
+                    <motion.div
+                      className="w-4 h-[1.5px] bg-black absolute"
+                      animate={{
+                        opacity: isSidebarOpen ? 0 : 1,
+                      }}
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeInOut",
+                      }}
+                    />
+                    <motion.div
+                      className="w-4 h-[1.5px] bg-black absolute"
+                      animate={{
+                        rotate: isSidebarOpen ? -45 : 0,
+                        y: isSidebarOpen ? 0 : 4,
+                      }}
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeInOut",
+                      }}
+                    />
+                  </div>
+                  {/* <span className="sm:text-sm text-xs font-medium uppercase select-none">
+                    MENU
+                  </span> */}
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Avatar/Sign In - only visible on xl screens (>=1280px) */}
+                <div className="hidden xl:flex items-center gap-x-3">
+                  {!isLoaded || profilePhotoLoading ? (
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                  ) : isSignedIn ? (
+                    <DropdownMenu onOpenChange={onAvatarMenuOpenChange}>
+                      <DropdownMenuTrigger asChild>
+                        <Avatar
+                          isBordered
+                          as="button"
+                          className={"transition-transform"}
+                          color="secondary"
+                          name={user?.fullName || user?.username || "User"}
+                          size="sm"
+                          src={profilePhotoUrl || user?.imageUrl}
+                        />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="p-4 min-w-[160px] backdrop-blur-2xl bg-white/50 rounded-2xl shadow-md transition-all duration-300 ease-in-out border-border mr-8">
+                        {menuItems.map((item) => (
+                          <Link
+                            key={item.key}
+                            href={item.href}
+                            className="flex flex-col"
+                          >
+                            <DropdownMenuItem
+                              key={item.key}
+                              onClick={item.onClick}
+                              className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
+                            >
+                              {item.label}
+                            </DropdownMenuItem>
+                          </Link>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Link href="/sign-in">
+                      <Button
+                        variant="default"
+                        className="px-4 h-9 rounded-full"
                       >
-                        <DropdownMenuItem
-                          key={item.key}
-                          onClick={item.onClick}
-                          className={`font-semibold w-full rounded-md px-4 py-1 text-sm border-none cursor-pointer flex items-center hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none bg-transparent text-foreground focus-within:!text-foreground !{item.className}`}
-                        >
-                          {item.label}
-                        </DropdownMenuItem>
-                      </Link>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Link href="/sign-in">
-                  <Button variant="default" className="px-4 h-9 rounded-full">
-                    Log In
-                  </Button>
-                </Link>
-              )}
-            </div>
-            {/* Hamburger - visible on screens < 1300px (xl breakpoint) */}
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(true)}
-              className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none xl:hidden"
-              aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
-            >
-              <div className="relative w-6 h-4 flex flex-col justify-center items-center">
-                {/* Top line */}
-                <motion.div
-                  className="w-4 h-[1.5px] bg-black absolute"
-                  animate={{
-                    rotate: isSidebarOpen ? 45 : 0,
-                    y: isSidebarOpen ? 0 : -2,
-                  }}
-                  transition={{
-                    duration: 0.3,
-                    ease: "easeInOut",
-                  }}
-                />
-                {/* Bottom line */}
-                <motion.div
-                  className="w-4 h-[1.5px] bg-black absolute"
-                  animate={{
-                    rotate: isSidebarOpen ? -45 : 0,
-                    y: isSidebarOpen ? 0 : 2,
-                  }}
-                  transition={{
-                    duration: 0.3,
-                    ease: "easeInOut",
-                  }}
-                />
-              </div>
-              <span className="sm:text-sm text-xs font-medium uppercase select-none">
-                MENU
-              </span>
-            </button>
+                        Log In
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+                {/* Hamburger - visible on screens < 1300px (xl breakpoint) */}
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none xl:hidden"
+                  aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
+                >
+                  <div className="relative w-6 h-4 flex flex-col justify-center items-center">
+                    {/* Top line */}
+                    <motion.div
+                      className="w-4 h-[1.5px] bg-black absolute"
+                      animate={{
+                        rotate: isSidebarOpen ? 45 : 0,
+                        y: isSidebarOpen ? 0 : -4,
+                      }}
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeInOut",
+                      }}
+                    />
+                    {/* Middle line */}
+                    <motion.div
+                      className="w-4 h-[1.5px] bg-black absolute"
+                      animate={{
+                        opacity: isSidebarOpen ? 0 : 1,
+                      }}
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeInOut",
+                      }}
+                    />
+                    {/* Bottom line */}
+                    <motion.div
+                      className="w-4 h-[1.5px] bg-black absolute"
+                      animate={{
+                        rotate: isSidebarOpen ? -45 : 0,
+                        y: isSidebarOpen ? 0 : 4,
+                      }}
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeInOut",
+                      }}
+                    />
+                  </div>
+                  <span className="sm:text-sm text-xs font-medium uppercase select-none">
+                    MENU
+                  </span>
+                </button>
+              </>
+            )}
           </div>
         </NavbarContent>
       </Navbar>
