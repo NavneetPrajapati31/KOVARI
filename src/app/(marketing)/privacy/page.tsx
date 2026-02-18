@@ -6,150 +6,170 @@ export default function PrivacyPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-background pt-16 md:pt-24 pb-12 md:pb-16">
-        <div className="container mx-auto px-8 max-w-[800px]">
+      <div className="min-h-screen bg-background pt-16 md:pt-24 pb-12 md:pb-16 font-sans selection:bg-muted-foreground/20">
+        <div className="container mx-auto px-8 max-w-[720px]">
           {/* Header */}
-          <div className="mb-10 md:mb-16 border-b pb-6 md:pb-8">
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground mb-2">
+          <div className="mb-12 md:mb-16">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
               Privacy Policy
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium">
               Last updated: {lastUpdated}
             </p>
           </div>
 
           {/* Content */}
-          <div className="space-y-8 md:space-y-12 text-sm md:text-base leading-relaxed text-muted-foreground">
+          <div className="space-y-12 md:space-y-16">
             
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">1. Overview</h2>
-              <p>
-                KOVARI (“we”, “our”) respects your privacy and is committed to protecting your personal data.
-              </p>
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">1. Overview</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  KOVARI (“we”, “our”) respects your privacy and is committed to protecting your personal data.
+                </p>
+              </div>
             </section>
 
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">2. Information We Collect</h2>
-              
-              <div className="mb-6">
-                <h3 className="text-base font-medium text-foreground mb-2">a. Information You Provide</h3>
-                <ul className="list-disc pl-5 space-y-1 marker:text-muted-foreground">
-                  <li>Name, username</li>
-                  <li>Email address</li>
-                  <li>Profile details (age, interests, preferences)</li>
-                  <li>Travel plans (destination, dates, budget)</li>
-                  <li>Messages and content shared</li>
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">2. Information We Collect</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-foreground mb-3">a. Information You Provide</h3>
+                  <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Name, username</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Email address</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Profile details (age, interests, preferences)</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Travel plans (destination, dates, budget)</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Messages and content shared</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium text-foreground mb-3">b. Automatically Collected</h3>
+                  <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Device and browser information</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>IP address</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Usage data (pages visited, actions)</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">3. How We Use Your Data</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">We use your data to:</p>
+                <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Provide and operate the platform</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Match you with relevant travelers</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Enable communication between users</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Improve features and performance</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Ensure safety and prevent misuse</li>
                 </ul>
               </div>
+            </section>
 
-              <div>
-                <h3 className="text-base font-medium text-foreground mb-2">b. Automatically Collected</h3>
-                <ul className="list-disc pl-5 space-y-1 marker:text-muted-foreground">
-                  <li>Device and browser information</li>
-                  <li>IP address</li>
-                  <li>Usage data (pages visited, actions)</li>
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">4. Data Sharing</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-foreground mb-3">Service Providers:</h3>
+                  <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">We share data with trusted providers who process data on our behalf:</p>
+                  <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Authentication (Clerk)</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Database (Supabase)</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Media (Cloudinary, Uploadthing)</li>
+                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Email services (Brevo)</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium text-foreground mb-3">Legal Requirements:</h3>
+                  <p className="text-base md:text-lg text-muted-foreground leading-relaxed">We may disclose data if required by law.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">5. Data Storage & Security</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Data is stored securely using trusted third-party providers</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We implement reasonable safeguards to protect your information</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>However, no system is 100% secure</li>
                 </ul>
               </div>
             </section>
 
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">3. How We Use Your Data</h2>
-              <p className="mb-3">We use your data to:</p>
-              <ul className="list-disc pl-5 space-y-1 marker:text-muted-foreground">
-                <li>Provide and operate the platform</li>
-                <li>Match you with relevant travelers</li>
-                <li>Enable communication between users</li>
-                <li>Improve features and performance</li>
-                <li>Ensure safety and prevent misuse</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">4. Data Sharing</h2>
-              
-              <div className="mb-6">
-                <h3 className="text-base font-medium text-foreground mb-2">Service Providers:</h3>
-                <p className="mb-2">We share data with trusted providers who process data on our behalf:</p>
-                <ul className="list-disc pl-5 space-y-1 mb-4 marker:text-muted-foreground">
-                  <li>Authentication (Clerk)</li>
-                  <li>Database (Supabase)</li>
-                  <li>Media (Cloudinary, Uploadthing)</li>
-                  <li>Email services (Brevo)</li>
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">6. User Communication</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Messages between users may be stored for functionality and safety</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may review content for moderation purposes</li>
                 </ul>
               </div>
+            </section>
 
-              <div>
-                <h3 className="text-base font-medium text-foreground mb-2">Legal Requirements:</h3>
-                <p>We may disclose data if required by law.</p>
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">7. Your Rights</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">You can:</p>
+                <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Access your data</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Update your profile</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Request deletion of your account</li>
+                </ul>
               </div>
             </section>
 
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">5. Data Storage & Security</h2>
-              <ul className="list-disc pl-5 space-y-1 marker:text-muted-foreground">
-                <li>Data is stored securely using trusted third-party providers</li>
-                <li>We implement reasonable safeguards to protect your information</li>
-                <li>However, no system is 100% secure</li>
-              </ul>
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">8. Data Retention</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  We retain data as long as necessary to provide services and comply with legal obligations.
+                </p>
+              </div>
             </section>
 
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">6. User Communication</h2>
-              <ul className="list-disc pl-5 space-y-1 marker:text-muted-foreground">
-                <li>Messages between users may be stored for functionality and safety</li>
-                <li>We may review content for moderation purposes</li>
-              </ul>
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">9. Cookies & Tracking</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">We may use basic analytics and cookies to improve user experience.</p>
+              </div>
             </section>
 
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">7. Your Rights</h2>
-              <p className="mb-3">You can:</p>
-              <ul className="list-disc pl-5 space-y-1 mb-3 marker:text-muted-foreground">
-                <li>Access your data</li>
-                <li>Update your profile</li>
-                <li>Request deletion of your account</li>
-              </ul>
-              {/* <p>
-                To request deletion:{" "}
-                <a href="mailto:support@kovari.com" className="text-primary hover:text-primary/80 font-medium transition-colors">
-                  support@kovari.com
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">10. Third-Party Links</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">We are not responsible for third-party services or websites.</p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">11. Children’s Privacy</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">KOVARI is not intended for users under 18.</p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">12. Changes to Policy</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">We may update this Privacy Policy periodically.</p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">13. Contact</h2>
+              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-2 leading-relaxed">For any questions:</p>
+                <a href="mailto:support@kovari.in" className="text-base md:text-lg text-primary hover:text-primary/80 font-medium transition-colors border-b border-primary/20 hover:border-primary">
+                  support@kovari.in
                 </a>
-              </p> */}
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">8. Data Retention</h2>
-              <p>
-                We retain data as long as necessary to provide services and comply with legal obligations.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">9. Cookies & Tracking</h2>
-              <p>We may use basic analytics and cookies to improve user experience.</p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">10. Third-Party Links</h2>
-              <p>We are not responsible for third-party services or websites.</p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">11. Children’s Privacy</h2>
-              <p>KOVARI is not intended for users under 18.</p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">12. Changes to Policy</h2>
-              <p>We may update this Privacy Policy periodically.</p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">13. Contact</h2>
-              <p className="mb-1">For any questions:</p>
-              <a href="mailto:support@kovari.com" className="text-primary hover:text-primary/80 font-medium transition-colors">
-                support@kovari.com
-              </a>
+              </div>
             </section>
           </div>
         </div>
