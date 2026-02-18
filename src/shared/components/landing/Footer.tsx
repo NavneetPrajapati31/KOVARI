@@ -10,7 +10,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6">
           {/* Left: Brand */}
           <div className="flex flex-col items-center md:items-start">
-            <h3 className="text-base sm:text-lg font-clash tracking-widest font-medium mb-1">
+            <h3 className="text-base sm:text-lg font-clash tracking-widest font-medium mb-2 md:mb-1">
               KOVARI
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground">
