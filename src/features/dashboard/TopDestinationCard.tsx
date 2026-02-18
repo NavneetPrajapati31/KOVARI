@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@heroui/react";
+import { Card, Image } from "@heroui/react";
 import { ArrowUp, MapPin } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Avatar } from "@/shared/components/ui/avatar";
@@ -20,32 +20,7 @@ interface DestinationCardProps {
   isLoading?: boolean;
 }
 
-// Client-side image stretch component
-interface ImageStretchProps {
-  src: string;
-  alt: string;
-  ariaLabel?: string;
-  className?: string;
-}
 
-const ImageStretch = ({
-  src,
-  alt,
-  ariaLabel,
-  className = "",
-}: ImageStretchProps) => {
-  return (
-    <div className="w-full h-full">
-      <img
-        src={src}
-        alt={alt}
-        aria-label={ariaLabel}
-        className={`w-full h-full object-fill object-bottom object-right transition-all duration-500 ${className}`}
-        style={{ display: "block" }}
-      />
-    </div>
-  );
-};
 
 export function TopDestinationCard({
   name,
@@ -98,11 +73,12 @@ export function TopDestinationCard({
       {/* Background Image or empty state fallback (matches GroupCoverCard) */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-muted rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl">
         {imageUrl?.trim() ? (
-          <ImageStretch
+          <Image
+            removeWrapper
             src={imageUrl}
             alt="Top destination"
-            ariaLabel="Top destination"
-            className="rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl"
+            className="w-full h-full object-cover object-center transition-all duration-500 rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl"
+            radius="none"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-secondary rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl border border-border">

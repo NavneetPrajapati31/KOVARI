@@ -155,7 +155,14 @@ const GroupHomePage = () => {
   const [noteText, setNoteText] = useState("");
   const [noteSaveLoading, setNoteSaveLoading] = useState(false);
   const [noteSaveError, setNoteSaveError] = useState<string | null>(null);
-  const [displayDate, setDisplayDate] = useState("Jun 22, 2024");
+  const [displayDate, setDisplayDate] = useState(
+    new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: IST_TIMEZONE,
+    }),
+  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
