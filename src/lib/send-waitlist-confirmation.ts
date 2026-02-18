@@ -42,7 +42,7 @@ export async function sendWaitlistConfirmation({
         defaultClient.timeout = 90000;
 
         const senderEmail =
-          process.env.BREVO_FROM_EMAIL || "noreply@kovari.com";
+          process.env.BREVO_FROM_EMAIL || "navneet@kovari.com";
         const senderName = process.env.BREVO_FROM_NAME || "KOVARI";
 
         span.setAttribute("recipient", to);
@@ -52,7 +52,14 @@ export async function sendWaitlistConfirmation({
         const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
         sendSmtpEmail.to = [{ email: to }];
         sendSmtpEmail.sender = { email: senderEmail, name: senderName };
-        sendSmtpEmail.subject = "You're on the KOVARI waitlist";
+        sendSmtpEmail.subject = "You're early 👀";
+        const replyToEmail = process.env.BREVO_REPLY_TO_EMAIL || senderEmail;
+        const replyToName = process.env.BREVO_REPLY_TO_NAME || senderName;
+
+        (sendSmtpEmail as any).replyTo = {
+          email: replyToEmail,
+          name: replyToName,
+        };
         sendSmtpEmail.htmlContent = waitlistConfirmationEmail();
 
         const isRetriable = (err: unknown) => {

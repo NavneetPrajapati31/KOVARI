@@ -4,15 +4,16 @@ import { emailLayout, paragraph, heading, smallText } from "./layout";
 
 export const waitlistConfirmationEmail = () => {
   const content = `
-    ${heading("You're on the list! 🚀")}
-    ${paragraph("Thanks for joining the Kovari waitlist. We're thrilled to have you with us.")}
-    ${paragraph("We're building the ultimate platform to help you match with the right people, plan trips together, and explore safely — without the chaos.")}
-    ${paragraph("We'll be in touch soon with exclusive updates and early access.")}
-    ${smallText("Stay tuned for more updates!")}
+    ${paragraph("Hey,")}
+    ${paragraph("You're on the KOVARI waitlist — appreciate you getting in early.")}
+    ${paragraph("We're building this for people who don’t want to plan trips in messy WhatsApp groups or travel with random people.")}
+    ${paragraph("We’ll be opening access soon in small batches.")}
+    ${paragraph("Quick question — where are you planning to travel next?")}
   `;
 
   return emailLayout({
     content,
-    previewText: "You are now on the Kovari waitlist!",
+    previewText: "We appreciate you getting in early.",
+    hideLogo: true,
   });
 };
