@@ -348,12 +348,15 @@ const calculateLifestyleScore = (
 // --- Main Compatibility Score Calculation ---
 // This function combines all individual scores using the defined weights.
 // Priority order (descending): destination > dateOverlap > budget > interests > age > personality > locationOrigin > lifestyle > religion
+// Now enhanced with ML scoring (with fallback to rule-based)
 
-export const calculateFinalCompatibilityScore = (
+export const calculateFinalCompatibilityScore = async (
   userSession: SoloSession,
   matchSession: SoloSession,
-  filterBoost?: FilterBoost
-): { score: number; breakdown: any; budgetDifference: string } => {
+  filterBoost?: FilterBoost,
+  useML: boolean = true,
+  providedMLScore?: number | null
+): Promise<{ score: number; breakdown: any; budgetDifference: string; mlScore?: number }> => {
   const baseWeights = {
     destination: 0.25, // Highest priority - where they want to go
     dateOverlap: 0.2, // Second priority - when they want to go (with 1-day minimum)
@@ -421,7 +424,8 @@ export const calculateFinalCompatibilityScore = (
     ),
   };
 
-  const finalScore =
+  // Calculate rule-based score
+  const ruleBasedScore =
     scores.destinationScore * weights.destination +
     scores.dateOverlapScore * weights.dateOverlap +
     scores.personalityScore * weights.personality +
@@ -432,7 +436,57 @@ export const calculateFinalCompatibilityScore = (
     scores.ageScore * weights.age +
     scores.lifestyleScore * weights.lifestyle;
 
-  return { score: finalScore, breakdown: scores, budgetDifference };
+  // Try ML scoring if enabled
+  // Note: ML score can be passed in from batch prediction for better performance
+  let finalScore = ruleBasedScore;
+  let mlScore: number | undefined = providedMLScore ?? undefined;
+
+  if (useML) {
+    // If mlScore is provided (from batch prediction), use it directly
+    // Otherwise, fall back to individual prediction (for backward compatibility)
+    if (mlScore !== undefined && mlScore !== null) {
+      // Blend ML score with rule-based score (60% ML, 40% rule-based)
+      finalScore = mlScore * 0.6 + ruleBasedScore * 0.4;
+      
+      // Log ML vs rule-based comparison for performance monitoring
+      const difference = finalScore - ruleBasedScore;
+      const percentChangeNum = (difference / ruleBasedScore) * 100;
+      const percentChange = percentChangeNum.toFixed(1);
+      console.log(
+        `🤖 ML Scoring: Rule-based=${ruleBasedScore.toFixed(3)}, ML=${mlScore.toFixed(3)}, Blended=${finalScore.toFixed(3)} (${difference >= 0 ? '+' : ''}${difference.toFixed(3)}, ${percentChangeNum >= 0 ? '+' : ''}${percentChange}%)`
+      );
+    } else {
+      // Fallback to individual ML prediction (slower, but works if batch not available)
+      try {
+        const { calculateMLCompatibilityScore } = await import("../ai/matching/ml-scoring");
+        const mlResult = await calculateMLCompatibilityScore(userSession, matchSession, {
+          enabled: true,
+          fallbackOnError: true,
+        });
+
+        if (mlResult !== null) {
+          mlScore = mlResult;
+          // Blend ML score with rule-based score (60% ML, 40% rule-based)
+          finalScore = mlResult * 0.6 + ruleBasedScore * 0.4;
+          
+          // Log ML vs rule-based comparison for performance monitoring
+          const difference = finalScore - ruleBasedScore;
+          const percentChangeNum = (difference / ruleBasedScore) * 100;
+          const percentChange = percentChangeNum.toFixed(1);
+          console.log(
+            `🤖 ML Scoring: Rule-based=${ruleBasedScore.toFixed(3)}, ML=${mlResult.toFixed(3)}, Blended=${finalScore.toFixed(3)} (${difference >= 0 ? '+' : ''}${difference.toFixed(3)}, ${percentChangeNum >= 0 ? '+' : ''}${percentChange}%)`
+          );
+        } else {
+          console.log(`⚠️  ML scoring unavailable, using rule-based: ${ruleBasedScore.toFixed(3)}`);
+        }
+      } catch (error) {
+        // Silently fall back to rule-based scoring
+        console.debug("ML scoring unavailable, using rule-based:", error);
+      }
+    }
+  }
+
+  return { score: finalScore, breakdown: scores, budgetDifference, mlScore };
 };
 
 // NEW: Enhanced compatibility check with source/destination validation and configurable distance filter

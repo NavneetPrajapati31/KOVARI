@@ -31,7 +31,7 @@ export const createClient = () => {
   }
 };
 
-// For API/server routes
+// For API/server routes (uses anon key, subject to RLS)
 export const createRouteHandlerSupabaseClient = () => {
   try {
     return createServerClient(getSupabaseUrl(), getSupabaseAnonKey());
@@ -41,31 +41,57 @@ export const createRouteHandlerSupabaseClient = () => {
   }
 };
 
+// For API/server routes that need to bypass RLS (uses service role key)
+export const createRouteHandlerSupabaseClientWithServiceRole = () => {
+  try {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+      console.warn("SUPABASE_SERVICE_ROLE_KEY not found, falling back to anon key");
+      return createRouteHandlerSupabaseClient();
+    }
+    return createServerClient(getSupabaseUrl(), serviceRoleKey);
+  } catch (error) {
+    console.error("Failed to create Supabase server client with service role:", error);
+    throw error;
+  }
+};
+
 // Helper function to get the Supabase UUID from a Clerk ID
+// Uses service role key to bypass RLS for server-side operations
 const getSupabaseUuidFromClerkId = async (clerkId: string): Promise<string | null> => {
-  const supabase = createRouteHandlerSupabaseClient();
+  const supabase = createRouteHandlerSupabaseClientWithServiceRole();
   const { data, error } = await supabase
       .from("users") // Your mapping table
       .select("id") // The column with the Supabase UUID
       .eq("clerk_user_id", clerkId) // The column with the Clerk ID
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle missing users gracefully
 
   if (error) {
-      console.error("Failed to fetch user UUID for Clerk ID:", clerkId, error);
+      // Only log if it's not a "not found" error (PGRST116)
+      if (error.code !== 'PGRST116') {
+          console.warn("Failed to fetch user UUID for Clerk ID:", clerkId, error.message);
+      }
       return null;
   }
+  
+  if (!data) {
+      // User not found - this is normal for new users who haven't completed onboarding
+      return null;
+  }
+  
   return data.id;
 };
 
 // Re-adding the exported helper function
+// Uses service role key to bypass RLS for server-side operations
 export const getUserProfile = async (clerkId: string): Promise<UserProfile | null> => {
-  const supabase = createRouteHandlerSupabaseClient();
+  const supabase = createRouteHandlerSupabaseClientWithServiceRole();
   
   // Step 1: Get the Supabase UUID from the Clerk ID
   const supabaseUuid = await getSupabaseUuidFromClerkId(clerkId);
 
   if (!supabaseUuid) {
-      console.error(`No Supabase user found for Clerk ID: ${clerkId}`);
+      // User not found in database - this is normal for new users
       return null;
   }
 
@@ -75,11 +101,20 @@ export const getUserProfile = async (clerkId: string): Promise<UserProfile | nul
       .select('*')
       // FIX: Query against the `user_id` foreign key column, not the `id` primary key.
       .eq('user_id', supabaseUuid)
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle missing profiles gracefully
 
   if (error) {
-      console.error('Error fetching user profile with Supabase UUID:', error);
+      // Only log if it's not a "not found" error
+      if (error.code !== 'PGRST116') {
+          console.warn('Error fetching user profile with Supabase UUID:', error.message);
+      }
       return null;
   }
+  
+  if (!data) {
+      // Profile not found - user exists but profile is incomplete
+      return null;
+  }
+  
   return data;
 };

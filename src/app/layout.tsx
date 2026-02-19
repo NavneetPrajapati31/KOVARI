@@ -58,7 +58,10 @@ export default function RootLayout({
             rel="stylesheet"
           />
         </head>
-        <body className={`${inter.variable} ${poppins.variable} font-body`}>
+        <body
+          className={`${inter.variable} ${poppins.variable} font-body`}
+          suppressHydrationWarning
+        >
           <HeroUIProvider>
             <AuthProvider>{children}</AuthProvider>
             <Toaster

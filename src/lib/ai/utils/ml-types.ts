@@ -54,6 +54,8 @@ const REQUIRED_NUMERIC_KEYS: (keyof Omit<CompatibilityFeatures, 'matchType'>)[] 
   'interestScore',
   'ageScore',
   'personalityScore',
+  'destination_interest',  // Interaction feature
+  'date_budget',            // Interaction feature
 ] as const;
 
 /**
@@ -175,6 +177,24 @@ export type CompatibilityFeatures = {
    * - 0.0 = incompatible personalities
    */
   personalityScore: NormalizedScore;
+
+  /**
+   * Interaction feature: destinationScore * interestScore
+   * Amplifies when both destination and interest match well (nonlinear effect).
+   * Normalized to [0, 1].
+   * - 1.0 = both destination and interest are perfect matches
+   * - 0.0 = either destination or interest is a poor match
+   */
+  destination_interest: NormalizedScore;
+
+  /**
+   * Interaction feature: dateOverlapScore * budgetScore
+   * Amplifies when both date overlap and budget are compatible (nonlinear effect).
+   * Normalized to [0, 1].
+   * - 1.0 = both date overlap and budget are perfect matches
+   * - 0.0 = either date overlap or budget is a poor match
+   */
+  date_budget: NormalizedScore;
 
   /**
    * Normalized group size score (group matching only, optional).
@@ -368,6 +388,15 @@ export function coerceCompatibilityFeaturesToNormalized(
     interestScore: clampToRange(features.interestScore ?? NEUTRAL_SCORE),
     ageScore: clampToRange(features.ageScore ?? NEUTRAL_SCORE),
     personalityScore: clampToRange(features.personalityScore ?? NEUTRAL_SCORE),
+    // Calculate interaction features if not provided
+    destination_interest: clampToRange(
+      features.destination_interest ?? 
+      (clampToRange(features.distanceScore ?? NEUTRAL_SCORE) * clampToRange(features.interestScore ?? NEUTRAL_SCORE))
+    ),
+    date_budget: clampToRange(
+      features.date_budget ?? 
+      (clampToRange(features.dateOverlapScore ?? NEUTRAL_SCORE) * clampToRange(features.budgetScore ?? NEUTRAL_SCORE))
+    ),
   };
 
   // Add optional group-specific features if matchType is 'user_group'

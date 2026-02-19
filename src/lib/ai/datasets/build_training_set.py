@@ -17,6 +17,12 @@ import argparse
 from pathlib import Path
 from typing import List, Dict, Any
 import sys
+import io
+
+# Fix Windows console encoding for emojis
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 
 def parse_log_file(log_file: str) -> List[Dict[str, Any]]:
@@ -35,19 +41,22 @@ def parse_log_file(log_file: str) -> List[Dict[str, Any]]:
     records = []
     
     try:
-        with open(log_file, "r", encoding="utf-8") as f:
+        with open(log_file, "r", encoding="utf-8-sig") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
                 if not line:
                     continue
-                    
-                # Skip lines without ML_MATCH_EVENT marker
-                if "[ML_MATCH_EVENT]" not in line:
-                    continue
                 
+                # Handle both formats:
+                # 1. [ML_MATCH_EVENT] {"matchType": ...}
+                # 2. {"matchType": ...} (pure JSONL)
                 try:
-                    # Extract JSON payload after [ML_MATCH_EVENT]
-                    payload = line.split("[ML_MATCH_EVENT]", 1)[1].strip()
+                    if "[ML_MATCH_EVENT]" in line:
+                        # Extract JSON payload after [ML_MATCH_EVENT]
+                        payload = line.split("[ML_MATCH_EVENT]", 1)[1].strip()
+                    else:
+                        # Pure JSONL format (no prefix)
+                        payload = line
                     event = json.loads(payload)
                     records.append(event)
                 except json.JSONDecodeError as e:
@@ -125,6 +134,11 @@ def build_training_dataset(
     
     # Flatten nested features
     features_df = pd.json_normalize(df["features"])
+    
+    # Fill missing features with 0 (handles different feature sets between real and synthetic events)
+    # Real events may have personalityScore, synthetic events have languageScore, lifestyleScore, backgroundScore
+    feature_cols = [col for col in features_df.columns if col != "matchType"]
+    features_df[feature_cols] = features_df[feature_cols].fillna(0)
     
     # Combine features with metadata
     metadata_cols = ["matchType", "preset", "timestamp", "label"]

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logMatchEvent, createMatchEventLog } from "@/lib/ai/logging/logMatchEvent";
+import { extractFeaturesForSoloMatch } from "@/lib/ai/logging/extract-features-for-logging";
+import { getSetting } from "@/lib/settings";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -93,6 +96,49 @@ export async function POST(request: Request) {
       .eq("match_type", "solo")
       .eq("status", "pending")
       .maybeSingle();
+
+    // Log ML event for interest creation (positive engagement)
+    try {
+      // Get Clerk IDs for both users
+      const { data: fromUser } = await supabaseAdmin
+        .from("users")
+        .select("clerk_user_id")
+        .eq("id", fromUuid)
+        .single();
+      
+      const { data: toUser } = await supabaseAdmin
+        .from("users")
+        .select("clerk_user_id")
+        .eq("id", toUuid)
+        .single();
+
+      if (fromUser?.clerk_user_id && toUser?.clerk_user_id) {
+        // Get matching preset for logging
+        const presetSetting = await getSetting("matching_preset");
+        const presetMode = (presetSetting as { mode: string } | null)?.mode || "balanced";
+
+        const features = await extractFeaturesForSoloMatch(
+          fromUser.clerk_user_id, // Current user (showing interest)
+          toUser.clerk_user_id,    // Target user
+          destinationId
+        );
+
+        if (features) {
+          // Log as "accept" since showing interest is positive engagement
+          logMatchEvent(
+            createMatchEventLog(
+              "user_user",
+              features,
+              "accept",
+              presetMode.toLowerCase()
+            )
+          );
+        }
+      }
+    } catch (logError) {
+      // Don't fail the interest creation if logging fails
+      console.error("Error logging interest event:", logError);
+    }
 
     if (reverse) {
       // Update both to accepted

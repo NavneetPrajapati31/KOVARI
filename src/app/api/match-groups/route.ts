@@ -401,11 +401,12 @@ export async function POST(req: NextRequest) {
       groupProfiles
     );
 
-    // Use the group matching algorithm to get scored matches
-    const matches = findGroupMatchesForUser(
+    // Use the group matching algorithm to get scored matches (with ML scoring)
+    const matches = await findGroupMatchesForUser(
       userProfile,
       groupProfiles,
-      presetConfig.maxDistanceKm
+      presetConfig.maxDistanceKm,
+      true // Enable ML scoring
     );
     console.log(
       `Matching algorithm returned ${matches.length} matches:`,

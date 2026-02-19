@@ -230,6 +230,11 @@ export function extractCompatibilityFeatures(
       (target as SoloLike).static_attributes?.personality
     );
 
+  // Calculate interaction features (nonlinear combinations)
+  // These will be properly normalized in coerceCompatibilityFeaturesToNormalized
+  const destination_interest = distance * interests;
+  const date_budget = dateOverlap * budget;
+
   const raw: Partial<CompatibilityFeatures> & { matchType: MatchType } = {
     matchType,
     distanceScore: distance,
@@ -238,6 +243,8 @@ export function extractCompatibilityFeatures(
     interestScore: interests,
     ageScore: age,
     personalityScore: personality,
+    destination_interest: destination_interest as any,  // Will be normalized in coerce function
+    date_budget: date_budget as any,                    // Will be normalized in coerce function
   };
 
   if (isGroup) {

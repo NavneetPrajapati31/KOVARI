@@ -1,12 +1,14 @@
 "use client";
 
-import { createBrowserClient } from "@supabase/ssr";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useCallback } from "react";
 
-// This assumes you already have a Supabase client setup in /lib/supabase.ts
+/**
+ * Hook to sync Clerk user to Supabase
+ * Uses server-side API endpoint to bypass RLS policies
+ */
 export function useSyncUserToSupabase() {
-  const { getToken, userId } = useAuth();
+  const { userId } = useAuth();
   const { user } = useUser();
 
   const syncUser = useCallback(
@@ -28,30 +30,19 @@ export function useSyncUserToSupabase() {
       } catch {}
 
       try {
-        const token = await getToken();
+        // Use server-side API endpoint to sync user (bypasses RLS)
+        // This is more secure and reliable than direct client-side inserts
+        const syncResponse = await fetch("/api/users/sync", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ clerkUserId: userId }),
+        });
 
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            global: {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          }
-        );
-
-        // Try to get the user to check if they exist
-        const { data: existingUser, error: fetchError } = await supabase
-          .from("users")
-          .select("id")
-          .eq("clerk_user_id", userId)
-          .single();
-
-        // If fetchError is not a "no rows" error, log and retry
-        if (fetchError && fetchError.code !== "PGRST116") {
-          console.error("Error checking user existence:", fetchError);
+        if (!syncResponse.ok) {
+          const errorData = await syncResponse.json().catch(() => ({}));
+          console.warn("Failed to sync user to Supabase:", errorData.error || syncResponse.statusText);
           if (retries > 0) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return syncUser(retries - 1);
@@ -59,30 +50,17 @@ export function useSyncUserToSupabase() {
           return false;
         }
 
-        // If user doesn't exist (either fetchError is "no rows" or data is null), try to create
-        let userIdInSupabase = existingUser?.id;
-        if (!existingUser) {
-          const { data: newUser, error: insertError } = await supabase
-            .from("users")
-            .insert({ clerk_user_id: userId })
-            .select("id")
-            .single();
-
-          if (insertError || !newUser) {
-            console.error("Failed to create user in Supabase:", insertError);
-            if (retries > 0) {
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              return syncUser(retries - 1);
-            }
-            return false;
+        const syncResult = await syncResponse.json();
+        if (!syncResult.success || !syncResult.userId) {
+          console.warn("User sync returned invalid result:", syncResult);
+          if (retries > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            return syncUser(retries - 1);
           }
-          userIdInSupabase = newUser.id;
-        }
-
-        if (!userIdInSupabase) {
-          console.error("User ID in Supabase is undefined after sync.");
           return false;
         }
+
+        const userIdInSupabase = syncResult.userId;
 
         // Mark as synced for the session
         try {
@@ -102,7 +80,7 @@ export function useSyncUserToSupabase() {
         return false;
       }
     },
-    [userId, user, getToken]
+    [userId, user]
   );
 
   return { syncUser };

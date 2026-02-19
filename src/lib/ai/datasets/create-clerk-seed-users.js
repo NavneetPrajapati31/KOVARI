@@ -25,44 +25,45 @@ if (!clerkSecretKey) {
 const clerk = createClerkClient({ secretKey: clerkSecretKey });
 
 // Seed users - matching the database seed data
+// Note: Using @example.com domain (reserved for documentation/testing) as Clerk doesn't accept .test domain
 const seedUsers = [
   {
-    email: 'budget.traveler@seed.test',
+    email: 'budget.traveler@example.com',
     password: 'SeedUser123!',
     firstName: 'Budget',
     lastName: 'Traveler',
     clerkUserId: 'seed_budget_traveler_001',
   },
   {
-    email: 'luxury.traveler@seed.test',
+    email: 'luxury.traveler@example.com',
     password: 'SeedUser123!',
     firstName: 'Luxury',
     lastName: 'Traveler',
     clerkUserId: 'seed_luxury_traveler_002',
   },
   {
-    email: 'solo.introvert@seed.test',
+    email: 'solo.introvert@example.com',
     password: 'SeedUser123!',
     firstName: 'Solo',
     lastName: 'Introvert',
     clerkUserId: 'seed_solo_introvert_003',
   },
   {
-    email: 'extrovert.group@seed.test',
+    email: 'extrovert.group@example.com',
     password: 'SeedUser123!',
     firstName: 'Extrovert',
     lastName: 'Group-Friendly',
     clerkUserId: 'seed_extrovert_group_004',
   },
   {
-    email: 'short.trip@seed.test',
+    email: 'short.trip@example.com',
     password: 'SeedUser123!',
     firstName: 'Short',
     lastName: 'Trip',
     clerkUserId: 'seed_short_trip_005',
   },
   {
-    email: 'long.trip@seed.test',
+    email: 'long.trip@example.com',
     password: 'SeedUser123!',
     firstName: 'Long',
     lastName: 'Trip',
@@ -101,6 +102,14 @@ async function createClerkUser(userData) {
     return user.id;
   } catch (error) {
     console.error(`❌ Error creating Clerk user ${userData.email}:`, error.message);
+    if (error.errors && error.errors.length > 0) {
+      console.error(`   Details:`, JSON.stringify(error.errors, null, 2));
+    }
+    if (error.statusCode) {
+      console.error(`   Status Code:`, error.statusCode);
+    }
+    // Log full error for debugging
+    console.error(`   Full error:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     return null;
   }
 }

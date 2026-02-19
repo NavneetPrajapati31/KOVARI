@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useState } from "react";
-import { useSignIn, useSignUp } from "@clerk/nextjs";
+import { useSignIn, useSignUp, useAuth } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -24,6 +24,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
   const { signIn, setActive } = useSignIn();
   const { signUp, setActive: setActiveSignUp } = useSignUp();
+  const { isSignedIn, signOut } = useAuth();
   const router = useRouter();
 
   const isSignUp = mode === "sign-up";
@@ -58,6 +59,13 @@ export default function AuthForm({ mode }: AuthFormProps) {
         }
       } else {
         // Sign in with email and password
+        // If user is already signed in, sign them out first
+        if (isSignedIn) {
+          await signOut();
+          // Wait a moment for sign out to complete
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
         const result = await signIn?.create({
           identifier: email,
           password,
@@ -69,6 +77,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
             session: result.createdSessionId,
           });
           router.push("/");
+        } else if (result?.status === "needs_first_factor") {
+          // Handle MFA or other first factor requirements
+          setError("Additional verification required");
         }
       }
     } catch (err: any) {

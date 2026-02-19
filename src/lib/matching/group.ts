@@ -176,10 +176,11 @@ const calculateBackgroundScore = (
  * @param allGroups An array of group profiles fetched from your database.
  * @returns A ranked list of matched groups.
  */
-export const findGroupMatchesForUser = (
+export const findGroupMatchesForUser = async (
   user: UserProfile,
   allGroups: GroupProfile[],
-  maxDistanceKm: number = 200
+  maxDistanceKm: number = 200,
+  useML: boolean = true
 ) => {
   // Step 1: Apply the hard distance filter. Only groups within maxDistanceKm are considered.
   const nearbyGroups = allGroups.filter((group) =>
@@ -187,7 +188,8 @@ export const findGroupMatchesForUser = (
   );
 
   // Step 2: Calculate a comprehensive, weighted score for every nearby group.
-  const scoredMatches = nearbyGroups.map((group) => {
+  const scoredMatches = await Promise.all(
+    nearbyGroups.map(async (group) => {
     // Define the importance of each attribute in the final score. Total must be 1.0.
     const weights = {
       budget: 0.2,
@@ -219,8 +221,8 @@ export const findGroupMatchesForUser = (
     const lifestyleScore = calculateLifestyleScore(user, group);
     const backgroundScore = calculateBackgroundScore(user, group);
 
-    // --- Calculate the Final Weighted Score ---
-    const finalScore =
+    // --- Calculate the Final Weighted Score (Rule-based) ---
+    const ruleBasedScore =
       budgetScore * weights.budget +
       dateOverlapScore * weights.dateOverlap +
       interestScore * weights.interests +
@@ -229,9 +231,59 @@ export const findGroupMatchesForUser = (
       lifestyleScore * weights.lifestyle +
       backgroundScore * weights.background;
 
+    // Try ML scoring if enabled
+    let finalScore = ruleBasedScore;
+    let mlScore: number | undefined;
+
+    if (useML) {
+      try {
+        const { calculateMLGroupCompatibilityScore } = await import("../ai/matching/ml-scoring");
+        const mlResult = await calculateMLGroupCompatibilityScore(
+          {
+            destination: user.destination,
+            startDate: user.startDate,
+            endDate: user.endDate,
+            budget: user.budget,
+            age: user.age,
+            interests: user.interests,
+            languages: user.languages,
+            smoking: user.smoking ? "yes" : "no",
+            drinking: user.drinking ? "yes" : "no",
+            nationality: user.nationality,
+          },
+          {
+            destination: group.destination,
+            startDate: group.startDate,
+            endDate: group.endDate,
+            averageBudget: group.averageBudget,
+            averageAge: group.averageAge,
+            topInterests: group.topInterests,
+            dominantLanguages: group.dominantLanguages,
+            smokingPolicy: group.smokingPolicy,
+            drinkingPolicy: group.drinkingPolicy,
+            dominantNationalities: group.dominantNationalities,
+          },
+          {
+            enabled: true,
+            fallbackOnError: true,
+          }
+        );
+
+        if (mlResult !== null) {
+          mlScore = mlResult;
+          // Blend ML score with rule-based score (70% ML, 30% rule-based)
+          finalScore = mlResult * 0.7 + ruleBasedScore * 0.3;
+        }
+      } catch (error) {
+        // Silently fall back to rule-based scoring
+        console.debug("ML group scoring unavailable, using rule-based:", error);
+      }
+    }
+
     return {
       group,
       score: parseFloat(finalScore.toFixed(3)),
+      mlScore: mlScore ? parseFloat(mlScore.toFixed(3)) : undefined,
       breakdown: {
         // Optional: include for debugging or more detailed UI
         budget: parseFloat(budgetScore.toFixed(3)),
@@ -241,7 +293,8 @@ export const findGroupMatchesForUser = (
         //... add other scores if needed for the UI
       },
     };
-  });
+  })
+  );
 
   // Step 3: Rank the scored matches from highest to lowest.
   return scoredMatches.sort((a, b) => b.score - a.score);
