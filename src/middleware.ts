@@ -35,6 +35,7 @@ const isWaitlistPublicPath = createRouteMatcher([
   "/manifest.webmanifest",
   "/opengraph-image(.*)",
   "/twitter-image(.*)",
+  "/google54b5f6252311fa10.html",
 ]);
 
 /** Check if user is in launch_bypass_users table */
