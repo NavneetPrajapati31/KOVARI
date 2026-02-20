@@ -1,5 +1,11 @@
 import Footer from "@/shared/components/landing/Footer";
 import React from "react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | KOVARI",
+  description: "Read KOVARI's Privacy Policy to understand how we collect, use, and protect your personal data when you use our platform to connect with other travelers.",
+};
 
 export default function PrivacyPage() {
   const lastUpdated = "February 19, 2026";

@@ -1,5 +1,11 @@
 import Footer from "@/shared/components/landing/Footer";
 import React from "react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service | KOVARI",
+  description: "Review KOVARI's Terms of Service. Understand the rules, guidelines, and terms you agree to when using our platform for travel connections and planning.",
+};
 
 export default function TermsPage() {
   const lastUpdated = "February 19, 2026";

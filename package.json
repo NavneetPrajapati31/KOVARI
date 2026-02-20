@@ -1,5 +1,5 @@
 {
-  "name": "saas",
+  "name": "kovari",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -78,6 +78,7 @@
     "@types/crypto-js": "^4.2.2",
     "@uploadthing/react": "^7.3.1",
     "@vercel/analytics": "^1.6.1",
+    "@vercel/og": "^0.8.6",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",

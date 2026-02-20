@@ -37,8 +37,58 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "KOVARI",
-  description: "Connect with like-minded travelers.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kovari.vercel.app"),
+  title: {
+    default: "KOVARI | Travel and Connect with Like-Minded People",
+    template: "%s | KOVARI",
+  },
+  description: "Join KOVARI to connect, plan, and travel with like-minded individuals. Discover new destinations and build meaningful connections in a trusted community.",
+  keywords: [
+    "travel community",
+    "travel groups",
+    "connect with travelers",
+    "like-minded travelers",
+    "travel companionship",
+    "trip planning",
+    "backpacking groups",
+    "KOVARI",
+  ],
+  authors: [{ name: "Team KOVARI" }],
+  creator: "Team KOVARI",
+  publisher: "KOVARI",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    title: "KOVARI | Travel and Connect with Like-Minded People",
+    description: "Join KOVARI to connect, plan, and travel with like-minded individuals. Discover new destinations and build meaningful connections.",
+    siteName: "KOVARI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KOVARI | Travel and Connect",
+    description: "Join KOVARI to connect, plan, and travel with like-minded individuals.",
+    creator: "@KovariApp",
+  },
+  alternates: {
+    canonical: "/",
+  },
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

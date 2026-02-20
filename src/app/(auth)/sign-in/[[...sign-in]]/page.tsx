@@ -1,6 +1,13 @@
 import AuthForm from "@/features/auth/components/auth-form";
 import HeroSection from "@/features/auth/components/hero-section";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sign In | KOVARI",
+  description: "Sign in to your KOVARI account to continue connecting with travelers, joining groups, and planning your next trip.",
+};
+
 export default function SignInPage() {
   return (
     <div className="h-screen flex items-center">

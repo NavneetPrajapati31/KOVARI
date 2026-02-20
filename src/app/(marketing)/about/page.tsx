@@ -1,5 +1,11 @@
 import Footer from "@/shared/components/landing/Footer";
 import React from "react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Us | KOVARI",
+  description: "Learn about KOVARI's mission to make travel more human. We're building a platform to help travelers connect, plan, and travel with like-minded individuals safely and intentionally.",
+};
 
 export default function AboutPage() {
   return (
