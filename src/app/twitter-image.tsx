@@ -23,26 +23,58 @@ export default async function Image() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#000000",
-          backgroundImage: "radial-gradient(circle at 50% -20%, #2a2a2a 0%, #000000 80%)",
-          color: "white",
+          backgroundColor: "#f9fafb", // dev-theme background
+          color: "#1c1c1e", // dev-theme foreground
           fontFamily: "Inter, sans-serif",
+          position: "relative",
         }}
       >
+        {/* Header */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            padding: "40px 60px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: "0.1em", color: "#1c1c1e" }}>
+            KOVARI
+          </span>
+          <div
+            style={{
+              backgroundColor: "#007aff",
+              color: "#ffffff",
+              padding: "12px 24px",
+              borderRadius: "50px",
+              fontSize: 20,
+              fontWeight: 500,
+            }}
+          >
+            Early Access
+          </div>
+        </div>
+
         {/* Top Badge */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "10px 24px",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
+            padding: "8px 24px",
+            border: "1px solid #e5e7eb", // dev-theme border
             borderRadius: "40px",
-            marginBottom: "50px",
-            backgroundColor: "rgba(255, 255, 255, 0.05)",
+            marginBottom: "40px",
+            backgroundColor: "#ffffff", // white background for badge
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
           }}
         >
-          <span style={{ fontSize: 22, color: "#a1a1aa", fontWeight: 500, letterSpacing: "0.02em" }}>
+          <span style={{ fontSize: 20, color: "#4b5563", fontWeight: 500, letterSpacing: "0.01em" }}>
             Plan Trips. Find People. Travel Together.
           </span>
         </div>
@@ -59,11 +91,11 @@ export default async function Image() {
           <h1
             style={{
               fontSize: 84,
-              fontWeight: 700,
+              fontWeight: 600,
               letterSpacing: "-0.04em",
               margin: 0,
-              lineHeight: 1.1,
-              color: "#ffffff",
+              lineHeight: 1.15,
+              color: "#1c1c1e",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -71,17 +103,17 @@ export default async function Image() {
           >
             <span>Connect & Travel</span>
             <span style={{ display: "flex", alignItems: "center" }}>
-              With the <span style={{ color: "#d4d4d8", paddingLeft: "20px", paddingRight: "20px" }}>Right</span> People
+              With the Right People
             </span>
           </h1>
           
           {/* Hero Subtitle */}
           <p
             style={{
-              fontSize: 32,
-              color: "#a1a1aa",
-              marginTop: "40px",
-              marginBottom: "60px",
+              fontSize: 30,
+              color: "#4b5563", // dev-theme muted-foreground
+              marginTop: "30px",
+              marginBottom: "50px",
               textAlign: "center",
               maxWidth: "880px",
               lineHeight: 1.5,
@@ -97,13 +129,12 @@ export default async function Image() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "#ffffff",
-              color: "#000000",
-              padding: "24px 48px",
+              backgroundColor: "#007aff", // dev-theme primary
+              color: "#ffffff",
+              padding: "20px 48px",
               borderRadius: "50px",
-              fontSize: 28,
-              fontWeight: 700,
-              letterSpacing: "-0.01em",
+              fontSize: 26,
+              fontWeight: 600,
             }}
           >
             Get Early Access
