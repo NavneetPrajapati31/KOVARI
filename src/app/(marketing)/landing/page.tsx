@@ -1,17 +1,19 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import React, { useState, useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 import Hero from "@/shared/components/landing/Hero";
-import Audience from "@/shared/components/landing/Audience";
-import HowItWorks from "@/shared/components/landing/HowItWorks";
-import Features from "@/shared/components/landing/Features";
-import Safety from "@/shared/components/landing/Safety";
-import FinalCTA from "@/shared/components/landing/FinalCTA";
-import Footer from "@/shared/components/landing/Footer";
-import TopPicksSection from "@/shared/components/TopPicksSection";
-import WaitlistModal from "@/shared/components/landing/WaitlistModal";
 import { getAllDestinations } from "@/lib/data/topPicksDestinations";
+
+// Lazy load below-the-fold content to aggressively improve JS parsing and TBT on mobile
+const Audience = dynamic(() => import("@/shared/components/landing/Audience"));
+const HowItWorks = dynamic(() => import("@/shared/components/landing/HowItWorks"));
+const Features = dynamic(() => import("@/shared/components/landing/Features"));
+const Safety = dynamic(() => import("@/shared/components/landing/Safety"));
+const FinalCTA = dynamic(() => import("@/shared/components/landing/FinalCTA"));
+const Footer = dynamic(() => import("@/shared/components/landing/Footer"));
+const WaitlistModal = dynamic(() => import("@/shared/components/landing/WaitlistModal"), { ssr: false });
 
 export default function HomePage() {
   // Get all top picks destinations

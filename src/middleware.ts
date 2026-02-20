@@ -29,6 +29,12 @@ const isWaitlistPublicPath = createRouteMatcher([
   "/forgot-password",
   "/verify-email",
   "/sso-callback",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/manifest.json",
+  "/manifest.webmanifest",
+  "/opengraph-image(.*)",
+  "/twitter-image(.*)",
 ]);
 
 /** Check if user is in launch_bypass_users table */
