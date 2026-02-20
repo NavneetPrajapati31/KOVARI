@@ -24,69 +24,90 @@ export default async function Image() {
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#000000",
-          backgroundImage: "radial-gradient(circle at center, #1a1a1a 0%, #000 100%)",
+          backgroundImage: "radial-gradient(circle at 50% -20%, #2a2a2a 0%, #000000 80%)",
           color: "white",
+          fontFamily: "Inter, sans-serif",
         }}
       >
+        {/* Top Badge */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "10px 24px",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            borderRadius: "40px",
+            marginBottom: "50px",
+            backgroundColor: "rgba(255, 255, 255, 0.05)",
+          }}
+        >
+          <span style={{ fontSize: 22, color: "#a1a1aa", fontWeight: 500, letterSpacing: "0.02em" }}>
+            Plan Trips. Find People. Travel Together.
+          </span>
+        </div>
+
+        {/* Hero Title */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
-            padding: "60px",
-            borderRadius: "40px",
-            background: "rgba(25, 25, 25, 0.6)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+            textAlign: "center",
           }}
         >
+          <h1
+            style={{
+              fontSize: 84,
+              fontWeight: 700,
+              letterSpacing: "-0.04em",
+              margin: 0,
+              lineHeight: 1.1,
+              color: "#ffffff",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <span>Connect & Travel</span>
+            <span style={{ display: "flex", alignItems: "center" }}>
+              With the <span style={{ color: "#d4d4d8", paddingLeft: "20px", paddingRight: "20px" }}>Right</span> People
+            </span>
+          </h1>
+          
+          {/* Hero Subtitle */}
+          <p
+            style={{
+              fontSize: 32,
+              color: "#a1a1aa",
+              marginTop: "40px",
+              marginBottom: "60px",
+              textAlign: "center",
+              maxWidth: "880px",
+              lineHeight: 1.5,
+              fontWeight: 400,
+            }}
+          >
+            KOVARI helps solo travelers, friends, and small groups match, plan trips together, and explore destinations safely — without chaos or guesswork.
+          </p>
+
+          {/* CTA Button */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              backgroundColor: "#ffffff",
+              color: "#000000",
+              padding: "24px 48px",
+              borderRadius: "50px",
+              fontSize: 28,
+              fontWeight: 700,
+              letterSpacing: "-0.01em",
             }}
           >
-            <h1
-              style={{
-                fontSize: 100,
-                fontWeight: 800,
-                letterSpacing: "-0.05em",
-                margin: 0,
-                backgroundImage: "linear-gradient(to bottom right, #ffffff, #a3a3a3)",
-                backgroundClip: "text",
-                color: "transparent",
-              }}
-            >
-              KOVARI
-            </h1>
+            Get Early Access
           </div>
-          
-          <p
-            style={{
-              fontSize: 42,
-              fontWeight: 500,
-              color: "#a3a3a3",
-              marginTop: 30,
-              marginBottom: 0,
-              textAlign: "center",
-              maxWidth: 800,
-            }}
-          >
-            We're making travel more human.
-          </p>
-          <p
-            style={{
-              fontSize: 32,
-              color: "#737373",
-              marginTop: 20,
-              textAlign: "center",
-              maxWidth: 800,
-            }}
-          >
-            Connect, plan, and travel with like-minded individuals.
-          </p>
         </div>
       </div>
     ),
