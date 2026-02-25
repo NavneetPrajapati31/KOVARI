@@ -42,7 +42,7 @@ export async function sendWaitlistConfirmation({
         defaultClient.timeout = 90000;
 
         const senderEmail =
-          process.env.BREVO_FROM_EMAIL || "navneet@kovari.com";
+          process.env.BREVO_FROM_EMAIL || "navneet@kovari.in";
         const senderName = process.env.BREVO_FROM_NAME || "KOVARI";
 
         span.setAttribute("recipient", to);
