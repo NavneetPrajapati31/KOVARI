@@ -66,9 +66,11 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Waitlist launch mode: restrict to landing + waitlist; devs/admins bypass
   if (isWaitlistLaunchMode()) {
+    const host = req.headers.get("host") || "";
+    const isApiSubdomain = host.startsWith("api.");
     const pathname = req.nextUrl.pathname;
     const isApiRoute =
-      pathname.startsWith("/api") || pathname.startsWith("/trpc");
+      isApiSubdomain || pathname.startsWith("/api") || pathname.startsWith("/trpc");
 
     if (isWaitlistPublicPath(req)) {
       return NextResponse.next();
@@ -150,9 +152,11 @@ export default clerkMiddleware(async (auth, req) => {
         // We keep the user row (soft delete) to preserve referential integrity and audit history,
         // but deny access as if the account no longer exists.
         if (user?.isDeleted) {
+          const host = req.headers.get("host") || "";
+          const isApiSubdomain = host.startsWith("api.");
           const pathname = req.nextUrl.pathname;
           const isApiRoute =
-            pathname.startsWith("/api") || pathname.startsWith("/trpc");
+            isApiSubdomain || pathname.startsWith("/api") || pathname.startsWith("/trpc");
 
           // For API routes, return a proper 403 JSON error.
           if (isApiRoute) {
@@ -206,6 +210,18 @@ export default clerkMiddleware(async (auth, req) => {
       }
     }
   }
+  const host = req.headers.get("host") || "";
+  const isApiSubdomain = host.startsWith("api.");
+
+  if (isApiSubdomain) {
+    const pathname = req.nextUrl.pathname;
+    // Don't double prefix if they explicitly passed /api/ in the vanily URL
+    if (!pathname.startsWith("/api")) {
+      const url = req.nextUrl.clone();
+      url.pathname = `/api${pathname === "/" ? "" : pathname}`;
+      return NextResponse.rewrite(url);
+    }
+  }
 
   return NextResponse.next();
 });
@@ -214,7 +230,8 @@ export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
+    // Always run for API routes, AND for the api.kovari.in subdomain (which hits root natively before rewrite)
     "/(api|trpc)(.*)",
+    "/(.*)", // Crucial: allow ALL routes to be checked by middleware so api.kovari.in/landing can be overwritten
   ],
 };
