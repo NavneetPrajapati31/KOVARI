@@ -77,7 +77,7 @@ export const emailLayout = ({ content, previewText }: EmailLayoutProps): string 
               <table role="presentation" style="width: 100%; border: none; border-spacing: 0;">
                 <tr>
                   <td style="padding: 0 0 24px; text-align: center;">
-                    <a href="https://kovari.com" style="text-decoration: none; font-family: 'Clash Display', 'Segoe UI', sans-serif; font-size: 18px; font-weight: 600; color: #111827; letter-spacing: 1px; text-transform: uppercase;">KOVARI</a>
+                    <a href="https://kovari.in" style="text-decoration: none; font-family: 'Clash Display', 'Segoe UI', sans-serif; font-size: 18px; font-weight: 600; color: #111827; letter-spacing: 1px; text-transform: uppercase;">KOVARI</a>
                   </td>
                 </tr>
               </table>

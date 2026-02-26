@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://admin.kovari.in'),
   title: 'KOVARI Admin',
   description: 'Internal admin dashboard for KOVARI',
 };

@@ -67,7 +67,7 @@ export const sendEmail = async ({
       }
 
       // Get sender email from environment or use default
-      const senderEmail = process.env.BREVO_FROM_EMAIL || 'noreply@kovari.com';
+      const senderEmail = process.env.BREVO_FROM_EMAIL || 'noreply@kovari.in';
       const senderName = process.env.BREVO_FROM_NAME || 'KOVARI Admin';
 
       span.setAttribute('recipient', to);
