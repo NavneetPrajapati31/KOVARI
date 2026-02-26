@@ -2,9 +2,7 @@ import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { passwordResetEmail } from "./email-templates/password-reset";
 import { groupInviteEmail } from "./email-templates/group-invite";
-
-const SENDER_EMAIL = process.env.BREVO_FROM_EMAIL || "noreply@kovari.com";
-const SENDER_NAME = process.env.BREVO_FROM_NAME || "KOVARI";
+import { getEmailConfig } from "./email-config";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
@@ -12,6 +10,7 @@ const RETRY_DELAYS_MS = [2000, 4000, 8000];
 interface BrevoEmailParams {
   to: Array<{ email: string }>;
   sender: { email: string; name: string };
+  replyTo?: { email: string; name: string };
   subject: string;
   htmlContent: string;
 }
@@ -32,6 +31,10 @@ async function sendBrevoWithRetry(
   sendSmtpEmail.sender = params.sender;
   sendSmtpEmail.subject = params.subject;
   sendSmtpEmail.htmlContent = params.htmlContent;
+  
+  if (params.replyTo) {
+    (sendSmtpEmail as any).replyTo = params.replyTo;
+  }
 
   const isRetriable = (err: unknown) => {
     const e = err as { message?: string; code?: string; response?: { status?: number } };
@@ -93,14 +96,16 @@ export const sendPasswordResetEmail = async ({
     },
     async (span) => {
       span.setAttribute("recipient", to);
-      span.setAttribute("sender", SENDER_EMAIL);
+      const systemEmailConfig = getEmailConfig("system");
+      span.setAttribute("sender", systemEmailConfig.email);
 
       const subject = "Reset your KOVARI password";
       const html = passwordResetEmail({ resetLink });
 
       const sendSmtpEmail = {
         to: [{ email: to }],
-        sender: { email: SENDER_EMAIL, name: SENDER_NAME },
+        sender: { email: systemEmailConfig.email, name: systemEmailConfig.name },
+        replyTo: { email: systemEmailConfig.replyTo, name: systemEmailConfig.name },
         subject,
         htmlContent: html,
       };
@@ -159,7 +164,8 @@ export const sendGroupInviteEmail = async ({
     },
     async (span) => {
       span.setAttribute("recipient", to);
-      span.setAttribute("sender", SENDER_EMAIL);
+      const systemEmailConfig = getEmailConfig("system");
+      span.setAttribute("sender", systemEmailConfig.email);
 
       const subject = `You're invited to join ${groupName} on KOVARI`;
       const html = groupInviteEmail({
@@ -170,7 +176,8 @@ export const sendGroupInviteEmail = async ({
 
       const sendSmtpEmail = {
         to: [{ email: to }],
-        sender: { email: SENDER_EMAIL, name: SENDER_NAME },
+        sender: { email: systemEmailConfig.email, name: systemEmailConfig.name },
+        replyTo: { email: systemEmailConfig.replyTo, name: systemEmailConfig.name },
         subject,
         htmlContent: html,
       };

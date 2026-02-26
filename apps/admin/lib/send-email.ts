@@ -1,6 +1,7 @@
 import 'server-only';
 import * as Sentry from '@sentry/nextjs';
 import * as Brevo from '@getbrevo/brevo';
+import { getEmailConfig } from './email-config';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
@@ -67,8 +68,9 @@ export const sendEmail = async ({
       }
 
       // Get sender email from environment or use default
-      const senderEmail = process.env.BREVO_FROM_EMAIL || 'noreply@kovari.in';
-      const senderName = process.env.BREVO_FROM_NAME || 'KOVARI Admin';
+      const systemEmailConfig = getEmailConfig("system");
+      const senderEmail = systemEmailConfig.email;
+      const senderName = systemEmailConfig.name;
 
       span.setAttribute('recipient', to);
       span.setAttribute('sender', senderEmail);
@@ -79,6 +81,12 @@ export const sendEmail = async ({
       sendSmtpEmail.htmlContent = html;
       sendSmtpEmail.sender = { name: senderName, email: senderEmail };
       sendSmtpEmail.to = [{ email: to }];
+      
+      // Use any to bypass outdated definitions when replyTo property is missing
+      (sendSmtpEmail as any).replyTo = {
+        email: systemEmailConfig.replyTo,
+        name: senderName,
+      };
 
       let lastError: unknown;
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {

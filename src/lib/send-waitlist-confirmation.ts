@@ -2,6 +2,7 @@ import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { waitlistConfirmationEmail } from "./email-templates/waitlist-confirmation";
 import { createAdminSupabaseClient } from "@/lib/supabase-admin";
+import { getEmailConfig } from "./email-config";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
@@ -41,24 +42,20 @@ export async function sendWaitlistConfirmation({
         apiKey.apiKey = process.env.BREVO_API_KEY!;
         defaultClient.timeout = 90000;
 
-        const senderEmail =
-          process.env.BREVO_FROM_EMAIL || "navneet@kovari.in";
-        const senderName = process.env.BREVO_FROM_NAME || "KOVARI";
+        const productEmailConfig = getEmailConfig("product");
 
         span.setAttribute("recipient", to);
-        span.setAttribute("sender", senderEmail);
+        span.setAttribute("sender", productEmailConfig.email);
 
         const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
         const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
         sendSmtpEmail.to = [{ email: to }];
-        sendSmtpEmail.sender = { email: senderEmail, name: senderName };
+        sendSmtpEmail.sender = { email: productEmailConfig.email, name: productEmailConfig.name };
         sendSmtpEmail.subject = "You're early 👀";
-        const replyToEmail = process.env.BREVO_REPLY_TO_EMAIL || senderEmail;
-        const replyToName = process.env.BREVO_REPLY_TO_NAME || senderName;
 
         (sendSmtpEmail as any).replyTo = {
-          email: replyToEmail,
-          name: replyToName,
+          email: productEmailConfig.replyTo,
+          name: productEmailConfig.name,
         };
         sendSmtpEmail.htmlContent = waitlistConfirmationEmail();
 
