@@ -37,24 +37,24 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kovari.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.kovari.in"),
   title: {
-    default: "KOVARI | Travel and Connect with Like-Minded People",
+    default: "KOVARI | Connect & Travel With the Right People",
     template: "%s | KOVARI",
   },
-  description: "Join KOVARI to connect, plan, and travel with like-minded individuals. Discover new destinations and build meaningful connections in a trusted community.",
+  description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
   keywords: [
+    "social travel app",
+    "find travel companions",
+    "group trip planner",
     "travel community",
-    "travel groups",
-    "connect with travelers",
     "like-minded travelers",
-    "travel companionship",
-    "trip planning",
-    "backpacking groups",
+    "solo traveler networking",
+    "safe travel groups",
     "KOVARI",
   ],
-  authors: [{ name: "Team KOVARI" }],
-  creator: "Team KOVARI",
+  authors: [{ name: "KOVARI" }],
+  creator: "KOVARI",
   publisher: "KOVARI",
   robots: {
     index: true,
@@ -71,14 +71,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "KOVARI | Travel and Connect with Like-Minded People",
-    description: "Join KOVARI to connect, plan, and travel with like-minded individuals. Discover new destinations and build meaningful connections.",
+    title: "KOVARI | Connect & Travel With the Right People",
+    description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
     siteName: "KOVARI",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KOVARI | Travel and Connect",
-    description: "Join KOVARI to connect, plan, and travel with like-minded individuals.",
+    title: "KOVARI | Connect & Travel With the Right People",
+    description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
     creator: "@KovariApp",
   },
   alternates: {

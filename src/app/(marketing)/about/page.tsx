@@ -3,8 +3,8 @@ import React from "react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About Us | KOVARI",
-  description: "Learn about KOVARI's mission to make travel more human. We're building a platform to help travelers connect, plan, and travel with like-minded individuals safely and intentionally.",
+  title: "About Us",
+  description: "Discover the KOVARI mission. We're building a smarter, safer way for solo travelers and groups to connect, structure their plans, and explore the world together.",
 };
 
 export default function AboutPage() {

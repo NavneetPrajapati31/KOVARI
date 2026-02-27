@@ -3,8 +3,8 @@ import React from "react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | KOVARI",
-  description: "Read KOVARI's Privacy Policy to understand how we collect, use, and protect your personal data when you use our platform to connect with other travelers.",
+  title: "Privacy Policy",
+  description: "Learn how KOVARI protects your personal data and privacy. We prioritize your security as you connect with travel groups and plan your global adventures.",
 };
 
 export default function PrivacyPage() {

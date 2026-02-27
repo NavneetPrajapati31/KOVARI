@@ -3,8 +3,8 @@ import React from "react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | KOVARI",
-  description: "Review KOVARI's Terms of Service. Understand the rules, guidelines, and terms you agree to when using our platform for travel connections and planning.",
+  title: "Terms of Service",
+  description: "Review the Terms of Service for KOVARI. Understand our platform guidelines, user agreements, and rules for organizing community travel.",
 };
 
 export default function TermsPage() {

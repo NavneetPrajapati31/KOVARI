@@ -24,6 +24,7 @@ const isWaitlistPublicPath = createRouteMatcher([
   "/about-us",
   "/privacy",
   "/terms",
+  "/data-deletion",
   "/sign-in",
   "/sign-up",
   "/forgot-password",

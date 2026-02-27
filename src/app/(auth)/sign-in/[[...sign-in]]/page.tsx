@@ -4,8 +4,8 @@ import HeroSection from "@/features/auth/components/hero-section";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign In | KOVARI",
-  description: "Sign in to your KOVARI account to continue connecting with travelers, joining groups, and planning your next trip.",
+  title: "Sign In",
+  description: "Sign in to your KOVARI account. Continue matching with like-minded travelers and organizing your next group getaway.",
 };
 
 export default function SignInPage() {

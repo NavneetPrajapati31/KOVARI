@@ -3,8 +3,8 @@ import React from "react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Data Deletion Policy | KOVARI",
-  description: "Learn how to delete your account and personal data from KOVARI, in compliance with GDPR and other data protection regulations.",
+  title: "Data Deletion Policy",
+  description: "Learn how to securely delete your account and personal data from KOVARI, in strict compliance with GDPR and global privacy standards.",
 };
 
 export default function DataDeletionPage() {
