@@ -56,7 +56,7 @@ export default async function Image() {
               fontWeight: 500,
             }}
           >
-            Early Access
+            Early access
           </div>
         </div>
 
@@ -137,7 +137,7 @@ export default async function Image() {
               fontWeight: 600,
             }}
           >
-            Get Early Access
+            Get early access
           </div>
         </div>
       </div>

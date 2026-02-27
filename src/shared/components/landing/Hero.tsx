@@ -116,7 +116,7 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
               aria-label="Join the Waitlist"
               onPress={handleJoinWaitlist}
             >
-              Get Early Access
+              Get early access
             </Button>
           </motion.div>
         </motion.div>

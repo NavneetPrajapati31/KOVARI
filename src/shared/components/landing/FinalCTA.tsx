@@ -55,7 +55,7 @@ export default function FinalCTA({ onJoinWaitlist }: FinalCTAProps) {
             aria-label="Join the Waitlist"
             onPress={handleJoinWaitlistClick}
           >
-            Get Early Access
+            Get early access
           </Button>
         </motion.div>
       </div>
