@@ -82,8 +82,8 @@
   --foreground: #1c1c1e; /* iOS Label - near black */
 
   --primary: #1c4dff; /* iOS System Blue */
-  --primary-light: #dcecff;
-  --primary-hover: #0063cc; /* Darker Blue */
+  --primary-light: #d2dcff;
+  --primary-hover: #0033ec; /* Darker Blue */
   --primary-foreground: #ffffff;
 
   --secondary: #f2f2f7; /* iOS Secondary System Background */
@@ -97,7 +97,7 @@
 
   --border: #e5e7eb; /* Light Border (gray-200) */
   --input: #d1d5db; /* Light input outline */
-  --ring: #007aff; /* Match primary for focus ring */
+  --ring: #1c4dff; /* Match primary for focus ring */
 
   --card: #ffffff;
   --card-foreground: #1c1c1e;
