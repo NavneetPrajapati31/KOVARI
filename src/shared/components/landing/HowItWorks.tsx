@@ -99,10 +99,10 @@ export default function HowItWorks() {
                   key={step.number}
                   variants={itemVariants}
                   whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                  className="group relative rounded-3xl bg-card p-6 sm:p-8 text-center flex flex-col h-full border border-transparent hover:border-border/50 hover:shadow-sm"
+                  className="group relative rounded-3xl bg-card p-6 sm:p-8 text-center flex flex-col h-full border border-foreground/[0.04] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.06)] hover:border-foreground/[0.08] hover:-translate-y-1 transition-all duration-300 ease-out"
                 >
                   {/* Step number - circular container at top center */}
-                  <div className="mx-auto mb-4 sm:mb-6 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-primary-light text-xs sm:text-sm font-medium text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <div className="mx-auto mb-5 sm:mb-6 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-card border border-foreground/[0.08] shadow-sm text-sm sm:text-base font-semibold text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
                     {step.number}
                   </div>
 
