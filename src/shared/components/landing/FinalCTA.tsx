@@ -49,7 +49,7 @@ export default function FinalCTA({ onJoinWaitlist }: FinalCTAProps) {
 
           {/* Primary CTA */}
           <Button
-            className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold leading-5 w-full sm:w-auto"
+            className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-12 sm:px-12 py-5 sm:py-6 text-sm sm:text-base font-bold leading-5"
             radius="full"
             variant="solid"
             aria-label="Join the Waitlist"

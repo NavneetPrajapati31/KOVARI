@@ -64,7 +64,7 @@ export default function HowItWorks() {
         >
           {/* Eyebrow label */}
           <Button
-            className="h-7 bg-card overflow-hidden border-none shadow-sm px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground mb-3"
+            className="h-7 bg-transparent overflow-hidden border border-border px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground mb-3"
             radius="full"
             variant="bordered"
             aria-label="How It Works"

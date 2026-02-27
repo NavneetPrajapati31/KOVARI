@@ -89,7 +89,7 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
         >
           <motion.div variants={itemVariants}>
             <Button
-              className="h-7 bg-card overflow-hidden border-none shadow-sm px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground"
+              className="h-7 bg-transparent overflow-hidden border border-border px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground"
               radius="full"
               variant="bordered"
               aria-label="Social Travel, Done Right"
@@ -110,7 +110,7 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
           
           <motion.div variants={itemVariants} className="flex flex-col items-center justify-center gap-6 sm:flex-row mt-1">
             <Button
-              className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold leading-5 w-full sm:w-auto"
+              className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-12 sm:px-12 py-5 sm:py-6 text-sm sm:text-base font-bold leading-5"
               radius="full"
               variant="solid"
               aria-label="Join the Waitlist"
