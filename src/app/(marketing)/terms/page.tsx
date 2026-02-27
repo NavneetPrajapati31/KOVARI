@@ -8,19 +8,19 @@ export const metadata: Metadata = {
 };
 
 export default function TermsPage() {
-  const lastUpdated = "February 19, 2026";
+  const lastUpdated = "February 27, 2026";
 
   return (
     <>
       <div className="min-h-screen bg-background pt-16 md:pt-24 pb-12 md:pb-16 font-sans selection:bg-muted-foreground/20">
-        <div className="container mx-auto px-8 max-w-5xl">
+        <div className="container mx-auto px-8 max-w-6xl">
           {/* Header */}
           <div className="mb-12 md:mb-16">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
               Terms of Service
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium">
-              Last updated: {lastUpdated}
+              Effective Date: {lastUpdated}
             </p>
           </div>
 
@@ -29,159 +29,158 @@ export default function TermsPage() {
             
             <section className="group">
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">1. Acceptance of Terms</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  By accessing or using KOVARI (“Platform”, “we”, “our”), you agree to be bound by these
-                  Terms of Service. If you do not agree, do not use the platform.
+                  By accessing or using KOVARI (“Platform”, “we”, “us”, or “our”), you agree to be bound by these Terms of Service (“Terms”). If you do not agree to these Terms, please do not use our platform or services.
                 </p>
               </div>
             </section>
 
             <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">2. Eligibility</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  You must be at least 18 years old to use KOVARI. By using the platform, you confirm
-                  that you meet this requirement.
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">2. Description of Services</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
+                  KOVARI is a social technology platform designed to help users discover travel companions, organize group trips, and interact with a global community of travelers.
                 </p>
-              </div>
-            </section>
-
-            <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">3. Nature of the Service</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">KOVARI is a technology platform that allows users to:</p>
-                <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-6">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Discover and connect with other travelers</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Form travel groups (“travel circles”)</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Communicate and coordinate trips</li>
-                </ul>
-                <div className="bg-muted/30 p-6 rounded-lg border border-border/40">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-primary/20 pb-1 mb-2 inline-block text-primary">Important</span>
+                <div className="bg-muted/30 p-6 rounded-lg border border-border/40 mt-6 md:mt-8">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-primary/20 pb-1 mb-3 inline-block text-primary">Important Disclaimer</span>
                   <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                    KOVARI does not organize trips, does not act as a travel agency, and does not verify or
-                    guarantee user identity, behavior, or intentions.
+                    KOVARI is not a travel agency, tour operator, or event organizer. We simply provide the networking software to connect travelers. We do not organize trips, conduct background checks, or guarantee the identity, safety, or intentions of any user. You use the platform and meet other users entirely at your own risk.
                   </p>
                 </div>
               </div>
             </section>
 
             <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">4. User Responsibility</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">You agree that:</p>
-                <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>You are solely responsible for your interactions with other users</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>You evaluate the suitability, safety, and reliability of any travel companion</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>You take appropriate precautions when meeting others</li>
-                </ul>
-                <p className="text-base md:text-lg text-muted-foreground italic leading-relaxed">KOVARI does not conduct background checks and does not guarantee safety.</p>
-              </div>
-            </section>
-
-            <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">5. User Conduct</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">You agree NOT to:</p>
-                <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Create fake or misleading profiles</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Harass, abuse, or harm other users</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Engage in illegal activities</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Share harmful, offensive, or inappropriate content</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Use the platform for scams, fraud, or solicitation</li>
-                </ul>
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">We reserve the right to suspend or terminate accounts violating these rules.</p>
-              </div>
-            </section>
-
-            <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">6. Safety Disclaimer</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">KOVARI connects individuals who may meet offline. By using the platform, you acknowledge:</p>
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">3. User Accounts & Eligibility</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
+                  To access certain features of our platform, you must create an account. By using KOVARI, you represent that you are at least 18 years of age. You are responsible for:
+                </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>You interact with others at your own risk</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI is not responsible for any incidents, disputes, or harm</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>You are responsible for your personal safety decisions</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Providing accurate, honest, and complete profile information</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Maintaining the confidentiality of your account credentials</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>All activities and communications that occur under your account</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Notifying us immediately of any unauthorized access</li>
                 </ul>
               </div>
             </section>
 
             <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">7. Content & Communication</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">4. Acceptable Use & Conduct</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">You agree not to:</p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>You are responsible for content you share (messages, media, profile data)</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may remove content that violates our policies</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may monitor or review content for safety and moderation purposes</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Use the platform for any illegal, hazardous, or unauthorized purposes</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Harass, abuse, threaten, or discriminate against other travelers</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Create fake profiles, impersonate others, or engage in scams or fraudulent activity</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Scrape data, reverse engineer, or transmit any malicious code to the platform</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Use KOVARI for unwanted commercial solicitation or spam</li>
                 </ul>
               </div>
             </section>
 
             <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">8. Account Suspension & Termination</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">We may suspend or terminate accounts for:</p>
-                <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Violations of these Terms</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Unsafe or suspicious behavior</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Reports from other users</li>
-                </ul>
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">This may be done without prior notice.</p>
-              </div>
-            </section>
-
-            <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">9. Limitation of Liability</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">To the maximum extent permitted by law, KOVARI shall not be liable for:</p>
-                <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>User interactions (online or offline)</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Personal injury, loss, or damages</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Disputes between users</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Travel-related issues</li>
-                </ul>
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">You use the platform at your own risk.</p>
-              </div>
-            </section>
-
-            <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">10. Indemnification</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">You agree to indemnify and hold KOVARI harmless from any claims, damages, or losses arising from:</p>
-                <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Your use of the platform</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Your interactions with other users</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Violation of these Terms</li>
-                </ul>
-              </div>
-            </section>
-
-            <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">11. Modifications</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">5. User Content</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  We may update these Terms at any time. Continued use of the platform constitutes
-                  acceptance of updated terms.
+                  You retain ownership of any content (photos, itineraries, bios) you submit to KOVARI. However, by posting content, you grant us a worldwide, non-exclusive, royalty-free license to use, display, reproduce, and distribute your content across our platform to provide our services. You are solely responsible for ensuring your content does not violate third-party rights.
                 </p>
               </div>
             </section>
 
             <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">12. Governing Law</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">These Terms are governed by the laws of India.</p>
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">6. Intellectual Property</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  All platform software, designs, algorithms, text, graphics, and trademarks are owned by KOVARI and are protected by international copyright and intellectual property laws. You may not copy, modify, or distribute our intellectual property without express written consent.
+                </p>
               </div>
             </section>
 
             <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">13. Contact</h2>
-              <div className="pl-1 border-l-2 border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-2 leading-relaxed">For any questions:</p>
-                <a href="mailto:support@kovari.in" className="text-base md:text-lg text-primary hover:text-primary/80 font-medium transition-colors border-b border-primary/20 hover:border-primary">
-                  support@kovari.in
-                </a>
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">7. Payment Terms</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  If you purchase premium services, verifications, or event access through KOVARI, all payment terms, subscription fees, and available refund policies will be presented to you at the time of purchase. You agree to pay all applicable fees via our trusted third-party payment processors.
+                </p>
               </div>
             </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">8. Disclaimer of Warranties</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed uppercase tracking-wide font-semibold text-foreground/90">
+                  THE SERVICES ARE PROVIDED “AS IS” AND “AS AVAILABLE” WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+                </p>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  We disclaim all warranties, including implied warranties of merchantability, fitness for a particular purpose, and non-infringement. We do not guarantee that your use of the platform will be uninterrupted, secure, or free from errors. We take no responsibility for any offline travel arrangements or real-world interactions resulting from your use of KOVARI.
+                </p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">9. Limitation of Liability</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed uppercase tracking-wide font-medium">
+                  TO THE FULLEST EXTENT PERMITTED BY LAW, KOVARI AND ITS OFFICERS, DIRECTORS, AND EMPLOYEES SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES ARISING OUT OF YOUR ACCESS TO, USE OF, OR INABILITY TO USE THE PLATFORM, OR ANY CONDUCT OR CONTENT OF ANY THIRD PARTY ON THE PLATFORM, INCLUDING PHYSICAL HARM OR DISPUTES ARISING DURING TRAVEL.
+                </p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">10. Indemnification</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  You agree to indemnify, defend, and hold harmless KOVARI from any claims, liabilities, damages, losses, and expenses (including legal fees) arising from your use of the platform, your offline interactions with other travelers, or any violation of these Terms or applicable law.
+                </p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">11. Termination</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  We may terminate or suspend your access to our platform immediately, at our sole discretion, without prior notice or liability, for any reason whatsoever, including a breach of these Terms, suspected fraudulent activity, or safety concerns reported by other users.
+                </p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">12. Governing Law & Dispute Resolution</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  These Terms shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law principles. Any local or international disputes shall ideally be resolved amicably through communication with our support team.
+                </p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">13. Severability & Changes to Terms</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
+                  If any provision of these Terms is found to be unenforceable, the remaining provisions will continue in full force.
+                </p>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  We reserve the right to modify these Terms at any time. We will provide notice of material changes by updating the "Effective Date" on this page. Your continued use of KOVARI constitutes acceptance of those changes.
+                </p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">14. Contact Information</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  If you have any questions, concerns, or legal inquiries about these Terms, please contact us at:
+                </p>
+                 <div className="text-base md:text-lg text-muted-foreground">
+                  <p>
+                    <a href="mailto:support@kovari.in" className="text-primary hover:text-primary/80 font-medium transition-colors border-b border-primary/20 hover:border-primary">support@kovari.in</a>
+                  </p>
+                </div>
+              </div>
+            </section>
+
           </div>
         </div>
       </div>
