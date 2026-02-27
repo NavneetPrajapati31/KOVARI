@@ -242,11 +242,11 @@ export default function App({
 
       {/* {isNavigating && <Spinner />} */}
       <Navbar
-        height={"4rem"}
+        height={"5rem"}
         onMenuOpenChange={setIsMenuOpen}
-        className="backdrop-blur-2xl border-border"
+        className="backdrop-blur-3xl border-border"
         classNames={{
-          wrapper: "max-w-full px-8",
+          wrapper: "max-w-full px-8 sm:px-12",
         }}
       >
         {/* Navigation Links - hidden during waitlist launch for public users */}
