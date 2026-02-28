@@ -222,7 +222,6 @@ export default function GroupChatInterface() {
     sending,
     error,
     groupInfo,
-    onlineMembers,
     sendMessage,
   } = useGroupChat(groupId);
 
