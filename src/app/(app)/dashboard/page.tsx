@@ -21,13 +21,7 @@ import {
   GroupListSkeleton,
 } from "@/shared/components/GroupCard/GroupCard-list";
 import TodoChecklist from "@/shared/components/Todo-Checklist/Todo-checklist";
-import TripsBarChart from "@/shared/components/charts/TripsBarChart";
 import dynamic from "next/dynamic";
-
-const TravelHeatmap = dynamic(
-  () => import("@/shared/components/heatmap/TravelHeatmap"),
-  { ssr: false },
-);
 
 const UpcomingTripCard = dynamic(
   () =>
@@ -69,7 +63,6 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { GroupCard } from "@/features/dashboard/GroupCard";
 import Component from "@/shared/components/comp-531";
 import { GalleryCard } from "@/features/dashboard/GalleryCard";
-import Heatmap from "@/features/dashboard/heatmap";
 import { TopDestinationCard } from "@/features/dashboard/TopDestinationCard";
 import { TravelDaysCard } from "@/features/dashboard/TravelDaysCard";
 import type { UserProfile as UserProfileType } from "@/features/profile/components/user-profile";
@@ -77,7 +70,6 @@ import { InviteCard } from "@/features/dashboard/InviteCard";
 import { UserConnect } from "@/features/dashboard/UserConnect";
 import { ConnectionRequestsCard } from "@/features/dashboard/ConnectionRequestsCard";
 
-import { ChartLineDots } from "@/features/dashboard/ImpressionsChart";
 import ItineraryUI from "@/shared/components/comp-542";
 import Link from "next/link";
 

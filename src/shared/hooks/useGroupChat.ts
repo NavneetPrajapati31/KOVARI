@@ -39,7 +39,6 @@ export const useGroupChat = (groupId: string) => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
-  const [onlineMembers, setOnlineMembers] = useState<number>(0);
 
   // Initialize encryption
   const {
@@ -346,7 +345,6 @@ export const useGroupChat = (groupId: string) => {
     sending,
     error,
     groupInfo,
-    onlineMembers,
     sendMessage,
     refetch: fetchMessages,
   };

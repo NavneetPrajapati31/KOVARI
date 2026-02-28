@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { randomBytes } from "crypto";
 import { createAdminSupabaseClient } from "@/lib/supabase-admin";
-// import { Resend } from "resend";
 
 // Helper to generate a random token
 const generateToken = (length = 24) =>
