@@ -344,7 +344,7 @@ export function GroupMatchCard({
                 className="w-full h-full object-cover cursor-pointer"
               />
             ) : (
-              <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground">
+              <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground bg-secondary">
                 <AvatarImage src="" alt={group.name || "Travel Group"} />
                 <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
               </Avatar>

@@ -394,7 +394,7 @@ export function SoloMatchCard({
                 className="w-full h-full object-cover cursor-pointer"
               />
             ) : (
-              <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground">
+              <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground bg-secondary">
                 <AvatarImage
                   src=""
                   alt={user.full_name || user.name || "Traveler"}

@@ -65,7 +65,12 @@ export default function RequestsPage() {
       setJoinRequestsError(null);
       try {
         const res = await fetch(`/api/groups/${groupId}/join-request`);
-        if (!res.ok) throw new Error("Failed to fetch join requests");
+        if (!res.ok) {
+          if (res.status === 403) {
+            throw new Error("You do not have permission to view join requests.");
+          }
+          throw new Error("Failed to fetch join requests");
+        }
         const data = await res.json();
         setJoinRequests(data.joinRequests || []);
       } catch (err: unknown) {
@@ -174,8 +179,9 @@ export default function RequestsPage() {
       <div className="space-y-1 mb-4">
         <h1 className="text-md font-bold text-foreground">Join Requests</h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
-          Approve or reject pending join requests for this group. Only admins
-          can take action.
+          {isCurrentUserAdmin
+            ? "Approve or reject pending join requests for this group. Only admins can take action."
+            : "View pending join requests for this group. Only admins can take action."}
         </p>
       </div>
       {/* Desktop Table View */}

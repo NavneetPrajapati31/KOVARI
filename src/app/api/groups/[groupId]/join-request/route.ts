@@ -55,13 +55,15 @@ async function getAccessContext(groupId: string): Promise<AccessContext> {
     return { ok: false, status: 404, error: "Group not found" };
   }
 
-  const { data: membership } = await supabase
+  const { data: memberships } = await supabase
     .from("group_memberships")
     .select("role, status")
     .eq("group_id", groupId)
     .eq("user_id", userRow.id)
     .eq("status", "accepted")
-    .maybeSingle();
+    .limit(1);
+    
+  const membership = memberships?.[0] || null;
 
   return {
     ok: true,
@@ -228,9 +230,8 @@ export async function GET(
       return NextResponse.json({ error: ctx.error }, { status: ctx.status });
     }
 
-    // Only creator or admin can view join requests
-    const isAdmin = ctx.membershipRole === "admin";
-    if (!ctx.isCreator && !isAdmin) {
+    // Only members can view join requests
+    if (!ctx.isCreator && !ctx.membershipRole) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -248,14 +249,19 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     // Map to expected structure
-    const joinRequests = (data || []).map((m: any) => ({
-      id: m.id,
-      userId: m.users.clerk_user_id,
-      name: m.users.profiles.name,
-      avatar: m.users.profiles.profile_photo,
-      username: m.users.profiles.username,
-      requestedAt: m.joined_at,
-    }));
+    const joinRequests = (data || []).map((m: any) => {
+      const user = Array.isArray(m.users) ? m.users[0] : m.users;
+      const profile = user?.profiles ? (Array.isArray(user.profiles) ? user.profiles[0] : user.profiles) : null;
+      
+      return {
+        id: m.id,
+        userId: user?.clerk_user_id,
+        name: profile?.name || "Unknown",
+        avatar: profile?.profile_photo || "",
+        username: profile?.username || "unknown",
+        requestedAt: m.joined_at,
+      };
+    });
     return NextResponse.json({ joinRequests });
   } catch (error) {
     console.error("[JOIN_REQUEST_GET]", error);
