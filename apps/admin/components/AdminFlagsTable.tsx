@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
+import { getThumbnailUrl } from "../lib/cloudinary-client";
 import {
   Select,
   SelectContent,
@@ -259,7 +260,7 @@ export function AdminFlagsTable({
                         {flag.evidenceUrl ? (
                           <div className="h-12 w-12 overflow-hidden rounded-md border">
                             <img
-                              src={flag.evidenceUrl}
+                              src={getThumbnailUrl(flag.evidenceUrl)}
                               alt="Evidence"
                               className="h-full w-full object-cover"
                             />

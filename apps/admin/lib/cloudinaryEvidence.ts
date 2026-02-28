@@ -1,6 +1,7 @@
 // apps/admin/lib/cloudinaryEvidence.ts
 import { v2 as cloudinary } from 'cloudinary';
-import { uploadToCloudinary, getOptimizedUrl } from '@/lib/cloudinary';
+import { uploadToCloudinary } from '@/lib/cloudinary';
+import { getOptimizedUrl } from '@/lib/cloudinary-client';
 
 // Configure Cloudinary (uses same config as main app)
 cloudinary.config({
@@ -229,11 +230,30 @@ export function getEvidenceDisplayUrl(
     return evidenceUrl; // Return original if not Cloudinary
   }
 
-  const options = {
-    thumbnail: { width: 150, height: 150, quality: 70, format: 'webp' },
-    preview: { width: 800, height: 800, quality: 85, format: 'webp' },
-    full: { quality: 90 },
-  };
-
-  return getOptimizedUrl(evidenceUrl, options[context]);
+  // Use the newly defined global responsive strategies
+  switch (context) {
+    case 'thumbnail':
+      // Thumbnails are often loaded in large grid sets (like reports table)
+      return getOptimizedUrl(evidenceUrl, {
+        width: 150,
+        height: 150,
+        crop: "fill",
+        gravity: "auto"
+      });
+    case 'preview':
+      // The preview card (feed images strategy)
+      return getOptimizedUrl(evidenceUrl, {
+        width: 1080,
+        crop: "limit",
+        quality: "auto"
+      });
+    case 'full':
+    default:
+      // The massive lightbox evidence viewer
+      return getOptimizedUrl(evidenceUrl, {
+        width: 2048,
+        crop: "limit",
+        quality: "auto:best"
+      });
+  }
 }

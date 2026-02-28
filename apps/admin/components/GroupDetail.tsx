@@ -8,6 +8,7 @@ import { Label } from './ui/label';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ToastContainer, useToast } from './Toast';
 import { cn } from '../lib/utils';
+import { getThumbnailUrl } from '../lib/cloudinary-client';
 
 interface Group {
   id: string;
@@ -366,7 +367,7 @@ export function GroupDetail({
             <div className="flex items-center gap-4">
               {organizer.profile_photo ? (
                 <img
-                  src={organizer.profile_photo}
+                  src={getThumbnailUrl(organizer.profile_photo)}
                   alt={organizer.name}
                   className="h-12 w-12 rounded-full object-cover"
                 />

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { cn } from "../lib/utils";
+import { getThumbnailUrl } from "../lib/cloudinary-client";
 
 interface User {
   id: string;
@@ -147,7 +148,7 @@ export function AdminUsersTable({
                         >
                           {user.profile_photo ? (
                             <img
-                              src={user.profile_photo}
+                              src={getThumbnailUrl(user.profile_photo)}
                               alt={user.name || "User"}
                               className="h-full w-full object-cover"
                             />

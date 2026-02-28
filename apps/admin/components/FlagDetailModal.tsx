@@ -9,6 +9,7 @@ import { Input } from './ui/input';
 import { cn } from '../lib/utils';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ToastContainer, useToast } from './Toast';
+import { getThumbnailUrl, getFullImageUrl } from '../lib/cloudinary-client';
 import {
   X,
   ZoomIn,
@@ -453,7 +454,7 @@ export function FlagDetailModal({
                       onClick={() => setIsImageZoomed(!isImageZoomed)}
                     >
                       <img
-                        src={evidenceUrl || flagData.flag.evidenceUrl!}
+                        src={isImageZoomed ? getFullImageUrl(evidenceUrl || flagData.flag.evidenceUrl!) : getThumbnailUrl(evidenceUrl || flagData.flag.evidenceUrl!, 500)}
                         alt="Evidence"
                         className={cn(
                           'w-full h-auto object-contain',
@@ -513,7 +514,7 @@ export function FlagDetailModal({
                       <div className="flex items-center gap-3">
                         {flagData.targetProfile.profilePhoto ? (
                           <img
-                            src={flagData.targetProfile.profilePhoto}
+                            src={getThumbnailUrl(flagData.targetProfile.profilePhoto)}
                             alt={flagData.targetProfile.name}
                             className="h-12 w-12 rounded-full object-cover"
                           />

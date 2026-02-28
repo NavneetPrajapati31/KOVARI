@@ -86,72 +86,12 @@ export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
   }
 };
 
-/**
- * Get optimized URL for an image/video
- */
-export const getOptimizedUrl = (
-  url: string,
-  options: {
-    width?: number;
-    height?: number;
-    quality?: number;
-    format?: string;
-  } = {}
-): string => {
-  if (!url.includes("cloudinary.com")) {
-    return url; // Return original URL if not from Cloudinary
-  }
-
-  const transformations = [];
-
-  if (options.width) transformations.push(`w_${options.width}`);
-  if (options.height) transformations.push(`h_${options.height}`);
-  if (options.quality) transformations.push(`q_${options.quality}`);
-  if (options.format) transformations.push(`f_${options.format}`);
-
-  if (transformations.length === 0) {
-    return url;
-  }
-
-  // Insert transformations into the URL
-  const urlParts = url.split("/");
-  const uploadIndex = urlParts.findIndex((part) => part === "upload");
-
-  if (uploadIndex !== -1) {
-    urlParts.splice(uploadIndex + 1, 0, transformations.join(","));
-    return urlParts.join("/");
-  }
-
-  return url;
-};
-
-/**
- * Extract public ID from Cloudinary URL
- */
-export const getPublicIdFromUrl = (url: string): string | null => {
-  if (!url.includes("cloudinary.com")) {
-    return null;
-  }
-
-  try {
-    const urlParts = url.split("/");
-    const uploadIndex = urlParts.findIndex((part) => part === "upload");
-
-    if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
-      // Skip the transformation part and get the public ID
-      const publicIdWithExtension = urlParts[uploadIndex + 2];
-      const lastDotIndex = publicIdWithExtension.lastIndexOf(".");
-
-      if (lastDotIndex !== -1) {
-        return publicIdWithExtension.substring(0, lastDotIndex);
-      }
-    }
-  } catch (error) {
-    console.error("Error extracting public ID:", error);
-  }
-
-  return null;
-};
+export {
+  getOptimizedUrl,
+  getThumbnailUrl,
+  getFeedImageUrl,
+  getFullImageUrl,
+  getPublicIdFromUrl
+} from "./cloudinary-client";
 
 export default cloudinary;
-

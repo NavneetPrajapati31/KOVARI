@@ -8,6 +8,7 @@ import { Label } from "./ui/label";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ToastContainer, useToast } from "./Toast";
 import { cn } from "../lib/utils";
+import { getFullImageUrl } from "../lib/cloudinary-client";
 
 interface UserProfile {
   id: string;
@@ -254,7 +255,7 @@ export function UserDetail({
           >
             {profile.profile_photo ? (
               <img
-                src={profile.profile_photo}
+                src={getFullImageUrl(profile.profile_photo)}
                 alt={profile.name || "User"}
                 className="h-full w-full object-cover"
               />
