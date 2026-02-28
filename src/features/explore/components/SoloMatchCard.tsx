@@ -387,7 +387,7 @@ export function SoloMatchCard({
       <div key={match.id} className="flex flex-col gap-5">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row items-start gap-4 pb-5 border-b border-border/60">
-          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative shadow-sm">
+          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative shadow-none border border-border">
             {user.avatar ? (
               <img
                 src={getFeedImageUrl(user.avatar)}

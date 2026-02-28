@@ -269,7 +269,7 @@ export function GroupMatchCard({
     const s = p.toLowerCase();
     if (s === "non-smoking") return "No smoking";
     if (s === "smokers welcome") return "Smoking allowed";
-    return "Smoking flexible";
+    return "Smoking allowed";
   };
 
   const formatDrinkingPolicy = (p?: string) => {
@@ -277,7 +277,7 @@ export function GroupMatchCard({
     const s = p.toLowerCase();
     if (s === "non-drinking") return "No alcohol";
     if (s === "drinkers welcome") return "Alcohol allowed";
-    return "Alcohol flexible";
+    return "Alcohol allowed";
   };
 
   // Derived display values for Bumble-like sections
@@ -337,7 +337,7 @@ export function GroupMatchCard({
       <div key={group.id} className="flex flex-col gap-5">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row items-start gap-4 pb-5 border-b border-border/60">
-          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-muted/60 flex items-center justify-center flex-shrink-0 relative shadow-sm">
+          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-muted/60 flex items-center justify-center flex-shrink-0 relative shadow-none border border-border">
             {group.cover_image ? (
               <img
                 src={getFeedImageUrl(group.cover_image)}
