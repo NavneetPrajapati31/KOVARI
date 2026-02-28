@@ -21,6 +21,13 @@ export const getOptimizedUrl = (
     return url; // Return original URL if not from Cloudinary
   }
 
+  // CRITICAL FIX: Do not mutate signed URLs!
+  // If a URL has a signature (e.g. `s--xxxxxx--`), injecting unsigned transformations 
+  // into the URL breaks the cryptographic signature, causing a 400 Bad Request.
+  if (url.includes("/s--")) {
+    return url;
+  }
+
   const transformations = [];
 
   // High-fidelity defaults
