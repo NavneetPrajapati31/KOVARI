@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useSidebar } from "@/shared/components/ui/sidebar";
+import { getFullImageUrl } from "@/lib/cloudinary";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -818,7 +819,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
               <Card className="w-[200px] h-[200px] min-[840px]:h-[180px] min-[840px]:w-[180px] p-0 bg-muted border-none shadow-none rounded-3xl overflow-hidden flex-shrink-0">
                 {profile.profileImage ? (
                   <img
-                    src={profile.profileImage}
+                    src={getFullImageUrl(profile.profileImage)}
                     alt="Profile"
                     className="w-full h-full object-cover rounded-3xl"
                   />

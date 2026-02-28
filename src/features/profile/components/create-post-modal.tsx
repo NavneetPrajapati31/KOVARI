@@ -13,6 +13,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Loader2, Upload, X } from "lucide-react";
+import { CldUploadWidget } from "next-cloudinary";
 
 interface CreatePostModalProps {
   open: boolean;
@@ -25,26 +26,7 @@ interface CreatePostModalProps {
   }) => Promise<void>;
 }
 
-// Cloudinary environment variables should be set in your Vercel project settings.
-// For local development, ensure they are in your .env.local file.
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`;
-const CLOUDINARY_UPLOAD_PRESET =
-  process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
-
-const uploadImage = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
-  const res = await fetch(CLOUDINARY_UPLOAD_URL, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!res.ok) throw new Error("Failed to upload image");
-  const data = await res.json();
-  return data.secure_url;
-};
+// Replaced unsecure Cloudinary configuration with CldUploadWidget signature flow
 
 const CreatePostModal: React.FC<CreatePostModalProps> = ({
   open,
@@ -59,24 +41,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
   const [error, setError] = useState("");
   const [title, setTitle] = useState("");
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setError("");
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const url = await uploadImage(file);
-      setImageUrl(url);
-      setSelectedFile(file);
-    } catch (err) {
-      setError(
-        "Failed to upload image. Please check your Cloudinary configuration."
-      );
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  // handleFileChange removed in favor of CldUploadWidget
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,15 +66,33 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
         onClose();
         return;
       }
-      const res = await fetch("/api/user-posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image_url: imageUrl, title: title.trim() }),
-      });
+      let res;
+      for (let i = 0; i < 3; i++) {
+        try {
+          res = await fetch("/api/user-posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image_url: imageUrl,
+              title: title.trim(),
+            }),
+          });
+          if (res.ok) break;
+        } catch (e) {
+          if (i === 2) throw e;
+        }
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+      }
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create post");
+      if (!res || !res.ok) {
+        let errMessage = "Failed to create post. Please try again.";
+        if (res) {
+          try {
+            const err = await res.json();
+            if (err.error) errMessage = err.error;
+          } catch (jsonErr) {}
+        }
+        throw new Error(errMessage);
       }
 
       const newPost = await res.json();
@@ -164,29 +147,48 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
               Image
             </Label>
             <div className="flex items-center gap-2">
-              <Input
-                id="image-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                disabled={isUploading || isPosting}
-                className="hidden" // Hide the default file input
-              />
-              <Label
-                htmlFor="image-upload"
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-input bg-background rounded-md cursor-pointer text-sm font-medium transition-colors"
+              <CldUploadWidget
+                signatureEndpoint="/api/cloudinary/sign"
+                options={{
+                  folder: "kovari-posts",
+                  resourceType: "image",
+                  clientAllowedFormats: ["image"],
+                  maxFileSize: 10 * 1024 * 1024, // 10MB
+                }}
+                onUploadAdded={() => setIsUploading(true)}
+                onSuccess={(result: any) => {
+                  if (result.event === "success") {
+                    setImageUrl(result.info.secure_url);
+                  }
+                  setIsUploading(false);
+                }}
+                onError={(err) => {
+                  console.error("Upload error:", err);
+                  setError("Failed to upload image. Please try again.");
+                  setIsUploading(false);
+                }}
               >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" /> Choose Image
-                  </>
+                {({ open }) => (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => open()}
+                    disabled={isUploading || isPosting}
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" /> Choose Image
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Label>
+              </CldUploadWidget>
               {imageUrl && (
                 <Button
                   type="button"

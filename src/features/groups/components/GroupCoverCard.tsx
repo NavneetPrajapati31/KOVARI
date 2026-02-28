@@ -6,6 +6,7 @@ import { MapPin, Calendar, Users, Loader2, ArrowUpRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Avatar } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
+import { getFeedImageUrl } from "@/lib/cloudinary";
 import GroupCardSkeleton from "../../explore/components/GroupCardSkeleton";
 import { useRouter } from "next/navigation";
 
@@ -35,7 +36,7 @@ const ImageStretch = ({
   return (
     <div className="w-full h-full">
       <img
-        src={src}
+        src={getFeedImageUrl(src)}
         alt={alt}
         aria-label={ariaLabel}
         className={`w-full h-full object-fill object-bottom object-right rounded-t-2xl rounded-b-none transition-all duration-500 ${className}`}

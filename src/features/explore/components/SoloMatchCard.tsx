@@ -55,6 +55,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { getFeedImageUrl } from "@/lib/cloudinary";
 import {
   createSoloInterest,
   createSkipRecord,
@@ -389,7 +390,7 @@ export function SoloMatchCard({
           <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative shadow-sm">
             {user.avatar ? (
               <img
-                src={user.avatar}
+                src={getFeedImageUrl(user.avatar)}
                 alt={user.full_name || user.name || "Traveler"}
                 className="w-full h-full object-cover cursor-pointer"
               />

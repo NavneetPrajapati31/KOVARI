@@ -530,15 +530,31 @@ export function ReportDialog({
     }
 
     try {
+      const signRes = await fetch("/api/cloudinary/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "kovari-evidence/temp" }),
+      });
+      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
+      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
+
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp.toString());
+      formData.append("signature", signature);
+      formData.append("folder", folder);
 
-      const response = await fetch("/api/flags/evidence", {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, {
         method: "POST",
         body: formData,
       });
 
       const data = await response.json();
+      // Adapt the response to match the rest of the flow seamlessly
+      if (response.ok) {
+        data.evidenceUrl = data.secure_url;
+      }
 
       console.log("=== EVIDENCE UPLOAD RESPONSE ===");
       console.log("Response status:", response.status);

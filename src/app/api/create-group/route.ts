@@ -27,31 +27,8 @@ export async function POST(req: Request) {
         headers: { "Content-Type": "application/json" },
       });
 
-    let body: any;
-    let parsed;
-    const contentType = req.headers.get("content-type") || "";
-    if (contentType.includes("multipart/form-data")) {
-      const formData = await req.formData();
-      body = {
-        name: formData.get("name"),
-        destination: formData.get("destination"),
-        destination_details: formData.get("destination_details") ? JSON.parse(formData.get("destination_details") as string) : undefined,
-        start_date: formData.get("start_date"),
-        end_date: formData.get("end_date"),
-        is_public: String(formData.get("is_public")) === "true",
-        description: formData.get("description") || undefined,
-        cover_image:
-          formData.get("cover_image") instanceof File
-            ? (formData.get("cover_image") as File).name // You may want to upload the file to storage and get a URL here
-            : formData.get("cover_image") || undefined,
-        non_smokers: String(formData.get("non_smokers")) === "true",
-        non_drinkers: String(formData.get("non_drinkers")) === "true",
-      };
-      parsed = GroupSchema.safeParse(body);
-    } else {
-      body = await req.json();
-      parsed = GroupSchema.safeParse(body);
-    }
+    const body = await req.json();
+    const parsed = GroupSchema.safeParse(body);
 
     if (!parsed.success) {
       console.error("Validation error:", parsed.error);

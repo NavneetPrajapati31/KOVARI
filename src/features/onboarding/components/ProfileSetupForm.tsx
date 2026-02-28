@@ -63,7 +63,6 @@ import { Card, CardContent, CardHeader } from "@/shared/components/ui/card";
 import { cn } from "@/shared/utils/utils";
 import { DatePicker } from "@/shared/components/ui/date-picker";
 import ProfileCropModal from "@/shared/components/profile-crop-modal";
-import { uploadFiles } from "@/lib/uploadthing";
 import CheckIcon from "@mui/icons-material/Check";
 import CelebrationIcon from "@mui/icons-material/Celebration";
 import { Avatar, Spinner } from "@heroui/react";
@@ -509,11 +508,31 @@ export default function ProfileSetupForm() {
         type: "image/jpeg",
       });
 
-      const uploaded = await uploadFiles("profileImageUploader", {
-        files: [file],
+      // 1. Get signature
+      const signRes = await fetch("/api/cloudinary/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "kovari-profiles" }),
       });
+      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
+      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
 
-      const url = uploaded?.[0]?.url;
+      // 2. Upload to Cloudinary
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp.toString());
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
+      
+      const uploaded = await uploadRes.json();
+      const url = uploaded.secure_url;
       if (!url) {
         throw new Error("No URL returned from upload");
       }

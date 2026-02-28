@@ -1,0 +1,3 @@
+src/app/(app)/profile/edit/general/section.tsx(14,29): error TS2307: Cannot find module '@/lib/uploadthing' or its corresponding type declarations.
+src/app/api/groups/[groupId]/media/route.ts(5,10): error TS2305: Module '"@/lib/supabase-admin"' has no exported member 'updateGroupMedia'.
+src/features/onboarding/components/ProfileSetupForm.tsx(66,29): error TS2307: Cannot find module '@/lib/uploadthing' or its corresponding type declarations.

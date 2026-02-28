@@ -48,6 +48,7 @@ import {
   createSkipRecord,
   createReportRecord,
 } from "../lib/matchingActions";
+import { getFeedImageUrl } from "@/lib/cloudinary";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 
 interface GroupMatchCardProps {
@@ -339,7 +340,7 @@ export function GroupMatchCard({
           <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-muted/60 flex items-center justify-center flex-shrink-0 relative shadow-sm">
             {group.cover_image ? (
               <img
-                src={group.cover_image}
+                src={getFeedImageUrl(group.cover_image)}
                 alt={group.name || "Travel Group"}
                 className="w-full h-full object-cover cursor-pointer"
               />

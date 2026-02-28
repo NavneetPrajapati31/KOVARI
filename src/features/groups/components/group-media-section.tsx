@@ -5,6 +5,7 @@ import { HiPlay } from "react-icons/hi";
 import { Skeleton } from "@heroui/react";
 import MediaViewerModal from "@/shared/components/media-viewer-modal";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
+import { CldUploadWidget } from "next-cloudinary";
 
 interface MediaItem {
   id: string;
@@ -97,36 +98,7 @@ export const GroupMediaSection = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [galleryOpen]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setError(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("uploaded_by", userId); // <-- use real userId
-      const res = await fetch(`/api/groups/${groupId}/media`, {
-        method: "POST",
-        body: formData,
-      });
-      console.log("[MEDIA][POST] status:", res.status);
-      if (!res.ok) {
-        const err = await res.json();
-        console.error("[MEDIA][POST] error:", err);
-        throw new Error(err.error || "Failed to upload");
-      }
-      const uploaded = await res.json();
-      console.log("[MEDIA][POST] uploaded:", uploaded);
-      await fetchMedia();
-    } catch (err: any) {
-      console.error("[MEDIA][POST] error:", err);
-      setError(err.message || "Error uploading");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
+  // handleFileChange is replaced by CldUploadWidget onSuccess handler
 
   return (
     <div className="">
@@ -145,28 +117,66 @@ export const GroupMediaSection = ({
             >
               See all
             </Button>
-            {/* <Button
-              type="button"
-              className="bg-transparent text-primary p-0 h-auto w-8 flex items-center justify-center"
-              aria-label="Add photo or video"
-              tabIndex={0}
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+            <CldUploadWidget
+              signatureEndpoint="/api/cloudinary/sign"
+              options={{
+                folder: `kovari-groups/${groupId}`,
+                resourceType: "auto",
+                clientAllowedFormats: ["image", "video"],
+                maxFileSize: 10 * 1024 * 1024, // 10MB
+              }}
+              onSuccess={async (result: any) => {
+                if (result.event === "success") {
+                  setUploading(true);
+                  try {
+                    const { secure_url, public_id, resource_type } = result.info;
+                    let res;
+                    for (let i = 0; i < 3; i++) {
+                      try {
+                        res = await fetch(`/api/groups/${groupId}/media`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            secure_url,
+                            public_id,
+                            type: resource_type === "video" ? "video" : "image"
+                          }),
+                        });
+                        if (res.ok) break;
+                      } catch (e) {
+                        if (i === 2) throw e;
+                      }
+                      // Exponential backoff: 1s, 2s, 4s
+                      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+                    }
+                    
+                    if (!res || !res.ok) throw new Error("Failed to save media metadata");
+                    await fetchMedia();
+                  } catch (err) {
+                    console.error("Error saving media:", err);
+                    setError("Failed to save media");
+                  } finally {
+                    setUploading(false);
+                  }
+                }
+              }}
             >
-              {uploading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Plus className="h-5 w-5" />
+              {({ open }) => (
+                <Button
+                  type="button"
+                  className="bg-transparent text-primary p-0 h-auto w-8 flex items-center justify-center cursor-pointer"
+                  aria-label="Add photo or video"
+                  onClick={() => open()}
+                  disabled={loading || uploading}
+                >
+                  {uploading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Plus className="h-5 w-5" />
+                  )}
+                </Button>
               )}
-            </Button> */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={handleFileChange}
-              aria-label="Upload photo or video"
-            />
+            </CldUploadWidget>
           </div>
         )}
       </div>

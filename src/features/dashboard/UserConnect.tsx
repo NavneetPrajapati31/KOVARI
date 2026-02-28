@@ -12,6 +12,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { getFeedImageUrl } from "@/lib/cloudinary";
 import GroupCardSkeleton from "@/features/explore/components/GroupCardSkeleton";
 import { useRouter } from "next/navigation";
 
@@ -41,7 +42,7 @@ const ImageStretch = ({
   return (
     <div className="w-full h-full">
       <img
-        src={src}
+        src={getFeedImageUrl(src)}
         alt={alt}
         aria-label={ariaLabel}
         className={`w-full h-full object-fill object-bottom object-right transition-all duration-500 ${className}`}

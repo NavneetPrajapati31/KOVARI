@@ -47,6 +47,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import { getFullImageUrl } from "@/lib/cloudinary";
 import Link from "next/link";
 
 /** Standalone user icon fallback for HeroUI Avatar (cannot use UserAvatarFallback - it requires Radix Avatar context). */
@@ -394,20 +395,48 @@ export default function GroupChatInterface() {
     if (!file || !userId) return; // Only proceed if userId is loaded
     setChatUploading(true);
     try {
+      const signRes = await fetch("/api/cloudinary/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: `kovari-group-chat/${groupId}` }),
+      });
+      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
+      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
+
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("uploaded_by", userId); // use real user id
-      const res = await fetch(`/api/groups/${groupId}/media`, {
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp.toString());
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const type = file.type.startsWith("video") ? "video" : "image";
+      const resourceType = type === "video" ? "video" : "image";
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/${resourceType}/upload`, {
         method: "POST",
         body: formData,
       });
+      if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
+      const uploaded = await uploadRes.json();
+
+      // Register the media in the group
+      const res = await fetch(`/api/groups/${groupId}/media`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secure_url: uploaded.secure_url,
+          public_id: uploaded.public_id,
+          type
+        }),
+      });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed to upload");
+        throw new Error(err.error || "Failed to register upload");
       }
-      const uploaded = await res.json();
+      const mediaRecord = await res.json();
       // Send a message with the media URL and type
-      await sendMessage("", uploaded.url, uploaded.type);
+      await sendMessage("", mediaRecord.url, mediaRecord.type);
     } catch (err) {
       // Optionally show error toast
     } finally {
@@ -1252,7 +1281,7 @@ const MediaWithSkeleton = ({
         <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
       )}
       <img
-        src={url}
+        src={getFullImageUrl(url)}
         alt="sent media"
         className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
         onLoad={() => setLoaded(true)}

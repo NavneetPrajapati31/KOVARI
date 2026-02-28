@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { v4 as uuidv4 } from "uuid";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { deleteFromCloudinary } from "@/lib/cloudinary";
 
 function getGroupIdFromUrl(request: NextRequest): string | null {
   const match = request.nextUrl.pathname.match(/groups\/([^/]+)\/media/);
@@ -118,35 +118,19 @@ export async function POST(request: NextRequest) {
     }
     const supabase = ctx.supabase;
 
-    // Parse multipart form
-    const formData = await request.formData();
-    const file = formData.get("file");
-    if (!file || !(file instanceof Blob)) {
-      console.error("[MEDIA][POST] No file uploaded");
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-    }
-    const type = file.type.startsWith("video")
-      ? "video"
-      : file.type.startsWith("image")
-        ? "image"
-        : null;
-    if (!type) {
-      console.error("[MEDIA][POST] Invalid file type:", file.type);
-      return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
+    // Parse JSON body instead of multipart form (direct client upload)
+    const body = await request.json().catch(() => ({}));
+    const { secure_url: url, public_id, type } = body;
+
+    if (!url || !public_id || !type) {
+      console.error("[MEDIA][POST] Missing required media fields");
+      return NextResponse.json({ error: "Missing required media fields" }, { status: 400 });
     }
 
-    // Upload to Cloudinary
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const uploadResult = await uploadToCloudinary(buffer, {
-      folder: `kovari-groups/${groupId}`,
-      resource_type: type === "video" ? "video" : "image",
-      public_id: `${uuidv4()}`,
-    });
-
-    console.log(`[MEDIA][POST] Uploaded to Cloudinary: ${uploadResult.url}`);
-    const url = uploadResult.secure_url;
+    if (type !== "image" && type !== "video") {
+      console.error("[MEDIA][POST] Invalid file type:", type);
+      return NextResponse.json({ error: "Invalid file type. Must be 'image' or 'video'." }, { status: 400 });
+    }
 
     // Insert into group_media table
     const { data: insertData, error: insertError } = await supabase
@@ -156,14 +140,25 @@ export async function POST(request: NextRequest) {
         url,
         type,
         uploaded_by: ctx.userId,
-        cloudinary_public_id: uploadResult.public_id, // Store Cloudinary public ID for future deletion
+        cloudinary_public_id: public_id, // Store Cloudinary public ID for future deletion
       })
       .select("id, url, type, uploaded_by, created_at, cloudinary_public_id")
       .single();
+      
     if (insertError) {
       console.error("[MEDIA][POST] DB insert error:", insertError);
+      
+      // Rollback: Delete the orphaned asset from Cloudinary
+      console.error(`Rolling back: Deleting orphaned Cloudinary asset ${public_id}`);
+      try {
+        await deleteFromCloudinary(public_id);
+      } catch (rollbackError) {
+        console.error("Critical: Rollback failed for", public_id, rollbackError);
+      }
+
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
+    
     console.log("[MEDIA][POST] DB insert result:", insertData);
     return NextResponse.json(insertData, { status: 201 });
   } catch (err) {

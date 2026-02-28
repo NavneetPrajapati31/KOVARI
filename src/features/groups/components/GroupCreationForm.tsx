@@ -173,54 +173,26 @@ export function GroupCreationForm() {
       setIsSubmitting(true);
       setError(null);
 
-      let response;
-      // If coverImage is a File, use FormData
-      if (data.coverImage instanceof File) {
-        const formData = new FormData();
-        formData.append("name", data.groupName);
-        formData.append("destination", data.destination);
-        if (data.destinationDetails) {
-          formData.append(
-            "destination_details",
-            JSON.stringify(data.destinationDetails),
-          );
-        }
-        formData.append("start_date", format(data.startDate, "yyyy-MM-dd"));
-        formData.append("end_date", format(data.endDate, "yyyy-MM-dd"));
-        formData.append("is_public", String(data.isPublic));
-        formData.append("non_smokers", String(data.strictlyNonSmoking));
-        formData.append("non_drinkers", String(data.strictlyNonDrinking));
-        if (data.description) {
-          formData.append("description", data.description);
-        }
-        formData.append("cover_image", data.coverImage);
-
-        response = await fetch("/api/create-group", {
-          method: "POST",
-          body: formData,
-        });
-      } else {
-        // coverImage is a string (URL) or undefined
-        const payload = {
-          name: data.groupName,
-          destination: data.destination,
-          destination_details: data.destinationDetails,
-          start_date: format(data.startDate, "yyyy-MM-dd"),
-          end_date: format(data.endDate, "yyyy-MM-dd"),
-          is_public: data.isPublic,
-          non_smokers: data.strictlyNonSmoking,
-          non_drinkers: data.strictlyNonDrinking,
-          description: data.description || undefined,
-          cover_image: data.coverImage,
-        };
-        response = await fetch("/api/create-group", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-      }
+      const payload = {
+        name: data.groupName,
+        destination: data.destination,
+        destination_details: data.destinationDetails,
+        start_date: format(data.startDate, "yyyy-MM-dd"),
+        end_date: format(data.endDate, "yyyy-MM-dd"),
+        is_public: data.isPublic,
+        non_smokers: data.strictlyNonSmoking,
+        non_drinkers: data.strictlyNonDrinking,
+        description: data.description || undefined,
+        cover_image: data.coverImage,
+      };
+      
+      const response = await fetch("/api/create-group", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();

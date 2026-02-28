@@ -11,7 +11,6 @@ import SectionRow from "@/features/profile/components/section-row";
 import { Button } from "@/shared/components/ui/button";
 import { Avatar, Spinner } from "@heroui/react";
 import { toast } from "sonner";
-import { uploadFiles } from "@/lib/uploadthing";
 import ProfileCropModal from "@/shared/components/profile-crop-modal";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { COUNTRIES } from "@/shared/utils/countries";
@@ -162,12 +161,31 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
       const blob = await response.blob();
       const file = new File([blob], "profile-crop.jpg", { type: "image/jpeg" });
 
-      // Upload the cropped image
-      const uploaded = await uploadFiles("profileImageUploader", {
-        files: [file],
+      // 1. Get signature
+      const signRes = await fetch("/api/cloudinary/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "kovari-profiles" }),
       });
+      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
+      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
 
-      const url = uploaded?.[0]?.url;
+      // 2. Upload to Cloudinary
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp.toString());
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
+      
+      const uploaded = await uploadRes.json();
+      const url = uploaded.secure_url;
       if (url) {
         // Update the avatar field
         await handleSaveField("avatar", url);

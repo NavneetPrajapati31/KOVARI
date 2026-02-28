@@ -38,6 +38,7 @@ import {
   isSameDay,
   linkifyMessage,
 } from "@/shared/utils/utils";
+import { getFullImageUrl } from "@/lib/cloudinary";
 import Link from "next/link";
 import { useToast } from "@/shared/hooks/use-toast";
 import Picker from "@emoji-mart/react";
@@ -90,7 +91,7 @@ const MediaWithSkeleton = ({
         <Skeleton className="absolute inset-0 w-full h-full rounded-2xl" />
       )}
       <img
-        src={url}
+        src={getFullImageUrl(url)}
         alt="sent media"
         className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
         onLoad={() => setLoaded(true)}
@@ -482,19 +483,33 @@ const MessageInput = ({
     if (!file) return;
     setIsUploading(true);
     try {
+      const signRes = await fetch("/api/cloudinary/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: `kovari-direct/${currentUserUuid}-${partnerUuid}` }),
+      });
+      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
+      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
+
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("uploaded_by", currentUserUuid);
-      formData.append("receiver_id", partnerUuid);
-      const res = await fetch(`/api/direct-chat/media`, {
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp.toString());
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const type = file.type.startsWith("video") ? "video" : "image";
+      const resourceType = type === "video" ? "video" : "image";
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/${resourceType}/upload`, {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) {
+      if (!uploadRes.ok) {
         throw new Error("Failed to upload file");
       }
-      const uploaded = await res.json();
-      handleSend("", uploaded.url, uploaded.type);
+      const uploaded = await uploadRes.json();
+      handleSend("", uploaded.secure_url, type);
     } catch (err) {
       // @ts-ignore
       if (window?.toast) window.toast.error("Failed to upload file");

@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { Card, Spinner } from "@heroui/react";
 import { Upload, Trash2, Loader2, Plus, Search } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { getFeedImageUrl } from "@/lib/cloudinary";
+import { CldUploadWidget } from "next-cloudinary";
 import { cn } from "@/shared/utils/utils";
 
 interface DestinationCardProps {
@@ -36,7 +38,7 @@ const ImageStretch = ({
   return (
     <div className="w-full h-full">
       <img
-        src={src}
+        src={getFeedImageUrl(src)}
         alt={alt}
         aria-label={ariaLabel}
         className={cn(
@@ -66,29 +68,7 @@ export function DestinationCard({
 
   const hasImage = Boolean(imageUrl?.trim());
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !editable || !onUploadSuccess) return;
-    if (!file.type.startsWith("image/")) {
-      return;
-    }
-    setUploading(true);
-    try {
-      const { uploadFiles } = await import("@/lib/uploadthing");
-      const uploaded = await uploadFiles("profileImageUploader", {
-        files: [file],
-      });
-      const url = uploaded?.[0]?.url;
-      if (url) {
-        onUploadSuccess(url);
-      }
-    } catch (err) {
-      console.error("Destination image upload error:", err);
-    } finally {
-      setUploading(false);
-    }
-  };
+  // File change is handled by CldUploadWidget
 
   const handleDeleteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -134,16 +114,36 @@ export function DestinationCard({
           >
             {/* Hidden file input - off-screen so programmatic .click() works in all browsers */}
             {editable && (
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="absolute w-0 h-0 overflow-hidden opacity-0 pointer-events-none"
-                aria-label="Upload destination image"
-                title="Upload destination image"
-                tabIndex={-1}
-              />
+              <CldUploadWidget
+                signatureEndpoint="/api/cloudinary/sign"
+                options={{
+                  folder: "kovari-destinations",
+                  resourceType: "image",
+                  clientAllowedFormats: ["image"],
+                  maxFileSize: 10 * 1024 * 1024,
+                }}
+                onUploadAdded={() => setUploading(true)}
+                onSuccess={(result: any) => {
+                  if (result.event === "success") {
+                    onUploadSuccess?.(result.info.secure_url);
+                  }
+                  setUploading(false);
+                }}
+                onError={(err) => {
+                  console.error("Upload error:", err);
+                  setUploading(false);
+                }}
+              >
+                {({ open }) => (
+                  <button
+                    type="button"
+                    onClick={() => open()}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    aria-label="Upload destination image"
+                    title="Upload destination image"
+                  />
+                )}
+              </CldUploadWidget>
             )}
             {uploading ? (
               <Spinner
@@ -152,16 +152,13 @@ export function DestinationCard({
                 classNames={{ spinnerBars: "bg-gray-400" }}
               />
             ) : editable ? (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center gap-1.5 rounded-3xl p-4 focus:outline-none focus:ring-0"
-                aria-label="Upload destination image"
+              <div
+                className="flex flex-col items-center gap-1.5 rounded-3xl p-4 pointer-events-none"
               >
                 <div className="rounded-full p-1">
                   <Upload className="w-5 h-5 text-gray-400" />
                 </div>
-              </button>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-1.5">
                 <div className="rounded-full p-1">
