@@ -49,7 +49,7 @@ This document provides a comprehensive and updated list of all MVP features that
 ### ✅ Group Creation & Dynamics
 - **Creation Flow**: Specialized multi-step group creation form with rigorous validation (`GroupCreationForm`).
 - **Granular Settings Pages**:
-  - Basic Info (`/groups/[groupId]/settings/edit`)
+  - Group Info (`/groups/[groupId]/settings/edit`)
   - Advanced/General Settings (`/groups/[groupId]/settings`)
   - Member Governance (`/groups/[groupId]/settings/members`)
   - Join Request Handling (`/groups/[groupId]/settings/requests`)
