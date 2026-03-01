@@ -17,6 +17,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
 } from "@/shared/components/ui/sheet";
 import { Filter } from "lucide-react";
 
@@ -567,9 +568,10 @@ export default function ExplorePage() {
               </SheetTrigger>
               <SheetContent
                 side="bottom"
-                className="h-[90dvh] p-0 rounded-t-3xl w-full"
+                className="h-[90dvh] bg-card p-0 rounded-t-3xl w-full"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
+                <SheetTitle className="sr-only">Filters</SheetTitle>
                 <div
                   ref={(el) => setDatePickerPortalContainer(el ?? null)}
                   className="h-full pt-2 relative"
