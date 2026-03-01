@@ -156,7 +156,7 @@ export default function SafetyPage() {
   return (
     <div className="min-h-screen bg-background pb-10 font-sans">
       
-      <div className="max-w-full mx-auto px-6 sm:px-6 relative z-20">
+      <div className="max-w-full mx-auto px-4 sm:px-4 relative z-20">
         <AnimatePresence mode="wait" initial={false}>
           {activeView === "main" ? (
             <motion.div
@@ -168,7 +168,7 @@ export default function SafetyPage() {
               className="space-y-10"
             >
               {/* 1. HEADER (True iOS System Settings Hero) */}
-              <section className="px-6 pt-10 pb-2 flex flex-col items-center text-center">
+              <section className="px-4 pt-10 pb-2 flex flex-col items-center text-center">
                 <ShieldCheck className="w-10 h-10 text-primary mb-3" strokeWidth={1.5} />
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3">
                   Safety & Trust
@@ -220,7 +220,7 @@ export default function SafetyPage() {
         {/* 3. ACCOUNT STATUS (Compact Row Info) */}
         <section className="animate-in fade-in slide-in-from-bottom-2 duration-700 delay-200 ease-out fill-mode-both">
           <SectionTitle title="Your Status" />
-          <div className="bg-card rounded-xl overflow-hidden border border-border/40 shadow-sm">
+          <div className="bg-card rounded-xl overflow-hidden border border-border/40">
             <div className="divide-y divide-border/40">
               <div className="flex items-center justify-between p-3 bg-card">
                 <div className="flex items-center gap-4">
@@ -257,7 +257,7 @@ export default function SafetyPage() {
         {/* 4. REPORT FLOW (Informational list) */}
         <section className="animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300 ease-out fill-mode-both">
            <SectionTitle title="How Reporting Works" />
-           <div className="bg-card rounded-xl overflow-hidden border border-border/40 shadow-sm">
+           <div className="bg-card rounded-xl overflow-hidden border border-border/40">
              <div className="divide-y divide-border/40">
               {[
                 { icon: AlertTriangle, title: "1. Submission", desc: "Flag unsafe behavior securely." },
@@ -401,7 +401,7 @@ export default function SafetyPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={`Search ${reportTargetType === "user" ? "users" : "groups"}...`}
-                className="pl-10 pr-10 h-11 bg-secondary/60 border-border/40 rounded-xl focus-visible:ring-0 focus-visible:bg-secondary/80 text-base shadow-none transition-colors placeholder:text-muted-foreground"
+                className="pl-10 pr-10 h-11 bg-secondary/60 border-border/40 rounded-xl focus-visible:ring-0 focus-visible:bg-secondary/80 shadow-none transition-colors placeholder:text-muted-foreground"
               />
               {searchQuery.length > 0 && (
                 <button
