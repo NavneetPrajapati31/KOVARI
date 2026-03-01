@@ -4,7 +4,7 @@ import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import { Button } from "@/shared/components/ui/button";
 import { Chip, Spinner } from "@heroui/react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 
 interface JoinRequest {
@@ -38,6 +38,7 @@ export default function RequestsPage() {
   const [approveLoadingId, setApproveLoadingId] = useState<string | null>(null);
   const [rejectLoadingId, setRejectLoadingId] = useState<string | null>(null);
   const params = useParams<{ groupId: string }>();
+  const router = useRouter();
   const groupId = params.groupId;
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
@@ -208,7 +209,15 @@ export default function RequestsPage() {
               {joinRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50 hover:rounded-xl hover:last:rounded-t-none items-center"
+                  className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50 hover:rounded-xl hover:last:rounded-t-none items-center cursor-pointer transition-colors"
+                  onClick={() => router.push(`/profile/${request.userId}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      router.push(`/profile/${request.userId}`);
+                    }
+                  }}
                 >
                   <div className="col-span-3 flex items-center gap-3">
                     <Avatar className="h-8 w-8">
@@ -245,7 +254,10 @@ export default function RequestsPage() {
                       <>
                         <Button
                           className="text-primary-foreground bg-primary px-3 py-1 h-7 text-xs rounded-lg"
-                          onClick={() => handleApproveRequest(request)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApproveRequest(request);
+                          }}
                           aria-label={`Approve ${request.name}`}
                           tabIndex={0}
                           disabled={
@@ -268,7 +280,10 @@ export default function RequestsPage() {
                         <Button
                           variant="outline"
                           className="px-3 py-1 h-7 w-7 text-xs rounded-lg"
-                          onClick={() => handleRejectRequest(request)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRejectRequest(request);
+                          }}
                           aria-label={`Reject ${request.name}`}
                           tabIndex={0}
                           disabled={
@@ -304,7 +319,15 @@ export default function RequestsPage() {
             {joinRequests.map((request) => (
               <div
                 key={request.id}
-                className="bg-card rounded-xl border border-border p-4 space-y-3"
+                className="bg-card rounded-xl border border-border p-4 space-y-3 cursor-pointer transition-colors hover:bg-accent/50"
+                onClick={() => router.push(`/profile/${request.userId}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    router.push(`/profile/${request.userId}`);
+                  }
+                }}
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
@@ -337,7 +360,10 @@ export default function RequestsPage() {
                     <div className="flex gap-2">
                       <Button
                         className="text-primary-foreground bg-primary px-3 py-1 h-7 text-xs rounded-lg"
-                        onClick={() => handleApproveRequest(request)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApproveRequest(request);
+                        }}
                         aria-label={`Approve ${request.name}`}
                         tabIndex={0}
                         disabled={
@@ -360,7 +386,10 @@ export default function RequestsPage() {
                       <Button
                         variant="outline"
                         className="px-3 py-1 h-7 w-7 text-xs rounded-lg"
-                        onClick={() => handleRejectRequest(request)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRejectRequest(request);
+                        }}
                         aria-label={`Reject ${request.name}`}
                         tabIndex={0}
                         disabled={
