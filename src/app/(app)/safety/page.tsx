@@ -156,7 +156,7 @@ export default function SafetyPage() {
   return (
     <div className="min-h-screen bg-background pb-10 font-sans">
       
-      <div className="max-w-full mx-auto px-4 sm:px-4 relative z-20">
+      <div className="max-w-full mx-auto px-5 sm:px-5 relative z-20">
         <AnimatePresence mode="wait" initial={false}>
           {activeView === "main" ? (
             <motion.div
@@ -386,11 +386,11 @@ export default function SafetyPage() {
            </button>
         </div>
 
-        <div>
-           <h2 className="text-md font-semibold text-foreground mb-1">
+        <div className="px-1">
+           <h2 className="text-sm sm:text-md font-semibold text-foreground mb-1">
              Report a {reportTargetType === "user" ? "User" : "Group"}
            </h2>
-           <p className="text-sm text-muted-foreground/80 mb-4">
+           <p className="text-xs sm:text-sm text-muted-foreground mb-6">
              Select the profile you want to report
            </p>
 
@@ -437,13 +437,13 @@ export default function SafetyPage() {
                        onClick={() => handleSelectTarget(target.id, target.name)}
                        className="w-full flex items-center p-3 px-4 hover:bg-secondary active:bg-secondary duration-150 transition-colors"
                      >
-                       <Avatar className="w-9 h-9 mr-4">
+                       <Avatar className="w-9 h-9 mr-3">
                          <AvatarImage src={target.imageUrl} />
                          <UserAvatarFallback />
                        </Avatar>
                        <div className="flex flex-col items-start text-left">
                          <span className="text-sm text-foreground font-medium">{target.name}</span>
-                         {target.username && <p className="text-xs text-muted-foreground">@{target.username}</p>}
+                         {target.username && <p className="text-sm text-muted-foreground">@{target.username}</p>}
                        </div>
                      </button>
                    ))}
@@ -472,12 +472,12 @@ export default function SafetyPage() {
            </button>
         </div>
 
-        <div>
+        <div className="px-1">
            <div className="flex items-center justify-between mb-4">
-             <h2 className="text-md font-semibold text-foreground mb-1">
+             <h2 className="text-sm sm:text-md font-semibold text-foreground mb-1">
                My Reports
              </h2>
-             <span className="text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded-md">
+             <span className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded-md">
                {reports.length} Total
              </span>
            </div>
@@ -508,7 +508,7 @@ export default function SafetyPage() {
                <div className="bg-card rounded-xl overflow-hidden border border-border/40">
                  <div className="divide-y divide-border/40 flex flex-col">
                 {reports.map((report) => (
-                  <div key={report.id} className="p-4 flex items-start gap-4 hover:bg-secondary/50 transition-colors duration-150 group">
+                  <div key={report.id} className="p-4 flex items-start gap-3 hover:bg-secondary/50 transition-colors duration-150 group">
                     {/* Avatar Block */}
                     <Avatar className="w-10 h-10 shrink-0">
                       {/* You can add report.targetImageUrl here in the future if the API supplies it */}
@@ -618,13 +618,13 @@ export default function SafetyPage() {
                        onClick={() => handleSelectTarget(target.id, target.name)}
                        className="w-full flex items-center p-3 px-4 hover:bg-secondary/50 active:bg-secondary duration-150 transition-colors"
                      >
-                       <Avatar className="w-9 h-9 mr-4">
+                       <Avatar className="w-9 h-9 mr-3">
                          <AvatarImage src={target.imageUrl} />
                          <UserAvatarFallback />
                        </Avatar>
                        <div className="flex flex-col">
                          <span className="text-sm text-foreground font-medium">{target.name}</span>
-                         {target.username && <p className="text-left text-xs text-muted-foreground">@{target.username}</p>}
+                         {target.username && <p className="text-left text-sm text-muted-foreground">@{target.username}</p>}
                        </div>
                      </button>
                    ))}

@@ -32,8 +32,8 @@ export default function SettingsPage() {
       {/* Breadcrumb — match profile edit */}
       <div className="px-1 py-2 md:px-4">
         <Link href="/profile">
-          <Button className="inline-flex items-center gap-1 text-xs md:text-sm bg-transparent text-foreground transition-colors">
-            <ArrowLeft className="md:h-4 md:w-4 h-3 w-3" />
+          <Button className="inline-flex items-center gap-1 text-sm bg-transparent font-medium text-primary transition-colors">
+            <ChevronLeft className="md:h-4 md:w-4 h-3 w-3" />
             Settings
           </Button>
         </Link>
