@@ -56,54 +56,91 @@ export async function GET(req: NextRequest) {
     const targetUserIds = Array.from(new Set(safeUserFlags.map(f => f.user_id).filter(Boolean)));
     const targetGroupIds = Array.from(new Set(safeGroupFlags.map(f => f.group_id).filter(Boolean)));
 
-    let usersDict: Record<string, string> = {};
+    let usersDict: Record<string, { name: string; username?: string; imageUrl: string }> = {};
     if (targetUserIds.length > 0) {
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("user_id, name, username")
+        .select("user_id, name, username, profile_photo")
         .in("user_id", targetUserIds);
       
       if (profilesData) {
         profilesData.forEach(p => {
-          usersDict[p.user_id] = p.name || p.username || "Unknown User";
+          usersDict[p.user_id] = {
+            name: p.name || p.username || "Unknown User",
+            username: p.username,
+            imageUrl: p.profile_photo || ""
+          };
         });
       }
     }
 
-    let groupsDict: Record<string, string> = {};
+    let groupsDict: Record<string, { name: string; memberCount: number; imageUrl: string }> = {};
     if (targetGroupIds.length > 0) {
       const { data: groupsData } = await supabase
         .from("groups")
-        .select("id, name")
+        .select("id, name, members_count, cover_image")
         .in("id", targetGroupIds);
       
       if (groupsData) {
         groupsData.forEach(g => {
-          groupsDict[g.id] = g.name || "Unknown Group";
+          groupsDict[g.id] = {
+            name: g.name || "Unknown Group",
+            memberCount: g.members_count || 1,
+            imageUrl: g.cover_image || ""
+          };
         });
       }
     }
 
-    // Combine and format
-    const formattedUserFlags = safeUserFlags.map((flag: any) => ({
-      id: flag.id,
-      targetType: "user",
-      targetId: flag.user_id,
-      targetName: usersDict[flag.user_id] || "Unknown User",
-      reason: flag.reason,
-      status: flag.status || "pending",
-      createdAt: flag.created_at,
-    }));
+    const parseReasonInfo = (rawReason: string) => {
+      if (!rawReason) return { reason: "", additionalNotes: "" };
+      
+      // Use a robust regex to split "Additional notes:" regardless of newline style (CRLF vs LF)
+      const parts = rawReason.split(/(?:[\r\n]+)Additional notes:\s*/i);
+      
+      if (parts.length > 1) {
+        return {
+          reason: parts[0].trim(),
+          additionalNotes: parts.slice(1).join("Additional notes: ").trim()
+        };
+      }
+      return { reason: rawReason.trim(), additionalNotes: "" };
+    };
 
-    const formattedGroupFlags = safeGroupFlags.map((flag: any) => ({
-      id: flag.id,
-      targetType: "group",
-      targetId: flag.group_id,
-      targetName: groupsDict[flag.group_id] || "Unknown Group",
-      reason: flag.reason,
-      status: flag.status || "pending",
-      createdAt: flag.created_at,
-    }));
+    // Combine and format
+    const formattedUserFlags = safeUserFlags.map((flag: any) => {
+      const { reason, additionalNotes } = parseReasonInfo(flag.reason);
+      return {
+        id: flag.id,
+        targetType: "user",
+        targetId: flag.user_id,
+        targetName: usersDict[flag.user_id]?.name || "Unknown User",
+        targetUsername: usersDict[flag.user_id]?.username,
+        targetImageUrl: usersDict[flag.user_id]?.imageUrl || "",
+        reason,
+        additionalNotes,
+        evidenceUrl: flag.evidence_url || "",
+        status: flag.status || "pending",
+        createdAt: flag.created_at,
+      };
+    });
+
+    const formattedGroupFlags = safeGroupFlags.map((flag: any) => {
+      const { reason, additionalNotes } = parseReasonInfo(flag.reason);
+      return {
+        id: flag.id,
+        targetType: "group",
+        targetId: flag.group_id,
+        targetName: groupsDict[flag.group_id]?.name || "Unknown Group",
+        targetMemberCount: groupsDict[flag.group_id]?.memberCount,
+        targetImageUrl: groupsDict[flag.group_id]?.imageUrl || "",
+        reason,
+        additionalNotes,
+        evidenceUrl: flag.evidence_url || "",
+        status: flag.status || "pending",
+        createdAt: flag.created_at,
+      };
+    });
 
     const allReports = [...formattedUserFlags, ...formattedGroupFlags].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

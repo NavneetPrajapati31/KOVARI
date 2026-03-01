@@ -7,7 +7,12 @@ export interface ReportItem {
   targetType: "user" | "group";
   targetId: string;
   targetName: string;
+  targetUsername?: string;
+  targetMemberCount?: number;
+  targetImageUrl?: string;
   reason: string;
+  additionalNotes?: string;
+  evidenceUrl?: string;
   status: ReportStatus;
   createdAt: string;
 }

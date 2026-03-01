@@ -23,7 +23,12 @@ import {
   LineChart,
   ChevronLeft,
   XCircle,
-  X
+  X,
+  ImageIcon,
+  AlignLeft,
+  ExternalLink,
+  Link,
+  ArrowUpRight
 } from "lucide-react";
 import { useMyReports, ReportStatus } from "@/shared/hooks/useMyReports";
 import { Spinner } from "@heroui/react";
@@ -190,7 +195,7 @@ export default function SafetyPage() {
                 onClick={() => handleOpenReport("user")}
               />
               <ListRow 
-                icon={MessageSquareWarning} 
+                icon={AlertTriangle} 
                 iconBg=" text-foreground"
                 label="Report a Group"
                 onClick={() => handleOpenReport("group")}
@@ -416,14 +421,14 @@ export default function SafetyPage() {
            {/* Results List */}
            <div className="flex flex-col">
              {searchLoading && searchResults.length === 0 ? (
-               <div className="flex items-center min-h-[60vh] justify-center gap-2 bg-card rounded-xl border border-border">
+               <div className="flex items-center min-h-[70vh] justify-center gap-2 bg-card rounded-xl border border-border">
                  <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
                  <p className="text-sm text-muted-foreground">Fetching {reportTargetType === "user" ? "users" : "groups"}...</p>
                </div>
              ) : searchError ? (
-               <div className="min-h-[60vh] flex items-center justify-center text-center text-sm text-destructive bg-card rounded-xl border border-border">{searchError}</div>
+               <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-destructive bg-card rounded-xl border border-border">{searchError}</div>
              ) : searchResults.length === 0 ? (
-               <div className="min-h-[60vh] flex items-center justify-center text-center text-sm text-muted-foreground/60 bg-card rounded-xl border border-border">
+               <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-muted-foreground/60 bg-card rounded-xl border border-border">
                  {searchQuery.trim().length > 0 
                     ? `No ${reportTargetType === "user" ? "users" : "groups"} found matching "${searchQuery}"`
                     : `No ${reportTargetType === "user" ? "active users" : "active groups"} available.`}
@@ -473,7 +478,7 @@ export default function SafetyPage() {
         </div>
 
         <div className="px-1">
-           <div className="flex items-center justify-between mb-4">
+           <div className="flex items-center justify-between mb-2">
              <h2 className="text-sm sm:text-md font-semibold text-foreground mb-1">
                My Reports
              </h2>
@@ -484,18 +489,18 @@ export default function SafetyPage() {
 
            <div className="flex flex-col">
             {reportsLoading ? (
-               <div className="flex items-center min-h-[60vh] justify-center gap-2 bg-card rounded-xl border border-border">
+               <div className="flex items-center min-h-[80vh] justify-center gap-2 bg-card rounded-xl border border-border mt-2">
                  <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
                  <p className="text-sm text-muted-foreground">Loading your reports...</p>
                </div>
             ) : reportsError ? (
-               <div className="min-h-[60vh] flex flex-col items-center justify-center text-center bg-card rounded-xl border border-border p-8">
+               <div className="min-h-[70vh] flex flex-col items-center justify-center text-center bg-card rounded-xl border border-border p-8">
                 <AlertTriangle className="w-8 h-8 mb-2 text-muted-foreground" strokeWidth={1.5} />
                 <p className="text-base text-foreground mb-1">Couldn't load reports</p>
                 <p className="text-sm text-muted-foreground">{reportsError}</p>
               </div>
             ) : reports.length === 0 ? (
-               <div className="min-h-[60vh] flex flex-col items-center justify-center text-center bg-card rounded-xl border border-border p-8">
+               <div className="min-h-[80vh] flex flex-col items-center justify-center text-center bg-card rounded-xl border border-border p-8">
                 <div className="w-12 h-12  rounded-full flex items-center justify-center mb-4">
                   <HeartHandshake className="w-6 h-6 text-muted-foreground" strokeWidth={1.5} />
                 </div>
@@ -505,44 +510,100 @@ export default function SafetyPage() {
                 </p>
               </div>
             ) : (
-               <div className="bg-card rounded-xl overflow-hidden border border-border/40">
-                 <div className="divide-y divide-border/40 flex flex-col">
-                {reports.map((report) => (
-                  <div key={report.id} className="p-4 flex items-start gap-3 hover:bg-secondary/50 transition-colors duration-150 group">
-                    {/* Avatar Block */}
-                    <Avatar className="w-10 h-10 shrink-0">
-                      {/* You can add report.targetImageUrl here in the future if the API supplies it */}
-                     <UserAvatarFallback/>
-                    </Avatar>
+               <div className="space-y-6 flex flex-col pt-2">
+                 {Object.entries(
+                   reports.reduce((acc, report) => {
+                     const dateStr = formatDate(report.createdAt);
+                     if (!acc[dateStr]) acc[dateStr] = [];
+                     acc[dateStr].push(report);
+                     return acc;
+                   }, {} as Record<string, typeof reports>)
+                 ).map(([date, dayReports]) => (
+                   <div key={date} className="flex flex-col gap-2">
+                     {/* Modern Date Separator Label */}
+                     <h3 className="text-sm font-medium text-muted-foreground">
+                       {date}
+                     </h3>
+                     
+                     {/* Bounded Card iOS style holding reports on this day */}
+                     <div className="bg-card rounded-xl overflow-hidden border border-border/40 shadow-none">
+                       <div className="divide-y divide-border/40 flex flex-col">
+                         {dayReports.map((report) => (
+                           <div key={report.id} className="p-4 flex flex-col items-start gap-3 transition-colors duration-150 group">
+                             {/* Avatar Block */}
+                             <div className="flex flex-row gap-2 w-full">
+                             <Avatar className={cn("w-10 h-10 shrink-0 mt-0.5", report.targetType === "group" ? "rounded-[10px]" : "rounded-full")}>
+                               <AvatarImage 
+                                 src={report.targetImageUrl} 
+                                 alt={report.targetName} 
+                                 className={cn("object-cover", report.targetType === "group" ? "rounded-full" : "rounded-full")} 
+                               />
+                               {report.targetType === "group" ? (
+                                 <AvatarFallback className="rounded-full bg-secondary text-secondary-foreground text-xs font-semibold uppercase">
+                                   {report.targetName.substring(0, 2)}
+                                 </AvatarFallback>
+                               ) : (
+                                 <UserAvatarFallback />
+                               )}
+                             </Avatar>
+                                      {/* Content Block */}
+                                <div className="flex-1 min-w-0 flex flex-row items-center justify-between gap-3">
+                                  <div className="flex flex-1 items-center gap-2 pr-2 min-w-0">
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-semibold text-foreground truncate block">
+                                        {report.targetName}
+                                      </span>
+                                      {report.targetType === "user" && report.targetUsername && (
+                                        <span className="text-xs text-muted-foreground truncate block">
+                                          @{report.targetUsername}
+                                        </span>
+                                      )}
+                                      {report.targetType === "group" && report.targetMemberCount !== undefined && (
+                                        <span className="text-xs text-muted-foreground truncate block">
+                                          {report.targetMemberCount} {report.targetMemberCount === 1 ? "member" : "members"}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="shrink-0">
+                                    <ReportStatusBadge status={report.status} />
+                                  </div>
+                                </div>
+                              </div>
 
-                    {/* Content Block */}
-                    <div className="flex flex-col flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-start justify-between gap-3 mb-1">
-                        <div className="flex items-center gap-2 pr-2 min-w-0">
-                          <span className="text-sm font-medium text-foreground truncate block">
-                            {report.targetName}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground uppercase px-1.5 py-0.5 bg-secondary group-hover:bg-background transition-colors rounded font-medium tracking-wide shrink-0">
-                            {report.targetType}
-                          </span>
-                        </div>
-                        <div className="shrink-0 mt-0.5">
-                          <ReportStatusBadge status={report.status} />
-                        </div>
-                      </div>
-                      
-                      <p className="text-sm text-foreground/90 leading-relaxed mb-1.5 opacity-90 line-clamp-2">
-                        "{report.reason}"
-                      </p>
-                      
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground font-medium">{formatDate(report.createdAt)}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                 </div>
+                              <div className="flex flex-col gap-2">
+                                {/* Reason Block */}
+                                  <div>
+                                    <p className="text-xs text-foreground leading-snug">
+                                      <span className="text-muted-foreground font-medium">Reason:</span> {report.reason}
+                                    </p>
+                                  </div>
+                                {/* Additional Notes */}
+                                  {report.additionalNotes && report.additionalNotes.trim() !== "" && (
+                                    <div className="">
+                                      <p className="text-xs text-foreground leading-relaxed line-clamp-2">
+                                        <span className="text-muted-foreground font-medium">Additional Context:</span> &quot;{report.additionalNotes}&quot;
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Evidence Attachment */}
+                                  {report.evidenceUrl && report.evidenceUrl.trim() !== "" && (
+                                      <div className="flex flex-row items-center gap-2">
+                                        <div className="flex flex-row items-center gap-1">
+                                          <a href={report.evidenceUrl} target="_blank" rel="noreferrer" className="flex flex-row items-center gap-1 text-xs text-primary hover:underline">
+                                            View Evidence
+                                            <ArrowUpRight className="w-3 h-3" />
+                                          </a>
+                                        </div>
+                                      </div>
+                                  )}</div>
+                            </div>
+                          ))}
+                       </div>
+                     </div>
+                   </div>
+                 ))}
                </div>
             )}
            </div>
@@ -618,9 +679,18 @@ export default function SafetyPage() {
                        onClick={() => handleSelectTarget(target.id, target.name)}
                        className="w-full flex items-center p-3 px-4 hover:bg-secondary/50 active:bg-secondary duration-150 transition-colors"
                      >
-                       <Avatar className="w-9 h-9 mr-3">
-                         <AvatarImage src={target.imageUrl} />
-                         <UserAvatarFallback />
+                       <Avatar className={cn("w-9 h-9 mr-3", reportTargetType === "group" ? "rounded-[10px]" : "rounded-full")}>
+                         <AvatarImage 
+                           src={target.imageUrl} 
+                           className={reportTargetType === "group" ? "rounded-[10px] object-cover" : "rounded-full object-cover"} 
+                         />
+                         {reportTargetType === "group" ? (
+                           <AvatarFallback className="rounded-[10px] bg-secondary text-secondary-foreground text-xs font-semibold uppercase">
+                             {target.name.substring(0, 2)}
+                           </AvatarFallback>
+                         ) : (
+                           <UserAvatarFallback />
+                         )}
                        </Avatar>
                        <div className="flex flex-col">
                          <span className="text-sm text-foreground font-medium">{target.name}</span>
