@@ -79,7 +79,7 @@ export function DangerZoneSection() {
           </p>
         </div>
         <section
-          className={`rounded-2xl border border-destructive/50 bg-destructive/5 ${isMobile ? "p-0 shadow-none" : "p-4 px-6 shadow-none"}`}
+          className={`rounded-2xl border border-destructive/50 ${isMobile ? "p-0 shadow-none bg-card" : "p-4 px-6 shadow-none"}`}
         >
           <div
             className={`${isMobile ? "px-4 pt-4 pb-4" : ""} flex flex-col gap-4 md:flex-row md:items-center md:justify-between`}

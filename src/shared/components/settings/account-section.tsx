@@ -258,7 +258,7 @@ export function AccountSection() {
         </p>
       </div>
       <section
-        className={`rounded-2xl border border-border ${isMobile ? "bg-transparent p-0 shadow-none" : "bg-transparent p-4 px-6 shadow-none"}`}
+        className={`rounded-2xl border border-border ${isMobile ? "bg-card p-0 shadow-none" : "bg-transparent p-4 px-6 shadow-none"}`}
       >
         <div className={isMobile ? "space-y-4 px-4 pt-4 pb-4" : "space-y-4"}>
           {!showEmailForm ? (

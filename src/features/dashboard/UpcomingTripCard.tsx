@@ -158,7 +158,7 @@ export function UpcomingTripCard({
             radius="none"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-secondary rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl border border-border">
+          <div className="w-full h-full flex items-center justify-center bg-secondary rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-xl">
             <Avatar className="w-16 h-16 flex-shrink-0">
               <UserAvatarFallback iconClassName="w-2/3 h-2/3" />
             </Avatar>
