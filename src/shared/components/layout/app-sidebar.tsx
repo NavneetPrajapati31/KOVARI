@@ -6,7 +6,7 @@ import {
   Inbox,
   Search,
   Settings,
-  HelpCircle,
+  ShieldCheck,
   Plus,
   MessageSquare,
   Mail,
@@ -111,15 +111,15 @@ const navMain = [
 
 const navFooter = [
   {
+    title: "Safety",
+    url: "/safety",
+    icon: ShieldCheck,
+  },
+  {
     title: "Settings",
     url: "/settings",
     icon: Settings,
-  },
-  // {
-  //     title: "Help Center",
-  //     url: "#",
-  //     icon: HelpCircle,
-  // }
+  }
 ];
 
 export const AcmeLogo = () => {

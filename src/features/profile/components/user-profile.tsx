@@ -30,6 +30,7 @@ import {
   Settings,
   LogOut,
   UserRound,
+  ShieldCheck,
 } from "lucide-react";
 import ProfileImageModal from "./profile-image-modal";
 import { AnimatePresence } from "framer-motion";
@@ -391,6 +392,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           >
                             <Settings className="mr-1 h-4 w-4" />
                             <span>Settings</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => router.push("/safety")}
+                            className="px-2 cursor-pointer hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-foreground"
+                          >
+                            <ShieldCheck className="mr-1 h-4 w-4" />
+                            <span>Safety</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem

@@ -19,12 +19,28 @@ import {
   Users,
   MapPin,
   HeartHandshake,
-  ChevronRight
+  ChevronRight,
+  LineChart,
+  ChevronLeft,
+  XCircle,
+  X
 } from "lucide-react";
 import { useMyReports, ReportStatus } from "@/shared/hooks/useMyReports";
 import { Spinner } from "@heroui/react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { cn } from "@/shared/utils/utils";
+import { ReportDialog } from "@/shared/components/ReportDialog";
+import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/shared/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
+
+interface Target {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  username?: string;
+}
 
 // Helper for formatting dates
 function formatDate(dateStr: string) {
@@ -38,19 +54,90 @@ function formatDate(dateStr: string) {
 
 export default function SafetyPage() {
   const { user, isLoaded } = useUser();
-  const { reports, loading: reportsLoading, error: reportsError } = useMyReports();
+  const { reports, loading: reportsLoading, error: reportsError, refetch: refetchReports } = useMyReports();
   const { toast } = useToast();
   const [mounted, setMounted] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  // Navigation states
+  const [activeView, setActiveView] = useState<"main" | "search" | "reports">("main");
+  
+  // Custom states for report flow natively on the page
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportTargetType, setReportTargetType] = useState<"user" | "group">("user");
+  const [selectedTargetId, setSelectedTargetId] = useState<string>("");
+  const [selectedTargetName, setSelectedTargetName] = useState<string>("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Target[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Fetch user profile verified status
+    const fetchProfileStatus = async () => {
+      try {
+        const res = await fetch("/api/profile/current");
+        if (res.ok) {
+          const data = await res.json();
+          // Assuming the API returns a 'verified' field in the profile data
+          setIsVerified(!!data.verified);
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile status:", err);
+      }
+    };
+    
+    if (user) {
+      fetchProfileStatus();
+    }
+  }, [user]);
+
+  // Search effect
+  useEffect(() => {
+    if (activeView !== "search") {
+      setSearchError(null);
+      return;
+    }
+
+    const fetchTargets = async (q: string) => {
+      setSearchLoading(true);
+      setSearchError(null);
+      try {
+        const res = await fetch(`/api/reports/targets?type=${reportTargetType}&q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+        setSearchResults(data.targets || []);
+      } catch (err) {
+        setSearchError("Error loading " + (reportTargetType === "user" ? "users" : "groups"));
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    const delayDebounceFn = setTimeout(() => {
+      fetchTargets(searchQuery);
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, activeView, reportTargetType]);
 
   const handleOpenReport = (type: "user" | "group") => {
-    toast({
-      title: `How to report a ${type}`,
-      description: `Navigate to the ${type}'s profile to submit a direct report.`,
-    });
+    setReportTargetType(type);
+    setSearchQuery("");
+    setSearchResults([]);
+    setActiveView("search");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSelectTarget = (id: string, name: string) => {
+    setSelectedTargetId(id);
+    setSelectedTargetName(name);
+    // slight delay for touch feedback before overlay pops up
+    setTimeout(() => {
+      setIsReportDialogOpen(true);
+    }, 150);
   };
 
   const handleCopyProfileLink = () => {
@@ -67,22 +154,31 @@ export default function SafetyPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-12 md:pb-16 font-sans">
+    <div className="min-h-screen bg-background pb-10 font-sans">
       
-      {/* 1. HEADER (True iOS System Settings Hero) */}
-      <section className="px-6 pt-16 pb-12 flex flex-col items-center text-center animate-in fade-in duration-700 ease-out">
-        <ShieldCheck className="w-10 h-10 text-primary mb-3" strokeWidth={1.5} />
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3">
-          Safety & Trust
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-xs md:max-w-md mx-auto leading-relaxed">
-          Reports are manually reviewed to ensure a respectful and secure environment.
-        </p>
-      </section>
+      <div className="max-w-full mx-auto px-6 sm:px-6 relative z-20">
+        <AnimatePresence mode="wait" initial={false}>
+          {activeView === "main" ? (
+            <motion.div
+              key="main-view"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="space-y-10"
+            >
+              {/* 1. HEADER (True iOS System Settings Hero) */}
+              <section className="px-6 pt-10 pb-2 flex flex-col items-center text-center">
+                <ShieldCheck className="w-10 h-10 text-primary mb-3" strokeWidth={1.5} />
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3">
+                  Safety & Trust
+                </h1>
+                <p className="text-sm text-muted-foreground max-w-xs md:max-w-md mx-auto leading-relaxed">
+                  Reports are manually reviewed to ensure a respectful and secure environment.
+                </p>
+              </section>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-10 relative z-20">
-        
-        {/* 2. ACTIONS (iOS Grouped List) */}
+              {/* 2. ACTIONS (iOS Grouped List) */}
         <section className="animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100 ease-out fill-mode-both">
           <SectionTitle title="Actions" />
           <div className="bg-card rounded-xl overflow-hidden border border-border/40">
@@ -104,7 +200,8 @@ export default function SafetyPage() {
                 iconBg="text-foreground"
                 label="View My Reports"
                 onClick={() => {
-                  document.getElementById("my-reports")?.scrollIntoView({ behavior: "smooth" });
+                  setActiveView("reports");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
               />
               <ListRow 
@@ -125,20 +222,24 @@ export default function SafetyPage() {
           <SectionTitle title="Your Status" />
           <div className="bg-card rounded-xl overflow-hidden border border-border/40 shadow-sm">
             <div className="divide-y divide-border/40">
-              <div className="flex items-center justify-between p-4 bg-card">
+              <div className="flex items-center justify-between p-3 bg-card">
                 <div className="flex items-center gap-4">
                   <div className="p-1.5 rounded-lg  text-foreground">
                     <ShieldCheck className="w-4 h-4" strokeWidth={1.5} />
                   </div>
                   <span className="text-base text-foreground">Identity Level</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 rounded-md">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  <span className="text-sm text-green-700 dark:text-green-500 font-medium">Verified</span>
-                </div>
+                {isVerified ? (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 rounded-md">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-sm shadow-green-500/20" />
+                    <span className="text-sm text-green-700 dark:text-green-500 font-medium tracking-wide">Verified</span>
+                  </div>
+                ) : (
+                  <span className="text-base text-muted-foreground mr-1">Unverified</span>
+                )}
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-card">
+              <div className="flex items-center justify-between p-3 bg-card">
                 <div className="flex items-center gap-4">
                   <div className="p-1.5 rounded-lg  text-foreground">
                     <Clock className="w-4 h-4" strokeWidth={1.5} />
@@ -175,56 +276,6 @@ export default function SafetyPage() {
            </div>
         </section>
 
-        {/* 5. SUPPORT: My Reports List */}
-        <section id="my-reports" className="scroll-mt-32 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-400 ease-out fill-mode-both">
-          <SectionTitle title="My Reports" rightLabel={`${reports.length} Total`} />
-
-          <div className="bg-card rounded-xl min-h-56 flex flex-col overflow-hidden border border-border/40 shadow-sm">
-            {reportsLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
-                <Spinner size="md" color="default" />
-              </div>
-            ) : reportsError ? (
-              <div className="flex-1 p-8 flex flex-col items-center justify-center text-center">
-                <AlertTriangle className="w-8 h-8 mb-2 text-muted-foreground" strokeWidth={1.5} />
-                <p className="text-base text-foreground mb-1">Couldn't load reports</p>
-                <p className="text-sm text-muted-foreground">{reportsError}</p>
-              </div>
-            ) : reports.length === 0 ? (
-              <div className="flex-1 p-8 flex flex-col items-center justify-center text-center">
-                <div className="w-12 h-12  rounded-full flex items-center justify-center mb-4">
-                  <HeartHandshake className="w-6 h-6 text-muted-foreground" strokeWidth={1.5} />
-                </div>
-                <h3 className="text-base text-foreground mb-1">No active reports</h3>
-                <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                  We're glad things are safe. You can report concerns here anytime.
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/40 flex-1 overflow-y-auto max-h-96">
-                {reports.map((report) => (
-                  <div key={report.id} className="p-4 sm:p-5 flex flex-col gap-2 hover:/50 transition-colors duration-150">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base text-foreground truncate max-w-40 sm:max-w-56">
-                          {report.targetName}
-                        </span>
-                        <span className="text-xs text-muted-foreground uppercase px-1.5  rounded font-medium tracking-wide">
-                          {report.targetType}
-                        </span>
-                      </div>
-                      <ReportStatusBadge status={report.status} />
-                    </div>
-                    <p className="text-sm text-foreground/90 line-clamp-1">
-                      "{report.reason}"
-                    </p>
-                    <p className="text-xs text-muted-foreground">{formatDate(report.createdAt)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
 
         {/* 6. INFORM: Safety Tips (iOS Notes style) */}
         <section className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-500 ease-out fill-mode-both">
@@ -241,7 +292,7 @@ export default function SafetyPage() {
 
           <div>
             <SectionTitle title="Group Travel Guidelines" />
-            <div className="bg-card rounded-xl p-4 sm:p-5 border border-border/40">
+            <div className="bg-card rounded-xl p-4 border border-border/40">
               <ul className="space-y-4">
                 <TipRow text="Meet in a public space before departing" />
                 <TipRow text="Discuss budgets and styles clearly upfront" />
@@ -252,7 +303,7 @@ export default function SafetyPage() {
 
           <div>
             <SectionTitle title="Real-Life Meetings" />
-            <div className="bg-card rounded-xl p-4 sm:p-5 border border-border/40">
+            <div className="bg-card rounded-xl p-4 border border-border/40">
               <ul className="space-y-4">
                 <TipRow text="First meeting must be in a well-lit cafe" />
                 <TipRow text="Arrange your own independent transport" />
@@ -315,8 +366,286 @@ export default function SafetyPage() {
              </div>
           </div>
         </section>
-      </div>
+      </motion.div>
+    ) : activeView === "search" ? (
+      <motion.div
+        key="search-view"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 20 }}
+        transition={{ duration: 0.25, ease: "easeInOut" }}
+        className="space-y-6 min-h-[50vh]"
+      >
+        <div className="flex items-center justify-between mb-2 pt-4 sm:pt-5">
+           <button 
+             onClick={() => setActiveView("main")}
+             className="flex items-center gap-1 text-primary"
+           >
+             <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+             <span className="text-sm font-medium">Safety</span>
+           </button>
+        </div>
 
+        <div>
+           <h2 className="text-md font-semibold text-foreground mb-1">
+             Report a {reportTargetType === "user" ? "User" : "Group"}
+           </h2>
+           <p className="text-sm text-muted-foreground/80 mb-4">
+             Select the profile you want to report
+           </p>
+
+           {/* Search Input */}
+           <div className="relative mb-3">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search ${reportTargetType === "user" ? "users" : "groups"}...`}
+                className="pl-10 pr-10 h-11 bg-secondary/60 border-border/40 rounded-xl focus-visible:ring-0 focus-visible:bg-secondary/80 text-base shadow-none transition-colors placeholder:text-muted-foreground"
+              />
+              {searchQuery.length > 0 && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" strokeWidth={2} />
+                </button>
+              )}
+           </div>
+
+           {/* Results List */}
+           <div className="flex flex-col">
+             {searchLoading && searchResults.length === 0 ? (
+               <div className="flex items-center min-h-[60vh] justify-center gap-2 bg-card rounded-xl border border-border">
+                 <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
+                 <p className="text-sm text-muted-foreground">Fetching {reportTargetType === "user" ? "users" : "groups"}...</p>
+               </div>
+             ) : searchError ? (
+               <div className="min-h-[60vh] flex items-center justify-center text-center text-sm text-destructive bg-card rounded-xl border border-border">{searchError}</div>
+             ) : searchResults.length === 0 ? (
+               <div className="min-h-[60vh] flex items-center justify-center text-center text-sm text-muted-foreground/60 bg-card rounded-xl border border-border">
+                 {searchQuery.trim().length > 0 
+                    ? `No ${reportTargetType === "user" ? "users" : "groups"} found matching "${searchQuery}"`
+                    : `No ${reportTargetType === "user" ? "active users" : "active groups"} available.`}
+               </div>
+             ) : (
+               <div className="bg-card rounded-xl overflow-hidden border border-border/40">
+                 <div className="divide-y divide-border/40 flex flex-col">
+                   {searchResults.map((target) => (
+                     <button
+                       key={target.id}
+                       onClick={() => handleSelectTarget(target.id, target.name)}
+                       className="w-full flex items-center p-3 px-4 hover:bg-secondary active:bg-secondary duration-150 transition-colors"
+                     >
+                       <Avatar className="w-9 h-9 mr-4">
+                         <AvatarImage src={target.imageUrl} />
+                         <UserAvatarFallback />
+                       </Avatar>
+                       <div className="flex flex-col items-start text-left">
+                         <span className="text-sm text-foreground font-medium">{target.name}</span>
+                         {target.username && <p className="text-xs text-muted-foreground">@{target.username}</p>}
+                       </div>
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             )}
+           </div>
+        </div>
+      </motion.div>
+    ) : activeView === "reports" ? (
+      <motion.div
+        key="reports-view"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 20 }}
+        transition={{ duration: 0.25, ease: "easeInOut" }}
+        className="space-y-6 min-h-[50vh]"
+      >
+        <div className="flex items-center justify-between mb-2 pt-4 sm:pt-5">
+           <button 
+             onClick={() => setActiveView("main")}
+             className="flex items-center gap-1 text-primary"
+           >
+             <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+             <span className="text-sm font-medium">Safety</span>
+           </button>
+        </div>
+
+        <div>
+           <div className="flex items-center justify-between mb-4">
+             <h2 className="text-md font-semibold text-foreground mb-1">
+               My Reports
+             </h2>
+             <span className="text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded-md">
+               {reports.length} Total
+             </span>
+           </div>
+
+           <div className="flex flex-col">
+            {reportsLoading ? (
+               <div className="flex items-center min-h-[60vh] justify-center gap-2 bg-card rounded-xl border border-border">
+                 <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
+                 <p className="text-sm text-muted-foreground">Loading your reports...</p>
+               </div>
+            ) : reportsError ? (
+               <div className="min-h-[60vh] flex flex-col items-center justify-center text-center bg-card rounded-xl border border-border p-8">
+                <AlertTriangle className="w-8 h-8 mb-2 text-muted-foreground" strokeWidth={1.5} />
+                <p className="text-base text-foreground mb-1">Couldn't load reports</p>
+                <p className="text-sm text-muted-foreground">{reportsError}</p>
+              </div>
+            ) : reports.length === 0 ? (
+               <div className="min-h-[60vh] flex flex-col items-center justify-center text-center bg-card rounded-xl border border-border p-8">
+                <div className="w-12 h-12  rounded-full flex items-center justify-center mb-4">
+                  <HeartHandshake className="w-6 h-6 text-muted-foreground" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-base text-foreground mb-1">No active reports</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                  We're glad things are safe. You can report concerns here anytime.
+                </p>
+              </div>
+            ) : (
+               <div className="bg-card rounded-xl overflow-hidden border border-border/40">
+                 <div className="divide-y divide-border/40 flex flex-col">
+                {reports.map((report) => (
+                  <div key={report.id} className="p-4 flex items-start gap-4 hover:bg-secondary/50 transition-colors duration-150 group">
+                    {/* Avatar Block */}
+                    <Avatar className="w-10 h-10 shrink-0">
+                      {/* You can add report.targetImageUrl here in the future if the API supplies it */}
+                     <UserAvatarFallback/>
+                    </Avatar>
+
+                    {/* Content Block */}
+                    <div className="flex flex-col flex-1 min-w-0 pt-0.5">
+                      <div className="flex items-start justify-between gap-3 mb-1">
+                        <div className="flex items-center gap-2 pr-2 min-w-0">
+                          <span className="text-sm font-medium text-foreground truncate block">
+                            {report.targetName}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground uppercase px-1.5 py-0.5 bg-secondary group-hover:bg-background transition-colors rounded font-medium tracking-wide shrink-0">
+                            {report.targetType}
+                          </span>
+                        </div>
+                        <div className="shrink-0 mt-0.5">
+                          <ReportStatusBadge status={report.status} />
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-foreground/90 leading-relaxed mb-1.5 opacity-90 line-clamp-2">
+                        "{report.reason}"
+                      </p>
+                      
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground font-medium">{formatDate(report.createdAt)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                 </div>
+               </div>
+            )}
+           </div>
+        </div>
+      </motion.div>
+    ) : (
+      <motion.div
+        key="search-view"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 20 }}
+        transition={{ duration: 0.25, ease: "easeInOut" }}
+        className="space-y-6 min-h-[50vh]"
+      >
+        <div className="flex items-center justify-between mb-2 pt-4 sm:pt-5">
+           <button 
+             onClick={() => setActiveView("main")}
+             className="flex items-center gap-1 text-primary"
+           >
+             <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+             <span className="text-sm font-medium">Safety</span>
+           </button>
+        </div>
+
+        <div>
+           <h2 className="text-md font-semibold text-foreground mb-1">
+             Report a {reportTargetType === "user" ? "User" : "Group"}
+           </h2>
+           <p className="text-sm text-muted-foreground/80 mb-4">
+             Select the profile you want to report
+           </p>
+
+           {/* Search Input */}
+           <div className="relative mb-3">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search ${reportTargetType === "user" ? "users" : "groups"}...`}
+                className="pl-10 pr-10 h-11 bg-secondary/60 border-border/40 rounded-xl focus-visible:ring-0 focus-visible:bg-secondary/80 text-base shadow-none transition-colors placeholder:text-muted-foreground"
+              />
+              {searchQuery.length > 0 && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" strokeWidth={2} />
+                </button>
+              )}
+           </div>
+
+           {/* Results List */}
+           <div className="flex flex-col">
+             {searchLoading && searchResults.length === 0 ? (
+               <div className="flex items-center min-h-[70vh] justify-center gap-2 bg-card rounded-xl border border-border">
+                 <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
+                 <p className="text-sm text-muted-foreground">Fetching {reportTargetType === "user" ? "users" : "groups"}...</p>
+               </div>
+             ) : searchError ? (
+               <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-destructive bg-card rounded-xl border border-border">{searchError}</div>
+             ) : searchResults.length === 0 ? (
+               <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-muted-foreground/60 bg-card rounded-xl border border-border">
+                 {searchQuery.trim().length > 0 
+                    ? `No ${reportTargetType === "user" ? "users" : "groups"} found matching "${searchQuery}"`
+                    : `No ${reportTargetType === "user" ? "active users" : "active groups"} available.`}
+               </div>
+             ) : (
+               <div className="bg-card rounded-xl overflow-hidden border border-border/40">
+                 <div className="divide-y divide-border/40 flex flex-col">
+                   {searchResults.map((target) => (
+                     <button
+                       key={target.id}
+                       onClick={() => handleSelectTarget(target.id, target.name)}
+                       className="w-full flex items-center p-3 px-4 hover:bg-secondary/50 active:bg-secondary duration-150 transition-colors"
+                     >
+                       <Avatar className="w-9 h-9 mr-4">
+                         <AvatarImage src={target.imageUrl} />
+                         <UserAvatarFallback />
+                       </Avatar>
+                       <div className="flex flex-col">
+                         <span className="text-sm text-foreground font-medium">{target.name}</span>
+                         {target.username && <p className="text-left text-xs text-muted-foreground">@{target.username}</p>}
+                       </div>
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             )}
+           </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
+
+      <ReportDialog 
+        open={isReportDialogOpen} 
+        onOpenChange={setIsReportDialogOpen} 
+        targetType={reportTargetType} 
+        targetId={selectedTargetId} 
+        targetName={selectedTargetName} 
+        onSuccess={refetchReports} 
+      />
     </div>
   );
 }
@@ -340,7 +669,7 @@ function ListRow({ icon: Icon, iconBg, label, value, isDestructive, onClick }: a
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-between p-4 hover:/50 hover:bg-secondary duration-150 transition-colors"
+      className="w-full flex items-center justify-between p-3 hover:/50 hover:bg-secondary duration-150 transition-colors"
     >
       <div className="flex items-center gap-4">
         <div className={cn("p-1.5 rounded-lg", iconBg)}>

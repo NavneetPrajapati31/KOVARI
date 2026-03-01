@@ -98,6 +98,7 @@ export async function GET() {
       drinking: profile.drinking || "",
       personality: profile.personality || "",
       foodPreference: profile.food_preference || "",
+      verified: profile.verified || false,
       // Travel preferences
       destinations: travelPrefs?.destinations || [],
       tripFocus: travelPrefs?.trip_focus || [],

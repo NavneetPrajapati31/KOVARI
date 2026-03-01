@@ -58,14 +58,14 @@ export async function GET(req: NextRequest) {
 
     let usersDict: Record<string, string> = {};
     if (targetUserIds.length > 0) {
-      const { data: usersData } = await supabase
-        .from("users")
-        .select("id, name, full_name, clerk_username")
-        .in("id", targetUserIds);
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, name, username")
+        .in("user_id", targetUserIds);
       
-      if (usersData) {
-        usersData.forEach(u => {
-          usersDict[u.id] = u.name || u.full_name || u.clerk_username || "Unknown User";
+      if (profilesData) {
+        profilesData.forEach(p => {
+          usersDict[p.user_id] = p.name || p.username || "Unknown User";
         });
       }
     }

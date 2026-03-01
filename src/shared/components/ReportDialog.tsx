@@ -295,37 +295,37 @@ export function ReportDialog({
           <>
             <div className="px-6 py-5 grid gap-6 overflow-y-auto max-h-[45vh] hide-scrollbar overscroll-contain will-change-scroll transform-gpu scroll-smooth">
               
-              {/* Reason Pills Grid */}
+              {/* Reason Grouped List (iOS Style) */}
               <div className="space-y-3">
-                <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                <Label className="text-xs font-medium text-muted-foreground uppercase px-1">
                   Select a reason
                 </Label>
-                <div className="flex flex-wrap gap-2">
-                  {REPORT_REASONS[targetType].map((r) => (
-                    <button
-                      type="button"
-                      key={r}
-                      onClick={() => {
-                        setReason(r);
-                        if (r !== "Other") setCustomReason("");
-                      }}
-                      className={cn(
-                        "px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 border",
-                        reason === r
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                          : "bg-muted/30 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
-                      )}
-                    >
-                      {r}
-                    </button>
-                  ))}
+                <div className="bg-card rounded-xl overflow-hidden border border-border/40 shadow-sm">
+                  <div className="divide-y divide-border/40">
+                    {REPORT_REASONS[targetType].map((r) => (
+                      <button
+                        type="button"
+                        key={r}
+                        onClick={() => {
+                          setReason(r);
+                          if (r !== "Other") setCustomReason("");
+                        }}
+                        className="w-full flex items-center justify-between py-2 px-4 hover:bg-secondary/50 active:bg-secondary transition-colors text-left"
+                      >
+                        <span className="text-sm text-muted-foreground">{r}</span>
+                        {reason === r && (
+                          <CheckIcon className="w-5 h-5 text-primary shrink-0" strokeWidth={2.5} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Custom Reason Textarea (Animated entrance) */}
+              {/* Custom Reason Textarea */}
               {reason === "Other" && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <Label htmlFor="customReason" className="text-xs sm:text-sm font-semibold text-foreground">
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <Label htmlFor="customReason" className="text-xs font-medium text-muted-foreground uppercase px-1">
                     Please specify
                   </Label>
                   <Textarea
@@ -333,7 +333,7 @@ export function ReportDialog({
                     placeholder="Briefly describe what happened..."
                     value={customReason}
                     onChange={(e) => setCustomReason(e.target.value)}
-                    className="min-h-[100px] resize-none focus-visible:ring-primary/40 rounded-xl text-xs sm:text-sm"
+                    className="min-h-[100px] resize-none focus-visible:ring-primary/40 rounded-xl bg-card border-border/40 shadow-sm"
                   />
                 </div>
               )}
@@ -342,29 +342,35 @@ export function ReportDialog({
 
               {/* Evidence Drag & Drop Upload */}
               <div className="space-y-3">
-                 <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                    Attach evidence <span className="text-muted-foreground font-normal">(Optional)</span>
-                 </Label>
+                 <div className="flex items-center justify-between px-1">
+                   <Label className="text-xs font-medium text-muted-foreground uppercase">
+                      Attach evidence
+                   </Label>
+                   <span className="text-xs text-muted-foreground uppercase">Optional</span>
+                 </div>
                 
-                 <ImageUpload
-                    value={evidenceUrl}
-                    onImageUpload={handleImageUpload}
-                    onImageRemove={handleRemoveEvidence}
-                    label=""
-                    hideLabel
-                    maxSizeInMB={5}
-                    className="w-full"
-                    acceptedFormats={["PNG", "JPG", "JPEG", "WEBP"]}
-                 />
+                 <div className="bg-card rounded-xl overflow-hidden p-1">
+                   <ImageUpload
+                      value={evidenceUrl}
+                      onImageUpload={handleImageUpload}
+                      onImageRemove={handleRemoveEvidence}
+                      label=""
+                      hideLabel
+                      maxSizeInMB={5}
+                      className="w-full border-none shadow-none"
+                      acceptedFormats={["PNG", "JPG", "JPEG", "WEBP"]}
+                   />
+                 </div>
               </div>
 
                 {/* Additional Context */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="additionalNotes" className="text-xs sm:text-sm font-semibold text-foreground">
-                    Additional context <span className="text-muted-foreground font-normal">(Optional)</span>
-                  </Label>
-                </div>
+                 <div className="flex items-center justify-between px-1">
+                   <Label htmlFor="additionalNotes" className="text-xs font-medium text-muted-foreground uppercase">
+                      Additional context
+                   </Label>
+                   <span className="text-xs text-muted-foreground uppercase">Optional</span>
+                 </div>
                 <Textarea
                   id="additionalNotes"
                   placeholder="Provide any additional details that might help our review..."
@@ -374,10 +380,10 @@ export function ReportDialog({
                       setAdditionalNotes(e.target.value);
                     }
                   }}
-                  className="min-h-[80px] resize-none focus-visible:ring-primary/40 rounded-xl text-xs sm:text-sm"
+                  className="min-h-[80px] resize-none focus-visible:ring-primary/40 rounded-xl bg-card border-border/40 shadow-sm"
                   maxLength={MAX_NOTES_LENGTH}
                 />
-                 <div className="text-xs text-muted-foreground text-right w-full">
+                 <div className="text-xs text-muted-foreground text-right w-full px-1">
                     {additionalNotes.length} / {MAX_NOTES_LENGTH}
                   </div>
               </div>
