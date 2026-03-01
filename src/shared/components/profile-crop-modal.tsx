@@ -173,9 +173,9 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-hidden">
+      <DialogContent className="rounded-2xl border-border max-w-[min(520px,calc(100vw-2rem))] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">
+          <DialogTitle className="text-md sm:text-lg font-semibold">
             Crop Profile Photo
           </DialogTitle>
         </DialogHeader>

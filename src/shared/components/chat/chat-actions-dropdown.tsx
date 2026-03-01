@@ -11,6 +11,7 @@ import { Spinner } from "@heroui/react";
 import { useToast } from "@/shared/hooks/use-toast";
 import { isUserBlocked, blockUser } from "@/shared/utils/blocked-users";
 import { ReportDialog } from "@/shared/components/ReportDialog";
+import { useReportStatus } from "@/shared/hooks/useReportStatus";
 
 interface PartnerProfile {
   name?: string;
@@ -39,6 +40,8 @@ const ChatActionsDropdown: React.FC<ChatActionsDropdownProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const { toast } = useToast();
+
+  const { hasReported, setHasReported } = useReportStatus(partnerUuid, "user");
 
   // Check if already blocked on mount
   useEffect(() => {
@@ -122,6 +125,7 @@ const ChatActionsDropdown: React.FC<ChatActionsDropdownProps> = ({
 
       // Automatically block the user after reporting
       await handleBlockUser();
+      setHasReported(true); // Optimistically lock UI
       
       return true;
     } catch (error: any) {
@@ -161,12 +165,12 @@ const ChatActionsDropdown: React.FC<ChatActionsDropdownProps> = ({
               setMenuOpen(false);
               setReportOpen(true);
             }}
-            disabled={disabled || hasBlocked}
+            disabled={disabled || hasBlocked || hasReported}
             className="text-foreground font-medium hover:cursor-pointer focus:bg-transparent focus:text-foreground focus-within:!border-none focus-within:!outline-none"
           >
             <span className="flex items-center gap-2">
               {/* <Flag className="h-4 w-4" /> */}
-              Report User
+              {hasReported ? "User Reported" : "Report User"}
             </span>
           </DropdownMenuItem>
           

@@ -179,12 +179,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // PHASE 7: Check for duplicate flag (same reporter, same target, within last 24 hours)
-    // Prevents spam reporting of the same target
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
+    // PHASE 7: Check for duplicate flag (same reporter, same target)
+    // 1 report per entity, but allow re-report ONLY if previous is dismissed
     console.log("=== DUPLICATE CHECK ===");
-    console.log("Checking for existing flags from:", oneDayAgo);
+    console.log("Checking for open/active flags for");
     console.log("Reporter ID:", reporterId);
     console.log("Target ID:", targetId);
 
@@ -194,7 +192,9 @@ export async function POST(req: NextRequest) {
         .select("id, created_at, status")
         .eq("user_id", targetId)
         .eq("reporter_id", reporterId)
-        .gte("created_at", oneDayAgo)
+        .neq("status", "dismissed")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       console.log("Duplicate check result:");
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
 
       if (existingFlag) {
         console.log(
-          "⚠️ DUPLICATE FOUND: User already reported this user within 24 hours"
+          "⚠️ DUPLICATE FOUND: User has an active report for this user"
         );
         console.log("Existing flag ID:", existingFlag.id);
         console.log("Existing flag created_at:", existingFlag.created_at);
@@ -211,8 +211,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
           {
-            error: "You have already reported this user recently",
-            details: `You reported this user on ${new Date(existingFlag.created_at).toLocaleString()}. Please wait 24 hours before reporting again.`,
+            error: "You have already reported this user",
+            details: `You have an active report for this user. You can only report again if your previous report is dismissed.`,
             existingFlagId: existingFlag.id,
           },
           { status: 429 }
@@ -227,7 +227,9 @@ export async function POST(req: NextRequest) {
         .select("id, created_at, status")
         .eq("group_id", targetId)
         .eq("reporter_id", reporterId)
-        .gte("created_at", oneDayAgo)
+        .neq("status", "dismissed")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       console.log("Duplicate check result for group:");
@@ -236,7 +238,7 @@ export async function POST(req: NextRequest) {
 
       if (existingFlag) {
         console.log(
-          "⚠️ DUPLICATE FOUND: User already reported this group within 24 hours"
+          "⚠️ DUPLICATE FOUND: User has an active report for this group"
         );
         console.log("Existing flag ID:", existingFlag.id);
         console.log("Existing flag created_at:", existingFlag.created_at);
@@ -244,8 +246,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
           {
-            error: "You have already reported this group recently",
-            details: `You reported this group on ${new Date(existingFlag.created_at).toLocaleString()}. Please wait 24 hours before reporting again.`,
+            error: "You have already reported this group",
+            details: `You have an active report for this group. You can only report again if your previous report is dismissed.`,
             existingFlagId: existingFlag.id,
           },
           { status: 429 }

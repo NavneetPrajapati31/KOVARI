@@ -120,9 +120,10 @@ const fetchUserProfile = async (
     const likesSum = 0;
     //   postsLikesData?.reduce((acc, post) => acc + (post.likes || 0), 0) || 0;
 
-    // 7. Check if current user is following this user
+    // 7. Check if current user is following this user and check active reports
     let isFollowing = false;
     let isOwnProfile = false;
+    let hasActiveReport = false;
 
     try {
       const { userId: clerkUserId } = await auth();
@@ -149,21 +150,30 @@ const fetchUserProfile = async (
 
           if (!isOwnProfile) {
             // Check if current user is following the target user
-            const { data: followData } = await supabase
-              .from("user_follows")
-              .select("id")
-              .eq("follower_id", currentUserRow.id)
-              .eq("following_id", userId)
-              .maybeSingle();
-            console.log("[DEBUG] followData:", followData);
+            const [followDataResult, reportDataResult] = await Promise.all([
+              supabase
+                .from("user_follows")
+                .select("id")
+                .eq("follower_id", currentUserRow.id)
+                .eq("following_id", userId)
+                .maybeSingle(),
+              supabase
+                .from("user_flags")
+                .select("id")
+                .eq("reporter_id", currentUserRow.id)
+                .eq("user_id", userId)
+                .neq("status", "dismissed")
+                .maybeSingle()
+            ]);
 
-            isFollowing = !!followData;
+            isFollowing = !!followDataResult.data;
+            hasActiveReport = !!reportDataResult.data;
           }
         }
       }
     } catch (error) {
-      console.error("Error checking follow status:", error);
-      // Continue without follow status if there's an error
+      console.error("Error checking follow/report status:", error);
+      // Continue without status if there's an error
     }
 
     // 8. Map to UserProfileType
@@ -185,6 +195,7 @@ const fetchUserProfile = async (
       posts,
       isFollowing,
       isOwnProfile,
+      hasActiveReport,
       location: profileData.location || "Surat",
       religion: profileData.religion || "Hindu",
       smoking: profileData.smoking || "No",

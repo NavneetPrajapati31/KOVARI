@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Flag } from "lucide-react";
 import { useParams } from "next/navigation";
 import { ReportDialog } from "@/shared/components/ReportDialog";
+import { useReportStatus } from "@/shared/hooks/useReportStatus";
 
 interface PrivacySafetySectionProps {
   form: UseFormReturn<any>;
@@ -27,6 +28,8 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
   const params = useParams<{ groupId: string }>();
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [groupInfo, setGroupInfo] = useState<{ name?: string } | null>(null);
+
+  const { hasReported, setHasReported } = useReportStatus(params.groupId, "group");
 
   // Fetch group info for report dialog
   React.useEffect(() => {
@@ -130,10 +133,13 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
                   type="button"
                   variant="outline"
                   onClick={() => setIsReportDialogOpen(true)}
-                  disabled={isSubmitting}
-                  className="h-9 text-sm border-border bg-background text-destructive hover:text-destructive hover:bg-destructive/10 sm:w-auto w-full"
+                  className={`h-8 rounded-3xl text-sm border-border sm:w-auto w-full ${
+                    hasReported
+                      ? "bg-background text-foreground pointer-events-none"
+                      : "bg-background text-foreground hover:text-foreground hover:bg-destructive/10"
+                  }`}
                 >
-                  Report
+                  {hasReported ? "Reported" : "Report"}
                 </Button>
               </div>
             </div>
@@ -146,6 +152,7 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
           targetType="group"
           targetId={params.groupId || ""}
           targetName={groupInfo?.name}
+          onSuccess={() => setHasReported(true)}
         />
       </div>
     </>

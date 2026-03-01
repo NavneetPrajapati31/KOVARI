@@ -56,6 +56,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { getFeedImageUrl } from "@/lib/cloudinary";
+import { useReportStatus } from "@/shared/hooks/useReportStatus";
 import {
   createSoloInterest,
   createSkipRecord,
@@ -121,6 +122,8 @@ export function SoloMatchCard({
   const [reportReason, setReportReason] = useState<string>("");
   const [isReporting, setIsReporting] = useState(false);
   const [isViewingProfile, setIsViewingProfile] = useState(false);
+
+  const { hasReported, setHasReported } = useReportStatus(user?.userId, "user");
 
   const handleInterested = async () => {
     if (interestSent) return;
@@ -233,6 +236,7 @@ export function SoloMatchCard({
       }
       setShowReportDialog(false);
       setReportReason("");
+      setHasReported(true); // Optimistically lock UI
     } catch (error) {
       console.error("Error reporting user:", error);
     } finally {
@@ -638,10 +642,17 @@ export function SoloMatchCard({
                 setShowReportDialog(true);
               }
             }}
-            className="flex-1 h-11 rounded-full text-foreground bg-background border border-border"
+            disabled={hasReported}
+            className={`flex-1 h-11 rounded-full border border-border ${
+              hasReported 
+                ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed pointer-events-none" 
+                : "text-foreground bg-background"
+            }`}
           >
             <Flag className="w-5 h-5 md:hidden shrink-0" aria-hidden />
-            <span className="hidden md:inline text-md font-bold">Report</span>
+            <span className="hidden md:inline text-md font-bold">
+              {hasReported ? "Reported" : "Report"}
+            </span>
           </Button>
 
           {/* 2. Interested Button */}

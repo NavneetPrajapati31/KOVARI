@@ -8,20 +8,8 @@ export const languageOptions = [
   "Gujarati",
   "Urdu",
   "Kannada",
-  "Odia",
   "Malayalam",
   "Punjabi",
-  "Assamese",
-  "Sanskrit",
-  "Konkani",
-  "Sindhi",
-  "Nepali",
-  "Maithili",
-  "Kashmiri",
-  "Manipuri",
-  "Dogri",
-  "Bodo",
-  "Santali",
 ];
 
 export const interestOptions = [

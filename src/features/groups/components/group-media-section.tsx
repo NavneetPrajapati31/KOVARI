@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/shared/components/ui/button";
-import { ChevronLeft, Loader2, Plus, Video } from "lucide-react";
+import { ChevronLeft, ImageIcon, Loader2, Plus, Video } from "lucide-react";
 import { HiPlay } from "react-icons/hi";
 import { Skeleton } from "@heroui/react";
 import MediaViewerModal from "@/shared/components/media-viewer-modal";
@@ -192,9 +192,9 @@ export const GroupMediaSection = ({
       ) : error ? (
         <div className="text-center text-xs text-red-500 py-4">{error}</div>
       ) : media.length === 0 ? (
-        <div className="text-center py-10">
-          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
-            <Video className="h-5 w-5 text-muted-foreground" />
+        <div className="text-center flex-col items-center justify-center h-full py-12">
+          <div className="w-12 h-12 mx-auto mb-3 bg-secondary rounded-full flex items-center justify-center">
+            <ImageIcon className="h-5 w-5 text-gray-400" />
           </div>
           <p className="text-xs text-muted-foreground mb-2">
             No photos or videos yet

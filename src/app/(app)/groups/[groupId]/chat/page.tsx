@@ -41,6 +41,7 @@ import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { Skeleton } from "@heroui/react";
 import MediaViewerModal from "@/shared/components/media-viewer-modal";
 import { ReportDialog } from "@/shared/components/ReportDialog";
+import { useReportStatus } from "@/shared/hooks/useReportStatus";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -215,6 +216,8 @@ export default function GroupChatInterface() {
   const [modalSender, setModalSender] = useState<string | undefined>(undefined);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isMediaSheetOpen, setIsMediaSheetOpen] = useState(false);
+
+  const { hasReported, setHasReported } = useReportStatus(groupId, "group");
 
   const {
     messages,
@@ -644,9 +647,13 @@ export default function GroupChatInterface() {
               {/* <p className="text-xs text-muted-foreground font-medium">
                 {members.length} member{members.length !== 1 ? "s" : ""}
               </p> */}
-              {groupInfo?.description && (
+              {groupInfo?.description ? (
                 <p className="text-xs text-muted-foreground mt-1 mb-3">
                   {groupInfo.description}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1 mb-3">
+                  No description
                 </p>
               )}
             </div>
@@ -884,12 +891,15 @@ export default function GroupChatInterface() {
                   >
                     <DropdownMenuItem
                       onClick={() => setIsReportDialogOpen(true)}
-                      className="text-destructive font-semibold hover:cursor-pointer focus:bg-transparent focus:text-destructive focus-within:!border-none focus-within:!outline-none"
+                      disabled={hasReported}
+                      className={`font-semibold hover:cursor-pointer focus:bg-transparent focus-within:!border-none focus-within:!outline-none ${
+                        hasReported
+                          ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                          : "text-destructive focus:text-destructive"
+                      }`}
                     >
-                      {/* <Flag className="h-4 w-4" /> */}
                       <span className="flex items-center gap-2">
-                        {/* <Flag className="h-4 w-4" /> */}
-                        Report Group
+                        {hasReported ? "Group Reported" : "Report Group"}
                       </span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -926,7 +936,7 @@ export default function GroupChatInterface() {
             data-testid="messages-container"
           >
             {messages.length === 0 ? (
-              <div className="text-center py-8">
+              <div className="text-center flex items-center justify-center h-full">
                 <span className="text-sm text-muted-foreground">
                   No messages yet. Start the conversation!
                 </span>
@@ -1260,6 +1270,7 @@ export default function GroupChatInterface() {
         targetType="group"
         targetId={groupId || ""}
         targetName={groupInfo?.name}
+        onSuccess={() => setHasReported(true)}
       />
     </div>
   );

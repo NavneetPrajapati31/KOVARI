@@ -186,7 +186,7 @@ const SectionContent = memo(
             if (!res.ok) {
               throw new Error(data.error || "Failed to update");
             }
-            toast.success("Basic info updated successfully");
+            toast.success("Group info updated successfully");
             onGroupUpdate?.(data);
           } else if (sectionId === "travel") {
             const res = await fetch(`/api/groups/${groupId}`, {
@@ -564,7 +564,7 @@ export default function LayoutWrapper() {
               <h2 className="text-sm font-semibold text-foreground">
                 {(() => {
                   const tabLabels: Record<string, string> = {
-                    basic: "Basic Info",
+                    basic: "Group Info",
                     travel: "Travel Details",
                     privacy: "Privacy & Safety",
                     members: "Manage Members",

@@ -13,7 +13,7 @@ import { useIsMobile } from "@/shared/hooks/use-mobile";
 
 const TABS = [
   // Edit Group Sections
-  { key: "basic", label: "Basic Info", icon: Settings, category: "edit" },
+  { key: "basic", label: "Group Info", icon: Settings, category: "edit" },
   { key: "travel", label: "Travel Details", icon: MapPin, category: "edit" },
   { key: "privacy", label: "Privacy & Safety", icon: Shield, category: "edit" },
   // Other sections

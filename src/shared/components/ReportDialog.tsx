@@ -1,7 +1,7 @@
 // src/shared/components/ReportDialog.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,17 +13,13 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { useToast } from "@/shared/hooks/use-toast";
-import { Flag, Loader2, UploadCloud, X } from "lucide-react";
-import { Input } from "@/shared/components/ui/input";
+import { Loader2, X, ImageIcon, CheckCircle2, Check, CheckIcon } from "lucide-react";
+import { ImageUpload } from "@/shared/components/image-upload";
 import * as Sentry from "@sentry/nextjs";
+import { cn } from "../utils/utils";
+import { Input } from "./ui/input";
+import { Spinner } from "@heroui/react";
 
 interface ReportDialogProps {
   open: boolean;
@@ -37,23 +33,30 @@ interface ReportDialogProps {
     evidencePublicId: string | null,
     additionalNotes: string
   ) => Promise<boolean>;
+  onSuccess?: () => void;
 }
+
 
 const REPORT_REASONS = {
   user: [
-    "Harassment / Abuse",
-    "Fake profile",
-    "Scam / Fraud",
-    "Inappropriate content",
-    "Safety concern",
+    "Spam",
+    "Harassment or bullying",
+    "Hate speech",
+    "Nudity or sexual activity",
+    "Scams or fraud",
+    "Violence or dangerous content",
+    "Suicide or self-injury",
+    "Underage",
     "Other",
   ],
   group: [
-    "Harassment / Abuse",
-    "Scam / Fraud",
-    "Inappropriate content",
-    "Safety concern",
-    "Misleading information",
+    "Spam",
+    "Hate speech",
+    "Harassment",
+    "Nudity or sexual content",
+    "Violence or harmful content",
+    "Misinformation",
+    "Illegal activities",
     "Other",
   ],
 };
@@ -65,17 +68,9 @@ export function ReportDialog({
   targetId,
   targetName,
   onSubmit,
+  onSuccess,
 }: ReportDialogProps) {
-  // Use refs to persist state across remounts (when parent re-renders)
-  const reasonRef = useRef("");
-  const customReasonRef = useRef("");
-  const additionalNotesRef = useRef("");
-  const evidenceFileRef = useRef<File | null>(null);
-  const evidencePreviewRef = useRef<string | null>(null);
-  const evidenceUrlRef = useRef<string | null>(null);
-  const evidencePublicIdRef = useRef<string | null>(null);
-
-  // State for UI updates (synced with refs)
+  // State for UI updates
   const [reason, setReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
@@ -86,626 +81,59 @@ export function ReportDialog({
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const { toast } = useToast();
-  const hasFormData = useRef(false);
-  const uploadInProgressRef = useRef(false);
-  const wasOpenRef = useRef(false);
 
   const MAX_NOTES_LENGTH = 300;
 
-  // SessionStorage key for persisting evidence across component unmounts
-  const STORAGE_KEY = `report-dialog-${targetType}-${targetId}`;
-
-  // Get current preview (use ref as fallback for Fast Refresh recovery)
-  const currentPreview = evidencePreview || evidencePreviewRef.current;
-  const currentEvidenceUrl = evidenceUrl || evidenceUrlRef.current;
+  useEffect(() => {
+    console.log("ReportDialog isSuccess changed to:", isSuccess);
+  }, [isSuccess]);
 
   // Auto-close dialog after showing success message
   useEffect(() => {
     if (isSuccess) {
+      console.log("Starting auto-close timer...");
       const timer = setTimeout(() => {
-        // Reset all form state
-        setReason("");
-        setCustomReason("");
-        setAdditionalNotes("");
-        setEvidenceFile(null);
-        setEvidencePreview(null);
-        setEvidenceUrl(null);
-        setEvidencePublicId(null);
-        reasonRef.current = "";
-        customReasonRef.current = "";
-        additionalNotesRef.current = "";
-        evidenceFileRef.current = null;
-        evidencePreviewRef.current = null;
-        evidenceUrlRef.current = null;
-        evidencePublicIdRef.current = null;
-        setIsSuccess(false);
-        onOpenChange(false);
+        console.log("Auto-close timer fired. Closing dialog.");
+        handleDialogOpenChange(false);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isSuccess, onOpenChange]);
+  }, [isSuccess]);
 
-  // Restore from sessionStorage on mount (handles complete component recreation)
-  useEffect(() => {
-    if (open && typeof window !== "undefined") {
-      try {
-        const stored = sessionStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const data = JSON.parse(stored);
-          console.log("🔄 Restoring from sessionStorage:", {
-            hasEvidenceUrl: !!data.evidenceUrl,
-            hasReason: !!data.reason,
-            hasPreview: !!data.evidencePreview,
-          });
-
-          // Always restore if stored data exists and current state is empty
-          if (data.evidenceUrl && !evidenceUrl && !evidenceUrlRef.current) {
-            console.log(
-              "✅ Restoring evidenceUrl from sessionStorage:",
-              data.evidenceUrl
-            );
-            setEvidenceUrl(data.evidenceUrl);
-            evidenceUrlRef.current = data.evidenceUrl;
-          }
-          if (
-            data.evidencePublicId &&
-            !evidencePublicId &&
-            !evidencePublicIdRef.current
-          ) {
-            setEvidencePublicId(data.evidencePublicId);
-            evidencePublicIdRef.current = data.evidencePublicId;
-          }
-          if (
-            data.evidencePreview &&
-            !evidencePreview &&
-            !evidencePreviewRef.current
-          ) {
-            setEvidencePreview(data.evidencePreview);
-            evidencePreviewRef.current = data.evidencePreview;
-          }
-          if (data.reason && !reason && !reasonRef.current) {
-            setReason(data.reason);
-            reasonRef.current = data.reason;
-          }
-          if (data.customReason && !customReason && !customReasonRef.current) {
-            setCustomReason(data.customReason);
-            customReasonRef.current = data.customReason;
-          }
-          if (
-            data.additionalNotes &&
-            !additionalNotes &&
-            !additionalNotesRef.current
-          ) {
-            setAdditionalNotes(data.additionalNotes);
-            additionalNotesRef.current = data.additionalNotes;
-          }
-        }
-      } catch (error) {
-        console.error("Error restoring from sessionStorage:", error);
-      }
-    }
-  }, [open]); // Run whenever dialog opens (STORAGE_KEY is stable)
-
-  // Save to sessionStorage whenever evidence data changes
-  useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      (evidenceUrl || reason || additionalNotes)
-    ) {
-      try {
-        const dataToStore = {
-          evidenceUrl: evidenceUrl || evidenceUrlRef.current,
-          evidencePublicId: evidencePublicId || evidencePublicIdRef.current,
-          evidencePreview: evidencePreview || evidencePreviewRef.current,
-          reason: reason || reasonRef.current,
-          customReason: customReason || customReasonRef.current,
-          additionalNotes: additionalNotes || additionalNotesRef.current,
-        };
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToStore));
-        console.log("💾 Saved to sessionStorage:", dataToStore);
-      } catch (error) {
-        console.error("Error saving to sessionStorage:", error);
-      }
-    }
-  }, [
-    evidenceUrl,
-    evidencePublicId,
-    evidencePreview,
-    reason,
-    customReason,
-    additionalNotes,
-    STORAGE_KEY,
-  ]);
-
-  // Sync refs with state when state changes
-  useEffect(() => {
-    reasonRef.current = reason;
-  }, [reason]);
-  useEffect(() => {
-    customReasonRef.current = customReason;
-  }, [customReason]);
-  useEffect(() => {
-    additionalNotesRef.current = additionalNotes;
-  }, [additionalNotes]);
-  useEffect(() => {
-    evidenceFileRef.current = evidenceFile;
-  }, [evidenceFile]);
-  useEffect(() => {
-    evidencePreviewRef.current = evidencePreview;
-  }, [evidencePreview]);
-  useEffect(() => {
-    evidenceUrlRef.current = evidenceUrl;
-  }, [evidenceUrl]);
-  useEffect(() => {
-    evidencePublicIdRef.current = evidencePublicId;
-  }, [evidencePublicId]);
-
-  // Restore state from refs when dialog opens OR component mounts (handles Fast Refresh)
-  useEffect(() => {
-    if (open) {
-      // Always restore from refs when dialog is open (handles remounts during Fast Refresh)
-      const refUrl = evidenceUrlRef.current;
-      const stateUrl = evidenceUrl;
-      const hasRefData =
-        reasonRef.current || refUrl || additionalNotesRef.current;
-      const missingState = !reason || !stateUrl || !additionalNotes;
-
-      // More aggressive check: if refs have data, restore even if some state exists
-      if (
-        hasRefData &&
-        (missingState || !wasOpenRef.current || (refUrl && !stateUrl))
-      ) {
-        console.log("🔄 Restoring state from refs (dialog open or remounted)");
-        console.log("Refs have:", {
-          reason: reasonRef.current,
-          evidenceUrl: refUrl,
-          evidencePublicId: evidencePublicIdRef.current,
-          evidencePreview: !!evidencePreviewRef.current,
-        });
-        console.log("State has:", {
-          reason: !!reason,
-          evidenceUrl: !!stateUrl,
-          evidencePreview: !!evidencePreview,
-          additionalNotes: !!additionalNotes,
-        });
-
-        if (reasonRef.current && !reason) {
-          console.log("✅ Restoring reason from ref");
-          setReason(reasonRef.current);
-        }
-        if (customReasonRef.current && !customReason) {
-          setCustomReason(customReasonRef.current);
-        }
-        if (additionalNotesRef.current && !additionalNotes) {
-          setAdditionalNotes(additionalNotesRef.current);
-        }
-        if (evidenceFileRef.current && !evidenceFile) {
-          setEvidenceFile(evidenceFileRef.current);
-        }
-        if (evidencePreviewRef.current && !evidencePreview) {
-          console.log("✅ Restoring evidencePreview from ref");
-          setEvidencePreview(evidencePreviewRef.current);
-        }
-        if (refUrl && !stateUrl) {
-          console.log("✅ Restoring evidenceUrl from ref:", refUrl);
-          setEvidenceUrl(refUrl);
-        }
-        if (evidencePublicIdRef.current && !evidencePublicId) {
-          console.log(
-            "✅ Restoring evidencePublicId from ref:",
-            evidencePublicIdRef.current
-          );
-          setEvidencePublicId(evidencePublicIdRef.current);
-        }
-      }
-    }
-    wasOpenRef.current = open;
-  }, [
-    open,
-    reason,
-    evidenceUrl,
-    evidencePreview,
-    customReason,
-    additionalNotes,
-    evidenceFile,
-    evidencePublicId,
-  ]);
-
-  // Aggressive Fast Refresh recovery - check periodically if dialog is open
-  useEffect(() => {
-    if (!open) return;
-
-    // Immediate restoration check
-    const restoreNow = () => {
-      let restored = false;
-      const refUrl = evidenceUrlRef.current;
-      const stateUrl = evidenceUrl;
-
-      // Log current state for debugging
-      if (refUrl && !stateUrl) {
-        console.log(
-          "🔄 Fast Refresh recovery - ref has URL but state is missing"
-        );
-        console.log("- ref URL:", refUrl);
-        console.log("- state URL:", stateUrl);
-      }
-
-      if (refUrl && !stateUrl) {
-        console.log(
-          "🔄 Fast Refresh recovery - restoring evidenceUrl from ref:",
-          refUrl
-        );
-        setEvidenceUrl(refUrl);
-        setEvidencePublicId(evidencePublicIdRef.current);
-        restored = true;
-      }
-      if (evidencePreviewRef.current && !evidencePreview) {
-        console.log(
-          "🔄 Fast Refresh recovery - restoring evidencePreview from ref"
-        );
-        setEvidencePreview(evidencePreviewRef.current);
-        restored = true;
-      }
-      if (evidenceFileRef.current && !evidenceFile) {
-        setEvidenceFile(evidenceFileRef.current);
-        restored = true;
-      }
-      if (reasonRef.current && !reason) {
-        setReason(reasonRef.current);
-        restored = true;
-      }
-      if (customReasonRef.current && !customReason) {
-        setCustomReason(customReasonRef.current);
-        restored = true;
-      }
-      if (additionalNotesRef.current && !additionalNotes) {
-        setAdditionalNotes(additionalNotesRef.current);
-        restored = true;
-      }
-      if (restored) {
-        console.log("✅ State restored from refs after Fast Refresh");
-        console.log("- evidenceUrl restored:", evidenceUrlRef.current);
-        console.log(
-          "- evidencePublicId restored:",
-          evidencePublicIdRef.current
-        );
-      }
-    };
-
-    // Run immediately (catches Fast Refresh that already happened)
-    restoreNow();
-
-    // Also check periodically (in case Fast Refresh happens after mount)
-    // Use shorter interval for faster recovery
-    const interval = setInterval(() => {
-      restoreNow();
-    }, 50); // Check every 50ms for faster recovery
-
-    return () => clearInterval(interval);
-  }, [
-    open,
-    evidenceUrl,
-    evidencePreview,
-    reason,
-    customReason,
-    additionalNotes,
-    evidenceFile,
-    evidencePublicId,
-  ]);
-
-  // Track if form has data to prevent accidental closes (check both state and refs)
-  useEffect(() => {
-    const hasData =
-      reason ||
-      reasonRef.current ||
-      currentEvidenceUrl ||
-      additionalNotes ||
-      additionalNotesRef.current ||
-      customReason ||
-      customReasonRef.current ||
-      evidenceFile ||
-      evidenceFileRef.current ||
-      isUploadingEvidence;
-    if (hasData) {
-      hasFormData.current = true;
-    }
-  }, [
-    reason,
-    currentEvidenceUrl,
-    additionalNotes,
-    customReason,
-    evidenceFile,
-    isUploadingEvidence,
-  ]);
-
-  // Prevent dialog from closing if upload/submission is in progress
-  useEffect(() => {
-    // If parent tries to close during upload/submission, force it to stay open
-    if (
-      !open &&
-      (isUploadingEvidence || isSubmitting || uploadInProgressRef.current)
-    ) {
-      console.log("⚠️ FORCING dialog to stay open - operation in progress");
-      onOpenChange(true);
-    }
-  }, [open, isUploadingEvidence, isSubmitting, onOpenChange]);
-
-  // Reset form data tracking when dialog closes (but not during upload)
-  useEffect(() => {
-    if (
-      !open &&
-      !isUploadingEvidence &&
-      !isSubmitting &&
-      !uploadInProgressRef.current
-    ) {
-      hasFormData.current = false;
-    }
-  }, [open, isUploadingEvidence, isSubmitting]);
+  const resetForm = () => {
+    setReason("");
+    setCustomReason("");
+    setAdditionalNotes("");
+    setEvidenceFile(null);
+    setEvidencePreview(null);
+    setEvidenceUrl(null);
+    setEvidencePublicId(null);
+  };
 
   // Handle dialog close - only block during upload/submission
   const handleDialogOpenChange = (newOpen: boolean) => {
-    // CRITICAL: Never allow closing during upload or submission
+    // CRITICAL: Prevent accidental closing during operations
     if (!newOpen && (isUploadingEvidence || isSubmitting)) {
-      console.log("⚠️ BLOCKED dialog close - upload or submission in progress");
       toast({
-        title: isUploadingEvidence
-          ? "Upload in progress"
-          : "Submission in progress",
-        description: isUploadingEvidence
-          ? "Please wait for the evidence upload to complete."
-          : "Please wait for the report to be submitted.",
+        title: isUploadingEvidence ? "Upload in progress" : "Submission in progress",
+        description: "Please wait for the current action to complete.",
         variant: "default",
       });
-      return; // Block the close completely
+      return; 
     }
-
+    
+    if (!newOpen) {
+      // Small delay on reset to allow outgoing exit animation to happen smoothly
+      setTimeout(() => {
+        resetForm();
+        setIsSuccess(false);
+      }, 300);
+    }
+    
     onOpenChange(newOpen);
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      console.log("No file selected");
-      return;
-    }
-
-    console.log("=== FILE SELECTED ===");
-    console.log("File name:", file.name);
-    console.log("File type:", file.type);
-    console.log("File size:", file.size);
-
-    // Validate file type
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file (JPEG, PNG, GIF, or WebP).",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 10MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Set both state and refs
-    setEvidenceFile(file);
-    evidenceFileRef.current = file;
-    console.log("Evidence file set in state and ref");
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const preview = reader.result as string;
-      setEvidencePreview(preview);
-      evidencePreviewRef.current = preview;
-      console.log("Evidence preview created and stored in ref");
-    };
-    reader.readAsDataURL(file);
-
-    // Upload to server
-    console.log("Starting evidence upload to /api/flags/evidence");
-    uploadInProgressRef.current = true;
-    setIsUploadingEvidence(true);
-
-    // CRITICAL: Force dialog to stay open during upload
-    if (!open) {
-      console.log("⚠️ Dialog was closed, forcing it open for upload");
-      onOpenChange(true);
-    }
-
-    try {
-      const signRes = await fetch("/api/cloudinary/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder: "kovari-evidence/temp" }),
-      });
-      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
-      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", api_key);
-      formData.append("timestamp", timestamp.toString());
-      formData.append("signature", signature);
-      formData.append("folder", folder);
-
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-      // Adapt the response to match the rest of the flow seamlessly
-      if (response.ok) {
-        data.evidenceUrl = data.secure_url;
-      }
-
-      console.log("=== EVIDENCE UPLOAD RESPONSE ===");
-      console.log("Response status:", response.status);
-      console.log("Response data:", data);
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to upload evidence");
-      }
-
-      console.log("Setting evidence state:");
-      console.log("- evidenceUrl:", data.evidenceUrl);
-      console.log("- publicId:", data.publicId);
-
-      // CRITICAL: Set refs FIRST (they persist through Fast Refresh)
-      evidenceUrlRef.current = data.evidenceUrl;
-      evidencePublicIdRef.current = data.publicId || null;
-
-      // Ensure preview ref is set (it should already be set from file selection)
-      if (!evidencePreviewRef.current && evidenceFileRef.current) {
-        // Recreate preview from file if it was lost
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const preview = reader.result as string;
-          evidencePreviewRef.current = preview;
-          setEvidencePreview(preview);
-        };
-        reader.readAsDataURL(evidenceFileRef.current);
-      }
-
-      // Set state (may be lost during Fast Refresh, but refs will restore it)
-      setEvidenceUrl(data.evidenceUrl);
-      setEvidencePublicId(data.publicId || null);
-
-      // CRITICAL: Also save to sessionStorage (persists across complete component unmounts)
-      if (typeof window !== "undefined") {
-        try {
-          const dataToStore = {
-            evidenceUrl: data.evidenceUrl,
-            evidencePublicId: data.publicId || null,
-            evidencePreview: evidencePreviewRef.current,
-            reason: reasonRef.current,
-            customReason: customReasonRef.current,
-            additionalNotes: additionalNotesRef.current,
-          };
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToStore));
-          console.log("💾 Saved evidence to sessionStorage after upload");
-        } catch (error) {
-          console.error("Error saving to sessionStorage:", error);
-        }
-      }
-
-      console.log("✅ Evidence state set. Current values:");
-      console.log("- evidenceUrl state:", data.evidenceUrl);
-      console.log("- evidencePublicId state:", data.publicId);
-      console.log("- evidenceUrl ref:", evidenceUrlRef.current);
-      console.log("- evidencePublicId ref:", evidencePublicIdRef.current);
-      console.log(
-        "- evidencePreview ref exists:",
-        !!evidencePreviewRef.current
-      );
-
-      // Aggressive state restoration after upload (handles Fast Refresh)
-      // Use a function that checks current state via closure
-      const restoreState = () => {
-        // Check if state was lost (Fast Refresh happened)
-        const currentUrl = evidenceUrlRef.current;
-        if (currentUrl) {
-          // Force state update using functional setter to get latest state
-          setEvidenceUrl((prev) => {
-            if (!prev && currentUrl) {
-              console.log(
-                "🔄 Restoring evidenceUrl from ref (Fast Refresh recovery)"
-              );
-              return currentUrl;
-            }
-            return prev || currentUrl;
-          });
-          setEvidencePublicId((prev) => {
-            const currentId = evidencePublicIdRef.current;
-            if (!prev && currentId) {
-              console.log(
-                "🔄 Restoring evidencePublicId from ref (Fast Refresh recovery)"
-              );
-              return currentId;
-            }
-            return prev || currentId;
-          });
-          if (evidencePreviewRef.current) {
-            setEvidencePreview(
-              (prev) => prev || evidencePreviewRef.current || null
-            );
-          }
-          if (evidenceFileRef.current) {
-            setEvidenceFile((prev) => prev || evidenceFileRef.current);
-          }
-        }
-      };
-
-      // Immediate check (in case Fast Refresh already happened)
-      restoreState();
-
-      // Check multiple times because Fast Refresh timing is unpredictable
-      // Use longer delays to catch Fast Refresh that happens after parent re-renders
-      setTimeout(() => {
-        console.log("🔄 Post-upload restoration check (50ms)");
-        restoreState();
-      }, 50);
-      setTimeout(() => {
-        console.log("🔄 Post-upload restoration check (200ms)");
-        restoreState();
-      }, 200);
-      setTimeout(() => {
-        console.log("🔄 Post-upload restoration check (500ms)");
-        restoreState();
-      }, 500);
-      setTimeout(() => {
-        console.log("🔄 Post-upload restoration check (1000ms)");
-        restoreState();
-      }, 1000);
-      setTimeout(() => {
-        console.log("🔄 Post-upload restoration check (2000ms)");
-        restoreState();
-      }, 2000);
-      setTimeout(() => {
-        console.log("🔄 Post-upload restoration check (3000ms)");
-        restoreState();
-      }, 3000);
-
-      toast({
-        title: "Evidence uploaded",
-        description: "Your evidence has been uploaded successfully.",
-      });
-    } catch (error) {
-      console.error("Error uploading evidence:", error);
-      toast({
-        title: "Upload failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to upload evidence. You can still submit the report without it.",
-        variant: "destructive",
-      });
-      setEvidenceFile(null);
-      setEvidencePreview(null);
-      evidenceFileRef.current = null;
-      evidencePreviewRef.current = null;
-    } finally {
-      setIsUploadingEvidence(false);
-      uploadInProgressRef.current = false;
-      console.log("Upload process completed, uploadInProgressRef reset");
-    }
   };
 
   const handleRemoveEvidence = () => {
@@ -713,184 +141,53 @@ export function ReportDialog({
     setEvidencePreview(null);
     setEvidenceUrl(null);
     setEvidencePublicId(null);
-    evidenceFileRef.current = null;
-    evidencePreviewRef.current = null;
-    evidenceUrlRef.current = null;
-    evidencePublicIdRef.current = null;
+  };
 
-    // Update sessionStorage to remove evidence
-    if (typeof window !== "undefined") {
-      try {
-        const stored = sessionStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const data = JSON.parse(stored);
-          delete data.evidenceUrl;
-          delete data.evidencePublicId;
-          delete data.evidencePreview;
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        }
-      } catch (error) {
-        console.error("Error updating sessionStorage:", error);
-      }
-    }
+  const handleImageUpload = (file: File | string) => {
+    setEvidenceUrl(typeof file === 'string' ? file : URL.createObjectURL(file));
   };
 
   const handleSubmit = async () => {
-    // Prevent submit while evidence is uploading
+    setSubmitError(null); // Clear previous errors
+
     if (isUploadingEvidence) {
-      toast({
-        title: "Please wait",
-        description:
-          "Evidence is still uploading. Please wait for it to complete.",
-        variant: "default",
-      });
+      setSubmitError("Please wait for the evidence upload to complete.");
       return;
     }
 
     if (!reason) {
-      toast({
-        title: "Reason required",
-        description: "Please select a reason for reporting.",
-        variant: "destructive",
-      });
+      setSubmitError("Please select a reason for reporting.");
       return;
     }
 
     const finalReason = reason === "Other" ? customReason.trim() : reason;
     if (!finalReason) {
-      toast({
-        title: "Reason required",
-        description: "Please provide a reason for reporting.",
-        variant: "destructive",
-      });
+      setSubmitError("Please provide specific details for reporting.");
       return;
     }
 
-    // Combine reason with additional notes if provided
-    // Use refs as fallback in case component remounted
-    const finalAdditionalNotes =
-      additionalNotes || additionalNotesRef.current || "";
+    const finalAdditionalNotes = additionalNotes || "";
     let finalReasonWithNotes = finalReason;
     if (finalAdditionalNotes.trim()) {
       finalReasonWithNotes = `${finalReason}\n\nAdditional notes: ${finalAdditionalNotes.trim()}`;
     }
 
-    // Prevent submit if upload just completed (give it a moment to set state)
-    if (uploadInProgressRef.current) {
-      console.log("⚠️ Upload just completed, waiting for state to update...");
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
     setIsSubmitting(true);
 
-    console.log("=== SUBMITTING REPORT ===");
-    console.log("Current state values:");
-    console.log("- isUploadingEvidence:", isUploadingEvidence);
-    console.log(
-      "- evidenceFile (state):",
-      evidenceFile ? evidenceFile.name : null
-    );
-    console.log(
-      "- evidenceFile (ref):",
-      evidenceFileRef.current ? evidenceFileRef.current.name : null
-    );
-    console.log("- evidenceUrl (state):", evidenceUrl);
-    console.log("- evidencePublicId (state):", evidencePublicId);
-    console.log("- evidenceUrl (ref):", evidenceUrlRef.current);
-    console.log("- evidencePublicId (ref):", evidencePublicIdRef.current);
-    console.log("- reason:", finalReasonWithNotes);
-    console.log("- targetType:", targetType);
-    console.log("- targetId:", targetId);
-
-    // Use ref values if state values are null (component may have remounted due to Fast Refresh)
-    // Also check sessionStorage as last resort (handles complete component recreation)
-    let finalEvidenceUrl = evidenceUrl || evidenceUrlRef.current;
-    let finalEvidencePublicId = evidencePublicId || evidencePublicIdRef.current;
-
-    // Fallback to sessionStorage if both state and refs are empty
-    if (!finalEvidenceUrl && typeof window !== "undefined") {
-      try {
-        const stored = sessionStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const data = JSON.parse(stored);
-          if (data.evidenceUrl) {
-            console.log(
-              "🔄 Restoring evidence from sessionStorage during submit"
-            );
-            finalEvidenceUrl = data.evidenceUrl;
-            finalEvidencePublicId = data.evidencePublicId || null;
-          }
-        }
-      } catch (error) {
-        console.error("Error reading from sessionStorage:", error);
-      }
-    }
-
-    console.log("✅ Final values to submit:");
-    console.log("- finalEvidenceUrl:", finalEvidenceUrl);
-    console.log("- finalEvidencePublicId:", finalEvidencePublicId);
-
-    if (finalEvidenceUrl) {
-      console.log("✅ Evidence will be included in submission");
-    } else {
-      console.log("⚠️ No evidence URL available (neither state nor ref)");
-    }
-
-    // Double-check: if there's a file but no URL, wait a bit and check again
-    if (
-      (evidenceFile || evidenceFileRef.current) &&
-      !finalEvidenceUrl &&
-      !isUploadingEvidence
-    ) {
-      console.warn(
-        "⚠️ Evidence file exists but URL is missing - upload may have failed"
-      );
-      toast({
-        title: "Evidence upload issue",
-        description:
-          "Evidence file was selected but upload may have failed. Please re-upload or submit without evidence.",
-        variant: "destructive",
-      });
-      // Don't block submission, but warn user
-    }
-
-    // CHECK FOR CUSTOM SUBMIT HANDLER FIRST
     if (onSubmit) {
-      console.log("Using custom onSubmit handler");
       try {
         const success = await onSubmit(
           finalReasonWithNotes,
-          finalEvidenceUrl,
-          finalEvidencePublicId,
-          additionalNotes || additionalNotesRef.current
+          evidenceUrl,
+          evidencePublicId,
+          additionalNotes
         );
-
-        if (success) {
-          console.log("✅ Custom submission successful");
-
-          // Reset form data tracking
-          hasFormData.current = false;
-
-          // Clear sessionStorage on successful submission
-          if (typeof window !== "undefined") {
-            try {
-              sessionStorage.removeItem(STORAGE_KEY);
-              console.log(
-                "🗑️ Cleared sessionStorage after successful submission"
-              );
-            } catch (error) {
-              console.error("Error clearing sessionStorage:", error);
-            }
-          }
-
-          // Show success message in dialog
-          setIsSuccess(true);
-        }
+        if (success) setIsSuccess(true);
       } catch (error) {
         console.error("Custom onSubmit error:", error);
         toast({
           title: "Error",
-          description: "Failed to submit report. Please try again.",
+          description: "Failed to submit report.",
           variant: "destructive",
         });
       } finally {
@@ -903,493 +200,217 @@ export function ReportDialog({
       targetType,
       targetId,
       reason: finalReasonWithNotes,
-      evidenceUrl: finalEvidenceUrl,
-      evidencePublicId: finalEvidencePublicId,
+      evidenceUrl,
+      evidencePublicId,
     };
 
-    console.log("Request payload:", JSON.stringify(requestPayload, null, 2));
-
     try {
+      console.log("Sending request to /api/flags with:", requestPayload);
       const response = await fetch("/api/flags", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestPayload),
       });
 
-      const data = await response.json();
-
-      console.log("=== REPORT SUBMISSION RESPONSE ===");
-      console.log("Status:", response.status);
-      console.log("Response OK:", response.ok);
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error(`Server returned a non-JSON response (Status ${response.status})`);
+      }
       console.log("Response data:", data);
 
       if (!response.ok) {
-        const errorInfo = {
-          status: response.status,
-          statusText: response.statusText,
-          data: data,
-          targetType,
-          targetId,
-        };
-
-        // Use console.log for debugging instead of console.error to avoid Next.js error interception
-        // Expected errors (429, 501) are handled gracefully and shown to users via toast
-        console.log(
-          "⚠️ Report submission failed:",
-          JSON.stringify(errorInfo, null, 2)
-        );
-
-        // Handle 429 (Too Many Requests) - duplicate report
-        if (response.status === 429) {
-          const errorMessage = data.details
-            ? data.details
-            : data.error ||
-              "You have already reported this user recently. Please wait 24 hours before reporting again.";
-
-          // Capture expected error in Sentry with lower severity
-          Sentry.captureException(new Error(errorMessage), {
-            level: "warning",
-            tags: {
-              component: "ReportDialog",
-              targetType,
-              statusCode: response.status,
-              errorType: "rate_limit",
-            },
-            extra: errorInfo,
-          });
-
-          throw new Error(errorMessage);
-        }
-
-        // Handle 501 (Not Implemented) - group flags not supported
         if (response.status === 501) {
-          const errorMessage =
-            data.details ||
-            data.error ||
-            "Group flags are not supported yet. Please contact support.";
-
-          // Capture expected error in Sentry with lower severity
-          Sentry.captureException(new Error(errorMessage), {
-            level: "warning",
-            tags: {
-              component: "ReportDialog",
-              targetType,
-              statusCode: response.status,
-              errorType: "not_implemented",
-            },
-            extra: errorInfo,
-          });
-
-          throw new Error(errorMessage);
+          throw new Error(data.error || "Feature not supported yet.");
         }
-
-        // Construct error message with proper fallback for other errors
-        let errorMessage = "Failed to submit report";
-        if (data.details) {
-          errorMessage = data.error
-            ? `${data.error}: ${data.details}`
-            : data.details;
-        } else if (data.error) {
-          errorMessage = data.error;
-        }
-
-        // Capture unexpected errors in Sentry with error level
-        Sentry.captureException(new Error(errorMessage), {
-          tags: {
-            component: "ReportDialog",
-            targetType,
-            statusCode: response.status,
-            errorType: "unexpected",
-          },
-          extra: errorInfo,
-        });
-
-        throw new Error(errorMessage);
+        // Prioritize data.details for explicit backend reporting restriction messages
+        throw new Error(data.details || data.error || "Failed to submit report");
       }
 
-      console.log("✅ Report submitted successfully:", data);
-
+      // Normal success
+      console.log("Normal 200 Success. Calling setIsSuccess(true).");
+      setIsSuccess(true);
+      onSuccess?.();
       toast({
         title: "Report submitted",
-        description:
-          "Thank you for your report. Our team will review it shortly.",
+        description: "We'll review your report shortly.",
       });
-
-      // Reset form data tracking
-      hasFormData.current = false;
-
-      // Reset form and close dialog
-      setReason("");
-      setCustomReason("");
-      setAdditionalNotes("");
-      setEvidenceFile(null);
-      setEvidencePreview(null);
-      setEvidenceUrl(null);
-      setEvidencePublicId(null);
-      // Also reset refs
-      reasonRef.current = "";
-      customReasonRef.current = "";
-      additionalNotesRef.current = "";
-      evidenceFileRef.current = null;
-      evidencePreviewRef.current = null;
-      evidenceUrlRef.current = null;
-      evidencePublicIdRef.current = null;
-      // Clear sessionStorage on successful submission
-      if (typeof window !== "undefined") {
-        try {
-          sessionStorage.removeItem(STORAGE_KEY);
-          console.log("🗑️ Cleared sessionStorage after successful submission");
-        } catch (error) {
-          console.error("Error clearing sessionStorage:", error);
-        }
-      }
-
-      onOpenChange(false);
     } catch (error) {
-      // Log error for debugging (API errors are already captured in Sentry before throwing)
-      // This catch block may also catch network errors or other unexpected errors
-      console.log("Error submitting report:", error);
-
-      // Only capture in Sentry if it's an unexpected error (not an API response error)
-      // API response errors (429, 501, etc.) are already captured before being thrown
-      const isExpectedError =
-        error instanceof Error &&
-        (error.message.includes("Failed to create flag") ||
-          error.message.includes("already reported") ||
-          error.message.includes("Group flags are not supported"));
+      console.error("Caught error in handleSubmit:", error);
+      
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+      setSubmitError(errorMessage);
+      
+      // Still log to Sentry if it's an unexpected internal error
+      const isExpectedError = error instanceof Error && 
+        (error.message.includes("Failed to create flag") || error.message.includes("already reported") || error.message.includes("not supported"));
 
       if (error instanceof Error && !isExpectedError) {
         Sentry.captureException(error, {
-          tags: {
-            component: "ReportDialog",
-            targetType,
-            action: "submit",
-            errorType: "unexpected",
-          },
-          extra: {
-            targetId,
-            hasEvidence: !!finalEvidenceUrl,
-          },
+          tags: { component: "ReportDialog", targetType, action: "submit" },
+          extra: { targetId, hasEvidence: !!evidenceUrl },
         });
       }
-
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to submit report. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
-    // Reset success state
-    setIsSuccess(false);
-
-    // Reset form data tracking
-    hasFormData.current = false;
-
-    setReason("");
-    setCustomReason("");
-    setAdditionalNotes("");
-    setEvidenceFile(null);
-    setEvidencePreview(null);
-    setEvidenceUrl(null);
-    setEvidencePublicId(null);
-    // Also reset refs
-    reasonRef.current = "";
-    customReasonRef.current = "";
-    additionalNotesRef.current = "";
-    evidenceFileRef.current = null;
-    evidencePreviewRef.current = null;
-    evidenceUrlRef.current = null;
-    evidencePublicIdRef.current = null;
-
-    // Clear sessionStorage on cancel
-    if (typeof window !== "undefined") {
-      try {
-        sessionStorage.removeItem(STORAGE_KEY);
-        console.log("🗑️ Cleared sessionStorage on cancel");
-      } catch (error) {
-        console.error("Error clearing sessionStorage:", error);
-      }
-    }
-
-    onOpenChange(false);
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
-        className="rounded-2xl border-border max-w-[min(520px,calc(100vw-2rem))] p-0 gap-0 overflow-hidden"
+        className="rounded-2xl border-border max-w-[min(530px,calc(100vw-2rem))] p-0 gap-0 overflow-hidden"
         onEscapeKeyDown={(e) => {
-          // Prevent ESC from closing if upload/submission is in progress
-          if (isUploadingEvidence || isSubmitting) {
-            e.preventDefault();
-            toast({
-              title: isUploadingEvidence
-                ? "Upload in progress"
-                : "Submission in progress",
-              description: isUploadingEvidence
-                ? "Please wait for the evidence upload to complete."
-                : "Please wait for the report to be submitted.",
-              variant: "default",
-            });
-          }
+          if (isUploadingEvidence || isSubmitting) e.preventDefault();
         }}
         onPointerDownOutside={(e) => {
-          // Prevent outside click from closing if upload/submission is in progress
-          if (isUploadingEvidence || isSubmitting) {
-            e.preventDefault();
-            toast({
-              title: isUploadingEvidence
-                ? "Upload in progress"
-                : "Submission in progress",
-              description: isUploadingEvidence
-                ? "Please wait for the evidence upload to complete."
-                : "Please wait for the report to be submitted.",
-              variant: "default",
-            });
-          }
+          if (isUploadingEvidence || isSubmitting) e.preventDefault();
         }}
       >
+        <div className={cn("px-6 py-5 border-b border-border/40 sticky top-0", isSuccess && "sr-only border-none px-0 py-0")}>
+          <DialogHeader className="text-left space-y-1">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-md font-semibold tracking-tight">
+                {isSuccess ? "Report Submitted Successfully" : `Report ${targetType === "user" ? "User" : "Group"}`}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              {isSuccess ? "Your report has been received and is under review." : "Your report is strictly confidential. Help us understand what went wrong."}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+
         {isSuccess ? (
-          <div className="flex flex-col items-center justify-center px-6 py-10 space-y-4">
-            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-              <svg
-                className="h-6 w-6 text-primary-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="2"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4.5 12.75l6 6 9-13.5"
-                />
-              </svg>
+          <div className="flex flex-col items-center justify-center px-8 py-8 animate-in fade-in duration-500 min-h-[230px]">
+             <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckIcon className="w-5 h-5 text-primary-foreground" />
             </div>
-            <div className="text-center">
-              <h3 className="text-md font-medium leading-6 text-foreground">
-                Report Submitted
-              </h3>
-              <div className="mt-2">
-                <p className="text-sm text-muted-foreground">
-                  Thank you for your report. Our team will review it shortly.
-                </p>
-              </div>
-            </div>
+            <h3 className="text-md sm:text-lg font-bold text-foreground mb-2">Report Received</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground text-center">
+              Thank you for keeping Kovari safe. Our moderation team will review your report shortly.
+            </p>
           </div>
         ) : (
           <>
-            <div className="px-6 pt-5 pb-3 border-b border-border">
-              <DialogHeader className="text-left space-y-1">
-                <DialogTitle className="flex items-start gap-3">
-                  <span className="min-w-0">
-                    <span className="block leading-tight">
-                      Report {targetType === "user" ? "user" : "group"}
-                    </span>
-                    {/* {targetName ? (
-                      <span className="block text-sm font-normal text-muted-foreground truncate">
-                        {targetName}
-                      </span>
-                    ) : null} */}
-                  </span>
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Tell us what’s wrong. We’ll review it.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="px-6 py-4 grid gap-4">
-              {/* Reason Selection */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="reason" className="text-xs font-medium">
-                    Reason <span className="text-destructive">*</span>
-                  </Label>
+            <div className="px-6 py-5 grid gap-6 overflow-y-auto max-h-[45vh] hide-scrollbar overscroll-contain will-change-scroll transform-gpu scroll-smooth">
+              
+              {/* Reason Pills Grid */}
+              <div className="space-y-3">
+                <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                  Select a reason
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {REPORT_REASONS[targetType].map((r) => (
+                    <button
+                      type="button"
+                      key={r}
+                      onClick={() => {
+                        setReason(r);
+                        if (r !== "Other") setCustomReason("");
+                      }}
+                      className={cn(
+                        "px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 border",
+                        reason === r
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-muted/30 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                      )}
+                    >
+                      {r}
+                    </button>
+                  ))}
                 </div>
-                <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger
-                    id="reason"
-                    className="h-9 w-full bg-background border-border hover:bg-muted/30"
-                  >
-                    <SelectValue placeholder="Select a reason" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REPORT_REASONS[targetType].map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
-              {/* Custom Reason (for "Other") */}
+              {/* Custom Reason Textarea (Animated entrance) */}
               {reason === "Other" && (
-                <div className="space-y-2">
-                  <Label htmlFor="customReason" className="text-xs font-medium">
-                    Details <span className="text-destructive">*</span>
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <Label htmlFor="customReason" className="text-xs sm:text-sm font-semibold text-foreground">
+                    Please specify
                   </Label>
                   <Textarea
                     id="customReason"
-                    placeholder="Briefly describe what happened…"
+                    placeholder="Briefly describe what happened..."
                     value={customReason}
                     onChange={(e) => setCustomReason(e.target.value)}
-                    rows={4}
-                    className="min-h-[88px] resize-none"
+                    className="min-h-[100px] resize-none focus-visible:ring-primary/40 rounded-xl text-xs sm:text-sm"
                   />
                 </div>
               )}
 
-              {/* Evidence Upload */}
-              <div className="space-y-2">
-                {!(evidencePreview || evidencePreviewRef.current) ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor="evidence" className="text-xs font-medium">
-                      Evidence{" "}
-                      <span className="text-muted-foreground">(optional)</span>
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="evidence"
-                        type="file"
-                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                        onChange={handleFileChange}
-                        disabled={isUploadingEvidence || isSubmitting}
-                        className="sr-only"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isUploadingEvidence || isSubmitting}
-                        asChild
-                      >
-                        {isUploadingEvidence ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        ) : (
-                          <label htmlFor="evidence" className="cursor-pointer">
-                            Upload
-                          </label>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-border overflow-hidden bg-background">
-                    <div className="relative aspect-[16/9] bg-muted">
-                      <img
-                        src={currentPreview || ""}
-                        alt="Evidence preview"
-                        className="h-full w-full object-contain"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handleRemoveEvidence}
-                        className="absolute top-2 right-2 h-8 w-8 bg-background/90 hover:bg-background"
-                        disabled={isSubmitting || isUploadingEvidence}
-                        aria-label="Remove evidence"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 p-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {evidenceFile?.name ??
-                            evidenceFileRef.current?.name ??
-                            "Evidence"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {currentEvidenceUrl ? "Uploaded" : "Ready"}
-                        </p>
-                      </div>
-                      {isUploadingEvidence ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            Uploading…
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                )}
+            
+
+              {/* Evidence Drag & Drop Upload */}
+              <div className="space-y-3">
+                 <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                    Attach evidence <span className="text-muted-foreground font-normal">(Optional)</span>
+                 </Label>
+                
+                 <ImageUpload
+                    value={evidenceUrl}
+                    onImageUpload={handleImageUpload}
+                    onImageRemove={handleRemoveEvidence}
+                    label=""
+                    hideLabel
+                    maxSizeInMB={5}
+                    className="w-full"
+                    acceptedFormats={["PNG", "JPG", "JPEG", "WEBP"]}
+                 />
               </div>
 
-              {/* Additional Notes */}
-              <div className="space-y-2">
+                {/* Additional Context */}
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="additionalNotes"
-                    className="text-xs font-medium"
-                  >
-                    Additional notes{" "}
-                    <span className="text-muted-foreground">(optional)</span>
+                  <Label htmlFor="additionalNotes" className="text-xs sm:text-sm font-semibold text-foreground">
+                    Additional context <span className="text-muted-foreground font-normal">(Optional)</span>
                   </Label>
-                  <span className="text-xs text-muted-foreground">
-                    {additionalNotes.length}/{MAX_NOTES_LENGTH}
-                  </span>
                 </div>
                 <Textarea
                   id="additionalNotes"
-                  placeholder="Add any context that could help our review…"
+                  placeholder="Provide any additional details that might help our review..."
                   value={additionalNotes}
                   onChange={(e) => {
                     if (e.target.value.length <= MAX_NOTES_LENGTH) {
                       setAdditionalNotes(e.target.value);
                     }
                   }}
-                  rows={3}
-                  className="min-h-[88px] resize-none"
+                  className="min-h-[80px] resize-none focus-visible:ring-primary/40 rounded-xl text-xs sm:text-sm"
                   maxLength={MAX_NOTES_LENGTH}
                 />
+                 <div className="text-xs text-muted-foreground text-right w-full">
+                    {additionalNotes.length} / {MAX_NOTES_LENGTH}
+                  </div>
               </div>
+
             </div>
 
-            <div className="px-6 pb-5 pt-3 border-t border-border bg-background">
-              <DialogFooter className="gap-2 sm:gap-0">
+            <div className="px-6 py-4 border-t border-border/50 bg-card rounded-b-2xl">
+              {submitError && (
+                <div className="mb-3 px-3 py-2 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-md">
+                   {submitError}
+                </div>
+              )}
+              <DialogFooter className="gap-2 sm:gap-0 mt-1">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleCancel}
+                  onClick={() => onOpenChange(false)}
                   disabled={isSubmitting || isUploadingEvidence}
-                  className="h-9"
+                  className="rounded-full font-medium hover:bg-background text-xs sm:text-sm"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="button"
-                  variant="destructive"
+                  variant="default"
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !reason || isUploadingEvidence}
-                  className="min-w-[140px] h-9"
+                  disabled={isSubmitting || !reason || (reason === "Other" && !customReason.trim()) || isUploadingEvidence}
+                  className="rounded-full shadow-md min-w-[140px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm"
                 >
                   {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting…
-                    </>
-                  ) : isUploadingEvidence ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading…
-                    </>
+                    <><Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}}/> Submitting</>
                   ) : (
-                    "Submit report"
+                    "Submit Report"
                   )}
                 </Button>
               </DialogFooter>
@@ -1400,3 +421,4 @@ export function ReportDialog({
     </Dialog>
   );
 }
+

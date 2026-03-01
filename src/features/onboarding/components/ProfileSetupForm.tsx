@@ -21,6 +21,7 @@ import {
   Trash2,
   Check,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -159,20 +160,8 @@ const languageOptions = [
   "Gujarati",
   "Urdu",
   "Kannada",
-  "Odia",
   "Malayalam",
   "Punjabi",
-  "Assamese",
-  "Sanskrit",
-  "Konkani",
-  "Sindhi",
-  "Nepali",
-  "Maithili",
-  "Kashmiri",
-  "Manipuri",
-  "Dogri",
-  "Bodo",
-  "Santali",
 ];
 
 const nationalityOptions = COUNTRIES;
@@ -315,6 +304,8 @@ export default function ProfileSetupForm() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
+  const [nationalityOpen, setNationalityOpen] = useState(false);
+  const [nationalityQuery, setNationalityQuery] = useState("");
   const languageTriggerRef = useRef<HTMLDivElement>(null);
   const interestTriggerRef = useRef<HTMLDivElement>(null);
   const [languagePopoverWidth, setLanguagePopoverWidth] = useState<
@@ -1376,7 +1367,7 @@ export default function ProfileSetupForm() {
                   <FormLabel className="text-xs font-medium text-muted-foreground">
                     Nationality
                   </FormLabel>
-                  <Popover>
+                  <Popover open={nationalityOpen} onOpenChange={setNationalityOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -1401,20 +1392,32 @@ export default function ProfileSetupForm() {
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full py-2 px-1" align="start">
-                      <Command>
-                        {/* <CommandInput
-                          placeholder="Search nationality..."
-                          className="text-sm placeholder:text-muted-foreground"
-                        /> */}
+                    <PopoverContent className="w-[280px] sm:w-[320px] p-0 border border-border shadow-xl rounded-xl overflow-hidden bg-white" align="start">
+                      <Command className="w-full">
+                        <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+                          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                          <input
+                            placeholder="Search nationality..."
+                            className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            value={nationalityQuery}
+                            onChange={(e) => setNationalityQuery(e.target.value)}
+                          />
+                        </div>
                         <CommandList>
+                          {nationalityOptions.filter((opt) => opt.toLowerCase().includes(nationalityQuery.toLowerCase())).length === 0 && (
+                            <div className="py-6 text-center text-sm text-muted-foreground">No nationality found.</div>
+                          )}
                           <CommandGroup className="max-h-64 overflow-auto hide-scrollbar">
-                            {nationalityOptions.map((nationality) => (
+                            {nationalityOptions
+                              .filter((opt) => opt.toLowerCase().includes(nationalityQuery.toLowerCase()))
+                              .map((nationality) => (
                               <div
                                 key={nationality}
                                 className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
                                 onClick={() => {
                                   field.onChange(nationality);
+                                  setNationalityOpen(false);
+                                  setNationalityQuery("");
                                 }}
                               >
                                 {nationality === field.value && (

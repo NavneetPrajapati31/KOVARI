@@ -35,6 +35,7 @@ import ProfileImageModal from "./profile-image-modal";
 import { AnimatePresence } from "framer-motion";
 // import CreatePostModal from "./create-post-modal";
 import { ReportDialog } from "@/shared/components/ReportDialog";
+import { cn } from "@/shared/utils/utils";
 
 export interface UserProfile {
   name: string;
@@ -54,6 +55,7 @@ export interface UserProfile {
   posts: { id: number | string; image_url: string }[];
   isFollowing?: boolean;
   isOwnProfile?: boolean;
+  hasActiveReport?: boolean;
   location: string;
   religion: string;
   smoking: string;
@@ -73,6 +75,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
 
   const [isFollowing, setIsFollowing] = React.useState(
     profile.isFollowing || false,
+  );
+  const [hasReported, setHasReported] = React.useState(
+    profile.hasActiveReport || false,
   );
   const [isLoading, setIsLoading] = React.useState(false);
   const [followersCount, setFollowersCount] = React.useState(profile.followers);
@@ -146,8 +151,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
       profile.isFollowing,
     );
     setIsFollowing(profile.isFollowing || false);
+    setHasReported(profile.hasActiveReport || false);
     setFollowersCount(profile.followers);
-  }, [profile.isFollowing, profile.followers]);
+  }, [profile.isFollowing, profile.followers, profile.hasActiveReport]);
 
   const handleFollowToggle = async () => {
     if (!profile.userId || profile.isOwnProfile) return;
@@ -548,19 +554,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <Button
                         size={"sm"}
                         onClick={() => setIsReportDialogOpen(true)}
-                        className="text-destructive hover:text-destructive bg-secondary font-semibold rounded-lg sm:px-6 px-4 py-1 text-xs shadow-none focus:ring-0 focus:outline-none"
-                        aria-label="Report user"
+                        className={cn(
+                          "font-semibold rounded-lg sm:px-6 px-4 py-1 text-xs shadow-none focus:ring-0 focus:outline-none",
+                          hasReported 
+                            ? "bg-secondary text-foreground cursor-not-allowed pointer-events-none" 
+                            : "text-destructive hover:text-destructive bg-secondary"
+                        )}
+                        aria-label={hasReported ? "User reported" : "Report user"}
                         tabIndex={0}
                       >
-                        <span className="">Report</span>
+                        <span className="">{hasReported ? "Reported" : "Report"}</span>
                       </Button>
-                      <ReportDialog
-                        open={isReportDialogOpen}
-                        onOpenChange={setIsReportDialogOpen}
-                        targetType="user"
-                        targetId={profile.userId || ""}
-                        targetName={profile.name}
-                      />
                     </>
                   )}
                 </div>
@@ -1002,19 +1006,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <Button
                         size={"sm"}
                         onClick={() => setIsReportDialogOpen(true)}
-                        className="text-destructive hover:text-destructive bg-secondary font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none"
-                        aria-label="Report user"
+                        className={cn(
+                          "font-semibold rounded-lg px-6 py-1 text-sm shadow-none focus:ring-0 focus:outline-none",
+                          hasReported 
+                            ? "bg-secondary text-foreground cursor-not-allowed pointer-events-none" 
+                            : "text-destructive hover:text-destructive bg-secondary"
+                        )}
+                        aria-label={hasReported ? "User reported" : "Report user"}
                         tabIndex={0}
                       >
-                        Report
+                        {hasReported ? "Reported" : "Report"}
                       </Button>
-                      <ReportDialog
-                        open={isReportDialogOpen}
-                        onOpenChange={setIsReportDialogOpen}
-                        targetType="user"
-                        targetId={profile.userId || ""}
-                        targetName={profile.name}
-                      />
                     </>
                   )}
                 </div>
@@ -1277,6 +1279,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
         onClose={handleCloseCreatePostModal}
         onCreate={handleCreatePost}
       /> */}
+      <ReportDialog
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        targetType="user"
+        targetId={profile.userId || ""}
+        targetName={profile.name}
+        onSuccess={() => setHasReported(true)}
+      />
     </>
   );
 };

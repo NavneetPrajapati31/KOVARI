@@ -35,7 +35,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   return (
     <>
       <div className="space-y-1 mb-6">
-        <h1 className="text-md font-bold text-foreground">Basic Information</h1>
+        <h1 className="text-md font-bold text-foreground">Group Information</h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
           Update your group&apos;s name, description, and cover image.
         </p>
@@ -160,7 +160,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 Saving...
               </>
             ) : (
-              "Save Basic Info"
+              "Save Group Info"
             )}
           </Button>
         </CardContent>
