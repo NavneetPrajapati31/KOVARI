@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
-  const lastUpdated = "February 27, 2026";
+  const lastUpdated = "March 3, 2026";
 
   return (
     <>
@@ -31,7 +31,10 @@ export default function PrivacyPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Introduction</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  KOVARI (“we”, “us”, or “our”) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
+                  KOVARI ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
+                </p>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
+                  By using KOVARI, you consent to the collection and use of information as described in this Privacy Policy.
                 </p>
               </div>
             </section>
@@ -47,7 +50,6 @@ export default function PrivacyPage() {
                     <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Name and contact information (email address, phone number)</li>
                     <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Profile details and travel preferences</li>
                     <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Account credentials</li>
-                    <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Payment information</li>
                     <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Communications with us</li>
                   </ul>
                 </div>
@@ -60,7 +62,25 @@ export default function PrivacyPage() {
                     <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Usage data (pages visited, features used, time spent)</li>
                     <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Cookies and similar tracking technologies</li>
                   </ul>
+                  <p className="text-base md:text-lg text-muted-foreground mt-4 leading-relaxed">
+                    We may use third-party analytics and performance monitoring tools to understand usage patterns and improve functionality, reliability, and user experience. These tools may collect aggregated or anonymized usage data and operate in accordance with their respective privacy policies.
+                  </p>
                 </div>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">User-Generated Content</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
+                  KOVARI is a platform where users create profiles, share travel plans, and communicate with other users. When you use these features:
+                </p>
+                <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Content you post — including profile information, travel plans, photos, and messages — may be visible to other users based on your privacy settings</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Content is stored on our systems to enable core service functionality</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Certain content may be retained for a reasonable period after account deletion where required for legal compliance, dispute resolution, or ongoing safety investigations</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may process user-generated content to detect violations of our Terms of Service and maintain a safe community</li>
+                </ul>
               </div>
             </section>
 
@@ -70,7 +90,6 @@ export default function PrivacyPage() {
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">We use the information we collect to:</p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Provide, maintain, and improve our services</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Process transactions and send related information</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Send technical notices, updates, and support messages</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Respond to your comments and questions</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Monitor and analyze trends, usage, and activities</li>
@@ -93,13 +112,32 @@ export default function PrivacyPage() {
             </section>
 
             <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">User Interactions and Safety</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
+                  KOVARI includes a reporting and moderation system to keep the platform safe. In support of this:
+                </p>
+                <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may review user reports, flagged content, and related communications as part of our moderation process</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may investigate suspicious or potentially harmful activity on the platform</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may take action — including warnings, suspension, or account termination — where a violation of our Terms of Service is found</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Any review or monitoring activity is conducted strictly for safety, moderation, and legal compliance purposes</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI does not conduct criminal background checks on users unless explicitly stated in a specific feature or program</li>
+                </ul>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
+                  KOVARI acts solely as a platform that connects users with shared travel interests. We do not supervise or control offline interactions between users and are not responsible for the conduct of users outside the platform.
+                </p>
+              </div>
+            </section>
+
+            <section className="group">
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Data Security</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-4">
-                  We implement appropriate technical and organizational measures designed to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
+                  We implement reasonable technical and organizational safeguards designed to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
                 </p>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  However, please note that no method of transmission over the Internet, or method of electronic storage, is 100% secure. While we strive to use commercially acceptable means to protect your personal data, we cannot guarantee its absolute security and any transmission of personal information is at your own risk.
+                  However, no method of transmission over the Internet, and no method of electronic storage, is absolutely secure. While we work to protect your data, we cannot guarantee absolute security. By using KOVARI, you acknowledge and accept the inherent risks associated with transmitting information online.
                 </p>
               </div>
             </section>
@@ -108,19 +146,26 @@ export default function PrivacyPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Your Privacy Rights</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  Depending on your location and applicable global privacy laws (including GDPR and CCPA), you may have the following rights regarding your personal information:
+                  Depending on your location and applicable laws, you may have the following rights regarding your personal information:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-6">
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>The right to access and request a copy of the personal data we hold about you</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>The right to request that we correct or update any inaccurate or incomplete data</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>The right to request the deletion of your personal data ("right to be forgotten")</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>The right to request the deletion of your personal data</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>The right to object to or ask us to restrict the processing of your data</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>The right to data portability, allowing you to receive a copy of your personal data in a structured, machine-readable format</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>The right to withdraw your consent at any time, where processing is based on consent</li>
                 </ul>
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-8">
                   To exercise these rights, please contact us at <a href="mailto:support@kovari.in" className="text-primary hover:text-primary/80 font-medium transition-colors border-b border-primary/20 hover:border-primary">support@kovari.in</a>. We may need to verify your identity before fulfilling your request.
                 </p>
+
+                <div className="mt-2">
+                  <h3 className="text-lg font-medium text-foreground mb-3">Account Deletion</h3>
+                  <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                    You may request the deletion of your KOVARI account and associated data at any time by contacting us at <a href="mailto:support@kovari.in" className="text-primary hover:text-primary/80 font-medium transition-colors border-b border-primary/20 hover:border-primary">support@kovari.in</a>. Upon verification of your identity, we will delete or irreversibly anonymize your personal data within a reasonable timeframe. Please note that certain data may be retained where required by law, to resolve disputes, or to protect the safety of other users.
+                  </p>
+                </div>
               </div>
             </section>
 
@@ -152,7 +197,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="group">
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Children’s Privacy</h2>
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Children's Privacy</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
                   Our services are not intended for children under 18 years of age. We do not knowingly collect personal information from children under 18.
@@ -164,7 +209,16 @@ export default function PrivacyPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Changes to This Policy</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the “Last updated” date.
+                  We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
+                </p>
+              </div>
+            </section>
+
+            <section className="group">
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Governing Law</h2>
+              <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                  This Privacy Policy is governed by applicable laws of India. Any disputes arising in connection with this policy shall be subject to the jurisdiction of courts in India.
                 </p>
               </div>
             </section>

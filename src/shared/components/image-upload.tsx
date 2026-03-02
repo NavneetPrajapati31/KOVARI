@@ -173,10 +173,10 @@ export function ImageUpload({
             <Button
               variant="outline"
               size="icon"
-              className="absolute top-3 right-3 h-8 w-8 rounded-full text-primary-foreground transition-opacity duration-200 focus:outline-none focus:ring-0 bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-lg border !border-border [transform:translateZ(0)] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              className="absolute top-3 right-3 h-8 w-8 rounded-full text-muted-foreground transition-opacity duration-200 focus:outline-none focus:ring-0 bg-secondary hover:bg-secondary hover:text-muted-foreground backdrop-blur-lg border !border-border [transform:translateZ(0)] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
               onClick={handleRemoveImage}
             >
-              <X className="h-4 w-4 text-primary-foreground" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </Button>
           </div>
         </div>
