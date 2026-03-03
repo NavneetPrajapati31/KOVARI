@@ -50,27 +50,28 @@ export default function DataDeletionPage() {
             <section className="group">
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">3. What Data Gets Deleted</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">Upon receiving and verifying a valid deletion request, we will permanently delete or anonymize:</p>
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">Upon receiving and verifying a valid deletion request, we will delete or irreversibly anonymize the following data from KOVARI&apos;s active systems:</p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Your user profile, verification documents, and personal identifiers (name, username, email, age)</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Your user profile and personal identifiers (name, username, email, age)</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Authentication credentials associated with your account</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>User generated content, travel preferences, itineraries, and match history</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>User-generated content, travel preferences, itineraries, and match history</li>
                 </ul>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">Where outright deletion is not technically feasible, data will be irreversibly anonymized so that it can no longer be associated with you. Content you previously shared with other users may remain visible to or independently retained by those users, and KOVARI is not responsible for content that has left our systems through normal platform use.</p>
               </div>
             </section>
 
             <section className="group">
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">4. Data We May Retain</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">We may retain certain localized data for a limited period, even after a deletion request, strictly for legitimate business or legal purposes, including:</p>
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">We may retain certain data for a limited period after a deletion request, strictly where required to comply with legal obligations, prevent fraud, enforce our Terms of Service, or protect community safety. This may include:</p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Anonymized analytics data that cannot identify you or your travels</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Anonymized analytics data that cannot identify you or your activity</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Information necessary to comply with legal, tax, or accounting obligations</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Data related to ongoing disputes, trust & safety investigations, or enforcement of our Terms of Service</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Minimal internal records (such as anonymized identifiers or fraud-prevention logs) necessary to detect abuse, prevent repeat violations, or enforce our Terms of Service.</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Message histories and interaction records that are relevant to active or potential safety investigations or dispute resolution proceedings</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Data related to ongoing disputes, trust &amp; safety investigations, or enforcement of our Terms of Service</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Minimal internal records (such as anonymized identifiers or fraud-prevention logs) necessary to detect abuse, prevent repeat violations, or enforce our Terms of Service</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Message histories and interaction records relevant to active or potential safety investigations or dispute resolution proceedings</li>
                 </ul>
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">Retained data will be limited to what is reasonably necessary and will not be used for marketing purposes.</p>
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">Retained data is limited to what is reasonably necessary for the specific purpose justifying its retention. Retained data will not be used for marketing or profiling purposes after account deletion.</p>
               </div>
             </section>
 
@@ -78,10 +79,10 @@ export default function DataDeletionPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">5. Third-Party Service Providers</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  We will cascade your deletion instructions to our trusted third-party service providers (e.g., identity verification partners, authentication providers, databases) to ensure your data is scrubbed from their active systems in accordance with their respective compliance policies.
+                  We will communicate your deletion request to our third-party service providers (e.g., authentication providers, cloud databases, and analytics services) and instruct them to remove your data from their active systems in accordance with their respective data retention and compliance policies. However, KOVARI cannot guarantee the deletion timelines of independent third-party systems, and some backup or archival systems operated by those providers may have delayed purge cycles beyond our direct control.
                 </p>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
-                  Please note that KOVARI cannot control or delete content that other users may have independently saved, copied, or shared outside of the platform. Deletion of your account removes your data from KOVARI&apos;s systems but does not extend to actions taken by third parties beyond our control.
+                  KOVARI cannot control or be responsible for content that other users have independently saved, copied, or shared outside of the platform. Deletion of your account removes your data from KOVARI&apos;s systems but does not extend to actions taken by third parties beyond our control.
                 </p>
               </div>
             </section>
@@ -90,7 +91,7 @@ export default function DataDeletionPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">6. Processing Time</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  We process data deletion requests as swiftly as possible. Account deletion initiated via the app settings is typically instantaneous. Requests submitted via email or subject to legal hold may take up to 30 days to fully propagate across all active systems and ledgers. Data stored in secure backup systems may persist temporarily beyond this period and will be purged in accordance with our standard backup retention cycles.
+                  We process data deletion requests as promptly as practicable. To protect against unauthorized deletion requests, we may require identity verification before processing your request. Account deletion initiated via the app settings is typically processed within a short period. Requests submitted via email, or those subject to a legal hold, may take up to 30 days to fully propagate across all active systems. Where applicable legal obligations or ongoing safety investigations apply, deletion may be delayed until those obligations are resolved. Data stored in secure backup systems may persist temporarily beyond this period but will be purged in accordance with our standard backup retention cycles.
                 </p>
               </div>
             </section>

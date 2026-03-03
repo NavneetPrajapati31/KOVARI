@@ -63,7 +63,7 @@ export default function PrivacyPage() {
                     <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Cookies and similar tracking technologies</li>
                   </ul>
                   <p className="text-base md:text-lg text-muted-foreground mt-4 leading-relaxed">
-                    We may use third-party analytics and performance monitoring tools to understand usage patterns and improve functionality, reliability, and user experience. These tools may collect aggregated or anonymized usage data and operate in accordance with their respective privacy policies.
+                    We may use third-party analytics and performance monitoring tools to improve platform functionality, reliability, and user experience, as well as for security monitoring and fraud prevention purposes. These tools may collect aggregated or anonymized usage data and operate in accordance with their respective privacy policies. We do not use these tools for intrusive tracking of individual user behaviour beyond what is necessary for these purposes.
                   </p>
                 </div>
               </div>
@@ -76,9 +76,9 @@ export default function PrivacyPage() {
                   KOVARI is a platform where users create profiles, share travel plans, and communicate with other users. When you use these features:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Content you post — including profile information, travel plans, photos, and messages — may be visible to other users based on your privacy settings</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Content you post — including profile information, travel plans, photos, and messages — may be visible to other users depending on your privacy settings</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Content is stored on our systems to enable core service functionality</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Certain content may be retained for a reasonable period after account deletion where required for legal compliance, dispute resolution, or ongoing safety investigations</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Deleted content may persist temporarily in secure backups or moderation logs before being fully purged, where required for legal compliance, dispute resolution, or ongoing safety investigations</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may process user-generated content to detect violations of our Terms of Service and maintain a safe community</li>
                 </ul>
               </div>
@@ -118,11 +118,12 @@ export default function PrivacyPage() {
                   KOVARI includes a reporting and moderation system to keep the platform safe. In support of this:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may review user reports, flagged content, and related communications as part of our moderation process</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may review user reports, flagged content, and related communications as part of our moderation process. This does not constitute active monitoring of all user activity or private communications</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI does not proactively monitor private communications except where necessary for moderation, legal compliance, or safety investigations</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may investigate suspicious or potentially harmful activity on the platform</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may take action — including warnings, suspension, or account termination — where a violation of our Terms of Service is found</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Any review or monitoring activity is conducted strictly for safety, moderation, and legal compliance purposes</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI does not conduct criminal background checks on users unless explicitly stated in a specific feature or program</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI does not verify user identities, does not conduct background checks, and does not guarantee the identity, background, or conduct of any user</li>
                 </ul>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
                   KOVARI acts solely as a platform that connects users with shared travel interests. We do not supervise or control offline interactions between users and are not responsible for the conduct of users outside the platform.
@@ -173,7 +174,7 @@ export default function PrivacyPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Data Retention</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  We retain personal information for as long as necessary to provide our services and fulfill the purposes described in this Privacy Policy, unless a longer retention period is required or permitted by law.
+                  We retain personal information for as long as necessary to provide our services and fulfill the purposes described in this Privacy Policy, unless a longer retention period is required or permitted by law. Retention periods may vary depending on account status, applicable legal obligations, or the existence of ongoing safety investigations. Some data may persist temporarily in secure backups before being fully purged, even after a deletion request is fulfilled.
                 </p>
               </div>
             </section>

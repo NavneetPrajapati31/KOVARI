@@ -21,7 +21,7 @@ export default function Features() {
     },
     {
       icon: Shield,
-      title: "Safe, Trusted Travel Circles",
+      title: "Safe, Trusted Groups",
       description:
         "Travel in small, verified groups designed for safety, comfort, and real human connection.",
     },

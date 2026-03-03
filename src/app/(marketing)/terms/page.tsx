@@ -45,7 +45,7 @@ export default function TermsPage() {
                 <div className="bg-muted/30 p-6 rounded-lg border border-border/40 mt-6 md:mt-8">
                   <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-primary/20 pb-1 mb-3 inline-block text-primary">Important Disclaimer</span>
                   <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                    KOVARI is not a travel agency, tour operator, or event organizer. We provide networking software to connect travelers — nothing more. We do not organize trips, manage accommodations or transport, handle payments between users, or guarantee the identity, accuracy, safety, or intentions of any user. KOVARI does not verify all information provided by users, and we do not guarantee the accuracy or completeness of any user profile. You are solely responsible for conducting your own due diligence before interacting with or meeting any other user. You use the platform and meet other users entirely at your own risk.
+                    KOVARI is not a travel agency, tour operator, or event organizer. We provide networking software to connect travelers — nothing more. We do not organize trips, manage accommodations or transport, or handle payments between users. KOVARI does not verify user identities, does not conduct background checks, and does not screen users in any way. We do not guarantee the identity, accuracy, safety, intentions, or conduct of any user, and we make no representation that any user profile is authentic, accurate, or complete. You are solely responsible for evaluating other users before interacting with or meeting them in person. All offline meetings, travel arrangements, and interactions with other users occur entirely at your own risk.
                   </p>
                 </div>
               </div>
@@ -55,7 +55,7 @@ export default function TermsPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">3. User Accounts & Eligibility</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  To access certain features of our platform, you must create an account. By using KOVARI, you represent that you are at least 18 years of age. You are responsible for:
+                  To access certain features of our platform, you must create an account. By using KOVARI, you represent that you are at least 18 years of age. KOVARI does not independently verify the accuracy of profile information submitted by users. You are responsible for:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Providing accurate, honest, and complete profile information</li>
@@ -135,11 +135,11 @@ export default function TermsPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">10. Assumption of Risk</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  By using KOVARI to connect with other users, you acknowledge and voluntarily accept all risks associated with those interactions, including any in-person meetings or travel activities that may result from using the platform.
+                  By using KOVARI to connect with other users, you acknowledge and voluntarily accept all risks associated with those interactions, including any in-person meetings or travel activities that may result from using the platform. KOVARI does not screen users, does not conduct background checks, and is not responsible for the conduct of any user, whether online or offline. You assume full responsibility for your interactions with other users.
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Travel and in-person meetings with strangers carry inherent risks, including physical, financial, and personal risks</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI is not responsible for any injuries, losses, damages, or adverse experiences arising from offline interactions or travel activities between users</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI is not responsible for any injuries, losses, damages, or adverse experiences arising from offline interactions or travel activities between users, regardless of how those interactions originated on the platform</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Users are strongly encouraged to exercise caution, use good judgment, and take appropriate safety precautions when meeting other users</li>
                 </ul>
               </div>
@@ -167,7 +167,7 @@ export default function TermsPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">13. User Disputes</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  Any disputes that arise between users — whether online or offline — are the sole responsibility of the users involved. KOVARI is not a party to such disputes and is not obligated to mediate, arbitrate, or resolve them. We may, at our sole discretion, take platform-level action (such as account suspension) in response to reported disputes, but we make no commitment to do so.
+                  Any disputes that arise between users — whether online or offline — are the sole responsibility of the users involved. KOVARI is not a party to such disputes and is not obligated to investigate, mediate, arbitrate, or resolve them. We may, at our sole discretion, take platform-level action (such as account suspension) in response to reported disputes, but we make no commitment to do so and do not guarantee any specific outcome.
                 </p>
               </div>
             </section>

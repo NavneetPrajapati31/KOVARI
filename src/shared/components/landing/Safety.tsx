@@ -9,15 +9,15 @@ export default function Safety() {
   const trustItems = [
     {
       icon: UserCheck,
-      title: "Verified Profiles",
+      title: "Transparent Profiles",
       description:
-        "Profiles are verified to reduce fake accounts and ensure real, trustworthy connections.",
+        "See shared interests, travel styles, and trip details before connecting — so you can make informed decisions.",
     },
     {
       icon: Users,
-      title: "Small, Curated Groups",
+      title: "Small, Intentional Groups",
       description:
-        "Travel in thoughtfully sized circles — never crowds — designed for comfort and safety.",
+        "Travel in smaller groups designed for better coordination, comfort, and meaningful connection.",
     },
     {
       icon: ShieldCheck,
@@ -80,7 +80,7 @@ export default function Safety() {
 
           {/* Subheading */}
           <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto px-4">
-            Built with safety, privacy, and trust at the core — so you can focus
+            Built with privacy, clarity, and thoughtful design at the core — so you can focus
             on the journey.
           </p>
         </motion.div>
