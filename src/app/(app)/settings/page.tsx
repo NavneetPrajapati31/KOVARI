@@ -10,6 +10,7 @@ import {
   AccountSection,
   SecuritySection,
   DangerZoneSection,
+  LegalSection,
 } from "@/shared/components/settings";
 
 export default function SettingsPage() {
@@ -24,6 +25,7 @@ export default function SettingsPage() {
     if (activeTab === "email") return <AccountSection />;
     if (activeTab === "password") return <SecuritySection />;
     if (activeTab === "delete") return <DangerZoneSection />;
+    if (activeTab === "legal") return <LegalSection />;
     return <AccountSection />;
   };
 
@@ -55,6 +57,7 @@ export default function SettingsPage() {
               <AccountSection />
               <SecuritySection />
               <DangerZoneSection />
+              <LegalSection />
             </div>
           ) : (
             <div className="space-y-6">{renderContent()}</div>

@@ -1,0 +1,157 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import {
+  TERMS_VERSION,
+  PRIVACY_VERSION,
+  GUIDELINES_VERSION,
+} from "@/lib/policy-versions";
+import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+
+interface PolicyData {
+  terms_version?: string | null;
+  privacy_version?: string | null;
+  guidelines_version?: string | null;
+}
+
+// Routes where the PolicyGate should never appear
+const EXEMPT_PATHS = [
+  "/onboarding",
+  "/banned",
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/verify-email",
+  "/sso-callback",
+];
+
+export function PolicyGate({ children }: { children: React.ReactNode }) {
+  const { isSignedIn, isLoaded } = useUser();
+  const pathname = usePathname();
+  const [checked, setChecked] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [needsAcceptance, setNeedsAcceptance] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setLoading(false);
+      return;
+    }
+    const check = async () => {
+      try {
+        const res = await fetch("/api/settings/accept-policies");
+        if (!res.ok) { setLoading(false); return; }
+        const data: PolicyData = await res.json();
+        const outdated =
+          data.terms_version !== TERMS_VERSION ||
+          data.privacy_version !== PRIVACY_VERSION ||
+          data.guidelines_version !== GUIDELINES_VERSION;
+        setNeedsAcceptance(outdated);
+      } catch {
+        // fail open — don't block on network errors
+      } finally {
+        setLoading(false);
+      }
+    };
+    check();
+  }, [isLoaded, isSignedIn]);
+
+  const handleAccept = async () => {
+    if (!checked || submitting) return;
+    setSubmitting(true);
+    try {
+      await fetch("/api/settings/accept-policies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          termsVersion: TERMS_VERSION,
+          privacyVersion: PRIVACY_VERSION,
+          guidelinesVersion: GUIDELINES_VERSION,
+        }),
+      });
+      setNeedsAcceptance(false);
+    } catch {
+      // fail open
+      setNeedsAcceptance(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // While checking, or not signed in, or no re-acceptance needed — render normally
+  // Also skip the gate on exempt routes (onboarding, auth pages, etc.)
+  const isExempt = EXEMPT_PATHS.some((p) => pathname?.startsWith(p));
+
+  if (loading || !isSignedIn || !needsAcceptance || isExempt) {
+    return <>{children}</>;
+  }
+
+  return (
+    <>
+      {/* Render children normally — no wrapper that breaks flex layout */}
+      {children}
+
+      {/* Full-screen overlay — backdrop-blur-sm blurs everything behind it */}
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-md p-4">
+        <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-lg p-6 flex flex-col gap-5">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-base font-semibold text-foreground">
+              We&apos;ve updated our policies
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Please review and accept the updated terms to continue using KOVARI.
+            </p>
+          </div>
+
+          <ul className="flex flex-col gap-1.5">
+            {[
+              { label: "Terms of Service", href: "/terms" },
+              { label: "Privacy Policy", href: "/privacy" },
+              { label: "Community Guidelines", href: "/community-guidelines" },
+            ].map(({ label, href }) => (
+              <li key={href}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline underline-offset-2"
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <Checkbox
+              id="policy-gate-checkbox"
+              checked={checked}
+              onCheckedChange={(v) => setChecked(!!v)}
+              className="mt-0.5 flex-shrink-0"
+            />
+            <span className="text-sm text-muted-foreground leading-snug">
+              I agree to the updated{" "}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Terms of Service</a>
+              ,{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Privacy Policy</a>
+              , and{" "}
+              <a href="/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Community Guidelines</a>.
+            </span>
+          </label>
+
+          <Button
+            disabled={!checked || submitting}
+            onClick={handleAccept}
+            className="w-full rounded-full"
+          >
+            {submitting ? "Saving…" : "Continue"}
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}

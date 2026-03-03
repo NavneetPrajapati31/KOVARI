@@ -176,7 +176,7 @@ export default function SafetyPage() {
               <section className="px-4 pt-10 pb-2 flex flex-col items-center text-center">
                 <ShieldCheck className="w-10 h-10 text-primary mb-3" strokeWidth={1.5} />
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3">
-                  Safety & Trust
+                  Safety &amp; Trust
                 </h1>
                 <p className="text-sm text-muted-foreground max-w-xs md:max-w-md mx-auto leading-relaxed">
                   Reports are manually reviewed to ensure a respectful and secure environment.
@@ -277,6 +277,14 @@ export default function SafetyPage() {
                   </div>
                 </div>
               ))}
+             </div>
+             <div className="px-6 py-3 border-t border-border/40 bg-card">
+               <p className="text-sm text-muted-foreground leading-relaxed">
+                 Reporting and enforcement are governed by our{" "}
+                 <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Terms of Service</a>
+                 {" "}and{" "}
+                 <a href="/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Community Guidelines</a>.
+               </p>
              </div>
            </div>
         </section>

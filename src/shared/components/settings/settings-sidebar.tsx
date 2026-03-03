@@ -1,12 +1,13 @@
 "use client";
 
 import React, { KeyboardEvent, useCallback, useRef } from "react";
-import { Mail, KeyRound, Trash2 } from "lucide-react";
+import { Mail, KeyRound, Trash2, FileText } from "lucide-react";
 
 const TABS = [
   { key: "email", label: "Email", icon: Mail },
   { key: "password", label: "Password", icon: KeyRound },
   { key: "delete", label: "Delete Account", icon: Trash2 },
+  { key: "legal", label: "Legal", icon: FileText },
 ] as const;
 
 interface SettingsSidebarProps {

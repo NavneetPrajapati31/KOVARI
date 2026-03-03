@@ -7,6 +7,11 @@ import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
+  TERMS_VERSION,
+  PRIVACY_VERSION,
+  GUIDELINES_VERSION,
+} from "@/lib/policy-versions";
+import {
   UserRound,
   Building2,
   Earth,
@@ -300,7 +305,8 @@ export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 7;
+  const [policyAccepted, setPolicyAccepted] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
@@ -623,6 +629,16 @@ export default function ProfileSetupForm() {
       );
       if (!valid) return;
       setStep2Data(step2Form.getValues());
+      // Advance to policy acceptance step instead of submitting directly
+      setStep(7);
+      return;
+    }
+    if (step === 7) {
+      if (!policyAccepted) {
+        toast.error("Please accept the policies to continue");
+        return;
+      }
+      setStep2Data(step2Form.getValues());
       const defaultTravelData: Step3Data = {
         destinations: "",
         tripFocus: [],
@@ -864,6 +880,22 @@ export default function ProfileSetupForm() {
       }
 
       toast.success("Profile saved successfully!");
+
+      // Record policy acceptance
+      try {
+        await fetch("/api/settings/accept-policies", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            termsVersion: TERMS_VERSION,
+            privacyVersion: PRIVACY_VERSION,
+            guidelinesVersion: GUIDELINES_VERSION,
+          }),
+        });
+      } catch {
+        // non-fatal — PolicyGate will prompt on next login if needed
+      }
+
       setStep(8);
     } catch (error: any) {
       console.error("Error saving profile:", error);
@@ -890,7 +922,7 @@ export default function ProfileSetupForm() {
           </span>
         </div>
         <div className="flex space-x-1">
-          {[1, 2, 3, 4, 5, 6].map((stepNum) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((stepNum) => (
             <div key={stepNum} className="flex-1">
               <div
                 className={`h-1.5 rounded-full ${
@@ -2059,6 +2091,84 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
+  // Render step 7 - Policy Acceptance
+  const renderStep7 = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-2">
+        <h1 className="text-lg font-bold text-foreground mb-1">
+          Almost there!
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Please read and accept our policies to complete your profile.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-border overflow-hidden">
+        {[
+          { label: "Terms of Service", href: "/terms" },
+          { label: "Privacy Policy", href: "/privacy" },
+          { label: "Community Guidelines", href: "/community-guidelines" },
+        ].map(({ label, href }) => (
+          <a
+            key={href}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors border-b border-border last:border-b-0"
+          >
+            {label}
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </a>
+        ))}
+      </div>
+
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          id="onboarding-policy-checkbox"
+          checked={policyAccepted}
+          onChange={(e) => setPolicyAccepted(e.target.checked)}
+          className="mt-0.5 flex-shrink-0 accent-primary w-4 h-4 rounded"
+        />
+        <span className="text-sm text-muted-foreground leading-snug">
+          I agree to the{" "}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Terms of Service</a>
+          {" "}and{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Privacy Policy</a>
+          {" "}and acknowledge the{" "}
+          <a href="/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Community Guidelines</a>.
+        </span>
+      </label>
+
+      <div className="flex space-x-2 pt-1">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={goBack}
+          className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Back
+        </Button>
+        <Button
+          type="button"
+          disabled={!policyAccepted || isSubmitting}
+          onClick={handleNext}
+          className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200 disabled:opacity-50"
+        >
+          {isSubmitting ? "Creating profile…" : "Complete Setup"}
+          {!isSubmitting && <ChevronRight className="h-3.5 w-3.5" />}
+        </Button>
+      </div>
+    </motion.div>
+  );
+
   // Render step 4 - Success
   const renderStep4 = () => (
     <motion.div
@@ -2127,6 +2237,7 @@ export default function ProfileSetupForm() {
             {step === 4 && <div key="step4">{renderLocation()}</div>}
             {step === 5 && <div key="step5">{renderLanguages()}</div>}
             {step === 6 && <div key="step6">{renderLifestyle()}</div>}
+            {step === 7 && <div key="step7">{renderStep7()}</div>}
             {step === 8 && <div key="step8">{renderStep4()}</div>}
           </AnimatePresence>
         </CardContent>
