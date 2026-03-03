@@ -11,13 +11,7 @@ export default function Safety() {
       icon: UserCheck,
       title: "Transparent Profiles",
       description:
-        "See shared interests, travel styles, and trip details before connecting — so you can make informed decisions.",
-    },
-    {
-      icon: Users,
-      title: "Small, Intentional Groups",
-      description:
-        "Travel in smaller groups designed for better coordination, comfort, and meaningful connection.",
+        "See interests and travel styles upfront. Make confident, informed decisions before connecting",
     },
     {
       icon: ShieldCheck,
@@ -87,7 +81,7 @@ export default function Safety() {
 
         <div className="max-w-8xl mx-auto">
           <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"

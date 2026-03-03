@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@heroui/react";
-import { Sparkles, Calendar, Shield } from "lucide-react";
+import { Sparkles, Calendar, Shield, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Features() {
@@ -20,10 +20,10 @@ export default function Features() {
         "Collaborate on itineraries, ideas, and plans in one shared space — everyone stays on the same page.",
     },
     {
-      icon: Shield,
-      title: "Safe, Trusted Groups",
+      icon: Users,
+      title: "Small, Intentional Groups",
       description:
-        "Travel in small, verified groups designed for safety, comfort, and real human connection.",
+        "Travel in smaller groups designed for better coordination, comfort, and meaningful connection.",
     },
   ];
 
