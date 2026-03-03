@@ -103,7 +103,7 @@ export default function Safety() {
                   className="group relative rounded-3xl bg-card p-6 sm:p-8 flex flex-col h-full border border-foreground/[0.04] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.06)] hover:border-foreground/[0.08] hover:-translate-y-1 transition-all duration-300 ease-out"
                 >
                   {/* Icon container */}
-                  <div className="mb-4 sm:mb-6 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 text-primary group-hover:scale-110 transition-transform duration-300">
+                  <div className="mb-4 sm:mb-6 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 text-primary transition-transform duration-300">
                     <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
 

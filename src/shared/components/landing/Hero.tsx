@@ -18,7 +18,7 @@ const HERO_SUBTITLE_GRADIENT =
   "bg-gradient-to-b from-primary from-50% to-transparent to-100% bg-clip-text text-transparent";
 
 const HERO_DESCRIPTION =
-  "KOVARI helps solo travelers, friends, and small groups match, plan trips together, and explore destinations safely — without chaos or guesswork.";
+  "KOVARI helps solo travelers and small groups match, plan trips together, and explore destinations safely — without chaos or guesswork.";
 
 const HERO_SECTION_CLASSES =
   "z-20 flex flex-col items-center gap-[28px] sm:gap-6 sm:justify-center";
