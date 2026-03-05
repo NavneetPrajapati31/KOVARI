@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import XIcon from "@mui/icons-material/X";
@@ -13,9 +14,16 @@ export default function Footer() {
         <div className="flex justify-between items-center gap-4 sm:gap-0">
           {/* Left: Brand */}
           <div className="flex flex-col items-start">
-            <h3 className="text-lg sm:text-xl font-clash tracking-widest font-medium">
-              KOVARI
-            </h3>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logo.webp"
+                alt="KOVARI"
+                width={400}
+                height={160}
+                className="h-5 w-auto object-contain block"
+                priority
+              />
+            </Link>
           </div>
 
           {/* Right: Socials */}

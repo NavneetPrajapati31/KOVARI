@@ -20,6 +20,7 @@ import {
   DropdownMenuItem,
 } from "@/shared/components/ui/dropdown-menu";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/shared/components/ui/button";
@@ -274,16 +275,20 @@ export default function App({
         )} */}
 
         {/* Logo */}
-        <NavbarBrand>
+        <NavbarBrand className="flex items-center">
           <Link
             href="/"
-            className="text-foreground !opacity-100"
+            className="!opacity-100 flex items-center"
             onClick={() => handleNavigation("/")}
           >
-            {/* <AcmeLogo /> */}
-            <p className="font-clash tracking-widest font-medium sm:text-xl text-lg">
-              KOVARI
-            </p>
+            <Image
+              src="/logo.webp"
+              alt="KOVARI"
+              width={400}
+              height={160}
+              className="h-5 sm:h-6 w-auto object-contain block sm:-translate-y-1"
+              priority
+            />
           </Link>
         </NavbarBrand>
 
