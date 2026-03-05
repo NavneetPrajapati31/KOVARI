@@ -10,7 +10,7 @@ import XIcon from "@mui/icons-material/X";
 export default function Footer() {
   return (
     <footer className="w-full bg-background">
-      <div className="container mx-auto px-8 sm:px-8 md:px-8 py-8 sm:py-12">
+      <div className="container mx-auto px-6 sm:px-8 md:px-8 py-8 sm:py-12">
         <div className="flex justify-between items-center gap-4 sm:gap-0">
           {/* Left: Brand */}
           <div className="flex flex-col items-start">

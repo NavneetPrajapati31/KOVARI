@@ -247,7 +247,7 @@ export default function App({
         onMenuOpenChange={setIsMenuOpen}
         className="backdrop-blur-3xl border-border"
         classNames={{
-          wrapper: "max-w-full px-8 sm:px-12",
+          wrapper: "max-w-full px-6 sm:px-12",
         }}
       >
         {/* Navigation Links - hidden during waitlist launch for public users */}
