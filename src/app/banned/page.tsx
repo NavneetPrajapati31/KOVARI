@@ -1,10 +1,12 @@
-import { SignOutButton } from "@clerk/nextjs";
+import { BannedActionButtons } from "./components/BannedActionButtons";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { format } from "date-fns";
-
+import { Mail } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 export default async function BannedPage() {
   const { userId } = await auth();
 
@@ -84,41 +86,71 @@ export default async function BannedPage() {
     : "Your account is permanently banned due to a violation of our terms of service.";
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
-      <div className="w-full max-w-md space-y-4 rounded-3xl border bg-card p-6 shadow-sm sm:p-8">
-        <h1 className="text-lg font-bold tracking-tight sm:text-xl text-destructive">
-          {title}
-        </h1>
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground sm:text-base">
-            {message} If you believe this is a mistake, please contact support.
-          </p>
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background px-4 py-12 selection:bg-primary/20">
+      {/* Background gradients for a premium feel */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/5 opacity-50 blur-[100px]"></div>
+      </div>
 
-          {banDetails.expiresAt && (
-            <div className="rounded-lg bg-muted/50 p-4 text-left text-sm space-y-2">
-              {/* {banDetails.reason && (
-                <div>
-                  <span className="font-semibold block text-foreground">Reason:</span>
-                  <span className="text-muted-foreground">{banDetails.reason}</span>
-                </div>
-              )} */}
-              <div>
-                <span className="font-semibold block text-foreground">
-                  Suspension ends
+      <div className="relative z-10 w-full max-w-lg">
+        {/* Branding header */}
+        <div className="flex justify-center pb-8">
+          <Image
+            src="/logo.webp"
+            alt="Kovari"
+            width={400}
+            height={160}
+            className="h-5 w-auto object-contain block"
+            priority
+          />
+        </div>
+
+        {/* The Card */}
+        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-none">
+          <div className="px-5 py-5 sm:py-7 sm:px-7">
+            
+            {/* Text Content - Minimalist & Typography focused */}
+            <div className="text-center space-y-4">
+              {/* <div className="inline-flex items-center gap-2 rounded-full border border-destructive/20 bg-destructive/5 px-3 py-1 mb-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
                 </span>
-                <span className="text-muted-foreground">
-                  {format(new Date(banDetails.expiresAt), "PPP p")}
+                <span className="text-xs font-medium uppercase tracking-wider text-destructive">
+                  Access Restricted
                 </span>
               </div>
+               */}
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                {title}
+              </h1>
+              
+              <p className="text-[15px] leading-relaxed text-muted-foreground mx-auto max-w-[340px] pt-1 pt-2">
+                {message}
+              </p>
             </div>
-          )}
-        </div>
-        <div className="pt-4">
-          <SignOutButton redirectUrl="/sign-in">
-            <Button variant="secondary" className="w-full sm:w-auto">
-              Sign Out
-            </Button>
-          </SignOutButton>
+
+            {/* Expiration Box (for suspensions) */}
+            {banDetails.expiresAt && (
+              <div className="mt-8 rounded-2xl border border-border/50 bg-muted/30 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Suspension active until</span>
+                  <span className="text-sm text-muted-foreground font-mono">
+                    {format(new Date(banDetails.expiresAt), "MMM d, yyyy")}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <BannedActionButtons />
+          </div>
+          
+          {/* Footer of card */}
+          <div className="border-t border-border/40 bg-muted/20 px-6 py-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              Review our <Link href="/community-guidelines" className="underline underline-offset-2 hover:text-foreground">Community Guidelines</Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
