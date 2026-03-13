@@ -49,6 +49,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { Avatar } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
 import { Switch } from "@/shared/components/ui/switch";
+import Image from "next/image";
 
 // Section 1: Main Navigation
 const mainItems = [
@@ -230,21 +231,14 @@ export function AppSidebar() {
             className="relative flex items-center justify-start"
             style={{ width: 140 }}
           >
-            {/* <AcmeLogo /> */}
-            <span
-              className={`font-clash font-bold text-md
-                  transition-all duration-300 origin-left overflow-hidden
-                  
-                  ${
-                    state === "collapsed"
-                      ? "max-w-0 opacity-0 scale-x-0"
-                      : "max-w-[100px] opacity-100 scale-x-100 pl-2"
-                  }
-                `}
-              style={{ minWidth: 0 }}
-            >
-              Kovari
-            </span>
+            <Image  
+              src="/logo.webp"
+              alt="Kovari"
+              width={400}
+              height={160}
+              className="h-4 px-2 group-data-[state=collapsed]:px-0 w-auto object-contain block"
+              priority
+                          />
           </div>
           <SidebarToggle />
         </div>
