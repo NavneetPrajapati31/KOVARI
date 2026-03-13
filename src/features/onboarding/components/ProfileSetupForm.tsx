@@ -883,7 +883,8 @@ export default function ProfileSetupForm() {
 
       // Record policy acceptance
       try {
-        await fetch("/api/settings/accept-policies", {
+        console.log("Submitting policy acceptance with:", { TERMS_VERSION, PRIVACY_VERSION, GUIDELINES_VERSION });
+        const policyRes = await fetch("/api/settings/accept-policies", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -892,8 +893,13 @@ export default function ProfileSetupForm() {
             guidelinesVersion: GUIDELINES_VERSION,
           }),
         });
-      } catch {
-        // non-fatal — PolicyGate will prompt on next login if needed
+        const policyText = await policyRes.text();
+        console.log("Policy acceptance response status:", policyRes.status, "body:", policyText);
+        if (!policyRes.ok) {
+          console.error("Failed to record policy acceptance:", policyText);
+        }
+      } catch (err) {
+        console.error("Error calling accept-policies API:", err);
       }
 
       setStep(8);

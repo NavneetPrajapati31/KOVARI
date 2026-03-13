@@ -43,7 +43,7 @@ export function PolicyGate({ children }: { children: React.ReactNode }) {
     }
     const check = async () => {
       try {
-        const res = await fetch("/api/settings/accept-policies");
+        const res = await fetch("/api/settings/accept-policies", { cache: "no-store", headers: { 'Cache-Control': 'no-cache' } });
         if (!res.ok) { setLoading(false); return; }
         const data: PolicyData = await res.json();
         const outdated =
