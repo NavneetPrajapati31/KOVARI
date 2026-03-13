@@ -10,6 +10,7 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@heroui/react";
+import Image from "next/image";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -107,30 +108,31 @@ export default function AuthForm({ mode }: AuthFormProps) {
   };
 
   return (
-    <div className="w-full px-5 mx-auto max-w-md space-y-4 py-5 sm:py-7 sm:px-7 sm:max-w-md md:max-w-lg lg:max-w-xl custom-autofill border-1 border-border rounded-lg bg-card shadow-none">
-      {/* Logo */}
-      {/* <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-          <div className="w-6 h-6 text-white">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" />
-            </svg>
-          </div>
-        </div>
-        <span className="text-lg font-semibold text-black"> Kovari</span>
-      </div> */}
-
-      {/* Header */}
-      <div className="space-y-0.5">
-        <h1 className="text-md sm:text-lg font-bold text-foreground">
-          {isSignUp ? "Join Kovari" : "Welcome back to Kovari"}
-        </h1>
-        <p className="text-sm sm:text-md text-muted-foreground">
-          {isSignUp
-            ? "Create your account to get started"
-            : "Log in back to your account"}
-        </p>
+    <div className="w-full mx-auto max-w-md md:max-w-lg lg:max-w-xl flex flex-col">
+      {/* Logo container perfectly aligned with the card's padding */}
+      <div className="px-5 sm:px-7 pb-6 flex justify-center">
+        <Image
+          src="/logo.webp"
+          alt="Kovari"
+          width={400}
+          height={160}
+          className="h-5 w-auto object-contain block"
+          priority
+        />
       </div>
+
+      <div className="w-full px-5 space-y-4 py-6 sm:py-8 sm:px-7 custom-autofill border-1 border-border rounded-2xl bg-card shadow-sm">
+        {/* Header */}
+        <div className="space-y-1">
+          <h1 className="text-md sm:text-lg font-bold text-foreground">
+            {isSignUp ? "Join Kovari" : "Welcome back"}
+          </h1>
+          <p className="text-sm sm:text-md text-muted-foreground">
+            {isSignUp
+              ? "Create your account to get started"
+              : "Log in back to your account"}
+          </p>
+        </div>
 
       {/* Error Message */}
       {error && (
@@ -336,6 +338,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           {isSignUp ? "Log in" : "Create one for free"}
         </button>
       </div>
+    </div>
     </div>
   );
 }
