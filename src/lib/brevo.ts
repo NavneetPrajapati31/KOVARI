@@ -99,7 +99,7 @@ export const sendPasswordResetEmail = async ({
       const systemEmailConfig = getEmailConfig("system");
       span.setAttribute("sender", systemEmailConfig.email);
 
-      const subject = "Reset your KOVARI password";
+      const subject = "Reset your Kovari password";
       const html = passwordResetEmail({ resetLink });
 
       const sendSmtpEmail = {
@@ -167,7 +167,7 @@ export const sendGroupInviteEmail = async ({
       const systemEmailConfig = getEmailConfig("system");
       span.setAttribute("sender", systemEmailConfig.email);
 
-      const subject = `You're invited to join ${groupName} on KOVARI`;
+      const subject = `You're invited to join ${groupName} on Kovari`;
       const html = groupInviteEmail({
         groupName,
         inviteLink,

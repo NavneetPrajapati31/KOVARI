@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-This guide will help you set up and test the solo matching functionality with real data in your KOVARI application.
+This guide will help you set up and test the solo matching functionality with real data in your Kovari application.
 
 ## 📋 Prerequisites
 

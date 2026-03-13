@@ -2,7 +2,7 @@
 -- SOLO MATCHING TEST DATA INSERTION SCRIPT (FINAL WORKING VERSION)
 -- =====================================================
 -- This script inserts comprehensive test data for solo matching functionality
--- Based on the KOVARI application schema
+-- Based on the Kovari application schema
 -- FINAL: Properly handles the handle_new_user() trigger function issue
 
 -- =====================================================

@@ -82,7 +82,7 @@ export function LegalSection() {
           Legal &amp; Policies
         </h1>
         <p className="md:text-sm text-xs text-muted-foreground">
-          Review KOVARI&apos;s policies and your acceptance history.
+          Review Kovari&apos;s policies and your acceptance history.
         </p>
       </div>
 

@@ -86,7 +86,7 @@ export default function AuthForm() {
       {/* Header */}
       <div className="space-y-0.5">
         <h1 className="text-xl font-bold text-foreground">
-          Welcome back to KOVARI Admin
+          Welcome back to Kovari Admin
         </h1>
         <p className="text-muted-foreground">Log in to your admin account</p>
       </div>

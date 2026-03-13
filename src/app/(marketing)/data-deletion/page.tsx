@@ -4,7 +4,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Data Deletion Policy",
-  description: "Learn how to securely delete your account and personal data from KOVARI, in alignment with applicable global data protection frameworks and privacy standards.",
+  description: "Learn how to securely delete your account and personal data from Kovari, in alignment with applicable global data protection frameworks and privacy standards.",
 };
 
 export default function DataDeletionPage() {
@@ -31,7 +31,7 @@ export default function DataDeletionPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">1. Right to Erasure</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  KOVARI ("we", "us", "our") respects your privacy and your right to control your personal data. In alignment with applicable global data protection frameworks, you have the right to request the deletion or irreversible anonymization of your personal data, subject to applicable legal and safety retention requirements.
+                  Kovari ("we", "us", "our") respects your privacy and your right to control your personal data. In alignment with applicable global data protection frameworks, you have the right to request the deletion or irreversible anonymization of your personal data, subject to applicable legal and safety retention requirements.
                 </p>
               </div>
             </section>
@@ -39,10 +39,10 @@ export default function DataDeletionPage() {
             <section className="group">
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">2. How to Request Deletion</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">You can request the deletion of your KOVARI account and associated travel data through the following methods:</p>
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">You can request the deletion of your Kovari account and associated travel data through the following methods:</p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-6">
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Navigate to Settings {'>'} Account and select the "Delete Account" option.</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Send an email request from the email address associated with your KOVARI account to support@kovari.in with the subject line "Data Deletion Request".</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Send an email request from the email address associated with your Kovari account to support@kovari.in with the subject line "Data Deletion Request".</li>
                 </ul>
               </div>
             </section>
@@ -50,13 +50,13 @@ export default function DataDeletionPage() {
             <section className="group">
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">3. What Data Gets Deleted</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
-                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">Upon receiving and verifying a valid deletion request, we will delete or irreversibly anonymize the following data from KOVARI&apos;s active systems:</p>
+                <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">Upon receiving and verifying a valid deletion request, we will delete or irreversibly anonymize the following data from Kovari&apos;s active systems:</p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground mb-4">
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Your user profile and personal identifiers (name, username, email, age)</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Authentication credentials associated with your account</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>User-generated content, travel preferences, itineraries, and match history</li>
                 </ul>
-                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">Where outright deletion is not technically feasible, data will be irreversibly anonymized so that it can no longer be associated with you. Content you previously shared with other users may remain visible to or independently retained by those users, and KOVARI is not responsible for content that has left our systems through normal platform use.</p>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">Where outright deletion is not technically feasible, data will be irreversibly anonymized so that it can no longer be associated with you. Content you previously shared with other users may remain visible to or independently retained by those users, and Kovari is not responsible for content that has left our systems through normal platform use.</p>
               </div>
             </section>
 
@@ -79,10 +79,10 @@ export default function DataDeletionPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">5. Third-Party Service Providers</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  We will communicate your deletion request to our third-party service providers (e.g., authentication providers, cloud databases, and analytics services) and instruct them to remove your data from their active systems in accordance with their respective data retention and compliance policies. However, KOVARI cannot guarantee the deletion timelines of independent third-party systems, and some backup or archival systems operated by those providers may have delayed purge cycles beyond our direct control.
+                  We will communicate your deletion request to our third-party service providers (e.g., authentication providers, cloud databases, and analytics services) and instruct them to remove your data from their active systems in accordance with their respective data retention and compliance policies. However, Kovari cannot guarantee the deletion timelines of independent third-party systems, and some backup or archival systems operated by those providers may have delayed purge cycles beyond our direct control.
                 </p>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
-                  KOVARI cannot control or be responsible for content that other users have independently saved, copied, or shared outside of the platform. Deletion of your account removes your data from KOVARI&apos;s systems but does not extend to actions taken by third parties beyond our control.
+                  Kovari cannot control or be responsible for content that other users have independently saved, copied, or shared outside of the platform. Deletion of your account removes your data from Kovari&apos;s systems but does not extend to actions taken by third parties beyond our control.
                 </p>
               </div>
             </section>

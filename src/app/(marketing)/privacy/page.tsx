@@ -4,7 +4,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Learn how KOVARI protects your personal data and privacy. We prioritize your security as you connect with travel groups and plan your global adventures.",
+  description: "Learn how Kovari protects your personal data and privacy. We prioritize your security as you connect with travel groups and plan your global adventures.",
 };
 
 export default function PrivacyPage() {
@@ -31,10 +31,10 @@ export default function PrivacyPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Introduction</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  KOVARI ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
+                  Kovari ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
                 </p>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
-                  By using KOVARI, you consent to the collection and use of information as described in this Privacy Policy.
+                  By using Kovari, you consent to the collection and use of information as described in this Privacy Policy.
                 </p>
               </div>
             </section>
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">User-Generated Content</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  KOVARI is a platform where users create profiles, share travel plans, and communicate with other users. When you use these features:
+                  Kovari is a platform where users create profiles, share travel plans, and communicate with other users. When you use these features:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Content you post — including profile information, travel plans, photos, and messages — may be visible to other users depending on your privacy settings</li>
@@ -115,18 +115,18 @@ export default function PrivacyPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">User Interactions and Safety</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  KOVARI includes a reporting and moderation system to keep the platform safe. In support of this:
+                  Kovari includes a reporting and moderation system to keep the platform safe. In support of this:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may review user reports, flagged content, and related communications as part of our moderation process. This does not constitute active monitoring of all user activity or private communications</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI does not proactively monitor private communications except where necessary for moderation, legal compliance, or safety investigations</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Kovari does not proactively monitor private communications except where necessary for moderation, legal compliance, or safety investigations</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may investigate suspicious or potentially harmful activity on the platform</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>We may take action — including warnings, suspension, or account termination — where a violation of our Terms of Service is found</li>
                   <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Any review or monitoring activity is conducted strictly for safety, moderation, and legal compliance purposes</li>
-                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>KOVARI does not verify user identities, does not conduct background checks, and does not guarantee the identity, background, or conduct of any user</li>
+                  <li className="flex items-start gap-3"><span className="select-none text-muted-foreground/40">•</span>Kovari does not verify user identities, does not conduct background checks, and does not guarantee the identity, background, or conduct of any user</li>
                 </ul>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
-                  KOVARI acts solely as a platform that connects users with shared travel interests. We do not supervise or control offline interactions between users and are not responsible for the conduct of users outside the platform.
+                  Kovari acts solely as a platform that connects users with shared travel interests. We do not supervise or control offline interactions between users and are not responsible for the conduct of users outside the platform.
                 </p>
               </div>
             </section>
@@ -138,7 +138,7 @@ export default function PrivacyPage() {
                   We implement reasonable technical and organizational safeguards designed to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
                 </p>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  However, no method of transmission over the Internet, and no method of electronic storage, is absolutely secure. While we work to protect your data, we cannot guarantee absolute security. By using KOVARI, you acknowledge and accept the inherent risks associated with transmitting information online.
+                  However, no method of transmission over the Internet, and no method of electronic storage, is absolutely secure. While we work to protect your data, we cannot guarantee absolute security. By using Kovari, you acknowledge and accept the inherent risks associated with transmitting information online.
                 </p>
               </div>
             </section>
@@ -164,7 +164,7 @@ export default function PrivacyPage() {
                 <div className="mt-2">
                   <h3 className="text-lg font-medium text-foreground mb-3">Account Deletion</h3>
                   <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                    You may request the deletion of your KOVARI account and associated data at any time by contacting us at <a href="mailto:support@kovari.in" className="text-primary hover:text-primary/80 font-medium transition-colors border-b border-primary/20 hover:border-primary">support@kovari.in</a>. Upon verification of your identity, we will delete or irreversibly anonymize your personal data within a reasonable timeframe. Please note that certain data may be retained where required by law, to resolve disputes, or to protect the safety of other users.
+                    You may request the deletion of your Kovari account and associated data at any time by contacting us at <a href="mailto:support@kovari.in" className="text-primary hover:text-primary/80 font-medium transition-colors border-b border-primary/20 hover:border-primary">support@kovari.in</a>. Upon verification of your identity, we will delete or irreversibly anonymize your personal data within a reasonable timeframe. Please note that certain data may be retained where required by law, to resolve disputes, or to protect the safety of other users.
                   </p>
                 </div>
               </div>
@@ -192,7 +192,7 @@ export default function PrivacyPage() {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">Third-Party Links</h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  Our services may contain links to third-party websites or services that are not owned or controlled by KOVARI. We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third-party websites or services. We strongly advise you to read the terms and conditions and privacy policies of any third-party websites or services that you visit.
+                  Our services may contain links to third-party websites or services that are not owned or controlled by Kovari. We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third-party websites or services. We strongly advise you to read the terms and conditions and privacy policies of any third-party websites or services that you visit.
                 </p>
               </div>
             </section>

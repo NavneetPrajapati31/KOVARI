@@ -283,7 +283,7 @@ export default function App({
           >
             <Image
               src="/logo.webp"
-              alt="KOVARI"
+              alt="Kovari"
               width={400}
               height={160}
               className="h-5 sm:h-6 w-auto object-contain block sm:-translate-y-1"

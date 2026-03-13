@@ -20,12 +20,12 @@ export const emailLayout = ({ content, previewText }: EmailLayoutProps): string 
       td,th,div,p,a,h1,h2,h3,h4,h5,h6 {font-family: "Segoe UI", sans-serif; mso-line-height-rule: exactly;}
     </style>
     <![endif]-->
-    <title>KOVARI</title>
+    <title>Kovari</title>
     <style>
       /* 
        * NOTE: Most email clients (Gmail, Outlook) strip custom web fonts.
        * For consistent branding across all clients, replace the text logo below with an image:
-       * <img src="https://your-domain.com/logo.png" alt="KOVARI" width="120" style="display: block; width: 120px; max-width: 100%; height: auto;">
+       * <img src="https://your-domain.com/logo.png" alt="Kovari" width="120" style="display: block; width: 120px; max-width: 100%; height: auto;">
        */
       @font-face {
         font-family: 'Clash Display';
@@ -77,7 +77,7 @@ export const emailLayout = ({ content, previewText }: EmailLayoutProps): string 
               <table role="presentation" style="width: 100%; border: none; border-spacing: 0;">
                 <tr>
                   <td style="padding: 0 0 24px; text-align: center;">
-                    <a href="https://kovari.in" style="text-decoration: none; font-family: 'Clash Display', 'Segoe UI', sans-serif; font-size: 18px; font-weight: 600; color: #111827; letter-spacing: 1px; text-transform: uppercase;">KOVARI</a>
+                    <a href="https://kovari.in" style="text-decoration: none; font-family: 'Clash Display', 'Segoe UI', sans-serif; font-size: 18px; font-weight: 600; color: #111827; letter-spacing: 1px; text-transform: uppercase;">Kovari</a>
                   </td>
                 </tr>
               </table>

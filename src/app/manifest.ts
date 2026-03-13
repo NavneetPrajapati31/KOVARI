@@ -2,8 +2,8 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "KOVARI",
-    short_name: "KOVARI",
+    name: "Kovari",
+    short_name: "Kovari",
     description: "Connect, plan, and travel with like-minded individuals.",
     start_url: "/",
     display: "standalone",

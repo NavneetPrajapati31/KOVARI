@@ -3,7 +3,7 @@
 require('dotenv').config({ path: '.env.local' });
 const redis = require('redis');
 
-console.log('🚀 Creating Simple Test Data for KOVARI...\n');
+console.log('🚀 Creating Simple Test Data for Kovari...\n');
 
 // Colors for console output
 const colors = {

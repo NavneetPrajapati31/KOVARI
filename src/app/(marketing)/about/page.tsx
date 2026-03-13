@@ -4,7 +4,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "About Us",
-  description: "Discover the KOVARI mission. We're building a smarter, safer way for solo travelers and groups to connect, structure their plans, and explore the world together.",
+  description: "Discover the Kovari mission. We're building a smarter, safer way for solo travelers and groups to connect, structure their plans, and explore the world together.",
 };
 
 export default function AboutPage() {
@@ -19,7 +19,7 @@ export default function AboutPage() {
               We’re making travel more human.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium">
-              KOVARI helps you find the right people before your trip — so you don’t have to figure it out alone once you arrive.
+              Kovari helps you find the right people before your trip — so you don’t have to figure it out alone once you arrive.
             </p>
           </div>
 
@@ -59,10 +59,10 @@ export default function AboutPage() {
             {/* Our Idea - Callout Style */}
             <section>
               <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-4 tracking-tight">
-                So we built KOVARI
+                So we built Kovari
               </h2>
               <p className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed">
-                KOVARI is a platform designed to help travelers connect before the trip begins.
+                Kovari is a platform designed to help travelers connect before the trip begins.
               </p>
               
               <div className="grid md:grid-cols-2 gap-8 md:gap-12">
@@ -106,7 +106,7 @@ export default function AboutPage() {
                 Built for real connections, not just coordination
               </h2>
               <div className="text-base md:text-lg text-muted-foreground space-y-4 leading-relaxed">
-                <p>KOVARI focuses on quality over quantity.</p>
+                <p>Kovari focuses on quality over quantity.</p>
                 <div className="bg-muted/20 rounded-xl p-5 md:p-6 border border-border/40">
                   <ul className="space-y-3 text-sm md:text-base">
                     <li className="flex gap-3">
@@ -157,7 +157,7 @@ export default function AboutPage() {
                   Built by travelers and builders
                 </h2>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  KOVARI is being built by a small team of developers and students who care about creating meaningful products.
+                  Kovari is being built by a small team of developers and students who care about creating meaningful products.
                   We’ve experienced the same problems firsthand — and we’re building the solution we wish existed.
                 </p>
               </section>
@@ -169,7 +169,7 @@ export default function AboutPage() {
                 <div className="text-base md:text-lg text-muted-foreground leading-relaxed space-y-4">
                   <p>
                     We believe travel will become more social, more intentional, and more connected. 
-                    KOVARI is just the beginning. Our goal is to make it easier for people anywhere to:
+                    Kovari is just the beginning. Our goal is to make it easier for people anywhere to:
                   </p>
                   <div className="pl-4 space-y-1 text-muted-foreground font-medium text-base md:text-lg">
                      <p>1. Find the right travel companions</p>

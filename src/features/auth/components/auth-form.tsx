@@ -117,13 +117,13 @@ export default function AuthForm({ mode }: AuthFormProps) {
             </svg>
           </div>
         </div>
-        <span className="text-lg font-semibold text-black"> KOVARI</span>
+        <span className="text-lg font-semibold text-black"> Kovari</span>
       </div> */}
 
       {/* Header */}
       <div className="space-y-0.5">
         <h1 className="text-md sm:text-lg font-bold text-foreground">
-          {isSignUp ? "Join KOVARI" : "Welcome back to KOVARI"}
+          {isSignUp ? "Join Kovari" : "Welcome back to Kovari"}
         </h1>
         <p className="text-sm sm:text-md text-muted-foreground">
           {isSignUp

@@ -6,7 +6,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Community Guidelines",
   description:
-    "Read KOVARI's Community Guidelines to understand the standards of conduct expected from all users on the platform.",
+    "Read Kovari's Community Guidelines to understand the standards of conduct expected from all users on the platform.",
 };
 
 export default function CommunityGuidelinesPage() {
@@ -70,7 +70,7 @@ export default function CommunityGuidelinesPage() {
               </h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  Trust is the foundation of KOVARI. Your profile must
+                  Trust is the foundation of Kovari. Your profile must
                   represent who you genuinely are. You may not:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
@@ -94,11 +94,11 @@ export default function CommunityGuidelinesPage() {
                   </li>
                 </ul>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
-                  KOVARI does not independently verify the accuracy of
+                  Kovari does not independently verify the accuracy of
                   user-submitted information and does not conduct background
                   checks on any user. Users are required to provide truthful
                   information, but you should not treat the presence of a
-                  profile on KOVARI as validation of any user&apos;s identity,
+                  profile on Kovari as validation of any user&apos;s identity,
                   history, or intentions. Providing false or deceptive profile
                   details is a violation of these guidelines and our Terms of
                   Service.
@@ -113,7 +113,7 @@ export default function CommunityGuidelinesPage() {
               </h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  KOVARI is a networking platform, not a marketplace or
+                  Kovari is a networking platform, not a marketplace or
                   financial service. Using the platform to financially exploit
                   other users is strictly prohibited. This includes:
                 </p>
@@ -153,16 +153,16 @@ export default function CommunityGuidelinesPage() {
               </h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  KOVARI facilitates connections between travelers, but does
+                  Kovari facilitates connections between travelers, but does
                   not supervise, arrange, or take responsibility for offline
                   meetings, travel plans, or in-person interactions between
-                  users. KOVARI does not supervise, verify, or guarantee the
+                  users. Kovari does not supervise, verify, or guarantee the
                   identity, intentions, or conduct of any user. All decisions
                   to meet another user in person are made entirely at your
                   sole discretion and risk.
                 </p>
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  When meeting someone you connected with through KOVARI, we
+                  When meeting someone you connected with through Kovari, we
                   strongly recommend:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
@@ -189,7 +189,7 @@ export default function CommunityGuidelinesPage() {
                   You are solely responsible for evaluating other users before
                   agreeing to meet offline. You assume full responsibility for
                   all travel decisions, arrangements, and risks resulting from
-                  your use of KOVARI. KOVARI is not liable for any physical,
+                  your use of Kovari. Kovari is not liable for any physical,
                   financial, or personal harm arising from offline interactions
                   between users.
                 </p>
@@ -203,7 +203,7 @@ export default function CommunityGuidelinesPage() {
               </h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  All content shared on KOVARI — including profile photos,
+                  All content shared on Kovari — including profile photos,
                   bios, messages, trip descriptions, and images — must be
                   appropriate for a general audience. The following content is
                   not permitted:
@@ -241,7 +241,7 @@ export default function CommunityGuidelinesPage() {
               </h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
-                  KOVARI is designed for genuine traveler connections, not for
+                  Kovari is designed for genuine traveler connections, not for
                   unsolicited promotion or commercial activity. You may not:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
@@ -277,7 +277,7 @@ export default function CommunityGuidelinesPage() {
                 <p className="text-base md:text-lg text-muted-foreground mb-4 leading-relaxed">
                   If you encounter behavior that violates these guidelines,
                   please report it using the in-app reporting tools. All
-                  moderation decisions are made at KOVARI&apos;s sole
+                  moderation decisions are made at Kovari&apos;s sole
                   discretion. By submitting a report, you understand that:
                 </p>
                 <ul className="space-y-2 text-base md:text-lg text-muted-foreground">
@@ -294,7 +294,7 @@ export default function CommunityGuidelinesPage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="select-none text-muted-foreground/40">•</span>
-                    KOVARI may contact you for additional information if
+                    Kovari may contact you for additional information if
                     necessary
                   </li>
                   <li className="flex items-start gap-3">
@@ -310,7 +310,7 @@ export default function CommunityGuidelinesPage() {
                 </ul>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
                   For urgent safety concerns, please contact local emergency
-                  services. KOVARI is not an emergency response service and
+                  services. Kovari is not an emergency response service and
                   cannot guarantee any response time or outcome.
                 </p>
               </div>
@@ -346,7 +346,7 @@ export default function CommunityGuidelinesPage() {
                   </li>
                 </ul>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed mt-4">
-                  KOVARI may remove any content or restrict or terminate any
+                  Kovari may remove any content or restrict or terminate any
                   account at its sole discretion, without prior notice, if we
                   determine — based on available information — that a violation
                   has occurred, that conduct poses a potential risk to the
@@ -364,7 +364,7 @@ export default function CommunityGuidelinesPage() {
               </h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  KOVARI works best when every user takes personal
+                  Kovari works best when every user takes personal
                   responsibility for the health of the community. You are
                   encouraged to model the behavior you want to see — be
                   transparent about your intentions, communicate respectfully,
@@ -392,7 +392,7 @@ export default function CommunityGuidelinesPage() {
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
                   These guidelines are non-exhaustive. They do not represent a
                   complete list of all conduct that may result in enforcement
-                  action. KOVARI reserves the right to act against any behavior
+                  action. Kovari reserves the right to act against any behavior
                   that we determine — at our sole discretion — to be harmful,
                   deceptive, unsafe, or inconsistent with the spirit of a
                   trustworthy travel community, even if that behavior is not
@@ -408,15 +408,15 @@ export default function CommunityGuidelinesPage() {
               </h2>
               <div className="border-transparent group-hover:border-border/50 transition-colors duration-500">
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                  By using KOVARI, you acknowledge that you have read and
+                  By using Kovari, you acknowledge that you have read and
                   understood these Community Guidelines and agree to be bound
-                  by them. You accept that KOVARI does not verify user
+                  by them. You accept that Kovari does not verify user
                   identities, does not conduct background checks, and cannot
                   guarantee the safety of any offline interaction. Your
                   continued use of the platform constitutes your ongoing
                   agreement to these guidelines and your acceptance of personal
                   responsibility for all interactions and decisions made through
-                  or resulting from your use of KOVARI.
+                  or resulting from your use of Kovari.
                 </p>
               </div>
             </section>
@@ -442,7 +442,7 @@ export default function CommunityGuidelinesPage() {
                   >
                     Privacy Policy
                   </Link>
-                  . By using KOVARI, you agree to be bound by all three
+                  . By using Kovari, you agree to be bound by all three
                   documents. For questions, contact us at{" "}
                   <a
                     href="mailto:support@kovari.in"

@@ -75,7 +75,7 @@ export default function WaitlistModal({
 
       // Success
       toast.success("Successfully joined the waitlist!", {
-        description: "We'll notify you when KOVARI is ready.",
+        description: "We'll notify you when Kovari is ready.",
       });
 
       // Close modal and reset form on success
@@ -100,7 +100,7 @@ export default function WaitlistModal({
             Join our waitlist
           </DialogTitle>
           <DialogDescription className="text-left text-muted-foreground text-xs sm:text-sm mt-1 sm:mt-2">
-            Be among the first to experience KOVARI. Get early access to match
+            Be among the first to experience Kovari. Get early access to match
             with travelers and plan trips together.
           </DialogDescription>
         </DialogHeader>

@@ -39,8 +39,8 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.kovari.in"),
   title: {
-    default: "KOVARI | Connect & Travel With the Right People",
-    template: "%s | KOVARI",
+    default: "Kovari | Connect & Travel With the Right People",
+    template: "%s | Kovari",
   },
   description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
   keywords: [
@@ -51,11 +51,11 @@ export const metadata: Metadata = {
     "like-minded travelers",
     "solo traveler networking",
     "safe travel groups",
-    "KOVARI",
+    "Kovari",
   ],
-  authors: [{ name: "KOVARI" }],
-  creator: "KOVARI",
-  publisher: "KOVARI",
+  authors: [{ name: "Kovari" }],
+  creator: "Kovari",
+  publisher: "Kovari",
   robots: {
     index: true,
     follow: true,
@@ -71,13 +71,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "KOVARI | Connect & Travel With the Right People",
+    title: "Kovari | Connect & Travel With the Right People",
     description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
-    siteName: "KOVARI",
+    siteName: "Kovari",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KOVARI | Connect & Travel With the Right People",
+    title: "Kovari | Connect & Travel With the Right People",
     description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
     creator: "@KovariApp",
   },

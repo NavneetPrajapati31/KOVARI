@@ -3,7 +3,7 @@
 require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 
-console.log('🗄️ Creating Supabase Users & Profiles for KOVARI Algorithm Testing\n');
+console.log('🗄️ Creating Supabase Users & Profiles for Kovari Algorithm Testing\n');
 
 // Colors for console output
 const colors = {

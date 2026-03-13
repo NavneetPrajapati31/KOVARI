@@ -13,7 +13,7 @@ export const userWarningEmail = ({ reason }: UserWarningEmailProps) => {
     ${paragraph("Please review our community guidelines and ensure your future behavior complies with our terms of service.")}
     ${smallText("If you have questions, please contact our support team.")}
   `;
-  return emailLayout({ content, previewText: "KOVARI Account Warning" });
+  return emailLayout({ content, previewText: "Kovari Account Warning" });
 };
 
 // 2. User Suspension Email
@@ -30,7 +30,7 @@ export const userSuspensionEmail = ({ reason, suspendUntil }: UserSuspensionEmai
     ${paragraph("During this suspension period, you will not be able to access your account. Access will be automatically restored when the suspension ends.")}
     ${smallText("If you have questions, please contact our support team.")}
   `;
-  return emailLayout({ content, previewText: "KOVARI Account Suspended" });
+  return emailLayout({ content, previewText: "Kovari Account Suspended" });
 };
 
 // 3. User Ban Email
@@ -45,7 +45,7 @@ export const userBanEmail = ({ reason }: UserBanEmailProps) => {
     ${paragraph("This ban is permanent and cannot be reversed. You will no longer be able to access your account or use our services.")}
     ${smallText("Permanent bans are issued only for severe violations.")}
   `;
-  return emailLayout({ content, previewText: "KOVARI Account Banned" });
+  return emailLayout({ content, previewText: "Kovari Account Banned" });
 };
 
 // 4. Group Warning Email

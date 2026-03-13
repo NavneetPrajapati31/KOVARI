@@ -403,7 +403,7 @@ export default function Dashboard() {
                 Hi, {user?.firstName || "User"}
               </h1>
               <p className="text-muted-foreground font-medium text-sm">
-                Welcome back to KOVARI 👋🏻
+                Welcome back to Kovari 👋🏻
               </p>
             </div>
             <div className="flex items-center gap-4">

@@ -103,7 +103,7 @@ export function PolicyGate({ children }: { children: React.ReactNode }) {
               We&apos;ve updated our policies
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Please review and accept the updated terms to continue using KOVARI.
+              Please review and accept the updated terms to continue using Kovari.
             </p>
           </div>
 

@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 export const runtime = "edge";
 
 // Image metadata
-export const alt = "KOVARI - Connect with Travelers";
+export const alt = "Kovari - Connect with Travelers";
 export const size = {
   width: 1200,
   height: 630,
@@ -44,7 +44,7 @@ export default async function Image() {
           }}
         >
           <span style={{ fontSize: 32, fontWeight: 700, letterSpacing: "0.1em", color: "#1c1c1e" }}>
-            KOVARI
+            Kovari
           </span>
           <div
             style={{
@@ -120,7 +120,7 @@ export default async function Image() {
               fontWeight: 400,
             }}
           >
-            KOVARI helps solo travelers, friends, and small groups match, plan trips together, and explore destinations safely — without chaos or guesswork.
+            Kovari helps solo travelers, friends, and small groups match, plan trips together, and explore destinations safely — without chaos or guesswork.
           </p>
 
           {/* CTA Button */}

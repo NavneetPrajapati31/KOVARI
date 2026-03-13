@@ -13,25 +13,25 @@ export function getEmailConfig(type: EmailType): EmailConfig {
     case "system":
       return {
         email: process.env.EMAIL_SYSTEM_FROM || "noreply@kovari.in",
-        name: "KOVARI", // Admin logic usually sends from KOVARI
+        name: "Kovari", // Admin logic usually sends from Kovari
         replyTo: supportEmail,
       };
     case "product":
       return {
         email: process.env.EMAIL_PRODUCT_FROM || "hello@kovari.in",
-        name: "KOVARI",
+        name: "Kovari",
         replyTo: supportEmail,
       };
     case "support":
       return {
         email: supportEmail,
-        name: "KOVARI Support",
+        name: "Kovari Support",
         replyTo: supportEmail,
       };
     default:
       return {
         email: process.env.EMAIL_SYSTEM_FROM || "noreply@kovari.in",
-        name: "KOVARI",
+        name: "Kovari",
         replyTo: supportEmail,
       };
   }

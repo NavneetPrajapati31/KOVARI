@@ -2,7 +2,7 @@
 -- SOLO MATCHING TEST DATA INSERTION SCRIPT (ALTERNATIVE)
 -- =====================================================
 -- This script inserts comprehensive test data for solo matching functionality
--- Based on the KOVARI application schema
+-- Based on the Kovari application schema
 -- ALTERNATIVE: Works with the existing trigger function
 
 -- =====================================================

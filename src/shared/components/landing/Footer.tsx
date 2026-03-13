@@ -17,7 +17,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center">
               <Image
                 src="/logo.webp"
-                alt="KOVARI"
+                alt="Kovari"
                 width={400}
                 height={160}
                 className="h-5 w-auto object-contain block"
@@ -83,7 +83,7 @@ export default function Footer() {
 
           {/* Bottom Right: Copyright */}
           <div className="text-left md:text-right mt-2 md:mt-0">
-            © {new Date().getFullYear()} KOVARI. All rights reserved.
+            © {new Date().getFullYear()} Kovari. All rights reserved.
           </div>
         </div>
       </div>

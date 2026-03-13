@@ -69,7 +69,7 @@ export default function Features() {
 
           {/* Main heading */}
           <h2 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight mb-3 sm:mb-4 px-4">
-            Why Choose KOVARI
+            Why Choose Kovari
           </h2>
 
           {/* Subheading */}

@@ -4,7 +4,7 @@ require('dotenv').config({ path: '.env.local' });
 const { execSync } = require('child_process');
 const redis = require('redis');
 
-console.log('🚀 KOVARI Quick Start');
+console.log('🚀 Kovari Quick Start');
 console.log('=====================\n');
 
 // Colors for console output

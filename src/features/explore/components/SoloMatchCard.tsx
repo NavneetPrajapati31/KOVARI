@@ -697,7 +697,7 @@ export function SoloMatchCard({
 
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Help us keep KOVARI safe. Please select a reason for reporting
+              Help us keep Kovari safe. Please select a reason for reporting
               this user.
             </p>
             <div>

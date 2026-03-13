@@ -3,7 +3,7 @@
 require('dotenv').config({ path: '.env.local' });
 const redis = require('redis');
 
-console.log('🧪 Testing KOVARI Algorithm Flow: Static + Dynamic Attributes Matching\n');
+console.log('🧪 Testing Kovari Algorithm Flow: Static + Dynamic Attributes Matching\n');
 
 // Colors for console output
 const colors = {

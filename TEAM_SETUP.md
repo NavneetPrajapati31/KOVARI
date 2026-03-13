@@ -1,4 +1,4 @@
-# 🚀 KOVARI Team Setup Guide (Cloud Redis)
+# 🚀 Kovari Team Setup Guide (Cloud Redis)
 
 This guide helps your team set up the development environment with the cloud-hosted Redis on Render.com.
 
@@ -7,7 +7,7 @@ This guide helps your team set up the development environment with the cloud-hos
 ### **Step 1: Clone the Repository**
 ```bash
 git clone <your-repo-url>
-cd KOVARI
+cd Kovari
 npm install
 ```
 

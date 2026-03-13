@@ -1,7 +1,7 @@
 # Solo Matching Filters - Comprehensive Analysis
 
 ## 🎯 **Overview**
-This document analyzes all solo matching filters in the KOVARI application, their implementation status, and how they work together in the matching pipeline.
+This document analyzes all solo matching filters in the Kovari application, their implementation status, and how they work together in the matching pipeline.
 
 ## 🔍 **Filter Pipeline Architecture**
 

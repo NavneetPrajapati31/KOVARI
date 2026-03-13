@@ -1,6 +1,6 @@
-# 🚀 KOVARI Development Setup Guide
+# 🚀 Kovari Development Setup Guide
 
-This guide will help you set up the KOVARI development environment quickly and easily.
+This guide will help you set up the Kovari development environment quickly and easily.
 
 ## 🎯 Quick Start (Recommended)
 

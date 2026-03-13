@@ -4,7 +4,7 @@ const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 KOVARI Development Environment Setup');
+console.log('🚀 Kovari Development Environment Setup');
 console.log('=====================================\n');
 
 // Colors for console output

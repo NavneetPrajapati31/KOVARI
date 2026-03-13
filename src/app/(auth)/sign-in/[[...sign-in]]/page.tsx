@@ -5,7 +5,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Sign In",
-  description: "Sign in to your KOVARI account. Continue matching with like-minded travelers and organizing your next group getaway.",
+  description: "Sign in to your Kovari account. Continue matching with like-minded travelers and organizing your next group getaway.",
 };
 
 export default function SignInPage() {

@@ -38,10 +38,10 @@ export default function HomePage() {
     <div className="min-h-screen">
       <Hero onJoinWaitlist={() => setIsWaitlistModalOpen(true)} />
 
-      {/* Who KOVARI Is For Section */}
+      {/* Who Kovari Is For Section */}
       <Audience />
 
-      {/* How KOVARI Works Section */}
+      {/* How Kovari Works Section */}
       <HowItWorks />
 
       {/* Core Features Section */}

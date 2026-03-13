@@ -1,7 +1,7 @@
 # Project Structure
 
 ```text
-KOVARI
+Kovari
 ├── .cursor
 │   ├── rules
 │   │   └── rules.mdc

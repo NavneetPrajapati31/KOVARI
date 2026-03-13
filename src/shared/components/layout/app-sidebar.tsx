@@ -232,7 +232,7 @@ export function AppSidebar() {
           >
             {/* <AcmeLogo /> */}
             <span
-              className={`font-clash tracking-widest font-medium text-md
+              className={`font-clash font-bold text-md
                   transition-all duration-300 origin-left overflow-hidden
                   
                   ${
@@ -243,7 +243,7 @@ export function AppSidebar() {
                 `}
               style={{ minWidth: 0 }}
             >
-              KOVARI
+              Kovari
             </span>
           </div>
           <SidebarToggle />

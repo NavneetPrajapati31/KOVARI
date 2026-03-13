@@ -44,7 +44,7 @@ export default function FinalCTA({ onJoinWaitlist }: FinalCTAProps) {
 
           {/* Subtext */}
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">
-            Join the waitlist and be among the first to experience KOVARI.
+            Join the waitlist and be among the first to experience Kovari.
           </p>
 
           {/* Primary CTA */}
