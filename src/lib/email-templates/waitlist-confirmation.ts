@@ -14,6 +14,5 @@ export const waitlistConfirmationEmail = () => {
   return emailLayout({
     content,
     previewText: "We appreciate you getting in early.",
-    hideLogo: true,
   });
 };
