@@ -131,7 +131,7 @@ export default async function BannedPage() {
 
             {/* Expiration Box (for suspensions) */}
             {banDetails.expiresAt && (
-              <div className="mt-8 rounded-2xl border border-border/50 bg-muted/30 p-4">
+              <div className="mt-8 rounded-2xl border border-border/50 bg-secondary p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">Suspension active until</span>
                   <span className="text-sm text-muted-foreground font-mono">
@@ -146,7 +146,7 @@ export default async function BannedPage() {
           </div>
           
           {/* Footer of card */}
-          <div className="border-t border-border/40 bg-muted/20 px-6 py-4 text-center">
+          <div className="border-t border-border/40 px-6 py-4 text-center">
             <p className="text-xs text-muted-foreground">
               Review our <Link href="/community-guidelines" className="underline underline-offset-2 hover:text-foreground">Community Guidelines</Link>
             </p>
