@@ -91,6 +91,7 @@
     "dotenv": "^17.2.1",
     "emoji-mart": "^5.6.0",
     "framer-motion": "^12.19.1",
+    "fs": "^0.0.1-security",
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
     "lucide-react": "^0.511.0",
