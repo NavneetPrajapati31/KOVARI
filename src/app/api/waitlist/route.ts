@@ -157,13 +157,13 @@ export async function POST(req: NextRequest) {
 
         if (error instanceof SyntaxError) {
           return NextResponse.json(
-            { error: "Invalid request body" },
+            { error: "Invalid request body", message: "Something went wrong. Try again." },
             { status: 400 }
           );
         }
 
         return NextResponse.json(
-          { error: "Internal server error" },
+          { error: "Internal server error", message: "Something went wrong. Try again." },
           { status: 500 }
         );
       }

@@ -85,8 +85,9 @@ export default function WaitlistModal({
       onOpenChange(false);
       setEmail("");
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error submitting waitlist:", error);
-      toast.error("An unexpected error occurred. Please try again later.");
+      toast.error("Something went wrong. Try again.");
     } finally {
       setIsSubmitting(false);
     }
