@@ -28,7 +28,7 @@ export default function Audience() {
   ];
 
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 1 },
     visible: {
       opacity: 1,
       transition: {
@@ -39,7 +39,7 @@ export default function Audience() {
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
+    hidden: { opacity: 1, scale: 1 },
     visible: { 
       opacity: 1, 
       scale: 1,
@@ -51,7 +51,7 @@ export default function Audience() {
     <section className="relative py-16 sm:py-20 md:py-24">
       <div className="container mx-auto px-6 md:px-8">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 1, y: 0 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}

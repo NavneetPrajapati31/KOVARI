@@ -31,7 +31,7 @@ export default function FinalCTA({ onJoinWaitlist }: FinalCTAProps) {
     <section className="py-20 sm:py-24 md:py-28">
       <div className="container mx-auto px-6 md:px-8">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 1, y: 0 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}

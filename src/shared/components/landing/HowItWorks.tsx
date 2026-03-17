@@ -33,7 +33,7 @@ export default function HowItWorks() {
   ];
 
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 1 },
     visible: {
       opacity: 1,
       transition: {
@@ -44,7 +44,7 @@ export default function HowItWorks() {
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 1, y: 0 },
     visible: { 
       opacity: 1, 
       y: 0,
@@ -56,7 +56,7 @@ export default function HowItWorks() {
     <section id="how-it-works" className="py-16 sm:py-20 md:py-24">
       <div className="container mx-auto px-6 md:px-8">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 1, y: 0 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
