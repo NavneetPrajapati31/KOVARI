@@ -35,7 +35,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen font-sans">
       <Hero onJoinWaitlist={() => setIsWaitlistModalOpen(true)} />
 
       {/* Who Kovari Is For Section */}

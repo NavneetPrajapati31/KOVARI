@@ -27,7 +27,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Compass, MessageCircle, Shield } from "lucide-react";
 import Spinner from "../Spinner";
 import { createClient } from "@/lib/supabase";
-import SidebarMenu from "./sidebar-menu";
+import MobileMenuOverlay from "./MobileMenuOverlay";
 import { motion } from "framer-motion";
 import WaitlistModal from "../landing/WaitlistModal";
 
@@ -234,11 +234,16 @@ export default function App({
         onOpenChange={setIsWaitlistModalOpen}
       />
 
-      {/* Sidebar Menu Overlay */}
-      <SidebarMenu
+      {/* Full-screen Mobile Menu Overlay */}
+      <MobileMenuOverlay
         open={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        menuItems={sidebarMenuItems}
+        menuItems={navigationItems.map((item) => ({
+          label: item.name,
+          href: item.href,
+          icon: item.icon,
+        }))}
+        onJoinWaitlist={handleJoinWaitlist}
       />
 
       {/* {isNavigating && <Spinner />} */}
@@ -306,7 +311,7 @@ export default function App({
                 </Button>
                 <button
                   type="button"
-                  onClick={() => setIsSidebarOpen(true)}
+                  onClick={() => setIsSidebarOpen((prev) => !prev)}
                   className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none sm:hidden"
                   aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
                 >
@@ -400,7 +405,7 @@ export default function App({
                 {/* Hamburger - visible on screens < 1300px (xl breakpoint) */}
                 <button
                   type="button"
-                  onClick={() => setIsSidebarOpen(true)}
+                  onClick={() => setIsSidebarOpen((prev) => !prev)}
                   className="relative flex items-center gap-1 sm:gap-1.5 focus:outline-none xl:hidden"
                   aria-label={isSidebarOpen ? "Close menu" : "Open menu"}
                 >
