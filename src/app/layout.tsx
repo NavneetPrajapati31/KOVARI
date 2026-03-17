@@ -115,7 +115,7 @@ export default function RootLayout({
             <AuthProvider>{children}</AuthProvider>
             <Toaster
               position="bottom-right"
-              duration={10000}
+              duration={3000}
             />
             <Analytics />
           </HeroUIProvider>
