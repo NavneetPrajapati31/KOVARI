@@ -232,6 +232,7 @@ export default function App({
       <WaitlistModal
         open={isWaitlistModalOpen}
         onOpenChange={setIsWaitlistModalOpen}
+        source="navbar"
       />
 
       {/* Full-screen Mobile Menu Overlay */}

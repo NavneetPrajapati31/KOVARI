@@ -15,12 +15,15 @@ import { toast } from "sonner";
 
 interface WaitlistModalProps {
   open: boolean;
+  onChange?: (open: boolean) => void; // Support HeroUI's name if needed, though we use onOpenChange
   onOpenChange: (open: boolean) => void;
+  source?: string;
 }
 
 export default function WaitlistModal({
   open,
   onOpenChange,
+  source = "unknown",
 }: WaitlistModalProps) {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,7 +50,7 @@ export default function WaitlistModal({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, source }),
       });
 
       const data = await response.json();

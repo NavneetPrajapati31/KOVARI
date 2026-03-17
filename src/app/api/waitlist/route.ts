@@ -23,9 +23,10 @@ export async function POST(req: NextRequest) {
       try {
         // Parse request body
         const body = await req.json();
-        const { email } = body;
+        const { email, source = "unknown" } = body;
 
         span.setAttribute("email_provided", !!email);
+        span.setAttribute("source", source);
 
         // Validate email
         if (!email || typeof email !== "string") {
@@ -48,13 +49,42 @@ export async function POST(req: NextRequest) {
           );
         }
 
+        // Check for disposable email domains
+        const domain = normalizedEmail.split("@")[1];
+        const DISPOSABLE_DOMAINS = [
+          "mailinator.com",
+          "guerrillamail.com",
+          "guerrillamail.net",
+          "guerrillamail.org",
+          "guerrillamailblock.com",
+          "guerrillamail.biz",
+          "temp-mail.org",
+          "yopmail.com",
+          "10minutemail.com",
+          "dispostable.com",
+          "getnada.com",
+          "sharklasers.com",
+          "trashmail.com",
+        ];
+
+        if (DISPOSABLE_DOMAINS.includes(domain)) {
+          span.setAttribute("error", "disposable_email");
+          return NextResponse.json(
+            { error: "Please use a real email address" },
+            { status: 400 }
+          );
+        }
+
         // Create Supabase client
         const supabase = createAdminSupabaseClient();
 
         // Insert email into waitlist table
         const { data, error } = await supabase
           .from("waitlist")
-          .insert({ email: normalizedEmail })
+          .insert({ 
+            email: normalizedEmail,
+            source: source 
+          })
           .select()
           .single();
 

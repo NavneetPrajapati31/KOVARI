@@ -19,6 +19,12 @@ export default function HomePage() {
   // Get all top picks destinations
   const allDestinations = getAllDestinations();
   const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
+  const [waitlistSource, setWaitlistSource] = useState("unknown");
+
+  const openWaitlist = (source: string) => {
+    setWaitlistSource(source);
+    setIsWaitlistModalOpen(true);
+  };
 
   // Track page view on mount
   useEffect(() => {
@@ -36,7 +42,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen font-sans">
-      <Hero onJoinWaitlist={() => setIsWaitlistModalOpen(true)} />
+      <Hero onJoinWaitlist={() => openWaitlist("hero_cta")} />
 
       {/* Who Kovari Is For Section */}
       <Audience />
@@ -51,7 +57,7 @@ export default function HomePage() {
       <Safety />
 
       {/* Final CTA Section */}
-      <FinalCTA onJoinWaitlist={() => setIsWaitlistModalOpen(true)} />
+      <FinalCTA onJoinWaitlist={() => openWaitlist("final_cta")} />
 
       {/* Footer */}
       <Footer />
@@ -63,6 +69,7 @@ export default function HomePage() {
       <WaitlistModal
         open={isWaitlistModalOpen}
         onOpenChange={setIsWaitlistModalOpen}
+        source={waitlistSource}
       />
     </div>
   );
