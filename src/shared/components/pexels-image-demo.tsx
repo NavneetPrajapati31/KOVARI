@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import { fetchPexelsSquareImageUrl } from "@/lib/fetchPexelsImage";
 
-const PEXELS_API_KEY = process.env.NEXT_PUBLIC_PEXELS_API_KEY || "";
-
 export const PexelsImageDemo: React.FC = () => {
   const [destination, setDestination] = useState("");
   const [country, setCountry] = useState("");
@@ -19,8 +17,7 @@ export const PexelsImageDemo: React.FC = () => {
     try {
       const url = await fetchPexelsSquareImageUrl(
         destination,
-        country,
-        PEXELS_API_KEY
+        country
       );
       if (!url) {
         setError("No image found for this destination and country.");

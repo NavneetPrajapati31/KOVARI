@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { createAdminSupabaseClient } from "@/lib/supabase-admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting: 10 attempts per minute per IP
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const ratelimit = await checkRateLimit(`rate_limit:username:${ip}`, 10, 60);
+
+    if (!ratelimit.success) {
+      return NextResponse.json(
+        { available: false, error: "Too many attempts. Please wait." },
+        { status: 429 }
+      );
+    }
+
     const { username } = await req.json();
     if (!username || typeof username !== "string") {
       return NextResponse.json(

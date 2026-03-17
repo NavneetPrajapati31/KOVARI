@@ -3,6 +3,7 @@ import { after } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { sendWaitlistConfirmation } from "@/lib/send-waitlist-confirmation";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/waitlist
@@ -21,6 +22,25 @@ export async function POST(req: NextRequest) {
     },
     async (span) => {
       try {
+        // Rate limiting: 3 attempts per minute per IP
+        const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+        const ratelimit = await checkRateLimit(`rate_limit:waitlist:${ip}`, 3, 60);
+
+        if (!ratelimit.success) {
+          span.setAttribute("error", "rate_limit_exceeded");
+          return NextResponse.json(
+            { error: "Too many requests. Please try again in a minute." },
+            { 
+              status: 429,
+              headers: {
+                "Retry-After": ratelimit.reset.toString(),
+                "X-RateLimit-Limit": ratelimit.limit.toString(),
+                "X-RateLimit-Remaining": ratelimit.remaining.toString(),
+              }
+            }
+          );
+        }
+
         // Parse request body
         const body = await req.json();
         const { email, source = "unknown" } = body;

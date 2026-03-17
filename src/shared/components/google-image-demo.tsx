@@ -3,9 +3,6 @@
 import React, { useState } from "react";
 import { fetchGoogleTouristImageUrl } from "../../lib/fetchGoogleImage";
 
-const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || "";
-const GOOGLE_CSE_ID = process.env.NEXT_PUBLIC_GOOGLE_CSE_ID || "";
-
 export const GoogleImageDemo: React.FC = () => {
   const [destination, setDestination] = useState("");
   const [country, setCountry] = useState("");
@@ -20,9 +17,7 @@ export const GoogleImageDemo: React.FC = () => {
     try {
       const url = await fetchGoogleTouristImageUrl(
         destination,
-        country,
-        GOOGLE_API_KEY,
-        GOOGLE_CSE_ID
+        country
       );
       if (!url) {
         setError(

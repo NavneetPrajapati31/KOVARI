@@ -33,36 +33,20 @@ export interface LocationData {
   place_id: string;
 }
 
-const API_KEY = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
-
 /**
- * Searches for locations using Geoapify Autocomplete API.
+ * Searches for locations using Geoapify Autocomplete API via server proxy.
  * Safe for client-side usage.
  */
 export const searchLocation = async (query: string): Promise<GeoapifyResult[]> => {
-  if (!API_KEY) {
-    console.error("Geoapify API key is missing");
-    return [];
-  }
-
-  // Build URL with parameters
-  const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
-  url.searchParams.append("text", query);
-  url.searchParams.append("apiKey", API_KEY);
-  url.searchParams.append("type", "city");
-  url.searchParams.append("limit", "5");
-  url.searchParams.append("lang", "en");
-  // No location bias or filter to allow global search
-
   try {
-    const res = await fetch(url.toString());
+    const res = await fetch(`/api/proxy/geocoding?type=autocomplete&q=${encodeURIComponent(query)}`);
     if (!res.ok) {
-       console.error(`Geoapify API error: ${res.status} ${res.statusText}`);
+       console.error(`Geocoding proxy error: ${res.status}`);
        return [];
     }
     const data = await res.json();
     
-    // Map features to simplified properties
+    // Map features to simplified properties (data format is from Geoapify)
     return (data.features || []).map((feature: any) => ({
       place_id: feature.properties.place_id,
       formatted: feature.properties.formatted,
@@ -75,28 +59,18 @@ export const searchLocation = async (query: string): Promise<GeoapifyResult[]> =
       address_line2: feature.properties.address_line2,
     }));
   } catch (error) {
-    console.error("Geoapify search error:", error);
+    console.error("Geocoding search error:", error);
     return [];
   }
 };
 
 /**
- * Gets detailed location data for a place_id.
+ * Gets detailed location data for a place_id via server proxy.
  * Safe for client-side usage.
  */
 export const getLocationDetails = async (placeId: string): Promise<LocationData | null> => {
-  if (!API_KEY) {
-    console.error("Geoapify API key is missing");
-    return null;
-  }
-
-  // Use Geocoding API with ID parameter to be safe.
-  const geocodingUrl = new URL("https://api.geoapify.com/v1/geocode/search");
-  geocodingUrl.searchParams.append("id", placeId);
-  geocodingUrl.searchParams.append("apiKey", API_KEY);
-
   try {
-    const res = await fetch(geocodingUrl.toString());
+    const res = await fetch(`/api/proxy/geocoding?type=details&placeId=${encodeURIComponent(placeId)}`);
     if (!res.ok) throw new Error("Failed to fetch location details");
     const data = await res.json();
     const feature = data.features?.[0];
@@ -119,7 +93,7 @@ export const getLocationDetails = async (placeId: string): Promise<LocationData 
       place_id: props.place_id,
     };
   } catch (error) {
-    console.error("Geoapify details error:", error);
+    console.error("Geocoding details error:", error);
     return null;
   }
 };

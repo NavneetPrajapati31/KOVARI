@@ -35,18 +35,16 @@ export interface PexelsSearchResponse {
 }
 
 /**
- * Fetches a top square image URL from Pexels for a given destination and country.
+ * Fetches a top square image URL from Pexels for a given destination and country via server proxy.
  * @param destination - The destination name (e.g., 'Paris')
  * @param country - The country name (e.g., 'France')
- * @param apiKey - Pexels API key (browser-safe, use env var for public key)
  * @returns The best available square image URL, or null if not found
  */
 export const fetchPexelsSquareImageUrl = async (
   destination: string,
-  country: string,
-  apiKey: string
+  country: string
 ): Promise<string | null> => {
-  if (!destination || !country || !apiKey) return null;
+  if (!destination || !country) return null;
   // Tourist-specific keywords
   const TOURIST_KEYWORDS = [
     "tourist attraction",
@@ -78,16 +76,9 @@ export const fetchPexelsSquareImageUrl = async (
   const shuffled = TOURIST_KEYWORDS.sort(() => 0.5 - Math.random());
   const selectedKeywords = shuffled.slice(0, 2).join(" ");
   const query = `${destination} ${country} ${selectedKeywords}`;
-  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(
-    query
-  )}&orientation=square&per_page=20&page=1`;
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: apiKey,
-      },
-    });
+    const response = await fetch(`/api/proxy/pexels?q=${encodeURIComponent(query)}`);
     if (!response.ok) {
       return null;
     }
@@ -118,10 +109,9 @@ export const fetchPexelsSquareImageUrl = async (
 // Example usage in a React component (browser):
 import { fetchPexelsSquareImageUrl } from '../lib/fetchPexelsImage';
 
-const apiKey = process.env.NEXT_PUBLIC_PEXELS_API_KEY!;
-
 const getImage = async () => {
-  const url = await fetchPexelsSquareImageUrl('Paris', 'France', apiKey);
+  // Now handled via server proxy, no key needed in frontend
+  const url = await fetchPexelsSquareImageUrl('Paris', 'France');
   console.log(url);
 };
 */
