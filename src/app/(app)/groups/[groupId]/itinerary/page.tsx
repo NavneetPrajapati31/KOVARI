@@ -1185,7 +1185,7 @@ export default function ItineraryPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(800px,calc(100vw-2rem))] max-h-[90dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
+        <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(700px,calc(100vw-2rem))] max-h-[75dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
           <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 text-left">
             <DialogTitle className="text-md font-semibold text-foreground">
               Edit Itinerary Item
@@ -1453,7 +1453,7 @@ export default function ItineraryPage() {
         <DialogTrigger asChild>
           <div className="hidden" aria-hidden />
         </DialogTrigger>
-        <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(800px,calc(100vw-2rem))] max-h-[90dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
+        <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-full sm:max-w-[min(700px,calc(100vw-2rem))] max-h-[75dvh] rounded-2xl border-border p-0 gap-0 shadow-xl overflow-hidden">
           <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 text-left">
             <DialogTitle className="text-md font-semibold text-foreground">
               Add Itinerary Item
@@ -1690,7 +1690,7 @@ export default function ItineraryPage() {
         }}
       >
         <DialogContent className="flex flex-col w-[calc(100%-2rem)] max-w-[min(400px,calc(100vw-2rem))] rounded-2xl border border-border p-0 gap-0 shadow-xl overflow-hidden">
-          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border space-y-1 text-left">
+          <DialogHeader className="shrink-0 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 space-y-1 text-left">
             <DialogTitle className="text-md font-semibold text-foreground">
               Delete itinerary item?
             </DialogTitle>
@@ -1705,7 +1705,7 @@ export default function ItineraryPage() {
               )}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap justify-end">
+          <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 gap-2 flex-row flex-wrap justify-end">
             <div className="flex gap-2 order-1 sm:order-2 ml-auto">
               <Button
                 variant="outline"

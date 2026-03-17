@@ -115,14 +115,7 @@ export default function RootLayout({
             <AuthProvider>{children}</AuthProvider>
             <Toaster
               position="bottom-right"
-              duration={2500}
-              toastOptions={{
-                style: {
-                  background: "black",
-                  color: "white",
-                  border: "none",
-                },
-              }}
+              duration={10000}
             />
             <Analytics />
           </HeroUIProvider>
