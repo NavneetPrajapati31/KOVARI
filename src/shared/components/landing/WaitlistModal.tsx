@@ -92,11 +92,11 @@ export default function WaitlistModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="w-[95vw] max-w-xs sm:max-w-md md:max-w-lg p-4 sm:p-6 rounded-lg !fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !m-0"
+        className="font-sans w-[95vw] max-w-xs sm:max-w-md md:max-w-lg p-6 sm:p-8 !rounded-2xl !fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !m-0"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-0 sm:px-0">
-          <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold text-left text-foreground">
+          <DialogTitle className="text-lg sm:text-xl md:text-2xl font-semibold text-left text-foreground">
             Join our waitlist
           </DialogTitle>
           <DialogDescription className="text-left text-muted-foreground text-xs sm:text-sm mt-1 sm:mt-2">
@@ -107,7 +107,7 @@ export default function WaitlistModal({
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 sm:space-y-6 mt-3 sm:mt-4"
+          className="space-y-2 sm:space-y-4 mt-3 sm:mt-4"
         >
           {/* Email Input */}
           <div className="space-y-2">
@@ -124,7 +124,7 @@ export default function WaitlistModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full h-9 sm:h-10 text-sm sm:text-base"
+              className="w-full h-10 sm:h-12 text-sm sm:text-base rounded-full px-4"
             />
           </div>
 

@@ -61,7 +61,7 @@ const MobileMenuOverlay: React.FC<MobileMenuOverlayProps> = ({
                   <Link
                     href={item.href}
                     onClick={onClose}
-                    className="block py-2 text-xl font-semibold tracking-tight text-foreground hover:text-foreground transition-colors duration-150 text-center w-full"
+                    className="block py-2 text-lg font-semibold tracking-tight text-foreground hover:text-foreground transition-colors duration-150 text-center w-full"
                   >
                     {item.label}
                   </Link>
@@ -72,7 +72,7 @@ const MobileMenuOverlay: React.FC<MobileMenuOverlayProps> = ({
             {/* Bottom CTA */}
             <div className="px-6 pb-12 pt-6">
               <Button
-                className="w-full h-14 rounded-3xl text-lg font-semibold bg-primary text-primary-foreground shadow-md"
+                className="w-full h-12 rounded-3xl text-md font-semibold bg-primary text-primary-foreground shadow-md"
                 onClick={() => {
                   onJoinWaitlist?.();
                   onClose();
