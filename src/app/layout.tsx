@@ -37,7 +37,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kovari.in"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.kovari.in"),
   title: {
     default: "Kovari | Connect & Travel With the Right People",
     template: "%s | Kovari",
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
     creator: "@KovariApp",
   },
   alternates: {
-    canonical: "https://kovari.in",
+    canonical: "https://www.kovari.in",
   },
   manifest: "/manifest.json",
   icons: {

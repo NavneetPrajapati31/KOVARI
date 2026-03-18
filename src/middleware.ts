@@ -65,11 +65,6 @@ export default clerkMiddleware(async (auth, req) => {
   const url = req.nextUrl.clone();
   const host = req.headers.get("host");
 
-  // 1. WWW to non-WWW redirect (Normalize domain)
-  if (host === "www.kovari.in") {
-    url.host = "kovari.in";
-    return NextResponse.redirect(url, 301);
-  }
 
   // 2. /landing to / redirect (Consolidate content at root)
   if (url.pathname === "/landing") {
