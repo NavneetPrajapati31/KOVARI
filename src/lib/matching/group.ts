@@ -183,10 +183,12 @@ const distanceDecayScore = (distanceKm: number, maxKm: number): number => {
  * Groups are expected to already be distance-filtered; no redundant filter.
  * Uses pre-computed user Sets for Jaccard and distance decay for proximity boost.
  */
-export const findGroupMatchesForUser = (
+export const findGroupMatchesForUser = async (
   user: UserProfile,
   allGroups: GroupProfile[],
   maxDistanceKm: number = 200,
+  maxDistanceKm: number = 200,
+  useML: boolean = true
 ) => {
   // Pre-compute user sets once for Jaccard (avoids O(n) Set creations)
   const userLangSet = new Set(
@@ -206,6 +208,24 @@ export const findGroupMatchesForUser = (
     background: 0.05,
     distance: 0.1, // Proximity boost (industry standard: closer = better)
   };
+  // Step 1: Apply the hard distance filter. Only groups within maxDistanceKm are considered.
+  const nearbyGroups = allGroups.filter((group) =>
+    isWithinDistance(user.destination, group.destination, maxDistanceKm)
+  );
+
+  // Step 2: Calculate a comprehensive, weighted score for every nearby group.
+  const scoredMatches = await Promise.all(
+    nearbyGroups.map(async (group) => {
+    // Define the importance of each attribute in the final score. Total must be 1.0.
+    const weights = {
+      budget: 0.2,
+      dateOverlap: 0.2,
+      interests: 0.15,
+      age: 0.15,
+      language: 0.1,
+      lifestyle: 0.1, // Smoking & Drinking
+      background: 0.1, // Profession & Nationality
+    };
 
   const scoredMatches = allGroups.map((group) => {
     const budgetScore = calculateBudgetScore(user.budget, group.averageBudget);
@@ -234,6 +254,8 @@ export const findGroupMatchesForUser = (
         : 1; // No distance info: neutral
 
     const finalScore =
+    // --- Calculate the Final Weighted Score (Rule-based) ---
+    const ruleBasedScore =
       budgetScore * weights.budget +
       dateOverlapScore * weights.dateOverlap +
       interestScore * weights.interests +
@@ -243,9 +265,60 @@ export const findGroupMatchesForUser = (
       backgroundScore * weights.background +
       distanceScore * weights.distance;
 
+    // Try ML scoring if enabled
+    let finalScore = ruleBasedScore;
+    let mlScore: number | undefined;
+
+    if (useML) {
+      try {
+        const { calculateMLGroupCompatibilityScore } = await import("../ai/matching/ml-scoring");
+        const mlResult = await calculateMLGroupCompatibilityScore(
+          {
+            destination: user.destination,
+            startDate: user.startDate,
+            endDate: user.endDate,
+            budget: user.budget,
+            age: user.age,
+            interests: user.interests,
+            languages: user.languages,
+            smoking: user.smoking ? "yes" : "no",
+            drinking: user.drinking ? "yes" : "no",
+            nationality: user.nationality,
+          },
+          {
+            destination: group.destination,
+            startDate: group.startDate,
+            endDate: group.endDate,
+            averageBudget: group.averageBudget,
+            averageAge: group.averageAge,
+            topInterests: group.topInterests,
+            dominantLanguages: group.dominantLanguages,
+            smokingPolicy: group.smokingPolicy,
+            drinkingPolicy: group.drinkingPolicy,
+            dominantNationalities: group.dominantNationalities,
+          },
+          {
+            enabled: true,
+            fallbackOnError: true,
+          }
+        );
+
+        if (mlResult !== null) {
+          mlScore = mlResult;
+          // Blend ML score with rule-based score (70% ML, 30% rule-based)
+          finalScore = mlResult * 0.7 + ruleBasedScore * 0.3;
+        }
+      } catch (error) {
+        // Silently fall back to rule-based scoring
+        console.debug("ML group scoring unavailable, using rule-based:", error);
+      }
+    }
+
     return {
       group,
       score: Math.round(finalScore * 1000) / 1000,
+      score: parseFloat(finalScore.toFixed(3)),
+      mlScore: mlScore ? parseFloat(mlScore.toFixed(3)) : undefined,
       breakdown: {
         budget: Math.round(budgetScore * 1000) / 1000,
         dates: Math.round(dateOverlapScore * 1000) / 1000,
@@ -253,7 +326,8 @@ export const findGroupMatchesForUser = (
         age: Math.round(ageScore * 1000) / 1000,
       },
     };
-  });
+  })
+  );
 
   // Single-pass sort: highest score first
   scoredMatches.sort((a, b) => b.score - a.score);

@@ -1,0 +1,62 @@
+[
+  {
+    "testNumber": 1,
+    "user": "user_2yjB4MN3UBKy4Hz",
+    "match": "user_2zghYyxAutjzjAG",
+    "userDestination": "Mumbai, MH, India",
+    "matchDestination": "Mumbai, MH, India",
+    "userDates": "2026-02-18 to 2026-02-22",
+    "matchDates": "2026-02-16 to 2026-02-20",
+    "ruleBasedScore": "0.725",
+    "mlScore": "N/A",
+    "blendedScore": "0.725",
+    "difference": "0.000",
+    "percentChange": "0.0",
+    "mlAvailable": false
+  },
+  {
+    "testNumber": 1,
+    "user": "user_2yjB4MN3UBKy4Hz",
+    "match": "user_36Z05CDtB7mzL7r",
+    "userDestination": "Mumbai, MH, India",
+    "matchDestination": "Mumbai, MH, India",
+    "userDates": "2026-02-18 to 2026-02-22",
+    "matchDates": "2026-02-16 to 2026-02-20",
+    "ruleBasedScore": "0.805",
+    "mlScore": "N/A",
+    "blendedScore": "0.805",
+    "difference": "0.000",
+    "percentChange": "0.0",
+    "mlAvailable": false
+  },
+  {
+    "testNumber": 2,
+    "user": "user_2zghYyxAutjzjAG",
+    "match": "user_2yjB4MN3UBKy4Hz",
+    "userDestination": "Mumbai, MH, India",
+    "matchDestination": "Mumbai, MH, India",
+    "userDates": "2026-02-16 to 2026-02-20",
+    "matchDates": "2026-02-18 to 2026-02-22",
+    "ruleBasedScore": "0.725",
+    "mlScore": "N/A",
+    "blendedScore": "0.725",
+    "difference": "0.000",
+    "percentChange": "0.0",
+    "mlAvailable": false
+  },
+  {
+    "testNumber": 2,
+    "user": "user_2zghYyxAutjzjAG",
+    "match": "user_36Z05CDtB7mzL7r",
+    "userDestination": "Mumbai, MH, India",
+    "matchDestination": "Mumbai, MH, India",
+    "userDates": "2026-02-16 to 2026-02-20",
+    "matchDates": "2026-02-16 to 2026-02-20",
+    "ruleBasedScore": "0.745",
+    "mlScore": "N/A",
+    "blendedScore": "0.745",
+    "difference": "0.000",
+    "percentChange": "0.0",
+    "mlAvailable": false
+  }
+]

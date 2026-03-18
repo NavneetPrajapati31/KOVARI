@@ -1,12 +1,14 @@
 "use client";
 
-import { createBrowserClient } from "@supabase/ssr";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useCallback } from "react";
 
-// This assumes you already have a Supabase client setup in /lib/supabase.ts
+/**
+ * Hook to sync Clerk user to Supabase
+ * Uses server-side API endpoint to bypass RLS policies
+ */
 export function useSyncUserToSupabase() {
-  const { getToken, userId } = useAuth();
+  const { userId } = useAuth();
   const { user } = useUser();
 
   const syncUser = useCallback(
@@ -92,6 +94,19 @@ export function useSyncUserToSupabase() {
           //   details: (fetchError as any).details,
           //   hint: (fetchError as any).hint,
           // });
+        // Use server-side API endpoint to sync user (bypasses RLS)
+        // This is more secure and reliable than direct client-side inserts
+        const syncResponse = await fetch("/api/users/sync", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ clerkUserId: userId }),
+        });
+
+        if (!syncResponse.ok) {
+          const errorData = await syncResponse.json().catch(() => ({}));
+          console.warn("Failed to sync user to Supabase:", errorData.error || syncResponse.statusText);
           if (retries > 0) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             return syncUser(retries - 1);
@@ -129,12 +144,21 @@ export function useSyncUserToSupabase() {
             return false;
           }
           userIdInSupabase = newUser.id;
+        const syncResult = await syncResponse.json();
+        if (!syncResult.success || !syncResult.userId) {
+          console.warn("User sync returned invalid result:", syncResult);
+          if (retries > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            return syncUser(retries - 1);
+          }
+          return false;
         }
 
         if (!userIdInSupabase) {
           // console.error("User ID in Supabase is undefined after sync.");
           return false;
         }
+        const userIdInSupabase = syncResult.userId;
 
         // Mark as synced for the session
         try {
@@ -155,6 +179,7 @@ export function useSyncUserToSupabase() {
       }
     },
     [userId, user, getToken],
+    [userId, user]
   );
 
   return { syncUser };

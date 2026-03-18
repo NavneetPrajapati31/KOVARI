@@ -584,11 +584,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Use the group matching algorithm to get scored matches
-    const matches = findGroupMatchesForUser(
+    // Use the group matching algorithm to get scored matches (with ML scoring)
+    const matches = await findGroupMatchesForUser(
       userProfile,
       filteredGroupProfiles,
       presetConfig.maxDistanceKm,
+      groupProfiles,
+      presetConfig.maxDistanceKm,
+      true // Enable ML scoring
     );
     log("Matching algorithm completed", {
       matchCount: matches.length,

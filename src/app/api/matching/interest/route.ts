@@ -3,6 +3,10 @@ import { createAdminSupabaseClient } from "@/lib/supabase-admin";
 import { auth } from "@clerk/nextjs/server";
 import { createNotification } from "@/lib/notifications/createNotification";
 import { NotificationType } from "@/shared/types/notifications";
+import { createClient } from "@supabase/supabase-js";
+import { logMatchEvent, createMatchEventLog } from "@/lib/ai/logging/logMatchEvent";
+import { extractFeaturesForSoloMatch } from "@/lib/ai/logging/extract-features-for-logging";
+import { getSetting } from "@/lib/settings";
 
 export async function POST(request: Request) {
   try {
@@ -171,6 +175,49 @@ export async function POST(request: Request) {
       destinationId,
       destinationIdType: typeof destinationId,
     });
+
+    // Log ML event for interest creation (positive engagement)
+    try {
+      // Get Clerk IDs for both users
+      const { data: fromUser } = await supabaseAdmin
+        .from("users")
+        .select("clerk_user_id")
+        .eq("id", fromUuid)
+        .single();
+      
+      const { data: toUser } = await supabaseAdmin
+        .from("users")
+        .select("clerk_user_id")
+        .eq("id", toUuid)
+        .single();
+
+      if (fromUser?.clerk_user_id && toUser?.clerk_user_id) {
+        // Get matching preset for logging
+        const presetSetting = await getSetting("matching_preset");
+        const presetMode = (presetSetting as { mode: string } | null)?.mode || "balanced";
+
+        const features = await extractFeaturesForSoloMatch(
+          fromUser.clerk_user_id, // Current user (showing interest)
+          toUser.clerk_user_id,    // Target user
+          destinationId
+        );
+
+        if (features) {
+          // Log as "accept" since showing interest is positive engagement
+          logMatchEvent(
+            createMatchEventLog(
+              "user_user",
+              features,
+              "accept",
+              presetMode.toLowerCase()
+            )
+          );
+        }
+      }
+    } catch (logError) {
+      // Don't fail the interest creation if logging fails
+      console.error("Error logging interest event:", logError);
+    }
 
     if (reverse) {
       console.log(
