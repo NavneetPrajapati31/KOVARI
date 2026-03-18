@@ -132,9 +132,12 @@ export default function App({
 
   // MVP/Waitlist phase navigation - simplified for launch
   const navigationItems = [
-    { name: "How It Works", href: "#how-it-works", icon: MessageCircle },
-    { name: "Features", href: "#features", icon: Compass },
-    { name: "Safety", href: "#safety", icon: Shield },
+    { name: "About", href: "/about", icon: MessageCircle },
+    { name: "Safety & Trust", href: "/user-safety", icon: Shield },
+    { name: "Privacy Policy", href: "/privacy", icon: Compass },
+    { name: "Terms of Service", href: "/terms", icon: Shield },
+    { name: "Data Deletion", href: "/data-deletion", icon: Shield },
+    { name: "Community Guidelines", href: "/community-guidelines", icon: Shield },
   ];
 
   const menuItems = [
