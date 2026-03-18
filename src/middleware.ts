@@ -22,6 +22,8 @@ const isWaitlistPublicPath = createRouteMatcher([
   "/pricing",
   "/about",
   "/about-us",
+  "/user-safety",
+  "/community-guidelines",
   "/privacy",
   "/terms",
   "/data-deletion",
@@ -60,6 +62,21 @@ async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
 }
 
 export default clerkMiddleware(async (auth, req) => {
+  const url = req.nextUrl.clone();
+  const host = req.headers.get("host");
+
+  // 1. WWW to non-WWW redirect (Normalize domain)
+  if (host === "www.kovari.in") {
+    url.host = "kovari.in";
+    return NextResponse.redirect(url, 301);
+  }
+
+  // 2. /landing to / redirect (Consolidate content at root)
+  if (url.pathname === "/landing") {
+    url.pathname = "/";
+    return NextResponse.redirect(url, 301);
+  }
+
   // Allow access to the banned page to prevent redirect loops
   if (isBannedPage(req)) {
     return NextResponse.next();
@@ -101,7 +118,7 @@ export default clerkMiddleware(async (auth, req) => {
       );
     }
 
-    return NextResponse.redirect(new URL("/landing", req.url));
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   const { userId, sessionId } = await auth();

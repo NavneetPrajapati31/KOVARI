@@ -1,16 +1,17 @@
 import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.kovari.in";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://kovari.in";
 
-  // You can fetch dynamic routes here (e.g., public groups, blog posts)
-  // For now, these are the static routes important for SEO
+  // Public routes important for SEO
   const routes = [
     "",
     "/about",
-    "/terms",
+    "/user-safety",
+    "/community-guidelines",
     "/privacy",
-    "/landing",
+    "/terms",
+    "/data-deletion",
     "/sign-in",
     "/sign-up",
   ].map((route) => ({

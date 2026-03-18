@@ -35,7 +35,7 @@ export default function HomePage() {
       },
       (span) => {
         span.setAttribute("page", "landing");
-        span.setAttribute("path", "/landing");
+        span.setAttribute("path", "/");
       }
     );
   }, []);
