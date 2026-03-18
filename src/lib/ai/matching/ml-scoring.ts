@@ -55,7 +55,8 @@ async function processPredictionQueue() {
   while (predictionQueue.length > 0) {
     const { resolve, features, options } = predictionQueue.shift()!;
     try {
-      const result = await executeMLPrediction(features, options);
+      // Direct call to spawn since it's already in the serial queue
+      const result = await executeMLPredictionSpawn(features, options);
       resolve(result);
     } catch (error) {
       resolve({
@@ -101,7 +102,7 @@ async function executeMLPredictionHttp(
         features: featuresPayload,
         model_dir: modelDir,
       }),
-      signal: AbortSignal.timeout(5000), // 5 second timeout
+      signal: AbortSignal.timeout(2000), // 2 second timeout for localhost API
     });
 
     if (!response.ok) {
@@ -172,10 +173,10 @@ export async function executeMLPredictionBatch(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.warn(`⚠️  ML batch HTTP prediction failed: ${errorMessage}`);
-    // Fallback to individual predictions
-    console.log("🔄 Falling back to individual predictions...");
+    // Fallback to individual predictions using the queue-safe predictML
+    console.log("🔄 Falling back to individual queue-safe predictions...");
     const results = await Promise.all(
-      featuresList.map(features => executeMLPredictionHttp(features, options))
+      featuresList.map(features => predictML(features, options))
     );
     return results;
   }
@@ -354,12 +355,11 @@ async function executeMLPredictionSpawn(
         }
       });
 
-      // Timeout after 25 seconds (increased to allow for model loading + prediction)
-      // Model load: ~8-12s, Prediction: <0.1s, Buffer: 13s
+      // Timeout after 15 seconds (reduced for better UX)
       const timeout = setTimeout(() => {
         if (!resolved && !pythonProcess.killed) {
           resolved = true;
-          console.warn("⚠️  ML prediction timeout, killing process...");
+          console.warn("⚠️  ML prediction timeout (15s), killing process...");
           pythonProcess.kill("SIGTERM");
           // Give it a moment to clean up
           setTimeout(() => {
@@ -369,10 +369,10 @@ async function executeMLPredictionSpawn(
           }, 1000);
           resolve({
             success: false,
-            error: "Prediction timeout (25s)",
+            error: "Prediction timeout (15s)",
           });
         }
-      }, 25000);
+      }, 15000);
 
       // Clear timeout if process completes
       pythonProcess.on("close", () => {
@@ -400,46 +400,31 @@ async function executeMLPrediction(
   const { useHttpApi = true, enabled = true } = options;
 
   if (!enabled) {
-    return {
-      success: false,
-      error: "ML scoring is disabled",
-    };
+    return { success: false, error: "ML scoring is disabled" };
   }
 
-  // Try HTTP API first (FastAPI server - much faster)
+  // 1. Try HTTP API first (FastAPI server - much faster)
   if (useHttpApi) {
     const httpResult = await executeMLPredictionHttp(features, options);
-    if (httpResult.success) {
-      return httpResult;
-    }
-    // If HTTP fails, fall back to spawn
-    console.warn("⚠️  HTTP ML prediction failed, falling back to spawn process");
+    if (httpResult.success) return httpResult;
+    console.warn("⚠️ HTTP ML prediction failed, falling back to spawn queue");
   }
 
-  // Fallback to spawn process (slower but more reliable)
-  return executeMLPredictionSpawn(features, options);
+  // 2. Use the serial queue for Python spawn to prevent parallel timeout/reload issues
+  return new Promise<MLPredictionResult>((resolve, reject) => {
+    predictionQueue.push({ resolve, reject, features, options });
+    processPredictionQueue();
+  });
 }
 
 /**
- * Make ML prediction using Python service (queued to prevent timeouts)
+ * Make ML prediction (entry point)
  */
 async function predictML(
   features: CompatibilityFeatures,
   options: MLScoringOptions = {}
 ): Promise<MLPredictionResult> {
-  const { useHttpApi = true } = options;
-  
-  // If using HTTP API, no need to queue (server handles concurrency)
-  if (useHttpApi) {
-    return executeMLPredictionHttp(features, options);
-  }
-
-  // Queue predictions to serialize them and prevent parallel timeouts (spawn mode only)
-  // Model loading takes ~8-12s, so parallel processes all timeout
-  return new Promise<MLPredictionResult>((resolve, reject) => {
-    predictionQueue.push({ resolve, reject, features, options });
-    processPredictionQueue();
-  });
+  return executeMLPrediction(features, options);
 }
 
 /**
@@ -696,5 +681,72 @@ export async function isMLModelAvailable(
     }
   } catch {
     return false;
+  }
+}
+
+/**
+ * Calculate ML-enhanced compatibility scores for multiple group matches (BATCH)
+ */
+export async function calculateMLGroupCompatibilityScoresBatch(
+  userProfile: {
+    destination: { lat: number; lon: number };
+    startDate: string;
+    endDate: string;
+    budget: number;
+    age: number;
+    interests?: string[];
+    languages?: string[];
+    smoking?: string;
+    drinking?: string;
+    nationality?: string;
+  },
+  groupProfiles: any[],
+  options: MLScoringOptions = {}
+): Promise<Map<string, number | null>> {
+  const results = new Map<string, number | null>();
+  if (groupProfiles.length === 0) return results;
+
+  try {
+    const featuresList: CompatibilityFeatures[] = groupProfiles.map(gp => extractCompatibilityFeatures(
+      "user_group",
+      {
+        destination: userProfile.destination,
+        startDate: userProfile.startDate,
+        endDate: userProfile.endDate,
+        budget: userProfile.budget,
+        static_attributes: {
+          age: userProfile.age,
+          interests: userProfile.interests,
+          smoking: userProfile.smoking,
+          drinking: userProfile.drinking,
+        },
+      },
+      {
+        destination: gp.destination,
+        startDate: gp.startDate,
+        endDate: gp.endDate,
+        averageBudget: gp.averageBudget,
+        averageAge: gp.averageAge,
+        topInterests: gp.topInterests,
+        dominantLanguages: gp.dominantLanguages,
+        smokingPolicy: gp.smokingPolicy,
+        drinkingPolicy: gp.drinkingPolicy,
+        dominantNationalities: gp.dominantNationalities,
+        size: gp.size,
+      }
+    ));
+
+    console.log(`🔍 Calling ML batch prediction for ${featuresList.length} groups...`);
+    const batchResults = await executeMLPredictionBatch(featuresList, options);
+
+    for (let i = 0; i < groupProfiles.length; i++) {
+      const gid = groupProfiles[i].groupId;
+      const prediction = batchResults[i];
+      results.set(gid, (prediction?.success && prediction.score !== undefined) ? prediction.score : null);
+    }
+    return results;
+  } catch (error) {
+    console.warn("⚠️  Error in batch group ML scoring:", error);
+    return results;
   }
 }

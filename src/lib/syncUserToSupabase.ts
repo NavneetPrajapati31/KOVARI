@@ -8,17 +8,16 @@ import { useCallback } from "react";
  * Uses server-side API endpoint to bypass RLS policies
  */
 export function useSyncUserToSupabase() {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const { user } = useUser();
 
   const syncUser = useCallback(
     async (retries = 3): Promise<boolean> => {
       if (!userId || !user) {
-        // console.warn("Clerk user not found");
         return false;
       }
 
-      // Per-session guard to avoid re-sync loops on re-renders/navigation
+      // Per-session guard to avoid re-sync loops
       const storageKey = `supabase-sync:${userId}`;
       try {
         if (
@@ -32,145 +31,34 @@ export function useSyncUserToSupabase() {
       try {
         const debugPrefix = "[syncUserToSupabase]";
 
-        // Prefer server-side sync using the Service Role key (bypasses RLS safely).
-        // This avoids requiring INSERT policies on the public.users mapping table.
-        try {
-          const syncRes = await fetch("/api/supabase/sync-user", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          });
+        // Primary: Server-side sync using the Service Role key
+        const syncRes = await fetch("/api/supabase/sync-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
 
-          if (syncRes.ok) {
-            // Mark as synced for the session
+        if (syncRes.ok) {
+          const syncResult = await syncRes.json();
+          if (syncResult.success) {
             try {
               if (typeof window !== "undefined") {
                 sessionStorage.setItem(storageKey, "1");
               }
             } catch {}
-
             return true;
           }
-
-          const body = await syncRes.json().catch(() => null);
-          // console.warn(`${debugPrefix} Server sync failed`, {
-          //   status: syncRes.status,
-          //   body,
-          // });
-        } catch (e) {
-          // console.warn(`${debugPrefix} Server sync threw`, e);
         }
 
-        // IMPORTANT: Use the Supabase JWT template so the token includes
-        // `role: "authenticated"` and is signed for Supabase verification.
-        const token = await getToken({ template: "supabase" });
-        if (!token) {
-          // console.warn(`${debugPrefix} Missing supabase token`, { userId });
+        // Fallback or retry
+        if (retries > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return syncUser(retries - 1);
         }
 
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            global: {
-              headers: {
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-            },
-          },
-        );
-
-        // Try to get the user to check if they exist
-        const { data: existingUser, error: fetchError } = await supabase
-          .from("users")
-          .select('id, "isDeleted"')
-          .eq("clerk_user_id", userId)
-          .maybeSingle();
-
-        // If fetchError is not a "no rows" error, log and retry
-        if (fetchError && fetchError.code !== "PGRST116") {
-          // console.error(`${debugPrefix} Error checking user existence`, {
-          //   code: fetchError.code,
-          //   message: fetchError.message,
-          //   details: (fetchError as any).details,
-          //   hint: (fetchError as any).hint,
-          // });
-        // Use server-side API endpoint to sync user (bypasses RLS)
-        // This is more secure and reliable than direct client-side inserts
-        const syncResponse = await fetch("/api/users/sync", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ clerkUserId: userId }),
-        });
-
-        if (!syncResponse.ok) {
-          const errorData = await syncResponse.json().catch(() => ({}));
-          console.warn("Failed to sync user to Supabase:", errorData.error || syncResponse.statusText);
-          if (retries > 0) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            return syncUser(retries - 1);
-          }
-          return false;
-        }
-
-        // If user exists but is soft-deleted in our DB, block access.
-        // This ensures deleted users cannot continue using the app even if they still have a stale session.
-        if (existingUser && (existingUser as any).isDeleted === true) {
-          console.warn("User is soft-deleted in DB; blocking sync:", userId);
-          return false;
-        }
-
-        // If user doesn't exist (either fetchError is "no rows" or data is null), try to create
-        let userIdInSupabase = existingUser?.id;
-        if (!existingUser) {
-          const { data: newUser, error: insertError } = await supabase
-            .from("users")
-            .insert({ clerk_user_id: userId })
-            .select("id")
-            .maybeSingle();
-
-          if (insertError || !newUser) {
-            // console.error(`${debugPrefix} Failed to create user in Supabase`, {
-            //   code: insertError?.code,
-            //   message: insertError?.message,
-            //   details: (insertError as any)?.details,
-            //   hint: (insertError as any)?.hint,
-            // });
-            if (retries > 0) {
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              return syncUser(retries - 1);
-            }
-            return false;
-          }
-          userIdInSupabase = newUser.id;
-        const syncResult = await syncResponse.json();
-        if (!syncResult.success || !syncResult.userId) {
-          console.warn("User sync returned invalid result:", syncResult);
-          if (retries > 0) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            return syncUser(retries - 1);
-          }
-          return false;
-        }
-
-        if (!userIdInSupabase) {
-          // console.error("User ID in Supabase is undefined after sync.");
-          return false;
-        }
-        const userIdInSupabase = syncResult.userId;
-
-        // Mark as synced for the session
-        try {
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem(storageKey, "1");
-          }
-        } catch {}
-
-        // console.log("✅ User synced to Supabase successfully");
-        return true;
+        console.warn(`${debugPrefix} Sync failed after retries`);
+        return false;
       } catch (error) {
-        // console.error("[syncUserToSupabase] Error in syncUser:", error);
+        console.error("[syncUserToSupabase] Error in syncUser:", error);
         if (retries > 0) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           return syncUser(retries - 1);
@@ -178,9 +66,9 @@ export function useSyncUserToSupabase() {
         return false;
       }
     },
-    [userId, user, getToken],
-    [userId, user]
+    [userId, user, getToken]
   );
 
   return { syncUser };
 }
+

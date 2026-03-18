@@ -8,7 +8,7 @@ interface Location {
   lon: number;
 }
 
-interface UserProfile {
+export interface UserProfile {
   userId: string;
   destination: Location;
   budget: number;
@@ -22,7 +22,7 @@ interface UserProfile {
   nationality: string;
 }
 
-interface GroupProfile {
+export interface GroupProfile {
   groupId: string;
   name: string;
   destination: Location;
@@ -67,12 +67,9 @@ const calculateBudgetScore = (
   userBudget: number,
   groupAverageBudget: number,
 ): number => {
-  // If the group is within (or cheaper than) the user's budget, it's a perfect match.
   if (groupAverageBudget <= userBudget) return 1.0;
-
   const budgetDifference = groupAverageBudget - userBudget;
-  // Score decreases as the group gets more expensive than the user's budget.
-  // It reaches 0 if the difference is 40k or more.
+  // Score reaches 0 if the difference is 40k or more.
   return Math.max(0, 1 - budgetDifference / 40000);
 };
 
@@ -95,29 +92,25 @@ const calculateDateOverlapScore = (
 
   if (overlapStart > overlapEnd) return 0;
 
-  const overlapDuration =
-    (overlapEnd - overlapStart) / (1000 * 60 * 60 * 24) + 1;
+  const overlapDuration = (overlapEnd - overlapStart) / (1000 * 60 * 60 * 24) + 1;
   const userTripDuration = (uEnd - uStart) / (1000 * 60 * 60 * 24) + 1;
 
   return Math.min(1, overlapDuration / userTripDuration);
 };
 
 /**
- * SCORE: Calculates age similarity score. MVP: neutral when group has no average_age.
+ * SCORE: Calculates age similarity score.
  */
-const calculateAgeScore = (
-  userAge: number,
-  groupAverageAge: number,
-): number => {
-  if (!groupAverageAge) return 0.5; // No age data: neutral, don't penalize
+const calculateAgeScore = (userAge: number, groupAverageAge: number): number => {
+  if (!groupAverageAge) return 0.5;
   const ageDifference = Math.abs(userAge - groupAverageAge);
   return Math.max(0, 1 - ageDifference / 20);
 };
 
-/** Jaccard similarity using pre-computed Sets. Empty signals => neutral 0.5 (MVP: avoid penalizing sparse data) */
+/** Jaccard similarity using pre-computed Sets. */
 const jaccardFromSets = (setA: Set<string>, setB: Set<string>): number => {
-  if (setA.size === 0 && setB.size === 0) return 0.5; // Both empty: neutral, don't penalize
-  if (setA.size === 0 || setB.size === 0) return 0.5; // One empty: neutral (can't compute Jaccard meaningfully)
+  if (setA.size === 0 && setB.size === 0) return 0.5;
+  if (setA.size === 0 || setB.size === 0) return 0.5;
   let intersection = 0;
   const smaller = setA.size <= setB.size ? setA : setB;
   const larger = setA.size <= setB.size ? setB : setA;
@@ -160,8 +153,13 @@ const calculateBackgroundScore = (
   user: UserProfile,
   group: GroupProfile,
 ): number => {
-  if (!user.nationality || user.nationality === "Unknown" || user.nationality === "Any") return 0.5;
-  if (!group.dominantNationalities?.length) return 0.5; // No nationality data: neutral
+  if (
+    !user.nationality ||
+    user.nationality === "Unknown" ||
+    user.nationality === "Any"
+  )
+    return 0.5;
+  if (!group.dominantNationalities?.length) return 0.5;
   return group.dominantNationalities.some(
     (n) => n.toLowerCase() === user.nationality.toLowerCase(),
   )
@@ -169,7 +167,7 @@ const calculateBackgroundScore = (
     : 0.0;
 };
 
-/** Distance decay: closer groups get a small boost (0–1, higher = closer) */
+/** Distance decay boost */
 const distanceDecayScore = (distanceKm: number, maxKm: number): number => {
   if (distanceKm <= 0) return 1;
   if (distanceKm >= maxKm) return 0;
@@ -179,18 +177,17 @@ const distanceDecayScore = (distanceKm: number, maxKm: number): number => {
 // --- 3. CORE MATCHING FUNCTION ---
 
 /**
- * Finds the best group matches using weighted multi-factor scoring.
- * Groups are expected to already be distance-filtered; no redundant filter.
- * Uses pre-computed user Sets for Jaccard and distance decay for proximity boost.
+ * Finds the best group matches using weighted multi-factor scoring and ML.
  */
 export const findGroupMatchesForUser = async (
   user: UserProfile,
   allGroups: GroupProfile[],
   maxDistanceKm: number = 200,
-  maxDistanceKm: number = 200,
-  useML: boolean = true
+  /** @deprecated distance filtering should be done before calling this function */
+  _deprecatedMaxDistanceKm?: number,
+  useML: boolean = true,
 ) => {
-  // Pre-compute user sets once for Jaccard (avoids O(n) Set creations)
+  // Pre-compute user sets for efficiency
   const userLangSet = new Set(
     (user.languages || []).map((s) => s.toLowerCase().trim()).filter(Boolean),
   );
@@ -206,130 +203,103 @@ export const findGroupMatchesForUser = async (
     language: 0.1,
     lifestyle: 0.1,
     background: 0.05,
-    distance: 0.1, // Proximity boost (industry standard: closer = better)
+    distance: 0.1,
   };
-  // Step 1: Apply the hard distance filter. Only groups within maxDistanceKm are considered.
-  const nearbyGroups = allGroups.filter((group) =>
-    isWithinDistance(user.destination, group.destination, maxDistanceKm)
-  );
 
-  // Step 2: Calculate a comprehensive, weighted score for every nearby group.
-  const scoredMatches = await Promise.all(
-    nearbyGroups.map(async (group) => {
-    // Define the importance of each attribute in the final score. Total must be 1.0.
-    const weights = {
-      budget: 0.2,
-      dateOverlap: 0.2,
-      interests: 0.15,
-      age: 0.15,
-      language: 0.1,
-      lifestyle: 0.1, // Smoking & Drinking
-      background: 0.1, // Profession & Nationality
-    };
-
-  const scoredMatches = allGroups.map((group) => {
-    const budgetScore = calculateBudgetScore(user.budget, group.averageBudget);
-    const dateOverlapScore = calculateDateOverlapScore(
-      user.startDate,
-      user.endDate,
-      group.startDate,
-      group.endDate,
-    );
-    const groupInterestSet = new Set(
-      (group.topInterests || []).map((s) => String(s).toLowerCase().trim()),
-    );
-    const groupLangSet = new Set(
-      (group.dominantLanguages || []).map((s) =>
-        String(s).toLowerCase().trim(),
-      ),
-    );
-    const interestScore = jaccardFromSets(userInterestSet, groupInterestSet);
-    const ageScore = calculateAgeScore(user.age, group.averageAge);
-    const languageScore = jaccardFromSets(userLangSet, groupLangSet);
-    const lifestyleScore = calculateLifestyleScore(user, group);
-    const backgroundScore = calculateBackgroundScore(user, group);
-    const distanceScore =
-      group.distanceKm !== undefined
-        ? distanceDecayScore(group.distanceKm, maxDistanceKm)
-        : 1; // No distance info: neutral
-
-    const finalScore =
-    // --- Calculate the Final Weighted Score (Rule-based) ---
-    const ruleBasedScore =
-      budgetScore * weights.budget +
-      dateOverlapScore * weights.dateOverlap +
-      interestScore * weights.interests +
-      ageScore * weights.age +
-      languageScore * weights.language +
-      lifestyleScore * weights.lifestyle +
-      backgroundScore * weights.background +
-      distanceScore * weights.distance;
-
-    // Try ML scoring if enabled
-    let finalScore = ruleBasedScore;
-    let mlScore: number | undefined;
-
-    if (useML) {
-      try {
-        const { calculateMLGroupCompatibilityScore } = await import("../ai/matching/ml-scoring");
-        const mlResult = await calculateMLGroupCompatibilityScore(
-          {
-            destination: user.destination,
-            startDate: user.startDate,
-            endDate: user.endDate,
-            budget: user.budget,
-            age: user.age,
-            interests: user.interests,
-            languages: user.languages,
-            smoking: user.smoking ? "yes" : "no",
-            drinking: user.drinking ? "yes" : "no",
-            nationality: user.nationality,
-          },
-          {
-            destination: group.destination,
-            startDate: group.startDate,
-            endDate: group.endDate,
-            averageBudget: group.averageBudget,
-            averageAge: group.averageAge,
-            topInterests: group.topInterests,
-            dominantLanguages: group.dominantLanguages,
-            smokingPolicy: group.smokingPolicy,
-            drinkingPolicy: group.drinkingPolicy,
-            dominantNationalities: group.dominantNationalities,
-          },
-          {
-            enabled: true,
-            fallbackOnError: true,
-          }
-        );
-
-        if (mlResult !== null) {
-          mlScore = mlResult;
-          // Blend ML score with rule-based score (70% ML, 30% rule-based)
-          finalScore = mlResult * 0.7 + ruleBasedScore * 0.3;
-        }
-      } catch (error) {
-        // Silently fall back to rule-based scoring
-        console.debug("ML group scoring unavailable, using rule-based:", error);
-      }
+  let mlScores = new Map<string, number | null>();
+  if (useML && allGroups.length > 0) {
+    try {
+      const { calculateMLGroupCompatibilityScoresBatch } = await import("../ai/matching/ml-scoring");
+      mlScores = await calculateMLGroupCompatibilityScoresBatch(
+        {
+          destination: user.destination,
+          startDate: user.startDate,
+          endDate: user.endDate,
+          budget: user.budget,
+          age: user.age,
+          interests: user.interests,
+          languages: user.languages,
+          smoking: user.smoking ? "yes" : "no",
+          drinking: user.drinking ? "yes" : "no",
+          nationality: user.nationality,
+        },
+        allGroups,
+        { enabled: true, fallbackOnError: true }
+      );
+    } catch (error) {
+      console.debug("ML group batch scoring unavailable:", error);
     }
+  }
 
-    return {
-      group,
-      score: Math.round(finalScore * 1000) / 1000,
-      score: parseFloat(finalScore.toFixed(3)),
-      mlScore: mlScore ? parseFloat(mlScore.toFixed(3)) : undefined,
-      breakdown: {
-        budget: Math.round(budgetScore * 1000) / 1000,
-        dates: Math.round(dateOverlapScore * 1000) / 1000,
-        interests: Math.round(interestScore * 1000) / 1000,
-        age: Math.round(ageScore * 1000) / 1000,
-      },
-    };
-  })
+  const scoredMatches = await Promise.all(
+    allGroups.map(async (group) => {
+      const budgetScore = calculateBudgetScore(user.budget, group.averageBudget);
+      const dateOverlapScore = calculateDateOverlapScore(
+        user.startDate,
+        user.endDate,
+        group.startDate,
+        group.endDate,
+      );
+
+      const groupInterestSet = new Set(
+        (group.topInterests || []).map((s) => String(s).toLowerCase().trim()),
+      );
+      const groupLangSet = new Set(
+        (group.dominantLanguages || []).map((s) =>
+          String(s).toLowerCase().trim(),
+        ),
+      );
+
+      const interestScore = jaccardFromSets(userInterestSet, groupInterestSet);
+      const ageScore = calculateAgeScore(user.age, group.averageAge);
+      const languageScore = jaccardFromSets(userLangSet, groupLangSet);
+      const lifestyleScore = calculateLifestyleScore(user, group);
+      const backgroundScore = calculateBackgroundScore(user, group);
+      const distanceScore =
+        group.distanceKm !== undefined
+          ? distanceDecayScore(group.distanceKm, maxDistanceKm)
+          : 1;
+
+      const ruleBasedScore =
+        budgetScore * weights.budget +
+        dateOverlapScore * weights.dateOverlap +
+        interestScore * weights.interests +
+        ageScore * weights.age +
+        languageScore * weights.language +
+        lifestyleScore * weights.lifestyle +
+        backgroundScore * weights.background +
+        distanceScore * weights.distance;
+
+      let finalScore = ruleBasedScore;
+      const mlScore = mlScores.get(group.groupId) ?? null;
+
+      if (typeof mlScore === "number" && !isNaN(mlScore)) {
+        // Blend ML score (70%) with rule-based score (30%)
+        finalScore = mlScore * 0.7 + ruleBasedScore * 0.3;
+      } else {
+        // Fallback to 100% rule-based if ML failed
+        finalScore = ruleBasedScore;
+      }
+
+      // Final safety guard
+      if (isNaN(finalScore) || !isFinite(finalScore)) {
+        finalScore = ruleBasedScore || 0.5;
+      }
+
+      return {
+        group,
+        score: parseFloat(finalScore.toFixed(3)),
+        mlScore: mlScore !== null ? parseFloat(mlScore.toFixed(3)) : undefined,
+        breakdown: {
+          budget: parseFloat(budgetScore.toFixed(3)),
+          dates: parseFloat(dateOverlapScore.toFixed(3)),
+          interests: parseFloat(interestScore.toFixed(3)),
+          age: parseFloat(ageScore.toFixed(3)),
+        },
+      };
+    }),
   );
 
-  // Single-pass sort: highest score first
-  scoredMatches.sort((a, b) => b.score - a.score);
-  return scoredMatches;
+  return scoredMatches.sort((a, b) => b.score - a.score);
 };
+
