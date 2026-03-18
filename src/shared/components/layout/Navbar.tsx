@@ -251,9 +251,10 @@ export default function App({
       <Navbar
         height={"5rem"}
         onMenuOpenChange={setIsMenuOpen}
-        className="backdrop-blur-3xl border-border"
+        isBordered={false}
+        className={`transition-[backdrop-filter,background-color] duration-250 ease-in-out ${isSidebarOpen ? "bg-transparent backdrop-blur-none border-none shadow-none" : "bg-background border-none"}`}
         classNames={{
-          wrapper: "max-w-full px-6 sm:px-12",
+          wrapper: "max-w-full px-6 sm:px-12 bg-transparent",
         }}
       >
         {/* Navigation Links - hidden during waitlist launch for public users */}

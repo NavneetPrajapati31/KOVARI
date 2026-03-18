@@ -45,8 +45,8 @@ const MobileMenuOverlay: React.FC<MobileMenuOverlayProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.08 }}
-          className="font-sans fixed top-20 left-0 right-0 bottom-0 z-40 flex flex-col bg-transparent backdrop-blur-3xl backdrop-saturate-200"
+          transition={{ duration: 0.1 }}
+          className="font-sans fixed top-0 left-0 right-0 bottom-0 z-40 flex flex-col bg-white/[0.02] backdrop-blur-3xl"
           onClick={onClose}
         >
           {/* Inner container — stop click propagation so tapping nav links doesn't bubble */}
@@ -54,6 +54,8 @@ const MobileMenuOverlay: React.FC<MobileMenuOverlayProps> = ({
             className="flex flex-col h-full"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Spacer for Navbar */}
+            <div className="h-20 w-full shrink-0" />
             {/* Nav Links */}
             <nav className="flex-1 flex flex-col justify-center items-center px-6 gap-1 w-full">
               {menuItems.map((item) => (
