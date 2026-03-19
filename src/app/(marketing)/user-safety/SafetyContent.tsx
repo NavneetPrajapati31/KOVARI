@@ -28,7 +28,7 @@ export default function SafetyContent() {
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
           Safety & Trust
         </h1>
-        <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+        <p className="text-md md:text-lg text-muted-foreground leading-relaxed">
           Travel is better when you feel safe about the people you're with. Kovari helps you connect intentionally before your trip — with safety, clarity, and control built into the experience.
         </p>
       </section>
@@ -63,7 +63,7 @@ export default function SafetyContent() {
       {/* 3. TRANSPARENCY & RESPONSIBILITY (Subtle Card) */}
       <section className="group">
         <SectionTitle title="Transparency & Responsibility" />
-        <div className="bg-card rounded-xl p-6 border border-border/40 flex gap-5 items-start">
+        <div className="bg-card rounded-xl p-5 border border-border/40 flex gap-5 items-start">
           <div className="p-2.5 bg-primary/10 rounded-lg shrink-0">
             <Info className="w-5 h-5 text-primary" strokeWidth={1.5} />
           </div>
@@ -80,7 +80,7 @@ export default function SafetyContent() {
       <section className="space-y-12 md:space-y-16">
         <div>
           <SectionTitle title="Solo Travel Guidelines" />
-          <div className="bg-card rounded-xl p-6 border border-border/40">
+          <div className="bg-card rounded-xl p-5 border border-border/40">
             <ul className="space-y-4">
               <TipRow text="Share full itinerary with a trusted friend or family member" />
               <TipRow text="Research local emergency numbers and embassy locations" />
@@ -91,7 +91,7 @@ export default function SafetyContent() {
 
         <div>
           <SectionTitle title="Group Travel Guidelines" />
-          <div className="bg-card rounded-xl p-6 border border-border/40">
+          <div className="bg-card rounded-xl p-5 border border-border/40">
             <ul className="space-y-4">
               <TipRow text="Meet in a public space before departing on long trips" />
               <TipRow text="Discuss budgets, styles, and expectations clearly upfront" />
@@ -102,7 +102,7 @@ export default function SafetyContent() {
 
         <div>
           <SectionTitle title="Real-Life Meetings" />
-          <div className="bg-card rounded-xl p-6 border border-border/40">
+          <div className="bg-card rounded-xl p-5 border border-border/40">
             <ul className="space-y-4">
               <TipRow text="First meeting must be in a well-lit cafe or public place" />
               <TipRow text="Arrange your own independent transport to and from meetings" />
@@ -123,7 +123,7 @@ export default function SafetyContent() {
               { icon: Shield, title: "3. Action Taken", desc: "Violators face warnings, content removal, or permanent bans." },
               { icon: CheckCircle2, title: "4. Resolution", desc: "You are notified of the outcome via your registered email." },
             ].map((step, idx) => (
-              <div key={idx} className="flex gap-5 items-center p-6 bg-card">
+              <div key={idx} className="flex gap-5 items-center p-5 bg-card">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-lg text-foreground font-medium">{step.title}</h3>
                   <p className="text-base md:text-lg text-muted-foreground">{step.desc}</p>
@@ -146,14 +146,14 @@ export default function SafetyContent() {
       <section className="group">
         <SectionTitle title="Emergency Contact" />
         <div className="bg-card rounded-xl overflow-hidden border border-border/40">
-          <div className="p-6 border-b border-border/40">
+          <div className="p-5 border-b border-border/40">
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
               If in immediate danger, contact local authorities immediately. These numbers are for India.
             </p>
           </div>
           
           <div className="divide-y divide-border/40">
-            <a href="tel:112" className="flex items-center justify-between p-6 hover:bg-secondary/40 transition-colors duration-150">
+            <a href="tel:112" className="flex items-center justify-between p-5 hover:bg-secondary/40 transition-colors duration-150">
               <div className="flex flex-col gap-1">
                 <h4 className="text-lg text-foreground font-medium">National Emergency</h4>
                 <p className="text-xl font-bold text-destructive">112</p>
@@ -161,7 +161,7 @@ export default function SafetyContent() {
               <PhoneCall className="w-5 h-5 text-destructive" strokeWidth={2} />
             </a>
 
-            <a href="tel:1091" className="flex items-center justify-between p-6 hover:bg-secondary/40 transition-colors duration-150">
+            <a href="tel:1091" className="flex items-center justify-between p-5 hover:bg-secondary/40 transition-colors duration-150">
               <div className="flex flex-col gap-1">
                 <h4 className="text-lg text-foreground font-medium">Women Helpline</h4>
                 <p className="text-xl font-bold text-destructive">1091</p>
@@ -205,7 +205,7 @@ function SectionTitle({ title, rightLabel }: { title: string, rightLabel?: strin
 
 function ListRow({ icon: Icon, iconBg, label, description }: { icon: any, iconBg?: string, label: string, description: string }) {
   return (
-    <div className="w-full flex items-start gap-5 p-6 bg-card">
+    <div className="w-full flex items-start gap-5 p-5 bg-card">
       <div className={cn("p-2 rounded-lg shrink-0 mt-0.5 bg-muted/30", iconBg || "text-foreground")}>
         <Icon className="w-5 h-5" strokeWidth={1.5} />
       </div>
@@ -220,7 +220,7 @@ function ListRow({ icon: Icon, iconBg, label, description }: { icon: any, iconBg
 function TipRow({ text }: { text: string }) {
   return (
     <li className="flex items-start gap-4">
-      <div className="mt-2.5 w-2 h-2 bg-primary/40 rounded-full flex-shrink-0" />
+      <div className="mt-2.5 w-2 h-2 bg-muted rounded-full flex-shrink-0" />
       <span className="text-base md:text-lg text-muted-foreground leading-relaxed">{text}</span>
     </li>
   );
