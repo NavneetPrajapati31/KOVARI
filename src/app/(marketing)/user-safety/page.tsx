@@ -26,7 +26,7 @@ export default function SafetyPage() {
   return (
     <>
       <div className="min-h-screen bg-background pt-16 md:pt-24 pb-12 md:pb-16 font-sans selection:bg-muted-foreground/20">
-        <div className="container mx-auto px-8 max-w-6xl">
+        <div className="container mx-auto px-6 md:px-8 max-w-6xl">
           <SafetyContent />
         </div>
       </div>

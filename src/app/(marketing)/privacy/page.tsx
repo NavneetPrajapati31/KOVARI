@@ -13,7 +13,7 @@ export default function PrivacyPage() {
   return (
     <>
       <div className="min-h-screen bg-background pt-16 md:pt-24 pb-12 md:pb-16 font-sans selection:bg-muted-foreground/20">
-        <div className="container mx-auto px-8 max-w-6xl">
+        <div className="container mx-auto px-6 md:px-8 max-w-6xl">
           {/* Header */}
           <div className="mb-12 md:mb-16">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4 md:mb-6">

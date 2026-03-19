@@ -257,7 +257,7 @@ export default function App({
         isBordered={false}
         className={`transition-[backdrop-filter,background-color] duration-250 ease-in-out ${isSidebarOpen ? "bg-transparent backdrop-blur-none border-none shadow-none" : "bg-background border-none"}`}
         classNames={{
-          wrapper: "max-w-full px-6 sm:px-12 bg-transparent",
+          wrapper: "max-w-full px-6 md:px-8 xl:px-12 bg-transparent",
         }}
       >
         {/* Navigation Links - hidden during waitlist launch for public users */}
