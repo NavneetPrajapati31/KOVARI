@@ -373,7 +373,7 @@ export default function SafetyPage() {
              <div className="flex items-center gap-1.5">
                <Eye className="w-3.5 h-3.5 opacity-60" strokeWidth={1.5} /> Reviewed
              </div>
-             <div className="w-1 h-1 rounded-full bg-border/60" />
+             <div className="w-1 h-1 rounded-full bg-muted" />
              <div className="flex items-center gap-1.5">
                <Lock className="w-3.5 h-3.5 opacity-60" strokeWidth={1.5} /> Encrypted
              </div>

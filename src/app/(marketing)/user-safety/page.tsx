@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import SafetyContent from "./SafetyContent";
+import Footer from "@/shared/components/landing/Footer";
 
 export const metadata: Metadata = {
   title: "Safety & Trust | KOVARI",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
     siteName: "KOVARI",
     images: [
       {
-        url: "/og-safety.png", // Assuming there might be an OG image or it falls back to a default
+        url: "/og-safety.png",
         width: 1200,
         height: 630,
       },
@@ -22,5 +23,14 @@ export const metadata: Metadata = {
 };
 
 export default function SafetyPage() {
-  return <SafetyContent />;
+  return (
+    <>
+      <div className="min-h-screen bg-background pt-16 md:pt-24 pb-12 md:pb-16 font-sans selection:bg-muted-foreground/20">
+        <div className="container mx-auto px-8 max-w-6xl">
+          <SafetyContent />
+        </div>
+      </div>
+      <Footer />
+    </>
+  );
 }
