@@ -84,53 +84,55 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex justify-around items-center h-14 md:hidden px-2 pb-safe">
-      {tabs.map((tab) => {
-        const active = tab.isActive(pathname);
-        const Icon = tab.icon;
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden pb-safe">
+      <div className="flex justify-around items-center h-14 px-2">
+        {tabs.map((tab) => {
+          const active = tab.isActive(pathname);
+          const Icon = tab.icon;
 
-        return (
-          <Link
-            key={tab.label}
-            href={tab.href}
-            className={cn(
-              "flex flex-col items-center justify-center w-full h-full space-y-1",
-              active ? "text-primary" : "text-foreground ",
-            )}
-          >
-            {tab.label === "Profile" ? (
-              <Avatar
-                className={cn(
-                  "h-6 w-6",
-                  active ? "ring-2 ring-primary ring-offset-2" : "ring-0",
-                )}
-              >
-                <AvatarImage
-                  src={profileAvatarSrc}
-                  alt={user?.fullName || "Profile"}
-                />
-                <UserAvatarFallback />
-              </Avatar>
-            ) : (
-              Icon && (
-                <Icon
+          return (
+            <Link
+              key={tab.label}
+              href={tab.href}
+              className={cn(
+                "flex flex-col items-center justify-center w-full h-full space-y-1",
+                active ? "text-primary" : "text-foreground ",
+              )}
+            >
+              {tab.label === "Profile" ? (
+                <Avatar
                   className={cn(
-                    "h-5 w-5",
-                    active
-                      ? tab.label === "Explore"
-                        ? "text-primary"
-                        : "text-primary fill-current"
-                      : "text-foreground",
+                    "h-6 w-6",
+                    active ? "ring-2 ring-primary ring-offset-2" : "ring-0",
                   )}
-                  strokeWidth={
-                    active && tab.label === "Explore" ? 3 : undefined
-                  }
-                />
-              )
-            )}
-          </Link>
-        );
-      })}
+                >
+                  <AvatarImage
+                    src={profileAvatarSrc}
+                    alt={user?.fullName || "Profile"}
+                  />
+                  <UserAvatarFallback />
+                </Avatar>
+              ) : (
+                Icon && (
+                  <Icon
+                    className={cn(
+                      "h-5 w-5",
+                      active
+                        ? tab.label === "Explore"
+                          ? "text-primary"
+                          : "text-primary fill-current"
+                        : "text-foreground",
+                    )}
+                    strokeWidth={
+                      active && tab.label === "Explore" ? 3 : undefined
+                    }
+                  />
+                )
+              )}
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
