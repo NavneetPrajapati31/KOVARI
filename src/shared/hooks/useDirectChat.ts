@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
-import { encryptMessage } from "@/shared/utils/encryption";
+import { encryptMessage, decryptMessage } from "@/shared/utils/encryption";
 import { v4 as uuidv4 } from "uuid";
 import { getSocket } from "@/lib/socket";
 import { getDirectChatId } from "@/shared/utils/chatId";
@@ -14,7 +14,7 @@ export interface DirectChatMessage {
   encryption_salt?: string;
   is_encrypted?: boolean;
   created_at: string;
-  status?: "sending" | "failed" | "sent";
+  status?: "sending" | "failed" | "sent" | "persisted";
   tempId?: string;
   plain_content?: string; // for optimistic UI
   client_id?: string;
@@ -59,11 +59,16 @@ export const useDirectChat = (
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [offset, setOffset] = useState(0);
 
+  const seenIdsRef = useRef(new Set<string>());
+
   // Shared secret for encryption
-  const sharedSecret =
-    currentUserUuid < partnerUuid
-      ? `${currentUserUuid}:${partnerUuid}`
-      : `${partnerUuid}:${currentUserUuid}`;
+  const sharedSecret = useMemo(
+    () =>
+      currentUserUuid < partnerUuid
+        ? `${currentUserUuid}:${partnerUuid}`
+        : `${partnerUuid}:${currentUserUuid}`,
+    [currentUserUuid, partnerUuid],
+  );
 
   // Fetch initial messages with sender profile information
   const fetchMessages = useCallback(
@@ -106,6 +111,13 @@ export const useDirectChat = (
 
           // Always reverse to chronological order (oldest at top)
           const chronologicalMessages = transformedMessages.reverse();
+
+          // Populate seenIdsRef with fetched message IDs
+          chronologicalMessages.forEach((msg: DirectChatMessage) => {
+            if (msg.id) seenIdsRef.current.add(msg.id);
+            if (msg.tempId) seenIdsRef.current.add(msg.tempId);
+            if (msg.client_id) seenIdsRef.current.add(msg.client_id);
+          });
 
           if (loadMore) {
             setMessages((prev) => {
@@ -191,6 +203,7 @@ export const useDirectChat = (
         mediaType,
       };
       setSending(true);
+      seenIdsRef.current.add(tempId); // Add tempId to seenIdsRef
       setMessages((prev) => [...prev, optimisticMsg]);
       try {
         let encrypted = { encryptedContent: "", iv: "", salt: "" };
@@ -208,7 +221,7 @@ export const useDirectChat = (
              socket.emit("send_message", {
                 chatId,
                 message: {
-                   id: tempId,
+                   id: tempId, // Use tempId as id for optimistic socket message
                    tempId,
                    senderId: currentUserUuid,
                    encryptedContent: isEncrypted ? encrypted.encryptedContent : "",
@@ -218,6 +231,12 @@ export const useDirectChat = (
                    mediaType: mediaType || undefined,
                    createdAt: new Date().toISOString(),
                    isEncrypted
+                }
+             }, (ack) => {
+                if (ack?.status === "sent") {
+                   // This ack is for the socket server receiving the message, not necessarily persisted
+                   // The message_persisted event will handle the final status update
+                   setMessages((prev) => prev.map((m) => m.tempId === tempId ? { ...m, status: "sent" } : m));
                 }
              });
              setSending(false);
@@ -267,7 +286,7 @@ export const useDirectChat = (
         setSending(false);
       }
     },
-    [currentUserUuid, partnerUuid, sharedSecret],
+    [currentUserUuid, partnerUuid, sharedSecret, user?.id],
   );
 
   // Add markMessagesRead function
@@ -309,26 +328,59 @@ export const useDirectChat = (
     const socket = getSocket(user.id);
     if (!socket.connected) socket.connect();
 
-    socket.emit("join_chat", { chatId });
+    const onConnect = () => {
+      socket.emit("join_chat", { chatId });
+      fetchMessages(); // re-sync any missed messages from the DB
+    };
 
-    const handleReceiveMessage = (incomingMsg: any) => {
+    socket.on("connect", onConnect);
+    if (socket.connected) {
+      socket.emit("join_chat", { chatId });
+    }
+
+    const handleReceiveMessage = async (incomingMsg: any) => {
+      const msgId = incomingMsg.id || incomingMsg.tempId || incomingMsg.client_id;
+      if (msgId && seenIdsRef.current.has(msgId)) {
+        // If we've already seen this message (e.g., from optimistic send or initial fetch),
+        // we might want to update its status if it's an optimistic message becoming 'sent'
+        setMessages((prev) => prev.map(m => 
+          (m.tempId === incomingMsg.tempId || m.id === incomingMsg.id || m.client_id === incomingMsg.client_id)
+          ? { ...m, ...incomingMsg, status: "sent" } // Update with server data
+          : m
+        ));
+        return;
+      }
+      if (msgId) seenIdsRef.current.add(msgId);
+
+      // We handle decryption inside state update to use the latest keys
       setMessages((prev) => {
-        const exists = prev.some((m) => 
-          (incomingMsg.id && m.id === incomingMsg.id) || 
-          (incomingMsg.tempId && m.tempId === incomingMsg.tempId) ||
-          (incomingMsg.client_id && m.client_id === incomingMsg.client_id)
-        );
+        let finalContent = incomingMsg.encryptedContent;
+        let finalIsEncrypted = incomingMsg.isEncrypted;
 
-        if (exists) {
-          return prev.map((m) => 
-            (m.id === incomingMsg.id || m.tempId === incomingMsg.tempId || m.client_id === incomingMsg.client_id)
-              ? { ...m, ...incomingMsg, status: "sent" }
-              : m
-          );
+        if (incomingMsg.isEncrypted) {
+          try {
+            const tempMapped = {
+              encryptedContent: incomingMsg.encryptedContent,
+              iv: incomingMsg.iv,
+              salt: incomingMsg.salt,
+            };
+            const decrypted = decryptMessage(tempMapped, sharedSecret); // Native fallback
+            if (decrypted) {
+              finalContent = decrypted;
+              finalIsEncrypted = false;
+            } else {
+              finalContent = "[Encrypted Message]";
+            }
+          } catch (e) {
+            console.error("Local socket decryption failed:", e);
+            finalContent = "[Encrypted Message]";
+          }
+        } else {
+            finalContent = incomingMsg.content || incomingMsg.plain_content || ""; // Use content or plain_content
         }
 
+        // Constructing a DirectChatMessage, not ChatMessage as per the original type
         const newMessage: DirectChatMessage = {
-          ...incomingMsg,
           id: incomingMsg.id || incomingMsg.tempId,
           sender_id: incomingMsg.senderId,
           receiver_id: incomingMsg.senderId === currentUserUuid ? partnerUuid : currentUserUuid,
@@ -337,6 +389,7 @@ export const useDirectChat = (
           encryption_salt: incomingMsg.salt,
           is_encrypted: incomingMsg.isEncrypted,
           created_at: incomingMsg.createdAt,
+          plain_content: finalContent, // Store decrypted content here
           mediaUrl: incomingMsg.mediaUrl,
           mediaType: incomingMsg.mediaType,
           client_id: incomingMsg.tempId, // from optimism
@@ -348,13 +401,23 @@ export const useDirectChat = (
       });
     };
 
+    const handleMessagePersisted = (ack: { tempId: string, messageId: string, chatId: string }) => {
+       if (ack.chatId === chatId) {
+          seenIdsRef.current.add(ack.messageId);
+          setMessages((prev) => prev.map(m => m.tempId === ack.tempId ? { ...m, id: ack.messageId, status: "persisted" } : m));
+       }
+    };
+
     socket.on("receive_message", handleReceiveMessage);
+    socket.on("message_persisted", handleMessagePersisted);
 
     return () => {
+      socket.off("connect", onConnect);
       socket.off("receive_message", handleReceiveMessage);
+      socket.off("message_persisted", handleMessagePersisted);
       socket.emit("leave_chat", { chatId });
     };
-  }, [user?.id, currentUserUuid, partnerUuid]);
+  }, [user?.id, currentUserUuid, partnerUuid, fetchMessages, decryptMessage]);
 
   // Poll messages to keep direct chat synced when RLS blocks client subscriptions
   useEffect(() => {

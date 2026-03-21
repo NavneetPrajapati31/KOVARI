@@ -53,6 +53,7 @@ export const useGroupChat = (groupId: string) => {
   } = useGroupEncryption(groupId);
 
   const groupKeyRef = useRef(groupKey);
+  const seenIdsRef = useRef(new Set<string>());
   useEffect(() => {
     groupKeyRef.current = groupKey;
   }, [groupKey]);
@@ -164,6 +165,12 @@ export const useGroupChat = (groupId: string) => {
         );
       });
 
+      // Populate seenIds
+      decryptedMessages.forEach((msg: any) => {
+         if (msg.id) seenIdsRef.current.add(msg.id);
+         if (msg.tempId) seenIdsRef.current.add(msg.tempId);
+      });
+
       setMessages(decryptedMessages);
     } catch (err) {
       console.error("Error fetching messages:", err);
@@ -241,6 +248,8 @@ export const useGroupChat = (groupId: string) => {
               socket.emit("send_message", {
                   chatId,
                   message: incomingMsg
+              }, (ack) => {
+                 // The server acknowledged standard delivery routing
               });
               
               const decryptedMessage: ChatMessage = {
@@ -260,6 +269,7 @@ export const useGroupChat = (groupId: string) => {
                 mediaType,
               };
               
+              seenIdsRef.current.add(tempId);
               setMessages((prev) => [...prev, decryptedMessage]);
               setSending(false);
               return decryptedMessage;
@@ -358,9 +368,22 @@ export const useGroupChat = (groupId: string) => {
     const socket = getSocket(user.id);
     if (!socket.connected) socket.connect();
 
-    socket.emit("join_chat", { chatId });
+    const onConnect = () => {
+      socket.emit("join_chat", { chatId });
+      fetchMessages(); // re-sync any missed messages from the DB upon reconnect
+    };
+
+    socket.on("connect", onConnect);
+    if (socket.connected) {
+      socket.emit("join_chat", { chatId });
+    }    socket.emit("join_chat", { chatId });
 
     const handleReceiveMessage = (incomingMsg: any) => {
+      const msgId = incomingMsg.id || incomingMsg.tempId;
+      if (msgId && seenIdsRef.current.has(msgId)) return;
+      if (msgId) seenIdsRef.current.add(msgId);
+      if (incomingMsg.tempId) seenIdsRef.current.add(incomingMsg.tempId);
+
       setMessages((prev) => {
         const exists = prev.some(m => m.id === incomingMsg.id || (incomingMsg.tempId && m.id === incomingMsg.tempId));
         if (exists) {
@@ -401,13 +424,23 @@ export const useGroupChat = (groupId: string) => {
       });
     };
 
+    const handleMessagePersisted = (ack: { tempId: string, messageId: string, chatId: string }) => {
+       if (ack.chatId === chatId) {
+          seenIdsRef.current.add(ack.messageId);
+          setMessages((prev) => prev.map(m => m.id === ack.tempId ? { ...m, id: ack.messageId } : m));
+       }
+    };
+
     socket.on("receive_message", handleReceiveMessage);
+    socket.on("message_persisted", handleMessagePersisted);
 
     return () => {
+      socket.off("connect", onConnect);
       socket.off("receive_message", handleReceiveMessage);
+      socket.off("message_persisted", handleMessagePersisted);
       socket.emit("leave_chat", { chatId });
     };
-  }, [user?.id, chatId, isEncryptionAvailable]);
+  }, [user?.id, chatId, isEncryptionAvailable, fetchMessages]);
 
   // Set up real-time subscription
   useEffect(() => {
