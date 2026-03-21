@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { registerSocketEvents } from "./events";
 import { redisAdapter, connectRedis } from "./redis";
 import { PresenceManager } from "./presence";
+import { createAdminSupabaseClient } from "../../lib/supabase-admin";
 import {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -29,38 +30,68 @@ const io = new Server<
     origin: "*", 
     methods: ["GET", "POST"],
   },
-  adapter: redisAdapter, // Attach the Redis Adapter for cross-node multi-instance broadcasting
+  adapter: redisAdapter,
 });
 
-io.use((socket, next) => {
+// Auth middleware — also resolve Supabase UUID once and cache in socket.data
+io.use(async (socket, next) => {
   const userId = socket.handshake.auth.userId;
   if (!userId) {
     return next(new Error("Authentication error: userId missing"));
   }
-  
   socket.data.userId = userId;
+
+  // Resolve Supabase UUID and profile_photo once at connection (two queries, no join — avoids schema cache issues)
+  try {
+    const supabase = createAdminSupabaseClient();
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_user_id", userId)
+      .single();
+    const supabaseId = userRow?.id || null;
+    socket.data.supabaseId = supabaseId;
+
+    if (supabaseId) {
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("profile_photo")
+        .eq("user_id", supabaseId)
+        .single();
+      (socket.data as any).profilePhoto = profileRow?.profile_photo || null;
+    } else {
+      (socket.data as any).profilePhoto = null;
+    }
+  } catch {
+    socket.data.supabaseId = null;
+    (socket.data as any).profilePhoto = null;
+  }
+
   next();
 });
 
 io.on("connection", (socket) => {
   const userId = socket.data.userId;
-  console.log(`[Socket] User connected: ${userId} (Socket ID: ${socket.id})`);
+  const supabaseId = socket.data.supabaseId || null;
+  console.log(`[Socket] User connected: ${userId} supabaseId: ${supabaseId} (Socket ID: ${socket.id})`);
 
-  // Handle presence natively on connect
   PresenceManager.userConnected(userId, socket.id);
 
   registerSocketEvents(io, socket);
 
   socket.on("disconnect", (reason) => {
     console.log(`[Socket] User disconnected: ${userId} (Socket ID: ${socket.id}). Reason: ${reason}`);
-    PresenceManager.userDisconnected(userId, socket.id, (cId, uId) => {
-      io.to(cId).emit("user_offline", { userId: uId });
+    PresenceManager.userDisconnected(userId, socket.id, (cId, uId, lastSeen) => {
+      io.to(cId).emit("user_offline", { userId: uId, supabaseId, lastSeen });
     });
   });
 });
 
 // Await Redis connection before accepting HTTP requests
-connectRedis().then(() => {
+connectRedis().then(async () => {
+  // Clear stale socket presence data from any previous server run
+  await PresenceManager.flushStalePresence();
+
   httpServer.listen(PORT, () => {
     console.log(`[Socket] Server listening on port ${PORT}`);
   });

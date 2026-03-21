@@ -5,6 +5,7 @@ import {
   InterServerEvents,
   SocketData,
 } from "./types";
+import { pubClient } from "./redis";
 import { createAdminSupabaseClient } from "../../lib/supabase-admin";
 import { PresenceManager } from "./presence";
 import { RateLimiter } from "./rateLimiter";
@@ -15,11 +16,12 @@ export const registerSocketEvents = (
 ) => {
   const userId = socket.data.userId;
 
-  socket.on("join_chat", ({ chatId }) => {
+  socket.on("join_chat", async ({ chatId }) => {
     socket.join(chatId);
     console.log(`[Socket] User ${userId} joined chat ${chatId}`);
+    const supabaseId = socket.data.supabaseId || null;
     PresenceManager.userJoinedChat(userId, chatId, (cId, uId) => {
-        socket.to(cId).emit("user_online", { userId: uId });
+        socket.to(cId).emit("user_online", { userId: uId, supabaseId });
     });
   });
 
@@ -39,8 +41,14 @@ export const registerSocketEvents = (
 
     console.log(`[Socket] Message sent to ${chatId} by ${userId}`);
     
+    // Override avatar with the Supabase profile_photo cached at connection time
+    const enrichedMessage = {
+      ...message,
+      avatar: (socket.data as any).profilePhoto || message.avatar,
+    };
+
     // Immediately broadcast to all users in the room
-    io.to(chatId).emit("receive_message", message);
+    io.to(chatId).emit("receive_message", enrichedMessage);
     
     // Level 1: DELIVERY ACK
     if (callback) {
@@ -59,6 +67,103 @@ export const registerSocketEvents = (
       });
     } catch (error) {
       console.error("[Socket] Failed to persist message:", error);
+    }
+  });
+
+  // ========== ADVANCED UX EVENTS ==========
+
+  socket.on("typing_start", ({ chatId }) => {
+    socket.to(chatId).emit("user_typing", { chatId, userId });
+  });
+
+  socket.on("typing_stop", ({ chatId }) => {
+    socket.to(chatId).emit("user_stopped_typing", { chatId, userId });
+  });
+
+  socket.on("message_delivered", ({ chatId, messageId }) => {
+    // Relay to sender immediately
+    socket.to(chatId).emit("message_delivered_ack", { chatId, messageId, userId });
+  });
+
+  socket.on("mark_seen", async ({ chatId, messageIds }) => {
+    try {
+      const supabase = createAdminSupabaseClient();
+      const isDirectChat = chatId.includes("_");
+      const supabaseId = socket.data.supabaseId;
+      
+      const table = isDirectChat ? "direct_messages" : "group_messages";
+      
+      if (messageIds.length > 0) {
+        if (isDirectChat) {
+          await supabase
+            .from(table)
+            .update({ read_at: new Date().toISOString() })
+            .in("id", messageIds)
+            .is("read_at", null);
+        } else if (supabaseId) {
+          // Group chat: track per-user, per-message progress in Redis for accurate "all members seen" status
+          const countKey = `group_member_count:${chatId}`;
+          const cachedCount = await pubClient.get(countKey);
+          let memberCount = cachedCount ? parseInt(cachedCount) : 0;
+
+          if (!memberCount) {
+            const { count } = await supabase
+              .from("group_memberships")
+              .select("*", { count: "exact", head: true })
+              .eq("group_id", chatId)
+              .eq("status", "accepted");
+            memberCount = count || 0;
+            await pubClient.set(countKey, memberCount.toString(), { EX: 300 });
+          }
+
+          // Mark each message as seen by THIS user in Redis Sets
+          for (const msgId of messageIds) {
+             const setKey = `group_msg_seen:${chatId}:${msgId}`;
+             await pubClient.sAdd(setKey, supabaseId);
+             
+             // Check if all members (excluding sender) have now seen it
+             const seenCount = await pubClient.sCard(setKey);
+             if (seenCount >= memberCount - 1 && memberCount > 1) {
+                // BLUE TICK TRIGGER: Emit to the room that this message is now fully seen
+                io.to(chatId).emit("messages_seen", { 
+                  chatId, 
+                  messageIds: [msgId], 
+                  userId,
+                  isFullySeen: true // This flag triggers the blue check in the UI
+                });
+                // Once fully seen, we can optionally cleanup the set (after a short delay or now)
+                await pubClient.expire(setKey, 3600); // Keep for an hour just in case of race conditions
+             }
+          }
+        }
+      }
+      
+      // Individual feedback (grey ticks still, but tells sender SOMEONE saw it)
+      socket.to(chatId).emit("messages_seen", { chatId, messageIds, userId });
+    } catch (error) {
+       console.error("[Socket] Failed to mark messages seen:", error);
+    }
+  });
+
+  socket.on("get_last_seen", async ({ userId: targetUserId }, callback) => {
+    try {
+      const supabase = createAdminSupabaseClient();
+      const { data, error } = await supabase
+          .from("users")
+          .select("clerk_user_id")
+          .eq("id", targetUserId)
+          .single();
+
+      if (error || !data?.clerk_user_id) {
+         callback(null);
+         return;
+      }
+
+      const lastSeen = await PresenceManager.getLastSeen(data.clerk_user_id);
+      callback(lastSeen);
+    } catch (e) {
+      console.error("[Socket] Failed to get last seen:", e);
+      callback(null);
     }
   });
 };
@@ -86,19 +191,19 @@ async function persistMessageToDb(chatId: string, message: any, clerkUserId: str
 
   if (isDirectChat) {
     const { data, error } = await supabase.from("direct_messages").insert({
-      chat_id: chatId, // Assuming direct messages table has a chat_id column
       sender_id: userUuid,
+      receiver_id: message.receiverId,
       encrypted_content: message.encryptedContent || null,
       encryption_iv: message.iv || null,
       encryption_salt: message.salt || null,
       media_url: message.mediaUrl || null,
       media_type: message.mediaType || null,
-      is_encrypted: message.isEncrypted ?? true,
-      client_id: message.tempId || null, // Add client_id for tempId
-    }).select("id").single();
+      client_id: message.tempId || null,
+      is_encrypted: message.isEncrypted || false,
+    }).select("*").single();
 
     if (error) {
-      console.error("[Socket] Failed to persist direct message:", error);
+      console.error("[Socket DB Persist] Direct message error:", error);
       throw error;
     }
     return data;
@@ -113,7 +218,6 @@ async function persistMessageToDb(chatId: string, message: any, clerkUserId: str
       media_url: message.mediaUrl || null,
       media_type: message.mediaType || null,
       is_encrypted: message.isEncrypted ?? true,
-      client_id: message.tempId || null, // Add client_id for tempId
     }).select("id").single();
 
     if (error) {

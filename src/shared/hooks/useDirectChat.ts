@@ -14,7 +14,7 @@ export interface DirectChatMessage {
   encryption_salt?: string;
   is_encrypted?: boolean;
   created_at: string;
-  status?: "sending" | "failed" | "sent" | "persisted";
+  status?: "sending" | "failed" | "sent" | "persisted" | "delivered" | "seen";
   tempId?: string;
   plain_content?: string; // for optimistic UI
   client_id?: string;
@@ -44,6 +44,11 @@ export interface UseDirectChatResult {
   loadMoreMessages: () => Promise<void>;
   hasMoreMessages: boolean;
   loadingMore: boolean;
+  // UX Features
+  isPartnerTyping: boolean;
+  sendTypingEvent: () => void;
+  notifyMessagesSeen: (messageIds: string[]) => void;
+  lastSeenPartner: string | null;
 }
 
 export const useDirectChat = (
@@ -58,6 +63,11 @@ export const useDirectChat = (
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [offset, setOffset] = useState(0);
+
+  // UX Feature States
+  const [isPartnerTyping, setIsPartnerTyping] = useState<boolean>(false);
+  const [lastSeenPartner, setLastSeenPartner] = useState<string | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const seenIdsRef = useRef(new Set<string>());
 
@@ -177,6 +187,38 @@ export const useDirectChat = (
     await fetchMessages(true);
   }, [fetchMessages, loadingMore, hasMoreMessages]);
 
+  const stopTyping = useCallback(() => {
+     const chatId = currentUserUuid && partnerUuid ? getDirectChatId(currentUserUuid, partnerUuid) : null;
+     if (user?.id && chatId) {
+        const socket = getSocket(user.id);
+        if (socket.connected) socket.emit("typing_stop", { chatId });
+     }
+  }, [user?.id, currentUserUuid, partnerUuid]);
+
+  const sendTypingEvent = useCallback(() => {
+     const chatId = currentUserUuid && partnerUuid ? getDirectChatId(currentUserUuid, partnerUuid) : null;
+     if (user?.id && chatId) {
+        const socket = getSocket(user.id);
+        if (socket.connected) {
+           socket.emit("typing_start", { chatId });
+           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+           typingTimeoutRef.current = setTimeout(stopTyping, 2500);
+        }
+     }
+  }, [user?.id, currentUserUuid, partnerUuid, stopTyping]);
+
+  const notifyMessagesSeen = useCallback((messageIds: string[]) => {
+     if (messageIds.length === 0) return;
+     const chatId = currentUserUuid && partnerUuid ? getDirectChatId(currentUserUuid, partnerUuid) : null;
+     if (user?.id && chatId) {
+        const socket = getSocket(user.id);
+        if (socket.connected) {
+           socket.emit("mark_seen", { chatId, messageIds });
+           setMessages(prev => prev.map(m => messageIds.includes(m.id) ? { ...m, status: "seen" } : m));
+        }
+     }
+  }, [user?.id, currentUserUuid, partnerUuid]);
+
   // Send a message (optimistic)
   const sendMessage = useCallback(
     async (value: string, mediaUrl?: string, mediaType?: "image" | "video") => {
@@ -205,6 +247,10 @@ export const useDirectChat = (
       setSending(true);
       seenIdsRef.current.add(tempId); // Add tempId to seenIdsRef
       setMessages((prev) => [...prev, optimisticMsg]);
+      
+      // Stop typing immediately when a message is sent
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      stopTyping();
       try {
         let encrypted = { encryptedContent: "", iv: "", salt: "" };
         let isEncrypted = false;
@@ -224,6 +270,7 @@ export const useDirectChat = (
                    id: tempId, // Use tempId as id for optimistic socket message
                    tempId,
                    senderId: currentUserUuid,
+                   receiverId: partnerUuid,
                    encryptedContent: isEncrypted ? encrypted.encryptedContent : "",
                    iv: isEncrypted ? encrypted.iv : "",
                    salt: isEncrypted ? encrypted.salt : "",
@@ -330,22 +377,29 @@ export const useDirectChat = (
 
     const onConnect = () => {
       socket.emit("join_chat", { chatId });
+      socket.emit("get_last_seen", { userId: partnerUuid }, (lastSeen: string | null) => {
+          setLastSeenPartner(lastSeen);
+      });
       fetchMessages(); // re-sync any missed messages from the DB
     };
 
     socket.on("connect", onConnect);
     if (socket.connected) {
       socket.emit("join_chat", { chatId });
+      socket.emit("get_last_seen", { userId: partnerUuid }, (lastSeen: string | null) => {
+          setLastSeenPartner(lastSeen);
+      });
+      fetchMessages();
     }
 
     const handleReceiveMessage = async (incomingMsg: any) => {
       const msgId = incomingMsg.id || incomingMsg.tempId || incomingMsg.client_id;
       if (msgId && seenIdsRef.current.has(msgId)) {
         // If we've already seen this message (e.g., from optimistic send or initial fetch),
-        // we might want to update its status if it's an optimistic message becoming 'sent'
+        // update its status if it's an optimistic message becoming 'sent'
         setMessages((prev) => prev.map(m => 
           (m.tempId === incomingMsg.tempId || m.id === incomingMsg.id || m.client_id === incomingMsg.client_id)
-          ? { ...m, ...incomingMsg, status: "sent" } // Update with server data
+          ? { ...m, status: m.status === 'sending' ? "sent" : m.status } // Only update status, NEVER overwrite with incomingMsg dummy fields
           : m
         ));
         return;
@@ -393,8 +447,13 @@ export const useDirectChat = (
           mediaUrl: incomingMsg.mediaUrl,
           mediaType: incomingMsg.mediaType,
           client_id: incomingMsg.tempId, // from optimism
-          status: "sent",
+          status: "delivered", // Explicitly received by us, so delivered
         };
+        
+        // Let the sender know we got it
+        if (newMessage.sender_id !== currentUserUuid) {
+           socket.emit("message_delivered", { chatId, messageId: newMessage.id });
+        }
         
         const merged = [...prev, newMessage];
         return merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -404,20 +463,74 @@ export const useDirectChat = (
     const handleMessagePersisted = (ack: { tempId: string, messageId: string, chatId: string }) => {
        if (ack.chatId === chatId) {
           seenIdsRef.current.add(ack.messageId);
-          setMessages((prev) => prev.map(m => m.tempId === ack.tempId ? { ...m, id: ack.messageId, status: "persisted" } : m));
+          // Only upgrade status if it was stuck on 'sending', don't override delivery states
+          setMessages((prev) => prev.map(m => m.tempId === ack.tempId ? { ...m, id: ack.messageId, status: m.status === 'sending' ? "sent" : m.status } : m));
+       }
+    };
+
+    const handleMessageDeliveredAck = ({ messageId, chatId: targetChat }: any) => {
+       if (targetChat === chatId) {
+          setMessages((prev) => prev.map((m) => 
+               (m.id === messageId || m.tempId === messageId || m.client_id === messageId) && 
+               (m.status === 'sent' || m.status === 'sending') 
+                  ? { ...m, status: "delivered" } 
+                  : m
+          ));
+       }
+    };
+
+    const handleMessagesSeen = ({ chatId: targetChat, messageIds }: any) => {
+       if (targetChat === chatId) {
+          setMessages(prev => prev.map(m => messageIds.includes(m.id) || messageIds.includes(m.tempId) || messageIds.includes(m.client_id) ? { ...m, status: "seen" } : m));
+       }
+    };
+
+    const handleUserTyping = ({ chatId: targetChat, userId: typingUserId }: any) => {
+       if (targetChat === chatId && typingUserId !== user?.id) {
+           setIsPartnerTyping(true);
+       }
+    };
+
+    const handleUserStoppedTyping = ({ chatId: targetChat, userId: typingUserId }: any) => {
+       if (targetChat === chatId && typingUserId !== user?.id) {
+           setIsPartnerTyping(false);
+       }
+    };
+
+    const handleUserOnline = ({ supabaseId }: any) => {
+       if (supabaseId === partnerUuid) {
+           setLastSeenPartner("online");
+       }
+    };
+
+    const handleUserOffline = ({ supabaseId, lastSeen }: any) => {
+       if (supabaseId === partnerUuid) {
+           setLastSeenPartner(lastSeen);
        }
     };
 
     socket.on("receive_message", handleReceiveMessage);
     socket.on("message_persisted", handleMessagePersisted);
+    socket.on("message_delivered_ack", handleMessageDeliveredAck);
+    socket.on("messages_seen", handleMessagesSeen);
+    socket.on("user_typing", handleUserTyping);
+    socket.on("user_stopped_typing", handleUserStoppedTyping);
+    socket.on("user_online", handleUserOnline);
+    socket.on("user_offline", handleUserOffline);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("receive_message", handleReceiveMessage);
       socket.off("message_persisted", handleMessagePersisted);
+      socket.off("message_delivered_ack", handleMessageDeliveredAck);
+      socket.off("messages_seen", handleMessagesSeen);
+      socket.off("user_typing", handleUserTyping);
+      socket.off("user_stopped_typing", handleUserStoppedTyping);
+      socket.off("user_online", handleUserOnline);
+      socket.off("user_offline", handleUserOffline);
       socket.emit("leave_chat", { chatId });
     };
-  }, [user?.id, currentUserUuid, partnerUuid, fetchMessages, decryptMessage]);
+  }, [user?.id, currentUserUuid, partnerUuid, fetchMessages, decryptMessage, sharedSecret]);
 
   // Poll messages to keep direct chat synced when RLS blocks client subscriptions
   useEffect(() => {
@@ -445,5 +558,9 @@ export const useDirectChat = (
     loadMoreMessages,
     hasMoreMessages,
     loadingMore,
+    isPartnerTyping,
+    sendTypingEvent,
+    notifyMessagesSeen,
+    lastSeenPartner,
   };
 };

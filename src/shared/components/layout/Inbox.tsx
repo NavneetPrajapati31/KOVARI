@@ -18,6 +18,7 @@ import {
 } from "@/shared/hooks/use-direct-inbox";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import InboxChatListSkeleton from "./inbox-chat-list-skeleton";
+import { getSocket } from "@/lib/socket";
 
 /**
  * Format last message time like WhatsApp/Telegram: Today (time only),
@@ -83,6 +84,8 @@ export default function Inbox({ activeUserId }: InboxProps) {
     {},
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const handleSearch = () => {
     // Filtering is already live, but this can be used for analytics or focus/blur
@@ -152,6 +155,59 @@ export default function Inbox({ activeUserId }: InboxProps) {
     window.addEventListener("inbox-message-update", handler);
     return () => window.removeEventListener("inbox-message-update", handler);
   }, [inbox]);
+
+  useEffect(() => {
+    if (!user?.id || !currentUserUuid || inbox.conversations.length === 0) return;
+    const socket = getSocket(user.id);
+    if (!socket.connected) socket.connect();
+
+    // Join all conversation rooms so we can receive their socket events (like typing)
+    inbox.conversations.forEach(conv => {
+       const chatId = currentUserUuid < conv.userId ? `${currentUserUuid}_${conv.userId}` : `${conv.userId}_${currentUserUuid}`;
+       socket.emit("join_chat", { chatId });
+    });
+
+    const handleUserTyping = ({ chatId, userId }: any) => {
+       if (userId === user.id) return;
+       const partner = chatId.replace(currentUserUuid, "").replace("_", "");
+       if (partner) setTypingUsers(prev => new Set(prev).add(partner));
+    };
+
+    const handleUserStoppedTyping = ({ chatId, userId }: any) => {
+       const partner = chatId.replace(currentUserUuid, "").replace("_", "");
+       if (partner) {
+           setTypingUsers(prev => {
+              const next = new Set(prev);
+              next.delete(partner);
+              return next;
+           });
+       }
+    };
+
+    const handleUserOnline = ({ supabaseId }: any) => {
+       if (supabaseId) setOnlineUsers(prev => new Set(prev).add(supabaseId));
+    };
+
+    const handleUserOffline = ({ supabaseId }: any) => {
+       if (supabaseId) setOnlineUsers(prev => {
+          const next = new Set(prev);
+          next.delete(supabaseId);
+          return next;
+       });
+    };
+
+    socket.on("user_typing", handleUserTyping);
+    socket.on("user_stopped_typing", handleUserStoppedTyping);
+    socket.on("user_online", handleUserOnline);
+    socket.on("user_offline", handleUserOffline);
+
+    return () => {
+       socket.off("user_typing", handleUserTyping);
+       socket.off("user_stopped_typing", handleUserStoppedTyping);
+       socket.off("user_online", handleUserOnline);
+       socket.off("user_offline", handleUserOffline);
+    };
+  }, [inbox.conversations, currentUserUuid, user?.id]);
 
   const handleConversationClick = (userId: string) => {
     // conversations.forEach(conv => {
@@ -325,6 +381,9 @@ export default function Inbox({ activeUserId }: InboxProps) {
                     />
                     <UserAvatarFallback className="" />
                   </Avatar>
+                  {onlineUsers.has(conversation.userId) && (
+                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-primary border-2 border-card" />
+                  )}
                 </div>
 
                 {/* Message Content */}
@@ -352,7 +411,9 @@ export default function Inbox({ activeUserId }: InboxProps) {
                         isActive ? "text-primary" : "text-gray-500"
                       }`}
                     >
-                      {(conversation as any).lastMediaType === "image" ? (
+                      {typingUsers.has(conversation.userId) ? (
+                         <span className="text-primary">typing...</span>
+                      ) : (conversation as any).lastMediaType === "image" ? (
                         <>
                           <span role="img" aria-label="Photo" className="mr-1">
                             <BsImage className="h-3 w-3" />

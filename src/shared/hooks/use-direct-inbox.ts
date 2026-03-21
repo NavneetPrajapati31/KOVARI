@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { decryptMessage } from "@/shared/utils/encryption";
+import { useUser } from "@clerk/nextjs";
+import { getSocket } from "@/lib/socket";
 
 export interface Conversation {
   userId: string; // UUID
@@ -15,11 +17,11 @@ interface UseDirectInboxResult {
   markConversationRead: (userId: string) => void;
 }
 
-// Add optional activeConversationUserId to track which chat is open
 export const useDirectInbox = (
   currentUserUuid: string,
   activeConversationUserId?: string,
 ): UseDirectInboxResult => {
+  const { user } = useUser();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   // Track last processed message ID per conversation to avoid double-increment
@@ -71,19 +73,89 @@ export const useDirectInbox = (
   // Listen for custom event to update recent message in real-time
   useEffect(() => {
     const handler = (e: any) => {
-      const { partnerId, message, createdAt } = e.detail;
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.userId === partnerId &&
-          new Date(createdAt) > new Date(c.lastMessageAt)
-            ? { ...c, lastMessage: message, lastMessageAt: createdAt }
-            : c,
-        ),
-      );
+      const { partnerId, message, createdAt, isMe } = e.detail;
+      setConversations((prev) => {
+        let updated = false;
+        const unreadMap = getUnreadMap();
+        const next = prev.map((c) => {
+          if (c.userId === partnerId && new Date(createdAt) >= new Date(c.lastMessageAt)) {
+             updated = true;
+             const isRead = isMe || activeConversationUserId === partnerId;
+             const newUnread = isRead ? 0 : (c.unreadCount || 0) + 1;
+             if (!isRead) {
+                unreadMap[partnerId] = newUnread;
+                setUnreadMap(unreadMap);
+             }
+             return { ...c, lastMessage: message, lastMessageAt: createdAt, unreadCount: newUnread };
+          }
+          return c;
+        });
+        return updated ? next : prev;
+      });
     };
     window.addEventListener("inbox-message-update", handler);
     return () => window.removeEventListener("inbox-message-update", handler);
-  }, []);
+  }, [activeConversationUserId]);
+
+  // Listen directly to Socket for background events
+  useEffect(() => {
+    if (!user?.id || !currentUserUuid) return;
+    const socket = getSocket(user.id);
+    if (!socket.connected) socket.connect();
+
+    const handleReceiveMessage = (incomingMsg: any) => {
+       const senderId = incomingMsg.senderId || incomingMsg.sender_id;
+       const receiverId = incomingMsg.receiverId || incomingMsg.receiver_id;
+       if (!senderId || !receiverId) return;
+
+       const isMe = senderId === currentUserUuid;
+       const partnerId = isMe ? receiverId : senderId;
+       
+       let messageText = incomingMsg.content || incomingMsg.plain_content;
+       if (incomingMsg.isEncrypted && !messageText) {
+           if (incomingMsg.encryptedContent && incomingMsg.iv && incomingMsg.salt) {
+               const sharedSecret = currentUserUuid < partnerId ? `${currentUserUuid}:${partnerId}` : `${partnerId}:${currentUserUuid}`;
+               try {
+                  messageText = decryptMessage({
+                      encryptedContent: incomingMsg.encryptedContent,
+                      iv: incomingMsg.iv,
+                      salt: incomingMsg.salt
+                  }, sharedSecret) || "[Encrypted message]";
+               } catch {
+                  messageText = "[Failed to decrypt message]";
+               }
+           } else {
+               messageText = "[Encrypted message]";
+           }
+       }
+
+       if (!isMe) {
+          const messageId = incomingMsg.id || incomingMsg.tempId || incomingMsg.client_id;
+          if (messageId) {
+             const chatId = currentUserUuid < partnerId ? `${currentUserUuid}_${partnerId}` : `${partnerId}_${currentUserUuid}`;
+             socket.emit("message_delivered", { chatId, messageId });
+          }
+       }
+
+       // Dispatch to our CustomEvent loop to reuse the unread tracking logic perfectly
+       window.dispatchEvent(
+         new CustomEvent("inbox-message-update", {
+           detail: {
+             partnerId,
+             message: messageText,
+             createdAt: incomingMsg.createdAt || incomingMsg.created_at || new Date().toISOString(),
+             mediaType: incomingMsg.mediaType || incomingMsg.media_type || "",
+             isMe
+           }
+         })
+       );
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+    return () => {
+       socket.off("receive_message", handleReceiveMessage);
+    };
+  }, [user?.id, currentUserUuid]);
 
   useEffect(() => {
     if (!currentUserUuid) {
