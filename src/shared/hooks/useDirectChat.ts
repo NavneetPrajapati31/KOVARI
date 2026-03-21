@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { useUser } from "@clerk/nextjs";
 import { encryptMessage } from "@/shared/utils/encryption";
 import { v4 as uuidv4 } from "uuid";
+import { getSocket } from "@/lib/socket";
+import { getDirectChatId } from "@/shared/utils/chatId";
 
 export interface DirectChatMessage {
   id: string;
@@ -47,6 +50,7 @@ export const useDirectChat = (
   currentUserUuid: string,
   partnerUuid: string,
 ): UseDirectChatResult => {
+  const { user } = useUser();
   const [messages, setMessages] = useState<DirectChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -106,14 +110,34 @@ export const useDirectChat = (
           if (loadMore) {
             setMessages((prev) => {
               const existingIds = new Set(prev.map((m) => m.id));
+              const existingClientIds = new Set(prev.map((m) => m.client_id || m.tempId).filter(Boolean));
+              
               const newMessages = chronologicalMessages.filter(
-                (msg: DirectChatMessage) => !existingIds.has(msg.id),
+                (msg: DirectChatMessage) => !existingIds.has(msg.id) && !existingClientIds.has(msg.client_id),
               );
               return [...newMessages, ...prev];
             });
             setOffset((prev) => prev + 30);
           } else {
-            setMessages(chronologicalMessages);
+            // For regular polling refresh, we merge gracefully to preserve temp messages and avoid duplicates
+            setMessages((prev) => {
+              const existingClientIds = new Set(prev.map((m) => m.client_id || m.tempId).filter(Boolean));
+              const prevMap = new Map(prev.map(m => [m.id, m]));
+              
+              const merged = [...prev];
+              chronologicalMessages.forEach((msg: any) => {
+                 if (prevMap.has(msg.id)) return;
+                 // If the message has a client_id matching a tempId of a local optimistic message, update the local message
+                 const localTempIndex = merged.findIndex(m => m.tempId && m.tempId === msg.client_id);
+                 if (localTempIndex > -1) {
+                    merged[localTempIndex] = { ...merged[localTempIndex], ...msg, status: "sent" };
+                 } else if (!existingClientIds.has(msg.client_id)) {
+                    merged.push(msg); // Add new completed message from polling
+                 }
+              });
+              // Sort by created_at 
+              return merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            });
             setOffset(30);
           }
 
@@ -175,6 +199,32 @@ export const useDirectChat = (
           encrypted = await encryptMessage(value.trim(), sharedSecret);
           isEncrypted = true;
         }
+
+        // [SOCKET INTEGRATION - Optimistic send via Socket]
+        const chatId = getDirectChatId(currentUserUuid, partnerUuid);
+        if (user?.id && chatId) {
+           const socket = getSocket(user.id);
+           if (socket.connected) {
+             socket.emit("send_message", {
+                chatId,
+                message: {
+                   id: tempId,
+                   tempId,
+                   senderId: currentUserUuid,
+                   encryptedContent: isEncrypted ? encrypted.encryptedContent : "",
+                   iv: isEncrypted ? encrypted.iv : "",
+                   salt: isEncrypted ? encrypted.salt : "",
+                   mediaUrl: mediaUrl || undefined,
+                   mediaType: mediaType || undefined,
+                   createdAt: new Date().toISOString(),
+                   isEncrypted
+                }
+             });
+             setSending(false);
+             return; // Socket handled this and will persist. Client updates by polling or broadcast.
+           }
+        }
+
         const response = await fetch("/api/direct-chat/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -250,6 +300,61 @@ export const useDirectChat = (
     fetchMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserUuid, partnerUuid]);
+
+  // Socket.IO Integration Setup
+  useEffect(() => {
+    const chatId = currentUserUuid && partnerUuid ? getDirectChatId(currentUserUuid, partnerUuid) : null;
+    if (!user?.id || !chatId) return;
+
+    const socket = getSocket(user.id);
+    if (!socket.connected) socket.connect();
+
+    socket.emit("join_chat", { chatId });
+
+    const handleReceiveMessage = (incomingMsg: any) => {
+      setMessages((prev) => {
+        const exists = prev.some((m) => 
+          (incomingMsg.id && m.id === incomingMsg.id) || 
+          (incomingMsg.tempId && m.tempId === incomingMsg.tempId) ||
+          (incomingMsg.client_id && m.client_id === incomingMsg.client_id)
+        );
+
+        if (exists) {
+          return prev.map((m) => 
+            (m.id === incomingMsg.id || m.tempId === incomingMsg.tempId || m.client_id === incomingMsg.client_id)
+              ? { ...m, ...incomingMsg, status: "sent" }
+              : m
+          );
+        }
+
+        const newMessage: DirectChatMessage = {
+          ...incomingMsg,
+          id: incomingMsg.id || incomingMsg.tempId,
+          sender_id: incomingMsg.senderId,
+          receiver_id: incomingMsg.senderId === currentUserUuid ? partnerUuid : currentUserUuid,
+          encrypted_content: incomingMsg.encryptedContent,
+          encryption_iv: incomingMsg.iv,
+          encryption_salt: incomingMsg.salt,
+          is_encrypted: incomingMsg.isEncrypted,
+          created_at: incomingMsg.createdAt,
+          mediaUrl: incomingMsg.mediaUrl,
+          mediaType: incomingMsg.mediaType,
+          client_id: incomingMsg.tempId, // from optimism
+          status: "sent",
+        };
+        
+        const merged = [...prev, newMessage];
+        return merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      });
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+
+    return () => {
+      socket.off("receive_message", handleReceiveMessage);
+      socket.emit("leave_chat", { chatId });
+    };
+  }, [user?.id, currentUserUuid, partnerUuid]);
 
   // Poll messages to keep direct chat synced when RLS blocks client subscriptions
   useEffect(() => {
