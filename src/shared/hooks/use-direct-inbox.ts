@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { decryptMessage } from "@/shared/utils/encryption";
 import { useUser } from "@clerk/nextjs";
 import { getSocket } from "@/lib/socket";
 
 export interface Conversation {
-  userId: string; // UUID
+  userId: string; // Supabase UUID
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
@@ -24,138 +24,248 @@ export const useDirectInbox = (
   const { user } = useUser();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  // Track last processed message ID per conversation to avoid double-increment
-  const lastProcessedMsgIds = useRef<Record<string, string>>({});
 
-  // Helper: get/set unread from localStorage
-  const getUnreadMap = () => {
-    if (typeof window === "undefined") return {};
-    try {
-      return JSON.parse(localStorage.getItem("inboxUnreadMap") || "{}");
-    } catch {
-      return {};
-    }
-  };
-  const setUnreadMap = (map: Record<string, number>) => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("inboxUnreadMap", JSON.stringify(map));
-  };
-
-  // Mark conversation as read (set unread to 0)
-  const markConversationRead = (userId: string) => {
-    const unreadMap = getUnreadMap();
-    if (unreadMap[userId]) {
-      unreadMap[userId] = 0;
-      setUnreadMap(unreadMap);
-      setConversations((prev) =>
-        prev.map((c) => (c.userId === userId ? { ...c, unreadCount: 0 } : c)),
-      );
-    }
-  };
-
-  // Sync unread counts across tabs
+  // Dedup set — tracks socket message IDs we've already counted to prevent double-increments
+  const processedMsgIds = useRef<Set<string>>(new Set());
+  // Ref to track active conversation so socket handler always has the latest value
+  const activeConvRef = useRef<string | undefined>(activeConversationUserId);
   useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "inboxUnreadMap") {
-        setConversations((prev) => {
-          const unreadMap = getUnreadMap();
-          return prev.map((c) => ({
-            ...c,
-            unreadCount: unreadMap[c.userId] || 0,
-          }));
-        });
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
-
-  // Listen for custom event to update recent message in real-time
-  useEffect(() => {
-    const handler = (e: any) => {
-      const { partnerId, message, createdAt, isMe } = e.detail;
-      setConversations((prev) => {
-        let updated = false;
-        const unreadMap = getUnreadMap();
-        const next = prev.map((c) => {
-          if (c.userId === partnerId && new Date(createdAt) >= new Date(c.lastMessageAt)) {
-             updated = true;
-             const isRead = isMe || activeConversationUserId === partnerId;
-             const newUnread = isRead ? 0 : (c.unreadCount || 0) + 1;
-             if (!isRead) {
-                unreadMap[partnerId] = newUnread;
-                setUnreadMap(unreadMap);
-             }
-             return { ...c, lastMessage: message, lastMessageAt: createdAt, unreadCount: newUnread };
-          }
-          return c;
-        });
-        return updated ? next : prev;
-      });
-    };
-    window.addEventListener("inbox-message-update", handler);
-    return () => window.removeEventListener("inbox-message-update", handler);
+    activeConvRef.current = activeConversationUserId;
   }, [activeConversationUserId]);
 
-  // Listen directly to Socket for background events
+  // ─── Mark conversation as read ──────────────────────────────────────────────
+  const markConversationRead = useCallback((userId: string) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.userId === userId ? { ...c, unreadCount: 0 } : c)),
+    );
+  }, []);
+
+  // ─── Auto-mark active conversation as read whenever it changes ───────────────
+  useEffect(() => {
+    if (activeConversationUserId) {
+      markConversationRead(activeConversationUserId);
+    }
+  }, [activeConversationUserId, markConversationRead]);
+
+  // ─── Socket: listen for real-time incoming messages ──────────────────────────
   useEffect(() => {
     if (!user?.id || !currentUserUuid) return;
+
     const socket = getSocket(user.id);
     if (!socket.connected) socket.connect();
 
     const handleReceiveMessage = (incomingMsg: any) => {
-       const senderId = incomingMsg.senderId || incomingMsg.sender_id;
-       const receiverId = incomingMsg.receiverId || incomingMsg.receiver_id;
-       if (!senderId || !receiverId) return;
+      // Deduplicate by message ID so re-renders don't double-count
+      const msgId = incomingMsg.id || incomingMsg.tempId || incomingMsg.client_id;
+      if (msgId) {
+        if (processedMsgIds.current.has(msgId)) return;
+        processedMsgIds.current.add(msgId);
+      }
 
-       const isMe = senderId === currentUserUuid;
-       const partnerId = isMe ? receiverId : senderId;
-       
-       let messageText = incomingMsg.content || incomingMsg.plain_content;
-       if (incomingMsg.isEncrypted && !messageText) {
-           if (incomingMsg.encryptedContent && incomingMsg.iv && incomingMsg.salt) {
-               const sharedSecret = currentUserUuid < partnerId ? `${currentUserUuid}:${partnerId}` : `${partnerId}:${currentUserUuid}`;
-               try {
-                  messageText = decryptMessage({
-                      encryptedContent: incomingMsg.encryptedContent,
-                      iv: incomingMsg.iv,
-                      salt: incomingMsg.salt
-                  }, sharedSecret) || "[Encrypted message]";
-               } catch {
-                  messageText = "[Failed to decrypt message]";
-               }
-           } else {
-               messageText = "[Encrypted message]";
-           }
-       }
+      const senderId = incomingMsg.senderId || incomingMsg.sender_id;
+      const receiverId = incomingMsg.receiverId || incomingMsg.receiver_id;
+      if (!senderId || !receiverId) return;
 
-       if (!isMe) {
-          const messageId = incomingMsg.id || incomingMsg.tempId || incomingMsg.client_id;
-          if (messageId) {
-             const chatId = currentUserUuid < partnerId ? `${currentUserUuid}_${partnerId}` : `${partnerId}_${currentUserUuid}`;
-             socket.emit("message_delivered", { chatId, messageId });
+      // senderId from socket payload is the Supabase UUID (set by server after middleware resolution)
+      const isMe = senderId === currentUserUuid;
+      const partnerId = isMe ? receiverId : senderId;
+
+      // Decrypt message text for inbox preview
+      let messageText = incomingMsg.content || incomingMsg.plain_content || "";
+      if (!messageText && incomingMsg.isEncrypted) {
+        if (incomingMsg.encryptedContent && incomingMsg.iv && incomingMsg.salt) {
+          const sharedSecret =
+            currentUserUuid < partnerId
+              ? `${currentUserUuid}:${partnerId}`
+              : `${partnerId}:${currentUserUuid}`;
+          try {
+            messageText =
+              decryptMessage(
+                {
+                  encryptedContent: incomingMsg.encryptedContent,
+                  iv: incomingMsg.iv,
+                  salt: incomingMsg.salt,
+                },
+                sharedSecret,
+              ) || "[Encrypted message]";
+          } catch {
+            messageText = "[Encrypted message]";
           }
-       }
+        } else {
+          messageText = "[Encrypted message]";
+        }
+      }
 
-       // Dispatch to our CustomEvent loop to reuse the unread tracking logic perfectly
-       window.dispatchEvent(
-         new CustomEvent("inbox-message-update", {
-           detail: {
-             partnerId,
-             message: messageText,
-             createdAt: incomingMsg.createdAt || incomingMsg.created_at || new Date().toISOString(),
-             mediaType: incomingMsg.mediaType || incomingMsg.media_type || "",
-             isMe
-           }
-         })
-       );
+      // Emit delivery ack for messages from others
+      if (!isMe && msgId) {
+        const chatId =
+          currentUserUuid < partnerId
+            ? `${currentUserUuid}_${partnerId}`
+            : `${partnerId}_${currentUserUuid}`;
+        socket.emit("message_delivered", { chatId, messageId: msgId });
+      }
+
+      const mediaType =
+        incomingMsg.mediaType || incomingMsg.media_type || undefined;
+      const createdAt =
+        incomingMsg.createdAt ||
+        incomingMsg.created_at ||
+        new Date().toISOString();
+
+      setConversations((prev) => {
+        const isActiveChat = activeConvRef.current === partnerId;
+        // Increment unread only if this is an incoming message and user is NOT in that chat
+        const shouldIncrement = !isMe && !isActiveChat;
+
+        const exists = prev.some((c) => c.userId === partnerId);
+
+        if (exists) {
+          return prev
+            .map((c) => {
+              if (c.userId !== partnerId) return c;
+              if (new Date(createdAt) < new Date(c.lastMessageAt)) return c;
+              return {
+                ...c,
+                lastMessage: messageText,
+                lastMessageAt: createdAt,
+                lastMediaType: mediaType,
+                unreadCount: shouldIncrement ? c.unreadCount + 1 : c.unreadCount,
+              };
+            })
+            .sort(
+              (a, b) =>
+                new Date(b.lastMessageAt).getTime() -
+                new Date(a.lastMessageAt).getTime(),
+            );
+        }
+
+        // New conversation not yet in list — add it at the top
+        const newConv: Conversation = {
+          userId: partnerId,
+          lastMessage: messageText,
+          lastMessageAt: createdAt,
+          unreadCount: shouldIncrement ? 1 : 0,
+          lastMediaType: mediaType,
+        };
+        return [newConv, ...prev];
+      });
     };
 
     socket.on("receive_message", handleReceiveMessage);
     return () => {
-       socket.off("receive_message", handleReceiveMessage);
+      socket.off("receive_message", handleReceiveMessage);
     };
   }, [user?.id, currentUserUuid]);
+
+  // ─── Fetch inbox from DB (source of truth for initial unread counts) ─────────
+  const fetchInbox = useCallback(async () => {
+    if (!currentUserUuid) return;
+
+    try {
+      const response = await fetch("/api/direct-chat/inbox", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        setConversations([]);
+        return;
+      }
+      const payload = await response.json();
+      const data: any[] = Array.isArray(payload?.messages) ? payload.messages : [];
+
+      const map = new Map<string, Conversation>();
+      const latestMsgAt: Record<string, string> = {};
+      const unreadCountMap: Record<string, number> = {};
+
+      data.forEach((msg: any) => {
+        const partnerId =
+          msg.sender_id === currentUserUuid ? msg.receiver_id : msg.sender_id;
+        if (!partnerId) return;
+
+        // Count DB-confirmed unread messages (receiver is me, not yet marked read)
+        if (msg.receiver_id === currentUserUuid && !msg.read_at) {
+          unreadCountMap[partnerId] = (unreadCountMap[partnerId] || 0) + 1;
+        }
+
+        // Track latest message per partner for inbox preview
+        if (!latestMsgAt[partnerId] || msg.created_at > latestMsgAt[partnerId]) {
+          latestMsgAt[partnerId] = msg.created_at;
+          const sharedSecret =
+            currentUserUuid < partnerId
+              ? `${currentUserUuid}:${partnerId}`
+              : `${partnerId}:${currentUserUuid}`;
+
+          let lastMessage = "[Encrypted message]";
+          let lastMediaType: "image" | "video" | "init" | undefined = undefined;
+
+          if (msg.media_url && msg.media_type) {
+            lastMessage = "";
+            lastMediaType = msg.media_type;
+          } else if (
+            msg.is_encrypted &&
+            msg.encrypted_content &&
+            msg.encryption_iv &&
+            msg.encryption_salt
+          ) {
+            try {
+              lastMessage =
+                decryptMessage(
+                  {
+                    encryptedContent: msg.encrypted_content,
+                    iv: msg.encryption_iv,
+                    salt: msg.encryption_salt,
+                  },
+                  sharedSecret,
+                ) || "[Encrypted message]";
+            } catch {
+              lastMessage = "[Failed to decrypt message]";
+            }
+          }
+
+          map.set(partnerId, {
+            userId: partnerId,
+            lastMessage,
+            lastMessageAt: msg.created_at,
+            unreadCount: unreadCountMap[partnerId] || 0,
+            lastMediaType,
+          });
+        }
+      });
+
+      // Second pass: apply final unread counts (previous pass may have been incomplete)
+      map.forEach((conv, partnerId) => {
+        map.set(partnerId, {
+          ...conv,
+          unreadCount: unreadCountMap[partnerId] || 0,
+        });
+      });
+
+      const freshConversations = Array.from(map.values()).sort(
+        (a, b) =>
+          new Date(b.lastMessageAt).getTime() -
+          new Date(a.lastMessageAt).getTime(),
+      );
+
+      setConversations((prev) => {
+        // Merge: preserve any in-flight unread increments from socket state that
+        // arrived since the last fetch, taking the MAX to avoid going backwards
+        if (prev.length === 0) return freshConversations;
+        return freshConversations.map((fresh) => {
+          const existing = prev.find((p) => p.userId === fresh.userId);
+          if (!existing) return fresh;
+          return {
+            ...fresh,
+            // Keep the higher count: DB may lag behind socket real-time increments
+            unreadCount: Math.max(fresh.unreadCount, existing.unreadCount),
+          };
+        });
+      });
+    } catch {
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUserUuid]);
 
   useEffect(() => {
     if (!currentUserUuid) {
@@ -163,116 +273,12 @@ export const useDirectInbox = (
       setLoading(true);
       return;
     }
-
     setLoading(true);
-    const fetchInbox = async () => {
-      try {
-        const response = await fetch("/api/direct-chat/inbox", {
-          method: "GET",
-          credentials: "include",
-        });
-        if (!response.ok) {
-          setConversations([]);
-          return;
-        }
-        const payload = await response.json();
-        const data = Array.isArray(payload?.messages) ? payload.messages : [];
-        // Calculate unread counts from messages if localStorage is missing
-        let unreadMap = getUnreadMap();
-        let unreadMapChanged = false;
-        const map = new Map<string, Conversation>();
-        // Track the latest message timestamp per partner
-        const latestMsgAt: Record<string, string> = {};
-        // Track unread count per partner
-        const unreadCountMap: Record<string, number> = {};
-        data.forEach((msg: any) => {
-          const partnerId =
-            msg.sender_id === currentUserUuid ? msg.receiver_id : msg.sender_id;
-          if (!partnerId) return;
-          // Only count as unread if message is for current user and not from current user and read_at is null
-          if (msg.receiver_id === currentUserUuid && !msg.read_at) {
-            unreadCountMap[partnerId] = (unreadCountMap[partnerId] || 0) + 1;
-          }
-          // Track latest message
-          if (
-            !latestMsgAt[partnerId] ||
-            msg.created_at > latestMsgAt[partnerId]
-          ) {
-            latestMsgAt[partnerId] = msg.created_at;
-            // Derive shared secret
-            const sharedSecret =
-              currentUserUuid < partnerId
-                ? `${currentUserUuid}:${partnerId}`
-                : `${partnerId}:${currentUserUuid}`;
-            let lastMessage = "[Encrypted message]";
-            let lastMediaType: "image" | "video" | "init" | undefined =
-              undefined;
-            if (msg.media_url && msg.media_type) {
-              // Media message: show icon/label in inbox
-              lastMessage = "";
-              lastMediaType = msg.media_type;
-            } else if (
-              msg.is_encrypted &&
-              msg.encrypted_content &&
-              msg.encryption_iv &&
-              msg.encryption_salt
-            ) {
-              try {
-                lastMessage =
-                  decryptMessage(
-                    {
-                      encryptedContent: msg.encrypted_content,
-                      iv: msg.encryption_iv,
-                      salt: msg.encryption_salt,
-                    },
-                    sharedSecret,
-                  ) || "[Encrypted message]";
-              } catch {
-                lastMessage = "[Failed to decrypt message]";
-              }
-            }
-            map.set(partnerId, {
-              userId: partnerId,
-              lastMessage,
-              lastMessageAt: msg.created_at,
-              unreadCount: 0, // will set below
-              lastMediaType,
-            });
-          }
-        });
-        // If localStorage is missing or empty, initialize it from unreadCountMap
-        if (Object.keys(unreadMap).length === 0) {
-          unreadMap = { ...unreadCountMap };
-          unreadMapChanged = true;
-        }
-        // Set unreadCount for each conversation
-        map.forEach((conv, partnerId) => {
-          map.set(partnerId, {
-            ...conv,
-            unreadCount: unreadMap[partnerId] || 0,
-          });
-        });
-        if (unreadMapChanged) setUnreadMap(unreadMap);
-        setConversations(Array.from(map.values()));
-      } catch {
-        setConversations([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchInbox();
-    const interval = window.setInterval(fetchInbox, 8000);
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [currentUserUuid, activeConversationUserId]);
-
-  // When activeConversationUserId changes, mark as read
-  useEffect(() => {
-    if (!activeConversationUserId) return;
-    markConversationRead(activeConversationUserId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeConversationUserId]);
+    // Poll every 30s instead of 8s — real-time is handled by socket
+    const interval = window.setInterval(fetchInbox, 30_000);
+    return () => window.clearInterval(interval);
+  }, [currentUserUuid, fetchInbox]);
 
   if (!currentUserUuid) {
     return {
@@ -281,5 +287,6 @@ export const useDirectInbox = (
       markConversationRead: () => {},
     };
   }
+
   return { conversations, loading, markConversationRead };
 };

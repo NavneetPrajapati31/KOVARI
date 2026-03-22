@@ -147,8 +147,8 @@ export const registerSocketEvents = (
       // Emit to user's private room
       io.to(`user_socket:${targetClerkUserId}`).emit("new_notification", {
         type: "NEW_MESSAGE",
-        title: `New message from ${senderName}`,
-        message: text || "Sent a message",
+        title: `New message`,
+        message: text || `New message from ${senderName}`,
         chatId,
         image_url: senderAvatar, // Include avatar for UI
         created_at: new Date().toISOString(),
