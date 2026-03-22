@@ -7,6 +7,7 @@
     "dev:admin": "cd apps/admin && npm run dev",
     "build": "next build",
     "start": "next start",
+    "socket": "npx tsx src/services/socket/server.ts",
     "lint": "next lint",
     "test:cloudinary": "npx tsx src/lib/test-cloudinary.ts",
     "test:cloudinary-evidence": "npx tsx apps/admin/lib/test-cloudinaryEvidence.ts",

@@ -16,9 +16,14 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
-const httpServer = createServer();
+const httpServer = createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Socket server running');
+  }
+});
 
 const io = new Server<
   ClientToServerEvents,
@@ -27,8 +32,13 @@ const io = new Server<
   SocketData
 >(httpServer, {
   cors: {
-    origin: "*", 
+    origin: [
+      "http://localhost:3000",
+      "https://kovari.in",
+      "https://www.kovari.in"
+    ],
     methods: ["GET", "POST"],
+    credentials: true,
   },
   adapter: redisAdapter,
 });
