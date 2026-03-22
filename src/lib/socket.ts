@@ -12,8 +12,14 @@ export const getSocket = (clerkUserId: string) => {
       auth: {
         userId: clerkUserId,
       },
-      transports: ["websocket"],
+      transports: ["polling", "websocket"], // polling first so cloud proxies can upgrade properly
       autoConnect: false, // Client should manually connect
+    });
+
+    socket.on("connect_error", (err) => {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[Socket] Connection error:", err.message, "| URL:", SOCKET_URL);
+      }
     });
   } else {
     if (socket.auth && typeof socket.auth === "object") {
