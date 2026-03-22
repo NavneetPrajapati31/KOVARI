@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { ensureRedisConnection } from "@/lib/redis";
+import { ensureRedisConnection } from "../../../../lib/redis";
 import * as Sentry from "@sentry/nextjs";
 
 const REDIS_KEY_PREFIX = "password_reset:";

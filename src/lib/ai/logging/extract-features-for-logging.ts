@@ -7,13 +7,9 @@
 
 import { extractCompatibilityFeatures } from "../features/compatibility-features";
 import { CompatibilityFeatures, MatchType } from "../utils/ml-types";
-import { ensureRedisConnection } from "@/lib/redis";
-import { createClient } from "@supabase/supabase-js";
-import { getCoordinatesForLocation } from "@/lib/geocoding";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+import { ensureRedisConnection } from "../../redis";
+import { getCoordinatesForLocation } from "../../geocoding";
+import { createAdminSupabaseClient } from "../../supabase-admin";
 
 type SoloSession = {
   userId: string;
@@ -57,6 +53,7 @@ async function getUserProfile(userId: string): Promise<any> {
     const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
     let userUuid = userId;
     let clerkUserId = userId;
+    const supabaseAdmin = createAdminSupabaseClient();
 
     if (uuidRegex.test(userId)) {
       // It's a UUID, get Clerk ID
@@ -175,6 +172,7 @@ export async function extractFeaturesForGroupMatch(
 
     // Get user profile
     const userProfileData = await getUserProfile(userClerkId);
+    const supabaseAdmin = createAdminSupabaseClient();
 
     // Get group data
     const { data: groupData } = await supabaseAdmin

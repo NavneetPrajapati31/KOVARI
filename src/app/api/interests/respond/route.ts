@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@/lib/supabase-admin";
+import { createAdminSupabaseClient } from "../../../../lib/supabase-admin";
 import { auth } from "@clerk/nextjs/server";
-import { createNotification } from "@/lib/notifications/createNotification";
-import { NotificationType } from "@/shared/types/notifications";
-import { logMatchEvent, createMatchEventLog } from "@/lib/ai/logging/logMatchEvent";
-import { extractFeaturesForSoloMatch } from "@/lib/ai/logging/extract-features-for-logging";
-import { getSetting } from "@/lib/settings";
+import { createNotification } from "../../../../lib/notifications/createNotification";
+import { NotificationType } from "../../../../shared/types/notifications";
+import { logMatchEvent, createMatchEventLog } from "../../../../lib/ai/logging/logMatchEvent";
+import { extractFeaturesForSoloMatch } from "../../../../lib/ai/logging/extract-features-for-logging";
+import { getSetting } from "../../../../lib/settings";
 
 export async function POST(request: Request) {
   try {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { randomBytes } from "crypto";
-import { ensureRedisConnection } from "@/lib/redis";
-import { sendPasswordResetEmail } from "@/lib/brevo";
+import { ensureRedisConnection } from "../../../../lib/redis";
+import { sendPasswordResetEmail } from "../../../../lib/brevo";
 import * as Sentry from "@sentry/nextjs";
 
 const RESET_TOKEN_TTL_SECONDS = 3600; // 1 hour
