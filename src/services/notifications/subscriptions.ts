@@ -38,21 +38,16 @@ export async function getPushSubscriptions(userId: string) {
     return [];
   }
 
-  return data.map((sub: any) => ({
-    endpoint: sub.endpoint,
-    keys: {
-      p256dh: sub.keys_p256dh,
-      auth: sub.keys_auth,
-    },
-  }));
+  return data;
 }
 
-export async function deletePushSubscription(endpoint: string) {
+export async function deletePushSubscription(userId: string, endpoint: string) {
   const supabase = createAdminSupabaseClient();
 
   const { error } = await supabase
     .from("push_subscriptions")
     .delete()
+    .eq("user_id", userId)
     .eq("endpoint", endpoint);
 
   if (error) {

@@ -23,6 +23,22 @@ export interface Notification {
   image_url?: string;
 }
 
+export enum NotificationPriority {
+  HIGH = "high",
+  MEDIUM = "medium",
+  LOW = "low",
+}
+
+export const NotificationPriorityMap: Record<NotificationType, NotificationPriority> = {
+  [NotificationType.MATCH_INTEREST_RECEIVED]: NotificationPriority.HIGH,
+  [NotificationType.MATCH_ACCEPTED]: NotificationPriority.HIGH,
+  [NotificationType.GROUP_INVITE_RECEIVED]: NotificationPriority.HIGH,
+  [NotificationType.GROUP_JOIN_APPROVED]: NotificationPriority.HIGH,
+  [NotificationType.GROUP_JOIN_REQUEST_RECEIVED]: NotificationPriority.MEDIUM,
+  [NotificationType.NEW_MESSAGE]: NotificationPriority.HIGH,
+  [NotificationType.REPORT_SUBMITTED]: NotificationPriority.LOW,
+};
+
 export interface CreateNotificationParams {
   userId: string;
   type: NotificationType;
@@ -31,4 +47,5 @@ export interface CreateNotificationParams {
   entityType?: EntityType;
   entityId?: string;
   imageUrl?: string;
+  priority?: NotificationPriority; // Optional override
 }

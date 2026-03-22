@@ -1,13 +1,11 @@
 import { pubClient } from "../socket/redis";
+import { 
+  NotificationType, 
+} from "@/shared/types/notifications";
 import { createNotification } from "@/lib/notifications/createNotification";
-import { NotificationType } from "@/shared/types/notifications";
-import { getPushSubscriptions, deletePushSubscription } from "./subscriptions";
-import { sendPushNotification } from "./push";
 
 /**
- * Buffers notifications in Redis and aggregates them after a delay.
- * Key: `chat:notify:buffer:{userId}:{chatId}` - stores list of message contents.
- * Key: `chat:notify:timer:{userId}:{chatId}` - flag to indicate a timer is already running.
+ * Buffers notifications to avoid spamming the user with multiple alerts
  */
 export async function bufferNotification(
   userId: string,
@@ -48,7 +46,7 @@ async function processBuffer(userId: string, chatId: string, senderName: string,
   const bufferKey = `chat:notify:buffer:${userId}:${chatId}`;
   const timerKey = `chat:notify:timer:${userId}:${chatId}`;
 
-  // Get and clear buffer atomically if possible, otherwise simple fetch
+  // Get and clear buffer atomically
   const messages = await pubClient.lRange(bufferKey, 0, -1);
   if (!messages || messages.length === 0) {
     await pubClient.del(timerKey);
@@ -65,35 +63,18 @@ async function processBuffer(userId: string, chatId: string, senderName: string,
   const title = count > 1 ? `${senderName} sent ${count} messages` : `New message from ${senderName}`;
   const body = count > 1 ? `Latest: ${messages[count-1]}` : messages[0];
 
-  // 1. Create DB Notification
+  // 1. Create DB Notification (This now automatically handles push evaluation and priority)
   const result = await createNotification({
     userId,
     type: NotificationType.NEW_MESSAGE,
     title,
     message: body,
     entityType: "chat",
-    entityId: senderId, // Use sender UUID (valid UUID)
+    entityId: senderId, 
     imageUrl: senderAvatar || undefined,
   });
 
   if (!result.success) {
-    console.error("[Batching] Error creating DB notification:", result.error);
-  }
-
-  // 2. Trigger Web Push (since batching is for offline/not-in-chat users)
-  const subscriptions = await getPushSubscriptions(userId);
-  for (const sub of subscriptions) {
-    const pushResult = await sendPushNotification(sub, {
-      title,
-      body,
-      data: { chatId, url: `/chat/${chatId}` },
-      icon: senderAvatar || "/logo.png",
-      badge: "/badge.png",
-      tag: `chat-${chatId}`, // Overwrite previous notifications for same chat
-    });
-
-    if (pushResult.error === "expired") {
-      await deletePushSubscription(sub.endpoint);
-    }
+    console.error("[Batching] Error creating notification:", result.error);
   }
 }
