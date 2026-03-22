@@ -30,4 +30,5 @@ export interface CreateNotificationParams {
   message: string;
   entityType?: EntityType;
   entityId?: string;
+  imageUrl?: string;
 }

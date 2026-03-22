@@ -20,6 +20,7 @@ export async function createNotification(
       message,
       entityType = null,
       entityId = null,
+      imageUrl = null,
     } = params;
 
     // Validate required fields
@@ -50,6 +51,7 @@ export async function createNotification(
         message,
         entity_type: entityType,
         entity_id: entityId,
+        image_url: imageUrl,
         is_read: false,
       })
       .select("id")

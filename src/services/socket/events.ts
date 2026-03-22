@@ -9,6 +9,7 @@ import { pubClient } from "./redis";
 import { createAdminSupabaseClient } from "../../lib/supabase-admin";
 import { PresenceManager } from "./presence";
 import { RateLimiter } from "./rateLimiter";
+import { bufferNotification } from "../notifications/batching";
 
 export const registerSocketEvents = (
   io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
@@ -65,10 +66,103 @@ export const registerSocketEvents = (
           messageId: persistedMessage.id,
           chatId
       });
+
+      // ========== PHASE 4: NOTIFICATIONS ==========
+      // ========== PHASE 4: NOTIFICATIONS ==========
+      const senderName = (socket.data as any).fullName || "Someone";
+      const senderAvatar = (socket.data as any).profilePhoto || null;
+      const isDirectChat = chatId.includes("_");
+
+      if (isDirectChat) {
+        // Direct Chat: Recipient is message.receiverId
+        const recipientId = message.receiverId;
+        if (recipientId) {
+          await handleNotificationForUser(io, recipientId, chatId, senderName, senderAvatar, message.text || "Sent a message");
+        }
+      } else {
+        // Group Chat: Get all members except sender
+        const supabase = createAdminSupabaseClient();
+        const { data: members } = await supabase
+          .from("group_memberships")
+          .select("user_id")
+          .eq("group_id", chatId)
+          .eq("status", "accepted")
+          .neq("user_id", socket.data.supabaseId); // Use Supabase ID for DB lookup
+
+        if (members) {
+          for (const member of members) {
+            // Need to map Supabase UUID back to Clerk ID for socket/presence checks
+            const { data: userRow } = await supabase
+              .from("users")
+              .select("clerk_user_id")
+              .eq("id", member.user_id)
+              .single();
+            
+            if (userRow?.clerk_user_id) {
+              await handleNotificationForUser(io, userRow.clerk_user_id, chatId, senderName, senderAvatar, message.text || "Sent a message to the group");
+            }
+          }
+        }
+      }
     } catch (error) {
-      console.error("[Socket] Failed to persist message:", error);
+      console.error("[Socket] Failed to persist message or send notification:", error);
     }
   });
+
+  /**
+   * Helper to handle notification logic for a single user
+   */
+  async function handleNotificationForUser(
+    io: Server, 
+    targetClerkUserId: string, 
+    chatId: string, 
+    senderName: string, 
+    senderAvatar: string | null,
+    text: string
+  ) {
+    // 1. Check if user is in the active chat room
+    const targetSockets = io.sockets.adapter.rooms.get(chatId);
+    const userSocketsKey = `user_socket:${targetClerkUserId}`;
+    const userSocketIds = await pubClient.sMembers(userSocketsKey);
+    
+    let isUserInChat = false;
+    if (targetSockets && userSocketIds) {
+      for (const sId of userSocketIds) {
+        if (targetSockets.has(sId)) {
+          isUserInChat = true;
+          break;
+        }
+      }
+    }
+
+    if (isUserInChat) {
+      // User is already looking at the chat, no notification needed
+      return;
+    }
+
+    // 2. User is NOT in chat. Trigger real-time socket notification if online
+    const isOnline = userSocketIds && userSocketIds.length > 0;
+    
+    if (isOnline) {
+      // Emit to user's private room
+      io.to(`user_socket:${targetClerkUserId}`).emit("new_notification", {
+        type: "NEW_MESSAGE",
+        title: `New message from ${senderName}`,
+        message: text || "Sent a message",
+        chatId,
+        image_url: senderAvatar, // Include avatar for UI
+        created_at: new Date().toISOString(),
+      });
+      
+      // Also emit unread count update if we want to be fancy
+      // io.to(`user_socket:${targetClerkUserId}`).emit("unread_update", { chatId });
+    }
+
+    // 3. Trigger Batching/Push for offline OR not-in-chat users
+    // (Requirement 3: trigger push if offline, Requirement 4: buffer if not in chat)
+    const senderSupabaseId = socket.data.supabaseId || "";
+    await bufferNotification(targetClerkUserId, chatId, senderName, senderAvatar || "", text, senderSupabaseId);
+  }
 
   // ========== ADVANCED UX EVENTS ==========
 

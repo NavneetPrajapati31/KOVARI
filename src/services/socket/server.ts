@@ -55,16 +55,20 @@ io.use(async (socket, next) => {
     if (supabaseId) {
       const { data: profileRow } = await supabase
         .from("profiles")
-        .select("profile_photo")
+        .select("profile_photo, name, username")
         .eq("user_id", supabaseId)
         .single();
+      
       (socket.data as any).profilePhoto = profileRow?.profile_photo || null;
+      (socket.data as any).fullName = profileRow?.name || profileRow?.username || "Someone";
     } else {
       (socket.data as any).profilePhoto = null;
+      (socket.data as any).fullName = "Someone";
     }
   } catch {
     socket.data.supabaseId = null;
     (socket.data as any).profilePhoto = null;
+    (socket.data as any).fullName = "Someone";
   }
 
   next();

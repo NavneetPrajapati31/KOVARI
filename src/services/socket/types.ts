@@ -10,6 +10,17 @@ export interface ServerToClientEvents {
   messages_seen: (payload: { chatId: string; messageIds: string[]; userId?: string; isFullySeen?: boolean }) => void;
   message_delivered_ack: (payload: { chatId: string; messageId: string; userId: string }) => void;
   user_last_seen: (payload: { userId: string; lastSeen: string | null }) => void;
+
+  // Notifications
+  new_notification: (payload: {
+    type: string;
+    title: string;
+    message: string;
+    chatId: string;
+    created_at: string;
+    image_url?: string;
+  }) => void;
+  unread_update: (payload: { count: number }) => void;
 }
 
 export interface ClientToServerEvents {

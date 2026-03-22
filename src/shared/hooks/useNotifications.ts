@@ -1,23 +1,30 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase";
 import { Notification } from "@/shared/types/notifications";
+import { getSocket } from "@/lib/socket";
+import { registerServiceWorker, subscribeUserToPush } from "@/shared/utils/pushSubscription";
 
 interface UseNotificationsOptions {
   limit?: number;
   unreadOnly?: boolean;
   realtime?: boolean;
+  activeChatId?: string | null; // Added: Suppress notifications for active chat
 }
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
-  const { limit = 50, unreadOnly = false, realtime = true } = options;
+  const { limit = 50, unreadOnly = false, realtime = true, activeChatId = null } = options;
   const { user } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Deduplication cache: stores notification IDs or hashes for socket-delivered alerts
+  const processedIds = useRef<Set<string>>(new Set());
+  const socketRef = useRef<any>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -35,7 +42,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       }
 
       const data = await response.json();
-      setNotifications(data.notifications || []);
+      const fetched = data.notifications || [];
+      
+      // Seed processedIds with initial notification IDs
+      fetched.forEach((n: Notification) => processedIds.current.add(n.id));
+      
+      setNotifications(fetched);
     } catch (err: any) {
       setError(err.message || "Failed to load notifications");
       console.error("Error fetching notifications:", err);
@@ -80,7 +92,6 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       } catch (err: any) {
         console.error("Error marking notification as read:", err);
-        // Refetch on error
         fetchNotifications();
         fetchUnreadCount();
       }
@@ -103,19 +114,75 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       setUnreadCount(0);
     } catch (err: any) {
       console.error("Error marking all notifications as read:", err);
-      // Refetch on error
       fetchNotifications();
       fetchUnreadCount();
     }
   }, [fetchNotifications, fetchUnreadCount]);
 
-  // Set up real-time subscription
+  // PHASE 4: Socket Integration
+  useEffect(() => {
+    if (!user) return;
+
+    const socket = getSocket(user.id);
+    socketRef.current = socket;
+
+    socket.on("new_notification", (newNotif: any) => {
+      // 1. Chat-Aware Logic: Ignore if user is in this active chat
+      if (activeChatId && newNotif.chatId === activeChatId) {
+        return;
+      }
+
+      // 2. Deduplication check: using a hash since instant notifications won't have DB IDs yet
+      const notifHash = `${newNotif.chatId}-${newNotif.created_at}-${newNotif.title}`;
+      if (processedIds.current.has(notifHash)) return;
+      processedIds.current.add(notifHash);
+
+      // 3. Add to local state (instant update)
+      const mappedNotif: Notification = {
+        id: `temp-${Date.now()}`,
+        user_id: user.id,
+        type: newNotif.type,
+        title: newNotif.title,
+        message: newNotif.message,
+        entity_type: "chat",
+        entity_id: newNotif.chatId,
+        is_read: false,
+        created_at: newNotif.created_at,
+        image_url: newNotif.image_url,
+      };
+
+      setNotifications((prev) => [mappedNotif, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+    });
+
+    socket.on("unread_update", ({ count }: { count: number }) => {
+      setUnreadCount(count);
+    });
+
+    return () => {
+      socket.off("new_notification");
+      socket.off("unread_update");
+    };
+  }, [user, activeChatId]);
+
+  // PHASE 4: Web Push Registration
+  useEffect(() => {
+    if (!user) return;
+    
+    const initPush = async () => {
+      await registerServiceWorker();
+      await subscribeUserToPush();
+    };
+
+    initPush();
+  }, [user]);
+
+  // Existing Supabase Realtime Subscription
   useEffect(() => {
     if (!user || !realtime) return;
 
     const supabase = createClient();
 
-    // Get user UUID for subscription
     const setupRealtime = async () => {
       const { data: userRow } = await supabase
         .from("users")
@@ -127,7 +194,6 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
       const userId = userRow.id;
 
-      // Subscribe to new notifications
       const channel = supabase
         .channel(`notifications:${userId}`)
         .on(
@@ -140,6 +206,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
           },
           (payload) => {
             const newNotification = payload.new as Notification;
+            
+            // Deduplication: if we already have a record for this transition (matching socket one)
+            // or if we already added this specific DB ID from a fetch
+            if (processedIds.current.has(newNotification.id)) return;
+            processedIds.current.add(newNotification.id);
+
             setNotifications((prev) => [newNotification, ...prev]);
             if (!newNotification.is_read) {
               setUnreadCount((prev) => prev + 1);
@@ -161,7 +233,6 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
                 n.id === updatedNotification.id ? updatedNotification : n
               )
             );
-            // Update unread count if status changed
             if (payload.old.is_read !== updatedNotification.is_read) {
               setUnreadCount((prev) =>
                 updatedNotification.is_read ? Math.max(0, prev - 1) : prev + 1
