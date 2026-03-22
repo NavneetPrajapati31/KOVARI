@@ -29,7 +29,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { PiPaperclip } from "react-icons/pi";
-import { BiCheckDouble, BiCheck } from "react-icons/bi";
+import { BiCheckDouble, BiCheck, BiTime } from "react-icons/bi";
 import { HiPlay } from "react-icons/hi";
 import { getUserUuidByClerkId } from "@/shared/utils/getUserUuidByClerkId";
 import { decryptMessage } from "@/shared/utils/encryption";
@@ -217,7 +217,7 @@ const MessageRow = React.memo(
                   }}
                 />
               )}
-              <span className="flex items-center gap-1 justify-end ml-3 mt-0.5 float-right">
+                <span className="flex items-center gap-1 justify-end ml-3 mt-0.5 float-right">
                 <span
                   className={`text-[10px] ${
                     isSent ? "text-white/70" : "text-gray-500"
@@ -225,7 +225,11 @@ const MessageRow = React.memo(
                 >
                   {timeString}
                 </span>
-                {showSpinner && <BiCheck className="w-4 h-4 text-white/70" />}
+                {isSent && msg.status === "sending" && <BiTime className="w-3 h-3 text-white/70 flex-shrink-0" />}
+                {isSent && msg.status === "sent" && <BiCheck className="w-4 h-4 text-white/70 flex-shrink-0" />}
+                {isSent && msg.status === "delivered" && <BiCheckDouble className="w-4 h-4 text-white/70 flex-shrink-0" />}
+                {isSent && (msg.status === "seen" || msg.read_at) && <BiCheckDouble className="w-4 h-4 text-primary-foreground flex-shrink-0" />}
+                
                 {showError && (
                   <>
                     <XCircle className="w-3 h-3 text-destructive" />
@@ -247,14 +251,6 @@ const MessageRow = React.memo(
                     )}
                   </>
                 )}
-                {isSent &&
-                  !showSpinner &&
-                  !showError &&
-                  (msg.read_at ? (
-                    <BiCheckDouble className="w-4 h-4 text-white/70" />
-                  ) : (
-                    <BiCheck className="w-4 h-4 text-white/70" />
-                  ))}
               </span>
             </div>
           </div>
@@ -352,7 +348,9 @@ const MessageList = ({
             showError = msg.status === "failed";
           } else {
             let decryptedContent = "[Encrypted message]";
-            if (
+            if (msg.plain_content) {
+              decryptedContent = msg.plain_content;
+            } else if (
               msg.is_encrypted &&
               msg.encrypted_content &&
               msg.encryption_iv &&
@@ -399,6 +397,7 @@ const MessageInput = ({
   disabled,
   currentUserUuid,
   partnerUuid,
+  sendTypingEvent,
 }: {
   handleSend: (
     value: string,
@@ -409,6 +408,7 @@ const MessageInput = ({
   disabled: boolean;
   currentUserUuid: string;
   partnerUuid: string;
+  sendTypingEvent: () => void;
 }) => {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -466,6 +466,7 @@ const MessageInput = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
+    sendTypingEvent();
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -753,6 +754,10 @@ const DirectChatPage = () => {
     loadMoreMessages,
     hasMoreMessages,
     loadingMore,
+    isPartnerTyping,
+    sendTypingEvent,
+    notifyMessagesSeen,
+    lastSeenPartner,
   } = useDirectChat(currentUserUuid, partnerUuid);
 
   // Memoize sharedSecret
@@ -785,16 +790,26 @@ const DirectChatPage = () => {
     setIsLoadingMore(loadingMore);
   }, [loadingMore]);
 
-  // Auto-scroll to bottom when opening/switching chats and when new messages arrive.
-  // (Guarded so we don't yank the user to bottom while they're loading older messages.)
+  // Smart auto-scroll and intersection observer
+  const isNearBottomRef = useRef(true);
+
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 150;
+  }, []);
+
   useLayoutEffect(() => {
-    // If the UI is still showing skeleton/blocked-loading states, the messages container isn't mounted yet.
     if (blockLoading || partnerLoading || !currentUserUuid) return;
     if (loading || isLoadingMore) return;
     if (!messagesContainerRef.current) return;
-    scrollToBottom();
-    const raf = requestAnimationFrame(() => scrollToBottom());
-    return () => cancelAnimationFrame(raf);
+    
+    // Only scroll to bottom if we were already near bottom (smart scrolling)
+    if (isNearBottomRef.current) {
+       scrollToBottom();
+       const raf = requestAnimationFrame(() => scrollToBottom());
+       return () => cancelAnimationFrame(raf);
+    }
   }, [
     partnerUuid,
     blockLoading,
@@ -805,6 +820,20 @@ const DirectChatPage = () => {
     messages.length,
     scrollToBottom,
   ]);
+  
+  // Realtime read receipts simple batcher
+  useEffect(() => {
+     if (messages.length > 0 && isNearBottomRef.current) {
+        const unreadForeignMsgs = messages
+           .filter(m => m.sender_id === partnerUuid && m.status !== "seen" && !m.read_at)
+           .map(m => m.id)
+           .filter(Boolean);
+           
+        if (unreadForeignMsgs.length > 0) {
+           notifyMessagesSeen(unreadForeignMsgs as string[]);
+        }
+     }
+  }, [messages, partnerUuid, notifyMessagesSeen]);
 
   // Error toast
   useEffect(() => {
@@ -835,7 +864,9 @@ const DirectChatPage = () => {
       return msg.plain_content || "";
     } else {
       let decryptedContent = "[Encrypted message]";
-      if (
+      if (msg.plain_content) {
+        decryptedContent = msg.plain_content;
+      } else if (
         msg.is_encrypted &&
         msg.encrypted_content &&
         msg.encryption_iv &&
@@ -1091,7 +1122,9 @@ const DirectChatPage = () => {
             showError = msg.status === "failed";
           } else {
             let decryptedContent = "[Encrypted message]";
-            if (
+            if (msg.plain_content) {
+              decryptedContent = msg.plain_content;
+            } else if (
               msg.is_encrypted &&
               msg.encrypted_content &&
               msg.encryption_iv &&
@@ -1299,7 +1332,15 @@ const DirectChatPage = () => {
                       : partnerProfile?.name || "Unknown User"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {`@${partnerProfile?.username || ""}`}
+                    {isPartnerTyping ? (
+                      <span className="text-primary">typing...</span>
+                    ) : lastSeenPartner === "online" ? (
+                      <span className="text-primary font-medium">online</span>
+                    ) : lastSeenPartner ? (
+                      <span>Last seen at {new Date(lastSeenPartner).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    ) : (
+                      `@${partnerProfile?.username || ""}`
+                    )}
                   </div>
                 </div>
               </div>
@@ -1326,6 +1367,9 @@ const DirectChatPage = () => {
         tabIndex={0}
         aria-label="Chat messages"
       >
+        <style dangerouslySetInnerHTML={{__html:`
+          .intersect-observer-child { min-height: 1px; }
+        `}} />
         {hasMoreMessages && (
           <div className="flex justify-center py-2">
             <button
@@ -1341,7 +1385,7 @@ const DirectChatPage = () => {
                     size="sm"
                     classNames={{ spinnerBars: "bg-black" }}
                   />
-                  Loading more messages...
+                  Loading more...
                 </>
               ) : (
                 <>
@@ -1352,14 +1396,16 @@ const DirectChatPage = () => {
             </button>
           </div>
         )}
-        <div className="flex-grow" />
-        <PatchedMessageList
-          messages={messages}
-          currentUserUuid={currentUserUuid}
-          sharedSecret={sharedSecret}
-          onRetry={handleRetry}
-        />
-        <div ref={messagesEndRef} />
+        <div className="flex-grow min-h-2" />
+        <div onScroll={handleScroll} className="w-full flex-1 min-h-[min-content]">
+          <PatchedMessageList
+            messages={messages}
+            currentUserUuid={currentUserUuid}
+            sharedSecret={sharedSecret}
+            onRetry={handleRetry}
+          />
+          <div ref={messagesEndRef} className="h-4 w-full flex-shrink-0 intersect-observer-child" />
+        </div>
       </div>
 
       {/* Message Input - Always at Bottom */}
@@ -1394,6 +1440,7 @@ const DirectChatPage = () => {
           disabled={iBlockedThem || theyBlockedMe || isPartnerDeleted}
           currentUserUuid={currentUserUuid}
           partnerUuid={partnerUuid}
+          sendTypingEvent={sendTypingEvent}
         />
       </div>
       {/* Media Viewer Modal */}

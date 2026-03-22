@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
@@ -19,6 +19,9 @@ import {
   Image,
 } from "lucide-react";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import { BiTime, BiCheck, BiCheckDouble } from "react-icons/bi";
+import { BsImage } from "react-icons/bs";
+import { BsCameraVideoFill } from "react-icons/bs";
 import { PiPaperclip } from "react-icons/pi";
 import { HiPlay } from "react-icons/hi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
@@ -219,6 +222,7 @@ export default function GroupChatInterface() {
 
   const { hasReported, setHasReported } = useReportStatus(groupId, "group");
 
+  const { user } = useUser();
   const {
     messages,
     loading,
@@ -226,6 +230,10 @@ export default function GroupChatInterface() {
     error,
     groupInfo,
     sendMessage,
+    typingUsers,
+    sendTypingEvent,
+    onlineMembers,
+    notifyMessagesSeen,
   } = useGroupChat(groupId);
 
   const { members, loading: membersLoading } = useGroupMembers(groupId);
@@ -243,15 +251,6 @@ export default function GroupChatInterface() {
     refetch: refetchMembership,
   } = useGroupMembership(groupId);
 
-  // Debug: Log membership error and info
-  console.log(
-    "membershipError",
-    membershipError,
-    "membershipInfo",
-    membershipInfo,
-  );
-
-  const { user } = useUser();
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -259,6 +258,26 @@ export default function GroupChatInterface() {
       getUserUuidByClerkId(user.id).then((uuid) => setUserId(uuid));
     }
   }, [user?.id]);
+
+  const isNearBottomRef = useRef(true);
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 150;
+  }, []);
+
+  // Trigger seen receipts for group messages
+  useEffect(() => {
+    if (messages.length > 0 && isNearBottomRef.current && userId) {
+      const unreadIds = messages
+        .filter((m) => !m.isCurrentUser && m.status !== "seen" && m.id)
+        .map((m) => m.id as string);
+      
+      if (unreadIds.length > 0) {
+        notifyMessagesSeen(unreadIds);
+      }
+    }
+  }, [messages, userId, notifyMessagesSeen]);
 
   // Insert emoji at cursor position
   const insertEmoji = (emoji: string) => {
@@ -865,7 +884,13 @@ export default function GroupChatInterface() {
                   )} */}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {members.length} members
+                  {typingUsers && typingUsers.size > 0 ? (
+                      <span className="text-primary">
+                         {typingUsers.size === 1 ? 'Someone is typing...' : `${typingUsers.size} people are typing...`}
+                      </span>
+                  ) : (
+                      <>{ members.length } members{onlineMembers.size > 0 ? ` · ${onlineMembers.size} online` : ""}</>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-1">
@@ -932,6 +957,7 @@ export default function GroupChatInterface() {
           {/* Messages */}
           <div
             ref={messagesContainerRef}
+            onScroll={handleScroll}
             className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
             data-testid="messages-container"
           >
@@ -1039,7 +1065,7 @@ export default function GroupChatInterface() {
                           {msg.mediaUrl && msg.mediaType === "image" && (
                             <button
                               type="button"
-                              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
+                              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0 mb-1"
                               aria-label="View image in full screen"
                               tabIndex={0}
                               onClick={() => {
@@ -1068,7 +1094,7 @@ export default function GroupChatInterface() {
                           {msg.mediaUrl && msg.mediaType === "video" && (
                             <button
                               type="button"
-                              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0"
+                              className="overflow-hidden rounded-2xl focus:outline-none focus:ring-0 mb-1"
                               aria-label="View video in full screen"
                               tabIndex={0}
                               onClick={() => {
@@ -1133,6 +1159,10 @@ export default function GroupChatInterface() {
                                 >
                                   {msg.timestamp}
                                 </span>
+                                {msg.isCurrentUser && msg.status === "sending" && <BiTime className="w-3 h-3 text-white/70 flex-shrink-0" />}
+                                {msg.isCurrentUser && msg.status === "sent" && <BiCheck className="w-4 h-4 text-white/70 flex-shrink-0" />}
+                                {msg.isCurrentUser && msg.status === "delivered" && <BiCheckDouble className="w-4 h-4 text-white/70 flex-shrink-0" />}
+                                {msg.isCurrentUser && msg.status === "seen" && <BiCheckDouble className="w-4 h-4 text-primary-foreground flex-shrink-0" />}
                               </span>
                             </div>
                           )}
@@ -1177,7 +1207,10 @@ export default function GroupChatInterface() {
                   key={groupId}
                   placeholder="Your message"
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={(e) => {
+                     setMessage(e.target.value);
+                     sendTypingEvent();
+                  }}
                   onKeyDown={handleKeyDown}
                   className={`w-full px-0 py-2 rounded-none border-none bg-transparent text-xs focus:outline-none resize-none h-full max-h-10 overflow-y-auto scrollbar-hide align-middle ${
                     messageLengthError ? "border-red-500" : ""
