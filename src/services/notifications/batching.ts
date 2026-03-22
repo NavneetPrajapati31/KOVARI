@@ -60,8 +60,8 @@ async function processBuffer(userId: string, chatId: string, senderName: string,
   console.log(`[Batching] Processing buffer for user: ${userId}, chat: ${chatId}. Messages: ${messages.length}, senderName: ${senderName}, senderId: ${senderId}`);
 
   const count = messages.length;
-  const title = count > 1 ? `${senderName} sent ${count} messages` : `New message from ${senderName}`;
-  const body = count > 1 ? `Latest: ${messages[count-1]}` : messages[0];
+  const title = `New message from ${senderName}`;
+  const body = count > 1 ? `Sent ${count} messages. Latest: ${messages[count-1]}` : messages[0];
 
   // 1. Create DB Notification (This now automatically handles push evaluation and priority)
   const result = await createNotification({
@@ -70,7 +70,7 @@ async function processBuffer(userId: string, chatId: string, senderName: string,
     title,
     message: body,
     entityType: "chat",
-    entityId: senderId, 
+    entityId: chatId, // Changed from senderId to chatId for consistency
     imageUrl: senderAvatar || undefined,
   });
 

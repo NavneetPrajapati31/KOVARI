@@ -435,7 +435,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                         conversation.lastMessage
                       )}
                     </p>
-                    {conversation.unreadCount > 0 && (
+                    {conversation.unreadCount > 0 && !isActive && (
                       <Badge
                         className="bg-primary text-primary-foreground text-xs min-w-[20px] h-4 rounded-full flex items-center justify-center ml-2"
                         aria-label={`${conversation.unreadCount} unread messages`}

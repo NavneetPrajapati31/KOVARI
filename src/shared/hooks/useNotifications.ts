@@ -24,7 +24,26 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   
   // Deduplication cache: stores notification IDs or hashes for socket-delivered alerts
   const processedIds = useRef<Set<string>>(new Set());
+  const processedFingerprints = useRef<Map<string, string>>(new Map()); // fingerprint -> notificationId
   const socketRef = useRef<any>(null);
+
+  // Helper to generate a stable fingerprint for a notification
+  const getFingerprint = (n: any) => {
+    // For NEW_MESSAGE, use type + chatId
+    // For others, use type + entityId
+    const type = n.type || n.notification_type;
+    const entityId = n.entity_id || n.chatId || n.entityId;
+    const entityType = n.entity_type || n.entityType || "chat";
+    
+    // Normalize ID to string to avoid type mismatches
+    const eId = String(entityId).toLowerCase().trim();
+    
+    // We use a broader fingerprint (type + entityId ONLY).
+    // This ensures that any subsequent notification for the same chat/match/group
+    // will correctly target and REPLACE the existing entry in the list, 
+    // effectively "upgrading" a socket temp alert to a persistent DB record.
+    return `${type}-${entityType}-${eId}`;
+  };
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -44,8 +63,11 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       const data = await response.json();
       const fetched = data.notifications || [];
       
-      // Seed processedIds with initial notification IDs
-      fetched.forEach((n: Notification) => processedIds.current.add(n.id));
+      // Seed deduplication caches
+      fetched.forEach((n: Notification) => {
+        processedIds.current.add(n.id);
+        processedFingerprints.current.set(getFingerprint(n), n.id);
+      });
       
       setNotifications(fetched);
     } catch (err: any) {
@@ -132,14 +154,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         return;
       }
 
-      // 2. Deduplication check: using a hash since instant notifications won't have DB IDs yet
-      const notifHash = `${newNotif.chatId}-${newNotif.created_at}-${newNotif.title}`;
-      if (processedIds.current.has(notifHash)) return;
-      processedIds.current.add(notifHash);
+      // 2. Unified Deduplication Check
+      const fingerprint = getFingerprint(newNotif);
+      const existingId = processedFingerprints.current.get(fingerprint);
 
-      // 3. Add to local state (instant update)
       const mappedNotif: Notification = {
-        id: `temp-${Date.now()}`,
+        id: existingId || `temp-${Date.now()}`,
         user_id: user.id,
         type: newNotif.type,
         title: newNotif.title,
@@ -147,9 +167,21 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         entity_type: "chat",
         entity_id: newNotif.chatId,
         is_read: false,
-        created_at: newNotif.created_at,
+        created_at: newNotif.created_at || new Date().toISOString(),
         image_url: newNotif.image_url,
       };
+
+      if (existingId) {
+        // REPLACE existing temp/real notification with the latest content
+        setNotifications((prev) => 
+          prev.map((n) => n.id === existingId ? mappedNotif : n)
+        );
+        return; // Don't increment unread count again
+      }
+
+      // 3. Add to local state (instant update)
+      processedIds.current.add(mappedNotif.id);
+      processedFingerprints.current.set(fingerprint, mappedNotif.id);
 
       setNotifications((prev) => [mappedNotif, ...prev]);
       setUnreadCount((prev) => prev + 1);
@@ -207,14 +239,27 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
           (payload) => {
             const newNotification = payload.new as Notification;
             
-            // Deduplication: if we already have a record for this transition (matching socket one)
-            // or if we already added this specific DB ID from a fetch
+            // 1. Check direct ID deduplication
             if (processedIds.current.has(newNotification.id)) return;
             processedIds.current.add(newNotification.id);
 
-            setNotifications((prev) => [newNotification, ...prev]);
-            if (!newNotification.is_read) {
-              setUnreadCount((prev) => prev + 1);
+            // 2. Check fingerprint deduplication (to catch Socket vs Supabase overlap)
+            const fingerprint = getFingerprint(newNotification);
+            const existingId = processedFingerprints.current.get(fingerprint);
+
+            if (existingId && existingId.startsWith("temp-")) {
+              // Gracefully REPLACE the temp socket notification with the real DB record
+              setNotifications((prev) => 
+                prev.map((n) => n.id === existingId ? newNotification : n)
+              );
+              // Don't increment unreadCount because the temp one already did
+            } else if (!existingId) {
+              // This is a new notification (neither Socket nor DB handled it yet)
+              processedFingerprints.current.set(fingerprint, newNotification.id);
+              setNotifications((prev) => [newNotification, ...prev]);
+              if (!newNotification.is_read) {
+                setUnreadCount((prev) => prev + 1);
+              }
             }
           }
         )
