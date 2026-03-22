@@ -11,16 +11,7 @@ import { getPushSubscriptions, deletePushSubscription } from "@/services/notific
 import { sendPushNotification } from "@/services/notifications/push";
 import { pubClient, connectRedis } from "@/services/socket/redis";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Admin client for server-side operations
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+import { createAdminSupabaseClient } from "../supabase-admin";
 
 /**
  * Server-only function to create a notification.
@@ -57,6 +48,7 @@ export async function createNotification(
 
     if (isUuid) {
       supabaseId = userId;
+      const supabaseAdmin = createAdminSupabaseClient();
       // Fetch clerk_id for push/socket logic that might need it
       const { data: userRow } = await supabaseAdmin
         .from("users")
@@ -66,6 +58,7 @@ export async function createNotification(
       clerkId = userRow?.clerk_user_id || null;
     } else {
       clerkId = userId;
+      const supabaseAdmin = createAdminSupabaseClient();
       const { data: userRow } = await supabaseAdmin
         .from("users")
         .select("id")
@@ -80,6 +73,7 @@ export async function createNotification(
     }
 
     // 3. Insert into Database (Source of Truth)
+    const supabaseAdmin = createAdminSupabaseClient();
     const { data: notifData, error } = await supabaseAdmin
       .from("notifications")
       .insert({
