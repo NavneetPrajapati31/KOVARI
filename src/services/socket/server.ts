@@ -75,7 +75,8 @@ io.use(async (socket, next) => {
       (socket.data as any).profilePhoto = null;
       (socket.data as any).fullName = "Someone";
     }
-  } catch {
+  } catch (err) {
+    console.error("[Socket Auth] Supabase lookup failed — check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars:", err);
     socket.data.supabaseId = null;
     (socket.data as any).profilePhoto = null;
     (socket.data as any).fullName = "Someone";
