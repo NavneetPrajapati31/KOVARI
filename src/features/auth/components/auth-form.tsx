@@ -93,7 +93,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
   };
 
   const handleSocialAuth = async (
-    provider: "oauth_google" | "oauth_facebook" | "oauth_apple"
+    provider: "oauth_google" // | "oauth_facebook" | "oauth_apple"
   ) => {
     setLoadingState(provider);
     setError("");
@@ -185,6 +185,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           Continue with Google
         </Button>
 
+{/* 
         <Button
           variant={"outline"}
           className="w-full h-10 text-foreground hover:bg-background"
@@ -219,7 +220,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
             </svg>
           )}
           Continue with Apple
-        </Button>
+        </Button> 
+        */}
       </div>
 
       {/* Divider */}
