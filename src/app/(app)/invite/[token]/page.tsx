@@ -36,7 +36,7 @@ function InviteCard({
               aria-hidden
             />
           </div>
-          <h1 className="text-lg font-bold text-foreground mb-2">{title}</h1>
+          <h1 className="text-lg font-semibold text-foreground mb-2">{title}</h1>
           {description ? (
             <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
               {description}
@@ -97,8 +97,7 @@ export default async function InvitePage({
           className="w-full sm:w-auto rounded-full"
         >
           <Link href="/" className="inline-flex items-center gap-2">
-            <Home className="w-4 h-4" />
-            Go home
+            Back to dashboard
           </Link>
         </Button>
       </InviteCard>
@@ -125,8 +124,7 @@ export default async function InvitePage({
           className="w-full sm:w-auto rounded-full"
         >
           <Link href="/" className="inline-flex items-center gap-2">
-            <Home className="w-4 h-4" />
-            Go home
+            Back to dashboard
           </Link>
         </Button>
       </InviteCard>
@@ -147,8 +145,7 @@ export default async function InvitePage({
           className="w-full sm:w-auto rounded-full"
         >
           <Link href="/" className="inline-flex items-center gap-2">
-            <Home className="w-4 h-4" />
-            Go home
+            Back to dashboard
           </Link>
         </Button>
       </InviteCard>
@@ -199,8 +196,7 @@ export default async function InvitePage({
           className="w-full sm:w-auto rounded-full"
         >
           <Link href="/" className="inline-flex items-center gap-2">
-            <Home className="w-4 h-4" />
-            Go home
+            Back to dashboard
           </Link>
         </Button>
       </InviteCard>

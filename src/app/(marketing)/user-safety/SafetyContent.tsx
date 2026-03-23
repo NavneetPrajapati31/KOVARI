@@ -25,7 +25,7 @@ export default function SafetyContent() {
       {/* 1. HEADER */}
       <section className="mb-12 md:mb-16 items-center text-center">
         <ShieldCheck className="w-12 h-12 text-primary mx-auto mb-6" strokeWidth={1.5} />
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
+        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground mb-4 md:mb-6">
           Safety & Trust
         </h1>
         <p className="text-md md:text-lg text-muted-foreground leading-relaxed">
@@ -156,7 +156,7 @@ export default function SafetyContent() {
             <a href="tel:112" className="flex items-center justify-between p-5 hover:bg-secondary/40 transition-colors duration-150">
               <div className="flex flex-col gap-1">
                 <h4 className="text-lg text-foreground font-medium">National Emergency</h4>
-                <p className="text-xl font-bold text-destructive">112</p>
+                <p className="text-xl font-semibold text-destructive">112</p>
               </div>
               <PhoneCall className="w-5 h-5 text-destructive" strokeWidth={2} />
             </a>
@@ -164,7 +164,7 @@ export default function SafetyContent() {
             <a href="tel:1091" className="flex items-center justify-between p-5 hover:bg-secondary/40 transition-colors duration-150">
               <div className="flex flex-col gap-1">
                 <h4 className="text-lg text-foreground font-medium">Women Helpline</h4>
-                <p className="text-xl font-bold text-destructive">1091</p>
+                <p className="text-xl font-semibold text-destructive">1091</p>
               </div>
               <PhoneCall className="w-5 h-5 text-destructive" strokeWidth={2} />
             </a>

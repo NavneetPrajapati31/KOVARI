@@ -36,7 +36,7 @@ export const CommunicationSection: React.FC<CommunicationSectionProps> = ({
   return (
     <>
       <div className="space-y-2 mb-6">
-        <h1 className="text-md sm:text-lg font-bold text-foreground">
+        <h1 className="text-md sm:text-lg font-semibold text-foreground">
           Communication Settings
         </h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">

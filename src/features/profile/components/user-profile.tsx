@@ -293,7 +293,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <h1 className="text-sm font-extrabold text-foreground leading-tight">
+                        <h1 className="text-sm font-semibold text-foreground leading-tight">
                           {profile.name}
                         </h1>
                       </div>
@@ -319,10 +319,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               ) => handleKeyDownConnections(e, "followers"),
                             })}
                           >
-                            <div className="text-xs font-black text-foreground">
+                            <div className="text-xs font-semibold text-foreground">
                               {followersCount}
                             </div>
-                            <span className="text-xs text-foreground font-bold">
+                            <span className="text-xs text-foreground font-semibold">
                               Followers
                             </span>
                           </div>
@@ -340,10 +340,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               ) => handleKeyDownConnections(e, "following"),
                             })}
                           >
-                            <div className="text-xs font-black text-foreground">
+                            <div className="text-xs font-semibold text-foreground">
                               {profile.following}
                             </div>
-                            <span className="text-xs text-foreground font-bold">
+                            <span className="text-xs text-foreground font-semibold">
                               Following
                             </span>
                           </div>
@@ -357,7 +357,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                               handleKeyDownConnections(e, "likes")
                             }
                           >
-                            <div className="text-xs font-black text-foreground">
+                            <div className="text-xs font-semibold text-foreground">
                               {profile.likes}
                             </div>
                             <span className="text-xs text-foreground font-bold">
@@ -428,7 +428,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <h1 className="text-sm font-extrabold text-foreground leading-tight">
+                        <h1 className="text-sm font-semibold text-foreground leading-tight">
                           {profile.name}
                         </h1>
                       </div>
@@ -442,7 +442,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 <div className="flex flex-row items-center gap-x-6 w-full mt-3 mb-2 min-[376px]:hidden">
                   <div className="flex flex-row gap-6 items-center flex-shrink-0">
                     <div className="text-left flex flex-row justify-start items-center gap-1">
-                      <div className="text-xs font-black text-foreground">
+                      <div className="text-xs font-semibold text-foreground">
                         {followersCount}
                       </div>
                       <span className="text-xs text-foreground font-bold">
@@ -450,7 +450,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </span>
                     </div>
                     <div className="text-left flex flex-row justify-start items-center gap-1">
-                      <div className="text-xs font-black text-foreground">
+                      <div className="text-xs font-semibold text-foreground">
                         {profile.following}
                       </div>
                       <span className="text-xs text-foreground font-bold">
@@ -458,7 +458,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       </span>
                     </div>
                     <div className="text-left flex flex-row justify-start items-center gap-1">
-                      <div className="text-xs font-black text-foreground">
+                      <div className="text-xs font-semibold text-foreground">
                         {profile.likes}
                       </div>
                       <span className="text-xs text-foreground font-bold">
@@ -858,7 +858,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                 <div className="flex flex-row items-center gap-x-10 w-full">
                   <div className="flex flex-col flex-1 min-w-0 gap-x-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <h1 className="text-lg font-extrabold text-foreground leading-tight">
+                      <h1 className="text-lg font-semibold text-foreground leading-tight">
                         {profile.name}
                       </h1>
                     </div>
@@ -885,7 +885,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Followers
                       </div>
-                      <div className="text-md font-black text-foreground">
+                      <div className="text-md font-semibold text-foreground">
                         {followersCount}
                       </div>
                     </div>
@@ -904,7 +904,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Following
                       </div>
-                      <div className="text-md font-black text-foreground">
+                      <div className="text-md font-semibold text-foreground">
                         {profile.following}
                       </div>
                     </div>
@@ -919,7 +919,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       <div className="text-xs text-muted-foreground mb-0.5 font-medium">
                         Likes
                       </div>
-                      <div className="text-md font-black text-foreground">
+                      <div className="text-md font-semibold text-foreground">
                         {profile.likes}
                       </div>
                     </div> */}

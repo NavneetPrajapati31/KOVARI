@@ -135,7 +135,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       <div className="w-full px-5 space-y-4 py-6 sm:py-8 sm:px-7 custom-autofill border-1 border-border rounded-2xl bg-card shadow-sm">
         {/* Header */}
         <div className="space-y-1">
-          <h1 className="text-md sm:text-lg font-bold text-foreground">
+          <h1 className="text-md sm:text-lg font-semibold text-foreground">
             {isSignUp ? "Join Kovari" : "Welcome back"}
           </h1>
           <p className="text-sm sm:text-md text-muted-foreground">

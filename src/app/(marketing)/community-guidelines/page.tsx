@@ -18,7 +18,7 @@ export default function CommunityGuidelinesPage() {
         <div className="container mx-auto px-6 md:px-8 max-w-6xl">
           {/* Header */}
           <div className="mb-12 md:mb-16">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground mb-4 md:mb-6">
               Community Guidelines
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium">

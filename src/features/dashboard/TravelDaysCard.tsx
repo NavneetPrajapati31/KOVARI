@@ -55,7 +55,7 @@ export const TravelDaysCard: React.FC<TravelDaysCardProps> = ({
         {/* Main content */}
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-4xl font-bold text-foreground mb-1">
+            <div className="text-4xl font-semibold text-foreground mb-1">
               {totalDays}
             </div>
             <div className="text-sm text-muted-foreground">

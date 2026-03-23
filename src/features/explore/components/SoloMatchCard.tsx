@@ -626,7 +626,7 @@ export function SoloMatchCard({
             ) : (
               <>
                 <X className="w-5 h-5 md:hidden shrink-0" aria-hidden />
-                <span className="hidden md:inline text-md font-bold">Skip</span>
+                <span className="hidden md:inline text-md font-semibold">Skip</span>
               </>
             )}
           </Button>
@@ -650,7 +650,7 @@ export function SoloMatchCard({
             }`}
           >
             <Flag className="w-5 h-5 md:hidden shrink-0" aria-hidden />
-            <span className="hidden md:inline text-md font-bold">
+            <span className="hidden md:inline text-md font-semibold">
               {hasReported ? "Reported" : "Report"}
             </span>
           </Button>
@@ -676,7 +676,7 @@ export function SoloMatchCard({
             ) : (
               <>
                 <Check className="w-5 h-5 md:hidden shrink-0" aria-hidden />
-                <span className="hidden md:inline text-md font-bold">
+                <span className="hidden md:inline text-md font-semibold">
                   Interested
                 </span>
               </>

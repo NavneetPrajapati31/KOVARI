@@ -276,7 +276,7 @@ async function ProfileContent() {
   if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h2 className="text-2xl font-bold mb-2">Profile Not Found</h2>
+        <h2 className="text-2xl font-semibold mb-2">Profile Not Found</h2>
         <p className="text-muted-foreground">
           Unable to load your profile. Please try again.
         </p>

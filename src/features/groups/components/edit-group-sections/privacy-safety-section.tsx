@@ -51,7 +51,7 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
   return (
     <>
       <div className="space-y-1 mb-5">
-        <h1 className="text-md font-bold text-foreground">Privacy & Safety</h1>
+        <h1 className="text-md font-semibold text-foreground">Privacy & Safety</h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
           Control who can see and join your group.
         </p>

@@ -242,7 +242,7 @@ export default function FollowersFollowing() {
               )
                 setActiveTab("followers");
             }}
-            className={`relative flex-1 flex justify-center items-center bg-transparent pb-2 transition-colors duration-150 text-sm focus:outline-none font-medium text-muted-foreground ${activeTab === "followers" ? "!font-extrabold text-primary" : ""}`}
+            className={`relative flex-1 flex justify-center items-center bg-transparent pb-2 transition-colors duration-150 text-sm focus:outline-none font-medium text-muted-foreground ${activeTab === "followers" ? "!font-semibold text-primary" : ""}`}
           >
             <span className="align-middle text-xs sm:text-sm">
               {followers.length} followers
@@ -265,7 +265,7 @@ export default function FollowersFollowing() {
               )
                 setActiveTab("following");
             }}
-            className={`relative flex-1 flex justify-center items-center bg-transparent pb-2 transition-colors duration-150 text-sm focus:outline-none font-medium text-muted-foreground ${activeTab === "following" ? "!font-extrabold text-primary" : ""}`}
+            className={`relative flex-1 flex justify-center items-center bg-transparent pb-2 transition-colors duration-150 text-sm focus:outline-none font-medium text-muted-foreground ${activeTab === "following" ? "!font-semibold text-primary" : ""}`}
           >
             <span className="align-middle text-xs sm:text-sm">
               {following.length} following
@@ -285,7 +285,7 @@ export default function FollowersFollowing() {
               if ((e.key === "Enter" || e.key === " ") && activeTab !== "likes")
                 setActiveTab("likes");
             }}
-            className={`relative flex-1 flex justify-center items-center bg-transparent pb-2 transition-colors duration-150 text-sm focus:outline-none font-medium text-muted-foreground ${activeTab === "likes" ? "!font-extrabold text-primary" : ""}`}
+            className={`relative flex-1 flex justify-center items-center bg-transparent pb-2 transition-colors duration-150 text-sm focus:outline-none font-medium text-muted-foreground ${activeTab === "likes" ? "!font-semibold text-primary" : ""}`}
           >
             <span className="align-middle text-xs sm:text-sm">
               {likes} likes

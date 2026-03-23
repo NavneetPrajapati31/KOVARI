@@ -728,7 +728,7 @@ const GroupHomePage = () => {
                   <>
                     <div className="flex items-start justify-between gap-2 px-1 mb-1">
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-sm font-bold">{groupInfo?.name}</h2>
+                        <h2 className="text-sm font-semibold">{groupInfo?.name}</h2>
                         <p className="text-sm font-medium text-muted-foreground mt-1 mb-3">
                           {groupInfo?.description}
                         </p>
@@ -1187,7 +1187,7 @@ const GroupHomePage = () => {
                       ) : (
                         <>
                           <span
-                            className="text-sm font-bold leading-tight truncate text-foreground"
+                            className="text-sm font-semibold leading-tight truncate text-foreground"
                             title={groupInfo?.name}
                           >
                             {groupInfo?.name}
@@ -1294,7 +1294,7 @@ const GroupHomePage = () => {
                     </CardBody>
                   </Card>
                   <Card className="bg-card border-1 p-2 border-border rounded-3xl shadow-sm flex-1 basis-1/3 lg:basis-1/4">
-                    <span className="text-sm font-bold leading-tight truncate text-foreground mt-3 text-center">
+                    <span className="text-sm font-semibold leading-tight truncate text-foreground mt-3 text-center">
                       Mark The Dates!
                     </span>
 
@@ -1558,7 +1558,7 @@ const GroupHomePage = () => {
                     <div className="flex items-start justify-between gap-2 w-full">
                       <div className="flex-1 min-w-0">
                         <span
-                          className="text-sm font-bold leading-tight truncate text-foreground block mb-1"
+                          className="text-sm font-semibold leading-tight truncate text-foreground block mb-1"
                           title={groupInfo?.name}
                         >
                           {groupInfo?.name}

@@ -33,18 +33,18 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
         <Skeleton className="h-3 w-20 rounded-full mt-2" />
       ) : value !== undefined ? (
         <div className="flex flex-row justify-between">
-          <p className="text-sm font-extrabold text-foreground truncate mr-2">
+          <p className="text-sm font-semibold text-foreground truncate mr-2">
             {value}
           </p>
           {/* {title === "Profile Impressions" && (
             <div className="flex flex-row items-center gap-1">
               <TrendingUp className="h-4 w-4 text-primary" />
-              <span className="text-sm font-extrabold text-primary">5%</span>
+              <span className="text-sm font-semibold text-primary">5%</span>
             </div>
           )} */}
         </div>
       ) : count !== undefined ? (
-        <p className="text-sm font-bold text-foreground">{count}</p>
+        <p className="text-sm font-semibold text-foreground">{count}</p>
       ) : (
         <p className="text-sm text-muted-foreground">{emptyText}</p>
       )}

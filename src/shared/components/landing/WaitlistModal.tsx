@@ -136,7 +136,7 @@ export default function WaitlistModal({
           <Button
             type="submit"
             disabled={isSubmitting || !email}
-            className="w-full h-10 sm:h-12 bg-primary text-primary-foreground font-bold text-sm sm:text-base shadow-sm hover:bg-primary/90 disabled:opacity-50"
+            className="w-full h-10 sm:h-12 bg-primary text-primary-foreground font-semibold text-sm sm:text-base shadow-sm hover:bg-primary/90 disabled:opacity-50"
             radius="full"
             variant="solid"
           >

@@ -43,7 +43,7 @@ export default function UserList({
           <h3 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">
             {type === "followers" ? "No followers yet" : "Not following anyone"}
           </h3>
-          <p className="text-[10px] sm:text-xs text-gray-500">
+          <p className="text-xs text-gray-500">
             {type === "followers"
               ? "When people follow you, you'll see them here."
               : "When you follow people, you'll see them here."}
