@@ -70,7 +70,7 @@ export function AcceptInviteClient({
             <div className="mx-auto w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mb-5">
               <AlertCircle className="w-7 h-7 text-destructive" aria-hidden />
             </div>
-            <h1 className="text-xl font-bold text-foreground mb-2">
+            <h1 className="text-xl font-semibold text-foreground mb-2">
               Couldn’t accept invite
             </h1>
             <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
@@ -99,7 +99,7 @@ export function AcceptInviteClient({
           <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-5">
             <Users className="w-7 h-7 text-primary" aria-hidden />
           </div>
-          <h1 className="text-lg font-bold text-foreground mb-2">
+          <h1 className="text-lg font-semibold text-foreground mb-2">
             Accepting your invite
           </h1>
           <p className="text-sm text-muted-foreground mb-6">

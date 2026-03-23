@@ -178,7 +178,7 @@ export default function RequestsPage() {
   return (
     <div className="w-full mx-auto p-4 space-y-6">
       <div className="space-y-1 mb-4">
-        <h1 className="text-md font-bold text-foreground">Join Requests</h1>
+        <h1 className="text-md font-semibold text-foreground">Join Requests</h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
           {isCurrentUserAdmin
             ? "Approve or reject pending join requests for this group. Only admins can take action."

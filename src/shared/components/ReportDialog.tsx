@@ -286,7 +286,7 @@ export function ReportDialog({
              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckIcon className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h3 className="text-md sm:text-lg font-bold text-foreground mb-2">Report Received</h3>
+            <h3 className="text-md sm:text-lg font-semibold text-foreground mb-2">Report Received</h3>
             <p className="text-xs sm:text-sm text-muted-foreground text-center">
               Thank you for keeping Kovari safe. Our moderation team will review your report shortly.
             </p>

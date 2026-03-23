@@ -15,7 +15,7 @@ export default function AboutPage() {
           
           {/* Header / Title Block */}
           <div className="mb-12 md:mb-16">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4 md:mb-6">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground mb-4 md:mb-6">
               We’re making travel more human.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium">
@@ -182,7 +182,7 @@ export default function AboutPage() {
 
             {/* Closing */}
             <section className="pt-10 pb-12">
-              <p className="text-xl md:text-2xl font-bold text-foreground text-center tracking-tight">
+              <p className="text-xl md:text-2xl font-semibold text-foreground text-center tracking-tight">
                 If this resonates with you,<br className="hidden md:block" /> you’re exactly who we’re building for.
               </p>
             </section>

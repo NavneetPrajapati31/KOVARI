@@ -277,7 +277,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
       </div>
       {/* Card Content */}
       <section
-        className={`rounded-2xl border border-border ${isMobile ? "bg-transparent p-0 shadow-none" : "bg-transparent p-4 px-6 shadow-none"}`}
+        className={`rounded-2xl bg-card ${isMobile ? "pt-2 border border-border shadow-none" : "border-none py-4 shadow-none"}`}
       >
         {/* Avatar & Buttons */}
         {isMobile ? (

@@ -119,7 +119,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-center">
+          <DialogTitle className="text-lg font-semibold text-center">
             Create Post
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground">

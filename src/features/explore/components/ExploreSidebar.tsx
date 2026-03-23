@@ -31,7 +31,7 @@ export const ExploreSidebar = ({
       {/* Filters with Scrollbar */}
       <div className="flex-1 overflow-y-auto scrollbar-hide min-[930px]:p-6 p-5">
         <div className="mb-6 border-b border-border pb-4">
-          <h2 className="text-md text-foreground font-bold mb-1">
+          <h2 className="text-md text-foreground font-semibold mb-1">
             Search & Filters
           </h2>
           <p className="text-sm text-muted-foreground">

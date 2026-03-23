@@ -75,7 +75,7 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
   return (
     <>
       <div className="space-y-1 mb-6">
-        <h1 className="text-md font-bold text-foreground">Travel Details</h1>
+        <h1 className="text-md font-semibold text-foreground">Travel Details</h1>
         <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
           Set your travel dates.
         </p>

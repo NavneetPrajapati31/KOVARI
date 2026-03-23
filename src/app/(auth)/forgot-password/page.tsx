@@ -195,7 +195,7 @@ function ForgotPasswordContent() {
                 />
               </div>
             )}
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-xl font-semibold text-foreground">
               {step === "set_password" && token
                 ? "Set new password"
                 : step === "email_sent"

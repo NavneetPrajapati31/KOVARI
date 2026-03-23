@@ -246,7 +246,7 @@ export default function Page() {
       {/* Header Section with Button on the right */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1 mb-4">
-          <h1 className="text-md font-bold text-foreground">Members</h1>
+          <h1 className="text-md font-semibold text-foreground">Members</h1>
           <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
             Manage your group&apos;s members. Invite new people and remove
             members as needed.

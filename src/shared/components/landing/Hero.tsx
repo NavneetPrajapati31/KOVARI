@@ -110,7 +110,7 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
           
           <motion.div variants={itemVariants} className="flex flex-col items-center justify-center gap-6 sm:flex-row mt-1">
             <Button
-              className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-12 sm:px-12 py-5 sm:py-6 text-sm sm:text-base font-bold leading-5"
+              className="h-12 sm:h-14 bg-primary text-primary-foreground shadow-sm px-12 sm:px-12 py-5 sm:py-6 text-sm sm:text-base font-semibold leading-5"
               radius="full"
               variant="solid"
               aria-label="Join the Waitlist"

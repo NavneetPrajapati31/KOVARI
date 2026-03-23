@@ -951,7 +951,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-lg font-bold text-foreground mb-1">
+        <h1 className="text-lg font-semibold text-foreground mb-1">
           Let&apos;s get started
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -1075,7 +1075,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-lg font-bold text-foreground mb-1">
+        <h1 className="text-lg font-semibold text-foreground mb-1">
           Profile picture
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -1246,7 +1246,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-lg font-bold text-foreground mb-1">About you</h1>
+        <h1 className="text-lg font-semibold text-foreground mb-1">About you</h1>
         <p className="text-sm text-muted-foreground">Gender and birthday</p>
       </div>
 
@@ -1349,7 +1349,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-lg font-bold text-foreground mb-1">
+        <h1 className="text-lg font-semibold text-foreground mb-1">
           Where are you based?
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -1534,7 +1534,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-lg font-bold text-foreground mb-1">
+        <h1 className="text-lg font-semibold text-foreground mb-1">
           Languages & interests
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -1896,7 +1896,7 @@ export default function ProfileSetupForm() {
       className="space-y-4"
     >
       <div className="text-center mb-6">
-        <h1 className="text-lg font-bold text-foreground mb-1">Lifestyle</h1>
+        <h1 className="text-lg font-semibold text-foreground mb-1">Lifestyle</h1>
         <p className="text-sm text-muted-foreground">
           Religion, preferences and personality
         </p>
@@ -2107,7 +2107,7 @@ export default function ProfileSetupForm() {
       className="space-y-6"
     >
       <div className="text-center mb-2">
-        <h1 className="text-lg font-bold text-foreground mb-1">
+        <h1 className="text-lg font-semibold text-foreground mb-1">
           Almost there!
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -2188,7 +2188,7 @@ export default function ProfileSetupForm() {
         <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckIcon className="w-6 h-6 text-primary-foreground" />
         </div>
-        <h1 className="text-lg font-bold text-foreground mb-1">
+        <h1 className="text-lg font-semibold text-foreground mb-1">
           Welcome aboard! 🎉
         </h1>
         <p className="text-sm text-muted-foreground">

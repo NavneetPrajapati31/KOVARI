@@ -91,7 +91,7 @@ export default function VerifyEmail() {
             <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Mail className="w-6 h-6 text-primary" aria-hidden />
             </div>
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-xl font-semibold text-foreground">
               Verify your email
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground max-w-md mx-auto">

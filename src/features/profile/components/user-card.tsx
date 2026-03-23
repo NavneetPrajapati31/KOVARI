@@ -212,11 +212,11 @@ export default function UserCard({
 <UserAvatarFallback />
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="flex flex-col">
-                <span className="text-[11px] sm:text-xs font-semibold text-foreground truncate">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold text-foreground truncate">
                   {user.name}
                 </span>
-                <span className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                <span className="text-xs text-muted-foreground truncate">
                   {user.username}
                 </span>
               </div>
@@ -232,11 +232,11 @@ export default function UserCard({
 <UserAvatarFallback />
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="flex flex-col">
-                <span className="text-[11px] sm:text-xs font-semibold text-foreground truncate">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold text-foreground truncate">
                   {user.name}
                 </span>
-                <span className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                <span className="text-xs text-muted-foreground truncate">
                   {user.username}
                 </span>
               </div>
@@ -251,7 +251,7 @@ export default function UserCard({
           {isOwnProfile && type === "followers" && (
             <>
               <Button
-                className="h-8 px-4 text-[11px] sm:text-xs font-medium bg-primary text-primary-foreground rounded-lg min-w-[90px]"
+                className="h-8 px-4 text-xs font-medium bg-primary text-primary-foreground rounded-lg min-w-[90px]"
                 onClick={isFollowing ? handleMessage : handleFollowToggle}
                 disabled={loadingAction === "follow"}
               >
@@ -281,14 +281,14 @@ export default function UserCard({
             <>
               <Button
                 size="sm"
-                className="h-8 px-4 text-[11px] sm:text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg min-w-[90px]"
+                className="h-8 px-4 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg min-w-[90px]"
                 onClick={handleMessage}
               >
                 Message
               </Button>
               <Button
                 size="sm"
-                className="hidden md:flex h-8 px-4 text-[11px] sm:text-xs font-medium bg-secondary text-foreground rounded-lg min-w-[80px]"
+                className="hidden md:flex h-8 px-4 text-xs font-medium bg-secondary text-foreground rounded-lg min-w-[80px]"
                 onClick={handleUnfollow}
                 disabled={loadingAction === "unfollow"}
               >
@@ -304,7 +304,7 @@ export default function UserCard({
           {!isOwnProfile && String(user.id) !== currentUserUuid && (
             <Button
               size="sm"
-              className={`h-8 px-4 text-[11px] sm:text-xs font-medium rounded-lg min-w-[90px] ${
+              className={`h-8 px-4 text-xs font-medium rounded-lg min-w-[90px] ${
                 isFollowing
                   ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   : "bg-primary text-primary-foreground hover:bg-primary/90"

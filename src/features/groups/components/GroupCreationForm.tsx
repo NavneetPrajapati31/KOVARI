@@ -221,7 +221,7 @@ export function GroupCreationForm() {
       <Card className="w-full max-w-4xl bg-card shadow-none border-border py-2">
         <CardContent className="p-4 md:p-6">
           <div className="text-center mb-8">
-            <h1 className="text-md sm:text-lg font-bold text-foreground mb-1">
+            <h1 className="text-md sm:text-lg font-semibold text-foreground mb-1">
               Create a new group
             </h1>
             <p className="text-sm text-muted-foreground">

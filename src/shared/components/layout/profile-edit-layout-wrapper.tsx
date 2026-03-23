@@ -181,7 +181,7 @@ export default function ProfileEditLayoutWrapper() {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row min-h-[90vh] h-full bg-card text-foreground border-1 border-border rounded-3xl mx-3 mb-6 md:mx-6">
+      <div className={`flex flex-col md:flex-row min-h-[90vh] h-full bg-card text-foreground border-1 border-border rounded-3xl mx-3 mb-6 md:mx-6 ${isMobile ? "border-none" : ""}`}>
         {/* Sidebar (hide on mobile) */}
         {!isMobile && (
           <div className="w-full md:w-1/4 lg:w-1/5 md:border-r-1 border-border h-full flex flex-col self-stretch">
@@ -192,7 +192,7 @@ export default function ProfileEditLayoutWrapper() {
           </div>
         )}
         {/* Content Area */}
-        <div className="flex-1 flex flex-col p-4 md:p-3 gap-2">
+        <div className={`flex-1 flex flex-col md:p-3 md:px-6 gap-2 ${isMobile ? "bg-background rounded-3xl p-2 py-4" : ""}`}>
           {isMobile ? (
             <div className="flex flex-col gap-6">
               <GeneralSection
