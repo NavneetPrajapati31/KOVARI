@@ -111,7 +111,7 @@ export default function RootLayout({
           />
         </head>
         <body
-          className={`${inter.variable} ${poppins.variable} font-body`}
+          className={`${inter.variable} ${poppins.variable} font-sans`}
           suppressHydrationWarning
         >
           <HeroUIProvider>
