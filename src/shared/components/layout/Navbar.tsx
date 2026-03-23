@@ -255,7 +255,7 @@ export default function App({
         height={"5rem"}
         onMenuOpenChange={setIsMenuOpen}
         isBordered={false}
-        className={`transition-[backdrop-filter,background-color] duration-250 ease-in-out ${isSidebarOpen ? "bg-transparent backdrop-blur-none border-none shadow-none" : "bg-background border-none"}`}
+        className={`font-sans transition-[backdrop-filter,background-color] duration-250 ease-in-out ${isSidebarOpen ? "bg-transparent backdrop-blur-none border-none shadow-none" : "bg-background border-none"}`}
         classNames={{
           wrapper: "max-w-full px-6 md:px-8 xl:px-12 bg-transparent",
         }}
