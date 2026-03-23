@@ -1,5 +1,5 @@
 import redis, { ensureRedisConnection } from "./redis";
-import { searchLocation, Coordinates } from "./geocoding-client";
+import { searchLocationDirect as searchLocation, Coordinates } from "./geocoding-core";
 
 // Re-export client types and functions for convenience on server-side
 export * from "./geocoding-client";
