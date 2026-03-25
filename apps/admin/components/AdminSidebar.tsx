@@ -11,6 +11,7 @@ import {
   Clock,
   Settings,
   FileText,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -59,6 +60,11 @@ const menuItems = [
     title: "Settings",
     url: "/settings",
     icon: Settings,
+  },
+  {
+    title: "Waitlist",
+    url: "/waitlist",
+    icon: BarChart3,
   },
   {
     title: "Audit Logs",

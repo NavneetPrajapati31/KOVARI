@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 import Hero from "@/shared/components/landing/Hero";
 import { getAllDestinations } from "@/lib/data/topPicksDestinations";
+import { trackEvent } from "@/shared/utils/analytics";
 
 // Lazy load below-the-fold content to aggressively improve JS parsing and TBT on mobile
 const Audience = dynamic(() => import("@/shared/components/landing/Audience"));
@@ -22,12 +23,14 @@ export default function HomePage() {
   const [waitlistSource, setWaitlistSource] = useState("unknown");
 
   const openWaitlist = (source: string) => {
+    trackEvent("waitlist_click", { source });
     setWaitlistSource(source);
     setIsWaitlistModalOpen(true);
   };
 
   // Track page view on mount
   useEffect(() => {
+    trackEvent("landing_view");
     Sentry.startSpan(
       {
         op: "navigation",
