@@ -11,7 +11,7 @@ import {
   memo,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Users, UsersRound, Clock, Flag, Loader2 } from 'lucide-react';
+import { Search, Users, UsersRound, Clock, Flag, Loader2, XCircle, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -74,25 +74,24 @@ const SearchResultItem = memo(
     const Icon = iconMap[result.type];
     return (
       <Button
-        variant="ghost"
-        className="w-full justify-start h-auto p-3 rounded-none border-b last:border-0"
+        className="bg-transparent hover:bg-transparent w-full justify-start h-auto p-4 rounded-none border-b border-border last:border-0 transition-colors"
         onClick={() => onClick(result)}
       >
-        <div className="flex items-start gap-3 w-full">
-          <div className="mt-0.5">
-            <Icon className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-3.5 w-full">
+          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/5 text-primary shrink-0">
+            <Icon className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0 text-left">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-sm truncate">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="font-bold text-[15px] truncate tracking-tight text-foreground">
                 {result.title}
               </span>
-              <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary px-1.5 py-0.5 bg-primary/5 rounded border border-primary/10">
                 {labelMap[result.type]}
               </span>
             </div>
             {result.subtitle && (
-              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              <p className="text-[12px] font-medium text-muted-foreground truncate tracking-tight opacity-70">
                 {result.subtitle}
               </p>
             )}
@@ -353,18 +352,16 @@ export function AdminSearch() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <div className="relative w-full max-w-md" suppressHydrationWarning>
-          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none opacity-50" />
+        <div className="relative w-full" suppressHydrationWarning>
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none" />
           <Input
             type="search"
-            placeholder="Search users, groups, sessions, flags..."
-            className="w-full pl-7"
+            placeholder="Search users, groups, flags..."
+            className="w-full pl-10 pr-10 h-10 rounded-xl bg-card border-border transition-all text-[15px] placeholder:text-muted-foreground placeholder:font-medium [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
             value={query}
             onChange={(e) => {
-              // Update input value immediately - never block this
               const newQuery = e.target.value;
               setQuery(newQuery);
-              // Use startTransition for non-critical UI updates
               startTransition(() => {
                 if (newQuery.length >= 2) {
                   setIsOpen(true);
@@ -389,12 +386,26 @@ export function AdminSearch() {
               }
             }}
           />
+          {query && (
+            <button
+              onClick={() => {
+                setQuery('');
+                setIsOpen(false);
+              }}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/30 hover:text-muted-foreground/50 transition-colors z-20 cursor-pointer"
+            >
+              <X className="h-4.5 w-4.5 text-muted-foreground" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <X className="h-4.5 w-4.5 text-muted-foreground" />
+              </div>
+            </button>
+          )}
         </div>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] max-w-md p-0"
+        className="w-[var(--radix-popover-trigger-width)] max-w-full p-0 rounded-2xl overflow-hidden border-border !shadow-none"
         align="start"
-        sideOffset={4}
+        sideOffset={8}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {isLoading ? (

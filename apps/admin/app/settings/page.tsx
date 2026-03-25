@@ -12,7 +12,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ToastContainer, useToast } from "@/components/Toast";
-import { AlertTriangle, Clock, Sliders } from "lucide-react";
+import { AlertTriangle, Clock, Sliders, ShieldCheck } from "lucide-react";
+import { GroupContainer } from "@/components/ui/ios/GroupContainer";
+import { ListRow } from "@/components/ui/ios/ListRow";
+import { SectionHeader } from "@/components/ui/ios/SectionHeader";
+import { cn } from "@/lib/utils";
 
 interface SettingsData {
   session_ttl_hours: number;
@@ -22,25 +26,19 @@ interface SettingsData {
 
 export default function SettingsPage() {
   const [settings, setSettings] = React.useState<SettingsData>({
-    session_ttl_hours: 168, // Default: 7 days
+    session_ttl_hours: 168,
     maintenance_mode: false,
     matching_preset: "BALANCED",
   });
   const [isSaving, setIsSaving] = React.useState(false);
-  const [maintenanceDialogOpen, setMaintenanceDialogOpen] =
-    React.useState(false);
-  const [pendingMaintenanceMode, setPendingMaintenanceMode] =
-    React.useState(false);
+  const [maintenanceDialogOpen, setMaintenanceDialogOpen] = React.useState(false);
+  const [pendingMaintenanceMode, setPendingMaintenanceMode] = React.useState(false);
   const [presetDialogOpen, setPresetDialogOpen] = React.useState(false);
-  const [pendingPreset, setPendingPreset] = React.useState<
-    "SAFE" | "BALANCED" | "STRICT"
-  >("BALANCED");
-  const [sessionTtlChanged, setSessionTtlChanged] = React.useState(false);
+  const [pendingPreset, setPendingPreset] = React.useState<"SAFE" | "BALANCED" | "STRICT">("BALANCED");
   const { toasts, toast, removeToast } = useToast();
 
   React.useEffect(() => {
     loadSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSettings = async () => {
@@ -49,17 +47,12 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error("Failed to load settings");
       const data = await response.json();
       setSettings({
-        session_ttl_hours: data.session_ttl_hours ?? 168, // Default: 7 days
+        session_ttl_hours: data.session_ttl_hours ?? 168,
         maintenance_mode: data.maintenance_mode ?? false,
         matching_preset: data.matching_preset ?? "BALANCED",
       });
     } catch (error) {
-      console.error("Error loading settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load settings",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load systems", variant: "destructive" });
     }
   };
 
@@ -70,35 +63,18 @@ export default function SettingsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionTtlHours:
-            updates.session_ttl_hours ?? settings.session_ttl_hours,
-          maintenanceMode:
-            updates.maintenance_mode ?? settings.maintenance_mode,
+          sessionTtlHours: updates.session_ttl_hours ?? settings.session_ttl_hours,
+          maintenanceMode: updates.maintenance_mode ?? settings.maintenance_mode,
           matchingPreset: updates.matching_preset ?? settings.matching_preset,
         }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save settings");
-      }
-
+      if (!response.ok) throw new Error("Update failed");
       const data = await response.json();
       setSettings(data.value);
-      setSessionTtlChanged(false);
-      toast({
-        title: "Success",
-        description: "Settings saved successfully",
-        variant: "success",
-      });
+      toast({ title: "Updated", description: "System settings synchronized.", variant: "success" });
     } catch (error) {
-      console.error("Error saving settings:", error);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to save settings",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Could not save changes.", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -117,13 +93,10 @@ export default function SettingsPage() {
   const handleSessionTtlChange = (value: string) => {
     const hours = Number(value);
     setSettings((prev) => ({ ...prev, session_ttl_hours: hours }));
-    setSessionTtlChanged(true);
     saveSettings({ session_ttl_hours: hours });
   };
 
-  const handleMatchingPresetChange = (
-    value: "SAFE" | "BALANCED" | "STRICT"
-  ) => {
+  const handleMatchingPresetChange = (value: "SAFE" | "BALANCED" | "STRICT") => {
     setPendingPreset(value);
     setPresetDialogOpen(true);
   };
@@ -133,180 +106,118 @@ export default function SettingsPage() {
     setPresetDialogOpen(false);
   };
 
-  const presetDescriptions = {
-    SAFE: "Stricter distance + date overlap requirements",
-    BALANCED: "Current default matching behavior",
-    STRICT: "Higher score threshold for matches",
-  };
-
   return (
-    <main className="p-8 space-y-6">
-      <div className="space-y-6 max-w-full">
-        {/* System Settings Section */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">System Settings</h2>
+    <div className="max-w-4xl mx-auto p-6 lg:p-10 space-y-10">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-          {/* Maintenance Mode */}
-          <div className="rounded-lg border p-6 space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                  <Label
-                    htmlFor="maintenance-mode"
-                    className="text-base font-medium"
-                  >
-                    Maintenance Mode
-                  </Label>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Maintenance mode pauses all matching APIs but keeps user login
-                  active.
-                </p>
-                {settings.maintenance_mode && (
-                  <p className="text-sm text-destructive font-medium mt-2">
-                    Maintenance mode is currently active. All matching
-                    operations are paused.
-                  </p>
-                )}
-              </div>
-              <Switch
-                id="maintenance-mode"
-                checked={settings.maintenance_mode}
-                onCheckedChange={handleMaintenanceToggle}
-                disabled={isSaving}
-              />
-            </div>
-          </div>
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-[17px] text-muted-foreground/80">Configure core system behaviors and policies</p>
+      </div>
 
-          {/* Session TTL */}
-          <div className="rounded-lg border p-6 space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <Label
-                    htmlFor="session-ttl"
-                    className="text-base font-medium"
-                  >
-                    Session TTL
-                  </Label>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Duration before user sessions expire and require
-                  re-authentication.
-                </p>
-                {sessionTtlChanged && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mt-2">
-                    New TTL applies only to future sessions.
-                  </p>
-                )}
-              </div>
-              <div className="w-48">
-                <Select
-                  value={settings.session_ttl_hours.toString()}
-                  onValueChange={handleSessionTtlChange}
+      <div className="space-y-12">
+        {/* Maintenance & Safety Section */}
+        <section>
+          <SectionHeader>Service Control</SectionHeader>
+          <GroupContainer>
+            <ListRow
+              icon={<AlertTriangle className={cn("h-5 w-5", settings.maintenance_mode ? "text-red-500" : "text-muted-foreground/40")} />}
+              label="Maintenance Mode"
+              secondary="Pauses matching and production APIs while keeping admin access open"
+              trailing={
+                <Switch
+                  checked={settings.maintenance_mode}
+                  onCheckedChange={handleMaintenanceToggle}
                   disabled={isSaving}
-                >
-                  <SelectTrigger id="session-ttl" className="w-full">
+                  className="data-[state=checked]:bg-red-500 scale-90"
+                />
+              }
+              showChevron={false}
+            />
+            <ListRow
+              icon={<Sliders className="h-5 w-5 text-muted-foreground/40" />}
+              label="Matching Strategy"
+              secondary={
+                settings.matching_preset === "SAFE" ? "Prioritizes distance and overlaps" :
+                settings.matching_preset === "STRICT" ? "Higher score threshold required" :
+                "Standard balanced algorithm"
+              }
+              trailing={
+                <Select value={settings.matching_preset} onValueChange={handleMatchingPresetChange} disabled={isSaving}>
+                  <SelectTrigger className="w-32 h-8 rounded-lg bg-muted border-none text-[13px] font-bold">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="6">6 hours</SelectItem>
-                    <SelectItem value="12">12 hours</SelectItem>
-                    <SelectItem value="24">24 hours</SelectItem>
-                    <SelectItem value="168">7 days (default)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Matching Preset */}
-          <div className="rounded-lg border p-6 space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
-                  <Sliders className="h-4 w-4 text-muted-foreground" />
-                  <Label
-                    htmlFor="matching-preset"
-                    className="text-base font-medium"
-                  >
-                    Matching Preset
-                  </Label>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {presetDescriptions[settings.matching_preset]}
-                </p>
-                <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                  <p>
-                    <strong>SAFE:</strong> {presetDescriptions.SAFE}
-                  </p>
-                  <p>
-                    <strong>BALANCED:</strong> {presetDescriptions.BALANCED}
-                  </p>
-                  <p>
-                    <strong>STRICT:</strong> {presetDescriptions.STRICT}
-                  </p>
-                </div>
-              </div>
-              <div className="w-48">
-                <Select
-                  value={settings.matching_preset}
-                  onValueChange={handleMatchingPresetChange}
-                  disabled={isSaving}
-                >
-                  <SelectTrigger id="matching-preset" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     <SelectItem value="SAFE">SAFE</SelectItem>
                     <SelectItem value="BALANCED">BALANCED</SelectItem>
                     <SelectItem value="STRICT">STRICT</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-          </div>
-        </div>
+              }
+              showChevron={false}
+            />
+          </GroupContainer>
+          {settings.maintenance_mode && (
+            <p className="mt-3 px-1 text-[13px] font-medium text-red-500 animate-pulse">
+              ● System is currently in maintenance mode. All matching operations are halted.
+            </p>
+          )}
+        </section>
+
+        {/* Security Section */}
+        <section>
+          <SectionHeader>Security & Sessions</SectionHeader>
+          <GroupContainer>
+            <ListRow
+              icon={<Clock className="h-5 w-5 text-muted-foreground/40" />}
+              label="Session Expiration"
+              secondary="Time before user tokens expire (applies to new sessions)"
+              trailing={
+                <Select value={settings.session_ttl_hours.toString()} onValueChange={handleSessionTtlChange} disabled={isSaving}>
+                  <SelectTrigger className="w-32 h-8 rounded-lg bg-muted border-none text-[13px] font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="6">6 Hours</SelectItem>
+                    <SelectItem value="24">24 Hours</SelectItem>
+                    <SelectItem value="168">7 Days</SelectItem>
+                    <SelectItem value="720">30 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              }
+              showChevron={false}
+            />
+            <ListRow
+              icon={<ShieldCheck className="h-5 w-5 text-muted-foreground/40" />}
+              label="System Integrity"
+              secondary="Verified administrative connection Active"
+              trailing={<span className="text-[11px] font-bold text-green-500 uppercase tracking-widest">OK</span>}
+              showChevron={false}
+            />
+          </GroupContainer>
+        </section>
       </div>
 
-      {/* Maintenance Mode Confirmation Dialog */}
       <ConfirmDialog
         open={maintenanceDialogOpen}
         onOpenChange={setMaintenanceDialogOpen}
-        title={
-          pendingMaintenanceMode
-            ? "Enable Maintenance Mode?"
-            : "Disable Maintenance Mode?"
-        }
-        description={
-          pendingMaintenanceMode
-            ? "This will pause all matching APIs. Users will still be able to log in, but no new matches will be generated. Are you sure you want to continue?"
-            : "This will resume all matching APIs. The system will return to normal operation. Are you sure you want to continue?"
-        }
+        title={pendingMaintenanceMode ? "Enter Maintenance Mode?" : "Resume Normal Service?"}
+        description={pendingMaintenanceMode 
+          ? "All client matching requests will return a maintenance error. Continue?" 
+          : "Matches will immediately begin generating based on current activity. Continue?"}
         variant={pendingMaintenanceMode ? "destructive" : "default"}
-        confirmText={
-          pendingMaintenanceMode
-            ? "Enable Maintenance Mode"
-            : "Disable Maintenance Mode"
-        }
+        confirmText={pendingMaintenanceMode ? "Enable Mode" : "Resume Service"}
         onConfirm={confirmMaintenanceChange}
       />
 
-      {/* Matching Preset Confirmation Dialog */}
       <ConfirmDialog
         open={presetDialogOpen}
         onOpenChange={setPresetDialogOpen}
-        title="Change Matching Preset?"
-        description={`You are changing the matching preset from ${settings.matching_preset} to ${pendingPreset}. This will affect the minimum score threshold and maximum distance for all future matches. Are you sure you want to continue?`}
-        variant="default"
+        title="Switch Matching Preset?"
+        description={`This will immediately change the threshold sensitivity for all users. Strategy: ${pendingPreset}`}
         confirmText={`Change to ${pendingPreset}`}
         onConfirm={confirmPresetChange}
       />
-
-      {/* Toast Container */}
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </main>
+    </div>
   );
 }

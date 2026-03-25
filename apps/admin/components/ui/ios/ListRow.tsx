@@ -1,0 +1,73 @@
+"use client";
+
+import React from "react";
+import { ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ListRowProps {
+  icon?: React.ReactNode;
+  label: string;
+  secondary?: React.ReactNode;
+  trailing?: React.ReactNode;
+  showChevron?: boolean;
+  onClick?: () => void;
+  className?: string;
+  destructive?: boolean;
+}
+
+export function ListRow({
+  icon,
+  label,
+  secondary,
+  trailing,
+  showChevron = true,
+  onClick,
+  className,
+  destructive = false,
+}: ListRowProps) {
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "flex w-full min-h-[52px] items-center px-4 py-3 gap-3",
+        "transition-colors duration-150 ease-in-out",
+        onClick && "cursor-pointer hover:bg-muted/50 active:bg-muted/80",
+        className
+      )}
+    >
+      {icon && (
+        <div className={cn(
+          "flex items-center justify-center h-7 w-7 rounded-lg shrink-0",
+          destructive ? "text-red-500" : "text-foreground/80"
+        )}>
+          {icon}
+        </div>
+      )}
+      
+      <div className="flex flex-col flex-1 min-w-0">
+        <span className={cn(
+          "text-sm font-medium leading-tight truncate",
+          destructive ? "text-red-500" : "text-foreground"
+        )}>
+          {label}
+        </span>
+        {secondary && (
+          <div className="text-sm text-muted-foreground leading-tight truncate">
+            {secondary}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        {trailing && (
+          <div className="text-md text-muted-foreground">
+            {trailing}
+          </div>
+        )}
+        {showChevron && onClick && (
+          <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+        )}
+      </div>
+    </div>
+  );
+}

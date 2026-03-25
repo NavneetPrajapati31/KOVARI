@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
 import { GroupDetail } from "../../../components/GroupDetail";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 
 interface GroupData {
   group: {
@@ -315,15 +316,16 @@ export default async function GroupDetailPage({
   if (!groupData) {
     notFound();
   }
-
+  
   return (
-    <main className="p-8 space-y-6">
+    <div className="max-w-6xl mx-auto p-6 lg:p-10 space-y-8">
       <div>
         <Link
           href="/groups"
-          className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block"
+          className="inline-flex items-center gap-2 text-[15px] font-semibold text-muted-foreground/60 hover:text-primary transition-colors mb-2"
         >
-          ← Back to Groups
+          <ChevronLeft className="h-4 w-4" />
+          Back to Groups
         </Link>
       </div>
 
@@ -336,6 +338,6 @@ export default async function GroupDetailPage({
         adminActions={groupData.admin_actions}
         flagId={flagId}
       />
-    </main>
+    </div>
   );
 }

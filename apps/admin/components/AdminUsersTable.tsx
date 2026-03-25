@@ -2,10 +2,13 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
+import { GroupContainer } from "./ui/ios/GroupContainer";
+import { ListRow } from "./ui/ios/ListRow";
+import { SectionHeader } from "./ui/ios/SectionHeader";
+import { SearchInput } from "./ui/ios/SearchInput";
 import { getThumbnailUrl } from "../lib/cloudinary-client";
+import { Avatar } from "@heroui/react";
 
 interface User {
   id: string;
@@ -74,165 +77,93 @@ export function AdminUsersTable({
     fetchUsers(1, query);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
-    <div className="space-y-4">
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <Input
-          type="text"
-          placeholder="Search by name..."
+    <div className="space-y-8">
+      <form onSubmit={handleSearch} className="px-1">
+        <SearchInput
+          placeholder="Search users..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="max-w-sm"
         />
-        <Button type="submit" disabled={isLoading}>
-          Search
-        </Button>
       </form>
 
-      <div className="rounded-md border">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  User
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Email
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Status
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Flags
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Created
-                </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="h-24 text-center text-muted-foreground"
-                  >
-                    No users found
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b transition-colors hover:bg-muted/50"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            "h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden",
-                            user.deleted && "opacity-50"
-                          )}
-                        >
-                          {user.profile_photo ? (
-                            <img
-                              src={getThumbnailUrl(user.profile_photo)}
-                              alt={user.name || "User"}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-sm font-medium">
-                              {user.name?.charAt(0).toUpperCase() || "?"}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            {user.name || "Unknown User"}
-                          </div>
-                          {user.deleted && (
-                            <div className="text-xs text-muted-foreground">
-                              Deleted
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm">{user.email}</td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {user.verified && (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100">
-                            Verified
+      <div className="space-y-2">
+        <SectionHeader>All Users</SectionHeader>
+        <GroupContainer shadow={false}>
+          {users.length === 0 ? (
+            <div className="h-40 flex items-center justify-center text-muted-foreground/60 text-[15px]">
+              No users found
+            </div>
+          ) : (
+            users.map((user) => {
+              const statusElements = [];
+              if (user.users?.banned) {
+                statusElements.push(user.users.ban_expires_at ? "Suspended" : "Banned");
+              }
+              if (user.verified) {
+                statusElements.push("Verified");
+              }
+              if (user.deleted) {
+                statusElements.push("Deleted");
+              }
+
+              return (
+                <ListRow
+                  key={user.id}
+                  onClick={() => router.push(`/users/${user.id}`)}
+                  icon={
+                    <Avatar
+                      src={user.profile_photo ? getThumbnailUrl(user.profile_photo) : ""}
+                      name={user.name || "?"}
+                      className={cn("h-9 w-9 border-none bg-muted", user.deleted && "opacity-50")}
+                      style={{ borderRadius: '10px' }}
+                    />
+                  }
+                  label={user.name || "Unknown User"}
+                  secondary={user.email}
+                  trailing={
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col items-end gap-1">
+                        {statusElements.length > 0 && (
+                          <span className={cn(
+                            "text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded",
+                            user.users?.banned ? "bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-400" : "bg-green-50 text-green-600 dark:bg-green-900/40 dark:text-green-400"
+                          )}>
+                            {statusElements[0]}
                           </span>
                         )}
-                        {user.users?.banned && (
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-100">
-                            {user.users.ban_expires_at ? "Suspended" : "Banned"}
+                        {user.flag_count > 0 && (
+                          <span className="text-[11px] font-medium text-orange-500">
+                            ● {user.flag_count} Flags
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className="p-4">
-                      {user.flag_count > 0 ? (
-                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-100">
-                          {user.flag_count}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">0</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-sm text-muted-foreground">
-                      {formatDate(user.created_at)}
-                    </td>
-                    <td className="p-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/users/${user.id}`)}
-                      >
-                        Open
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  }
+                />
+              );
+            })
+          )}
+        </GroupContainer>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">Page {page}</div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
+      <div className="flex items-center justify-between px-2 pt-2 pb-10">
+        <span className="text-sm text-muted-foreground/60 font-medium">Page {page}</span>
+        <div className="flex gap-6">
+          <button
             onClick={() => fetchUsers(page - 1, query)}
             disabled={page === 1 || isLoading}
+            className="text-[15px] font-medium text-primary disabled:opacity-30 transition-opacity hover:opacity-70 active:opacity-50"
           >
             Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+          </button>
+          <button
             onClick={() => fetchUsers(page + 1, query)}
             disabled={users.length < initialLimit || isLoading}
+            className="text-[15px] font-medium text-primary disabled:opacity-30 transition-opacity hover:opacity-70 active:opacity-50"
           >
             Next
-          </Button>
+          </button>
         </div>
       </div>
     </div>

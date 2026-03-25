@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { 
   Users, 
   Mail, 
-  MousePointerClick, 
   TrendingUp,
   RefreshCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MetricCard } from "@/components/admin/MetricCard";
+import { cn } from "@/lib/utils";
+import { GroupContainer } from "@/components/ui/ios/GroupContainer";
+import { ListRow } from "@/components/ui/ios/ListRow";
+import { SectionHeader } from "@/components/ui/ios/SectionHeader";
 import { GrowthChart } from "@/components/admin/GrowthChart";
 import { SourceBreakdown } from "@/components/admin/SourceBreakdown";
 import { Funnel } from "@/components/admin/Funnel";
@@ -57,19 +59,23 @@ export default function WaitlistDashboard() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex justify-between items-center mb-4">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-10 w-32" />
+      <div className="max-w-5xl mx-auto p-6 lg:p-10 space-y-8">
+        <div className="flex justify-between items-end">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-5 w-48" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-full" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-xl" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Skeleton className="lg:col-span-2 h-[400px] w-full rounded-xl" />
-          <Skeleton className="h-[400px] w-full rounded-xl" />
+        <div className="space-y-8">
+          <section>
+            <Skeleton className="h-4 w-32 mb-4 ml-4" />
+            <Skeleton className="h-64 w-full rounded-2xl" />
+          </section>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Skeleton className="h-80 w-full rounded-2xl" />
+            <Skeleton className="h-80 w-full rounded-2xl" />
+          </div>
         </div>
       </div>
     );
@@ -78,72 +84,100 @@ export default function WaitlistDashboard() {
   if (!data) return null;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="max-w-5xl mx-auto p-6 lg:p-10 space-y-10">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+        <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Waitlist Analytics</h1>
-          <p className="text-muted-foreground">Monitor growth and email pipeline health</p>
+          <p className="text-[17px] text-muted-foreground/80">Monitor growth and email pipeline health</p>
         </div>
         <Button 
           variant="outline" 
           size="sm" 
           onClick={fetchAnalytics}
           disabled={isRefreshing}
-          className="rounded-full gap-2 transition-all"
+          className="rounded-full h-10 px-5 gap-2 transition-all hover:bg-muted/50"
         >
-          <RefreshCcw className={isRefreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-          {isRefreshing ? "Refreshing..." : "Refresh Data"}
+          <RefreshCcw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+          {isRefreshing ? "Refreshing" : "Refresh"}
         </Button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Signups"
-          value={data.totalSignups.toLocaleString()}
-          icon={Users}
-          description="vs last 30 days"
-          trend={{ value: Math.abs(data.signupTrend), isPositive: data.signupTrend >= 0 }}
-        />
-        <MetricCard
-          title="Conversion Rate"
-          value={`${data.conversionRate}%`}
-          icon={TrendingUp}
-          description="Views to signup ratio"
-        />
-        <MetricCard
-          title="Emails Sent"
-          value={`${Math.round((data.emailsSent / (data.totalSignups || 1)) * 100)}%`}
-          icon={Mail}
-          description="Confirmation delivery rate"
-        />
-         <MetricCard
-          title="Avg. Delay"
-          value={`${data.avgEmailDelayMinutes}m`}
-          icon={MousePointerClick}
-          description="Creation to delivery time"
-        />
-      </div>
+      <div className="space-y-10">
+        {/* KPI Section */}
+        <section>
+          <SectionHeader>Performance Metrics</SectionHeader>
+          <GroupContainer>
+            <ListRow
+              icon={<Users className="h-5 w-5 text-blue-500" />}
+              label="Total Signups"
+              secondary={`${data.signupTrend >= 0 ? "+" : "-"}${Math.abs(data.signupTrend)}% vs last 30 days`}
+              trailing={<span className="font-bold text-lg">{data.totalSignups.toLocaleString()}</span>}
+              showChevron={false}
+            />
+            <ListRow
+              icon={<TrendingUp className="h-5 w-5 text-green-500" />}
+              label="Conversion Rate"
+              secondary="Landing views to signup ratio"
+              trailing={<span className="font-bold text-lg">{data.conversionRate}%</span>}
+              showChevron={false}
+            />
+            <ListRow
+              icon={<Mail className="h-5 w-5 text-orange-500" />}
+              label="Email Success"
+              secondary="Confirmation delivery rate"
+              trailing={<span className="font-bold text-lg">{Math.round((data.emailsSent / (data.totalSignups || 1)) * 100)}%</span>}
+              showChevron={false}
+            />
+            <ListRow
+              icon={<RefreshCcw className="h-5 w-5 text-purple-500" />}
+              label="Avg. Pipeline Delay"
+              secondary="Creation to delivery time"
+              trailing={<span className="font-bold text-lg">{data.avgEmailDelayMinutes}m</span>}
+              showChevron={false}
+            />
+          </GroupContainer>
+        </section>
 
-      {/* Main Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <GrowthChart data={data.dailySignups} />
-        <Funnel data={{
-          views: data.landingViews,
-          clicks: data.waitlistClicks,
-          submissions: data.totalSignups,
-        }} />
-      </div>
+        {/* Growth & Funnel Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
+          <div className="lg:col-span-3">
+            <SectionHeader>Growth Trend</SectionHeader>
+            <div className="rounded-2xl border bg-card/10 overflow-hidden p-6">
+              <GrowthChart data={data.dailySignups} />
+            </div>
+          </div>
+          <div className="lg:col-span-2">
+            <SectionHeader>Conversion Funnel</SectionHeader>
+            <div className="rounded-2xl border bg-card/10 overflow-hidden p-6">
+              <Funnel data={{
+                views: data.landingViews,
+                clicks: data.waitlistClicks,
+                submissions: data.totalSignups,
+              }} />
+            </div>
+          </div>
+        </div>
 
-      {/* Bottom Insights Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <SourceBreakdown data={data.sourceBreakdown} />
-        <EmailHealth 
-          sent={data.emailsSent} 
-          pending={data.pendingEmails} 
-          avgDelayMinutes={data.avgEmailDelayMinutes} 
-        />
+        {/* Sources & Health Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <section>
+            <SectionHeader>Traffic Sources</SectionHeader>
+            <div className="rounded-2xl border bg-card/10 overflow-hidden p-6">
+              <SourceBreakdown data={data.sourceBreakdown} />
+            </div>
+          </section>
+          <section>
+            <SectionHeader>Pipeline Health</SectionHeader>
+            <div className="rounded-2xl border bg-card/10 overflow-hidden p-6">
+              <EmailHealth 
+                sent={data.emailsSent} 
+                pending={data.pendingEmails} 
+                avgDelayMinutes={data.avgEmailDelayMinutes} 
+              />
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

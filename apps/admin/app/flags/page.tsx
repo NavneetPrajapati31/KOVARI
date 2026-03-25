@@ -77,10 +77,10 @@ export default async function FlagsPage({
   const { flags, page: currentPage } = await getFlags(page, limit, status, targetType);
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Flags Queue</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="max-w-6xl mx-auto p-6 lg:p-10 space-y-10">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Flags Queue</h1>
+        <p className="text-[17px] text-muted-foreground/80">
           Review and manage user and group reports
         </p>
       </div>

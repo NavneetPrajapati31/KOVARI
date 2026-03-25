@@ -115,10 +115,10 @@ export default async function UsersPage({
   const { users, page: currentPage } = await getUsers(page, limit, query);
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Users</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="max-w-5xl mx-auto p-6 lg:p-10 space-y-10">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+        <p className="text-[17px] text-muted-foreground/80">
           Manage and monitor user accounts
         </p>
       </div>
