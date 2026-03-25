@@ -59,7 +59,7 @@ export default function WaitlistDashboard() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto p-6 lg:p-10 space-y-8">
+      <div className="max-w-full mx-auto space-y-8">
         <div className="flex justify-between items-end">
           <div className="space-y-2">
             <Skeleton className="h-10 w-64" />
@@ -84,12 +84,12 @@ export default function WaitlistDashboard() {
   if (!data) return null;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 lg:p-10 space-y-10">
+    <div className="max-w-full mx-auto space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Waitlist Analytics</h1>
-          <p className="text-[17px] text-muted-foreground/80">Monitor growth and email pipeline health</p>
+        <div className="space-y-0">
+          <h1 className="text-lg font-semibold tracking-tight">Waitlist Analytics</h1>
+          <p className="text-md text-muted-foreground">Monitor growth and email pipeline health</p>
         </div>
         <Button 
           variant="outline" 
@@ -103,7 +103,7 @@ export default function WaitlistDashboard() {
         </Button>
       </div>
 
-      <div className="space-y-10">
+      <div className="space-y-8">
         {/* KPI Section */}
         <section>
           <SectionHeader>Performance Metrics</SectionHeader>

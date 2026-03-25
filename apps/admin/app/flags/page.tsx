@@ -7,6 +7,12 @@ interface Flag {
   targetType: "user" | "group";
   targetId: string;
   targetName: string;
+  targetInfo?: {
+    id: string;
+    name: string;
+    email?: string;
+    profile_photo?: string;
+  };
   reason: string;
   evidenceUrl: string | null;
   createdAt: string;
@@ -77,10 +83,10 @@ export default async function FlagsPage({
   const { flags, page: currentPage } = await getFlags(page, limit, status, targetType);
 
   return (
-    <div className="max-w-6xl mx-auto p-6 lg:p-10 space-y-10">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">Flags Queue</h1>
-        <p className="text-[17px] text-muted-foreground/80">
+    <div className="max-w-full mx-auto space-y-8">
+      <div className="space-y-0">
+        <h1 className="text-lg font-semibold tracking-tight">Flags Queue</h1>
+        <p className="text-md text-muted-foreground">
           Review and manage user and group reports
         </p>
       </div>

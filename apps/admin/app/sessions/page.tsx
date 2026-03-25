@@ -110,7 +110,7 @@ export default function SessionsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 lg:p-10 space-y-10">
+    <div className="max-w-full mx-auto space-y-8">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       <ConfirmDialog
@@ -135,9 +135,9 @@ export default function SessionsPage() {
       </ConfirmDialog>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Active Sessions</h1>
-          <p className="text-[17px] text-muted-foreground/80">Manage and monitor active user sessions</p>
+        <div className="space-y-0">
+          <h1 className="text-lg font-semibold tracking-tight">Active Sessions</h1>
+          <p className="text-md text-muted-foreground">Manage and monitor active user sessions</p>
         </div>
         <Button 
           variant="outline" 
@@ -149,7 +149,7 @@ export default function SessionsPage() {
         </Button>
       </div>
 
-      <div className="space-y-10">
+      <div className="space-y-8">
         <form onSubmit={handleSearch} className="px-1">
           <SearchInput
             placeholder="Search by ID, key, or destination..."

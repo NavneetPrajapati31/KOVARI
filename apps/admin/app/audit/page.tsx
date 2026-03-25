@@ -205,38 +205,37 @@ export default function AuditPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 lg:p-10 space-y-10">
+    <div className="max-w-full mx-auto space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-          <p className="text-[17px] text-muted-foreground/80">View and filter all administrative actions</p>
+        <div className="space-y-0">
+          <h1 className="text-lg font-semibold tracking-tight">Audit Logs</h1>
+          <p className="text-md text-muted-foreground">View and filter all administrative actions</p>
         </div>
-        <Button onClick={handleExport} variant="outline" size="sm" className="rounded-full h-10 px-5 gap-2 hover:bg-muted/50 transition-all">
+        <Button onClick={handleExport} variant="outline" size="sm" className="rounded-xl h-10 !px-5 gap-2 bg-card transition-all shadow-none">
           <Download className="h-4 w-4" />
           Export CSV
         </Button>
       </div>
 
-      <div className="space-y-10">
+      <div className="space-y-8">
         {/* Filters Section */}
         <section>
-          <SectionHeader>Filters</SectionHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Date Range</Label>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Date Range</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-medium h-11 rounded-xl bg-muted/20 border-none", !dateRange.from && "text-muted-foreground/50")}>
-                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-medium !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer", !dateRange.from && "text-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRange.from ? (dateRange.to ? `${format(dateRange.from, "MMM dd")} - ${format(dateRange.to, "MMM dd")}` : format(dateRange.from, "MMM dd")) : "Pick a date range"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <div className="p-4 space-y-3">
                     <div className="flex gap-2 flex-wrap">
-                      <Button variant="outline" size="sm" onClick={() => handleDateRangePreset(7)} className="text-xs rounded-full">Last 7 days</Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDateRangePreset(30)} className="text-xs rounded-full">Last 30 days</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDateRangePreset(7)} className="text-xs rounded-xl">Last 7 days</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDateRangePreset(30)} className="text-xs rounded-xl">Last 30 days</Button>
                     </div>
                     <Calendar mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })} numberOfMonths={2} />
                   </div>
@@ -245,9 +244,9 @@ export default function AuditPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Action Type</Label>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Action Type</Label>
               <Select value={selectedAction || "all"} onValueChange={(v) => setSelectedAction(v === "all" ? undefined : v)}>
-                <SelectTrigger className="w-full h-11 rounded-xl bg-muted/20 border-none font-medium">
+                <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                   <SelectValue placeholder="All actions" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -258,9 +257,9 @@ export default function AuditPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Admin</Label>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Admin</Label>
               <Select value={selectedAdmin || "all"} onValueChange={(v) => setSelectedAdmin(v === "all" ? undefined : v)}>
-                <SelectTrigger className="w-full h-11 rounded-xl bg-muted/20 border-none font-medium">
+                <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                   <SelectValue placeholder="All admins" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -271,9 +270,9 @@ export default function AuditPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Target Type</Label>
+              <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Target Type</Label>
               <Select value={selectedTargetType || "all"} onValueChange={(v) => setSelectedTargetType(v === "all" ? undefined : v)}>
-                <SelectTrigger className="w-full h-11 rounded-xl bg-muted/20 border-none font-medium">
+                <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -290,9 +289,9 @@ export default function AuditPage() {
           <SectionHeader>Activity Log</SectionHeader>
           <GroupContainer>
             {loading ? (
-              <div className="py-20 text-center text-muted-foreground font-medium animate-pulse">Loading audit logs...</div>
+              <div className="py-24 text-center text-sm text-muted-foreground font-medium">Loading audit logs...</div>
             ) : actions.length === 0 ? (
-              <div className="py-20 text-center text-muted-foreground/60">No activity logs found for selected filters</div>
+              <div className="py-20 text-center text-muted-foreground">No activity logs found for selected filters</div>
             ) : (
               actions.map((action) => {
                 const isExpanded = expandedRows.has(action.id);
@@ -303,42 +302,37 @@ export default function AuditPage() {
                   <React.Fragment key={action.id}>
                     <ListRow
                       onClick={() => hasMetadata && toggleRowExpansion(action.id)}
-                      icon={
-                        <div className="bg-muted p-2 rounded-lg">
-                          {action.target_type === 'user' ? <User className="h-4 w-4 text-blue-500" /> : <Activity className="h-4 w-4 text-orange-500" />}
-                        </div>
-                      }
                       label={action.action}
                       secondary={`${admin?.email || 'System'} • ${formatTimestamp(action.created_at)}`}
                       trailing={
                         <div className="flex items-center gap-4">
                           <div className="flex flex-col items-end">
-                            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/40">{action.target_type}</span>
-                            <span className="text-[11px] font-medium text-muted-foreground/80">{action.target_id ? (action.target_id.length > 8 ? `${action.target_id.substring(0, 8)}...` : action.target_id) : '—'}</span>
+                            <span className="text-xs uppercase font-semibold tracking-widest text-muted-foreground">{action.target_type}</span>
+                            <span className="text-xs font-medium text-muted-foreground">{action.target_id ? (action.target_id.length > 12 ? `${action.target_id.substring(0, 12)}...` : action.target_id) : '—'}</span>
                           </div>
-                          {hasMetadata && <ChevronDown className={cn("h-4 w-4 text-muted-foreground/30 transition-transform", isExpanded && "rotate-180")} />}
+                          {hasMetadata && <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />}
                         </div>
                       }
                       showChevron={false}
                     />
                     {isExpanded && hasMetadata && (
-                      <div className="px-6 py-5 bg-muted/30 border-b border-border/20 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="px-6 py-5 bg-card border-b border-border space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Metadata Details</span>
+                          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Metadata Details</span>
                           <button 
                             onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(JSON.stringify(action.metadata, null, 2)); }}
-                            className="text-[11px] font-bold text-primary hover:opacity-70 transition-opacity flex items-center gap-1.5"
+                            className="text-xs font-semibold text-primary cursor-pointer flex items-center gap-1.5"
                           >
                             <Copy className="h-3 w-3" /> COPY JSON
                           </button>
                         </div>
-                        <pre className="text-[12px] font-mono bg-background/50 p-4 rounded-xl border border-border/40 overflow-auto scrollbar-hide text-muted-foreground/80">
+                        <pre className="text-xs font-mono bg-background/50 p-4 rounded-xl border border-border overflow-auto scrollbar-hide text-muted-foreground">
                           {JSON.stringify(action.metadata, null, 2)}
                         </pre>
                         {action.reason && (
                           <div className="pt-2">
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 block mb-1">Reason</span>
-                            <p className="text-[14px] text-muted-foreground">{action.reason}</p>
+                            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1">Reason</span>
+                            <p className="text-sm text-muted-foreground">{action.reason}</p>
                           </div>
                         )}
                       </div>
@@ -352,13 +346,31 @@ export default function AuditPage() {
 
         {/* Pagination Section */}
         {!loading && total > 0 && (
-          <div className="flex items-center justify-between px-2 pt-2 pb-10">
-            <span className="text-sm text-muted-foreground/60 font-medium">
-              Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}
-            </span>
-            <div className="flex gap-8">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="text-[15px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-all">Previous</button>
-              <button onClick={() => setPage(p => p + 1)} disabled={page * limit >= total} className="text-[15px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-all">Next</button>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-1 pt-0 pb-8 border-t border-border/10">
+            <p className="text-sm text-muted-foreground order-2 sm:order-1">
+              Showing <span className="font-semibold text-foreground">{(page - 1) * limit + 1}</span> to{" "}
+              <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> of{" "}
+              <span className="font-semibold text-foreground">{total}</span> entries
+            </p>
+            <div className="flex items-center gap-3 order-1 sm:order-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setPage(p => Math.max(1, p - 1))} 
+                disabled={page === 1}
+                className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-30 cursor-pointer"
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setPage(p => p + 1)} 
+                disabled={page * limit >= total}
+                className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-30 cursor-pointer"
+              >
+                Next
+              </Button>
             </div>
           </div>
         )}

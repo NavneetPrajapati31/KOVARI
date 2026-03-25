@@ -10,7 +10,7 @@ export function SectionHeader({ children, className }: SectionHeaderProps) {
   return (
     <h3
       className={cn(
-        "px-4 pb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70",
+        "px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground",
         className
       )}
     >

@@ -17,12 +17,19 @@ import { Eye, ChevronLeft, ChevronRight, User, Users, Clock, AlertTriangle } fro
 import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
 import { SectionHeader } from "./ui/ios/SectionHeader";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 
 interface Flag {
   id: string;
   targetType: "user" | "group";
   targetId: string;
   targetName: string;
+  targetInfo?: {
+    id: string;
+    name: string;
+    email?: string;
+    profile_photo?: string;
+  };
   reason: string;
   evidenceUrl: string | null;
   createdAt: string;
@@ -96,22 +103,16 @@ export function AdminFlagsTable({
     });
   };
 
-  const statusColors = {
-    pending: "text-amber-500",
-    dismissed: "text-muted-foreground/60",
-    actioned: "text-green-500",
-  };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {/* Filters Section */}
       <section>
-        <SectionHeader>Filters</SectionHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1">
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Status</label>
+            <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Status</label>
             <Select value={status} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-full h-11 rounded-xl bg-muted/20 border-none font-medium">
+              <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -123,9 +124,9 @@ export function AdminFlagsTable({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Focus</label>
+            <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Focus</label>
             <Select value={targetType} onValueChange={handleTargetTypeChange}>
-              <SelectTrigger className="w-full h-11 rounded-xl bg-muted/20 border-none font-medium">
+              <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -143,7 +144,7 @@ export function AdminFlagsTable({
         <SectionHeader>Report Queue {flags.length > 0 && `(${flags.length})`}</SectionHeader>
         <GroupContainer shadow={false}>
           {flags.length === 0 ? (
-            <div className="h-40 flex items-center justify-center text-muted-foreground/60 text-[15px]">
+            <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
               {isLoading ? "Refreshing queue..." : "No reports found"}
             </div>
           ) : (
@@ -156,25 +157,45 @@ export function AdminFlagsTable({
                   key={flag.id}
                   onClick={() => setSelectedFlagId(flag.id)}
                   icon={
-                    <div className={cn(
-                      "p-2 rounded-xl",
-                      isOldFlag && status === 'pending' ? "bg-red-50 text-red-500" : "bg-muted text-muted-foreground/60"
-                    )}>
-                      {flag.targetType === "user" ? <User className="h-5 w-5" /> : <Users className="h-5 w-5" />}
-                    </div>
+                    flag.targetInfo?.profile_photo ? (
+                      <div className="h-9 w-9 rounded-xl overflow-hidden border-none shadow-none flex-shrink-0">
+                        <Avatar className="h-full w-full rounded-full">
+                          <AvatarImage 
+                            src={flag.targetInfo.profile_photo} 
+                            alt={flag.targetName} 
+                            className="object-cover" 
+                          />
+                          <AvatarFallback className="rounded-none bg-muted text-muted-foreground text-[10px] font-bold">
+                            {flag.targetName.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                    ) : (
+                      <div className={cn(
+                        "p-2 rounded-xl h-9 w-9 flex items-center justify-center",
+                        isOldFlag && status === 'pending' ? "bg-red-50 text-red-500" : "bg-muted text-muted-foreground"
+                      )}>
+                        {flag.targetType === "user" ? <User className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                      </div>
+                    )
                   }
-                  label={flag.targetName}
+                  label={<span className="font-semibold">{flag.targetName}</span>}
                   secondary={flag.reason || "No reason specified"}
                   trailing={
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-1.5">
                           {isOldFlag && status === 'pending' && <AlertTriangle className="h-3 w-3 text-red-500" />}
-                          <span className={cn("text-[10px] uppercase font-bold tracking-widest", statusColors[flag.status as keyof typeof statusColors] || "text-muted-foreground")}>
+                          <span className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[10px] uppercase font-semibold tracking-wider border transition-colors",
+                            flag.status === 'pending' && "bg-amber-50 text-amber-600 border-amber-200/50",
+                            flag.status === 'dismissed' && "bg-secondary/50 text-muted-foreground border-border/50",
+                            flag.status === 'actioned' && "bg-green-50 text-green-600 border-green-200/50"
+                          )}>
                             {flag.status}
                           </span>
                         </div>
-                        <span className="text-[11px] text-muted-foreground/40 font-medium">
+                        <span className="text-xs text-muted-foreground font-medium">
                           {formatDate(flag.createdAt)}
                         </span>
                       </div>
@@ -196,27 +217,31 @@ export function AdminFlagsTable({
         </GroupContainer>
       </section>
 
-      {/* Pagination */}
+      {/* Pagination Section */}
       {!isLoading && flags.length > 0 && (
-        <div className="flex items-center justify-between px-2 pt-2 pb-10">
-          <span className="text-sm text-muted-foreground/60 font-medium italic">
-            Priority View: {page}
-          </span>
-          <div className="flex gap-8">
-            <button
-              onClick={() => handlePageChange(page - 1)}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-1 pt-4 pb-20 border-t border-border/10">
+          <p className="text-sm text-muted-foreground order-2 sm:order-1">
+            Priority View: <span className="font-semibold text-foreground">{page}</span>
+          </p>
+          <div className="flex items-center gap-3 order-1 sm:order-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handlePageChange(page - 1)} 
               disabled={page === 1}
-              className="text-[15px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-all"
+              className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-30 cursor-pointer"
             >
               Previous
-            </button>
-            <button
-              onClick={() => handlePageChange(page + 1)}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handlePageChange(page + 1)} 
               disabled={flags.length < initialLimit}
-              className="text-[15px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-all"
+              className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-30 cursor-pointer"
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       )}
