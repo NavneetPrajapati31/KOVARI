@@ -2,9 +2,10 @@
 export interface EmailLayoutProps {
   content: string;
   previewText?: string;
+  hideLogo?: boolean;
 }
 
-export const emailLayout = ({ content, previewText }: EmailLayoutProps): string => {
+export const emailLayout = ({ content, previewText, hideLogo = false }: EmailLayoutProps): string => {
   return `
 <!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -20,7 +21,7 @@ export const emailLayout = ({ content, previewText }: EmailLayoutProps): string 
       td,th,div,p,a,h1,h2,h3,h4,h5,h6 {font-family: "Segoe UI", sans-serif; mso-line-height-rule: exactly;}
     </style>
     <![endif]-->
-    <title>Kovari</title>
+    <title>${previewText || 'Kovari'}</title>
     <style>
       /* 
        * NOTE: Most email clients (Gmail, Outlook) strip custom web fonts.
@@ -73,14 +74,18 @@ export const emailLayout = ({ content, previewText }: EmailLayoutProps): string 
             <![endif]-->
             <div class="email-container" style="max-width: 600px; margin: 0 auto;">
               
+              ${!hideLogo ? `
               <!-- Header / Logo -->
               <table role="presentation" style="width: 100%; border: none; border-spacing: 0;">
                 <tr>
-                  <td style="padding: 0 0 24px; text-align: center;">
-                    <a href="https://kovari.in" style="text-decoration: none; font-family: 'Clash Display', 'Segoe UI', sans-serif; font-size: 18px; font-weight: 600; color: #111827; letter-spacing: 1px; text-transform: uppercase;">Kovari</a>
+                  <td align="center" style="padding: 0 0 24px; text-align: center;">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kovari.in'}" style="text-decoration: none; display: inline-block;">
+                      <img src="https://res.cloudinary.com/ds8vth6ci/image/upload/v1773429753/assets/kovari_email_logo_png.png" alt="Kovari" width="100" style="display: block; width: 100px; max-width: 100%; height: auto; outline: none; border: none; text-decoration: none;">
+                    </a>
                   </td>
                 </tr>
               </table>
+              ` : ''}
 
               <!-- Main Card -->
               <div style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden;">
