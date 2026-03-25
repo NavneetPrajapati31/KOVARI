@@ -78,7 +78,9 @@ async function executeMLPredictionHttp(
 ): Promise<MLPredictionResult> {
   const { modelDir = "models", mlServerUrl } = options;
   
-  const serverUrl = mlServerUrl || process.env.ML_SERVER_URL || "http://localhost:8001";
+  // Use IPv4 loopback by default; Node's `localhost` may resolve to `::1` (IPv6) which can be refused
+  // if uvicorn listens on IPv4 only.
+  const serverUrl = mlServerUrl || process.env.ML_SERVER_URL || "http://127.0.0.1:8001";
   const featuresPayload = {
     matchType: features.matchType,
     distanceScore: features.distanceScore,
@@ -92,6 +94,13 @@ async function executeMLPredictionHttp(
     languageScore: 0,
     lifestyleScore: 0,
     backgroundScore: 0,
+    // Group-only features: only include them for group matching.
+    ...(features.matchType === "user_group"
+      ? {
+          groupSizeScore: features.groupSizeScore ?? 0,
+          groupDiversityScore: features.groupDiversityScore ?? 0,
+        }
+      : {}),
   };
 
   try {
@@ -130,7 +139,8 @@ export async function executeMLPredictionBatch(
 ): Promise<MLPredictionResult[]> {
   const { modelDir = "models", mlServerUrl } = options;
   
-  const serverUrl = mlServerUrl || process.env.ML_SERVER_URL || "http://localhost:8001";
+  // Use IPv4 loopback by default; see executeMLPredictionHttp for details.
+  const serverUrl = mlServerUrl || process.env.ML_SERVER_URL || "http://127.0.0.1:8001";
   const featuresPayloadList = featuresList.map(features => ({
     matchType: features.matchType,
     distanceScore: features.distanceScore,
@@ -144,6 +154,13 @@ export async function executeMLPredictionBatch(
     languageScore: 0,
     lifestyleScore: 0,
     backgroundScore: 0,
+    // Group-only features: only include them for group matching.
+    ...(features.matchType === "user_group"
+      ? {
+          groupSizeScore: features.groupSizeScore ?? 0,
+          groupDiversityScore: features.groupDiversityScore ?? 0,
+        }
+      : {}),
   }));
 
   try {
@@ -216,6 +233,13 @@ async function executeMLPredictionSpawn(
       languageScore: 0, // Not in current feature extraction, model will use 0
       lifestyleScore: 0, // Not in current feature extraction, model will use 0
       backgroundScore: 0, // Not in current feature extraction, model will use 0
+      // Group-only features: only include them for group matching.
+      ...(features.matchType === "user_group"
+        ? {
+            groupSizeScore: features.groupSizeScore ?? 0,
+            groupDiversityScore: features.groupDiversityScore ?? 0,
+          }
+        : {}),
     });
 
     // Get the project root directory

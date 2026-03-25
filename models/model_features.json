@@ -6,5 +6,8 @@
   "personalityScore",
   "ageScore",
   "destination_interest",
-  "date_budget"
+  "date_budget",
+  "groupSizeScore",
+  "groupDiversityScore",
+  "matchType_encoded"
 ]

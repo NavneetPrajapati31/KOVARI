@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminSupabaseClient();
     const userDestName = typeof destination === "string" ? destination : "Custom";
-    
+
     const [userRes, userDestCoords] = await Promise.all([
       supabase.from("users").select("id").eq("clerk_user_id", userId).single(),
       (!lat || !lon) && typeof destination === "string" ? getCoordinatesForLocation(destination) : Promise.resolve(null)
@@ -86,15 +86,15 @@ export async function POST(req: NextRequest) {
 
     // Filter and score groups
     const groupProfiles = await Promise.all(groups.filter(g => !excludedIds.has(g.id)).map(async g => {
-      const gCoords = (g.destination_lat != null && g.destination_lon != null) 
+      const gCoords = (g.destination_lat != null && g.destination_lon != null)
         ? { lat: Number(g.destination_lat), lon: Number(g.destination_lon) }
         : await getCoordinatesForLocation(g.destination);
-      
+
       if (!gCoords) return null;
 
       const distance = getHaversineDistance(userDestinationCoords.lat, userDestinationCoords.lon, gCoords.lat, gCoords.lon);
       const nameMatch = g.destination?.toLowerCase().includes(userDestName.toLowerCase());
-      
+
       if (distance > presetConfig.maxDistanceKm && !nameMatch) return null;
 
       return {
@@ -115,8 +115,15 @@ export async function POST(req: NextRequest) {
       };
     }));
 
+    const filterBoost: any = {};
+    if (interests && Array.isArray(interests) && interests.length > 0) filterBoost.interests = { values: interests, boost: 2.0 };
+    if (ageMin || ageMax) filterBoost.age = { min: ageMin || 18, max: ageMax || 99, boost: 2.0 };
+    if (languages && Array.isArray(languages) && languages.length > 0 && languages[0] !== "Any") filterBoost.language = { values: languages, boost: 2.0 };
+    if (smoking !== undefined || drinking !== undefined) filterBoost.lifestyle = { value: smoking || drinking, boost: 2.0 };
+    if (nationality && nationality !== "Any") filterBoost.background = { value: nationality, boost: 2.0 };
+
     const validProfiles = groupProfiles.filter(Boolean) as any[];
-    const matches = await findGroupMatchesForUser(userProfile as any, validProfiles, presetConfig.maxDistanceKm, undefined, true);
+    const matches = await findGroupMatchesForUser(userProfile as any, validProfiles, presetConfig.maxDistanceKm, filterBoost, true);
 
     const result = matches
       .filter(m => m.score >= presetConfig.minScore)
@@ -147,7 +154,9 @@ export async function POST(req: NextRequest) {
         };
       });
 
-    return NextResponse.json({ groups: result });
+    console.log("Group API Complete. Found", result.length, "groups. ML Used: true");
+
+    return NextResponse.json({ groups: result, isMLUsed: true, meta: { totalSearched: validProfiles.length, configUsed: presetMode } });
 
   } catch (err: any) {
     Sentry.captureException(err);
