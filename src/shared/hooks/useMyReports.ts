@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export type ReportStatus = "pending" | "reviewed" | "resolved" | "dismissed";
+export type ReportStatus = "pending" | "reviewed" | "resolved" | "dismissed" | "actioned";
 
 export interface ReportItem {
   id: string;

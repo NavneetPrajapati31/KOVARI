@@ -768,7 +768,8 @@ function ReportStatusBadge({ status }: { status: ReportStatus }) {
     pending: { label: "Pending", text: "text-amber-600 dark:text-amber-500", dot: "bg-amber-500" },
     reviewed: { label: "Ongoing", text: "text-primary", dot: "bg-primary" },
     resolved: { label: "Resolved", text: "text-green-600 dark:text-green-500", dot: "bg-green-500" },
-    dismissed: { label: "Dismissed", text: "text-muted-foreground", dot: "-foreground" },
+    actioned: { label: "Resolved", text: "text-green-600 dark:text-green-500", dot: "bg-green-500" },
+    dismissed: { label: "Dismissed", text: "text-muted-foreground", dot: "bg-muted-foreground" },
   };
 
   const config = map[status] || map.pending;

@@ -20,9 +20,9 @@ async function getFlags(
   targetType: string = "all"
 ): Promise<{ flags: Flag[]; page: number; limit: number }> {
   const headersList = await headers();
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  const host = headersList.get("host") || "localhost:3001";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
   const params = new URLSearchParams({
     page: page.toString(),
