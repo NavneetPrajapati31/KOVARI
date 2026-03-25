@@ -51,9 +51,13 @@ export function AdminLayoutWrapper({
   return (
     <SidebarProvider defaultOpen={false}>
       <AdminSidebar />
-      <SidebarInset className="flex flex-col">
+      <SidebarInset className="flex flex-col bg-background">
         <AdminTopbar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto p-6 md:p-8">
+          <div className="max-w-[1600px] mx-auto space-y-8">
+            {children}
+          </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

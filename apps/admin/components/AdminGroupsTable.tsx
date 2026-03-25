@@ -3,10 +3,22 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ToastContainer, useToast } from "./Toast";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
+import { GroupContainer } from "./ui/ios/GroupContainer";
+import { ListRow } from "./ui/ios/ListRow";
+import { SectionHeader } from "./ui/ios/SectionHeader";
+import { SearchInput } from "./ui/ios/SearchInput";
+import { Users, MapPin, Calendar, AlertTriangle, Trash2, Eye } from "lucide-react";
+import { StatusBadge } from "./ui/ios/StatusBadge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 interface Group {
   id: string;
@@ -52,12 +64,8 @@ export function AdminGroupsTable({
           page: newPage.toString(),
           limit: initialLimit.toString(),
         });
-        if (searchQuery) {
-          params.append("query", searchQuery);
-        }
-        if (statusFilter) {
-          params.append("status", statusFilter);
-        }
+        if (searchQuery) params.append("query", searchQuery);
+        if (statusFilter) params.append("status", statusFilter);
 
         const res = await fetch(`/api/admin/groups?${params}`);
         if (!res.ok) throw new Error("Failed to fetch groups");
@@ -65,12 +73,7 @@ export function AdminGroupsTable({
         setGroups(data.groups || []);
         setPage(newPage);
       } catch (error) {
-        console.error("Error fetching groups:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch groups",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to fetch groups", variant: "destructive" });
       } finally {
         setIsLoading(false);
       }
@@ -84,270 +87,186 @@ export function AdminGroupsTable({
   };
 
   const handleStatusChange = (newStatus: string) => {
-    setStatus(newStatus);
-    fetchGroups(1, query, newStatus);
+    const val = newStatus === "all" ? "" : newStatus;
+    setStatus(val);
+    fetchGroups(1, query, val);
   };
 
   const handleRemove = async () => {
     if (!selectedGroup || !removeReason.trim()) return;
-
     try {
       const res = await fetch(`/api/admin/groups/${selectedGroup.id}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "remove",
-          reason: removeReason.trim(),
-        }),
+        body: JSON.stringify({ action: "remove", reason: removeReason.trim() }),
       });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to remove group");
-      }
-
-      toast({
-        title: "Success",
-        description: "Group removed successfully",
-      });
-
+      if (!res.ok) throw new Error("Failed to remove group");
+      toast({ title: "Success", description: "Group removed successfully" });
       setRemoveDialogOpen(false);
       setSelectedGroup(null);
       setRemoveReason("");
       fetchGroups(page, query, status);
     } catch (error) {
-      console.error("Error removing group:", error);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to remove group",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to remove group", variant: "destructive" });
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { bg: string; text: string }> = {
-      active: {
-        bg: "bg-green-100 dark:bg-green-900",
-        text: "text-green-800 dark:text-green-100",
-      },
-      pending: {
-        bg: "bg-yellow-100 dark:bg-yellow-900",
-        text: "text-yellow-800 dark:text-yellow-100",
-      },
-      removed: {
-        bg: "bg-red-100 dark:bg-red-900",
-        text: "text-red-800 dark:text-red-100",
-      },
-    };
-
-    const variant = variants[status] || variants.pending;
-
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-          variant.bg,
-          variant.text
-        )}
-      >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
-    );
-  };
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-            <Input
-              type="text"
-              placeholder="Search by name or destination..."
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      <div className="space-y-10">
+        {/* Search & Filters */}
+        <section className="space-y-6">
+          <form onSubmit={handleSearch} className="px-1">
+            <SearchInput
+              placeholder="Search groups by name or destination..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="max-w-sm"
             />
-            <Button type="submit" disabled={isLoading}>
-              Search
-            </Button>
           </form>
 
-          <div className="flex gap-2">
-            <select
-              value={status}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              aria-label="Filter by status"
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="active">Active</option>
-              <option value="removed">Removed</option>
-            </select>
+          <div className="px-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Filter by Status</label>
+              <Select value={status || "all"} onValueChange={handleStatusChange}>
+                <SelectTrigger className="w-full h-11 rounded-xl bg-muted/20 border-none font-medium">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="removed">Removed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-md border">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Group Name
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Destination
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Status
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Flags
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Created
-                  </th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {groups.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      No groups found
-                    </td>
-                  </tr>
-                ) : (
-                  groups.map((group) => (
-                    <tr
-                      key={group.id}
-                      className={cn(
-                        "border-b transition-colors hover:bg-muted/50",
-                        group.status === "removed" && "opacity-60"
-                      )}
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="font-medium">{group.name}</div>
-                          {group.flag_count > 0 && (
-                            <span
-                              className="inline-flex items-center justify-center size-2 rounded-full bg-orange-500"
-                              title="Flagged group"
-                            />
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm">
-                        {group.destination || "—"}
-                      </td>
-                      <td className="p-4">{getStatusBadge(group.status)}</td>
-                      <td className="p-4">
-                        {group.flag_count > 0 ? (
-                          <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-100">
-                            {group.flag_count}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            0
-                          </span>
+        {/* Results List */}
+        <section>
+          <SectionHeader>Active Groups {groups.length > 0 && `(${groups.length})`}</SectionHeader>
+          <GroupContainer shadow={false}>
+            {isLoading ? (
+              <div className="h-40 flex items-center justify-center text-muted-foreground font-medium animate-pulse">Refreshing groups...</div>
+            ) : groups.length === 0 ? (
+              <div className="h-40 flex items-center justify-center text-muted-foreground/60 text-[15px]">No groups found</div>
+            ) : (
+              groups.map((group) => (
+                <ListRow
+                  key={group.id}
+                  onClick={() => router.push(`/groups/${group.id}`)}
+                  icon={
+                    <div className={cn(
+                      "p-2 rounded-xl",
+                      group.status === 'removed' ? "bg-muted text-muted-foreground/40" : "bg-muted text-muted-foreground/60"
+                    )}>
+                      <Users className="h-5 w-5" />
+                    </div>
+                  }
+                  label={group.name}
+                  secondary={
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <div className="flex items-center gap-2">
+                        {group.destination && (
+                          <div className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground/80">
+                            <MapPin className="h-3 w-3" /> {group.destination}
+                          </div>
                         )}
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {formatDate(group.created_at)}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/groups/${group.id}`)}
-                          >
-                            View
-                          </Button>
-                          {group.status !== "removed" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedGroup(group);
-                                setRemoveDialogOpen(true);
-                              }}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                            >
-                              Remove
-                            </Button>
-                          )}
+                        <div className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground/40">
+                          <Calendar className="h-3 w-3" /> {formatDate(group.created_at)}
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                      </div>
+                    </div>
+                  }
+                  trailing={
+                    <div className="flex items-center gap-6">
+                      <div className="flex flex-col items-end">
+                        <StatusBadge status={group.status} />
+                        {group.flag_count > 0 && (
+                          <StatusBadge status={`${group.flag_count} Flags`} />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); router.push(`/groups/${group.id}`); }}
+                          className="p-2 rounded-full hover:bg-muted text-muted-foreground/40 transition-colors"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        {group.status !== "removed" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedGroup(group);
+                              setRemoveDialogOpen(true);
+                            }}
+                            className="p-2 rounded-full hover:bg-red-50 text-muted-foreground/40 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  }
+                  showChevron={false}
+                />
+              ))
+            )}
+          </GroupContainer>
+        </section>
 
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">Page {page}</div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchGroups(page - 1, query, status)}
-              disabled={page === 1 || isLoading}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchGroups(page + 1, query, status)}
-              disabled={groups.length < initialLimit || isLoading}
-            >
-              Next
-            </Button>
+        {/* Pagination */}
+        {!isLoading && groups.length > 0 && (
+          <div className="flex items-center justify-between px-2 pt-2 pb-10">
+            <span className="text-sm text-muted-foreground/60 font-medium">Page {page}</span>
+            <div className="flex gap-8">
+              <button
+                onClick={() => fetchGroups(page - 1, query, status)}
+                disabled={page === 1}
+                className="text-[15px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-all"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => fetchGroups(page + 1, query, status)}
+                disabled={groups.length < initialLimit}
+                className="text-[15px] font-semibold text-primary disabled:opacity-30 hover:opacity-70 transition-all"
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <ConfirmDialog
         open={removeDialogOpen}
         onOpenChange={setRemoveDialogOpen}
         title="Remove Group"
-        description="Are you sure you want to remove this group? This action requires a reason."
+        description="This action will dismantle the group and notify members. Please provide a reason."
         variant="destructive"
         confirmText="Remove Group"
         onConfirm={handleRemove}
         validate={() => removeReason.trim().length > 0}
       >
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Reason (required)</label>
+        <div className="space-y-4 mt-4">
+          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Internal Reason</label>
           <textarea
             value={removeReason}
             onChange={(e) => setRemoveReason(e.target.value)}
-            placeholder="Enter reason for removing this group..."
-            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="Why is this group being removed?"
+            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-[15px] focus:ring-1 ring-primary/20 transition-all outline-none"
             required
           />
         </div>
       </ConfirmDialog>
-
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </>
   );
 }

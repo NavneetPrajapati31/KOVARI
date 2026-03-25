@@ -29,17 +29,17 @@ export function Toast({
   return (
     <div
       className={cn(
-        "pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-4 shadow-lg transition-all animate-in slide-in-from-top-full",
+        "pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-2xl p-4 ios-shadow transition-all animate-in slide-in-from-top-full duration-500 glass",
         variant === "destructive" &&
-          "border-destructive bg-destructive text-destructive-foreground",
+          "border-red-500/20 bg-red-500/10 text-red-600",
         variant === "success" &&
-          "border-green-500 bg-green-50 text-green-900 dark:bg-green-900 dark:text-green-50",
-        variant === "default" && "border bg-background text-foreground"
+          "border-green-500/20 bg-green-500/10 text-green-600",
+        variant === "default" && "border-border/50 bg-background/80"
       )}
     >
       <div className="grid gap-1 flex-1">
-        {title && <div className="text-sm font-semibold">{title}</div>}
-        {description && <div className="text-sm opacity-90">{description}</div>}
+        {title && <div className="text-sm font-bold tracking-tight font-sans">{title}</div>}
+        {description && <div className="text-xs font-medium opacity-80">{description}</div>}
       </div>
       <button
         title="Close"

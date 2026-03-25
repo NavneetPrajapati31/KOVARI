@@ -1,14 +1,32 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from './ui/button';
-import { Label } from './ui/label';
-import { ConfirmDialog } from './ConfirmDialog';
-import { ToastContainer, useToast } from './Toast';
-import { cn } from '../lib/utils';
-import { getThumbnailUrl } from '../lib/cloudinary-client';
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "./ui/button";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { ToastContainer, useToast } from "./Toast";
+import { cn } from "@/lib/utils";
+import { getThumbnailUrl } from "@/lib/cloudinary-client";
+import { GroupContainer } from "./ui/ios/GroupContainer";
+import { ListRow } from "./ui/ios/ListRow";
+import { SectionHeader } from "./ui/ios/SectionHeader";
+import { StatusBadge } from "./ui/ios/StatusBadge";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import { 
+  Users, 
+  MapPin, 
+  Calendar, 
+  Wallet, 
+  Globe, 
+  Heart, 
+  ShieldAlert, 
+  History, 
+  CheckCircle2, 
+  AlertTriangle,
+  Info,
+  ChevronLeft
+} from "lucide-react";
 
 interface Group {
   id: string;
@@ -96,647 +114,347 @@ export function GroupDetail({
   const [isLoading, setIsLoading] = React.useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = React.useState(false);
   const [warnDialogOpen, setWarnDialogOpen] = React.useState(false);
-  const [warnReason, setWarnReason] = React.useState('');
+  const [warnReason, setWarnReason] = React.useState("");
   const [removeDialogOpen, setRemoveDialogOpen] = React.useState(false);
-  const [removeReason, setRemoveReason] = React.useState('');
+  const [removeReason, setRemoveReason] = React.useState("");
 
-  const handleWarn = async () => {
-    if (!warnReason.trim()) return;
-
+  const handleAction = async (action: string, reason?: string) => {
     setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/groups/${group.id}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'warn',
-          reason: warnReason.trim(),
-          flagId: flagId,
-        }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, reason, flagId }),
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to warn group');
-      }
-
-      const result = await res.json();
+      if (!res.ok) throw new Error(`Failed to ${action} group`);
       
-      let description = 'Group warning sent successfully';
-      if (result.emailSent) {
-        description += ' via email.';
-      } else if (result.emailError) {
-        description += ` but email failed: ${result.emailError}`;
-      }
-
       toast({
-        title: 'Success',
-        description,
-        variant: 'success',
-      });
-
-      setWarnDialogOpen(false);
-      setWarnReason('');
-      router.refresh();
-    } catch (error) {
-      console.error('Error warning group:', error);
-      toast({
-        title: 'Error',
-        description:
-          error instanceof Error ? error.message : 'Failed to warn group',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleApprove = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/groups/${group.id}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'approve',
-          flagId: flagId,
-        }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to approve group');
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Group approved successfully',
-        variant: 'success',
+        title: "Success",
+        description: `Group ${action}ed successfully`,
+        variant: "success",
       });
 
       setApproveDialogOpen(false);
-      router.refresh();
-    } catch (error) {
-      console.error('Error approving group:', error);
-      toast({
-        title: 'Error',
-        description:
-          error instanceof Error ? error.message : 'Failed to approve group',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRemove = async () => {
-    if (!removeReason.trim()) return;
-
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/groups/${group.id}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'remove',
-          reason: removeReason.trim(),
-          flagId: flagId,
-        }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to remove group');
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Group removed successfully',
-      });
-
+      setWarnDialogOpen(false);
       setRemoveDialogOpen(false);
-      setRemoveReason('');
       router.refresh();
     } catch (error) {
-      console.error('Error removing group:', error);
       toast({
-        title: 'Error',
-        description:
-          error instanceof Error ? error.message : 'Failed to remove group',
-        variant: 'destructive',
+        title: "Error",
+        description: error instanceof Error ? error.message : "Action failed",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '—';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const formatDate = (date: string | null) => {
+    if (!date) return "—";
+    return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  const formatDateTime = (date: string) => {
+    return new Date(date).toLocaleString("en-US", { 
+      month: "short", 
+      day: "numeric", 
+      hour: "2-digit", 
+      minute: "2-digit" 
     });
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { bg: string; text: string }> = {
-      active: {
-        bg: 'bg-green-100 dark:bg-green-900',
-        text: 'text-green-800 dark:text-green-100',
-      },
-      pending: {
-        bg: 'bg-yellow-100 dark:bg-yellow-900',
-        text: 'text-yellow-800 dark:text-yellow-100',
-      },
-      removed: {
-        bg: 'bg-red-100 dark:bg-red-900',
-        text: 'text-red-800 dark:text-red-100',
-      },
-    };
-
-    const variant = variants[status] || variants.pending;
-
-    return (
-      <span
-        className={cn(
-          'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
-          variant.bg,
-          variant.text,
-        )}
-      >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
-    );
   };
 
   return (
-    <>
-      <div className="space-y-6">
-        {/* Group Summary */}
-        <div className="rounded-md border p-6 space-y-4">
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold">{group.name}</h1>
-                {getStatusBadge(group.status)}
-                {flags.length > 0 && (
-                  <span
-                    className="inline-flex items-center rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-100"
-                    title="Flagged group"
-                  >
-                    {flags.length} flag{flags.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-              {group.destination && (
-                <p className="text-muted-foreground">{group.destination}</p>
-              )}
-            </div>
+    <div className="space-y-12 pb-20">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {/* Hero / Header Section */}
+      <section className="space-y-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
+          <div className="space-y-3">
+             <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-bold tracking-tight">{group.name}</h1>
+                <StatusBadge status={group.status} />
+             </div>
+             <div className="flex items-center gap-2 text-[17px] text-muted-foreground/80 font-medium">
+                <MapPin className="h-4 w-4" />
+                <span>{group.destination || "Flexible Destination"}</span>
+                <span className="mx-1 opacity-20">•</span>
+                <span>{membersCount} members</span>
+             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Start Date
-              </Label>
-              <p className="text-sm font-medium">
-                {formatDate(group.start_date)}
-              </p>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">End Date</Label>
-              <p className="text-sm font-medium">
-                {formatDate(group.end_date)}
-              </p>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Budget</Label>
-              <p className="text-sm font-medium">
-                ₹{group.budget.toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Visibility
-              </Label>
-              <p className="text-sm font-medium">
-                {group.is_public ? 'Public' : 'Private'}
-              </p>
-            </div>
-            {group.description && (
-              <div className="md:col-span-2">
-                <Label className="text-xs text-muted-foreground">
-                  Description
-                </Label>
-                <p className="text-sm mt-1">{group.description}</p>
-              </div>
-            )}
-            {group.removed_reason && (
-              <div className="md:col-span-2">
-                <Label className="text-xs text-muted-foreground">
-                  Removal Reason
-                </Label>
-                <p className="text-sm mt-1 text-red-600 dark:text-red-400">
-                  {group.removed_reason}
-                </p>
-                {group.removed_at && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Removed on {formatDateTime(group.removed_at)}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Organizer Info */}
-        <div className="rounded-md border p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Organizer</h2>
-          {organizer ? (
-            <div className="flex items-center gap-4">
-              {organizer.profile_photo ? (
-                <img
-                  src={getThumbnailUrl(organizer.profile_photo)}
-                  alt={organizer.name}
-                  className="h-12 w-12 rounded-full object-cover"
-                />
-              ) : (
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-sm font-medium">
-                    {organizer.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">{organizer.name}</p>
-                  {organizer.verified && (
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100">
-                      Verified
-                    </span>
-                  )}
-                  {organizer.name === 'User (Profile Missing)' && (
-                    <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
-                      Profile Missing
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {organizer.email}
-                </p>
-                {group.creator_id &&
-                  organizer.name === 'User (Profile Missing)' && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      User ID: {group.creator_id}
-                    </p>
-                  )}
-              </div>
-              {organizer.name !== 'User (Profile Missing)' ? (
-                <Link href={`/users/${organizer.id}${flagId ? `?flagId=${flagId}` : ''}`}>
-                  <Button variant="outline" size="sm">
-                    View Profile
-                  </Button>
-                </Link>
-              ) : (
-                <Button variant="outline" size="sm" disabled>
-                  Profile Unavailable
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                <span className="text-sm font-medium">?</span>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">
-                  {group.creator_id
-                    ? `Organizer profile not found (User ID: ${group.creator_id})`
-                    : 'No organizer assigned'}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Members Overview */}
-        <div className="rounded-md border p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Members</h2>
-          <div className="flex items-center gap-4">
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Total Members
-              </Label>
-              <p className="text-2xl font-semibold">{membersCount}</p>
-            </div>
-            {group.average_age && (
-              <div>
-                <Label className="text-xs text-muted-foreground">
-                  Average Age
-                </Label>
-                <p className="text-2xl font-semibold">
-                  {group.average_age.toFixed(1)}
-                </p>
-              </div>
-            )}
-          </div>
-          {(group.dominant_languages && group.dominant_languages.length > 0) ||
-          (group.top_interests && group.top_interests.length > 0) ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-              {group.dominant_languages &&
-                group.dominant_languages.length > 0 && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Languages
-                    </Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {group.dominant_languages.map((lang, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs"
-                        >
-                          {lang}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              {group.top_interests && group.top_interests.length > 0 && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Interests
-                  </Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {group.top_interests.map((interest, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs"
-                      >
-                        {interest}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
-        </div>
-
-        {/* Flags & Reports */}
-        {flags.length > 0 && (
-          <div className="rounded-md border p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Flags & Reports</h2>
-            <div className="space-y-3">
-              {flags.map((flag) => (
-                <div key={flag.id} className="rounded-md border p-4 space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        {flag.reason || 'No reason provided'}
-                      </p>
-                      {flag.evidence_url && (
-                        <a
-                          href={flag.evidence_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline mt-1 inline-block"
-                        >
-                          View Evidence →
-                        </a>
-                      )}
-                    </div>
-                    <span
-                      className={cn(
-                        'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium',
-                        flag.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
-                          : flag.status === 'resolved'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-                            : 'bg-muted text-muted-foreground',
-                      )}
-                    >
-                      {flag.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Reported on {formatDateTime(flag.created_at)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Admin Actions Panel */}
-        <div className="rounded-md border p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Admin Actions</h2>
-          <div className="flex gap-2">
+          
+          <div className="flex gap-3">
             {group.status === 'pending' && (
-              <Button
+              <Button 
                 onClick={() => setApproveDialogOpen(true)}
-                disabled={isLoading}
+                className="rounded-full bg-primary h-11 px-8 font-bold ios-shadow"
               >
                 Approve Group
               </Button>
             )}
-
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
               onClick={() => setWarnDialogOpen(true)}
-              disabled={isLoading}
-              className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 dark:border-yellow-400 dark:text-yellow-400 dark:hover:bg-yellow-950"
+              className="rounded-full h-11 px-6 font-bold border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300"
             >
-              Warn Group
+              Issue Warning
             </Button>
-
             {group.status !== 'removed' && (
-              <Button
-                variant="destructive"
+              <Button 
+                variant="destructive" 
                 onClick={() => setRemoveDialogOpen(true)}
-                disabled={isLoading}
+                className="rounded-full h-11 px-6 font-bold"
               >
                 Remove Group
               </Button>
             )}
           </div>
+        </div>
 
-          {/* Previous Admin Actions */}
-          {adminActions.length > 0 && (
-            <div className="pt-4 border-t space-y-2">
-              <h3 className="text-sm font-medium">Action History</h3>
-              <div className="space-y-2">
-                {adminActions.map((action) => (
-                  <div key={action.id} className="rounded-md border p-3">
-                    <div className="flex items-start justify-between mb-1">
-                      <p className="text-sm font-medium">{action.action}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDateTime(action.created_at)}
-                      </p>
-                    </div>
-                    {action.reason && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {action.reason}
-                      </p>
-                    )}
-                    {action.metadata &&
-                      Object.keys(action.metadata).length > 0 && (
-                        <div className="mt-2 p-2 rounded-md bg-muted/50 text-xs space-y-1">
-                          {action.metadata.previousStatus != null &&
-                            action.metadata.newStatus != null && (
-                              <p>
-                                <span className="font-medium">Status:</span>{' '}
-                                <span className="text-muted-foreground">
-                                  {String(action.metadata.previousStatus)} →{' '}
-                                  {String(action.metadata.newStatus)}
-                                </span>
-                              </p>
-                            )}
-                          {action.metadata.flagCount !== undefined && (
-                            <p>
-                              <span className="font-medium">Flag Count:</span>{' '}
-                              <span className="text-muted-foreground">
-                                {String(action.metadata.flagCount)}
-                                {action.metadata.newFlagCount !== undefined &&
-                                  ` → ${String(action.metadata.newFlagCount)}`}
-                              </span>
-                            </p>
-                          )}
-                          {action.metadata.membersCount !== undefined && (
-                            <p>
-                              <span className="font-medium">Members:</span>{' '}
-                              <span className="text-muted-foreground">
-                                {String(action.metadata.membersCount)}
-                              </span>
-                            </p>
-                          )}
-                          {action.metadata.fromFlagFlow === true && (
-                            <p>
-                              <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-100">
-                                Triggered by flag
-                              </span>
-                            </p>
-                          )}
-                          {(() => {
-                            const severity = action.metadata.removalSeverity;
-                            if (
-                              severity &&
-                              typeof severity === 'string' &&
-                              (severity === 'hard-remove' ||
-                                severity === 'warn-review')
-                            ) {
-                              return (
-                                <p>
-                                  <span className="font-medium">
-                                    Removal Type:
-                                  </span>{' '}
-                                  <span
-                                    className={cn(
-                                      'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                                      severity === 'hard-remove'
-                                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
-                                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100',
-                                    )}
-                                  >
-                                    {severity === 'hard-remove'
-                                      ? 'Hard Remove'
-                                      : 'Warn/Review'}
-                                  </span>
-                                </p>
-                              );
-                            }
-                            return null;
-                          })()}
-                          {action.metadata.autoFlagged === true && (
-                            <p>
-                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-100">
-                                ⚠️ Organizer auto-flagged for review
-                              </span>
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    {action.admins && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        by {action.admins.email}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
+        {group.cover_image && (
+          <div className="px-1">
+            <div className="h-64 md:h-80 w-full rounded-2xl overflow-hidden shadow-sm border border-border/10">
+              <img 
+                src={getThumbnailUrl(group.cover_image)} 
+                alt="Group Cover" 
+                className="h-full w-full object-cover"
+              />
             </div>
+          </div>
+        )}
+      </section>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="lg:col-span-8 space-y-12">
+          {/* Detailed Info */}
+          <section>
+            <SectionHeader>Group Details</SectionHeader>
+            <GroupContainer>
+              <ListRow 
+                icon={<Info className="h-5 w-5 text-blue-500" />}
+                label="Description"
+                secondary={group.description || "No description provided."}
+                showChevron={false}
+              />
+              <ListRow 
+                icon={<Calendar className="h-5 w-5 text-muted-foreground/40" />}
+                label="Timeline"
+                secondary={`${formatDate(group.start_date)} — ${formatDate(group.end_date)}`}
+                showChevron={false}
+              />
+              <ListRow 
+                icon={<Wallet className="h-5 w-5 text-muted-foreground/40" />}
+                label="Budget Est."
+                secondary={`₹${group.budget.toLocaleString()} per person`}
+                showChevron={false}
+              />
+              <ListRow 
+                icon={<Info className="h-5 w-5 text-muted-foreground/40" />}
+                label="Visibility"
+                secondary={group.is_public ? "Public Group (Visible in search)" : "Private Group (Invite only)"}
+                showChevron={false}
+              />
+            </GroupContainer>
+          </section>
+
+          {/* Organizer */}
+          <section>
+            <SectionHeader>Organizer</SectionHeader>
+            <GroupContainer>
+              {organizer ? (
+                <ListRow 
+                  onClick={() => router.push(`/users/${organizer.id}`)}
+                  icon={
+                    <div className="h-8 w-8 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
+                      <Avatar className="h-full w-full rounded-full">
+                        <AvatarImage 
+                          src={organizer.profile_photo ? getThumbnailUrl(organizer.profile_photo) : ""} 
+                          alt={organizer.name} 
+                          className="object-cover" 
+                        />
+                        <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
+                          {organizer.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  }
+                  label={organizer.name}
+                  secondary={organizer.email}
+                  trailing={
+                    organizer.verified && (
+                      <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest px-2 py-0.5 bg-green-50 rounded border border-green-100">
+                        Verified
+                      </span>
+                    )
+                  }
+                />
+              ) : (
+                <ListRow 
+                  label="No Organizer"
+                  secondary="System or deleted user"
+                  showChevron={false}
+                />
+              )}
+            </GroupContainer>
+          </section>
+
+          {/* Preferences */}
+          <section>
+            <SectionHeader>Vibe & Preferences</SectionHeader>
+            <GroupContainer>
+               <ListRow 
+                icon={<Globe className="h-5 w-5 text-muted-foreground/40" />}
+                label="Primary Languages"
+                secondary={group.dominant_languages?.join(", ") || "No preference"}
+                showChevron={false}
+              />
+               <ListRow 
+                icon={<Heart className="h-5 w-5 text-muted-foreground/40" />}
+                label="Interests"
+                secondary={group.top_interests?.join(", ") || "No specific tags"}
+                showChevron={false}
+              />
+               <ListRow 
+                label="Lifestyle Rules"
+                secondary={
+                  <div className="flex gap-3 mt-1">
+                    <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded border", group.non_smokers ? "bg-green-50 text-green-600 border-green-100" : "bg-muted text-muted-foreground opacity-40 border-transparent")}>Non-Smoking</span>
+                    <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded border", group.non_drinkers ? "bg-green-50 text-green-600 border-green-100" : "bg-muted text-muted-foreground opacity-40 border-transparent")}>Non-Drinking</span>
+                  </div>
+                }
+                showChevron={false}
+              />
+            </GroupContainer>
+          </section>
+
+          {/* Removal Info (Conditional) */}
+          {group.status === 'removed' && (
+            <section>
+               <SectionHeader>Removal Metadata</SectionHeader>
+               <GroupContainer className="border-red-200 bg-red-50/10">
+                  <ListRow 
+                    label="Reason for Removal"
+                    secondary={group.removed_reason}
+                    showChevron={false}
+                    destructive={true}
+                  />
+                  <ListRow 
+                    label="Removed At"
+                    secondary={formatDate(group.removed_at)}
+                    showChevron={false}
+                  />
+               </GroupContainer>
+            </section>
           )}
+        </div>
+
+        <div className="lg:col-span-4 space-y-12">
+          {/* Flags Section */}
+          {flags.length > 0 && (
+            <section>
+              <SectionHeader>Active Reports</SectionHeader>
+              <GroupContainer className="border-orange-200 bg-orange-50/10">
+                {flags.map((flag) => (
+                  <ListRow 
+                    key={flag.id}
+                    icon={<ShieldAlert className="h-5 w-5 text-orange-500" />}
+                    label={flag.reason || "Policy Violation"}
+                    secondary={formatDateTime(flag.created_at)}
+                    trailing={
+                        <StatusBadge status={flag.status} />
+                    }
+                    showChevron={false}
+                  />
+                ))}
+              </GroupContainer>
+            </section>
+          )}
+
+          {/* Action History */}
+          <section>
+            <SectionHeader>Admin Timeline</SectionHeader>
+            <GroupContainer>
+               {adminActions.length === 0 ? (
+                 <div className="py-8 text-center text-[13px] text-muted-foreground/40 font-medium italic">No previous actions recorded</div>
+               ) : (
+                 adminActions.map((action) => (
+                   <ListRow 
+                    key={action.id}
+                    icon={<History className="h-5 w-5 text-muted-foreground/30" />}
+                    label={action.action}
+                    secondary={
+                      <div className="space-y-1">
+                        <div>{action.reason}</div>
+                        <div className="flex items-center gap-1.5 text-[11px] opacity-40 font-bold">
+                           <span>BY {action.admins?.email?.split('@')[0].toUpperCase()}</span>
+                           <span>•</span>
+                           <span>{formatDateTime(action.created_at)}</span>
+                        </div>
+                      </div>
+                    }
+                    showChevron={false}
+                   />
+                 ))
+               )}
+            </GroupContainer>
+          </section>
         </div>
       </div>
 
-      {/* Approve Dialog */}
+      {/* Confirmation Dialogs */}
       <ConfirmDialog
         open={approveDialogOpen}
         onOpenChange={setApproveDialogOpen}
         title="Approve Group"
-        description="Are you sure you want to approve this group? It will become active and visible to users."
+        description="This will make the group active and visible to other users. Ensure it follows community guidelines."
         confirmText="Approve"
-        onConfirm={handleApprove}
+        onConfirm={() => handleAction("approve")}
       />
 
-      {/* Warn Dialog */}
       <ConfirmDialog
         open={warnDialogOpen}
         onOpenChange={setWarnDialogOpen}
-        title="Warn Group"
-        description="This will send a warning email to the group organizer. A reason is required."
-        confirmText="Send Warning"
-        onConfirm={handleWarn}
+        title="Send Warning"
+        description="The organizer will receive an email highlighting the policy issues. Please specify the violation."
+        confirmText="Warn Organizer"
+        onConfirm={() => handleAction("warn", warnReason)}
         validate={() => warnReason.trim().length > 0}
       >
-        <div className="space-y-2">
-          <Label htmlFor="warn-reason">Reason (required)</Label>
+        <div className="space-y-4 mt-4">
+          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Internal Reason</label>
           <textarea
-            id="warn-reason"
             value={warnReason}
             onChange={(e) => setWarnReason(e.target.value)}
-            placeholder="Enter reason for warning..."
-            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="What exactly needs to be corrected?"
+            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-[15px] focus:ring-1 ring-primary/20 transition-all outline-none"
             required
           />
         </div>
       </ConfirmDialog>
 
-      {/* Remove Dialog */}
       <ConfirmDialog
         open={removeDialogOpen}
         onOpenChange={setRemoveDialogOpen}
         title="Remove Group"
-        description="Are you sure you want to remove this group? This action requires a reason."
+        description="This will dismantle the group and notify all members. This action cannot be undone."
         variant="destructive"
-        confirmText="Remove Group"
-        onConfirm={handleRemove}
+        confirmText="Dismantle Group"
+        onConfirm={() => handleAction("remove", removeReason)}
         validate={() => removeReason.trim().length > 0}
       >
-        <div className="space-y-2">
-          <Label htmlFor="remove-reason">Reason (required)</Label>
+        <div className="space-y-4 mt-4">
+          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Removal Reason (Public)</label>
           <textarea
-            id="remove-reason"
             value={removeReason}
             onChange={(e) => setRemoveReason(e.target.value)}
-            placeholder="Enter reason for removing this group..."
-            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="Provide a reason for the members..."
+            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-[15px] focus:ring-1 ring-primary/20 transition-all outline-none"
             required
           />
         </div>
       </ConfirmDialog>
-
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </>
+    </div>
   );
 }

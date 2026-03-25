@@ -7,8 +7,25 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ToastContainer, useToast } from "./Toast";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
 import { getFullImageUrl } from "../lib/cloudinary-client";
+import { GroupContainer } from "./ui/ios/GroupContainer";
+import { ListRow } from "./ui/ios/ListRow";
+import { SectionHeader } from "./ui/ios/SectionHeader";
+import { StatusBadge } from "./ui/ios/StatusBadge";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import { 
+  ShieldCheck, 
+  ShieldAlert, 
+  MessageSquare, 
+  History, 
+  Info, 
+  UserX,
+  UserCheck,
+  Ban,
+  AlertTriangle,
+  FileText
+} from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -67,7 +84,7 @@ export function UserDetail({
 }: UserDetailProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const flagId = searchParams.get("flagId"); // Get flagId from URL if present
+  const flagId = searchParams.get("flagId");
   const { toasts, toast, removeToast } = useToast();
   const [profile, setProfile] = React.useState(initialProfile);
   const [flags, setFlags] = React.useState(initialFlags);
@@ -78,37 +95,29 @@ export function UserDetail({
     ban_expires_at?: string | undefined;
   } | null>(null);
 
-  // Update profile when initialProfile changes (after router.refresh())
-  // Only update if server data matches our expected state or if we haven't done an optimistic update
   React.useEffect(() => {
     if (expectedStateRef.current) {
-      // We did an optimistic update - check if server confirms it
       const serverBanned = initialProfile.users?.banned;
       const serverBanExpires = initialProfile.users?.ban_expires_at;
       const expected = expectedStateRef.current;
 
-      // If server data matches what we expect, server has caught up - sync it
-      if (
-        serverBanned === expected.banned &&
-        serverBanExpires === expected.ban_expires_at
-      ) {
+      if (serverBanned === expected.banned && serverBanExpires === expected.ban_expires_at) {
         expectedStateRef.current = null;
         setProfile(initialProfile);
       }
-      // Otherwise, keep our optimistic state and don't overwrite
     } else {
-      // No optimistic update pending, safe to sync with server
       setProfile(initialProfile);
     }
-  }, [initialProfile]);
+    setFlags(initialFlags);
+    setNotes(initialNotes);
+  }, [initialProfile, initialFlags, initialNotes]);
+
   const [actionState, setActionState] = React.useState<{
     type: "suspend" | "ban" | "warn" | null;
     open: boolean;
   }>({ type: null, open: false });
-  const [suspendForm, setSuspendForm] = React.useState({
-    reason: "",
-    banUntil: "",
-  });
+
+  const [suspendForm, setSuspendForm] = React.useState({ reason: "", banUntil: "" });
   const [banForm, setBanForm] = React.useState({ reason: "" });
   const [warnForm, setWarnForm] = React.useState({ reason: "" });
   const [noteForm, setNoteForm] = React.useState({ note: "" });
@@ -124,7 +133,7 @@ export function UserDetail({
       const res = await fetch(`/api/admin/users/${profile.id}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason, banUntil, flagId }), // Include flagId
+        body: JSON.stringify({ action, reason, banUntil, flagId }),
       });
 
       if (!res.ok) {
@@ -132,39 +141,21 @@ export function UserDetail({
         throw new Error(error.error || "Action failed");
       }
 
-      // Optimistically update the profile state
       if (action === "ban" || action === "suspend") {
         const banExpiresAt = action === "suspend" ? banUntil : undefined;
-        expectedStateRef.current = {
-          banned: true,
-          ban_expires_at: banExpiresAt,
-        };
+        expectedStateRef.current = { banned: true, ban_expires_at: banExpiresAt };
         setProfile((prev) => ({
           ...prev,
-          users: {
-            banned: true,
-            ban_reason: reason || `Admin ${action}`,
-            ban_expires_at: banExpiresAt,
-          },
+          users: { banned: true, ban_reason: reason || `Admin ${action}`, ban_expires_at: banExpiresAt },
         }));
       } else if (action === "unban") {
-        expectedStateRef.current = {
-          banned: false,
-          ban_expires_at: undefined,
-        };
+        expectedStateRef.current = { banned: false, ban_expires_at: undefined };
         setProfile((prev) => ({
           ...prev,
-          users: {
-            banned: false,
-            ban_reason: undefined,
-            ban_expires_at: undefined,
-          },
+          users: { banned: false, ban_reason: undefined, ban_expires_at: undefined },
         }));
       } else if (action === "verify") {
-        setProfile((prev) => ({
-          ...prev,
-          verified: true,
-        }));
+        setProfile((prev) => ({ ...prev, verified: true }));
       }
 
       toast({
@@ -173,7 +164,6 @@ export function UserDetail({
         variant: "success",
       });
 
-      // Refresh after a short delay to allow server to process
       setTimeout(() => {
         router.refresh();
       }, 300);
@@ -186,15 +176,11 @@ export function UserDetail({
     } finally {
       setIsLoading(false);
       setActionState({ type: null, open: false });
-      setSuspendForm({ reason: "", banUntil: "" });
-      setBanForm({ reason: "" });
-      setWarnForm({ reason: "" });
     }
   };
 
   const handleAddNote = async () => {
     if (!noteForm.note.trim()) return;
-
     setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/users/${profile.id}/notes`, {
@@ -203,10 +189,7 @@ export function UserDetail({
         body: JSON.stringify({ note: noteForm.note }),
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to add note");
-      }
+      if (!res.ok) throw new Error("Failed to add note");
 
       toast({
         title: "Success",
@@ -214,7 +197,6 @@ export function UserDetail({
         variant: "success",
       });
 
-      // Refresh notes
       const notesRes = await fetch(`/api/admin/users/${profile.id}/notes`);
       if (notesRes.ok) {
         const data = await notesRes.json();
@@ -226,8 +208,7 @@ export function UserDetail({
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to add note",
+        description: "Failed to add note",
         variant: "destructive",
       });
     } finally {
@@ -235,296 +216,245 @@ export function UserDetail({
     }
   };
 
-  // Check ban status - handle both boolean true and truthy values
   const isBanned = profile.users?.banned === true;
   const isSuspended = isBanned && !!profile.users?.ban_expires_at;
-  const isPermanentlyBanned = isBanned && !profile.users?.ban_expires_at;
 
   return (
     <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <div className="space-y-6">
-        {/* Profile Header */}
-        <div className="flex items-start gap-6">
-          <div
-            className={cn(
-              "h-24 w-24 rounded-full bg-muted flex items-center justify-center overflow-hidden",
-              profile.deleted && "opacity-50"
-            )}
-          >
-            {profile.profile_photo ? (
-              <img
-                src={getFullImageUrl(profile.profile_photo)}
-                alt={profile.name || "User"}
-                className="h-full w-full object-cover"
+      <div className="space-y-10 pb-20">
+        {/* Profile Header Block */}
+        <div className="flex flex-col md:flex-row items-start gap-8 px-2">
+          <div className={cn("h-32 w-32 rounded-[24px] overflow-hidden border-none shadow-sm flex-shrink-0", profile.deleted && "opacity-50")}>
+            <Avatar className="h-full w-full rounded-[24px]">
+              <AvatarImage 
+                src={profile.profile_photo ? getFullImageUrl(profile.profile_photo) : ""} 
+                alt={profile.name || "?"} 
+                className="object-cover" 
               />
-            ) : (
-              <span className="text-2xl font-medium">
-                {profile.name?.charAt(0).toUpperCase() || "?"}
-              </span>
-            )}
+              <AvatarFallback className="rounded-[24px] bg-muted text-muted-foreground text-2xl font-bold">
+                {profile.name?.substring(0, 2).toUpperCase() || "?"}
+              </AvatarFallback>
+            </Avatar>
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-semibold">
-                {profile.name || "Unknown User"}
-              </h1>
-              {profile.verified && (
-                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100">
-                  Verified
-                </span>
-              )}
-              {isBanned && (
-                <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-100">
-                  {isSuspended ? "Suspended" : "Banned"}
-                </span>
-              )}
-              {profile.deleted && (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-900 dark:text-gray-100">
-                  Deleted
-                </span>
-              )}
+          <div className="flex-1 pt-2 space-y-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold tracking-tight">{profile.name || "Unknown User"}</h1>
+                {profile.verified && <ShieldCheck className="h-6 w-6 text-blue-500" />}
+              </div>
+              <p className="text-[17px] text-muted-foreground/80 font-medium">{profile.email}</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {isBanned && (
+                  <StatusBadge status={isSuspended ? "Suspended" : "Banned"} />
+                )}
+                {profile.deleted && (
+                  <StatusBadge status="Deleted" />
+                )}
+                {!isBanned && !profile.deleted && (
+                  <StatusBadge status="Active" />
+                )}
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">{profile.email}</p>
-            <p className="text-sm text-muted-foreground">
-              {profile.age} • {profile.gender} • {profile.nationality}
-            </p>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2">
-          {!profile.verified && (
-            <Button
-              variant="outline"
-              onClick={() => handleAction("verify")}
-              disabled={isLoading}
-            >
-              Verify
-            </Button>
-          )}
-          {!isBanned && (
-            <>
-              <Button
-                  variant="outline"
-                  onClick={() => setActionState({ type: "warn", open: true })}
-                  disabled={isLoading}
-                >
-                  Warn
-                </Button>
-              <Button
-                variant="outline"
-                onClick={() => setActionState({ type: "suspend", open: true })}
-                disabled={isLoading}
-              >
-                Suspend
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => setActionState({ type: "ban", open: true })}
-                disabled={isLoading}
-              >
-                Ban
-              </Button>
-            </>
-          )}
-          {isSuspended && (
-            <Button
-              variant="outline"
-              onClick={() => handleAction("unban")}
-              disabled={isLoading}
-            >
-              Revoke Suspension
-            </Button>
-          )}
-          {isPermanentlyBanned && (
-            <Button
-              variant="outline"
-              onClick={() => handleAction("unban")}
-              disabled={isLoading}
-            >
-              Unban
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={() => setShowNoteForm(!showNoteForm)}
-          >
-            {showNoteForm ? "Cancel Note" : "Add Note"}
-          </Button>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Main Info Columns */}
+          <div className="lg:col-span-12 space-y-10">
+            
+            {/* Quick Actions Row */}
+            <section>
+              <SectionHeader>Account Management</SectionHeader>
+              <GroupContainer>
+                {!profile.verified && (
+                  <ListRow
+                    icon={<ShieldCheck className="h-5 w-5 text-blue-500" />}
+                    label="Verify Account"
+                    secondary="Mark user as officially verified"
+                    onClick={() => handleAction("verify")}
+                  />
+                )}
+                {!isBanned && (
+                  <>
+                    <ListRow
+                      icon={<AlertTriangle className="h-5 w-5 text-yellow-500" />}
+                      label="Issue Warning"
+                      secondary="Log a warning and notify user via email"
+                      onClick={() => setActionState({ type: "warn", open: true })}
+                    />
+                    <ListRow
+                      icon={<ShieldAlert className="h-5 w-5 text-orange-500" />}
+                      label="Suspend User"
+                      secondary="Temporary ban with expiration date"
+                      onClick={() => setActionState({ type: "suspend", open: true })}
+                    />
+                    <ListRow
+                      icon={<Ban className="h-5 w-5 text-red-500" />}
+                      label="Permanent Ban"
+                      secondary="Restrict access to the platform permanently"
+                      onClick={() => setActionState({ type: "ban", open: true })}
+                    />
+                  </>
+                )}
+                {isBanned && (
+                  <ListRow
+                    icon={<UserCheck className="h-5 w-5 text-green-500" />}
+                    label={isSuspended ? "Revoke Suspension" : "Unban User"}
+                    secondary="Restore user access immediately"
+                    onClick={() => handleAction("unban")}
+                  />
+                )}
+                <ListRow
+                  icon={<MessageSquare className="h-5 w-5 text-muted-foreground" />}
+                  label="Internal Note"
+                  secondary="Add private moderation log"
+                  onClick={() => setShowNoteForm(!showNoteForm)}
+                />
+              </GroupContainer>
+            </section>
 
-        {/* Add Note Form */}
-        {showNoteForm && (
-          <div className="rounded-md border p-4 space-y-4">
-            <Label htmlFor="note">Admin Note</Label>
-            <textarea
-              id="note"
-              value={noteForm.note}
-              onChange={(e) => setNoteForm({ note: e.target.value })}
-              placeholder="Enter admin note..."
-              className="w-full min-h-[100px] rounded-md border bg-background px-3 py-2 text-sm"
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowNoteForm(false);
-                  setNoteForm({ note: "" });
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleAddNote}
-                disabled={!noteForm.note.trim() || isLoading}
-              >
-                Add Note
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Admin Notes */}
-        {notes.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Admin Notes</h2>
-            <div className="space-y-2">
-              {notes.map((note) => (
-                <div key={note.id} className="rounded-md border p-3">
-                  <div className="flex items-start justify-between mb-1">
-                    <p className="text-sm">{note.reason}</p>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {note.admins?.email} •{" "}
-                    {new Date(note.created_at).toLocaleString()}
+            {/* Note Entry Form */}
+            {showNoteForm && (
+              <section className="px-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="rounded-2xl border bg-card/10 p-5 space-y-4">
+                  <Label htmlFor="note" className="text-sm font-semibold opacity-60">Admin Internal Note</Label>
+                  <textarea
+                    id="note"
+                    value={noteForm.note}
+                    onChange={(e) => setNoteForm({ note: e.target.value })}
+                    placeholder="Enter private note about this user..."
+                    className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-[15px] focus:ring-1 ring-primary/20 transition-all outline-none"
+                  />
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button variant="ghost" className="rounded-full px-6" onClick={() => setShowNoteForm(false)}>Cancel</Button>
+                    <Button className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleAddNote} disabled={!noteForm.note.trim() || isLoading}>
+                      Save Note
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </section>
+            )}
 
-        {/* Flags */}
-        {flags.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Flags ({flags.length})</h2>
-            <div className="space-y-2">
-              {flags.map((flag) => (
-                <div key={flag.id} className="rounded-md border p-3">
-                  <div className="flex items-start justify-between mb-1">
-                    <div>
-                      <span className="font-medium text-sm">{flag.type}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {flag.status}
-                      </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              {/* Profile Details */}
+              <section>
+                <SectionHeader>Personal Details</SectionHeader>
+                <GroupContainer>
+                  <ListRow label="Age" trailing={<span className="font-medium text-[15px]">{profile.age}</span>} showChevron={false} />
+                  <ListRow label="Gender" trailing={<span className="font-medium text-[15px]">{profile.gender}</span>} showChevron={false} />
+                  <ListRow label="Nationality" trailing={<span className="font-medium text-[15px]">{profile.nationality}</span>} showChevron={false} />
+                  {profile.religion && <ListRow label="Religion" trailing={<span className="font-medium text-[15px]">{profile.religion}</span>} showChevron={false} />}
+                  {profile.smoking && <ListRow label="Smoking" trailing={<span className="font-medium text-[15px]">{profile.smoking}</span>} showChevron={false} />}
+                  {profile.drinking && <ListRow label="Drinking" trailing={<span className="font-medium text-[15px]">{profile.drinking}</span>} showChevron={false} />}
+                </GroupContainer>
+              </section>
+
+              {/* Preferences & Bio */}
+              <section>
+                <SectionHeader>Bio & Preferences</SectionHeader>
+                <GroupContainer>
+                  <ListRow 
+                    label="Bio" 
+                    secondary={profile.bio || "No bio provided"} 
+                    showChevron={false}
+                  />
+                  <ListRow 
+                    label="Personality" 
+                    secondary={profile.personality || "Not specified"} 
+                    showChevron={false}
+                  />
+                  {profile.languages && (
+                    <ListRow 
+                      label="Languages" 
+                      secondary={profile.languages.join(", ")} 
+                      showChevron={false}
+                    />
+                  )}
+                  {profile.interests && (
+                    <ListRow 
+                      label="Interests" 
+                      secondary={profile.interests.join(", ")} 
+                      showChevron={false}
+                    />
+                  )}
+                </GroupContainer>
+              </section>
+            </div>
+
+            {/* Flags & History */}
+            {flags.length > 0 && (
+              <section>
+                <SectionHeader>User Flags ({flags.length})</SectionHeader>
+                <GroupContainer>
+                  {flags.map((flag) => (
+                    <ListRow
+                      key={flag.id}
+                      icon={<AlertTriangle className={cn("h-5 w-5", flag.status === 'pending' ? 'text-orange-500' : 'text-muted-foreground/40')} />}
+                      label={flag.type}
+                      secondary={flag.reason}
+                      trailing={
+                        <div className="flex flex-col items-end">
+                          <StatusBadge status={flag.status} />
+                          <span className="text-[10px] text-muted-foreground/40">
+                            {new Date(flag.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      }
+                      showChevron={false}
+                    />
+                  ))}
+                </GroupContainer>
+              </section>
+            )}
+
+            {/* Admin Internal History */}
+            {notes.length > 0 && (
+              <section>
+                <SectionHeader>Moderation History</SectionHeader>
+                <GroupContainer>
+                  {notes.map((note) => (
+                    <ListRow
+                      key={note.id}
+                      icon={<FileText className="h-5 w-5 text-muted-foreground/60" />}
+                      label={note.reason}
+                      secondary={`${note.admins?.email} • ${new Date(note.created_at).toLocaleString()}`}
+                      showChevron={false}
+                    />
+                  ))}
+                </GroupContainer>
+              </section>
+            )}
+
+            {/* Technical Sessions */}
+            {initialSessions.length > 0 && (
+              <section>
+                <SectionHeader>Active System Sessions</SectionHeader>
+                <GroupContainer>
+                  {initialSessions.map((session, idx) => (
+                    <div key={idx} className="p-4 border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center gap-2 mb-2">
+                        <History className="h-4 w-4 text-muted-foreground/60" />
+                        <span className="text-xs font-mono font-medium text-muted-foreground">{session.key}</span>
+                      </div>
+                      <pre className="text-[12px] bg-muted/20 p-4 rounded-xl overflow-x-auto text-muted-foreground/80 scrollbar-hide">
+                        {JSON.stringify(session.data, null, 2)}
+                      </pre>
                     </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{flag.reason}</p>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {new Date(flag.created_at).toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Sessions */}
-        {initialSessions.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Active Sessions</h2>
-            <div className="space-y-2">
-              {initialSessions.map((session, idx) => (
-                <div key={idx} className="rounded-md border p-3">
-                  <div className="text-sm font-mono break-all">
-                    {session.key}
-                  </div>
-                  <pre className="text-xs text-muted-foreground mt-2 overflow-auto">
-                    {JSON.stringify(session.data, null, 2)}
-                  </pre>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Profile Details */}
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold">Profile Details</h2>
-          <div className="rounded-md border p-4 space-y-2">
-            {profile.bio && (
-              <div>
-                <span className="text-sm font-medium">Bio: </span>
-                <span className="text-sm">{profile.bio}</span>
-              </div>
-            )}
-            {profile.languages && profile.languages.length > 0 && (
-              <div>
-                <span className="text-sm font-medium">Languages: </span>
-                <span className="text-sm">{profile.languages.join(", ")}</span>
-              </div>
-            )}
-            {profile.smoking && (
-              <div>
-                <span className="text-sm font-medium">Smoking: </span>
-                <span className="text-sm">{profile.smoking}</span>
-              </div>
-            )}
-            {profile.drinking && (
-              <div>
-                <span className="text-sm font-medium">Drinking: </span>
-                <span className="text-sm">{profile.drinking}</span>
-              </div>
-            )}
-            {profile.religion && (
-              <div>
-                <span className="text-sm font-medium">Religion: </span>
-                <span className="text-sm">{profile.religion}</span>
-              </div>
-            )}
-            {profile.personality && (
-              <div>
-                <span className="text-sm font-medium">Personality: </span>
-                <span className="text-sm">{profile.personality}</span>
-              </div>
-            )}
-            {profile.interests && profile.interests.length > 0 && (
-              <div>
-                <span className="text-sm font-medium">Interests: </span>
-                <span className="text-sm">{profile.interests.join(", ")}</span>
-              </div>
-            )}
-            {isBanned && profile.users?.ban_reason && (
-              <div>
-                <span className="text-sm font-medium">Ban Reason: </span>
-                <span className="text-sm text-destructive">
-                  {profile.users.ban_reason}
-                </span>
-              </div>
-            )}
-            {isSuspended && profile.users?.ban_expires_at && (
-              <div>
-                <span className="text-sm font-medium">
-                  Suspension Expires:{" "}
-                </span>
-                <span className="text-sm">
-                  {new Date(profile.users.ban_expires_at).toLocaleString()}
-                </span>
-              </div>
+                  ))}
+                </GroupContainer>
+              </section>
             )}
           </div>
         </div>
       </div>
 
-      {/* Warn Dialog */}
+      {/* Action Dialogs */}
       {actionState.type === "warn" && (
         <ConfirmDialog
           open={actionState.open}
-          onOpenChange={(open) =>
-            setActionState({ type: open ? "warn" : null, open })
-          }
+          onOpenChange={(open) => setActionState({ type: open ? "warn" : null, open })}
           title="Warn User"
           description="Send a warning to this user. This will be logged and they will receive an email."
           confirmText="Send Warning"
@@ -532,35 +462,28 @@ export function UserDetail({
           onConfirm={() => handleAction("warn", warnForm.reason)}
         >
           <div className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="warn-reason">Warning Message</Label>
-              <textarea
-                id="warn-reason"
-                value={warnForm.reason}
-                onChange={(e) => setWarnForm({ reason: e.target.value })}
-                placeholder="Reason for warning (sent to user)"
-                className="w-full min-h-[100px] rounded-md border bg-background px-3 py-2 text-sm mt-1"
-              />
-            </div>
+            <Label htmlFor="warn-reason">Warning Message</Label>
+            <textarea
+              id="warn-reason"
+              value={warnForm.reason}
+              onChange={(e) => setWarnForm({ reason: e.target.value })}
+              placeholder="Reason for warning (sent to user)"
+              className="w-full min-h-[100px] rounded-xl border bg-muted/40 px-3 py-2 text-sm mt-1 focus:ring-1 ring-primary/20 outline-none"
+            />
           </div>
         </ConfirmDialog>
       )}
 
-      {/* Suspend Dialog */}
       {actionState.type === "suspend" && (
         <ConfirmDialog
           open={actionState.open}
-          onOpenChange={(open) =>
-            setActionState({ type: open ? "suspend" : null, open })
-          }
+          onOpenChange={(open) => setActionState({ type: open ? "suspend" : null, open })}
           title="Suspend User"
           description="Temporarily suspend this user. They will be unable to access the platform until the suspension expires."
           confirmText="Suspend"
           variant="destructive"
           validate={() => !!suspendForm.reason.trim() && !!suspendForm.banUntil}
-          onConfirm={() =>
-            handleAction("suspend", suspendForm.reason, suspendForm.banUntil)
-          }
+          onConfirm={() => handleAction("suspend", suspendForm.reason, suspendForm.banUntil)}
         >
           <div className="space-y-4 mt-4">
             <div>
@@ -568,11 +491,9 @@ export function UserDetail({
               <Input
                 id="suspend-reason"
                 value={suspendForm.reason}
-                onChange={(e) =>
-                  setSuspendForm({ ...suspendForm, reason: e.target.value })
-                }
+                onChange={(e) => setSuspendForm({ ...suspendForm, reason: e.target.value })}
                 placeholder="Reason for suspension"
-                className="mt-1"
+                className="mt-1 rounded-xl bg-muted/40 border-none"
               />
             </div>
             <div>
@@ -581,44 +502,34 @@ export function UserDetail({
                 id="suspend-until"
                 type="datetime-local"
                 value={suspendForm.banUntil}
-                onChange={(e) =>
-                  setSuspendForm({ ...suspendForm, banUntil: e.target.value })
-                }
-                className="mt-1"
+                onChange={(e) => setSuspendForm({ ...suspendForm, banUntil: e.target.value })}
+                className="mt-1 rounded-xl bg-muted/40 border-none"
               />
             </div>
           </div>
         </ConfirmDialog>
       )}
 
-      {/* Ban Dialog */}
       {actionState.type === "ban" && (
         <ConfirmDialog
           open={actionState.open}
-          onOpenChange={(open) =>
-            setActionState({ type: open ? "ban" : null, open })
-          }
+          onOpenChange={(open) => setActionState({ type: open ? "ban" : null, open })}
           title="Ban User"
           description="Permanently ban this user. This action cannot be undone easily."
           confirmText="Ban"
           variant="destructive"
-          requireTypedConfirmation={{
-            text: "BAN",
-            placeholder: "Type BAN to confirm",
-          }}
+          requireTypedConfirmation={{ text: "BAN", placeholder: "Type BAN to confirm" }}
           onConfirm={() => handleAction("ban", banForm.reason)}
         >
           <div className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="ban-reason">Reason</Label>
-              <Input
-                id="ban-reason"
-                value={banForm.reason}
-                onChange={(e) => setBanForm({ reason: e.target.value })}
-                placeholder="Reason for ban"
-                className="mt-1"
-              />
-            </div>
+            <Label htmlFor="ban-reason">Reason</Label>
+            <Input
+              id="ban-reason"
+              value={banForm.reason}
+              onChange={(e) => setBanForm({ reason: e.target.value })}
+              placeholder="Reason for ban"
+              className="mt-1 rounded-xl bg-muted/40 border-none"
+            />
           </div>
         </ConfirmDialog>
       )}

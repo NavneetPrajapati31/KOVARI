@@ -22,7 +22,7 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
-type FlagAction = "dismiss" | "warn" | "suspend" | "ban";
+type FlagAction = "dismiss" | "warn" | "suspend" | "ban" | "resolve";
 
 /**
  * POST /api/admin/flags/:id/action
@@ -79,10 +79,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     console.log("Ban until:", banUntil);
 
     // Validate action
-    if (!["dismiss", "warn", "suspend", "ban"].includes(action)) {
+    if (!["dismiss", "warn", "suspend", "ban", "resolve"].includes(action)) {
       console.error("Invalid action:", action);
       return NextResponse.json(
-        { error: "Invalid action. Must be: dismiss, warn, suspend, or ban" },
+        { error: "Invalid action. Must be: dismiss, warn, suspend, ban, or resolve" },
         { status: 400 }
       );
     }
@@ -227,6 +227,25 @@ export async function POST(req: NextRequest, { params }: Params) {
       console.log("Admin action logged");
 
       return NextResponse.json({ success: true, message: "Flag dismissed successfully" });
+    }
+
+    // Handle resolve action
+    if (action === "resolve") {
+      console.log("Processing resolve action...");
+      await updateFlagStatus("actioned");
+      console.log("Flag status updated to actioned");
+
+      await logAdminAction({
+        adminId,
+        targetType: targetType === "group" ? "group_flag" : "user_flag",
+        targetId: flagId,
+        action: "RESOLVE_FLAG",
+        reason: reason || "Flag marked as resolved",
+        metadata: { flagId, targetType, targetId: userId },
+      });
+      console.log("Admin action logged (RESOLVE)");
+
+      return NextResponse.json({ success: true, message: "Flag resolved successfully" });
     }
 
     // Handle warn action

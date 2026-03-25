@@ -7,6 +7,12 @@ interface Flag {
   targetType: "user" | "group";
   targetId: string;
   targetName: string;
+  targetInfo?: {
+    id: string;
+    name: string;
+    email?: string;
+    profile_photo?: string;
+  };
   reason: string;
   evidenceUrl: string | null;
   createdAt: string;
@@ -20,9 +26,9 @@ async function getFlags(
   targetType: string = "all"
 ): Promise<{ flags: Flag[]; page: number; limit: number }> {
   const headersList = await headers();
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  const host = headersList.get("host") || "localhost:3001";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
   const params = new URLSearchParams({
     page: page.toString(),
@@ -77,10 +83,10 @@ export default async function FlagsPage({
   const { flags, page: currentPage } = await getFlags(page, limit, status, targetType);
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Flags Queue</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="max-w-full mx-auto space-y-8">
+      <div className="space-y-0">
+        <h1 className="text-lg font-semibold tracking-tight">Flags Queue</h1>
+        <p className="text-md text-muted-foreground">
           Review and manage user and group reports
         </p>
       </div>

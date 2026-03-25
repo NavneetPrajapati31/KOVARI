@@ -10,6 +10,10 @@ import {
 export function getNotificationLink(notification: Notification): string {
   const { entity_type, entity_id, type } = notification;
 
+  if (type === NotificationType.REPORT_SUBMITTED) {
+    return "/safety";
+  }
+
   if (!entity_id) {
     return "/notifications";
   }

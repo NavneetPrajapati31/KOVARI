@@ -93,10 +93,10 @@ export default async function GroupsPage({
   );
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Groups</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="max-w-full mx-auto space-y-8">
+      <div className="space-y-0">
+        <h1 className="text-lg font-semibold tracking-tight">Groups</h1>
+        <p className="text-md text-muted-foreground">
           Manage and monitor travel groups
         </p>
       </div>

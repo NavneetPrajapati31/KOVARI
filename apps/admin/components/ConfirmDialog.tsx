@@ -108,9 +108,9 @@ export function ConfirmDialog({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-xl font-bold tracking-tight font-sans">{title}</DialogTitle>
+          <DialogDescription className="text-sm font-medium text-muted-foreground leading-relaxed">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -137,9 +137,9 @@ export function ConfirmDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-3 sm:gap-0">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -147,6 +147,7 @@ export function ConfirmDialog({
             }}
             disabled={isLoading}
             type="button"
+            className="rounded-xl font-semibold hover:bg-muted/50"
           >
             {cancelText}
           </Button>
@@ -155,6 +156,10 @@ export function ConfirmDialog({
             onClick={handleConfirm}
             disabled={!canConfirm || isLoading}
             type="button"
+            className={cn(
+                "rounded-xl font-bold px-6 ios-shadow transition-all active:scale-95",
+                variant === "destructive" ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90"
+            )}
           >
             {isLoading ? "Processing..." : confirmText}
           </Button>

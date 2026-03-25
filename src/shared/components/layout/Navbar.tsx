@@ -30,6 +30,7 @@ import { createClient } from "@/lib/supabase";
 import MobileMenuOverlay from "./MobileMenuOverlay";
 import { motion } from "framer-motion";
 import WaitlistModal from "../landing/WaitlistModal";
+import { trackEvent } from "@/shared/utils/analytics";
 
 export const AcmeLogo = () => {
   return (
@@ -187,6 +188,7 @@ export default function App({
   ];
 
   const handleJoinWaitlist = () => {
+    trackEvent("waitlist_click", { source: "navbar" });
     setIsWaitlistModalOpen(true);
   };
 

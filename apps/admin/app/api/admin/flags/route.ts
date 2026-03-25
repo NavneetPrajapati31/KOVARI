@@ -226,7 +226,7 @@ export async function GET(req: NextRequest) {
           // Get group info
           const { data: group } = await supabaseAdmin
             .from('groups')
-            .select('id, name')
+            .select('id, name, cover_image')
             .eq('id', targetId)
             .maybeSingle();
 
@@ -235,6 +235,7 @@ export async function GET(req: NextRequest) {
             targetInfo = {
               id: group.id,
               name: group.name || 'Unknown Group',
+              profile_photo: group.cover_image || undefined,
             };
           } else {
             // Group doesn't exist - this shouldn't happen after validation above, but handle it
