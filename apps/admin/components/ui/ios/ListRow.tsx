@@ -65,7 +65,7 @@ export function ListRow({
           </div>
         )}
         {showChevron && onClick && (
-          <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
         )}
       </div>
     </div>

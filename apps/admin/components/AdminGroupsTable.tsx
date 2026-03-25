@@ -11,6 +11,7 @@ import { ListRow } from "./ui/ios/ListRow";
 import { SectionHeader } from "./ui/ios/SectionHeader";
 import { SearchInput } from "./ui/ios/SearchInput";
 import { Users, MapPin, Calendar, AlertTriangle, Trash2, Eye } from "lucide-react";
+import { StatusBadge } from "./ui/ios/StatusBadge";
 import {
   Select,
   SelectContent,
@@ -114,11 +115,6 @@ export function AdminGroupsTable({
     return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
-  const statusColors: Record<string, string> = {
-    active: "text-green-500",
-    pending: "text-amber-500",
-    removed: "text-red-500",
-  };
 
   return (
     <>
@@ -192,16 +188,9 @@ export function AdminGroupsTable({
                   trailing={
                     <div className="flex items-center gap-6">
                       <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-1.5">
-                          {group.flag_count > 0 && <AlertTriangle className="h-3 w-3 text-orange-500" />}
-                          <span className={cn("text-[10px] uppercase font-bold tracking-widest", statusColors[group.status] || "text-muted-foreground")}>
-                            {group.status}
-                          </span>
-                        </div>
+                        <StatusBadge status={group.status} />
                         {group.flag_count > 0 && (
-                          <span className="text-[11px] font-medium text-orange-500">
-                            {group.flag_count} Flags
-                          </span>
+                          <StatusBadge status={`${group.flag_count} Flags`} />
                         )}
                       </div>
                       <div className="flex items-center gap-1">

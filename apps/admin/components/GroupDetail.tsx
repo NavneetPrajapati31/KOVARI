@@ -11,6 +11,8 @@ import { getThumbnailUrl } from "@/lib/cloudinary-client";
 import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
 import { SectionHeader } from "./ui/ios/SectionHeader";
+import { StatusBadge } from "./ui/ios/StatusBadge";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { 
   Users, 
   MapPin, 
@@ -172,14 +174,7 @@ export function GroupDetail({
           <div className="space-y-3">
              <div className="flex items-center gap-3">
                 <h1 className="text-4xl font-bold tracking-tight">{group.name}</h1>
-                <div className={cn(
-                  "px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-widest border",
-                  group.status === "active" ? "bg-green-50 text-green-600 border-green-200" :
-                  group.status === "removed" ? "bg-red-50 text-red-600 border-red-200" :
-                  "bg-amber-50 text-amber-600 border-amber-200"
-                )}>
-                  {group.status}
-                </div>
+                <StatusBadge status={group.status} />
              </div>
              <div className="flex items-center gap-2 text-[17px] text-muted-foreground/80 font-medium">
                 <MapPin className="h-4 w-4" />
@@ -272,15 +267,18 @@ export function GroupDetail({
                 <ListRow 
                   onClick={() => router.push(`/users/${organizer.id}`)}
                   icon={
-                    organizer.profile_photo ? (
-                      <div className="h-8 w-8 rounded-full overflow-hidden">
-                        <img src={getThumbnailUrl(organizer.profile_photo)} alt="" className="h-full w-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-                         {organizer.name.charAt(0)}
-                      </div>
-                    )
+                    <div className="h-8 w-8 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
+                      <Avatar className="h-full w-full rounded-full">
+                        <AvatarImage 
+                          src={organizer.profile_photo ? getThumbnailUrl(organizer.profile_photo) : ""} 
+                          alt={organizer.name} 
+                          className="object-cover" 
+                        />
+                        <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
+                          {organizer.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
                   }
                   label={organizer.name}
                   secondary={organizer.email}
@@ -365,9 +363,7 @@ export function GroupDetail({
                     label={flag.reason || "Policy Violation"}
                     secondary={formatDateTime(flag.created_at)}
                     trailing={
-                      <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">
-                        {flag.status}
-                      </span>
+                        <StatusBadge status={flag.status} />
                     }
                     showChevron={false}
                   />

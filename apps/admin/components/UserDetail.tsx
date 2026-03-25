@@ -12,7 +12,8 @@ import { getFullImageUrl } from "../lib/cloudinary-client";
 import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
 import { SectionHeader } from "./ui/ios/SectionHeader";
-import { Avatar } from "@heroui/react";
+import { StatusBadge } from "./ui/ios/StatusBadge";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { 
   ShieldCheck, 
   ShieldAlert, 
@@ -225,13 +226,18 @@ export function UserDetail({
       <div className="space-y-10 pb-20">
         {/* Profile Header Block */}
         <div className="flex flex-col md:flex-row items-start gap-8 px-2">
-          <Avatar
-            className={cn("h-32 w-32 border-none shadow-sm", profile.deleted && "opacity-50")}
-            style={{ borderRadius: '24px' }}
-          >
-            <Avatar.Image  src={profile.profile_photo ? getFullImageUrl(profile.profile_photo) : ""}  alt={profile.name || "?"}
-            ></Avatar.Image>
+          <div className={cn("h-32 w-32 rounded-[24px] overflow-hidden border-none shadow-sm flex-shrink-0", profile.deleted && "opacity-50")}>
+            <Avatar className="h-full w-full rounded-[24px]">
+              <AvatarImage 
+                src={profile.profile_photo ? getFullImageUrl(profile.profile_photo) : ""} 
+                alt={profile.name || "?"} 
+                className="object-cover" 
+              />
+              <AvatarFallback className="rounded-[24px] bg-muted text-muted-foreground text-2xl font-bold">
+                {profile.name?.substring(0, 2).toUpperCase() || "?"}
+              </AvatarFallback>
             </Avatar>
+          </div>
           <div className="flex-1 pt-2 space-y-4">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
@@ -241,19 +247,13 @@ export function UserDetail({
               <p className="text-[17px] text-muted-foreground/80 font-medium">{profile.email}</p>
               <div className="flex flex-wrap gap-2 mt-2">
                 {isBanned && (
-                  <span className="px-2.5 py-1 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-xs font-bold uppercase tracking-wider">
-                    {isSuspended ? "Suspended" : "Banned"}
-                  </span>
+                  <StatusBadge status={isSuspended ? "Suspended" : "Banned"} />
                 )}
                 {profile.deleted && (
-                  <span className="px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                    Deleted
-                  </span>
+                  <StatusBadge status="Deleted" />
                 )}
                 {!isBanned && !profile.deleted && (
-                  <span className="px-2.5 py-1 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 text-xs font-bold uppercase tracking-wider">
-                    Active
-                  </span>
+                  <StatusBadge status="Active" />
                 )}
               </div>
             </div>
@@ -396,9 +396,7 @@ export function UserDetail({
                       secondary={flag.reason}
                       trailing={
                         <div className="flex flex-col items-end">
-                          <span className={cn("text-[11px] font-bold uppercase", flag.status === 'pending' ? 'text-orange-600' : 'text-muted-foreground')}>
-                            {flag.status}
-                          </span>
+                          <StatusBadge status={flag.status} />
                           <span className="text-[10px] text-muted-foreground/40">
                             {new Date(flag.created_at).toLocaleDateString()}
                           </span>

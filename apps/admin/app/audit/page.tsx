@@ -226,7 +226,7 @@ export default function AuditPage() {
               <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Date Range</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-medium !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer", !dateRange.from && "text-foreground")}>
+                  <Button variant="outline" className={cn("w-full hover:bg-card justify-start text-left font-medium !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer", !dateRange.from && "text-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRange.from ? (dateRange.to ? `${format(dateRange.from, "MMM dd")} - ${format(dateRange.to, "MMM dd")}` : format(dateRange.from, "MMM dd")) : "Pick a date range"}
                   </Button>

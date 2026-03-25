@@ -9,6 +9,7 @@ import { Input } from './ui/input';
 import { cn } from '../lib/utils';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ToastContainer, useToast } from './Toast';
+import { StatusBadge } from './ui/ios/StatusBadge';
 import { getThumbnailUrl, getFullImageUrl } from '../lib/cloudinary-client';
 import {
   X,
@@ -22,6 +23,7 @@ import {
   Clock,
   CheckCircle,
   ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -102,10 +104,9 @@ export function FlagDetailModal({
 }: FlagDetailModalProps) {
   const [flagData, setFlagData] = React.useState<FlagData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isImageZoomed, setIsImageZoomed] = React.useState(false);
   const [evidenceUrl, setEvidenceUrl] = React.useState<string | null>(null);
   const [actionDialog, setActionDialog] = React.useState<{
-    action: 'dismiss' | 'warn' | 'suspend' | 'ban';
+    action: 'dismiss' | 'warn' | 'suspend' | 'ban' | 'resolve';
     open: boolean;
   } | null>(null);
 
@@ -174,7 +175,7 @@ export function FlagDetailModal({
   }, [open, flagId, fetchFlagDetails]);
 
   const handleAction = async (
-    action: 'dismiss' | 'warn' | 'suspend' | 'ban',
+    action: 'dismiss' | 'warn' | 'suspend' | 'ban' | 'resolve',
   ) => {
     console.log('=== HANDLE ACTION DEBUG ===');
     console.log('Action:', action);
@@ -349,41 +350,6 @@ export function FlagDetailModal({
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    const config: Record<string, { label: string; className: string }> = {
-      pending: {
-        label: 'Pending',
-        className:
-          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100',
-      },
-      dismissed: {
-        label: 'Dismissed',
-        className:
-          'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100',
-      },
-      actioned: {
-        label: 'Actioned',
-        className:
-          'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-      },
-    };
-
-    const statusConfig = config[status] || {
-      label: status,
-      className: 'bg-muted text-muted-foreground',
-    };
-
-    return (
-      <span
-        className={cn(
-          'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium',
-          statusConfig.className,
-        )}
-      >
-        {statusConfig.label}
-      </span>
-    );
-  };
 
   if (!open) return null;
 
@@ -391,7 +357,7 @@ export function FlagDetailModal({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="max-w-4xl max-h-[90vh] overflow-y-auto w-full sm:w-[95vw] md:w-[90vw] lg:w-[85vw]"
+          className="max-w-4xl bg-card max-h-[90vh] p-0 w-[calc(100%-2rem)] sm:w-[95vw] md:w-[90vw] lg:w-[85vw] overflow-hidden gap-0 flex flex-col rounded-2xl"
           style={{
             // When actionDialog is open, we disable pointer events on the background dialog
             // but keep visual opacity reduced to focus attention on the confirm dialog
@@ -405,13 +371,15 @@ export function FlagDetailModal({
             }
           }}
         >
-          <DialogHeader>
-            <DialogTitle>Flag Details</DialogTitle>
+          <DialogHeader className="px-4 sm:px-6 py-4 border-b">
+            <DialogTitle className="text-md text-start">Flag Details</DialogTitle>
           </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 px-4 sm:px-6 pt-4 hide-scrollbar">
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-muted-foreground">Loading...</div>
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : !flagData ? (
             <div className="flex items-center justify-center py-12">
@@ -420,137 +388,87 @@ export function FlagDetailModal({
           ) : (
             <div className="space-y-6">
               {/* Flag Info */}
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Report Reason</h3>
-                  <p className="text-sm">
+              {/* Flag Info & Evidence */}
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <h3 className="text-sm font-medium text-foreground whitespace-nowrap">Reason:</h3>
+                  <p className="text-sm leading-relaxed text-foreground font-medium">
                     {flagData.flag.reason || 'No reason provided'}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Status:</span>
-                  {getStatusBadge(flagData.flag.status)}
+                  <span className="text-sm font-medium text-foreground">Status:</span>
+                  <StatusBadge status={flagData.flag.status} showDot={false} className="text-sm font-semibold" />
                 </div>
 
-                <div className="text-sm text-muted-foreground">
-                  <Calendar className="inline h-4 w-4 mr-1" />
-                  Reported on {formatDate(flagData.flag.createdAt)}
-                </div>
-              </div>
-
-              {/* Evidence */}
-              {(evidenceUrl || flagData.flag.evidenceUrl) && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Evidence</h3>
-                  <div className="relative">
-                    <div
-                      className={cn(
-                        'relative overflow-hidden rounded-md border cursor-pointer',
-                        isImageZoomed
-                          ? 'fixed inset-4 z-50 bg-background'
-                          : 'max-w-md',
-                      )}
-                      onClick={() => setIsImageZoomed(!isImageZoomed)}
+                {(evidenceUrl || flagData.flag.evidenceUrl) && (
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-foreground">Evidence:</h3>
+                    <a
+                      href={getFullImageUrl(evidenceUrl || flagData.flag.evidenceUrl!)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                     >
-                      <img
-                        src={isImageZoomed ? getFullImageUrl(evidenceUrl || flagData.flag.evidenceUrl!) : getThumbnailUrl(evidenceUrl || flagData.flag.evidenceUrl!, 500)}
-                        alt="Evidence"
-                        className={cn(
-                          'w-full h-auto object-contain',
-                          isImageZoomed ? 'max-h-[calc(100vh-8rem)]' : '',
-                        )}
-                        onError={(e) => {
-                          // If signed URL fails, try original URL
-                          if (
-                            evidenceUrl &&
-                            evidenceUrl !== flagData.flag.evidenceUrl
-                          ) {
-                            console.warn(
-                              'Signed URL failed, trying original URL',
-                            );
-                            setEvidenceUrl(flagData.flag.evidenceUrl || null);
-                          }
-                        }}
-                      />
-                      {!isImageZoomed && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
-                          <ZoomIn className="h-8 w-8 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    {isImageZoomed && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="absolute top-2 right-2 z-50"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsImageZoomed(false);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                      View Attachment
+                    </a>
                   </div>
+                )}
+
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <span>Reported on:</span>
+                  <span className="text-sm font-medium text-foreground"> {formatDate(flagData.flag.createdAt)}</span>
                 </div>
-              )}
+
+              </div>
 
               {/* Target Profile */}
               {flagData.targetProfile && (
-                <div className="space-y-4 border-t pt-4">
-                  <h3 className="text-sm font-medium">
-                    {flagData.flag.targetType === 'user' ? (
-                      <User className="inline h-4 w-4 mr-1" />
-                    ) : (
-                      <Users className="inline h-4 w-4 mr-1" />
-                    )}
+                <div className="space-y-4 pt-0">
+                  {/* <h3 className="text-sm font-medium">
                     Target{' '}
                     {flagData.flag.targetType === 'user' ? 'User' : 'Group'}
-                  </h3>
+                  </h3> */}
 
                   {flagData.flag.targetType === 'user' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between gap-4 bg-background hover:bg-secondary transition-all duration-200 border border-border px-4 py-3 rounded-lg">
                       <div className="flex items-center gap-3">
                         {flagData.targetProfile.profilePhoto ? (
                           <img
                             src={getThumbnailUrl(flagData.targetProfile.profilePhoto)}
                             alt={flagData.targetProfile.name}
-                            className="h-12 w-12 rounded-full object-cover"
+                            className="h-12 w-12 rounded-full object-cover shrink-0"
                           />
                         ) : (
-                          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                            <span className="text-sm font-medium">
+                          <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <span className="text-gray-500 text-sm font-medium">
                               {flagData.targetProfile.name
                                 ?.charAt(0)
                                 .toUpperCase() || '?'}
                             </span>
                           </div>
                         )}
-                        <div>
-                          <div className="font-medium">
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm">
                             {flagData.targetProfile.name}
                           </div>
                           {flagData.targetProfile.email && (
                             <div className="text-sm text-muted-foreground">
-                              <Mail className="inline h-3 w-3 mr-1" />
                               {flagData.targetProfile.email}
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="space-y-1 text-sm">
-                        {flagData.targetProfile.age && (
-                          <div>Age: {flagData.targetProfile.age}</div>
-                        )}
-                        {flagData.targetProfile.gender && (
-                          <div>Gender: {flagData.targetProfile.gender}</div>
-                        )}
-                        {flagData.targetProfile.nationality && (
-                          <div>
-                            Nationality: {flagData.targetProfile.nationality}
-                          </div>
-                        )}
+                      <div className="shrink-0">
+                        <Link 
+                          href={`/users/${flagData.targetProfile?.id || flagData.flag.targetId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline group"
+                        >
+                          View Profile
+                        </Link>
                       </div>
                       {flagData.targetProfile.banned && (
                         <div className="col-span-2">
@@ -569,29 +487,44 @@ export function FlagDetailModal({
                       )}
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 space-y-2">
-                          <div className="font-medium">
+                    <div className="flex items-center justify-between gap-4 bg-background hover:bg-secondary transition-all duration-200 border border-border px-4 py-3 rounded-lg">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {flagData.targetProfile.coverImage ? (
+                          <img
+                            src={getThumbnailUrl(flagData.targetProfile.coverImage)}
+                            alt={flagData.targetProfile.name}
+                            className="h-12 w-12 rounded-full object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <Users className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm">
                             {flagData.targetProfile.name}
                           </div>
-                          {flagData.targetProfile.destination && (
-                            <div className="text-sm">
+                          {/* {flagData.targetProfile.destination && (
+                            <div className="text-xs text-muted-foreground">
                               Destination: {flagData.targetProfile.destination}
                             </div>
-                          )}
-                          {flagData.targetProfile.description && (
-                            <div className="text-sm text-muted-foreground">
-                              {flagData.targetProfile.description}
-                            </div>
-                          )}
+                          )} */}
                           {flagData.targetProfile.organizer && (
-                            <div className="text-sm">
+                            <div className="text-sm text-muted-foreground">
                               Organizer: {flagData.targetProfile.organizer.name}
                             </div>
                           )}
                         </div>
-{/* Manage Group button moved to bottom actions */}
+                      </div>
+                      <div className="shrink-0">
+                        <Link 
+                          href={`/groups/${flagData.flag.targetId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline group"
+                        >
+                          View Group
+                        </Link>
                       </div>
                     </div>
                   )}
@@ -606,7 +539,7 @@ export function FlagDetailModal({
                     {flagData.previousFlags.map((prevFlag) => (
                       <div
                         key={prevFlag.id}
-                        className="flex items-center justify-between p-2 rounded-md border bg-muted/50"
+                        className="flex items-center justify-between p-2 rounded-md border bg-secondary"
                       >
                         <div className="flex-1">
                           <div className="text-sm">{prevFlag.reason}</div>
@@ -614,55 +547,85 @@ export function FlagDetailModal({
                             {formatDate(prevFlag.createdAt)}
                           </div>
                         </div>
-                        {getStatusBadge(prevFlag.status)}
+                        {/* {getStatusBadge(prevFlag.status)} */}
+                        <StatusBadge status={prevFlag.status} />
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Action Buttons - Available for all statuses */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t pt-4 w-full">
-                <Button
+            </div>
+          )}
+          </div>
+
+          {!isLoading && flagData && (
+            <div className="pt-2 pb-4 px-4 sm:px-6 bg-card flex flex-col gap-2 w-full sticky bottom-0">
+               {/* Primary Actions Row */}
+               <div className="grid grid-cols-1 gap-2 w-full">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setActionDialog({
+                        action: 'dismiss',
+                        open: true,
+                      });
+                    }}
+                    disabled={isActionLoading}
+                    className="w-full shadow-none"
+                  >
+                    Dismiss
+                  </Button>
+
+                   <Button
                   variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Stop propagation to prevent modal issues
-                    console.log('=== DISMISS BUTTON CLICKED ===');
-                    // Directly set state without complex logic first to test
+                  onClick={() => {
                     setActionDialog({
-                      action: 'dismiss',
+                      action: 'resolve',
                       open: true,
                     });
                   }}
                   disabled={isActionLoading}
-                  className="w-full"
+                  className="w-full shadow-none"
                 >
-                  Dismiss
+                  Mark as Resolved
                 </Button>
-                {flagData.flag.targetType === 'user' ? (
-                  <Link href={`/users/${flagData.targetProfile?.id || flagData.flag.targetId}?flagId=${flagData.flag.id}`} className="w-full">
-                    <Button
-                      variant="default"
-                      disabled={isActionLoading}
+                  
+                  {flagData.flag.targetType === 'user' ? (
+                    <Link 
+                      href={`/users/${flagData.targetProfile?.id || flagData.flag.targetId}?flagId=${flagData.flag.id}`} 
                       className="w-full"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      Take Action
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href={`/groups/${flagData.flag.targetId}?flagId=${flagData.flag.id}`} className="w-full">
-                    <Button
-                      variant="default"
-                      disabled={isActionLoading}
-                      className="w-full flex items-center justify-center gap-2"
+                      <Button
+                        variant="default"
+                        disabled={isActionLoading}
+                        className="w-full shadow-none"
+                      >
+                        Take Action
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link 
+                      href={`/groups/${flagData.flag.targetId}?flagId=${flagData.flag.id}`} 
+                      className="w-full"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      Take Action
-                    </Button>
-                  </Link>
-                )}
-              </div>
+                      <Button
+                        variant="default"
+                        disabled={isActionLoading}
+                        className="w-full flex items-center justify-center gap-2"
+                      >
+                        Take Action
+                      </Button>
+                    </Link>
+                  )}
+               </div>
             </div>
           )}
+
         </DialogContent>
       </Dialog>
 
@@ -683,30 +646,36 @@ export function FlagDetailModal({
           title={
             actionDialog.action === 'dismiss'
               ? 'Dismiss Flag'
-              : actionDialog.action === 'warn'
-                ? 'Warn User'
-                : actionDialog.action === 'suspend'
-                  ? 'Suspend User'
-                  : 'Ban User'
+              : actionDialog.action === 'resolve'
+                ? 'Resolve Flag'
+                : actionDialog.action === 'warn'
+                  ? 'Warn User'
+                  : actionDialog.action === 'suspend'
+                    ? 'Suspend User'
+                    : 'Ban User'
           }
           description={
             actionDialog.action === 'dismiss'
               ? 'This will mark the flag as dismissed and remove it from the pending queue. Are you sure?'
-              : actionDialog.action === 'warn'
-                ? 'This will send a warning email to the user and mark the flag as actioned. Are you sure?'
-                : actionDialog.action === 'suspend'
-                  ? 'Temporarily suspend this user. They will be unable to access the platform until the suspension expires.'
-                  : 'Permanently ban this user. This action cannot be undone easily.'
+              : actionDialog.action === 'resolve'
+                ? 'This will mark the flag as resolved/actioned without taking punitive measures. Are you sure?'
+                : actionDialog.action === 'warn'
+                  ? 'This will send a warning email to the user and mark the flag as actioned. Are you sure?'
+                  : actionDialog.action === 'suspend'
+                    ? 'Temporarily suspend this user. They will be unable to access the platform until the suspension expires.'
+                    : 'Permanently ban this user. This action cannot be undone easily.'
           }
           variant={actionDialog.action === 'ban' ? 'destructive' : 'default'}
           confirmText={
             actionDialog.action === 'dismiss'
               ? 'Dismiss'
-              : actionDialog.action === 'warn'
-                ? 'Warn'
-                : actionDialog.action === 'suspend'
-                  ? 'Suspend'
-                  : 'Ban'
+              : actionDialog.action === 'resolve'
+                ? 'Resolve'
+                : actionDialog.action === 'warn'
+                  ? 'Warn'
+                  : actionDialog.action === 'suspend'
+                    ? 'Suspend'
+                    : 'Ban'
           }
           requireTypedConfirmation={
              actionDialog.action === 'ban' 

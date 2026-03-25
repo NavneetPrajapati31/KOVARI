@@ -18,6 +18,7 @@ import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
 import { SectionHeader } from "./ui/ios/SectionHeader";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import { StatusBadge } from "./ui/ios/StatusBadge";
 
 interface Flag {
   id: string;
@@ -109,7 +110,7 @@ export function AdminFlagsTable({
       {/* Filters Section */}
       <section>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1">
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Status</label>
             <Select value={status} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
@@ -123,7 +124,7 @@ export function AdminFlagsTable({
             </Select>
           </div>
           
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Focus</label>
             <Select value={targetType} onValueChange={handleTargetTypeChange}>
               <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
@@ -158,22 +159,22 @@ export function AdminFlagsTable({
                   onClick={() => setSelectedFlagId(flag.id)}
                   icon={
                     flag.targetInfo?.profile_photo ? (
-                      <div className="h-9 w-9 rounded-xl overflow-hidden border-none shadow-none flex-shrink-0">
+                      <div className="h-9 w-9 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
                         <Avatar className="h-full w-full rounded-full">
                           <AvatarImage 
-                            src={flag.targetInfo.profile_photo} 
+                            src={getThumbnailUrl(flag.targetInfo.profile_photo)} 
                             alt={flag.targetName} 
                             className="object-cover" 
                           />
-                          <AvatarFallback className="rounded-none bg-muted text-muted-foreground text-[10px] font-bold">
-                            {flag.targetName.substring(0, 2).toUpperCase()}
+                          <AvatarFallback className="rounded-full bg-secondary text-gray-500 text-sm font-semibold">
+                            {flag.targetName.substring(0, 1).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                       </div>
                     ) : (
                       <div className={cn(
-                        "p-2 rounded-xl h-9 w-9 flex items-center justify-center",
-                        isOldFlag && status === 'pending' ? "bg-red-50 text-red-500" : "bg-muted text-muted-foreground"
+                        "p-2 rounded-full h-9 w-9 flex items-center justify-center",
+                        isOldFlag && status === 'pending' ? "bg-red-50 text-red-500" : "bg-secondary border border-border text-muted-foreground"
                       )}>
                         {flag.targetType === "user" ? <User className="h-5 w-5" /> : <Users className="h-5 w-5" />}
                       </div>
@@ -185,31 +186,15 @@ export function AdminFlagsTable({
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-1.5">
-                          {isOldFlag && status === 'pending' && <AlertTriangle className="h-3 w-3 text-red-500" />}
-                          <span className={cn(
-                            "px-2.5 py-0.5 rounded-full text-[10px] uppercase font-semibold tracking-wider border transition-colors",
-                            flag.status === 'pending' && "bg-amber-50 text-amber-600 border-amber-200/50",
-                            flag.status === 'dismissed' && "bg-secondary/50 text-muted-foreground border-border/50",
-                            flag.status === 'actioned' && "bg-green-50 text-green-600 border-green-200/50"
-                          )}>
-                            {flag.status}
-                          </span>
+                          <StatusBadge status={flag.status} />
                         </div>
-                        <span className="text-xs text-muted-foreground font-medium">
+                        {/* <span className="text-xs text-muted-foreground font-medium">
                           {formatDate(flag.createdAt)}
-                        </span>
+                        </span> */}
                       </div>
-                      {flag.evidenceUrl && (
-                        <div className="h-10 w-10 rounded-xl overflow-hidden border border-border/10 shadow-sm flex-shrink-0">
-                          <img
-                            src={getThumbnailUrl(flag.evidenceUrl)}
-                            alt="Evidence"
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      )}
                     </div>
                   }
+                  showChevron={false}
                 />
               );
             })
@@ -219,7 +204,7 @@ export function AdminFlagsTable({
 
       {/* Pagination Section */}
       {!isLoading && flags.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-1 pt-4 pb-20 border-t border-border/10">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-1 pt-0 pb-8">
           <p className="text-sm text-muted-foreground order-2 sm:order-1">
             Priority View: <span className="font-semibold text-foreground">{page}</span>
           </p>

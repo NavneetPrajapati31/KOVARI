@@ -269,7 +269,7 @@ export function AdminSidebar() {
                   <Fragment key={item.key}>
                     <DropdownMenuItem
                       onClick={item.onClick}
-                      className={`font-semibold w-full rounded-none px-4 py-2 text-xs border-none cursor-pointer flex items-center hover:bg-sidebar-accent !hover:text-foreground !focus:text-foreground focus:bg-sidebar-accent focus:outline-none bg-transparent text-foreground focus:text-foreground ${!item.onClick ? "cursor-default opacity-70" : ""}`}
+                      className={`font-semibold w-full rounded-none px-4 py-2.5 text-xs border-none cursor-pointer flex items-center hover:bg-sidebar-accent !hover:text-foreground !focus:text-foreground focus:bg-sidebar-accent focus:outline-none bg-transparent text-foreground focus:text-foreground ${!item.onClick ? "cursor-default opacity-70" : ""}`}
                     >
                       {item.label}
                     </DropdownMenuItem>

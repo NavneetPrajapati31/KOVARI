@@ -7,8 +7,10 @@ import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
 import { SectionHeader } from "./ui/ios/SectionHeader";
 import { SearchInput } from "./ui/ios/SearchInput";
+import { StatusBadge } from "./ui/ios/StatusBadge";
 import { getThumbnailUrl } from "../lib/cloudinary-client";
-import { Avatar } from "@heroui/react";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import { Users, MapPin, Calendar, AlertTriangle, Trash2, Eye } from "lucide-react";
 
 interface User {
   id: string;
@@ -112,12 +114,18 @@ export function AdminUsersTable({
                   key={user.id}
                   onClick={() => router.push(`/users/${user.id}`)}
                   icon={
-                    <Avatar
-                      src={user.profile_photo ? getThumbnailUrl(user.profile_photo) : ""}
-                      name={user.name || "?"}
-                      className={cn("h-9 w-9 border-none bg-muted", user.deleted && "opacity-50")}
-                      style={{ borderRadius: '10px' }}
-                    />
+                    <div className={cn("h-9 w-9 rounded-full overflow-hidden border-none shadow-none flex-shrink-0", user.deleted && "opacity-50")}>
+                      <Avatar className="h-full w-full rounded-full">
+                        <AvatarImage 
+                          src={user.profile_photo ? getThumbnailUrl(user.profile_photo) : ""} 
+                          alt={user.name || "User"} 
+                          className="object-cover" 
+                        />
+                        <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
+                          {user.name?.substring(0, 2).toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
                   }
                   label={user.name || "Unknown User"}
                   secondary={user.email}
@@ -125,17 +133,10 @@ export function AdminUsersTable({
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col items-end gap-1">
                         {statusElements.length > 0 && (
-                          <span className={cn(
-                            "text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded",
-                            user.users?.banned ? "bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-400" : "bg-green-50 text-green-600 dark:bg-green-900/40 dark:text-green-400"
-                          )}>
-                            {statusElements[0]}
-                          </span>
+                          <StatusBadge status={statusElements[0]} />
                         )}
                         {user.flag_count > 0 && (
-                          <span className="text-[11px] font-medium text-orange-500">
-                            ● {user.flag_count} Flags
-                          </span>
+                          <StatusBadge status={`${user.flag_count} Flags`} />
                         )}
                       </div>
                     </div>
