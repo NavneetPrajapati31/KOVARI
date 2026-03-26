@@ -432,8 +432,8 @@ export function FlagDetailModal({
                   </h3> */}
 
                   {flagData.flag.targetType === 'user' ? (
-                    <div className="flex items-center justify-between gap-4 bg-background hover:bg-secondary transition-all duration-200 border border-border px-4 py-3 rounded-lg">
-                      <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background hover:bg-secondary transition-all duration-200 border border-border px-4 py-3 rounded-lg overflow-hidden">
+                      <div className="flex items-center gap-3 min-w-0">
                         {flagData.targetProfile.profilePhoto ? (
                           <img
                             src={getThumbnailUrl(flagData.targetProfile.profilePhoto)}
@@ -450,17 +450,17 @@ export function FlagDetailModal({
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-medium text-sm">
+                          <div className="font-medium text-sm truncate">
                             {flagData.targetProfile.name}
                           </div>
                           {flagData.targetProfile.email && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground truncate">
                               {flagData.targetProfile.email}
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="shrink-0">
+                      <div className="shrink-0 flex justify-center sm:justify-start sm:ml-auto border-t border-border sm:border-t-0 pt-2 sm:pt-0">
                         <Link 
                           href={`/users/${flagData.targetProfile?.id || flagData.flag.targetId}`}
                           target="_blank"
@@ -487,7 +487,7 @@ export function FlagDetailModal({
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between gap-4 bg-background hover:bg-secondary transition-all duration-200 border border-border px-4 py-3 rounded-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background hover:bg-secondary transition-all duration-200 border border-border px-4 py-3 rounded-lg overflow-hidden">
                       <div className="flex items-center gap-3 min-w-0">
                         {flagData.targetProfile.coverImage ? (
                           <img
@@ -501,22 +501,22 @@ export function FlagDetailModal({
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-medium text-sm">
+                          <div className="font-medium text-sm truncate">
                             {flagData.targetProfile.name}
                           </div>
                           {/* {flagData.targetProfile.destination && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground truncate">
                               Destination: {flagData.targetProfile.destination}
                             </div>
                           )} */}
                           {flagData.targetProfile.organizer && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground truncate">
                               Organizer: {flagData.targetProfile.organizer.name}
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="shrink-0">
+                      <div className="shrink-0 flex justify-center sm:justify-start sm:ml-auto border-t border-border sm:border-t-0 pt-2 sm:pt-0">
                         <Link 
                           href={`/groups/${flagData.flag.targetId}`}
                           target="_blank"
