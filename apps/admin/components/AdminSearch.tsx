@@ -356,8 +356,8 @@ export function AdminSearch() {
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none" />
           <Input
             type="search"
-            placeholder="Search users, groups, flags..."
-            className="w-full pl-10 pr-10 h-10 rounded-xl bg-card border-border transition-all text-[15px] placeholder:text-muted-foreground placeholder:font-medium [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+            placeholder="Search"
+            className="w-full pl-10 pr-10 h-10 rounded-xl bg-card border-border transition-all text-sm placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
             value={query}
             onChange={(e) => {
               const newQuery = e.target.value;
