@@ -1,6 +1,8 @@
 // Optimized group matching: weighted scoring, distance decay, pre-computed Jaccard.
 // Industry patterns: content-based filtering, distance decay, weighted multi-factor scoring.
 
+import { FilterBoost } from "./solo";
+
 // --- 1. DATA TYPE DEFINITIONS ---
 
 interface Location {
@@ -99,10 +101,22 @@ const calculateDateOverlapScore = (
 };
 
 /**
- * SCORE: Calculates age similarity score.
+ * SCORE: Calculates age similarity score, respecting optional min/max bounds.
  */
-const calculateAgeScore = (userAge: number, groupAverageAge: number): number => {
+const calculateAgeScore = (userAge: number, groupAverageAge: number, filterBoostAge?: { min: number, max: number }): number => {
   if (!groupAverageAge) return 0.5;
+  
+  if (filterBoostAge && filterBoostAge.min && filterBoostAge.max) {
+    if (groupAverageAge >= filterBoostAge.min && groupAverageAge <= filterBoostAge.max) {
+      return 1.0;
+    }
+    const diff = Math.min(
+      Math.abs(groupAverageAge - filterBoostAge.min),
+      Math.abs(groupAverageAge - filterBoostAge.max)
+    );
+    return Math.max(0, 1 - diff / 20);
+  }
+
   const ageDifference = Math.abs(userAge - groupAverageAge);
   return Math.max(0, 1 - ageDifference / 20);
 };
@@ -176,6 +190,30 @@ const distanceDecayScore = (distanceKm: number, maxKm: number): number => {
 
 // --- 3. CORE MATCHING FUNCTION ---
 
+const calculateDynamicGroupWeights = (baseWeights: any, filterBoost: FilterBoost) => {
+  const weights = { ...baseWeights };
+  let totalBoost = 0;
+  const coreFilters = ["distance", "dateOverlap", "budget"];
+
+  for (const [key, config] of Object.entries(filterBoost)) {
+    if (config && weights[key] && !coreFilters.includes(key)) {
+      const original = weights[key];
+      weights[key] *= (config as any).boost;
+      totalBoost += weights[key] - original;
+    }
+  }
+
+  if (totalBoost > 0) {
+    const nonBoostedNonCore = Object.keys(weights).filter(k => !coreFilters.includes(k) && !(filterBoost as any)[k]);
+    const remainingWeight = nonBoostedNonCore.reduce((sum, k) => sum + weights[k], 0);
+    if (remainingWeight > 0) {
+      const factor = (remainingWeight - totalBoost) / remainingWeight;
+      for (const k of nonBoostedNonCore) weights[k] *= factor;
+    }
+  }
+  return weights;
+};
+
 /**
  * Finds the best group matches using weighted multi-factor scoring and ML.
  */
@@ -183,8 +221,7 @@ export const findGroupMatchesForUser = async (
   user: UserProfile,
   allGroups: GroupProfile[],
   maxDistanceKm: number = 200,
-  /** @deprecated distance filtering should be done before calling this function */
-  _deprecatedMaxDistanceKm?: number,
+  filterBoost?: FilterBoost,
   useML: boolean = true,
 ) => {
   // Pre-compute user sets for efficiency
@@ -195,7 +232,7 @@ export const findGroupMatchesForUser = async (
     (user.interests || []).map((s) => s.toLowerCase().trim()).filter(Boolean),
   );
 
-  const weights = {
+  const baseWeights = {
     budget: 0.18,
     dateOverlap: 0.2,
     interests: 0.15,
@@ -205,6 +242,8 @@ export const findGroupMatchesForUser = async (
     background: 0.05,
     distance: 0.1,
   };
+
+  const weights = filterBoost ? calculateDynamicGroupWeights(baseWeights, filterBoost) : baseWeights;
 
   let mlScores = new Map<string, number | null>();
   if (useML && allGroups.length > 0) {
@@ -251,7 +290,7 @@ export const findGroupMatchesForUser = async (
       );
 
       const interestScore = jaccardFromSets(userInterestSet, groupInterestSet);
-      const ageScore = calculateAgeScore(user.age, group.averageAge);
+      const ageScore = calculateAgeScore(user.age, group.averageAge, filterBoost?.age as any);
       const languageScore = jaccardFromSets(userLangSet, groupLangSet);
       const lifestyleScore = calculateLifestyleScore(user, group);
       const backgroundScore = calculateBackgroundScore(user, group);
@@ -274,8 +313,19 @@ export const findGroupMatchesForUser = async (
       const mlScore = mlScores.get(group.groupId) ?? null;
 
       if (typeof mlScore === "number" && !isNaN(mlScore)) {
-        // Blend ML score (70%) with rule-based score (30%)
-        finalScore = mlScore * 0.7 + ruleBasedScore * 0.3;
+        // ML model for group matching tends to output very conservative (low) probabilities.
+        // Apply a non-linear boost to prevent perfectly good rule-based matches from dropping below minScore
+        let adjustedMlScore = mlScore;
+        
+        if (adjustedMlScore > 0 && adjustedMlScore < 0.3) {
+          adjustedMlScore = adjustedMlScore * 3.5;
+        } else if (adjustedMlScore >= 0.3 && adjustedMlScore < 0.6) {
+          adjustedMlScore = adjustedMlScore * 1.5;
+        }
+        adjustedMlScore = Math.min(0.95, adjustedMlScore);
+
+        // We shift the blend to rule-based (70%) and ML (30%) to ensure good matches aren't incorrectly filtered out.
+        finalScore = adjustedMlScore * 0.3 + ruleBasedScore * 0.7;
       } else {
         // Fallback to 100% rule-based if ML failed
         finalScore = ruleBasedScore;

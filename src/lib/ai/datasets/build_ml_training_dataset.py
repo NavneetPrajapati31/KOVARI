@@ -52,10 +52,19 @@ INTERACTION_WEIGHTS = {
     'date_budget': 0.08,            # Amplifies when both date overlap and budget are good
 }
 
+# Group-only feature weights (only used when matchType == user_group)
+GROUP_WEIGHTS = {
+    'groupSizeScore': 0.05,
+    'groupDiversityScore': 0.05,
+}
+
 # Sigmoid parameters
 # Increased steepness from 9 to 12 for better separation
 SIGMOID_STEEPNESS = 12.0
 SIGMOID_CENTER = 0.55  # Adjusted to achieve 40-55% positive class balance
+
+# How often to generate group samples vs solo samples
+GROUP_SAMPLE_PROBABILITY = 0.5
 
 # ============================================================================
 # 1. FEATURE GENERATION FUNCTIONS
@@ -139,6 +148,62 @@ def generate_age_score():
     return round(np.random.beta(3, 2), 3)
 
 
+def generate_group_size_score():
+    """
+    Synthetic group size signal.
+    Mirrors the heuristic thresholds from extractCompatibilityFeatures():
+    - <= 6  -> 1.0
+    - <= 12 -> 0.8
+    - <= 20 -> 0.6
+    - <= 40 -> 0.4
+    - else  -> 0.2
+    """
+    # Use lognormal to bias towards smaller groups, with a long tail.
+    size = int(np.random.lognormal(mean=2.2, sigma=0.6))
+    size = max(1, min(size, 60))
+
+    if size <= 6:
+        return 1.0
+    if size <= 12:
+        return 0.8
+    if size <= 20:
+        return 0.6
+    if size <= 40:
+        return 0.4
+    return 0.2
+
+
+def generate_group_diversity_score():
+    """
+    Synthetic group diversity signal.
+    Approximates extractCompatibilityFeatures() logic:
+    - If languages/nationalities count >= 3 -> 1.0
+    - == 2 -> 0.7
+    - == 1 -> 0.5
+    - then average both signals.
+    """
+    # Sample "count bins" with mild preference for >= 2.
+    # Values represent the number of dominant languages/nationalities.
+    lang_count = int(np.random.choice([1, 2, 3, 4], p=[0.25, 0.35, 0.25, 0.15]))
+    nat_count = int(np.random.choice([1, 2, 3, 4], p=[0.30, 0.35, 0.20, 0.15]))
+
+    if lang_count >= 3:
+        lang_score = 1.0
+    elif lang_count == 2:
+        lang_score = 0.7
+    else:
+        lang_score = 0.5
+
+    if nat_count >= 3:
+        nat_score = 1.0
+    elif nat_count == 2:
+        nat_score = 0.7
+    else:
+        nat_score = 0.5
+
+    return round((lang_score + nat_score) / 2.0, 3)
+
+
 # ============================================================================
 # 2. COMPATIBILITY CALCULATION
 # ============================================================================
@@ -171,6 +236,11 @@ def calculate_compatibility(features):
     date_budget = features.get('date_budget',
         features['dateOverlapScore'] * features['budgetScore'])
     compatibility += INTERACTION_WEIGHTS['date_budget'] * date_budget
+
+    # Group-only adjustments
+    if features.get('matchType') == 'user_group':
+        compatibility += GROUP_WEIGHTS['groupSizeScore'] * features.get('groupSizeScore', 0.0)
+        compatibility += GROUP_WEIGHTS['groupDiversityScore'] * features.get('groupDiversityScore', 0.0)
     
     # Hard Rejection Logic
     # If destination or dateOverlap is 0, heavily penalize
@@ -209,19 +279,27 @@ def generate_match_event():
     """
     Generate a single match interaction event with interaction features
     """
+    match_type = 'user_group' if np.random.random() < GROUP_SAMPLE_PROBABILITY else 'user_user'
+
     # Generate base features
     destination_score = generate_destination_score()
     date_overlap_score = generate_date_overlap_score()
     budget_score = generate_budget_score()
     interest_score = generate_interest_score()
-    personality_score = generate_personality_score()
+    # In the current JS feature extractor, personalityScore is neutral (0.5) for group matching.
+    personality_score = 0.5 if match_type == 'user_group' else generate_personality_score()
     age_score = generate_age_score()
     
+    # Generate group-only features
+    group_size_score = generate_group_size_score() if match_type == 'user_group' else 0.0
+    group_diversity_score = generate_group_diversity_score() if match_type == 'user_group' else 0.0
+
     # Generate interaction features (nonlinear combinations)
     destination_interest = destination_score * interest_score
     date_budget = date_overlap_score * budget_score
     
     features = {
+        'matchType': match_type,
         'destinationScore': destination_score,
         'dateOverlapScore': date_overlap_score,
         'budgetScore': budget_score,
@@ -230,6 +308,8 @@ def generate_match_event():
         'ageScore': age_score,
         'destination_interest': destination_interest,  # Interaction feature
         'date_budget': date_budget,                    # Interaction feature
+        'groupSizeScore': group_size_score,
+        'groupDiversityScore': group_diversity_score,
     }
     
     # Calculate compatibility
@@ -295,7 +375,8 @@ def clean_dataset(df):
     # 1. Remove duplicates (based on feature columns only)
     feature_cols = ['destinationScore', 'dateOverlapScore', 'budgetScore', 
                     'interestScore', 'personalityScore', 'ageScore',
-                    'destination_interest', 'date_budget']  # Include interaction features
+                    'destination_interest', 'date_budget',
+                    'groupSizeScore', 'groupDiversityScore']  # Include group-only features
     duplicates = df.duplicated(subset=feature_cols).sum()
     
     if duplicates > 0:
@@ -308,6 +389,10 @@ def clean_dataset(df):
     # 2. Remove constant columns
     constant_cols = []
     for col in df.columns:
+        # Only numeric columns can be "constant" for std-based checks.
+        # `matchType` is categorical (string), so skip it.
+        if not pd.api.types.is_numeric_dtype(df[col]):
+            continue
         if df[col].std() < 1e-6:  # Near-zero standard deviation
             constant_cols.append(col)
     
@@ -368,7 +453,8 @@ def validate_dataset(df):
     print(f"\nB. Feature-Label Correlations:")
     feature_cols = ['destinationScore', 'dateOverlapScore', 'budgetScore',
                     'interestScore', 'personalityScore', 'ageScore',
-                    'destination_interest', 'date_budget']  # Include interaction features
+                    'destination_interest', 'date_budget',
+                    'groupSizeScore', 'groupDiversityScore']  # Include interaction + group-only features
     
     correlations = {}
     for col in feature_cols:
