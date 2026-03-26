@@ -12,7 +12,8 @@ import {
   Filter,
   User,
   Activity,
-  Box
+  Box,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -226,7 +227,7 @@ export default function AuditPage() {
               <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Date Range</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full hover:bg-card justify-start text-left font-medium !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer", !dateRange.from && "text-foreground")}>
+                  <Button variant="outline" className={cn("w-full hover:bg-card justify-start text-left font-medium !h-10 rounded-xl bg-card border-border shadow-none cursor-pointer", !dateRange.from && "text-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRange.from ? (dateRange.to ? `${format(dateRange.from, "MMM dd")} - ${format(dateRange.to, "MMM dd")}` : format(dateRange.from, "MMM dd")) : "Pick a date range"}
                   </Button>
@@ -246,7 +247,7 @@ export default function AuditPage() {
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Action Type</Label>
               <Select value={selectedAction || "all"} onValueChange={(v) => setSelectedAction(v === "all" ? undefined : v)}>
-                <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
+                <SelectTrigger className="w-full !h-10 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                   <SelectValue placeholder="All actions" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -259,7 +260,7 @@ export default function AuditPage() {
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Admin</Label>
               <Select value={selectedAdmin || "all"} onValueChange={(v) => setSelectedAdmin(v === "all" ? undefined : v)}>
-                <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
+                <SelectTrigger className="w-full !h-10 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                   <SelectValue placeholder="All admins" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -272,7 +273,7 @@ export default function AuditPage() {
             <div className="space-y-2">
               <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Target Type</Label>
               <Select value={selectedTargetType || "all"} onValueChange={(v) => setSelectedTargetType(v === "all" ? undefined : v)}>
-                <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
+                <SelectTrigger className="w-full !h-10 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -289,9 +290,11 @@ export default function AuditPage() {
           <SectionHeader>Activity Log</SectionHeader>
           <GroupContainer>
             {loading ? (
-              <div className="py-24 text-center text-sm text-muted-foreground font-medium">Loading audit logs...</div>
+              <div className="h-[60vh] flex items-center justify-center text-muted-foreground text-sm">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
             ) : actions.length === 0 ? (
-              <div className="py-20 text-center text-muted-foreground">No activity logs found for selected filters</div>
+              <div className="h-[60vh] flex items-center justify-center text-muted-foreground text-sm">No activity logs found for selected filters</div>
             ) : (
               actions.map((action) => {
                 const isExpanded = expandedRows.has(action.id);

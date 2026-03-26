@@ -86,7 +86,12 @@ export function AdminUsersTable({
           placeholder="Search users..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onClear={() => {
+            setQuery("");
+            fetchUsers(1, "");
+          }}
         />
+        <button type="submit" className="hidden" />
       </form>
 
       <div className="space-y-2">

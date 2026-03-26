@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { FlagDetailModal } from "./FlagDetailModal";
-import { Eye, ChevronLeft, ChevronRight, User, Users, Clock, AlertTriangle } from "lucide-react";
+import { Eye, ChevronLeft, ChevronRight, User, Users, Clock, AlertTriangle, Loader2 } from "lucide-react";
 import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
 import { SectionHeader } from "./ui/ios/SectionHeader";
@@ -109,11 +109,11 @@ export function AdminFlagsTable({
     <div className="space-y-8">
       {/* Filters Section */}
       <section>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Status</label>
             <Select value={status} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
+              <SelectTrigger className="w-full !h-10 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -127,7 +127,7 @@ export function AdminFlagsTable({
           <div className="flex flex-col gap-2">
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Focus</label>
             <Select value={targetType} onValueChange={handleTargetTypeChange}>
-              <SelectTrigger className="w-full !h-11 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
+              <SelectTrigger className="w-full !h-10 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -144,9 +144,13 @@ export function AdminFlagsTable({
       <section>
         <SectionHeader>Report Queue {flags.length > 0 && `(${flags.length})`}</SectionHeader>
         <GroupContainer shadow={false}>
-          {flags.length === 0 ? (
-            <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
-              {isLoading ? "Refreshing queue..." : "No reports found"}
+          {isLoading ? (
+            <div className="h-[60vh] flex items-center justify-center text-muted-foreground text-sm">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : flags.length === 0 ? (
+            <div className="h-[60vh] flex items-center justify-center text-muted-foreground text-sm">
+              No reports found
             </div>
           ) : (
             flags.map((flag) => {

@@ -9,6 +9,10 @@ interface Group {
   status: string;
   flag_count: number;
   created_at: string;
+  cover_image: string | null;
+  organizer?: {
+    name: string | null;
+  } | null;
 }
 
 async function getGroups(
@@ -16,16 +20,34 @@ async function getGroups(
   limit: number = 20,
   status?: string,
   query?: string,
+  flagged?: string,
 ): Promise<{ groups: Group[]; page: number; limit: number }> {
   const { supabaseAdmin } = await import('@/admin-lib/supabaseAdmin');
 
   let base = supabaseAdmin
     .from('groups')
-    .select('id, name, destination, creator_id, status, flag_count, created_at')
+    .select(
+      `
+      id,
+      name,
+      destination,
+      creator_id,
+      status,
+      flag_count,
+      created_at,
+      cover_image
+    `,
+    )
     .order('created_at', { ascending: false });
 
   if (status) {
     base = base.eq('status', status);
+  }
+
+  if (flagged === 'true') {
+    base = base.gt('flag_count', 0);
+  } else if (flagged === 'false') {
+    base = base.eq('flag_count', 0);
   }
 
   if (query) {
@@ -41,41 +63,54 @@ async function getGroups(
     throw new Error('Failed to fetch groups');
   }
 
-  // Fetch flag counts for each group
+  // Fetch flag counts and organizer names for each group
   const groupIds = data?.map((group) => group.id).filter(Boolean) || [];
+  const creatorIds = data?.map((group) => group.creator_id).filter(Boolean) || [];
   const flagCounts: Record<string, number> = {};
+  const organizerNames: Record<string, string> = {};
 
-  if (groupIds.length > 0) {
-    const { data: flagsData } = await supabaseAdmin
-      .from('group_flags')
-      .select('group_id')
-      .in('group_id', groupIds);
+  const [flagsResult, profilesResult] = await Promise.all([
+    groupIds.length > 0
+      ? supabaseAdmin.from('group_flags').select('group_id').in('group_id', groupIds)
+      : Promise.resolve({ data: [] }),
+    creatorIds.length > 0
+      ? supabaseAdmin.from('profiles').select('user_id, name').in('user_id', creatorIds)
+      : Promise.resolve({ data: [] })
+  ]);
 
-    if (flagsData) {
-      flagsData.forEach((flag) => {
-        flagCounts[flag.group_id] = (flagCounts[flag.group_id] || 0) + 1;
-      });
-    }
+  if (flagsResult.data) {
+    flagsResult.data.forEach((flag) => {
+      flagCounts[flag.group_id] = (flagCounts[flag.group_id] || 0) + 1;
+    });
   }
 
-  // Add flag_count to each group (use actual count from flags table)
-  const groupsWithFlags =
+  if (profilesResult.data) {
+    profilesResult.data.forEach((profile) => {
+      organizerNames[profile.user_id] = profile.name || 'Unknown';
+    });
+  }
+
+  // Add flag_count and organizer info to each group
+  const groupsEnriched =
     data?.map((group) => ({
       ...group,
       flag_count: flagCounts[group.id] || 0,
+      organizer: {
+        name: organizerNames[group.creator_id] || 'Unknown Organizer'
+      }
     })) || [];
 
   return {
     page,
     limit,
-    groups: groupsWithFlags,
+    groups: groupsEnriched,
   };
 }
 
 export default async function GroupsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; query?: string }>;
+  searchParams: Promise<{ page?: string; status?: string; query?: string; flagged?: string }>;
 }) {
   await requireAdmin();
 
@@ -84,12 +119,14 @@ export default async function GroupsPage({
   const limit = 20;
   const status = params.status || '';
   const query = params.query || '';
+  const flagged = params.flagged || '';
 
   const { groups, page: currentPage } = await getGroups(
     page,
     limit,
     status || undefined,
     query || undefined,
+    flagged || undefined
   );
 
   return (
@@ -107,6 +144,7 @@ export default async function GroupsPage({
         initialLimit={limit}
         initialStatus={status}
         initialQuery={query}
+        initialFlagged={flagged}
       />
     </div>
   );
