@@ -72,6 +72,8 @@ const getBulkCandidateData = async (clerkIds: string[]): Promise<{
         bio: p.bio,
         interests: Array.isArray(p.interests) ? p.interests : [],
         avatar: p.profile_photo || undefined,
+        foodPreference: p.food_preference,
+        locationDisplay: (p.location_details as any)?.formatted || (typeof p.location === 'string' ? p.location : undefined),
       };
     }
   });
@@ -225,14 +227,8 @@ export async function GET(request: NextRequest) {
       return {
         userId: uid,
         user: {
+          ...(bulkProfiles[uid] || matchSession.static_attributes || {}),
           userId: uid,
-          name: matchSession.static_attributes?.name || "Traveler",
-          age: matchSession.static_attributes?.age,
-          gender: matchSession.static_attributes?.gender,
-          avatar: matchSession.static_attributes?.avatar,
-          interests: matchSession.static_attributes?.interests || [],
-          personality: matchSession.static_attributes?.personality,
-          nationality: matchSession.static_attributes?.nationality,
           budget: matchSession.budget,
         },
         score: result.score,

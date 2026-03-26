@@ -535,48 +535,50 @@ export function SoloMatchCard({
         )}
 
         {/* Lifestyle Section */}
-        <div className="space-y-4 pb-6 border-b border-border/60">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Lifestyle
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {user.foodPreference && (
-              <Pill
-                icon={<Salad />}
-                text={
-                  user.foodPreference.charAt(0).toUpperCase() +
-                  user.foodPreference.slice(1)
-                }
-              />
-            )}
-            {user.smoking && (
-              <Pill
-                icon={getSmokingIcon(user.smoking)}
-                text={
-                  user.smoking === "no"
-                    ? "No"
-                    : user.smoking === "yes"
-                      ? "Yes"
-                      : user.smoking.charAt(0).toUpperCase() +
-                        user.smoking.slice(1)
-                }
-              />
-            )}
-            {user.drinking && (
-              <Pill
-                icon={getDrinkingIcon(user.drinking)}
-                text={
-                  user.drinking === "no"
-                    ? "No"
-                    : user.drinking === "yes"
-                      ? "Yes"
-                      : user.drinking.charAt(0).toUpperCase() +
-                        user.drinking.slice(1)
-                }
-              />
-            )}
+        {(user.foodPreference || user.smoking || user.drinking) && (
+          <div className="space-y-4 pb-6 border-b border-border/60">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Lifestyle
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {user.foodPreference && (
+                <Pill
+                  icon={<Salad />}
+                  text={
+                    String(user.foodPreference).replace(/_/g, " ").charAt(0).toUpperCase() +
+                    String(user.foodPreference).replace(/_/g, " ").slice(1)
+                  }
+                />
+              )}
+              {user.smoking && (
+                <Pill
+                  icon={getSmokingIcon(user.smoking)}
+                  text={
+                    user.smoking === "no"
+                      ? "No"
+                      : user.smoking === "yes"
+                        ? "Yes"
+                        : String(user.smoking).replace(/_/g, " ").charAt(0).toUpperCase() +
+                          String(user.smoking).replace(/_/g, " ").slice(1)
+                  }
+                />
+              )}
+              {user.drinking && (
+                <Pill
+                  icon={getDrinkingIcon(user.drinking)}
+                  text={
+                    user.drinking === "no"
+                      ? "No"
+                      : user.drinking === "yes"
+                        ? "Yes"
+                        : String(user.drinking).replace(/_/g, " ").charAt(0).toUpperCase() +
+                          String(user.drinking).replace(/_/g, " ").slice(1)
+                  }
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Travel Style Section */}
         {/* <div className="space-y-4">
