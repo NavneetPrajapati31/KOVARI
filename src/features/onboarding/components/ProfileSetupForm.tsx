@@ -2168,7 +2168,7 @@ export default function ProfileSetupForm() {
           onClick={handleNext}
           className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200 disabled:opacity-50"
         >
-          {isSubmitting ? "Creating profile…" : "Complete Setup"}
+          {isSubmitting ? "Creating profile…" : "Complete"}
           {!isSubmitting && <ChevronRight className="h-3.5 w-3.5" />}
         </Button>
       </div>

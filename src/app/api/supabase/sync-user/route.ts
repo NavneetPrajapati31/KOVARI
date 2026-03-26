@@ -65,7 +65,7 @@ export async function POST() {
       );
     }
 
-    return NextResponse.json({ ok: true, userId: data.id }, { status: 200 });
+    return NextResponse.json({ success: true, userId: data.id }, { status: 200 });
   } catch (e) {
     console.error("[api/supabase/sync-user] Unexpected error", e);
     Sentry.captureException(e, {
