@@ -139,7 +139,7 @@ export function AdminGroupsTable({
     <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Search & Filters */}
         <section className="space-y-6">
           <form onSubmit={handleSearch} className="">

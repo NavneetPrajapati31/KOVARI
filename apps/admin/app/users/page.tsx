@@ -129,7 +129,7 @@ export default async function UsersPage({
   const { users, page: currentPage } = await getUsers(page, limit, query, status);
 
   return (
-    <div className="max-w-full mx-auto space-y-8">
+    <div className="max-w-full mx-auto space-y-6">
       <div className="space-y-0">
         <h1 className="text-lg font-semibold tracking-tight">Users</h1>
         <p className="text-md text-muted-foreground">

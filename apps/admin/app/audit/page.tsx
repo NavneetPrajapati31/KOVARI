@@ -206,7 +206,7 @@ export default function AuditPage() {
   };
 
   return (
-    <div className="max-w-full mx-auto space-y-8">
+    <div className="max-w-full mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
         <div className="space-y-0">
@@ -219,7 +219,7 @@ export default function AuditPage() {
         </Button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Filters Section */}
         <section>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

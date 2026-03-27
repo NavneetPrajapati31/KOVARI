@@ -146,6 +146,7 @@ export async function GET(req: Request) {
                 ttlSeconds: typeof ttl === "number" && ttl >= 0 ? ttl : null,
                 destination,
                 budget,
+                metadata: parsed,
               });
             } catch (e) {
               console.error("Error reading session", key, e);
@@ -190,6 +191,7 @@ export async function GET(req: Request) {
             ttlSeconds: typeof ttl === "number" && ttl >= 0 ? ttl : null,
             destination,
             budget,
+            metadata: parsed,
           });
         } catch (e) {
           console.error("Error reading session", key, e);

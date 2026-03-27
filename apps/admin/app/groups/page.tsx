@@ -130,7 +130,7 @@ export default async function GroupsPage({
   );
 
   return (
-    <div className="max-w-full mx-auto space-y-8">
+    <div className="max-w-full mx-auto space-y-6">
       <div className="space-y-0">
         <h1 className="text-lg font-semibold tracking-tight">Groups</h1>
         <p className="text-md text-muted-foreground">

@@ -146,6 +146,7 @@ export async function GET(req: Request) {
             ttlSeconds: typeof ttl === "number" && ttl >= 0 ? ttl : null,
             destination,
             budget: budgetNum,
+            metadata: parsedObj,
           });
         }
       } catch (keyErr) {

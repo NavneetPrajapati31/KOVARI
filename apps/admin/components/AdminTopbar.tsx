@@ -5,7 +5,7 @@ import { AdminSearch } from "@/components/AdminSearch";
 
 export function AdminTopbar() {
   return (
-    <header className="sticky pt-8 pb-2 md:pb-0 z-40 flex shrink-0 bg-background">
+    <header className="sticky pt-6 pb-0 z-40 flex shrink-0 bg-background">
       <div className="flex w-full items-center px-6 md:px-8 gap-2">
         <SidebarTrigger className="md:hidden px-5 h-10 bg-card border border-border rounded-xl text-muted-foreground" />
         <div className="flex-1 flex justify-center">

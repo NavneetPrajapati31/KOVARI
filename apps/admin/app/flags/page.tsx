@@ -83,7 +83,7 @@ export default async function FlagsPage({
   const { flags, page: currentPage } = await getFlags(page, limit, status, targetType);
 
   return (
-    <div className="max-w-full mx-auto space-y-8">
+    <div className="max-w-full mx-auto space-y-6">
       <div className="space-y-0">
         <h1 className="text-lg font-semibold tracking-tight">Flags Queue</h1>
         <p className="text-md text-muted-foreground">
