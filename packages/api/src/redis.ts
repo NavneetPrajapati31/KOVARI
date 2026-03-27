@@ -7,7 +7,7 @@ if (typeof window !== "undefined") {
 }
 import { createClient } from "redis";
 
-let _redis: any = null;
+let _redis: ReturnType<typeof createClient> | null = null;
 
 export const getRedisClient = () => {
   if (_redis) return _redis;
@@ -57,7 +57,7 @@ export const getRedisClient = () => {
 };
 
 // Export a proxy for backward compatibility that lazy-loads the client
-export const redis = new Proxy({} as any, {
+export const redis = new Proxy({} as ReturnType<typeof createClient>, {
   get(target, prop, receiver) {
     const client = getRedisClient();
     return Reflect.get(client, prop, receiver);

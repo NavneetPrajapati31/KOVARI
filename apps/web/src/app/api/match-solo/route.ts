@@ -125,10 +125,16 @@ export async function GET(request: NextRequest) {
 
     const fetchAllSessions = async () => {
       const keys = await redisClient.keys("session:*");
-      const subKeys = keys.filter(k => k !== `session:${userId}`).slice(0, 500);
+      const subKeys = keys.filter((k: string) => k !== `session:${userId}`).slice(0, 500);
       if (subKeys.length === 0) return [];
       const stats = await redisClient.mGet(subKeys);
-      return stats.filter(Boolean).map(s => JSON.parse(s!));
+      return stats.filter(Boolean).map(s => {
+        try {
+          return JSON.parse(s!);
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
     };
 
     const [
@@ -236,7 +242,7 @@ export async function GET(request: NextRequest) {
       };
     }));
 
-    const finalMatches = scoredMatches.filter(Boolean).sort((a: any, b: any) => b.score - a.score);
+    const finalMatches = scoredMatches.filter((m): m is Exclude<typeof m, null> => m !== null).sort((a, b) => b.score - a.score);
 
     return NextResponse.json(finalMatches);
 
