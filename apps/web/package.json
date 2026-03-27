@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "socket": "tsx src/services/socket/server.ts"
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^5.1.6",
@@ -115,6 +116,7 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.19.2"
   }
 }
