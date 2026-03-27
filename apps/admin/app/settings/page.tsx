@@ -107,7 +107,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-full mx-auto space-y-8">
+    <div className="max-w-full mx-auto space-y-6">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       <div className="space-y-0">
@@ -115,13 +115,13 @@ export default function SettingsPage() {
         <p className="text-md text-muted-foreground">Configure core system behaviors and policies</p>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Maintenance & Safety Section */}
         <section>
           <SectionHeader>Service Control</SectionHeader>
           <GroupContainer>
             <ListRow
-              icon={<AlertTriangle className={cn("h-5 w-5", settings.maintenance_mode ? "text-red-500" : "text-muted-foreground/40")} />}
+              icon={<AlertTriangle className={cn("h-5 w-5", settings.maintenance_mode ? "text-primary" : "text-muted-foreground")} />}
               label="Maintenance Mode"
               secondary="Pauses matching and production APIs while keeping admin access open"
               trailing={
@@ -129,13 +129,13 @@ export default function SettingsPage() {
                   checked={settings.maintenance_mode}
                   onCheckedChange={handleMaintenanceToggle}
                   disabled={isSaving}
-                  className="data-[state=checked]:bg-red-500 scale-90"
+                  className="cursor-pointer"
                 />
               }
               showChevron={false}
             />
             <ListRow
-              icon={<Sliders className="h-5 w-5 text-muted-foreground/40" />}
+              icon={<Sliders className="h-5 w-5 text-muted-foreground" />}
               label="Matching Strategy"
               secondary={
                 settings.matching_preset === "SAFE" ? "Prioritizes distance and overlaps" :
@@ -144,7 +144,7 @@ export default function SettingsPage() {
               }
               trailing={
                 <Select value={settings.matching_preset} onValueChange={handleMatchingPresetChange} disabled={isSaving}>
-                  <SelectTrigger className="w-32 h-8 rounded-lg bg-muted border-none text-[13px] font-bold">
+                  <SelectTrigger className="w-32 !h-8 rounded-lg bg-background border-border text-sm font-medium shadow-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -156,25 +156,13 @@ export default function SettingsPage() {
               }
               showChevron={false}
             />
-          </GroupContainer>
-          {settings.maintenance_mode && (
-            <p className="mt-3 px-1 text-[13px] font-medium text-red-500 animate-pulse">
-              ● System is currently in maintenance mode. All matching operations are halted.
-            </p>
-          )}
-        </section>
-
-        {/* Security Section */}
-        <section>
-          <SectionHeader>Security & Sessions</SectionHeader>
-          <GroupContainer>
             <ListRow
-              icon={<Clock className="h-5 w-5 text-muted-foreground/40" />}
+              icon={<Clock className="h-5 w-5 text-muted-foreground" />}
               label="Session Expiration"
               secondary="Time before user tokens expire (applies to new sessions)"
               trailing={
                 <Select value={settings.session_ttl_hours.toString()} onValueChange={handleSessionTtlChange} disabled={isSaving}>
-                  <SelectTrigger className="w-32 h-8 rounded-lg bg-muted border-none text-[13px] font-bold">
+                  <SelectTrigger className="w-32 !h-8 rounded-lg bg-background border-border text-sm font-medium shadow-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -185,13 +173,6 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               }
-              showChevron={false}
-            />
-            <ListRow
-              icon={<ShieldCheck className="h-5 w-5 text-muted-foreground/40" />}
-              label="System Integrity"
-              secondary="Verified administrative connection Active"
-              trailing={<span className="text-[11px] font-bold text-green-500 uppercase tracking-widest">OK</span>}
               showChevron={false}
             />
           </GroupContainer>
@@ -205,7 +186,6 @@ export default function SettingsPage() {
         description={pendingMaintenanceMode 
           ? "All client matching requests will return a maintenance error. Continue?" 
           : "Matches will immediately begin generating based on current activity. Continue?"}
-        variant={pendingMaintenanceMode ? "destructive" : "default"}
         confirmText={pendingMaintenanceMode ? "Enable Mode" : "Resume Service"}
         onConfirm={confirmMaintenanceChange}
       />

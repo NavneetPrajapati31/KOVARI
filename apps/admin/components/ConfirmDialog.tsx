@@ -150,8 +150,7 @@ export function ConfirmDialog({
               onOpenChange(false);
             }}
             disabled={isLoading}
-            type="button"
-            className="flex-1 h-10 rounded-lg shadow-none"
+            className="flex-1 h-10 border-border rounded-lg shadow-none"
           >
             {cancelText}
           </Button>
@@ -159,7 +158,6 @@ export function ConfirmDialog({
             variant={variant === "destructive" ? "destructive" : "default"}
             onClick={handleConfirm}
             disabled={!canConfirm || isLoading}
-            type="button"
             className={cn(
                 "flex-1 h-10 rounded-lg shadow-none",
                 variant === "destructive" ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90"
