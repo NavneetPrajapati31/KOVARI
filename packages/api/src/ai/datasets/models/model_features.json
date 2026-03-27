@@ -1,0 +1,11 @@
+[
+  "distanceScore",
+  "dateOverlapScore",
+  "budgetScore",
+  "interestScore",
+  "ageScore",
+  "languageScore",
+  "lifestyleScore",
+  "backgroundScore",
+  "matchType_encoded"
+]

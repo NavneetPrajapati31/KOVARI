@@ -1,0 +1,21 @@
+{
+  "trained_at": "2026-03-27T18:41:02.005613",
+  "model_type": "XGBoost",
+  "metrics": {
+    "train": {
+      "accuracy": 0.55,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "roc_auc": 0.7410213243546577
+    },
+    "validation": {
+      "accuracy": 0.36666666666666664,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "roc_auc": 0.5550239234449761
+    }
+  },
+  "feature_count": 9
+}
