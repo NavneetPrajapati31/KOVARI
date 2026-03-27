@@ -6,6 +6,7 @@ dotenv.config({ path: ".env.local" });
 dotenv.config();
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+console.log(`[Redis] Using Redis URL: ${REDIS_URL.startsWith('redis://localhost') ? 'LOCALHOST (FALLBACK)' : 'PRODUCTION_URL'}`);
 
 export const pubClient = createClient({ url: REDIS_URL });
 export const subClient = pubClient.duplicate();
