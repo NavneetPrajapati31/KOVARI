@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/admin-lib/adminAuth";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
+import { supabaseAdmin } from "@kovari/api";
 import { revokeExpiredSuspensionForUser } from "@/admin-lib/revokeExpiredSuspensions";
 import { UserDetail } from "@/components/UserDetail";
 import Link from "next/link";
@@ -109,8 +109,8 @@ async function getUserDetail(id: string): Promise<{
   // Fetch user sessions from Redis
   const sessions: Array<{ key: string; data: unknown }> = [];
   try {
-    const { getRedisAdminClient } = await import("@/admin-lib/redisAdmin");
-    const redis = getRedisAdminClient();
+    const { redis, ensureRedisConnection } = await import("@kovari/api");
+    await ensureRedisConnection();
 
     // Try to find sessions for this user
     const { data: userData } = await supabaseAdmin

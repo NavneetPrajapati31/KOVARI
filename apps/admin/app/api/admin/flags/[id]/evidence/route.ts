@@ -1,7 +1,7 @@
 // apps/admin/app/api/admin/flags/[id]/evidence/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/admin-lib/adminAuth';
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { supabaseAdmin } from "@kovari/api";
 import {
   generateSignedEvidenceUrl,
   getPublicIdFromEvidenceUrl,

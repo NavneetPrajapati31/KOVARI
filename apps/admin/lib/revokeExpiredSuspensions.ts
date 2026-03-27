@@ -1,5 +1,5 @@
 // apps/admin/lib/revokeExpiredSuspensions.ts
-import { supabaseAdmin } from "./supabaseAdmin";
+import { supabaseAdmin } from "@kovari/api";
 
 /**
  * Checks for users with expired suspensions and automatically revokes them.

@@ -1,0 +1,639 @@
+"use client";
+
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  KeyboardEvent,
+} from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { Button } from "@/shared/components/ui/button";
+import { ExploreSidebar } from "@/features/explore/components/ExploreSidebar";
+import { ResultsDisplay } from "@/features/explore/components/ResultsDisplay";
+import { SearchData, Filters } from "@/features/explore/types";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from "@/shared/components/ui/sheet";
+import { Filter } from "lucide-react";
+
+const EXPLORE_TABS = [
+  { label: "Solo Travel", value: "solo" },
+  { label: "Group Travel", value: "groups" },
+] as const;
+
+export default function ExplorePage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { user } = useUser();
+
+  // Get pre-filled destination from URL
+  const getPrefilledDestination = () => {
+    return searchParams.get("destination") || "";
+  };
+
+  // Get tab index from URL
+  const getTabIndex = useCallback(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "groups") return 1;
+    return 0; // Default to solo
+  }, [searchParams]);
+
+  // State management - initialize from URL
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "groups") return 1;
+    return 0;
+  });
+
+  // Sync activeTab with URL params
+  useEffect(() => {
+    const tabIndex = getTabIndex();
+    if (activeTab !== tabIndex) {
+      setActiveTab(tabIndex);
+    }
+  }, [searchParams, getTabIndex, activeTab]);
+  const [matchedGroups, setMatchedGroups] = useState<any[]>([]);
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [lastSearchData, setLastSearchData] = useState<SearchData | null>(null);
+  const [lastFilters, setLastFilters] = useState<Filters | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [datePickerPortalContainer, setDatePickerPortalContainer] =
+    useState<HTMLDivElement | null>(null);
+
+  // Search form state
+  const [searchData, setSearchData] = useState<SearchData>({
+    destination: getPrefilledDestination(),
+    budget: 20000,
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // 4 days from now
+    travelMode: "solo",
+  });
+
+  // Filters state
+  const [filters, setFilters] = useState<Filters>({
+    ageRange: [18, 65],
+    gender: "Any",
+    interests: [],
+    travelStyle: "Any",
+    budgetRange: [5000, 50000],
+    personality: "Any",
+    smoking: "No",
+    drinking: "No",
+    nationality: "Any",
+    languages: [],
+  });
+
+  // Update destination when URL changes
+  useEffect(() => {
+    const newDestination = getPrefilledDestination();
+    if (newDestination && newDestination !== searchData.destination) {
+      setSearchData((prev) => ({ ...prev, destination: newDestination }));
+    }
+  }, [searchParams, searchData.destination]);
+
+  // Sync travelMode with activeTab when it changes
+  useEffect(() => {
+    setSearchData((prev) => ({
+      ...prev,
+      travelMode: activeTab === 0 ? "solo" : "group",
+    }));
+  }, [activeTab]);
+
+  // Handle tab change with URL sync
+  const handleTabChange = useCallback(
+    (index: number) => {
+      if (index !== activeTab) {
+        setActiveTab(index);
+        const tabValue = EXPLORE_TABS[index].value;
+        router.push(`/explore?tab=${tabValue}`, { scroll: false });
+      }
+    },
+    [activeTab, router],
+  );
+
+  // Keyboard navigation for tabs
+  const handleTabKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        handleTabChange((activeTab + 1) % EXPLORE_TABS.length);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        handleTabChange(
+          (activeTab - 1 + EXPLORE_TABS.length) % EXPLORE_TABS.length,
+        );
+      } else if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleTabChange(index);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        handleTabChange(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        handleTabChange(EXPLORE_TABS.length - 1);
+      }
+    },
+    [activeTab, handleTabChange],
+  );
+
+  // Tab buttons with groups layout styling
+  const tabButtons = useMemo(
+    () =>
+      EXPLORE_TABS.map((tab, idx) => (
+        <Button
+          key={tab.value}
+          variant={"outline"}
+          className={`flex-auto text-xs sm:text-sm ${
+            activeTab === idx
+              ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
+              : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary hover:bg-card"
+          }`}
+          onClick={() => handleTabChange(idx)}
+          onKeyDown={(e) => handleTabKeyDown(e, idx)}
+        >
+          {tab.label}
+        </Button>
+      )),
+    [activeTab, handleTabChange, handleTabKeyDown],
+  );
+
+  const filtersEqual = (a: Filters, b: Filters): boolean => {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    const arrEq = (x: string[], y: string[]) =>
+      x.length === y.length &&
+      [...x].sort().join(",") === [...y].sort().join(",");
+    return (
+      a.ageRange[0] === b.ageRange[0] &&
+      a.ageRange[1] === b.ageRange[1] &&
+      a.gender === b.gender &&
+      a.personality === b.personality &&
+      a.smoking === b.smoking &&
+      a.drinking === b.drinking &&
+      a.nationality === b.nationality &&
+      a.travelStyle === b.travelStyle &&
+      arrEq(a.interests || [], b.interests || []) &&
+      arrEq(a.languages || [], b.languages || []) &&
+      a.budgetRange[0] === b.budgetRange[0] &&
+      a.budgetRange[1] === b.budgetRange[1]
+    );
+  };
+
+  const hasSearchParamsChanged = (
+    newSearchData: SearchData,
+    newFilters: Filters,
+  ): boolean => {
+    if (!lastSearchData) return true;
+    const searchDataChanged =
+      newSearchData.destination !== lastSearchData.destination ||
+      newSearchData.budget !== lastSearchData.budget ||
+      newSearchData.startDate.getTime() !==
+        lastSearchData.startDate.getTime() ||
+      newSearchData.endDate.getTime() !== lastSearchData.endDate.getTime();
+    const filtersChanged =
+      !lastFilters || !filtersEqual(newFilters, lastFilters);
+    return searchDataChanged || filtersChanged;
+  };
+
+  const handleSearch = () => {
+    setIsSheetOpen(false);
+    const fullSearchData: SearchData = {
+      ...searchData,
+      travelMode: activeTab === 0 ? "solo" : "group",
+    };
+
+    if (!hasSearchParamsChanged(fullSearchData, filters)) {
+      return;
+    }
+
+    performSearch(fullSearchData);
+  };
+
+  const performSearch = async (fullSearchData: SearchData) => {
+    console.log("Starting search with data:", fullSearchData);
+    setSearchLoading(true);
+    setSearchError(null);
+    setMatchedGroups([]);
+    setCurrentGroupIndex(0);
+
+    try {
+      const userId = user?.id;
+
+      if (activeTab === 0) {
+        // SOLO TRAVEL MODE - Only search for solo travelers
+        if (!userId) {
+          throw new Error("Please sign in to search for solo travelers");
+        }
+
+        // Step 1: Store enhanced dynamic session (for solo matching)
+        const sessionPayload: any = {
+          userId,
+          destinationName: fullSearchData.destination,
+          budget: fullSearchData.budget,
+          startDate: fullSearchData.startDate.toISOString().split("T")[0],
+          endDate: fullSearchData.endDate.toISOString().split("T")[0],
+          travelMode: fullSearchData.travelMode,
+        };
+
+        if (fullSearchData.destinationDetails) {
+          sessionPayload.destination = {
+            name:
+              fullSearchData.destinationDetails.formatted ||
+              fullSearchData.destination,
+            lat: fullSearchData.destinationDetails.lat,
+            lon: fullSearchData.destinationDetails.lon,
+            city: fullSearchData.destinationDetails.city,
+            country: fullSearchData.destinationDetails.country,
+          };
+        }
+
+        const sessionResponse = await fetch("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sessionPayload),
+        });
+
+        if (!sessionResponse.ok) {
+          const errorData = await sessionResponse.json().catch(() => ({}));
+          const errorMessage = errorData.message || "Failed to create session";
+          const errorHint = errorData.hint || "";
+
+          // Provide helpful error message based on error type
+          if (
+            errorData.error === "PROFILE_NOT_FOUND" ||
+            errorData.error === "PROFILE_INCOMPLETE"
+          ) {
+            throw new Error(
+              `${errorMessage}${errorHint ? ` ${errorHint}` : ""}`,
+            );
+          }
+
+          throw new Error(errorMessage);
+        }
+
+        // Add a small delay to ensure Redis session is fully committed
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Step 2: Get solo matches using enhanced matching
+        const queryParams = new URLSearchParams({
+          userId,
+          ageMin: filters.ageRange[0].toString(),
+          ageMax: filters.ageRange[1].toString(),
+          gender: filters.gender,
+          personality: filters.personality,
+          smoking: filters.smoking,
+          drinking: filters.drinking,
+          nationality: filters.nationality,
+        });
+
+        if (filters.interests && filters.interests.length > 0) {
+          queryParams.append("interests", filters.interests.join(","));
+        }
+
+        if (filters.languages && filters.languages.length > 0) {
+          queryParams.append("languages", filters.languages.join(","));
+        }
+
+        const soloMatchesRes = await fetch(
+          `/api/match-solo?${queryParams.toString()}`,
+        );
+        if (soloMatchesRes.ok) {
+          const soloMatches = await soloMatchesRes.json();
+          console.log("Solo matches found:", soloMatches.length);
+
+          // Convert solo matches to group-like format for display
+          const soloMatchesAsGroups = soloMatches.map(
+            (match: any, index: number) => ({
+              id: `solo-${index}`,
+              name: `${match.user.name || match.user.full_name || "Traveler"} - ${match.destination}`,
+              destination: match.destination,
+              budget: match.user.budget || "Not specified",
+              start_date: fullSearchData.startDate,
+              end_date: fullSearchData.endDate,
+              compatibility_score: Math.round(match.score * 100),
+              budget_difference: match.budgetDifference,
+              user: {
+                ...match.user,
+                interests:
+                  Array.isArray(match.commonInterests) &&
+                  match.commonInterests.length > 0
+                    ? match.commonInterests
+                    : match.user?.interests,
+              },
+              is_solo_match: true,
+            }),
+          );
+
+          setMatchedGroups(soloMatchesAsGroups);
+          setCurrentGroupIndex(0);
+          setLastSearchData(fullSearchData);
+          setLastFilters(filters);
+        } else {
+          const errorData = await soloMatchesRes.json();
+          throw new Error(errorData.message || "Failed to fetch solo matches");
+        }
+      } else {
+        // GROUP TRAVEL MODE - Only search for groups with filter data
+        console.log("[EXPLORE][GROUP] Search started", {
+          destination: fullSearchData.destination,
+          destinationDetails: fullSearchData.destinationDetails
+            ? {
+                lat: fullSearchData.destinationDetails.lat,
+                lon: fullSearchData.destinationDetails.lon,
+              }
+            : null,
+          budget: fullSearchData.budget,
+          dates: {
+            start: fullSearchData.startDate.toISOString().split("T")[0],
+            end: fullSearchData.endDate.toISOString().split("T")[0],
+          },
+          userId,
+          filters: {
+            ageRange: filters.ageRange,
+            languages: filters.languages,
+            interests: filters.interests,
+            smoking: filters.smoking,
+            drinking: filters.drinking,
+            nationality: filters.nationality,
+          },
+        });
+        const requestBody: any = {
+          destination: fullSearchData.destination,
+          budget: fullSearchData.budget,
+          startDate: fullSearchData.startDate.toISOString().split("T")[0],
+          endDate: fullSearchData.endDate.toISOString().split("T")[0],
+          userId: userId,
+          // Include filter data for better matching
+          ageMin: filters.ageRange[0],
+          ageMax: filters.ageRange[1],
+          languages: filters.languages,
+          interests: filters.interests,
+          smoking: filters.smoking === "Yes",
+          drinking: filters.drinking === "Yes",
+          nationality:
+            filters.nationality !== "Any" ? filters.nationality : "Unknown",
+        };
+
+        if (fullSearchData.destinationDetails) {
+          requestBody.lat = fullSearchData.destinationDetails.lat;
+          requestBody.lon = fullSearchData.destinationDetails.lon;
+        }
+
+        console.log("[EXPLORE][GROUP] Request body", requestBody);
+
+        const res = await fetch("/api/match-groups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
+
+        const data = await res.json();
+        console.log("[EXPLORE][GROUP] API response", {
+          status: res.status,
+          ok: res.ok,
+          groupCount: data.groups?.length ?? 0,
+          groupIds: data.groups?.map((g: any) => g.id) ?? [],
+          error: data.error,
+        });
+        if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
+
+        // Transform the API response to match GroupMatchCard's expected format
+        const transformedGroups = (data.groups || []).map((group: any) => ({
+          id: group.id,
+          name: group.name,
+          privacy: "public" as const,
+          destination: group.destination,
+          startDate: group.startDate,
+          endDate: group.endDate,
+          budget: group.budget,
+          memberCount: group.members || 0,
+          userStatus: "Open",
+          creator: {
+            name: group.creator?.name || "Unknown",
+            username: group.creator?.username || "unknown",
+            avatar: group.creator?.avatar || undefined,
+          },
+          cover_image: group.cover_image || undefined,
+          description: group.description || undefined,
+          score: group.score,
+          breakdown: group.breakdown,
+          distance: group.distance,
+          tags: group.tags || [],
+          smokingPolicy: group.smokingPolicy || "Mixed",
+          drinkingPolicy: group.drinkingPolicy || "Mixed",
+          languages: group.languages || [],
+        }));
+
+        console.log("[EXPLORE][GROUP] Transformed groups for display", {
+          count: transformedGroups.length,
+          ids: transformedGroups.map((g: any) => g.id),
+        });
+
+        setMatchedGroups(transformedGroups);
+        setCurrentGroupIndex(0);
+        setLastSearchData(fullSearchData);
+        setLastFilters(filters);
+      }
+    } catch (err: any) {
+      setSearchError(err.message || "Unknown error");
+      console.error("Search error:", err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Reset search data when tab changes
+  useEffect(() => {
+    setLastSearchData(null);
+    setLastFilters(null);
+    setMatchedGroups([]);
+    setCurrentGroupIndex(0);
+    setSearchError(null);
+  }, [activeTab]);
+
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Navigation functions
+  const handlePreviousGroup = () => {
+    if (currentGroupIndex > 0) {
+      setCurrentGroupIndex(currentGroupIndex - 1);
+    }
+  };
+
+  const handleNextGroup = () => {
+    if (currentGroupIndex < matchedGroups.length - 1) {
+      setCurrentGroupIndex(currentGroupIndex + 1);
+    } else if (matchedGroups.length > 0) {
+      // No more matches - clear the results to show "no more matches" message
+      console.log("No more matches available");
+      setMatchedGroups([]);
+      setCurrentGroupIndex(0);
+    }
+  };
+
+  // Action handlers
+  const handleConnect = async (matchId: string) => {
+    console.log("Connecting with solo traveler:", matchId);
+    // TODO: Implement connection logic
+    handleNextGroup();
+  };
+
+  const handleSuperLike = async (matchId: string) => {
+    console.log("Super liking solo traveler:", matchId);
+    // TODO: Implement super like logic
+  };
+
+  const handlePass = async (matchId: string) => {
+    console.log("handlePass: Skipping match and moving to next", {
+      matchId,
+      currentIndex: currentGroupIndex,
+      totalMatches: matchedGroups.length,
+    });
+    // Move to next match after skipping
+    handleNextGroup();
+    console.log("handlePass: Next group index is now:", currentGroupIndex + 1);
+  };
+
+  const handleComment = async (
+    matchId: string,
+    attribute: string,
+    comment: string,
+  ) => {
+    console.log(
+      "Commenting on",
+      attribute,
+      "for traveler:",
+      matchId,
+      "Comment:",
+      comment,
+    );
+    // TODO: Implement comment logic
+  };
+
+  const handleViewProfile = (userId: string) => {
+    if (!userId) return;
+    router.push(`/profile/${userId}`);
+  };
+
+  const handleJoinGroup = async (groupId: string) => {
+    console.log("Joining group:", groupId);
+    // TODO: Implement join group logic
+    handleNextGroup();
+  };
+
+  const handleRequestJoin = async (groupId: string) => {
+    console.log("Requesting to join group:", groupId);
+    // TODO: Implement request join logic
+  };
+
+  const handlePassGroup = async (groupId: string) => {
+    console.log("Passing on group:", groupId);
+    // TODO: Implement pass logic - move to next group
+    handleNextGroup();
+  };
+
+  const handleViewGroup = (groupId: string) => {
+    if (!groupId) return;
+    router.push(`/groups/${groupId}/home`);
+  };
+
+  return (
+    <div className="min-h-screen px-4 pb-4">
+      <div className="max-w-full mx-auto flex flex-col gap-0">
+        {/* Tabs Header - Outside containers like groups layout */}
+        <header className="flex w-full items-center gap-2 sticky top-0 z-50 bg-background py-4">
+          <div className="flex gap-2 flex-auto min-[930px]:w-auto min-[930px]:flex-none">
+            {tabButtons}
+          </div>
+
+          {/* Mobile Filter Trigger */}
+          <div className="flex-auto min-[930px]:hidden">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full text-xs sm:text-sm text-foreground font-semibold bg-card rounded-2xl hover:text-primary"
+                >
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="bottom"
+                className="h-[90dvh] bg-card p-0 rounded-t-3xl w-full"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <SheetTitle className="sr-only">Filters</SheetTitle>
+                <div
+                  ref={(el) => setDatePickerPortalContainer(el ?? null)}
+                  className="h-full pt-2 relative"
+                >
+                  <ExploreSidebar
+                    activeTab={activeTab}
+                    searchData={searchData}
+                    filters={filters}
+                    searchLoading={searchLoading}
+                    onSearchDataChange={setSearchData}
+                    onSearch={handleSearch}
+                    onFilterChange={handleFilterChange}
+                    datePickerPortalContainer={datePickerPortalContainer}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex gap-3 h-[calc(100vh-8rem)] md:h-[calc(100vh-9rem)] lg:h-[calc(100vh-10rem)]">
+          {/* Left Sidebar - Rounded Container */}
+          <div className="hidden min-[930px]:flex w-full min-[930px]:w-1/3 flex-shrink-0 rounded-3xl bg-card border-1 border-border overflow-hidden flex-col">
+            <ExploreSidebar
+              activeTab={activeTab}
+              searchData={searchData}
+              filters={filters}
+              searchLoading={searchLoading}
+              onSearchDataChange={setSearchData}
+              onSearch={handleSearch}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+
+          {/* Right Content Area - Rounded Container */}
+          <div className="w-full min-[930px]:w-2/3 bg-card rounded-3xl border-1 border-border overflow-hidden flex flex-col">
+            <ResultsDisplay
+              activeTab={activeTab}
+              matchedGroups={matchedGroups}
+              currentGroupIndex={currentGroupIndex}
+              searchLoading={searchLoading}
+              searchError={searchError}
+              lastSearchData={lastSearchData}
+              currentUserId={user?.id}
+              destinationId={searchData.destination}
+              onPreviousGroup={handlePreviousGroup}
+              onNextGroup={handleNextGroup}
+              onConnect={handleConnect}
+              onSuperLike={handleSuperLike}
+              onPass={handlePass}
+              onComment={handleComment}
+              onViewProfile={handleViewProfile}
+              onJoinGroup={handleJoinGroup}
+              onRequestJoin={handleRequestJoin}
+              onPassGroup={handlePassGroup}
+              onViewGroup={handleViewGroup}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

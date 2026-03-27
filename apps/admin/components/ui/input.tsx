@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@/admin-lib/utils";
+import { cn } from "@kovari/utils";
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
@@ -26,3 +26,4 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = "Input";
 
 export { Input };
+

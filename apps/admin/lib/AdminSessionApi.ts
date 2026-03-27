@@ -1,6 +1,6 @@
 // apps/admin/lib/adminSessionsApi.ts
 import "server-only";
-import redis, { ensureRedisConnection, parseSessionValue } from "./redisAdmin";
+import { redis, ensureRedisConnection, parseSessionValue } from "@kovari/api";
 import { logAdminAction } from "./logAdminAction";
 
 type SessionSummary = {

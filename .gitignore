@@ -1,7 +1,5 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,18 +9,20 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
+# Next.js and build artifacts
+.next/
+out/
+build/
+dist/
+.turbo
 
 # misc
 .DS_Store
 *.pem
+*.tsbuildinfo
+next-env.d.ts
 
 # debug
 npm-debug.log*
@@ -30,26 +30,19 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 
 # vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
+# IDEs
 .cursor
+.vscode/
+.idea/
 
-/.vscode/
-# clerk configuration (can include secrets)
-/.clerk/
+# clerk configuration
+.clerk/
 
-.vscode
-# Sentry Config File
-.env.sentry-build-plugin"node_modules.zip" 
-
-# apps/admin
-# Note: /apps/* only matches files directly in /apps/, not subdirectories
-# If you need to ignore specific apps, use: /apps/specific-app-name/
+# Sentry
+.env.sentry-build-plugin

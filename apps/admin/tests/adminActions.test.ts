@@ -2,13 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { logAdminAction } from '@/admin-lib/logAdminAction';
 
 // Mock Supabase admin client
-vi.mock('@/admin-lib/supabaseAdmin', () => ({
-  supabaseAdmin: {
-    from: vi.fn(),
-  },
-}));
+vi.mock('@kovari/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kovari/api')>();
+  return {
+    ...actual,
+    supabaseAdmin: {
+      from: vi.fn(),
+    },
+  };
+});
 
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { supabaseAdmin } from "@kovari/api";
 
 describe('logAdminAction', () => {
   beforeEach(() => {

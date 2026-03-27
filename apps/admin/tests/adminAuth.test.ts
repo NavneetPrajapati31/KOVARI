@@ -9,14 +9,18 @@ vi.mock('@clerk/nextjs/server', () => ({
 }));
 
 // Mock Supabase Admin
-vi.mock('@/admin-lib/supabaseAdmin', () => ({
-  supabaseAdmin: {
-    from: vi.fn(),
-  },
-}));
+vi.mock('@kovari/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kovari/api')>();
+  return {
+    ...actual,
+    supabaseAdmin: {
+      from: vi.fn(),
+    },
+  };
+});
 
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { supabaseAdmin } from "@kovari/api";
 
 describe('requireAdmin', () => {
   beforeEach(() => {

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "./supabaseAdmin";
+import { supabaseAdmin } from "@kovari/api";
 
 export async function getSetting(key: string) {
   const { data } = await supabaseAdmin

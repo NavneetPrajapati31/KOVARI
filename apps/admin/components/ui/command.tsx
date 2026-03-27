@@ -4,7 +4,7 @@ import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
 import { SearchIcon } from "lucide-react"
 
-import { cn } from "@/admin-lib/utils"
+import { cn } from "@kovari/utils"
 import {
   Dialog,
   DialogContent,
@@ -182,3 +182,4 @@ export {
   CommandShortcut,
   CommandSeparator,
 }
+

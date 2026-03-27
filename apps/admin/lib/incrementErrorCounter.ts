@@ -1,5 +1,4 @@
-// apps/admin/lib/incrementErrorCounter.ts
-import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
+import { redis } from "@kovari/api";
 
 /**
  * Increments the 24-hour error counter in Redis
@@ -7,7 +6,6 @@ import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
  */
 export async function incrementErrorCounter(): Promise<void> {
   try {
-    const redis = getRedisAdminClient();
     await redis.incr("metrics:errors:24h");
     await redis.expire("metrics:errors:24h", 86400); // 24 hours TTL
   } catch (e) {
@@ -15,3 +13,4 @@ export async function incrementErrorCounter(): Promise<void> {
     // Don't throw - error tracking should never break the error flow
   }
 }
+

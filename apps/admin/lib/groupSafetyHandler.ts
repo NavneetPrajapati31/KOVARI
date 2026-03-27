@@ -1,5 +1,5 @@
 // apps/admin/lib/groupSafetyHandler.ts
-import { supabaseAdmin } from "./supabaseAdmin";
+import { supabaseAdmin } from "@kovari/api";
 import { logAdminAction } from "./logAdminAction";
 
 /**

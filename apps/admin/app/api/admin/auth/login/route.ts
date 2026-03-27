@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { ensureRedisConnection } from '@/admin-lib/redisAdmin';
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { ensureRedisConnection } from "@kovari/api";
+import { supabaseAdmin } from "@kovari/api";
 import { logAdminAction } from '@/admin-lib/logAdminAction';
 
 export async function POST(req: Request) {

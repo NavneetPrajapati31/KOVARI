@@ -1,5 +1,5 @@
 // apps/admin/lib/logAdminAction.ts
-import { supabaseAdmin } from "./supabaseAdmin";
+import { supabaseAdmin } from "@kovari/api";
 
 export async function logAdminAction(params: {
   adminId: string;

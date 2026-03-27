@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
-import { cn } from "@/admin-lib/utils";
+import { cn } from "@kovari/utils";
 
 interface EmailHealthProps {
   sent: number;
@@ -72,3 +72,4 @@ export function EmailHealth({ sent, pending, avgDelayMinutes }: EmailHealthProps
     </Card>
   );
 }
+

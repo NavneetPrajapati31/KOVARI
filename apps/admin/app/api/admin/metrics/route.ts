@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { supabaseAdmin } from "@kovari/api";
 import { requireAdmin } from '@/admin-lib/adminAuth';
-import { getRedisAdminClient } from '@/admin-lib/redisAdmin';
+import { redis, ensureRedisConnection } from "@kovari/api";
 import * as Sentry from '@sentry/nextjs';
 import { incrementErrorCounter } from '@/admin-lib/incrementErrorCounter';
 
@@ -21,7 +21,7 @@ export async function GET() {
   }
 
   try {
-    const redis = getRedisAdminClient();
+    await ensureRedisConnection();
 
     // Calculate date for last 7 days
     const sevenDaysAgo = new Date();

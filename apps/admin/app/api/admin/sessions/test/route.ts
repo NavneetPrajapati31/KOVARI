@@ -1,6 +1,6 @@
 // apps/admin/app/api/admin/sessions/test/route.ts
 import { NextResponse } from "next/server";
-import { ensureRedisConnection, parseSessionValue } from "../../../../../lib/redisAdmin";
+import { redis as redisClient, ensureRedisConnection, parseSessionValue } from "@kovari/api";
 
 export async function GET() {
   try {

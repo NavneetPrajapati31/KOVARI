@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/admin-lib/adminAuth";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
+import { supabaseAdmin } from "@kovari/api";
 import { GroupDetail } from "../../../components/GroupDetail";
 import Link from "next/link";
 import { notFound } from "next/navigation";

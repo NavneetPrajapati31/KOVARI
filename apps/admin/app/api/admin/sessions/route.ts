@@ -1,9 +1,6 @@
 // apps/admin/app/api/admin/sessions/route.ts
 import { NextResponse } from "next/server";
-import redis, {
-  ensureRedisConnection,
-  parseSessionValue,
-} from "../../../../lib/redisAdmin";
+import { redis, ensureRedisConnection, parseSessionValue } from "@kovari/api";
 import { requireAdmin } from "../../../../lib/adminAuth";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "../../../../lib/incrementErrorCounter";

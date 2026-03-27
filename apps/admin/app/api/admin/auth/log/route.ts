@@ -1,5 +1,5 @@
 import { currentUser } from '@clerk/nextjs/server';
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { supabaseAdmin } from "@kovari/api";
 import { logAdminAction } from '@/admin-lib/logAdminAction';
 import { NextResponse } from 'next/server';
 

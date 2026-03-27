@@ -1,6 +1,6 @@
 // apps/admin/app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
+import { supabaseAdmin } from "@kovari/api";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
@@ -105,3 +105,4 @@ export async function GET(req: NextRequest) {
     throw error;
   }
 }
+

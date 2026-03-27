@@ -1,6 +1,6 @@
 // apps/admin/app/api/admin/flags/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { supabaseAdmin } from "@kovari/api";
 import { requireAdmin } from '@/admin-lib/adminAuth';
 import * as Sentry from '@sentry/nextjs';
 import { incrementErrorCounter } from '@/admin-lib/incrementErrorCounter';
@@ -245,8 +245,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 
       // Get target's recent sessions (optional, nice-to-have)
       try {
-        const { getRedisAdminClient } = await import('@/admin-lib/redisAdmin');
-        const redis = getRedisAdminClient();
+        const { redis, ensureRedisConnection } = await import('@kovari/api');
+        await ensureRedisConnection();
 
         // Get clerk_user_id from users table
         const { data: userData } = await supabaseAdmin

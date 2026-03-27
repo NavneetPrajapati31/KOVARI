@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
+import { supabaseAdmin } from "@kovari/api";
 import { requireAdmin } from '@/admin-lib/adminAuth';
 import * as Sentry from '@sentry/nextjs';
 

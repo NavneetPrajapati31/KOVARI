@@ -1,0 +1,376 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
+import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
+import { Button } from "@/shared/components/ui/button";
+import { Card } from "@/shared/components/ui/card";
+import { Skeleton, Spinner } from "@heroui/react";
+import { Check, X, Clock, Users, Trash2, Loader2 } from "lucide-react";
+import { cn, formatRelativeTime } from "@kovari/utils";
+import * as Sentry from "@sentry/nextjs";
+
+interface ConnectionRequest {
+  id: string;
+  senderId: string;
+  name: string;
+  avatar: string;
+  mutualConnections: number;
+  location: string;
+  timestamp: string;
+  status: "pending" | "accepted" | "declined";
+}
+
+interface ApiInterest {
+  id: string;
+  sender: {
+    id: string;
+    name: string;
+    username: string;
+    avatar: string;
+    bio: string;
+    location?: string;
+    mutualConnections?: number;
+  };
+  destination: string;
+  sentAt: string;
+  status: string;
+}
+
+interface ConnectionRequestCardProps {
+  request: ConnectionRequest;
+  onAccept: (id: string) => Promise<void> | void;
+  onDecline: (id: string) => Promise<void> | void;
+  className?: string;
+}
+
+function ConnectionRequestCard({
+  request,
+  onAccept,
+  onDecline,
+  className,
+}: ConnectionRequestCardProps) {
+  const [loadingAction, setLoadingAction] = useState<
+    "accept" | "decline" | null
+  >(null);
+
+  return (
+    <Card
+      className={cn(
+        "flex flex-row items-center gap-x-2 px-4 bg-card text-foreground shadow-none border-none",
+        className
+      )}
+    >
+      {/* Avatar + Info: link to profile */}
+      <Link
+        href={`/profile/${request.senderId}`}
+        className="flex flex-1 min-w-0 items-center gap-x-2 cursor-pointer transition-colors rounded-md -m-1 p-1 hover:bg-muted/50"
+      >
+        <div className="flex-shrink-0">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={request.avatar} alt={request.name} />
+            <UserAvatarFallback className="" />
+          </Avatar>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col min-w-0">
+            <h3 className="font-semibold text-xs truncate">{request.name}</h3>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {request.location}
+            </p>
+          </div>
+        </div>
+      </Link>
+
+      {/* Action Buttons */}
+      <div className="flex items-center space-x-2 flex-shrink-0">
+        <Button
+          size="sm"
+          className="bg-primary text-primary-foreground text-xs h-7 px-3 rounded-lg whitespace-nowrap gap-2"
+          disabled={!!loadingAction}
+          onClick={async () => {
+            setLoadingAction("accept");
+            try {
+              await onAccept(request.id);
+            } catch (error) {
+              console.error("Error accepting request:", error);
+            } finally {
+              setTimeout(() => setLoadingAction(null), 1000);
+            }
+          }}
+        >
+          {loadingAction === "accept" && (
+            <Spinner
+              variant="spinner"
+              size="sm"
+              classNames={{ spinnerBars: "bg-primary-foreground" }}
+            />
+          )}
+          {!loadingAction && <span className="text-xs">Connect</span>}
+        </Button>
+
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 w-7 p-0 flex-shrink-0 rounded-lg"
+          disabled={!!loadingAction}
+          onClick={async () => {
+            setLoadingAction("decline");
+            try {
+              await onDecline(request.id);
+            } catch (error) {
+              console.error("Error declining request:", error);
+            } finally {
+              setTimeout(() => setLoadingAction(null), 1000);
+            }
+          }}
+        >
+          {loadingAction === "decline" ? (
+            <Spinner
+              variant="spinner"
+              size="sm"
+              classNames={{ spinnerBars: "bg-foreground" }}
+            />
+          ) : (
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+const REQUEST_SKELETON_ROW_COUNT = 7;
+
+/** Skeleton row matching ConnectionRequestCard: avatar, name + location, Connect + X buttons */
+function ConnectionRequestCardSkeletonRow() {
+  return (
+    <Card className="flex flex-row items-center gap-x-2 px-4 py-2 bg-card text-foreground shadow-none border-none">
+      <div className="flex-shrink-0">
+        <Skeleton className="h-10 w-10 rounded-full" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col min-w-0 space-y-1">
+          <Skeleton className="h-3.5 w-24 rounded" />
+          <Skeleton className="h-3 w-20 rounded" />
+        </div>
+      </div>
+      <div className="flex items-center space-x-2 flex-shrink-0">
+        <Skeleton className="h-7 w-16 rounded-md" />
+      </div>
+    </Card>
+  );
+}
+
+function MatchRequestsSkeleton() {
+  return (
+    <div className="flex flex-col" aria-hidden aria-busy>
+      {Array.from({ length: REQUEST_SKELETON_ROW_COUNT }).map((_, idx) => (
+        <div key={idx} className="border-b border-border last:border-none">
+          <ConnectionRequestCardSkeletonRow />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export const ConnectionRequestsCard = () => {
+  const [requests, setRequests] = useState<ConnectionRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchConnectionRequests();
+  }, []);
+
+  const fetchConnectionRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      await Sentry.startSpan(
+        {
+          op: "http.client",
+          name: "GET /api/interests",
+        },
+        async (span) => {
+          const response = await fetch("/api/interests");
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch connection requests");
+          }
+
+          const data: ApiInterest[] = await response.json();
+
+          // Transform API response to component format
+          const transformedRequests: ConnectionRequest[] = data.map(
+            (interest) => {
+              // Normalize status: "rejected" -> "declined"
+              let status: "pending" | "accepted" | "declined" = "pending";
+              if (interest.status === "accepted") {
+                status = "accepted";
+              } else if (
+                interest.status === "rejected" ||
+                interest.status === "declined"
+              ) {
+                status = "declined";
+              }
+
+              return {
+                id: interest.id,
+                senderId: interest.sender.id,
+                name: interest.sender.name,
+                avatar: interest.sender.avatar || "",
+                mutualConnections: interest.sender.mutualConnections || 0,
+                location: interest.sender.location || "Unknown Location",
+                timestamp: formatRelativeTime(interest.sentAt),
+                status,
+              };
+            }
+          );
+
+          setRequests(transformedRequests);
+          span.setAttribute("count", transformedRequests.length);
+        }
+      );
+    } catch (err: any) {
+      console.error("Error fetching connection requests:", err);
+      Sentry.captureException(err);
+      setError("Failed to load connection requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAccept = async (id: string): Promise<void> => {
+    try {
+      Sentry.startSpan(
+        {
+          op: "ui.click",
+          name: "Accept Connection Request",
+        },
+        async (span) => {
+          const response = await fetch("/api/interests/respond", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              interestId: id,
+              action: "accept",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to accept request");
+          }
+
+          // Remove the accepted request from the list
+          setRequests((prev) => prev.filter((req) => req.id !== id));
+          span.setAttribute("interestId", id);
+        }
+      );
+    } catch (err: any) {
+      console.error("Error accepting request:", err);
+      Sentry.captureException(err);
+      throw err; // Re-throw to let the card component handle it
+    }
+  };
+
+  const handleDecline = async (id: string): Promise<void> => {
+    try {
+      Sentry.startSpan(
+        {
+          op: "ui.click",
+          name: "Decline Connection Request",
+        },
+        async (span) => {
+          const response = await fetch("/api/interests/respond", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              interestId: id,
+              action: "decline",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to decline request");
+          }
+
+          // Remove the declined request from the list
+          setRequests((prev) => prev.filter((req) => req.id !== id));
+          span.setAttribute("interestId", id);
+        }
+      );
+    } catch (err: any) {
+      console.error("Error declining request:", err);
+      Sentry.captureException(err);
+      throw err; // Re-throw to let the card component handle it
+    }
+  };
+
+  const pendingRequests = requests.filter((req) => req.status === "pending");
+
+  return (
+    <div className="w-full bg-card border border-border rounded-xl h-full flex flex-col max-h-[85vh]">
+      <div className="mb-0 p-4 border-b border-border flex-shrink-0">
+        <h2 className="text-foreground font-medium text-xs truncate">
+          Interests
+        </h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {pendingRequests.length} pending interests
+        </p>
+      </div>
+
+      <div className="w-full mx-auto bg-transparent rounded-none shadow-none overflow-y-auto px-0 hide-scrollbar flex-1">
+        <div className="flex flex-col">
+          {loading ? (
+            <MatchRequestsSkeleton />
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-48 text-center">
+              {/* <Clock className="h-8 w-8 text-muted-foreground mb-2" /> */}
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={fetchConnectionRequests}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : pendingRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-center">
+              {/* <Clock className="h-8 w-8 text-muted-foreground mb-2" /> */}
+              <p className="text-xs text-muted-foreground">
+                No pending interests
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                New match interests will appear here
+              </p>
+            </div>
+          ) : (
+            pendingRequests.map((request) => (
+              <div
+                key={request.id}
+                className="border-b border-border last:border-none"
+              >
+                <ConnectionRequestCard
+                  request={request}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
+                  className="py-2"
+                />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+

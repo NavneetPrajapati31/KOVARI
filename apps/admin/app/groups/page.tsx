@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/admin-lib/adminAuth';
+import { supabaseAdmin } from '@kovari/api';
 import { AdminGroupsTable } from '../../components/AdminGroupsTable';
 
 interface Group {
@@ -22,7 +23,6 @@ async function getGroups(
   query?: string,
   flagged?: string,
 ): Promise<{ groups: Group[]; page: number; limit: number }> {
-  const { supabaseAdmin } = await import('@/admin-lib/supabaseAdmin');
 
   let base = supabaseAdmin
     .from('groups')

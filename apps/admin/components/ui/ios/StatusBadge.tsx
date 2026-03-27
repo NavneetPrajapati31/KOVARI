@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { cn } from "@/admin-lib/utils";
+import { cn } from "@kovari/utils";
 
 interface StatusBadgeProps {
   status: string;
@@ -47,3 +47,4 @@ export function StatusBadge({ status, className, showDot = true }: StatusBadgePr
     </div>
   );
 }
+

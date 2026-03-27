@@ -1,7 +1,6 @@
 // apps/admin/lib/cloudinaryEvidence.ts
 import { v2 as cloudinary } from 'cloudinary';
-import { uploadToCloudinary } from '@/lib/cloudinary';
-import { getOptimizedUrl } from '@/lib/cloudinary-client';
+import { uploadToCloudinary, getOptimizedUrl } from "@kovari/utils";
 
 // Configure Cloudinary (uses same config as main app)
 cloudinary.config({

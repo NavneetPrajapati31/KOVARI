@@ -1,4 +1,4 @@
-import { cn } from "@/admin-lib/utils"
+import { cn } from "@kovari/utils"
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -11,3 +11,4 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 export { Skeleton }
+

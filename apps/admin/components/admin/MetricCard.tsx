@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
-import { cn } from "@/admin-lib/utils";
+import { cn } from "@kovari/utils";
 
 interface MetricCardProps {
   title: string;
@@ -51,3 +51,4 @@ export function MetricCard({
     </Card>
   );
 }
+

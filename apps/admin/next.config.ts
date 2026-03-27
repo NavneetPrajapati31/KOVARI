@@ -11,6 +11,44 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  transpilePackages: ['@heroui/react', '@heroui/theme'],
+  webpack: (config, { isServer }) => {
+    // Fix broken internal requires in sib-api-v3-sdk (expects bare 'ApiClient', 'model', 'api')
+    const path = require('path');
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      ApiClient: path.resolve(__dirname, "../../node_modules/sib-api-v3-sdk/src/ApiClient"),
+      model: path.resolve(__dirname, "../../node_modules/sib-api-v3-sdk/src/model"),
+      api: path.resolve(__dirname, "../../node_modules/sib-api-v3-sdk/src/api"),
+    };
+
+    // Exclude sib-api-v3-sdk from client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+      // Mark sib-api-v3-sdk as external for client bundle
+      const originalExternals = config.externals || [];
+      config.externals = [
+        ...(Array.isArray(originalExternals)
+          ? originalExternals
+          : [originalExternals]),
+        ({ request }: { request?: string }, callback: (err?: Error | null, result?: string) => void) => {
+          if (
+            request === "sib-api-v3-sdk" ||
+            request?.startsWith("sib-api-v3-sdk/")
+          ) {
+            return callback(null, `commonjs ${request}`);
+          }
+          callback();
+        },
+      ];
+    }
+    return config;
+  },
 };
 
 export default withSentryConfig(nextConfig, {

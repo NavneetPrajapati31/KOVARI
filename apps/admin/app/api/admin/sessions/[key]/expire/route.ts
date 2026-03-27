@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/admin-lib/adminAuth";
-import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
+import { redis, ensureRedisConnection } from "@kovari/api";
 import { logAdminAction } from "@/admin-lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
@@ -28,7 +28,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const redis = getRedisAdminClient();
+    await ensureRedisConnection();
+    const exists = await redis.exists(key);
 
     // delete session itself
     await redis.del(sessionKey);

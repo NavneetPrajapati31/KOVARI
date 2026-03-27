@@ -1,6 +1,6 @@
 // apps/admin/app/api/admin/sessions/expire/route.ts
 import { NextResponse } from "next/server";
-import redis, { ensureRedisConnection } from "../../../../../lib/redisAdmin";
+import { redis, ensureRedisConnection } from "@kovari/api";
 import { requireAdmin } from "../../../../../lib/adminAuth";
 import { logAdminAction } from "../../../../../lib/logAdminAction";
 import * as Sentry from "@sentry/nextjs";

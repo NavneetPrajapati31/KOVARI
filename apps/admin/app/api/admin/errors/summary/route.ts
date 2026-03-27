@@ -1,7 +1,7 @@
 // apps/admin/app/api/admin/errors/summary/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/admin-lib/adminAuth";
-import { getRedisAdminClient } from "@/admin-lib/redisAdmin";
+import { redis } from "@kovari/api";
 import * as Sentry from "@sentry/nextjs";
 
 export async function GET(_req: NextRequest) {
@@ -11,8 +11,6 @@ export async function GET(_req: NextRequest) {
       id: adminId,
       email: email,
     });
-
-    const redis = getRedisAdminClient();
 
     // Get error count from Redis (24h rolling window)
     let errors24h = 0;
@@ -36,3 +34,4 @@ export async function GET(_req: NextRequest) {
     throw error;
   }
 }
+

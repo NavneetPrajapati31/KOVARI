@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { cn } from "@/admin-lib/utils";
+import { cn } from "@kovari/utils";
 import { ArrowDown } from "lucide-react";
 
 interface FunnelProps {
@@ -69,3 +69,4 @@ export function Funnel({ data }: FunnelProps) {
     </Card>
   );
 }
+

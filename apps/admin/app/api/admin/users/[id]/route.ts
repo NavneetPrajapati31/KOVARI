@@ -1,6 +1,6 @@
 // apps/admin/app/api/admin/users/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/admin-lib/supabaseAdmin";
+import { supabaseAdmin } from "@kovari/api";
 import { requireAdmin } from "@/admin-lib/adminAuth";
 import * as Sentry from "@sentry/nextjs";
 import { incrementErrorCounter } from "@/admin-lib/incrementErrorCounter";
@@ -86,8 +86,14 @@ export async function GET(req: NextRequest, { params }: Params) {
     // Fetch user sessions from Redis
     const sessions: unknown[] = [];
     try {
-      const { getRedisAdminClient } = await import("@/admin-lib/redisAdmin");
-      const redis = getRedisAdminClient();
+      const { redis, ensureRedisConnection } = await import("@kovari/api");
+      await ensureRedisConnection();
+      // Test Redis connection
+      try {
+        await redis.ping();
+      } catch (pingErr) {
+        console.error("Redis ping failed:", pingErr);
+      }
 
       // Try to find sessions for this user
       // Sessions might be stored as session:${clerk_user_id} or session:user:${user_id}

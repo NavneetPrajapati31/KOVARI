@@ -1,6 +1,5 @@
 import { requireAdminPage } from '@/admin-lib/adminAuth';
-import { supabaseAdmin } from '@/admin-lib/supabaseAdmin';
-import { getRedisAdminClient } from '@/admin-lib/redisAdmin';
+import { supabaseAdmin, redis } from '@kovari/api';
 import Link from 'next/link';
 import {
   Clock,
@@ -62,7 +61,6 @@ async function getMetrics(): Promise<Metrics> {
   }
 
   try {
-    const redis = getRedisAdminClient();
     if (!redis.isOpen) {
       await redis.connect();
     }
