@@ -401,7 +401,7 @@ export function AdminSearch() {
         </div>
       </PopoverAnchor>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] max-w-full p-0 rounded-2xl overflow-hidden border-border !shadow-none"
+        className="w-[var(--radix-popover-trigger-width)] max-w-full p-0 rounded-2xl overflow-hidden border-border !shadow-none mt-1"
         align="start"
         sideOffset={8}
         onOpenAutoFocus={(e) => e.preventDefault()}
@@ -411,11 +411,11 @@ export function AdminSearch() {
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : query.length < 2 ? (
-          <div className="p-4 text-sm text-muted-foreground text-center">
+          <div className="p-16 text-sm text-muted-foreground text-center">
             Type at least 2 characters to search
           </div>
         ) : deferredResults.length === 0 ? (
-          <div className="p-4 text-sm text-muted-foreground text-center">
+          <div className="p-16 text-sm text-muted-foreground text-center">
             No results found for &quot;{query}&quot;
           </div>
         ) : (

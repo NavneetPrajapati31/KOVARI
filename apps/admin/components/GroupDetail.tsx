@@ -55,13 +55,6 @@ interface Group {
   removed_at: string | null;
 }
 
-interface Organizer {
-  id: string;
-  name: string;
-  email: string;
-  verified: boolean;
-  profile_photo: string | null;
-}
 
 interface Flag {
   id: string;
@@ -87,8 +80,15 @@ interface AdminAction {
 
 interface GroupDetailProps {
   group: Group;
-  organizer: Organizer | null;
   membersCount: number;
+  members: Array<{
+    id: string;
+    user_id: string;
+    name: string;
+    email: string;
+    verified: boolean;
+    profile_photo: string | null;
+  }>;
   images: Array<{
     id: string;
     url: string;
@@ -103,8 +103,8 @@ interface GroupDetailProps {
 
 export function GroupDetail({
   group,
-  organizer,
   membersCount,
+  members,
   flags,
   adminActions,
   flagId,
@@ -167,167 +167,172 @@ export function GroupDetail({
   return (
     <div className="space-y-12 pb-20">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-
-      {/* Hero / Header Section */}
-      <section className="space-y-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
-          <div className="space-y-3">
-             <div className="flex items-center gap-3">
-                <h1 className="text-4xl font-bold tracking-tight">{group.name}</h1>
+      
+      {/* Main Content: Single Column Stack */}
+      <div className="space-y-8 max-w-full mx-auto mt-4">
+        {/* Header Identity Card */}
+        <section>
+          <GroupContainer className="shadow-none">
+            <ListRow 
+              icon={
+                group.cover_image ? (
+                 <div className="h-10 w-10 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
+                      <Avatar className="h-full w-full rounded-full">
+                        <AvatarImage 
+                          src={getThumbnailUrl(group.cover_image)} 
+                          alt={group.name} 
+                          className="object-cover" 
+                        />
+                        <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-xs font-semibold">
+                          {group.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <Users className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )
+              }
+              label={group.name}
+              secondary={
+                <div className="flex items-center gap-1 mt-0.5">
+                  <MapPin className="h-3 w-3" />
+                  {group.destination || "Flexible Destination"}
+                </div>
+              }
+              trailing={
                 <StatusBadge status={group.status} />
-             </div>
-             <div className="flex items-center gap-2 text-[17px] text-muted-foreground/80 font-medium">
-                <MapPin className="h-4 w-4" />
-                <span>{group.destination || "Flexible Destination"}</span>
-                <span className="mx-1 opacity-20">•</span>
-                <span>{membersCount} members</span>
-             </div>
-          </div>
-          
-          <div className="flex gap-3">
-            {group.status === 'pending' && (
+              }
+              onClick={() => {}}
+              showChevron={false}
+              className="hover:bg-card active:bg-card cursor-default"
+            />
+            
+            {/* Action Buttons Integrated into Header Card */}
+            <div className="border-none p-3 pt-4 flex gap-2">
               <Button 
-                onClick={() => setApproveDialogOpen(true)}
-                className="rounded-full bg-primary h-11 px-8 font-bold ios-shadow"
+                variant="outline" 
+                onClick={() => setWarnDialogOpen(true)}
+                className="flex-1 rounded-xl !h-9 text-sm"
               >
-                Approve Group
+                Issue Warning
               </Button>
-            )}
-            <Button 
-              variant="outline" 
-              onClick={() => setWarnDialogOpen(true)}
-              className="rounded-full h-11 px-6 font-bold border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300"
-            >
-              Issue Warning
-            </Button>
-            {group.status !== 'removed' && (
-              <Button 
-                variant="destructive" 
-                onClick={() => setRemoveDialogOpen(true)}
-                className="rounded-full h-11 px-6 font-bold"
-              >
-                Remove Group
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {group.cover_image && (
-          <div className="px-1">
-            <div className="h-64 md:h-80 w-full rounded-2xl overflow-hidden shadow-sm border border-border/10">
-              <img 
-                src={getThumbnailUrl(group.cover_image)} 
-                alt="Group Cover" 
-                className="h-full w-full object-cover"
-              />
+              
+              {group.status === 'pending' ? (
+                <Button 
+                  onClick={() => setApproveDialogOpen(true)}
+                  className="flex-1 rounded-xl !h-9 text-sm"
+                >
+                  Approve Group
+                </Button>
+              ) : group.status !== 'removed' ? (
+                <Button 
+                  onClick={() => setRemoveDialogOpen(true)}
+                  className="flex-1 rounded-xl !h-9 text-sm"
+                >
+                  Dismantle
+                </Button>
+              ) : null}
             </div>
-          </div>
-        )}
-      </section>
+          </GroupContainer>
+        </section>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        <div className="lg:col-span-8 space-y-12">
           {/* Detailed Info */}
           <section>
             <SectionHeader>Group Details</SectionHeader>
             <GroupContainer>
               <ListRow 
-                icon={<Info className="h-5 w-5 text-blue-500" />}
+                icon={<Info className="h-5 w-5 text-muted-foreground" />}
                 label="Description"
                 secondary={group.description || "No description provided."}
                 showChevron={false}
               />
               <ListRow 
-                icon={<Calendar className="h-5 w-5 text-muted-foreground/40" />}
+                icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
                 label="Timeline"
                 secondary={`${formatDate(group.start_date)} — ${formatDate(group.end_date)}`}
                 showChevron={false}
               />
               <ListRow 
-                icon={<Wallet className="h-5 w-5 text-muted-foreground/40" />}
+                icon={<Wallet className="h-5 w-5 text-muted-foreground" />}
                 label="Budget Est."
                 secondary={`₹${group.budget.toLocaleString()} per person`}
                 showChevron={false}
               />
               <ListRow 
-                icon={<Info className="h-5 w-5 text-muted-foreground/40" />}
+                icon={<Users className="h-5 w-5 text-muted-foreground" />}
                 label="Visibility"
                 secondary={group.is_public ? "Public Group (Visible in search)" : "Private Group (Invite only)"}
                 showChevron={false}
               />
-            </GroupContainer>
-          </section>
-
-          {/* Organizer */}
-          <section>
-            <SectionHeader>Organizer</SectionHeader>
-            <GroupContainer>
-              {organizer ? (
-                <ListRow 
-                  onClick={() => router.push(`/users/${organizer.id}`)}
-                  icon={
-                    <div className="h-8 w-8 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
-                      <Avatar className="h-full w-full rounded-full">
-                        <AvatarImage 
-                          src={organizer.profile_photo ? getThumbnailUrl(organizer.profile_photo) : ""} 
-                          alt={organizer.name} 
-                          className="object-cover" 
-                        />
-                        <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
-                          {organizer.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  }
-                  label={organizer.name}
-                  secondary={organizer.email}
-                  trailing={
-                    organizer.verified && (
-                      <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest px-2 py-0.5 bg-green-50 rounded border border-green-100">
-                        Verified
-                      </span>
-                    )
-                  }
-                />
-              ) : (
-                <ListRow 
-                  label="No Organizer"
-                  secondary="System or deleted user"
-                  showChevron={false}
-                />
-              )}
-            </GroupContainer>
-          </section>
-
-          {/* Preferences */}
-          <section>
-            <SectionHeader>Vibe & Preferences</SectionHeader>
-            <GroupContainer>
-               <ListRow 
-                icon={<Globe className="h-5 w-5 text-muted-foreground/40" />}
+              <ListRow 
+                icon={<Globe className="h-5 w-5 text-muted-foreground" />}
                 label="Primary Languages"
                 secondary={group.dominant_languages?.join(", ") || "No preference"}
                 showChevron={false}
               />
                <ListRow 
-                icon={<Heart className="h-5 w-5 text-muted-foreground/40" />}
-                label="Interests"
-                secondary={group.top_interests?.join(", ") || "No specific tags"}
-                showChevron={false}
-              />
-               <ListRow 
+                icon={<Heart className="h-5 w-5 text-muted-foreground" />}
                 label="Lifestyle Rules"
                 secondary={
-                  <div className="flex gap-3 mt-1">
-                    <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded border", group.non_smokers ? "bg-green-50 text-green-600 border-green-100" : "bg-muted text-muted-foreground opacity-40 border-transparent")}>Non-Smoking</span>
-                    <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded border", group.non_drinkers ? "bg-green-50 text-green-600 border-green-100" : "bg-muted text-muted-foreground opacity-40 border-transparent")}>Non-Drinking</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={"text-muted-foreground"}>
+                      {group.non_smokers ? "Non-Smoking," : "Smoking Allowed,"}
+                    </span>
+                    <span className={"text-muted-foreground"}>
+                      {group.non_drinkers ? "Non-Drinking" : "Drinking Allowed"}
+                    </span>
                   </div>
                 }
                 showChevron={false}
               />
             </GroupContainer>
           </section>
+
+          {/* Members */}
+          {members.length > 0 && (
+            <section>
+              <SectionHeader>Members</SectionHeader>
+              <GroupContainer>
+                {members.map((member) => (
+                  <ListRow 
+                    key={member.id}
+                    onClick={() => router.push(`/users/${member.id}`)}
+                    icon={
+                      <div className="h-10 w-10 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
+                        <Avatar className="h-full w-full rounded-full">
+                          <AvatarImage 
+                            src={member.profile_photo ? getThumbnailUrl(member.profile_photo) : ""} 
+                            alt={member.name} 
+                            className="object-cover" 
+                          />
+                          <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-xs font-semibold">
+                            {member.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                    }
+                    label={member.name}
+                    secondary={member.email}
+                    trailing={
+                      <div className="flex items-center gap-4">
+                        {member.user_id === group.creator_id && (
+                          <div className="flex items-center gap-1.5 min-w-fit">
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            <span className="text-sm font-medium text-primary">
+                              Admin
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    }
+                    showChevron={false}
+                  />
+                ))}
+              </GroupContainer>
+            </section>
+          )}
 
           {/* Removal Info (Conditional) */}
           {group.status === 'removed' && (
@@ -348,9 +353,7 @@ export function GroupDetail({
                </GroupContainer>
             </section>
           )}
-        </div>
 
-        <div className="lg:col-span-4 space-y-12">
           {/* Flags Section */}
           {flags.length > 0 && (
             <section>
@@ -377,21 +380,16 @@ export function GroupDetail({
             <SectionHeader>Admin Timeline</SectionHeader>
             <GroupContainer>
                {adminActions.length === 0 ? (
-                 <div className="py-8 text-center text-[13px] text-muted-foreground/40 font-medium italic">No previous actions recorded</div>
+                 <div className="py-20 text-center text-sm text-muted-foreground font-medium italic">No previous actions recorded</div>
                ) : (
                  adminActions.map((action) => (
                    <ListRow 
                     key={action.id}
-                    icon={<History className="h-5 w-5 text-muted-foreground/30" />}
+                    icon={<History className="h-5 w-5 text-muted-foreground" />}
                     label={action.action}
                     secondary={
                       <div className="space-y-1">
                         <div>{action.reason}</div>
-                        <div className="flex items-center gap-1.5 text-[11px] opacity-40 font-bold">
-                           <span>BY {action.admins?.email?.split('@')[0].toUpperCase()}</span>
-                           <span>•</span>
-                           <span>{formatDateTime(action.created_at)}</span>
-                        </div>
                       </div>
                     }
                     showChevron={false}
@@ -400,8 +398,8 @@ export function GroupDetail({
                )}
             </GroupContainer>
           </section>
-        </div>
       </div>
+
 
       {/* Confirmation Dialogs */}
       <ConfirmDialog
@@ -423,12 +421,12 @@ export function GroupDetail({
         validate={() => warnReason.trim().length > 0}
       >
         <div className="space-y-4 mt-4">
-          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Internal Reason</label>
+          <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Internal Reason</label>
           <textarea
             value={warnReason}
             onChange={(e) => setWarnReason(e.target.value)}
             placeholder="What exactly needs to be corrected?"
-            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-[15px] focus:ring-1 ring-primary/20 transition-all outline-none"
+            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-sm focus:ring-1 ring-primary/20 transition-all outline-none"
             required
           />
         </div>
@@ -445,12 +443,12 @@ export function GroupDetail({
         validate={() => removeReason.trim().length > 0}
       >
         <div className="space-y-4 mt-4">
-          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 ml-1">Removal Reason (Public)</label>
+          <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Removal Reason (Public)</label>
           <textarea
             value={removeReason}
             onChange={(e) => setRemoveReason(e.target.value)}
             placeholder="Provide a reason for the members..."
-            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-[15px] focus:ring-1 ring-primary/20 transition-all outline-none"
+            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-sm focus:ring-1 ring-primary/20 transition-all outline-none"
             required
           />
         </div>

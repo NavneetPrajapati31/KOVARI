@@ -32,13 +32,14 @@ interface GroupData {
     removed_reason: string | null;
     removed_at: string | null;
   };
-  organizer: {
+  members: Array<{
     id: string;
+    user_id: string;
     name: string;
     email: string;
     verified: boolean;
     profile_photo: string | null;
-  } | null;
+  }>;
   members_count: number;
   images: Array<{
     id: string;
@@ -145,16 +146,33 @@ async function getGroupDetail(id: string): Promise<GroupData | null> {
       }
     }
 
-    // Get members count (actual count from group_memberships)
-    const { count: membersCount, error: membersCountError } =
-      await supabaseAdmin
-        .from("group_memberships")
-        .select("*", { count: "exact", head: true })
-        .eq("group_id", groupId)
-        .eq("status", "accepted");
+    // Get all accepted member user IDs
+    const { data: membershipData, error: membershipError, count: membersCount } = await supabaseAdmin
+      .from("group_memberships")
+      .select("user_id", { count: "exact" })
+      .eq("group_id", groupId)
+      .eq("status", "accepted");
 
-    if (membersCountError) {
-      console.error("Error fetching members count:", membersCountError);
+    if (membershipError) {
+      console.error("Error fetching memberships:", membershipError);
+    }
+
+    let members: any[] = [];
+    if (membershipData && membershipData.length > 0) {
+      const userIds = membershipData.map((m: { user_id: string }) => m.user_id);
+      
+      if (userIds.length > 0) {
+        const { data: profileData, error: profileError } = await supabaseAdmin
+          .from("profiles")
+          .select("id, user_id, name, email, verified, profile_photo")
+          .in("user_id", userIds);
+
+        if (profileError) {
+          console.error("Error fetching member profiles:", profileError);
+        } else {
+          members = profileData || [];
+        }
+      }
     }
 
     // Get uploaded images from group_media table
@@ -288,7 +306,7 @@ async function getGroupDetail(id: string): Promise<GroupData | null> {
         removed_reason: group.removed_reason,
         removed_at: group.removed_at,
       },
-      organizer,
+      members,
       members_count: membersCount || group.members_count || 0,
       images,
       flags: flags || [],
@@ -318,11 +336,11 @@ export default async function GroupDetailPage({
   }
   
   return (
-    <div className="max-w-6xl mx-auto p-6 lg:p-10 space-y-8">
-      <div>
+    <div className="max-w-full space-y-6">
+      <div className="px-1">
         <Link
           href="/groups"
-          className="inline-flex items-center gap-2 text-[15px] font-semibold text-muted-foreground/60 hover:text-primary transition-colors mb-2"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-all group"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to Groups
@@ -331,8 +349,8 @@ export default async function GroupDetailPage({
 
       <GroupDetail
         group={groupData.group}
-        organizer={groupData.organizer}
         membersCount={groupData.members_count}
+        members={groupData.members}
         images={groupData.images}
         flags={groupData.flags}
         adminActions={groupData.admin_actions}
