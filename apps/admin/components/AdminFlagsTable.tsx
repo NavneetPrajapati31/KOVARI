@@ -140,7 +140,7 @@ export function AdminFlagsTable({
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
-                <SelectItem value="all">Everything</SelectItem>
+                <SelectItem value="all">All</SelectItem>
                 <SelectItem value="user">User Reports</SelectItem>
                 <SelectItem value="group">Group Reports</SelectItem>
               </SelectContent>
@@ -226,7 +226,7 @@ export function AdminFlagsTable({
               size="sm" 
               onClick={() => handlePageChange(page - 1)} 
               disabled={page === 1}
-              className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-30 cursor-pointer"
+              className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-50 cursor-pointer"
             >
               Previous
             </Button>
@@ -235,7 +235,7 @@ export function AdminFlagsTable({
               size="sm" 
               onClick={() => handlePageChange(page + 1)} 
               disabled={flags.length < initialLimit}
-              className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-30 cursor-pointer"
+              className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-50 cursor-pointer"
             >
               Next
             </Button>

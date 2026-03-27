@@ -22,7 +22,7 @@ export function StatusBadge({ status, className, showDot = true }: StatusBadgePr
     active: { dot: "bg-green-500", text: "text-green-600" },
     expired: { dot: "bg-muted-foreground/50", text: "text-muted-foreground" },
     suspended: { dot: "bg-red-500", text: "text-red-500" },
-    banned: { dot: "bg-red-600", text: "text-red-700" },
+    banned: { dot: "bg-red-500", text: "text-red-500" },
     deleted: { dot: "bg-muted-foreground/50", text: "text-muted-foreground" },
     removed: { dot: "bg-red-500", text: "text-red-500" },
   };

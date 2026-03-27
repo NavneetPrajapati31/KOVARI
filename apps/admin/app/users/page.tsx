@@ -7,6 +7,7 @@ interface User {
   id: string;
   user_id: string;
   name: string | null;
+  username: string | null;
   email: string;
   profile_photo?: string;
   verified: boolean;
@@ -23,7 +24,8 @@ interface User {
 async function getUsers(
   page: number = 1,
   limit: number = 20,
-  query?: string
+  query?: string,
+  status?: string
 ): Promise<{ users: User[]; page: number; limit: number }> {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
@@ -33,6 +35,7 @@ async function getUsers(
       id,
       user_id,
       name,
+      username,
       email,
       age,
       gender,
@@ -43,7 +46,7 @@ async function getUsers(
       drinking,
       profile_photo,
       created_at,
-      users!profiles_user_id_fkey(
+      users${status && status !== 'deleted' ? '!inner' : ''}!profiles_user_id_fkey(
         banned,
         ban_reason,
         ban_expires_at
@@ -52,7 +55,17 @@ async function getUsers(
   );
 
   if (query) {
-    base = base.ilike("name", `%${query}%`);
+    base = base.or(`name.ilike.%${query}%,username.ilike.%${query}%`);
+  }
+
+  if (status === "active") {
+    base = base.eq("deleted", false).filter("users.banned", "eq", false);
+  } else if (status === "deleted") {
+    base = base.eq("deleted", true);
+  } else if (status === "banned") {
+    base = base.filter("users.banned", "eq", true).filter("users.ban_expires_at", "is", null);
+  } else if (status === "suspended") {
+    base = base.filter("users.banned", "eq", true).filter("users.ban_expires_at", "gt", new Date().toISOString());
   }
 
   const { data, error } = await base.range(from, to);
@@ -100,7 +113,7 @@ async function getUsers(
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; query?: string }>;
+  searchParams: Promise<{ page?: string; query?: string; status?: string }>;
 }) {
   await requireAdmin();
 
@@ -111,8 +124,9 @@ export default async function UsersPage({
   const page = Number(params.page) || 1;
   const limit = 20;
   const query = params.query || "";
+  const status = params.status || "";
 
-  const { users, page: currentPage } = await getUsers(page, limit, query);
+  const { users, page: currentPage } = await getUsers(page, limit, query, status);
 
   return (
     <div className="max-w-full mx-auto space-y-8">
@@ -128,6 +142,7 @@ export default async function UsersPage({
         initialPage={currentPage}
         initialLimit={limit}
         initialQuery={query}
+        initialStatus={status}
       />
     </div>
   );

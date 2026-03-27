@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { cn } from "../lib/utils";
+import { Label } from "./ui/label";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -123,17 +124,19 @@ export function ConfirmDialog({
           {children}
           
           {requireTypedConfirmation && (
-            <div className="mt-4 space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <div className="space-y-4 mt-4">
+            <div className="flex flex-col gap-2">
+              <Label className="inline-block">
                 Type <strong>{requireTypedConfirmation.text}</strong> to confirm:
-              </label>
+              </Label>
               <Input
                 value={typedText}
                 onChange={(e) => setTypedText(e.target.value)}
                 placeholder={requireTypedConfirmation.placeholder}
-                className="w-full"
+                className="mt-1 rounded-lg"
                 autoComplete="off"
               />
+            </div>
             </div>
           )}
         </div>

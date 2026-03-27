@@ -2,27 +2,34 @@ import { requireAdmin } from "@/admin-lib/adminAuth";
 import { supabaseAdmin } from "@kovari/api";
 import { revokeExpiredSuspensionForUser } from "@/admin-lib/revokeExpiredSuspensions";
 import { UserDetail } from "@/components/UserDetail";
-import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 interface UserProfile {
   id: string;
   user_id: string;
   name: string | null;
+  username: string;
   email: string;
+  number?: string;
   age: number;
+  birthday?: string;
   gender: string;
   nationality: string;
   bio?: string;
+  job?: string;
+  location?: string;
+  religion?: string;
+  smoking?: string;
+  drinking?: string;
+  personality?: string;
+  food_preference?: string;
   languages?: string[];
+  interests?: string[];
   profile_photo?: string;
   verified: boolean;
   deleted?: boolean;
-  smoking?: string;
-  drinking?: string;
-  religion?: string;
-  personality?: string;
-  interests?: string[];
   users?: {
     banned: boolean;
     ban_reason?: string;
@@ -62,20 +69,26 @@ async function getUserDetail(id: string): Promise<{
       id,
       user_id,
       name,
+      username,
       email,
+      number,
       age,
+      birthday,
       gender,
       nationality,
       bio,
+      job,
+      location,
+      religion,
+      smoking,
+      drinking,
+      personality,
+      food_preference,
       languages,
+      interests,
       profile_photo,
       verified,
       deleted,
-      smoking,
-      drinking,
-      religion,
-      personality,
-      interests,
       users!profiles_user_id_fkey(
         banned,
         ban_reason,
@@ -249,12 +262,15 @@ async function getAdminNotes(id: string): Promise<{ notes: AdminNote[] }> {
 
 export default async function UserDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ flagId?: string }>;
 }) {
   await requireAdmin();
 
   const { id } = await params;
+  const { flagId } = await searchParams;
   const [userData, notesData] = await Promise.all([
     getUserDetail(id),
     getAdminNotes(id),
@@ -265,13 +281,14 @@ export default async function UserDetailPage({
   }
 
   return (
-    <main className="p-8 space-y-6">
-      <div>
+    <div className="max-w-full space-y-6">
+      <div className="">
         <Link
           href="/users"
-          className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-all group"
         >
-          ← Back to Users
+          <ChevronLeft className="h-4 w-4" />
+          Back to Users
         </Link>
       </div>
 
@@ -280,7 +297,8 @@ export default async function UserDetailPage({
         flags={userData.flags || []}
         sessions={userData.sessions || []}
         notes={notesData.notes}
+        flagId={flagId}
       />
-    </main>
+    </div>
   );
 }

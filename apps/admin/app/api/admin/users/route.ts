@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const query = (searchParams.get("query") || "").trim();
+    const status = searchParams.get("status") || "";
     const page = Number(searchParams.get("page") || "1");
     const limit = Number(searchParams.get("limit") || "20");
     const from = (page - 1) * limit;
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
         id,
         user_id,
         name,
+        username,
         email,
         age,
         gender,
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest) {
         drinking,
         profile_photo,
         created_at,
-        users!profiles_user_id_fkey(
+        users${status && status !== 'deleted' ? '!inner' : ''}!profiles_user_id_fkey(
           banned,
           ban_reason,
           ban_expires_at
@@ -52,7 +54,17 @@ export async function GET(req: NextRequest) {
     );
 
     if (query) {
-      base = base.ilike("name", `%${query}%`);
+      base = base.or(`name.ilike.%${query}%,username.ilike.%${query}%`);
+    }
+
+    if (status === "active") {
+      base = base.eq("deleted", false).filter("users.banned", "eq", false);
+    } else if (status === "deleted") {
+      base = base.eq("deleted", true);
+    } else if (status === "banned") {
+      base = base.filter("users.banned", "eq", true).filter("users.ban_expires_at", "is", null);
+    } else if (status === "suspended") {
+      base = base.filter("users.banned", "eq", true).filter("users.ban_expires_at", "gt", new Date().toISOString());
     }
 
     const { data, error } = await base.range(from, to);

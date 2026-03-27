@@ -15,36 +15,48 @@ import { SectionHeader } from "./ui/ios/SectionHeader";
 import { StatusBadge } from "./ui/ios/StatusBadge";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { 
-  ShieldCheck, 
-  ShieldAlert, 
-  MessageSquare, 
-  History, 
-  Info, 
-  UserX,
-  UserCheck,
   Ban,
   AlertTriangle,
-  FileText
+  FileText,
+  MapPin,
+  Calendar,
+  CheckCircle2,
+  Mail,
+  User as UserIcon,
+  MessageSquare,
+  History as HistoryIcon,
+  Info,
+  ShieldCheck,
+  ShieldAlert,
+  ChevronDown,
+  History,
 } from "lucide-react";
+import { Textarea } from "./ui/textarea";
 
 interface UserProfile {
   id: string;
   user_id: string;
   name: string | null;
+  username: string;
   email: string;
+  number?: string;
   age: number;
+  birthday?: string;
   gender: string;
   nationality: string;
   bio?: string;
+  job?: string;
+  location?: string;
+  religion?: string;
+  smoking?: string;
+  drinking?: string;
+  personality?: string;
+  food_preference?: string;
   languages?: string[];
+  interests?: string[];
   profile_photo?: string;
   verified: boolean;
   deleted?: boolean;
-  smoking?: string;
-  drinking?: string;
-  religion?: string;
-  personality?: string;
-  interests?: string[];
   users?: {
     banned: boolean;
     ban_reason?: string;
@@ -74,6 +86,7 @@ interface UserDetailProps {
   flags: Flag[];
   sessions: Array<{ key: string; data: unknown }>;
   notes: AdminNote[];
+  flagId?: string;
 }
 
 export function UserDetail({
@@ -81,10 +94,11 @@ export function UserDetail({
   flags: initialFlags,
   sessions: initialSessions,
   notes: initialNotes,
+  flagId: propFlagId,
 }: UserDetailProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const flagId = searchParams.get("flagId");
+  const flagId = propFlagId || searchParams.get("flagId");
   const { toasts, toast, removeToast } = useToast();
   const [profile, setProfile] = React.useState(initialProfile);
   const [flags, setFlags] = React.useState(initialFlags);
@@ -113,7 +127,7 @@ export function UserDetail({
   }, [initialProfile, initialFlags, initialNotes]);
 
   const [actionState, setActionState] = React.useState<{
-    type: "suspend" | "ban" | "warn" | null;
+    type: "suspend" | "ban" | "warn" | "note" | null;
     open: boolean;
   }>({ type: null, open: false });
 
@@ -121,7 +135,14 @@ export function UserDetail({
   const [banForm, setBanForm] = React.useState({ reason: "" });
   const [warnForm, setWarnForm] = React.useState({ reason: "" });
   const [noteForm, setNoteForm] = React.useState({ note: "" });
-  const [showNoteForm, setShowNoteForm] = React.useState(false);
+  const [expandedNotes, setExpandedNotes] = React.useState<Set<string>>(new Set());
+
+  const toggleNoteExpansion = (id: string) => {
+    const next = new Set(expandedNotes);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setExpandedNotes(next);
+  };
 
   const handleAction = async (
     action: "verify" | "ban" | "suspend" | "unban" | "warn",
@@ -204,7 +225,7 @@ export function UserDetail({
       }
 
       setNoteForm({ note: "" });
-      setShowNoteForm(false);
+      setActionState({ type: null, open: false });
     } catch (error) {
       toast({
         title: "Error",
@@ -220,134 +241,129 @@ export function UserDetail({
   const isSuspended = isBanned && !!profile.users?.ban_expires_at;
 
   return (
-    <>
+    <div className="space-y-8 pb-12">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <div className="space-y-10 pb-20">
-        {/* Profile Header Block */}
-        <div className="flex flex-col md:flex-row items-start gap-8 px-2">
-          <div className={cn("h-32 w-32 rounded-[24px] overflow-hidden border-none shadow-sm flex-shrink-0", profile.deleted && "opacity-50")}>
-            <Avatar className="h-full w-full rounded-[24px]">
-              <AvatarImage 
-                src={profile.profile_photo ? getFullImageUrl(profile.profile_photo) : ""} 
-                alt={profile.name || "?"} 
-                className="object-cover" 
-              />
-              <AvatarFallback className="rounded-[24px] bg-muted text-muted-foreground text-2xl font-bold">
-                {profile.name?.substring(0, 2).toUpperCase() || "?"}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          <div className="flex-1 pt-2 space-y-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight">{profile.name || "Unknown User"}</h1>
-                {profile.verified && <ShieldCheck className="h-6 w-6 text-blue-500" />}
-              </div>
-              <p className="text-[17px] text-muted-foreground/80 font-medium">{profile.email}</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {isBanned && (
-                  <StatusBadge status={isSuspended ? "Suspended" : "Banned"} />
-                )}
-                {profile.deleted && (
-                  <StatusBadge status="Deleted" />
-                )}
-                {!isBanned && !profile.deleted && (
-                  <StatusBadge status="Active" />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Main Info Columns */}
-          <div className="lg:col-span-12 space-y-10">
-            
-            {/* Quick Actions Row */}
-            <section>
-              <SectionHeader>Account Management</SectionHeader>
-              <GroupContainer>
-                {!profile.verified && (
-                  <ListRow
-                    icon={<ShieldCheck className="h-5 w-5 text-blue-500" />}
-                    label="Verify Account"
-                    secondary="Mark user as officially verified"
-                    onClick={() => handleAction("verify")}
-                  />
-                )}
-                {!isBanned && (
-                  <>
-                    <ListRow
-                      icon={<AlertTriangle className="h-5 w-5 text-yellow-500" />}
-                      label="Issue Warning"
-                      secondary="Log a warning and notify user via email"
-                      onClick={() => setActionState({ type: "warn", open: true })}
+      {/* Identity Card Section */}
+      <section className="space-y-8 max-w-full mx-auto mt-4">
+        <GroupContainer className="shadow-none">
+          <ListRow 
+            icon={
+              profile.profile_photo ? (
+                <div className="h-10 w-10 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
+                  <Avatar className="h-full w-full rounded-full">
+                    <AvatarImage 
+                      src={getFullImageUrl(profile.profile_photo)} 
+                      alt={profile.name || "?"} 
+                      className="object-cover" 
                     />
-                    <ListRow
-                      icon={<ShieldAlert className="h-5 w-5 text-orange-500" />}
-                      label="Suspend User"
-                      secondary="Temporary ban with expiration date"
-                      onClick={() => setActionState({ type: "suspend", open: true })}
-                    />
-                    <ListRow
-                      icon={<Ban className="h-5 w-5 text-red-500" />}
-                      label="Permanent Ban"
-                      secondary="Restrict access to the platform permanently"
-                      onClick={() => setActionState({ type: "ban", open: true })}
-                    />
-                  </>
-                )}
-                {isBanned && (
-                  <ListRow
-                    icon={<UserCheck className="h-5 w-5 text-green-500" />}
-                    label={isSuspended ? "Revoke Suspension" : "Unban User"}
-                    secondary="Restore user access immediately"
-                    onClick={() => handleAction("unban")}
-                  />
-                )}
-                <ListRow
-                  icon={<MessageSquare className="h-5 w-5 text-muted-foreground" />}
-                  label="Internal Note"
-                  secondary="Add private moderation log"
-                  onClick={() => setShowNoteForm(!showNoteForm)}
-                />
-              </GroupContainer>
-            </section>
-
-            {/* Note Entry Form */}
-            {showNoteForm && (
-              <section className="px-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="rounded-2xl border bg-card/10 p-5 space-y-4">
-                  <Label htmlFor="note" className="text-sm font-semibold opacity-60">Admin Internal Note</Label>
-                  <textarea
-                    id="note"
-                    value={noteForm.note}
-                    onChange={(e) => setNoteForm({ note: e.target.value })}
-                    placeholder="Enter private note about this user..."
-                    className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-[15px] focus:ring-1 ring-primary/20 transition-all outline-none"
-                  />
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button variant="ghost" className="rounded-full px-6" onClick={() => setShowNoteForm(false)}>Cancel</Button>
-                    <Button className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleAddNote} disabled={!noteForm.note.trim() || isLoading}>
-                      Save Note
-                    </Button>
-                  </div>
+                    <AvatarFallback className="rounded-full bg-secondary text-gray-500 text-xs font-semibold">
+                      {profile.name?.substring(0, 2).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
-              </section>
-            )}
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0 border">
+                  <UserIcon className="h-4 w-4 text-gray-500" />
+                </div>
+              )
+            }
+            label={profile.name || "Unknown User"}
+            secondary={
+              <div className="flex items-center gap-1 mt-0.5">
+                {profile.email}
+              </div>
+            }
+            trailing={
+              <div className="flex items-center gap-4 hidden md:flex">
+                <div>
+                  <StatusBadge status={isBanned ? (isSuspended ? "Suspended" : "Banned") : (profile.deleted ? "Deleted" : "Active")} />
+                </div>
+              </div>
+            }
+            showChevron={false}
+            className="hover:bg-card active:bg-card cursor-default"
+          />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          {/* Mobile Actions Block */}
+          <div className="border-none p-3 pt-4 pb-4 w-full flex flex-col md:flex-row items-stretch md:items-center gap-2 overflow-x-auto no-scrollbar">
+            {!profile.verified && (
+              <Button
+                variant="outline" 
+                onClick={() => handleAction("verify")}
+                className="w-full md:flex-1 rounded-lg !h-9 shadow-none"
+              >
+                Verify
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setActionState({ type: "note", open: true })}
+              className={cn("w-full md:flex-1 rounded-lg !h-9 shadow-none", actionState.type === "note" && "bg-secondary")}
+            >
+              Add Note
+            </Button>
+            {!isBanned && (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setActionState({ type: "warn", open: true })}
+                  className="w-full md:flex-1 rounded-lg !h-9 shadow-none"
+                >
+                  Warn
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setActionState({ type: "suspend", open: true })}
+                  className="w-full md:flex-1 rounded-lg !h-9 shadow-none"
+                >
+                  Suspend
+                </Button>
+                <Button
+                  onClick={() => setActionState({ type: "ban", open: true })}
+                  className="w-full md:flex-1 rounded-lg !h-9 shadow-none"
+                >
+                  Ban
+                </Button>
+              </>
+            )}
+            {isBanned && (
+              <Button 
+                variant="outline" 
+                onClick={() => handleAction("unban")}
+                className="w-full md:flex-1 rounded-lg !h-9 shadow-none"
+              >
+                {isSuspended ? "Unsuspend" : "Unban"}
+              </Button>
+            )}
+          </div>
+        </GroupContainer>
+      </section>
+
+      <div className="space-y-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-12 space-y-10">
+
+            <div className="grid grid-cols-1 gap-10">
               {/* Profile Details */}
               <section>
                 <SectionHeader>Personal Details</SectionHeader>
                 <GroupContainer>
-                  <ListRow label="Age" trailing={<span className="font-medium text-[15px]">{profile.age}</span>} showChevron={false} />
-                  <ListRow label="Gender" trailing={<span className="font-medium text-[15px]">{profile.gender}</span>} showChevron={false} />
-                  <ListRow label="Nationality" trailing={<span className="font-medium text-[15px]">{profile.nationality}</span>} showChevron={false} />
-                  {profile.religion && <ListRow label="Religion" trailing={<span className="font-medium text-[15px]">{profile.religion}</span>} showChevron={false} />}
-                  {profile.smoking && <ListRow label="Smoking" trailing={<span className="font-medium text-[15px]">{profile.smoking}</span>} showChevron={false} />}
-                  {profile.drinking && <ListRow label="Drinking" trailing={<span className="font-medium text-[15px]">{profile.drinking}</span>} showChevron={false} />}
+                  <ListRow 
+                    label="Account Status"
+                    trailing={<StatusBadge status={isBanned ? (isSuspended ? "Suspended" : "Banned") : (profile.deleted ? "Deleted" : "Active")} />}
+                    showChevron={false}
+                    className="flex md:hidden" 
+                  />
+                  <ListRow label="Username" trailing={<span className="font-medium text-sm">@{profile.username}</span>} showChevron={false} />
+                  {profile.birthday && <ListRow label="Birthday" trailing={<span className="font-medium text-sm">{new Date(profile.birthday).toLocaleDateString()}</span>} showChevron={false} />}
+                  <ListRow label="Age" trailing={<span className="font-medium text-sm">{profile.age}</span>} showChevron={false} />
+                  <ListRow label="Gender" trailing={<span className="font-medium text-sm">{profile.gender}</span>} showChevron={false} />
+                  <ListRow label="Nationality" trailing={<span className="font-medium text-sm">{profile.nationality}</span>} showChevron={false} />
+                  {profile.job && <ListRow label="Occupation" trailing={<span className="font-medium text-sm">{profile.job}</span>} showChevron={false} />}
+                  {profile.religion && <ListRow label="Religion" trailing={<span className="font-medium text-sm">{profile.religion}</span>} showChevron={false} />}
+                  {profile.smoking && <ListRow label="Smoking" trailing={<span className="font-medium text-sm">{profile.smoking}</span>} showChevron={false} />}
+                  {profile.drinking && <ListRow label="Drinking" trailing={<span className="font-medium text-sm">{profile.drinking}</span>} showChevron={false} />}
                 </GroupContainer>
               </section>
 
@@ -365,6 +381,20 @@ export function UserDetail({
                     secondary={profile.personality || "Not specified"} 
                     showChevron={false}
                   />
+                  {profile.food_preference && (
+                    <ListRow 
+                      label="Food Preference" 
+                      secondary={profile.food_preference} 
+                      showChevron={false}
+                    />
+                  )}
+                  {profile.location && (
+                    <ListRow 
+                      label="Location" 
+                      secondary={profile.location} 
+                      showChevron={false}
+                    />
+                  )}
                   {profile.languages && (
                     <ListRow 
                       label="Languages" 
@@ -381,6 +411,25 @@ export function UserDetail({
                   )}
                 </GroupContainer>
               </section>
+
+              {/* Contact Details */}
+              <section>
+                <SectionHeader>Contact Information</SectionHeader>
+                <GroupContainer>
+                  <ListRow 
+                    label="Email Address" 
+                    secondary={profile.email} 
+                    showChevron={false}
+                  />
+                  {profile.number && (
+                    <ListRow 
+                      label="Phone Number" 
+                      secondary={profile.number} 
+                      showChevron={false}
+                    />
+                  )}
+                </GroupContainer>
+              </section>
             </div>
 
             {/* Flags & History */}
@@ -391,15 +440,13 @@ export function UserDetail({
                   {flags.map((flag) => (
                     <ListRow
                       key={flag.id}
-                      icon={<AlertTriangle className={cn("h-5 w-5", flag.status === 'pending' ? 'text-orange-500' : 'text-muted-foreground/40')} />}
+                      onClick={() => router.push(`/flags?flagId=${flag.id}`)}
+                      icon={<ShieldAlert className={cn("h-5 w-5", flag.status === 'pending' ? 'text-orange-500' : 'text-muted-foreground')} />}
                       label={flag.type}
                       secondary={flag.reason}
                       trailing={
                         <div className="flex flex-col items-end">
                           <StatusBadge status={flag.status} />
-                          <span className="text-[10px] text-muted-foreground/40">
-                            {new Date(flag.created_at).toLocaleDateString()}
-                          </span>
                         </div>
                       }
                       showChevron={false}
@@ -414,15 +461,34 @@ export function UserDetail({
               <section>
                 <SectionHeader>Moderation History</SectionHeader>
                 <GroupContainer>
-                  {notes.map((note) => (
-                    <ListRow
-                      key={note.id}
-                      icon={<FileText className="h-5 w-5 text-muted-foreground/60" />}
-                      label={note.reason}
-                      secondary={`${note.admins?.email} • ${new Date(note.created_at).toLocaleString()}`}
-                      showChevron={false}
-                    />
-                  ))}
+                  {notes.map((note) => {
+                    const isExpanded = expandedNotes.has(note.id);
+                    const adminEmail = note.admins?.email?.split('@')[0] || "System";
+                    
+                    return (
+                      <React.Fragment key={note.id}>
+                        <ListRow
+                          onClick={() => toggleNoteExpansion(note.id)}
+                          icon={<FileText className="h-5 w-5 text-muted-foreground" />}
+                          label={note.reason.length > 40 ? `${note.reason.substring(0, 40)}...` : note.reason}
+                          secondary={`${adminEmail} • ${new Date(note.created_at).toLocaleString()}`}
+                          trailing={
+                            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isExpanded && "rotate-180")} />
+                          }
+                          showChevron={false}
+                          className={cn("transition-colors", isExpanded && "bg-card")}
+                        />
+                        {isExpanded && (
+                          <div className="px-6 py-5 bg-card border-b border-border space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                             <div className="space-y-1">
+                               <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Admin Comment</span>
+                               <p className="text-sm text-muted-foreground leading-relaxed">{note.reason}</p>
+                             </div>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </GroupContainer>
               </section>
             )}
@@ -433,12 +499,12 @@ export function UserDetail({
                 <SectionHeader>Active System Sessions</SectionHeader>
                 <GroupContainer>
                   {initialSessions.map((session, idx) => (
-                    <div key={idx} className="p-4 border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors">
+                    <div key={idx} className="p-4 border-b border-border/40 last:border-0 hover:bg-card transition-colors">
                       <div className="flex items-center gap-2 mb-2">
-                        <History className="h-4 w-4 text-muted-foreground/60" />
-                        <span className="text-xs font-mono font-medium text-muted-foreground">{session.key}</span>
+                        <HistoryIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-mono font-medium text-muted-foreground line-clamp-1">{session.key}</span>
                       </div>
-                      <pre className="text-[12px] bg-muted/20 p-4 rounded-xl overflow-x-auto text-muted-foreground/80 scrollbar-hide">
+                      <pre className="text-sm bg-card p-4 rounded-xl overflow-x-auto text-muted-foreground scrollbar-hide">
                         {JSON.stringify(session.data, null, 2)}
                       </pre>
                     </div>
@@ -463,12 +529,12 @@ export function UserDetail({
         >
           <div className="space-y-4 mt-4">
             <Label htmlFor="warn-reason">Warning Message</Label>
-            <textarea
+            <Textarea
               id="warn-reason"
               value={warnForm.reason}
               onChange={(e) => setWarnForm({ reason: e.target.value })}
               placeholder="Reason for warning (sent to user)"
-              className="w-full min-h-[100px] rounded-xl border bg-muted/40 px-3 py-2 text-sm mt-1 focus:ring-1 ring-primary/20 outline-none"
+              className="w-full min-h-[100px] rounded-lg"
             />
           </div>
         </ConfirmDialog>
@@ -481,29 +547,28 @@ export function UserDetail({
           title="Suspend User"
           description="Temporarily suspend this user. They will be unable to access the platform until the suspension expires."
           confirmText="Suspend"
-          variant="destructive"
           validate={() => !!suspendForm.reason.trim() && !!suspendForm.banUntil}
           onConfirm={() => handleAction("suspend", suspendForm.reason, suspendForm.banUntil)}
         >
           <div className="space-y-4 mt-4">
-            <div>
+            <div className="flex flex-col gap-2">
               <Label htmlFor="suspend-reason">Reason</Label>
               <Input
                 id="suspend-reason"
                 value={suspendForm.reason}
                 onChange={(e) => setSuspendForm({ ...suspendForm, reason: e.target.value })}
                 placeholder="Reason for suspension"
-                className="mt-1 rounded-xl bg-muted/40 border-none"
+                className="mt-1 rounded-lg"
               />
             </div>
-            <div>
+            <div className="flex flex-col gap-2">
               <Label htmlFor="suspend-until">Suspension Expires</Label>
               <Input
                 id="suspend-until"
                 type="datetime-local"
                 value={suspendForm.banUntil}
                 onChange={(e) => setSuspendForm({ ...suspendForm, banUntil: e.target.value })}
-                className="mt-1 rounded-xl bg-muted/40 border-none"
+                className="mt-1 rounded-lg"
               />
             </div>
           </div>
@@ -517,22 +582,48 @@ export function UserDetail({
           title="Ban User"
           description="Permanently ban this user. This action cannot be undone easily."
           confirmText="Ban"
-          variant="destructive"
           requireTypedConfirmation={{ text: "BAN", placeholder: "Type BAN to confirm" }}
           onConfirm={() => handleAction("ban", banForm.reason)}
         >
           <div className="space-y-4 mt-4">
-            <Label htmlFor="ban-reason">Reason</Label>
-            <Input
-              id="ban-reason"
-              value={banForm.reason}
-              onChange={(e) => setBanForm({ reason: e.target.value })}
-              placeholder="Reason for ban"
-              className="mt-1 rounded-xl bg-muted/40 border-none"
-            />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ban-reason">Reason</Label>
+              <Input
+                id="ban-reason"
+                value={banForm.reason}
+                onChange={(e) => setBanForm({ reason: e.target.value })}
+                placeholder="Reason for ban"
+                className="mt-1 rounded-lg"
+              />
+            </div>
           </div>
         </ConfirmDialog>
       )}
-    </>
+
+      {actionState.type === "note" && (
+        <ConfirmDialog
+          open={actionState.open}
+          onOpenChange={(open) => setActionState({ type: open ? "note" : null, open })}
+          title="Add Internal Note"
+          description="Add a private administrative note about this user. This note is only visible to other admins."
+          confirmText="Save Note"
+          validate={() => !!noteForm.note.trim()}
+          onConfirm={handleAddNote}
+        >
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="admin-note">Internal Note</Label>
+              <Textarea
+                id="admin-note"
+                value={noteForm.note}
+                onChange={(e) => setNoteForm({ note: e.target.value })}
+                placeholder="Enter private note about this user..."
+                className="w-full min-h-[100px] rounded-lg"
+              />
+            </div>
+          </div>
+        </ConfirmDialog>
+      )}
+    </div>
   );
 }

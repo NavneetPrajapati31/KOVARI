@@ -163,7 +163,7 @@ export function AdminGroupsTable({
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="all">Everything</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="removed">Removed</SelectItem>
@@ -276,7 +276,7 @@ export function AdminGroupsTable({
                 size="sm" 
                 onClick={() => fetchGroups(page - 1, query, status, flagged)} 
                 disabled={page === 1}
-                className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-30 cursor-pointer"
+                className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-50 cursor-pointer"
               >
                 Previous
               </Button>
@@ -285,7 +285,7 @@ export function AdminGroupsTable({
                 size="sm" 
                 onClick={() => fetchGroups(page + 1, query, status, flagged)} 
                 disabled={groups.length < initialLimit}
-                className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-30 cursor-pointer"
+                className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-50 cursor-pointer"
               >
                 Next
               </Button>

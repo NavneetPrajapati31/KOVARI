@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { ToastContainer, useToast } from "./Toast";
 import { cn } from "@/lib/utils";
 import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
@@ -10,12 +11,21 @@ import { SearchInput } from "./ui/ios/SearchInput";
 import { StatusBadge } from "./ui/ios/StatusBadge";
 import { getThumbnailUrl } from "../lib/cloudinary-client";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
-import { Users, MapPin, Calendar, AlertTriangle, Trash2, Eye } from "lucide-react";
+import { User as UserIcon, MapPin, Calendar, AlertTriangle, Trash2, Eye, Loader2 } from "lucide-react";
+import { Button } from "./ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 interface User {
   id: string;
   user_id: string;
   name: string | null;
+  username: string | null;
   email: string;
   profile_photo?: string;
   verified: boolean;
@@ -34,6 +44,7 @@ interface AdminUsersTableProps {
   initialPage: number;
   initialLimit: number;
   initialQuery?: string;
+  initialStatus?: string;
 }
 
 export function AdminUsersTable({
@@ -41,137 +52,190 @@ export function AdminUsersTable({
   initialPage,
   initialLimit,
   initialQuery = "",
+  initialStatus = "",
 }: AdminUsersTableProps) {
   const router = useRouter();
+  const { toasts, toast, removeToast } = useToast();
   const [users, setUsers] = React.useState<User[]>(initialUsers);
   const [page, setPage] = React.useState(initialPage);
   const [query, setQuery] = React.useState(initialQuery);
+  const [status, setStatus] = React.useState(initialStatus);
   const [isLoading, setIsLoading] = React.useState(false);
 
   const fetchUsers = React.useCallback(
-    async (newPage: number, searchQuery: string) => {
+    async (newPage: number, searchQuery: string, statusFilter: string) => {
       setIsLoading(true);
       try {
         const params = new URLSearchParams({
           page: newPage.toString(),
           limit: initialLimit.toString(),
         });
-        if (searchQuery) {
-          params.append("query", searchQuery);
-        }
+        if (searchQuery) params.append("query", searchQuery);
+        if (statusFilter) params.append("status", statusFilter);
 
         const res = await fetch(`/api/admin/users?${params}`);
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
         setUsers(data.users || []);
         setPage(newPage);
+
+        const urlParams = new URLSearchParams({ page: newPage.toString() });
+        if (searchQuery) urlParams.append("query", searchQuery);
+        if (statusFilter) urlParams.append("status", statusFilter);
+        router.push(`/users?${urlParams}`, { scroll: false });
       } catch (error) {
         console.error("Error fetching users:", error);
       } finally {
         setIsLoading(false);
       }
     },
-    [initialLimit]
+    [initialLimit, router]
   );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchUsers(1, query);
+    fetchUsers(page, query, status);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    const val = newStatus === "all" ? "" : newStatus;
+    setStatus(val);
+    fetchUsers(1, query, val);
   };
 
   return (
-    <div className="space-y-8">
-      <form onSubmit={handleSearch} className="px-1">
-        <SearchInput
-          placeholder="Search users..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onClear={() => {
-            setQuery("");
-            fetchUsers(1, "");
-          }}
-        />
-        <button type="submit" className="hidden" />
-      </form>
+    <>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <div className="space-y-2">
-        <SectionHeader>All Users</SectionHeader>
-        <GroupContainer shadow={false}>
-          {users.length === 0 ? (
-            <div className="h-40 flex items-center justify-center text-muted-foreground/60 text-[15px]">
-              No users found
+      <div className="space-y-8">
+        {/* Search & Filters */}
+        <section className="space-y-6">
+          <form onSubmit={handleSearch} className="">
+            <SearchInput
+              placeholder="Search users by name, username or email..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onClear={() => {
+                setQuery("");
+                fetchUsers(1, "", status);
+              }}
+            />
+            <button type="submit" className="hidden" />
+          </form>
+
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Status</label>
+              <Select value={status || "all"} onValueChange={handleStatusChange}>
+                <SelectTrigger className="w-full !h-10 rounded-xl bg-card border-border shadow-none cursor-pointer font-medium">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="deleted">Deleted</SelectItem>
+                  <SelectItem value="banned">Banned</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            users.map((user) => {
-              const statusElements = [];
-              if (user.users?.banned) {
-                statusElements.push(user.users.ban_expires_at ? "Suspended" : "Banned");
-              }
-              if (user.verified) {
-                statusElements.push("Verified");
-              }
-              if (user.deleted) {
-                statusElements.push("Deleted");
-              }
+          </div>
+        </section>
 
-              return (
-                <ListRow
-                  key={user.id}
-                  onClick={() => router.push(`/users/${user.id}`)}
-                  icon={
-                    <div className={cn("h-9 w-9 rounded-full overflow-hidden border-none shadow-none flex-shrink-0", user.deleted && "opacity-50")}>
-                      <Avatar className="h-full w-full rounded-full">
-                        <AvatarImage 
-                          src={user.profile_photo ? getThumbnailUrl(user.profile_photo) : ""} 
-                          alt={user.name || "User"} 
-                          className="object-cover" 
-                        />
-                        <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
-                          {user.name?.substring(0, 2).toUpperCase() || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  }
-                  label={user.name || "Unknown User"}
-                  secondary={user.email}
-                  trailing={
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-end gap-1">
-                        {statusElements.length > 0 && (
-                          <StatusBadge status={statusElements[0]} />
-                        )}
-                        {user.flag_count > 0 && (
-                          <StatusBadge status={`${user.flag_count} Flags`} />
-                        )}
+        {/* Results List */}
+        <section>
+          <SectionHeader>User Directory {users.length > 0 && `(${users.length})`}</SectionHeader>
+          <GroupContainer shadow={false}>
+            {isLoading ? (
+              <div className="h-[60vh] flex items-center justify-center text-muted-foreground text-sm">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : users.length === 0 ? (
+              <div className="h-[60vh] flex items-center justify-center text-muted-foreground text-sm font-medium">No users found</div>
+            ) : (
+              users.map((user) => {
+                const statusElements = [];
+                if (user.users?.banned) {
+                  statusElements.push(user.users.ban_expires_at ? "Suspended" : "Banned");
+                } else if (user.deleted) {
+                  statusElements.push("Deleted");
+                } else {
+                  statusElements.push("Active");
+                }
+
+                return (
+                  <ListRow
+                    key={user.id}
+                    onClick={() => router.push(`/users/${user.id}`)}
+                    icon={
+                      user.profile_photo ? (
+                        <div className="h-10 w-10 rounded-full overflow-hidden truncate border-none shadow-none flex-shrink-0">
+                          <Avatar className="h-full w-full rounded-full">
+                            <AvatarImage 
+                              src={getThumbnailUrl(user.profile_photo)} 
+                              alt={user.name || "User"} 
+                              className="object-cover" 
+                            />
+                            <AvatarFallback className="rounded-full bg-secondary text-gray-500 text-sm font-semibold">
+                              {user.name?.substring(0, 1).toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                      ) : (
+                        <div className={cn(
+                          "p-2 rounded-full h-10 w-10 flex items-center justify-center bg-secondary border border-border shrink-0",
+                          user.deleted ? "opacity-30" : "text-gray-500"
+                        )}>
+                          <UserIcon className="h-4 w-4" />
+                        </div>
+                      )
+                    }
+                    label={user.name || "Unknown User"}
+                    secondary={user.email}
+                    trailing={
+                      <div className="flex items-center gap-6">
+                        <div className="flex flex-row items-center gap-4">
+                          <StatusBadge status={statusElements[0] || "Active"} />
+                        </div>
                       </div>
-                    </div>
-                  }
-                />
-              );
-            })
-          )}
-        </GroupContainer>
-      </div>
+                    }
+                    showChevron={false}
+                  />
+                );
+              })
+            )}
+          </GroupContainer>
+        </section>
 
-      <div className="flex items-center justify-between px-2 pt-2 pb-10">
-        <span className="text-sm text-muted-foreground/60 font-medium">Page {page}</span>
-        <div className="flex gap-6">
-          <button
-            onClick={() => fetchUsers(page - 1, query)}
-            disabled={page === 1 || isLoading}
-            className="text-[15px] font-medium text-primary disabled:opacity-30 transition-opacity hover:opacity-70 active:opacity-50"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => fetchUsers(page + 1, query)}
-            disabled={users.length < initialLimit || isLoading}
-            className="text-[15px] font-medium text-primary disabled:opacity-30 transition-opacity hover:opacity-70 active:opacity-50"
-          >
-            Next
-          </button>
-        </div>
+        {/* Pagination Section */}
+        {!isLoading && users.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-1 pt-0 pb-8">
+            <p className="text-sm text-muted-foreground order-2 sm:order-1">
+              Directory Page: <span className="font-semibold text-foreground">{page}</span>
+            </p>
+            <div className="flex items-center gap-3 order-1 sm:order-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fetchUsers(page - 1, query, status)} 
+                disabled={page === 1}
+                className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-50 cursor-pointer"
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fetchUsers(page + 1, query, status)} 
+                disabled={users.length < initialLimit}
+                className="h-9 px-5 rounded-xl border-border bg-card shadow-none font-semibold hover:bg-secondary transition-all disabled:opacity-50 cursor-pointer"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
