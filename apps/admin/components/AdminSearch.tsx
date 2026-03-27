@@ -12,12 +12,14 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Users, UsersRound, Clock, Flag, Loader2, XCircle, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  PopoverAnchor,
 } from '@/components/ui/popover';
 import * as Sentry from '@sentry/nextjs';
 
@@ -351,37 +353,34 @@ export function AdminSearch() {
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <div className="relative w-full" suppressHydrationWarning>
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-md z-[45] animate-in fade-in duration-300 pointer-events-auto"
+          onMouseDown={() => setIsOpen(false)}
+        />
+      )}
+      <PopoverAnchor asChild>
+        <div className={cn(
+          "relative w-full transition shadow-none",
+          isOpen ? "z-[50]" : "z-10"
+        )} suppressHydrationWarning>
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none" />
           <Input
             type="search"
             placeholder="Search"
-            className="w-full pl-10 pr-10 h-10 rounded-xl bg-card border-border transition-all text-sm placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+            className={cn(
+              "w-full pl-10 pr-10 h-10 rounded-xl bg-card border-border transition-all text-sm placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
+              isOpen && "ring-1 ring-primary/20 border-primary/20 shadow-lg"
+            )}
             value={query}
             onChange={(e) => {
-              const newQuery = e.target.value;
-              setQuery(newQuery);
-              startTransition(() => {
-                if (newQuery.length >= 2) {
-                  setIsOpen(true);
-                } else {
-                  setIsOpen(false);
-                }
-              });
+              setQuery(e.target.value);
+              setIsOpen(true);
             }}
-            onFocus={() => {
-              startTransition(() => {
-                if (query.length >= 2) {
-                  setIsOpen(true);
-                }
-              });
-            }}
+            onFocus={() => setIsOpen(true)}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
-                startTransition(() => {
-                  setIsOpen(false);
-                });
+                setIsOpen(false);
                 setQuery('');
               }
             }}
@@ -394,14 +393,13 @@ export function AdminSearch() {
               }}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/30 hover:text-muted-foreground/50 transition-colors z-20 cursor-pointer"
             >
-              <X className="h-4.5 w-4.5 text-muted-foreground" />
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative h-4.5 w-4.5">
                 <X className="h-4.5 w-4.5 text-muted-foreground" />
               </div>
             </button>
           )}
         </div>
-      </PopoverTrigger>
+      </PopoverAnchor>
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] max-w-full p-0 rounded-2xl overflow-hidden border-border !shadow-none"
         align="start"
@@ -409,7 +407,7 @@ export function AdminSearch() {
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {isLoading ? (
-          <div className="flex items-center justify-center p-8">
+          <div className="flex items-center justify-center p-20">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : query.length < 2 ? (
