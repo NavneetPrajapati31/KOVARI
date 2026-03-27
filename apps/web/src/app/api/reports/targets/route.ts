@@ -122,70 +122,57 @@ export async function GET(req: NextRequest) {
           }));
         }
       }
-    } else {
-      if (query) {
-        const { data: groupsData, error } = await supabase
-          .from("groups")
-          .select("id, name, cover_image")
-          .eq("status", "active")
-          .ilike("name", `%${query}%`)
-          .limit(20);
+    } else if (internalUserId) {
+      // 1. Fetch group IDs where user is the creator
+      const { data: createdGroups, error: createdError } = await supabase
+        .from("groups")
+        .select("id, name, cover_image")
+        .eq("creator_id", internalUserId)
+        .eq("status", "active");
 
-        if (error) throw error;
+      if (createdError) console.error("[Search Targets] Created Groups error:", createdError);
 
-        data = groupsData.map(g => ({
-          id: g.id,
-          name: g.name || "Unknown Group",
-          imageUrl: g.cover_image,
-        }));
-      } else if (internalUserId) {
-        console.log("[Search Targets] Fetching default group connections...");
-        // Fetch groups the user is a member of or created
-        const { data: createdGroups, error: createdError } = await supabase
-           .from("groups")
-           .select("id, name, cover_image, status")
-           .eq("creator_id", internalUserId)
-           .eq("status", "active");
-           
-        if (createdError) console.error("[Search Targets] Created Groups error:", createdError);
-        console.log(`[Search Targets] Found ${createdGroups?.length || 0} active groups created by user`);
+      // 2. Fetch group IDs where user has an accepted membership
+      const { data: membershipsData, error: membershipsError } = await supabase
+        .from("group_memberships")
+        .select("group_id, groups!inner(id, name, cover_image, status)")
+        .eq("user_id", internalUserId)
+        .eq("status", "accepted")
+        .limit(100);
 
-        const { data: membershipsData, error: membershipsError } = await supabase
-          .from("group_memberships")
-          .select("group_id, groups!inner(id, name, cover_image, status)")
-          .eq("user_id", internalUserId)
-          .eq("status", "accepted")
-          .limit(50);
-          
-        if (membershipsError) console.error("[Search Targets] Group Memberships error:", membershipsError);
-        console.log(`[Search Targets] Found ${membershipsData?.length || 0} accepted group memberships`);
-          
-        const uniqueGroups = new Map<string, any>();
-        
-        if (createdGroups) {
-           createdGroups.forEach((g: any) => {
-              uniqueGroups.set(g.id, {
-                 id: g.id,
-                 name: g.name || "Unknown Group",
-                 imageUrl: g.cover_image,
-              });
-           });
-        }
+      if (membershipsError) console.error("[Search Targets] Group Memberships error:", membershipsError);
 
-        if (membershipsData) {
-           membershipsData
-            .filter((m: any) => m.groups && m.groups.status === "active")
-            .forEach((m: any) => {
-               uniqueGroups.set(m.groups.id, {
-                 id: m.groups.id,
-                 name: m.groups.name || "Unknown Group",
-                 imageUrl: m.groups.cover_image,
-               });
+      // 3. Combine and filter by query if provided
+      const uniqueGroups = new Map<string, any>();
+
+      if (createdGroups) {
+        createdGroups.forEach((g: any) => {
+          if (!query || g.name?.toLowerCase().includes(query.toLowerCase())) {
+            uniqueGroups.set(g.id, {
+              id: g.id,
+              name: g.name || "Unknown Group",
+              imageUrl: g.cover_image,
             });
-        }
-        
-        data = Array.from(uniqueGroups.values());
+          }
+        });
       }
+
+      if (membershipsData) {
+        membershipsData
+          .filter((m: any) => m.groups && m.groups.status === "active")
+          .forEach((m: any) => {
+            const g = m.groups;
+            if (!query || g.name?.toLowerCase().includes(query.toLowerCase())) {
+              uniqueGroups.set(g.id, {
+                id: g.id,
+                name: g.name || "Unknown Group",
+                imageUrl: g.cover_image,
+              });
+            }
+          });
+      }
+
+      data = Array.from(uniqueGroups.values()).slice(0, 20);
     }
 
     return NextResponse.json({ targets: data });

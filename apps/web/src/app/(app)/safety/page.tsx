@@ -426,44 +426,44 @@ export default function SafetyPage() {
               )}
            </div>
 
-           {/* Results List */}
-           <div className="flex flex-col">
-             {searchLoading && searchResults.length === 0 ? (
-               <div className="flex items-center min-h-[70vh] justify-center gap-2 bg-card rounded-xl border border-border">
-                 <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
-                 <p className="text-sm text-muted-foreground">Fetching {reportTargetType === "user" ? "users" : "groups"}...</p>
-               </div>
-             ) : searchError ? (
-               <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-destructive bg-card rounded-xl border border-border">{searchError}</div>
-             ) : searchResults.length === 0 ? (
-               <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-muted-foreground/60 bg-card rounded-xl border border-border">
-                 {searchQuery.trim().length > 0 
-                    ? `No ${reportTargetType === "user" ? "users" : "groups"} found matching "${searchQuery}"`
-                    : `No ${reportTargetType === "user" ? "active users" : "active groups"} available.`}
-               </div>
-             ) : (
-               <div className="bg-card rounded-xl overflow-hidden border border-border/40">
-                 <div className="divide-y divide-border/40 flex flex-col">
-                   {searchResults.map((target) => (
-                     <button
-                       key={target.id}
-                       onClick={() => handleSelectTarget(target.id, target.name)}
-                       className="w-full flex items-center p-3 px-4 hover:bg-secondary active:bg-secondary duration-150 transition-colors"
-                     >
-                       <Avatar className="w-9 h-9 mr-3">
-                         <AvatarImage src={target.imageUrl} />
-                         <UserAvatarFallback />
-                       </Avatar>
-                       <div className="flex flex-col items-start text-left">
-                         <span className="text-sm text-foreground font-medium">{target.name}</span>
-                         {target.username && <p className="text-sm text-muted-foreground">@{target.username}</p>}
-                       </div>
-                     </button>
-                   ))}
-                 </div>
-               </div>
-             )}
-           </div>
+            {/* Results List */}
+            <div className="flex flex-col">
+              {searchLoading ? (
+                <div className="flex items-center min-h-[70vh] justify-center gap-2 bg-card rounded-xl border border-border">
+                  <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
+                  <p className="text-sm text-muted-foreground">Fetching {reportTargetType === "user" ? "users" : "groups"}...</p>
+                </div>
+              ) : searchError ? (
+                <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-destructive bg-card rounded-xl border border-border">{searchError}</div>
+              ) : searchResults.length === 0 ? (
+                <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-muted-foreground/60 bg-card rounded-xl border border-border">
+                  {searchQuery.trim().length > 0 
+                     ? `No ${reportTargetType === "user" ? "users" : "groups"} found matching "${searchQuery}"`
+                     : `No ${reportTargetType === "user" ? "active users" : "active groups"} available.`}
+                </div>
+              ) : (
+                <div className="bg-card rounded-xl overflow-hidden border border-border/40">
+                  <div className="divide-y divide-border/40 flex flex-col">
+                    {searchResults.map((target) => (
+                      <button
+                        key={target.id}
+                        onClick={() => handleSelectTarget(target.id, target.name)}
+                        className="w-full flex items-center p-3 px-4 hover:bg-secondary active:bg-secondary duration-150 transition-colors"
+                      >
+                        <Avatar className="w-9 h-9 mr-3">
+                          <AvatarImage src={target.imageUrl} />
+                          <UserAvatarFallback />
+                        </Avatar>
+                        <div className="flex flex-col items-start text-left">
+                          <span className="text-sm text-foreground font-medium">{target.name}</span>
+                          {target.username && <p className="text-sm text-muted-foreground">@{target.username}</p>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
         </div>
       </motion.div>
     ) : activeView === "reports" ? (
@@ -665,11 +665,11 @@ export default function SafetyPage() {
 
            {/* Results List */}
            <div className="flex flex-col">
-             {searchLoading && searchResults.length === 0 ? (
-               <div className="flex items-center min-h-[70vh] justify-center gap-2 bg-card rounded-xl border border-border">
-                 <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
-                 <p className="text-sm text-muted-foreground">Fetching {reportTargetType === "user" ? "users" : "groups"}...</p>
-               </div>
+             {searchLoading ? (
+                <div className="flex items-center min-h-[70vh] justify-center gap-2 bg-card rounded-xl border border-border">
+                  <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-muted-foreground"}} /> 
+                  <p className="text-sm text-muted-foreground">Fetching {reportTargetType === "user" ? "users" : "groups"}...</p>
+                </div>
              ) : searchError ? (
                <div className="min-h-[70vh] flex items-center justify-center text-center text-sm text-destructive bg-card rounded-xl border border-border">{searchError}</div>
              ) : searchResults.length === 0 ? (
