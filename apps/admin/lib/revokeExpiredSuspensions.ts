@@ -38,7 +38,7 @@ export async function revokeExpiredSuspensions(): Promise<number> {
     );
 
     // Filter expired suspensions in JavaScript (more reliable than SQL comparison)
-    const expiredUsers = (allSuspendedUsers || []).filter((user) => {
+    const expiredUsers = (allSuspendedUsers as any[] || []).filter((user) => {
       if (!user.ban_expires_at) return false;
       const expiryDate = new Date(user.ban_expires_at);
       const nowDate = new Date();

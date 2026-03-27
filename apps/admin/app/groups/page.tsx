@@ -64,8 +64,8 @@ async function getGroups(
   }
 
   // Fetch flag counts and organizer names for each group
-  const groupIds = data?.map((group) => group.id).filter(Boolean) || [];
-  const creatorIds = data?.map((group) => group.creator_id).filter(Boolean) || [];
+  const groupIds = (data as any[])?.map((group: any) => group.id).filter(Boolean) || [];
+  const creatorIds = (data as any[])?.map((group: any) => group.creator_id).filter(Boolean) || [];
   const flagCounts: Record<string, number> = {};
   const organizerNames: Record<string, string> = {};
 
@@ -79,20 +79,20 @@ async function getGroups(
   ]);
 
   if (flagsResult.data) {
-    flagsResult.data.forEach((flag) => {
+    (flagsResult.data as any[]).forEach((flag: any) => {
       flagCounts[flag.group_id] = (flagCounts[flag.group_id] || 0) + 1;
     });
   }
 
   if (profilesResult.data) {
-    profilesResult.data.forEach((profile) => {
+    (profilesResult.data as any[]).forEach((profile: any) => {
       organizerNames[profile.user_id] = profile.name || 'Unknown';
     });
   }
 
   // Add flag_count and organizer info to each group
   const groupsEnriched =
-    data?.map((group) => ({
+    (data as any[])?.map((group: any) => ({
       ...group,
       flag_count: flagCounts[group.id] || 0,
       organizer: {

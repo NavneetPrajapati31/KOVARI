@@ -226,7 +226,7 @@ async function getAdminNotes(id: string): Promise<{ notes: AdminNote[] }> {
       return { notes: [] };
     }
 
-    const formattedNotes: AdminNote[] = (notes || []).map((note) => {
+    const formattedNotes: AdminNote[] = (notes as any[] || []).map((note: any) => {
       const admin =
         Array.isArray(note.admins) && note.admins.length > 0
           ? note.admins[0]

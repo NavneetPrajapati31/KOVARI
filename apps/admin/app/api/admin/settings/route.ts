@@ -37,7 +37,7 @@ export async function GET(_req: NextRequest) {
 
     // Parse settings from the database format
     const settingsMap = new Map(
-      data?.map((item) => [item.key, item.value]) || [],
+      (data as any[])?.map((item: any) => [item.key, item.value]) || [],
     );
 
     // Extract values with defaults
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     }
 
     const settingsMap = new Map(
-      currentSettings?.map((item) => [item.key, item.value]) || [],
+      (currentSettings as any[])?.map((item: any) => [item.key, item.value]) || [],
     );
 
     // Extract old values

@@ -52,7 +52,7 @@ export async function GET() {
       .select('source');
 
     const sourceBreakdownRaw: Record<string, number> = {};
-    sourceData?.forEach((row) => {
+    (sourceData as any[])?.forEach((row: any) => {
       const src = row.source || 'unknown';
       sourceBreakdownRaw[src] = (sourceBreakdownRaw[src] || 0) + 1;
     });
@@ -73,7 +73,7 @@ export async function GET() {
       .order('created_at', { ascending: true });
 
     const dailySignupsRaw: Record<string, number> = {};
-    timelineData?.forEach((row) => {
+    (timelineData as any[])?.forEach((row: any) => {
       const date = new Date(row.created_at).toISOString().split('T')[0];
       dailySignupsRaw[date] = (dailySignupsRaw[date] || 0) + 1;
     });
@@ -117,7 +117,7 @@ export async function GET() {
 
     let totalDelayMs = 0;
     let delayCount = 0;
-    delayData?.forEach((row) => {
+    (delayData as any[])?.forEach((row: any) => {
       const created = new Date(row.created_at).getTime();
       const sent = new Date(row.confirmation_email_sent_at).getTime();
       totalDelayMs += (sent - created);

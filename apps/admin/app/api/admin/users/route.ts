@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch flag counts for each user
-    const userIds = data?.map((user) => user.user_id).filter(Boolean) || [];
+    const userIds = (data as any[])?.map((user: any) => user.user_id).filter(Boolean) || [];
     const flagCounts: Record<string, number> = {};
 
     if (userIds.length > 0) {
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
         .in("user_id", userIds);
 
       if (flagsData) {
-        flagsData.forEach((flag) => {
+        (flagsData as any[]).forEach((flag) => {
           flagCounts[flag.user_id] = (flagCounts[flag.user_id] || 0) + 1;
         });
       }
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
 
     // Add flag_count to each user
     const usersWithFlags =
-      data?.map((user) => ({
+      (data as any[])?.map((user: any) => ({
         ...user,
         flag_count: flagCounts[user.user_id] || 0,
       })) || [];

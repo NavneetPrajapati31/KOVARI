@@ -112,7 +112,7 @@ async function getSettings(): Promise<Settings> {
       .in('key', ['maintenance_mode', 'matching_preset', 'session_ttl_hours']);
 
     if (error) return { maintenance_mode: false };
-    const settingsMap = new Map(data?.map((item) => [item.key, item.value]) || []);
+    const settingsMap = new Map((data as any[])?.map((item: any) => [item.key, item.value]) || []);
     const maintenanceValue = settingsMap.get('maintenance_mode') as { enabled: boolean } | undefined;
     return { maintenance_mode: maintenanceValue?.enabled ?? false };
   } catch (error) {

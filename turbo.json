@@ -55,7 +55,10 @@
         "CRON_SECRET",
         "LAUNCH_WAITLIST_MODE",
         "VAPID_PRIVATE_KEY",
-        "VAPID_SUBJECT"
+        "VAPID_SUBJECT",
+        "ADMIN_ALLOWLIST",
+        "EMAIL_FROM",
+        "SUPPORT_LINK"
       ]
     },
     "dev": {
