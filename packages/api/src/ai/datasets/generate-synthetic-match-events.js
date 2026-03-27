@@ -47,6 +47,11 @@ if (!REDIS_URL) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
+// Simple caches to avoid repeated DB/Redis calls
+const profileCache = new Map();
+const sessionCache = new Map();
+const userUuidCache = new Map();
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 const getArg = (flag, defaultValue) => {
@@ -127,10 +132,13 @@ function computeLabel(outcome) {
  * Get user session from Redis
  */
 async function getUserSession(redisClient, clerkUserId) {
+  if (sessionCache.has(clerkUserId)) return sessionCache.get(clerkUserId);
   try {
     const sessionJSON = await redisClient.get(`session:${clerkUserId}`);
     if (!sessionJSON) return null;
-    return JSON.parse(sessionJSON);
+    const session = JSON.parse(sessionJSON);
+    sessionCache.set(clerkUserId, session);
+    return session;
   } catch (error) {
     console.error(`Error fetching session for ${clerkUserId}:`, error.message);
     return null;
@@ -141,29 +149,34 @@ async function getUserSession(redisClient, clerkUserId) {
  * Get user profile from Supabase
  */
 async function getUserProfile(clerkUserId) {
+  if (profileCache.has(clerkUserId)) return profileCache.get(clerkUserId);
   try {
-    // Get user UUID from Clerk ID
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_user_id', clerkUserId)
-      .single();
-    
-    if (userError || !userData) {
-      return null;
+    // Get user UUID from Clerk ID (cached)
+    let userId;
+    if (userUuidCache.has(clerkUserId)) {
+      userId = userUuidCache.get(clerkUserId);
+    } else {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('clerk_user_id', clerkUserId)
+        .single();
+      
+      if (userError || !userData) return null;
+      userId = userData.id;
+      userUuidCache.set(clerkUserId, userId);
     }
     
     // Get profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('age, interests, personality, location, smoking, drinking, religion, nationality, job')
-      .eq('user_id', userData.id)
+      .eq('user_id', userId)
       .single();
     
-    if (profileError || !profile) {
-      return null;
-    }
+    if (profileError || !profile) return null;
     
+    profileCache.set(clerkUserId, profile);
     return profile;
   } catch (error) {
     console.error(`Error fetching profile for ${clerkUserId}:`, error.message);
@@ -182,12 +195,12 @@ async function extractSoloMatchFeatures(userSession, targetSession, userProfile,
   // For now, we'll generate realistic synthetic features based on session/profile data
   const features = {
     matchType: 'user_user',
-    distanceScore: 1.0, # Assume same destination for now
+    distanceScore: 1.0, // Assume same destination for now
     dateOverlapScore: calculateDateOverlap(userSession.startDate, userSession.endDate, targetSession.startDate, targetSession.endDate),
     budgetScore: calculateBudgetCompatibility(userSession.budget, targetSession.budget),
     interestScore: calculateInterestSimilarity(userProfile?.interests || [], targetProfile?.interests || []),
     ageScore: calculateAgeCompatibility(userProfile?.age, targetProfile?.age),
-    languageScore: 0.8, # Assume some overlap
+    languageScore: 0.8, // Assume some overlap
     lifestyleScore: calculateLifestyleCompatibility(userProfile, targetProfile),
     backgroundScore: calculateBackgroundCompatibility(userProfile, targetProfile),
   };
@@ -409,14 +422,14 @@ async function generateGroupMatchEvents(redisClient, users, groups, count) {
       // Extract features (simplified - would need actual group feature extraction)
       const features = {
         matchType: 'user_group',
-        distanceScore: 1.0, # Assume compatible destination
+        distanceScore: 1.0, // Assume compatible destination
         dateOverlapScore: calculateDateOverlap(session.startDate, session.endDate, group.start_date, group.end_date),
         budgetScore: calculateBudgetCompatibility(session.budget, group.budget),
         interestScore: calculateInterestSimilarity(profile?.interests || [], group.top_interests || []),
         ageScore: calculateAgeCompatibility(profile?.age, group.average_age),
-        languageScore: 0.7, # Assume some overlap
-        lifestyleScore: 0.6, # Simplified
-        backgroundScore: 0.5, # Simplified
+        languageScore: 0.7, // Assume some overlap
+        lifestyleScore: 0.6, // Simplified
+        backgroundScore: 0.5, // Simplified
       };
       
       // Calculate compatibility and generate outcome
@@ -457,10 +470,24 @@ async function main() {
   
   try {
     // Connect to Redis
-    console.log('🔌 Connecting to Redis...');
-    redisClient = redis.createClient({ url: REDIS_URL });
+    console.log(`🔌 Connecting to Redis at: ${REDIS_URL.split('@')[1] || 'localhost'}...`);
+    redisClient = redis.createClient({ 
+      url: REDIS_URL,
+      socket: {
+        reconnectStrategy: false,
+        connectTimeout: 10000
+      }
+    });
+
+    redisClient.on('error', (err) => {
+      console.error('❌ Redis Client Error:', err);
+    });
+
     await redisClient.connect();
-    console.log('✅ Connected to Redis\n');
+    
+    // Test connection with a ping
+    const ping = await redisClient.ping();
+    console.log(`✅ Connected to Redis (Ping: ${ping})\n`);
     
     // Get all session keys
     console.log('📋 Fetching user sessions...');
@@ -509,7 +536,7 @@ async function main() {
     }
     
     if (matchType === 'group' || matchType === 'both') {
-      # Get groups
+      // Get groups
       console.log('👥 Fetching groups...');
       const { data: groups, error: groupsError } = await supabase
         .from('groups')
@@ -559,7 +586,8 @@ async function main() {
     console.log(`   2. Build training dataset: python src/lib/ai/datasets/build_training_set.py ${outputFile}`);
     
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('❌ Fatal Error during execution:');
+    console.error(error);
     process.exit(1);
   } finally {
     if (redisClient) {
