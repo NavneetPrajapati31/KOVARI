@@ -489,10 +489,10 @@ export function FlagDetailModal({
                             <img
                               src={getThumbnailUrl(flagData.targetProfile.profilePhoto)}
                               alt={flagData.targetProfile.name}
-                              className="h-12 w-12 rounded-full object-cover shrink-0"
+                              className="h-10 w-10 rounded-full object-cover shrink-0"
                             />
                           ) : (
-                            <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0 border">
                               <span className="text-gray-500 text-sm font-medium">
                                 {flagData.targetProfile.name
                                   ?.charAt(0)
@@ -529,10 +529,10 @@ export function FlagDetailModal({
                             <img
                               src={getThumbnailUrl(flagData.targetProfile.coverImage)}
                               alt={flagData.targetProfile.name}
-                              className="h-12 w-12 rounded-full object-cover shrink-0"
+                              className="h-10 w-10 rounded-full object-cover shrink-0"
                             />
                           ) : (
-                            <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0 border">
                               <Users className="h-6 w-6 text-muted-foreground" />
                             </div>
                           )}
@@ -590,8 +590,8 @@ export function FlagDetailModal({
 
           {!isLoading && flagData && (
             <div className={cn(
-               "pt-0 pb-4 px-4 sm:px-6 bg-card w-full sticky bottom-0 z-10",
-               viewMode === 'confirm' ? "flex flex-row gap-2" : "grid sm:grid-cols-3 grid-cols-1 gap-2"
+               "pt-0 pb-5 px-4 sm:px-6 bg-card w-full sticky bottom-0 z-10",
+               viewMode === 'confirm' ? "flex flex-row gap-2" : (flagData.flag.status === 'pending' ? "grid sm:grid-cols-3 grid-cols-1 gap-2" : "flex")
             )}>
               {viewMode === 'confirm' ? (
                 <>
@@ -629,33 +629,37 @@ export function FlagDetailModal({
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setActionDialog({ action: 'dismiss' });
-                      setViewMode('confirm');
-                    }}
-                    disabled={isActionLoading}
-                    className="flex-1 h-10 rounded-lg border-border font-medium shadow-none transition-none"
-                  >
-                    Dismiss
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setActionDialog({ action: 'resolve' });
-                      setViewMode('confirm');
-                    }}
-                    disabled={isActionLoading}
-                    className="flex-1 h-10 rounded-lg border-border font-medium shadow-none transition-none"
-                  >
-                    Resolve
-                  </Button>
+                  {flagData.flag.status === 'pending' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setActionDialog({ action: 'dismiss' });
+                          setViewMode('confirm');
+                        }}
+                        disabled={isActionLoading}
+                        className="flex-1 h-10 rounded-lg border-border font-medium shadow-none transition-none"
+                      >
+                        Dismiss
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setActionDialog({ action: 'resolve' });
+                          setViewMode('confirm');
+                        }}
+                        disabled={isActionLoading}
+                        className="flex-1 h-10 rounded-lg border-border font-medium shadow-none transition-none"
+                      >
+                        Resolve
+                      </Button>
+                    </>
+                  )}
                   {flagData.flag.targetType === 'user' ? (
                     <Link
                       href={`/users/${flagData.targetProfile?.id || flagData.flag.targetId}?flagId=${flagData.flag.id}`}
                       target="_blank"
-                      className="w-full"
+                      className={cn("w-full flex-1", flagData.flag.status !== 'pending' && "w-full")}
                     >
                       <Button
                         disabled={isActionLoading}
@@ -668,7 +672,7 @@ export function FlagDetailModal({
                     <Link
                       href={`/groups/${flagData.flag.targetId}?flagId=${flagData.flag.id}`}
                       target="_blank"
-                      className="w-full"
+                      className={cn("w-full flex-1", flagData.flag.status !== 'pending' && "w-full")}
                     >
                       <Button
                         disabled={isActionLoading}

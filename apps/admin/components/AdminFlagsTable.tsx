@@ -172,7 +172,7 @@ export function AdminFlagsTable({
                   onClick={() => setSelectedFlagId(flag.id)}
                   icon={
                     flag.targetInfo?.profile_photo ? (
-                      <div className="h-9 w-9 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full overflow-hidden border-none shadow-none flex-shrink-0">
                         <Avatar className="h-full w-full rounded-full">
                           <AvatarImage 
                             src={getThumbnailUrl(flag.targetInfo.profile_photo)} 
@@ -186,14 +186,13 @@ export function AdminFlagsTable({
                       </div>
                     ) : (
                       <div className={cn(
-                        "p-2 rounded-full h-9 w-9 flex items-center justify-center",
-                        isOldFlag && status === 'pending' ? "bg-red-50 text-red-500" : "bg-secondary border border-border text-muted-foreground"
+                        "p-2 rounded-full h-10 w-10 flex items-center justify-center bg-secondary border border-border"
                       )}>
                         {flag.targetType === "user" ? <User className="h-5 w-5" /> : <Users className="h-5 w-5" />}
                       </div>
                     )
                   }
-                  label={<span className="font-semibold">{flag.targetName}</span>}
+                  label={<span className="">{flag.targetName}</span>}
                   secondary={flag.reason || "No reason specified"}
                   trailing={
                     <div className="flex items-center gap-4">

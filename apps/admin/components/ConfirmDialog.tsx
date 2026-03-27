@@ -138,7 +138,7 @@ export function ConfirmDialog({
           )}
         </div>
 
-        <DialogFooter className="flex flex-row pt-2 sm:pt-0 pb-4 px-4 sm:px-6 bg-card w-full sticky bottom-0 z-10">
+        <DialogFooter className="flex flex-row pt-2 sm:pt-0 pb-5 px-4 sm:px-6 bg-card w-full sticky bottom-0 z-10">
           <Button
             variant="outline"
             onClick={(e) => {
