@@ -427,7 +427,7 @@ export function FlagDetailModal({
                         type="datetime-local"
                         value={banUntil}
                         onChange={(e) => setBanUntil(e.target.value)}
-                        className="h-11 rounded-lg bg-muted/20 border-border/5 shadow-none focus-visible:ring-0"
+                        className="h-10 rounded-lg bg-muted/20 border-border/5 shadow-none focus-visible:ring-0"
                       />
                     </div>
                   )}
@@ -604,7 +604,7 @@ export function FlagDetailModal({
                       setBanUntil('');
                     }}
                     disabled={isActionLoading}
-                    className="flex-1 h-11 rounded-lg font-medium shadow-none transition-none"
+                    className="flex-1 h-10 rounded-lg font-medium shadow-none transition-none"
                   >
                     Back
                   </Button>
@@ -613,7 +613,7 @@ export function FlagDetailModal({
                     onClick={() => actionDialog && handleAction(actionDialog.action)}
                     disabled={isActionLoading || (actionDialog?.action === 'suspend' && !banUntil) || (actionDialog?.action === 'suspend' && !actionReason.trim()) || (actionDialog?.action === 'ban' && !actionReason.trim())}
                     className={cn(
-                      "flex-1 h-11 rounded-lg font-medium shadow-none transition-none",
+                      "flex-1 h-10 rounded-lg font-medium shadow-none transition-none",
                       actionDialog?.action === 'ban' ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-primary/90'
                     )}
                   >
@@ -636,7 +636,7 @@ export function FlagDetailModal({
                       setViewMode('confirm');
                     }}
                     disabled={isActionLoading}
-                    className="flex-1 h-11 rounded-lg border-border font-medium shadow-none transition-none"
+                    className="flex-1 h-10 rounded-lg border-border font-medium shadow-none transition-none"
                   >
                     Dismiss
                   </Button>
@@ -647,7 +647,7 @@ export function FlagDetailModal({
                       setViewMode('confirm');
                     }}
                     disabled={isActionLoading}
-                    className="flex-1 h-11 rounded-lg border-border font-medium shadow-none transition-none"
+                    className="flex-1 h-10 rounded-lg border-border font-medium shadow-none transition-none"
                   >
                     Resolve
                   </Button>
@@ -659,7 +659,7 @@ export function FlagDetailModal({
                     >
                       <Button
                         disabled={isActionLoading}
-                        className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium shadow-none"
+                        className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-medium shadow-none"
                       >
                         Action
                       </Button>
@@ -672,7 +672,7 @@ export function FlagDetailModal({
                     >
                       <Button
                         disabled={isActionLoading}
-                        className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium shadow-none transition-none"
+                        className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-medium shadow-none transition-none"
                       >
                         Action
                       </Button>

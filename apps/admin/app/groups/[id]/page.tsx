@@ -337,10 +337,10 @@ export default async function GroupDetailPage({
   
   return (
     <div className="max-w-full space-y-6">
-      <div className="px-1">
+      <div className="">
         <Link
           href="/groups"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-all group"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-all group"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to Groups

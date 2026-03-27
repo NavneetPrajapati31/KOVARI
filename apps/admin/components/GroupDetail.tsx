@@ -25,8 +25,11 @@ import {
   CheckCircle2, 
   AlertTriangle,
   Info,
-  ChevronLeft
+  ChevronLeft,
+  ChevronDown,
+  Copy
 } from "lucide-react";
+import { Textarea } from "./ui/textarea";
 
 interface Group {
   id: string;
@@ -117,6 +120,14 @@ export function GroupDetail({
   const [warnReason, setWarnReason] = React.useState("");
   const [removeDialogOpen, setRemoveDialogOpen] = React.useState(false);
   const [removeReason, setRemoveReason] = React.useState("");
+  const [expandedActions, setExpandedActions] = React.useState<Set<string>>(new Set());
+
+  const toggleActionExpansion = (id: string) => {
+    const newExpanded = new Set(expandedActions);
+    if (newExpanded.has(id)) newExpanded.delete(id);
+    else newExpanded.add(id);
+    setExpandedActions(newExpanded);
+  };
 
   const handleAction = async (action: string, reason?: string) => {
     setIsLoading(true);
@@ -165,14 +176,14 @@ export function GroupDetail({
   };
 
   return (
-    <div className="space-y-12 pb-20">
+    <div className="space-y-12 pb-12">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       
       {/* Main Content: Single Column Stack */}
       <div className="space-y-8 max-w-full mx-auto mt-4">
         {/* Header Identity Card */}
         <section>
-          <GroupContainer className="shadow-none">
+          <GroupContainer className="shadow-none md:divide-y-0">
             <ListRow 
               icon={
                 group.cover_image ? (
@@ -180,17 +191,17 @@ export function GroupDetail({
                       <Avatar className="h-full w-full rounded-full">
                         <AvatarImage 
                           src={getThumbnailUrl(group.cover_image)} 
-                          alt={group.name} 
+                          alt={group.name || "Group"} 
                           className="object-cover" 
                         />
-                        <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-xs font-semibold">
-                          {group.name.substring(0, 2).toUpperCase()}
+                        <AvatarFallback className="rounded-full bg-secondary text-gray-500 text-xs font-semibold">
+                          {group.name?.substring(0, 2).toUpperCase() || "GR"}
                         </AvatarFallback>
                       </Avatar>
                     </div>
                 ) : (
-                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                    <Users className="h-6 w-6 text-muted-foreground" />
+                  <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 border">
+                    <Users className="h-4 w-4 text-gray-500" />
                   </div>
                 )
               }
@@ -202,7 +213,36 @@ export function GroupDetail({
                 </div>
               }
               trailing={
-                <StatusBadge status={group.status} />
+                <div className="flex items-center gap-4">
+                  <div className="hidden md:flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setWarnDialogOpen(true)}
+                      className="rounded-lg !h-8 text-sm shadow-none"
+                    >
+                      Issue Warning
+                    </Button>
+                    
+                    {group.status === 'pending' ? (
+                      <Button 
+                        onClick={() => setApproveDialogOpen(true)}
+                        className="rounded-lg !h-8 text-sm shadow-none"
+                      >
+                        Approve
+                      </Button>
+                    ) : group.status !== 'removed' ? (
+                      <Button 
+                        onClick={() => setRemoveDialogOpen(true)}
+                        className="rounded-lg !h-8 text-sm"
+                      >
+                        Dismantle
+                      </Button>
+                    ) : null}
+                  </div>
+                  <div className="md:hidden">
+                    <StatusBadge status={group.status} />
+                  </div>
+                </div>
               }
               onClick={() => {}}
               showChevron={false}
@@ -210,11 +250,11 @@ export function GroupDetail({
             />
             
             {/* Action Buttons Integrated into Header Card */}
-            <div className="border-none p-3 pt-4 flex gap-2">
+            <div className="border-none p-3 py-4 flex md:hidden gap-2">
               <Button 
                 variant="outline" 
                 onClick={() => setWarnDialogOpen(true)}
-                className="flex-1 rounded-xl !h-9 text-sm"
+                className="flex-1 rounded-lg !h-9 shadow-none"
               >
                 Issue Warning
               </Button>
@@ -222,14 +262,14 @@ export function GroupDetail({
               {group.status === 'pending' ? (
                 <Button 
                   onClick={() => setApproveDialogOpen(true)}
-                  className="flex-1 rounded-xl !h-9 text-sm"
+                  className="flex-1 rounded-lg !h-9 shadow-none"
                 >
                   Approve Group
                 </Button>
               ) : group.status !== 'removed' ? (
                 <Button 
                   onClick={() => setRemoveDialogOpen(true)}
-                  className="flex-1 rounded-xl !h-9 text-sm"
+                  className="flex-1 rounded-lg !h-9 text-sm"
                 >
                   Dismantle
                 </Button>
@@ -242,6 +282,14 @@ export function GroupDetail({
           <section>
             <SectionHeader>Group Details</SectionHeader>
             <GroupContainer>
+              <ListRow 
+                icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" />}
+                label="Status"
+                secondary="Current Status"
+                trailing={<StatusBadge status={group.status} />}
+                showChevron={false}
+                className="hidden md:flex" 
+              />
               <ListRow 
                 icon={<Info className="h-5 w-5 text-muted-foreground" />}
                 label="Description"
@@ -304,11 +352,11 @@ export function GroupDetail({
                         <Avatar className="h-full w-full rounded-full">
                           <AvatarImage 
                             src={member.profile_photo ? getThumbnailUrl(member.profile_photo) : ""} 
-                            alt={member.name} 
+                            alt={member.name || "Member"} 
                             className="object-cover" 
                           />
-                          <AvatarFallback className="rounded-full bg-muted text-muted-foreground text-xs font-semibold">
-                            {member.name.substring(0, 2).toUpperCase()}
+                          <AvatarFallback className="rounded-full bg-secondary text-gray-500 text-sm font-semibold border">
+                            {member.name?.substring(0, 1).toUpperCase() || "U"}
                           </AvatarFallback>
                         </Avatar>
                       </div>
@@ -338,7 +386,7 @@ export function GroupDetail({
           {group.status === 'removed' && (
             <section>
                <SectionHeader>Removal Metadata</SectionHeader>
-               <GroupContainer className="border-red-200 bg-red-50/10">
+               <GroupContainer className="">
                   <ListRow 
                     label="Reason for Removal"
                     secondary={group.removed_reason}
@@ -358,11 +406,12 @@ export function GroupDetail({
           {flags.length > 0 && (
             <section>
               <SectionHeader>Active Reports</SectionHeader>
-              <GroupContainer className="border-orange-200 bg-orange-50/10">
+              <GroupContainer className="">
                 {flags.map((flag) => (
                   <ListRow 
                     key={flag.id}
-                    icon={<ShieldAlert className="h-5 w-5 text-orange-500" />}
+                    onClick={() => router.push(`/flags?flagId=${flag.id}`)}
+                    icon={<ShieldAlert className="h-5 w-5" />}
                     label={flag.reason || "Policy Violation"}
                     secondary={formatDateTime(flag.created_at)}
                     trailing={
@@ -380,21 +429,62 @@ export function GroupDetail({
             <SectionHeader>Admin Timeline</SectionHeader>
             <GroupContainer>
                {adminActions.length === 0 ? (
-                 <div className="py-20 text-center text-sm text-muted-foreground font-medium italic">No previous actions recorded</div>
+                 <div className="py-20 text-center text-sm text-muted-foreground font-medium">No previous actions recorded</div>
                ) : (
-                 adminActions.map((action) => (
-                   <ListRow 
-                    key={action.id}
-                    icon={<History className="h-5 w-5 text-muted-foreground" />}
-                    label={action.action}
-                    secondary={
-                      <div className="space-y-1">
-                        <div>{action.reason}</div>
-                      </div>
-                    }
-                    showChevron={false}
-                   />
-                 ))
+                 adminActions.map((action) => {
+                   const isExpanded = expandedActions.has(action.id);
+                   const hasDetails = (action.metadata && Object.keys(action.metadata).length > 0) || action.reason;
+                   const adminEmail = action.admins?.email?.split('@')[0] || "System";
+
+                   return (
+                     <React.Fragment key={action.id}>
+                       <ListRow 
+                        onClick={() => hasDetails && toggleActionExpansion(action.id)}
+                        icon={<History className={cn("h-5 w-5 transition-colors", "text-muted-foreground")} />}
+                        label={action.action}
+                        secondary={`${adminEmail} • ${formatDateTime(action.created_at)}`}
+                        trailing={
+                          hasDetails && (
+                            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isExpanded && "rotate-180")} />
+                          )
+                        }
+                        showChevron={false}
+                        className={cn("transition-colors", isExpanded && "bg-card")}
+                       />
+                       {isExpanded && hasDetails && (
+                         <div className="px-6 py-5 bg-card border-b border-border space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                            {action.reason && (
+                             <div className="space-y-1">
+                               <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Reason</span>
+                               <p className="text-sm text-muted-foreground leading-relaxed">{action.reason}</p>
+                             </div>
+                           )}
+                           
+                           {action.metadata && Object.keys(action.metadata).length > 0 && (
+                             <div className="space-y-2">
+                               <div className="flex items-center justify-between">
+                                 <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Metadata Details</span>
+                                 <button 
+                                   onClick={(e) => { 
+                                     e.stopPropagation(); 
+                                     navigator.clipboard.writeText(JSON.stringify(action.metadata, null, 2));
+                                     toast({ title: "Copied", description: "Metadata JSON copied to clipboard", variant: "success" });
+                                   }}
+                                   className="text-xs font-semibold text-primary cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                                 >
+                                   <Copy className="h-3 w-3" /> COPY JSON
+                                 </button>
+                               </div>
+                               <pre className="text-xs font-mono bg-background p-4 rounded-xl border border-border overflow-auto scrollbar-hide text-muted-foreground max-h-[200px]">
+                                 {JSON.stringify(action.metadata, null, 2)}
+                               </pre>
+                             </div>
+                           )}
+                         </div>
+                       )}
+                     </React.Fragment>
+                   );
+                 })
                )}
             </GroupContainer>
           </section>
@@ -420,13 +510,13 @@ export function GroupDetail({
         onConfirm={() => handleAction("warn", warnReason)}
         validate={() => warnReason.trim().length > 0}
       >
-        <div className="space-y-4 mt-4">
-          <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Internal Reason</label>
-          <textarea
+        <div className="flex flex-col gap-2 mt-2">
+          <label className="text-sm font-semibold text-foreground">Internal Reason</label>
+          <Textarea
             value={warnReason}
             onChange={(e) => setWarnReason(e.target.value)}
             placeholder="What exactly needs to be corrected?"
-            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-sm focus:ring-1 ring-primary/20 transition-all outline-none"
+            className="min-h-[100px] rounded-lg bg-background border-border shadow-none focus-visible:ring-0 text-sm"
             required
           />
         </div>
@@ -437,18 +527,17 @@ export function GroupDetail({
         onOpenChange={setRemoveDialogOpen}
         title="Remove Group"
         description="This will dismantle the group and notify all members. This action cannot be undone."
-        variant="destructive"
         confirmText="Dismantle Group"
         onConfirm={() => handleAction("remove", removeReason)}
         validate={() => removeReason.trim().length > 0}
       >
-        <div className="space-y-4 mt-4">
-          <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-1">Removal Reason (Public)</label>
-          <textarea
+        <div className="flex flex-col gap-2 mt-2">
+          <label className="text-sm font-semibold text-foreground">Removal Reason (Public)</label>
+          <Textarea
             value={removeReason}
             onChange={(e) => setRemoveReason(e.target.value)}
             placeholder="Provide a reason for the members..."
-            className="w-full min-h-[120px] rounded-xl border-none bg-muted/40 px-4 py-3 text-sm focus:ring-1 ring-primary/20 transition-all outline-none"
+            className="min-h-[100px] rounded-lg bg-background border-border shadow-none focus-visible:ring-0 text-sm"
             required
           />
         </div>

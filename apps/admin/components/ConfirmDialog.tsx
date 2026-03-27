@@ -96,7 +96,7 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="sm:max-w-[425px] z-[300]" // Higher z-index to sit on top of other modals
+        className="max-w-4xl bg-card max-h-[90vh] p-0 w-[calc(100%-2rem)] sm:w-[95vw] md:w-[90vw] lg:w-[85vw] overflow-hidden gap-0 flex flex-col rounded-2xl" // Higher z-index to sit on top of other modals
         onPointerDownOutside={(e) => {
           // Prevent closing when clicking outside if we want to force explicit detailed action
           // But usually standard behavior is fine. 
@@ -108,17 +108,18 @@ export function ConfirmDialog({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <DialogHeader className="space-y-3">
-          <DialogTitle className="text-xl font-bold tracking-tight font-sans">{title}</DialogTitle>
-          <DialogDescription className="text-sm font-medium text-muted-foreground leading-relaxed">
-            {description}
-          </DialogDescription>
+        <DialogHeader className="px-4 sm:px-6 py-4 border-b">
+          <DialogTitle className="text-md text-start">{title}</DialogTitle>
         </DialogHeader>
         
         <div 
-            className="py-4"
+            className="overflow-y-auto flex-1 px-4 sm:px-6 pt-4 pb-2 sm:pb-4 hide-scrollbar"
             onClick={(e) => e.stopPropagation()}
         >
+          <DialogDescription className="text-start text-sm font-medium text-foreground leading-relaxed mb-6">
+            {description}
+          </DialogDescription>
+
           {children}
           
           {requireTypedConfirmation && (
@@ -137,9 +138,9 @@ export function ConfirmDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-3 sm:gap-0">
+        <DialogFooter className="flex flex-row pt-2 sm:pt-0 pb-4 px-4 sm:px-6 bg-card w-full sticky bottom-0 z-10">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -147,7 +148,7 @@ export function ConfirmDialog({
             }}
             disabled={isLoading}
             type="button"
-            className="rounded-xl font-semibold hover:bg-muted/50"
+            className="flex-1 h-10 rounded-lg shadow-none"
           >
             {cancelText}
           </Button>
@@ -157,7 +158,7 @@ export function ConfirmDialog({
             disabled={!canConfirm || isLoading}
             type="button"
             className={cn(
-                "rounded-xl font-bold px-6 ios-shadow transition-all active:scale-95",
+                "flex-1 h-10 rounded-lg shadow-none",
                 variant === "destructive" ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90"
             )}
           >

@@ -58,9 +58,9 @@ export function ListRow({
         )}
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 h-full">
         {trailing && (
-          <div className="text-md text-muted-foreground">
+          <div className="flex items-center h-full text-md text-muted-foreground">
             {trailing}
           </div>
         )}

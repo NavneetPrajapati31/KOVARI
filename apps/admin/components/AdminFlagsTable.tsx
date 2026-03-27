@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { getThumbnailUrl } from "../lib/cloudinary-client";
@@ -53,12 +53,21 @@ export function AdminFlagsTable({
   initialTargetType = "all",
 }: AdminFlagsTableProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [flags, setFlags] = React.useState<Flag[]>(initialFlags);
   const [page, setPage] = React.useState(initialPage);
   const [status, setStatus] = React.useState(initialStatus);
   const [targetType, setTargetType] = React.useState(initialTargetType);
   const [isLoading, setIsLoading] = React.useState(false);
   const [selectedFlagId, setSelectedFlagId] = React.useState<string | null>(null);
+
+  // Synchronize modal with URL search params
+  React.useEffect(() => {
+    const flagId = searchParams.get("flagId");
+    if (flagId && flagId !== selectedFlagId) {
+      setSelectedFlagId(flagId);
+    }
+  }, [searchParams, selectedFlagId]);
 
   const fetchFlags = React.useCallback(
     async (newPage: number, newStatus: string, newTargetType: string) => {
