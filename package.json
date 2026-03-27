@@ -11,11 +11,11 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "socket": "turbo run socket",
+    "socket": "npx turbo run socket",
     "setup": "node setup-dev.js",
     "quick-start": "node quick-start.js"
   },
-  "devDependencies": {
+  "dependencies": {
     "turbo": "^2.4.4"
   }
 }
