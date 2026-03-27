@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { ToastContainer, useToast } from "./Toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
@@ -54,7 +54,6 @@ export function AdminGroupsTable({
   initialFlagged = "",
 }: AdminGroupsTableProps) {
   const router = useRouter();
-  const { toasts, toast, removeToast } = useToast();
   const [groups, setGroups] = React.useState<Group[]>(initialGroups);
   const [page, setPage] = React.useState(initialPage);
   const [status, setStatus] = React.useState(initialStatus);
@@ -89,12 +88,12 @@ export function AdminGroupsTable({
         if (flaggedFilter) urlParams.append("flagged", flaggedFilter);
         router.push(`/groups?${urlParams}`, { scroll: false });
       } catch (error) {
-        toast({ title: "Error", description: "Failed to fetch groups", variant: "destructive" });
+        toast.error("Error", { description: "Failed to fetch groups" });
       } finally {
         setIsLoading(false);
       }
     },
-    [initialLimit, toast]
+    [initialLimit]
   );
 
   const handleSearch = (e: React.FormEvent) => {
@@ -123,13 +122,13 @@ export function AdminGroupsTable({
         body: JSON.stringify({ action: "remove", reason: removeReason.trim() }),
       });
       if (!res.ok) throw new Error("Failed to remove group");
-      toast({ title: "Success", description: "Group removed successfully" });
+      toast.success("Success", { description: "Group removed successfully" });
       setRemoveDialogOpen(false);
       setSelectedGroup(null);
       setRemoveReason("");
       fetchGroups(page, query, status, flagged);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to remove group", variant: "destructive" });
+      toast.error("Error", { description: "Failed to remove group" });
     }
   };
 
@@ -137,8 +136,6 @@ export function AdminGroupsTable({
 
   return (
     <>
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-
       <div className="space-y-6">
         {/* Search & Filters */}
         <section className="space-y-6">

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ToastContainer, useToast } from "@/components/Toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GroupContainer } from "@/components/ui/ios/GroupContainer";
 import { ListRow } from "@/components/ui/ios/ListRow";
@@ -22,7 +22,6 @@ type SessionRow = {
 };
 
 export default function SessionsPage() {
-  const { toasts, toast, removeToast } = useToast();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,16 +96,14 @@ export default function SessionsPage() {
       });
       if (res.ok) {
         setSessions((prev) => prev.filter((s) => s.sessionKey !== sessionKey));
-        toast({
-          title: "Session Expired",
+        toast.success("Session Expired", {
           description: "Internal session token revoked successfully.",
-          variant: "success",
         });
       } else {
-        toast({ title: "Error", description: "Failed to expire session", variant: "destructive" });
+        toast.error("Error", { description: "Failed to expire session" });
       }
     } catch (err) {
-      toast({ title: "Error", description: "Connection error", variant: "destructive" });
+      toast.error("Error", { description: "Connection error" });
     } finally {
       setIsDeleting(null);
       setConfirmDialog({ open: false, sessionKey: null, userId: null });
@@ -120,7 +117,6 @@ export default function SessionsPage() {
 
   return (
     <div className="max-w-full mx-auto space-y-6">
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       <ConfirmDialog
         open={confirmDialog.open}
@@ -232,7 +228,7 @@ export default function SessionsPage() {
                                      onClick={(e) => {
                                        e.stopPropagation();
                                        navigator.clipboard.writeText(s.sessionKey);
-                                       toast({ title: "Copied", description: "Session key copied", variant: "success" });
+                                       toast.success("Copied", { description: "Session key copied" });
                                      }}
                                      className="text-xs font-semibold text-primary cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                                    >
@@ -276,7 +272,7 @@ export default function SessionsPage() {
                               onClick={(e) => { 
                                 e.stopPropagation(); 
                                 navigator.clipboard.writeText(JSON.stringify(s.metadata, null, 2));
-                                toast({ title: "Copied", description: "Metadata JSON copied", variant: "success" });
+                                toast.success("Copied", { description: "Metadata JSON copied" });
                               }}
                               className="text-xs font-semibold text-primary cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                             > COPY JSON

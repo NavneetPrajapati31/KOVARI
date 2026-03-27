@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ToastContainer, useToast } from "@/components/Toast";
+import { toast } from "sonner";
 import { AlertTriangle, Clock, Sliders, ShieldCheck } from "lucide-react";
 import { GroupContainer } from "@/components/ui/ios/GroupContainer";
 import { ListRow } from "@/components/ui/ios/ListRow";
@@ -35,7 +35,6 @@ export default function SettingsPage() {
   const [pendingMaintenanceMode, setPendingMaintenanceMode] = React.useState(false);
   const [presetDialogOpen, setPresetDialogOpen] = React.useState(false);
   const [pendingPreset, setPendingPreset] = React.useState<"SAFE" | "BALANCED" | "STRICT">("BALANCED");
-  const { toasts, toast, removeToast } = useToast();
 
   React.useEffect(() => {
     loadSettings();
@@ -52,7 +51,7 @@ export default function SettingsPage() {
         matching_preset: data.matching_preset ?? "BALANCED",
       });
     } catch (error) {
-      toast({ title: "Error", description: "Failed to load systems", variant: "destructive" });
+      toast.error("Error", { description: "Failed to load systems" });
     }
   };
 
@@ -72,9 +71,9 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error("Update failed");
       const data = await response.json();
       setSettings(data.value);
-      toast({ title: "Updated", description: "System settings synchronized.", variant: "success" });
+      toast.success("Updated", { description: "System settings synchronized." });
     } catch (error) {
-      toast({ title: "Error", description: "Could not save changes.", variant: "destructive" });
+      toast.error("Error", { description: "Could not save changes." });
     } finally {
       setIsSaving(false);
     }
@@ -108,7 +107,6 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-full mx-auto space-y-6">
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       <div className="space-y-0">
         <h1 className="text-lg font-semibold tracking-tight">Settings</h1>

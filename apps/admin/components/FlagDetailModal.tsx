@@ -7,7 +7,7 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { cn } from '../lib/utils';
-import { ToastContainer, useToast } from './Toast';
+import { toast } from 'sonner';
 import { StatusBadge } from './ui/ios/StatusBadge';
 import { getThumbnailUrl, getFullImageUrl } from '../lib/cloudinary-client';
 import {
@@ -121,7 +121,6 @@ export function FlagDetailModal({
   const [actionReason, setActionReason] = React.useState('');
   const [banUntil, setBanUntil] = React.useState('');
   const [isActionLoading, setIsActionLoading] = React.useState(false);
-  const { toasts, toast, removeToast } = useToast();
 
   const fetchFlagDetails = React.useCallback(async () => {
     setIsLoading(true);
@@ -182,10 +181,8 @@ export function FlagDetailModal({
 
     // Validate suspend action
     if (action === 'suspend' && !banUntil) {
-      toast({
-        title: 'Validation Error',
+      toast.error('Validation Error', {
         description: 'Suspension end date is required for suspend action',
-        variant: 'destructive',
       });
       return;
     }
@@ -195,10 +192,8 @@ export function FlagDetailModal({
       const suspendDate = new Date(banUntil);
       const now = new Date();
       if (suspendDate <= now) {
-        toast({
-          title: 'Validation Error',
+        toast.error('Validation Error', {
           description: 'Suspension end date must be in the future',
-          variant: 'destructive',
         });
         return;
       }
@@ -295,10 +290,8 @@ export function FlagDetailModal({
         description += ' The flag has been removed from the pending queue.';
       }
 
-      toast({
-        title: 'Action completed',
+      toast.success('Action completed', {
         description,
-        variant: 'default',
       });
 
       // Close modal and refresh list
@@ -324,13 +317,11 @@ export function FlagDetailModal({
         error instanceof Error ? error.stack : 'No stack',
       );
 
-      toast({
-        title: 'Action failed',
+      toast.error('Action failed', {
         description:
           error instanceof Error
             ? error.message
             : 'Failed to perform action. Please check the console for details.',
-        variant: 'destructive',
       });
     } finally {
       setIsActionLoading(false);
@@ -688,8 +679,6 @@ export function FlagDetailModal({
           )}
         </DialogContent>
       </Dialog>
-
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </>
   );
 }

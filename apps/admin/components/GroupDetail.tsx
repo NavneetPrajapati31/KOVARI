@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { ToastContainer, useToast } from "./Toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getThumbnailUrl } from "@/lib/cloudinary-client";
 import { GroupContainer } from "./ui/ios/GroupContainer";
@@ -113,7 +113,6 @@ export function GroupDetail({
   flagId,
 }: GroupDetailProps) {
   const router = useRouter();
-  const { toasts, toast, removeToast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = React.useState(false);
   const [warnDialogOpen, setWarnDialogOpen] = React.useState(false);
@@ -140,10 +139,8 @@ export function GroupDetail({
 
       if (!res.ok) throw new Error(`Failed to ${action} group`);
       
-      toast({
-        title: "Success",
+      toast.success("Success", {
         description: `Group ${action}ed successfully`,
-        variant: "success",
       });
 
       setApproveDialogOpen(false);
@@ -151,10 +148,8 @@ export function GroupDetail({
       setRemoveDialogOpen(false);
       router.refresh();
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Action failed",
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -177,7 +172,6 @@ export function GroupDetail({
 
   return (
     <div className="space-y-12 pb-12">
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
       
       {/* Main Content: Single Column Stack */}
       <div className="space-y-8 max-w-full mx-auto mt-4">
@@ -468,7 +462,7 @@ export function GroupDetail({
                                    onClick={(e) => { 
                                      e.stopPropagation(); 
                                      navigator.clipboard.writeText(JSON.stringify(action.metadata, null, 2));
-                                     toast({ title: "Copied", description: "Metadata JSON copied to clipboard", variant: "success" });
+                                     toast.success("Copied", { description: "Metadata JSON copied to clipboard" });
                                    }}
                                    className="text-xs font-semibold text-primary cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                                  >

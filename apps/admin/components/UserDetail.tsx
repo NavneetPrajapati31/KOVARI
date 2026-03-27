@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { ToastContainer, useToast } from "./Toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getFullImageUrl } from "../lib/cloudinary-client";
 import { GroupContainer } from "./ui/ios/GroupContainer";
@@ -99,7 +99,6 @@ export function UserDetail({
   const router = useRouter();
   const searchParams = useSearchParams();
   const flagId = propFlagId || searchParams.get("flagId");
-  const { toasts, toast, removeToast } = useToast();
   const [profile, setProfile] = React.useState(initialProfile);
   const [flags, setFlags] = React.useState(initialFlags);
   const [notes, setNotes] = React.useState(initialNotes);
@@ -179,20 +178,16 @@ export function UserDetail({
         setProfile((prev) => ({ ...prev, verified: true }));
       }
 
-      toast({
-        title: "Success",
-        description: `User ${action}ed successfully`,
-        variant: "success",
+      toast.success("Success", {
+        description: `User ${action === 'verify' ? 'verified' : action + 'ed'} successfully`,
       });
 
       setTimeout(() => {
         router.refresh();
       }, 300);
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Action failed",
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -212,10 +207,8 @@ export function UserDetail({
 
       if (!res.ok) throw new Error("Failed to add note");
 
-      toast({
-        title: "Success",
+      toast.success("Success", {
         description: "Note added successfully",
-        variant: "success",
       });
 
       const notesRes = await fetch(`/api/admin/users/${profile.id}/notes`);
@@ -227,10 +220,8 @@ export function UserDetail({
       setNoteForm({ note: "" });
       setActionState({ type: null, open: false });
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to add note",
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -242,7 +233,6 @@ export function UserDetail({
 
   return (
     <div className="space-y-8 pb-12">
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* Identity Card Section */}
       <section className="space-y-8 max-w-full mx-auto mt-4">

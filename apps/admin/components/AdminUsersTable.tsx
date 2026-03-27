@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ToastContainer, useToast } from "./Toast";
 import { cn } from "@/lib/utils";
 import { GroupContainer } from "./ui/ios/GroupContainer";
 import { ListRow } from "./ui/ios/ListRow";
@@ -55,7 +54,6 @@ export function AdminUsersTable({
   initialStatus = "",
 }: AdminUsersTableProps) {
   const router = useRouter();
-  const { toasts, toast, removeToast } = useToast();
   const [users, setUsers] = React.useState<User[]>(initialUsers);
   const [page, setPage] = React.useState(initialPage);
   const [query, setQuery] = React.useState(initialQuery);
@@ -105,8 +103,6 @@ export function AdminUsersTable({
 
   return (
     <>
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-
       <div className="space-y-6">
         {/* Search & Filters */}
         <section className="space-y-6">
