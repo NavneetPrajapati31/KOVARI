@@ -1,17 +1,24 @@
 "use client";
 
+import * as React from "react";
 import {
-  LineChart,
-  Line,
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  Area,
+  AreaChart,
+  CartesianGrid,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+} from "@/components/ui/chart";
+
+const chartConfig = {
+  count: {
+    label: "Waitlist Signups",
+    color: "var(--color-primary)",
+  },
+} satisfies ChartConfig;
 
 interface GrowthChartProps {
   data: { date: string; count: number }[];
@@ -19,65 +26,111 @@ interface GrowthChartProps {
 
 export function GrowthChart({ data }: GrowthChartProps) {
   return (
-    <Card className="col-span-1 md:col-span-2 lg:col-span-3">
-      <CardHeader>
-        <CardTitle>Signup Growth</CardTitle>
-        <CardDescription>Daily waitlist signups over the last 30 days</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-              <defs>
-                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
-              <XAxis
-                dataKey="date"
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => {
-                  const date = new Date(value);
-                  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                }}
+    <div className="w-full space-y-2">
+      <div className="space-y-0">
+        <h2 className="text-md font-semibold tracking-tight text-foreground">Signup Growth</h2>
+        <p className="text-sm text-muted-foreground">
+          Daily Waitlist Volume (30D)
+        </p>
+      </div>
+
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto h-[300px] w-full mt-4"
+      >
+        <AreaChart
+          data={data}
+          margin={{
+            left: -32,
+            right: 12,
+            top: 10,
+            bottom: 24,
+          }}
+        >
+          <defs>
+            <linearGradient id="fillCount" x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="5%"
+                stopColor="var(--color-count)"
+                stopOpacity={0.25}
               />
-              <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `${value}`}
+              <stop
+                offset="95%"
+                stopColor="var(--color-count)"
+                stopOpacity={0}
               />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--background))",
-                  borderColor: "hsl(var(--border))",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                }}
-                itemStyle={{ color: "hsl(var(--primary))" }}
+            </linearGradient>
+          </defs>
+          <CartesianGrid 
+            vertical={false} 
+            strokeDasharray="3 3" 
+            stroke="hsl(var(--border)/0.3)" 
+          />
+          <XAxis
+            dataKey="date"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={12}
+            minTickGap={48}
+            style={{ 
+              fontSize: '11px', 
+              fontWeight: 500, 
+              fill: 'hsl(var(--muted-foreground))',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em' 
+            }}
+            tickFormatter={(value) => {
+              const date = new Date(value);
+              return date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+            }}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            style={{ 
+              fontSize: '11px', 
+              fontWeight: 500, 
+              fill: 'hsl(var(--muted-foreground))' 
+            }}
+            tickFormatter={(value) => `${value}`}
+          />
+          <ChartTooltip
+            cursor={{ stroke: 'var(--color-count)', strokeWidth: 1, strokeDasharray: '4 4' }}
+            content={
+              <ChartTooltipContent
+                className="bg-card shadow-2xl rounded-2xl p-3 min-w-[150px]"
                 labelFormatter={(value) => {
-                   const date = new Date(value);
-                   return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+                  return new Date(value).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric"
+                  });
                 }}
+                indicator="line"
               />
-              <Area
-                type="monotone"
-                dataKey="count"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorCount)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+            }
+          />
+          <Area
+            dataKey="count"
+            type="monotone"
+            fill="url(#fillCount)"
+            stroke="var(--color-count)"
+            strokeWidth={3}
+            animationDuration={1500}
+            activeDot={{ 
+              r: 6, 
+              fill: "var(--color-count)", 
+              stroke: "#fff", 
+              strokeWidth: 2,
+              className: "shadow-lg" 
+            }}
+          />
+        </AreaChart>
+      </ChartContainer>
+    </div>
   );
 }

@@ -64,7 +64,11 @@ export async function GET(req: NextRequest) {
     if (error) {
       console.error('Flags list error:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch flags' },
+        { 
+          error: 'Failed to fetch flags', 
+          message: error.message,
+          code: error.code
+        },
         { status: 500 },
       );
     }
@@ -136,13 +140,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Combine both user_flags and group_flags, then sort by created_at
-    const allFlags = [...(flagsData || []), ...groupFlagsData].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
+    const allFlags = [...(flagsData || []), ...groupFlagsData].sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
 
     // Apply pagination to combined results
-    const paginatedFlags = allFlags.slice(from, to + 1);
+    const paginatedFlags = allFlags.slice(from, from + limit);
 
     if (paginatedFlags.length === 0) {
       return NextResponse.json({
@@ -155,17 +160,13 @@ export async function GET(req: NextRequest) {
     // Enrich flags with target info (user/group name)
     const enrichedFlags = await Promise.all(
       paginatedFlags.map(async (flag) => {
-        const targetId = flag.user_id; // For user_flags, user_id is the target
-        let flagTargetType = flag.type || 'user'; // Default to "user" if type is null
+        const targetId = flag.user_id;
+        let flagTargetType = flag.type || 'user';
 
-        // Normalize target type: only "group" is treated as group, everything else is "user"
-        // This handles cases where type might be "test_flag", null, or other invalid values
         if (flagTargetType !== 'group') {
           flagTargetType = 'user';
         }
 
-        // Validate target type by checking what actually exists in the database
-        // If type says "group" but no group exists, treat it as a user flag
         if (flagTargetType === 'group') {
           const { data: group } = await supabaseAdmin
             .from('groups')
@@ -174,10 +175,6 @@ export async function GET(req: NextRequest) {
             .maybeSingle();
 
           if (!group) {
-            // Group doesn't exist, so this is actually a user flag (data inconsistency)
-            console.warn(
-              `Flag ${flag.id} has type="group" but group ${targetId} doesn't exist. Treating as user flag.`,
-            );
             flagTargetType = 'user';
           }
         }
@@ -191,7 +188,6 @@ export async function GET(req: NextRequest) {
         } | null = null;
 
         if (flagTargetType === 'user') {
-          // Get user profile info
           const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('id, name, email, profile_photo')
@@ -207,7 +203,6 @@ export async function GET(req: NextRequest) {
               profile_photo: profile.profile_photo || undefined,
             };
           } else {
-            // Fallback: try to get from users table
             const { data: user } = await supabaseAdmin
               .from('users')
               .select('id')
@@ -223,7 +218,6 @@ export async function GET(req: NextRequest) {
             }
           }
         } else if (flagTargetType === 'group') {
-          // Get group info
           const { data: group } = await supabaseAdmin
             .from('groups')
             .select('id, name, cover_image')
@@ -238,67 +232,45 @@ export async function GET(req: NextRequest) {
               profile_photo: group.cover_image || undefined,
             };
           } else {
-            // Group doesn't exist - this shouldn't happen after validation above, but handle it
             targetName = 'Group (Not Found)';
           }
         }
 
-        // PHASE 6: Generate signed URL for evidence (admin-only, time-limited)
-        // Prefer using stored evidence_public_id, fall back to extracting from URL
         let signedEvidenceUrl: string | null = null;
         if (flag.evidence_public_id || flag.evidence_url) {
           try {
             const { generateSignedThumbnailUrl, getPublicIdFromEvidenceUrl } =
               await import('@/admin-lib/cloudinaryEvidence');
 
-            // Prefer stored evidence_public_id (most reliable)
             let publicId = flag.evidence_public_id || null;
 
-            // If no stored public_id, try to extract from URL
             if (!publicId && flag.evidence_url) {
               publicId = getPublicIdFromEvidenceUrl(flag.evidence_url);
-              if (!publicId) {
-                console.warn(
-                  `Could not extract public_id from evidence_url for flag ${flag.id}. Using original URL.`,
-                );
-              }
             }
 
-            // Try to generate signed URL if we have a public_id
             if (publicId) {
               try {
-                // Generate signed thumbnail URL for table display (expires in 1 hour)
-                // Use "upload" type (public) to match how evidence is uploaded
                 signedEvidenceUrl = generateSignedThumbnailUrl(publicId, {
                   expiresIn: 3600,
-                  size: 150, // Small thumbnail for table
-                  type: 'upload', // Explicitly use "upload" (public) type to avoid 404s
+                  size: 150,
+                  type: 'upload',
                 });
               } catch (signError) {
-                // If signed URL generation fails (e.g., asset is public not private),
-                // fall back to original URL
-                console.warn(
-                  `Failed to generate signed URL for flag ${flag.id}, using original URL:`,
-                  signError,
-                );
+                console.warn(`Failed to generate signed URL for flag ${flag.id}:`, signError);
               }
             }
 
-            // If we still don't have a signed URL, use the original secure_url
-            // This handles cases where assets are public or signed URL generation fails
             if (!signedEvidenceUrl && flag.evidence_url) {
               signedEvidenceUrl = flag.evidence_url;
             }
           } catch (error) {
             console.error('Error processing evidence URL:', error);
-            // Fall back to original URL
             signedEvidenceUrl = flag.evidence_url || null;
           }
         }
 
-        // PHASE 8: Check if flag is older than 24 hours
         const flagAge = Date.now() - new Date(flag.created_at).getTime();
-        const isOldFlag = flagAge > 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const isOldFlag = flagAge > 24 * 60 * 60 * 1000;
 
         return {
           id: flag.id,
@@ -307,12 +279,12 @@ export async function GET(req: NextRequest) {
           targetName,
           targetInfo,
           reason: flag.reason,
-          evidenceUrl: signedEvidenceUrl || flag.evidence_url, // Use signed URL if available
+          evidenceUrl: signedEvidenceUrl || flag.evidence_url,
           evidencePublicId: flag.evidence_public_id,
           createdAt: flag.created_at,
           status: flag.status,
-          reporterId: null, // PHASE 7: Hide reporter identity from admins
-          isOldFlag, // PHASE 8: Flag for highlighting old flags
+          reporterId: null,
+          isOldFlag,
         };
       }),
     );
@@ -322,7 +294,14 @@ export async function GET(req: NextRequest) {
       page,
       limit,
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('CRITICAL: GET /api/admin/flags failure:', error);
+    
+    // Explicitly handle NextResponse throws from requireAdmin
+    if (error instanceof Response || (error && error.status && typeof error.json === 'function')) {
+       return error as unknown as NextResponse;
+    }
+
     await incrementErrorCounter();
     Sentry.captureException(error, {
       tags: {
@@ -330,6 +309,14 @@ export async function GET(req: NextRequest) {
         route: 'GET /api/admin/flags',
       },
     });
-    throw error;
+
+    return NextResponse.json(
+      { 
+        error: 'Internal Server Error', 
+        message: error.message || 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
+      { status: 500 },
+    );
   }
 }

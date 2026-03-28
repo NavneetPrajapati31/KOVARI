@@ -1,67 +1,109 @@
 "use client";
 
+import * as React from "react";
 import {
-  BarChart,
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
   Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+} from "@/components/ui/chart";
+
+const chartConfig = {
+  count: {
+    label: "Signups",
+    color: "var(--color-primary)",
+  },
+} satisfies ChartConfig;
 
 interface SourceBreakdownProps {
   data: { source: string; count: number; percentage: string | number }[];
 }
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--primary) / 0.8)", "hsl(var(--primary) / 0.6)", "hsl(var(--primary) / 0.4)"];
-
 export function SourceBreakdown({ data }: SourceBreakdownProps) {
   return (
-    <Card className="col-span-1 md:col-span-2">
-      <CardHeader>
-        <CardTitle>Source Breakdown</CardTitle>
-        <CardDescription>Where your waitlist signups are coming from</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={data}
-              layout="vertical"
-              margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="hsl(var(--muted))" />
-              <XAxis type="number" hide />
-              <YAxis
-                dataKey="source"
-                type="category"
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                width={80}
+    <div className="w-full h-full space-y-4 px-6 pt-5">
+      <div className="">
+        <h2 className="text-md font-semibold tracking-tight text-foreground">Traffic Sources</h2>
+        <p className="text-sm text-muted-foreground">
+          Top Referral Channels
+        </p>
+      </div>
+
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto h-[100px] w-full mt-2"
+      >
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{
+            left: 0,
+            right: 0,
+          }}
+        >
+          <CartesianGrid 
+            horizontal={false} 
+            strokeDasharray="3 3" 
+            stroke="hsl(var(--border)/0.3)" 
+          />
+          <YAxis
+            dataKey="source"
+            type="category"
+            tickLine={false}
+            tickMargin={10}
+            axisLine={false}
+            hide
+          />
+          <XAxis type="number" dataKey="count" hide />
+          <ChartTooltip
+            cursor={{ fill: 'hsl(var(--muted)/0.3)', radius: 8 }}
+            content={
+              <ChartTooltipContent 
+                hideLabel 
+                indicator="line" 
+                className="bg-card border border-border rounded-lg p-3"
               />
-              <Tooltip
-                cursor={{ fill: "transparent" }}
-                contentStyle={{
-                  backgroundColor: "hsl(var(--background))",
-                  borderColor: "hsl(var(--border))",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                }}
-              />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={32}>
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+            }
+          />
+          <Bar
+            dataKey="count"
+            fill="var(--color-count)"
+            radius={10}
+            barSize={30}
+            animationDuration={1500}
+          >
+            <LabelList
+              dataKey="source"
+              position="insideLeft"
+              offset={12}
+              style={{ 
+                fill: 'white', 
+                fontWeight: 500, 
+                fontSize: '10px', 
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em' 
+              }}
+            />
+            <LabelList
+              dataKey="count"
+              position="right"
+              offset={12}
+              style={{ 
+                fill: 'hsl(var(--foreground))', 
+                fontWeight: 600, 
+                fontSize: '15px',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+              }}
+            />
+          </Bar>
+        </BarChart>
+      </ChartContainer>
+    </div>
   );
 }

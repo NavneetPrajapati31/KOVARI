@@ -12,23 +12,18 @@ export function EmailHealth({ sent, pending, avgDelayMinutes }: EmailHealthProps
   const isHealthy = pending < 10;
   
   return (
-    <Card className="col-span-1 md:col-span-2">
+    <Card className="h-full border-none shadow-none bg-transparent flex flex-col justify-between !gap-0">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Email Pipeline Health</CardTitle>
+            <CardTitle className="mb-1">Email Pipeline Health</CardTitle>
             <CardDescription>Status of confirmation email delivery</CardDescription>
           </div>
-          {isHealthy ? (
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-          ) : (
-            <AlertTriangle className="h-5 w-5 text-amber-500 animate-pulse" />
-          )}
         </div>
       </CardHeader>
       <CardContent>
         {!isHealthy && (
-          <div className="mb-6 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+          <div className="mb-4 text-xs flex items-center">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>Warning: High volume of pending emails ({pending}). Check CRON job logs.</span>
           </div>
@@ -37,11 +32,11 @@ export function EmailHealth({ sent, pending, avgDelayMinutes }: EmailHealthProps
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground font-medium">Delivered</p>
-            <p className="text-2xl font-bold">{sent.toLocaleString()}</p>
+            <p className="text-xl font-semibold">{sent.toLocaleString()}</p>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground font-medium">Queued</p>
-            <p className={cn("text-2xl font-bold", !isHealthy && "text-amber-600")}>
+            <p className={cn("text-xl font-semibold", !isHealthy && "text-amber-600")}>
               {pending.toLocaleString()}
             </p>
           </div>
@@ -50,13 +45,13 @@ export function EmailHealth({ sent, pending, avgDelayMinutes }: EmailHealthProps
               <p className="text-xs text-muted-foreground font-medium">Avg Delay</p>
               <Clock className="h-3 w-3 text-muted-foreground" />
             </div>
-            <p className="text-2xl font-bold">{avgDelayMinutes}m</p>
+            <p className="text-xl font-semibold">{avgDelayMinutes}m</p>
           </div>
         </div>
 
-        <div className="mt-6 h-2 w-full bg-muted rounded-full overflow-hidden flex">
+        <div className="mt-4 h-1.5 w-full bg-muted rounded-full overflow-hidden flex">
           <div 
-            className="h-full bg-emerald-500" 
+            className="h-full bg-primary" 
             style={{ width: `${(sent / (sent + pending || 1)) * 100}%` }} 
           />
           <div 
@@ -64,7 +59,7 @@ export function EmailHealth({ sent, pending, avgDelayMinutes }: EmailHealthProps
             style={{ width: `${(pending / (sent + pending || 1)) * 100}%` }} 
           />
         </div>
-        <div className="mt-2 flex justify-between text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+        <div className="mt-4 flex justify-between text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">
            <span>{Math.round((sent / (sent + pending || 1)) * 100)}% Success Rate</span>
            <span>Reliability Threshold: 98%</span>
         </div>
