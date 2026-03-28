@@ -1,12 +1,31 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { usePathname } from "next/navigation";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { AdminTopbar } from "@/components/AdminTopbar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { useAuth } from "@clerk/nextjs";
+
+// Global loading state context
+type LoadingContextType = {
+  isLoading: boolean;
+  setIsLoading: (val: boolean) => void;
+  isNavigating: boolean;
+  setIsNavigating: (val: boolean) => void;
+};
+
+const LoadingContext = createContext<LoadingContextType>({
+  isLoading: false,
+  setIsLoading: () => {},
+  isNavigating: false,
+  setIsNavigating: () => {},
+});
+
+export const useLoading = () => useContext(LoadingContext);
 
 export function AdminLayoutWrapper({
   children,
@@ -15,17 +34,25 @@ export function AdminLayoutWrapper({
 }) {
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useAuth();
+  
+  // Loading states
+  const [isLoading, setIsLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Reset states on path change
+  useEffect(() => {
+    setIsNavigating(false);
+    setIsLoading(false); // Also clear manual loading state on navigation
+  }, [pathname]);
 
   useEffect(() => {
-    // Check if we have a pending login action to log
-    // Only log if we are authenticated and NOT on an auth page (to avoid premature logging)
+    // ... (rest of the login logging logic remains same)
     const isAuthPage = pathname?.startsWith("/sign-in") || pathname?.startsWith("/not-authorized");
     
     if (isLoaded && isSignedIn && !isAuthPage && typeof window !== 'undefined') {
       const pendingLogin = sessionStorage.getItem("admin_login_pending");
       
       if (pendingLogin) {
-        // Clear flag immediately to prevent double logging
         sessionStorage.removeItem("admin_login_pending");
         
         fetch('/api/admin/auth/log', {
@@ -34,13 +61,11 @@ export function AdminLayoutWrapper({
           body: JSON.stringify({ action: 'login' }),
         }).catch(err => {
           console.error("Failed to log login action:", err);
-          // Optionally restore flag if we want to retry, but better to fail safe
         });
       }
     }
   }, [isLoaded, isSignedIn, pathname]);
 
-  // Don't show admin layout on auth pages
   const isAuthPage =
     pathname?.startsWith("/sign-in") || pathname?.startsWith("/not-authorized");
 
@@ -48,17 +73,29 @@ export function AdminLayoutWrapper({
     return <>{children}</>;
   }
 
+  // Combine both states for the final overlay visibility
+  const showLoader = isNavigating || isLoading;
+
   return (
-    <SidebarProvider defaultOpen={false}>
-      <AdminSidebar />
-      <SidebarInset className="flex flex-col bg-background">
-        <AdminTopbar />
-        <main className="flex-1 overflow-auto p-6 md:p-8 md:pt-6">
-          <div className="max-w-[1600px] mx-auto space-y-8">
-            {children}
-          </div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <LoadingContext.Provider value={{ isLoading, setIsLoading, isNavigating, setIsNavigating }}>
+      <SidebarProvider defaultOpen={false}>
+        <AdminSidebar setIsNavigating={setIsNavigating} />
+        <SidebarInset className="relative flex flex-col bg-background">
+          {showLoader && (
+            <div className="absolute inset-0 z-[50] flex items-center justify-center h-[100vh] bg-background transition-all duration-300">
+               <div className="flex flex-col items-center">
+                  <Loader2 className="h-6 w-6 text-primary animate-spin" />
+               </div>
+            </div>
+          )}
+          <AdminTopbar />
+          <main className={cn("flex-1 overflow-auto p-6 md:p-8 md:pt-6", showLoader && "hidden")}>
+            <div className="max-w-[1600px] mx-auto space-y-8">
+              {children}
+            </div>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </LoadingContext.Provider>
   );
 }

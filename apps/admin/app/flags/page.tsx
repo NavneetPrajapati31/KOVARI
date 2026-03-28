@@ -48,14 +48,12 @@ async function getFlags(
   });
 
   if (!response.ok) {
-    console.error("Failed to fetch flags:", response.status);
-    return { flags: [], page, limit };
-  }
-
-  // Check if response is JSON before parsing
-  const contentType = response.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/json")) {
-    console.error("Flags API returned non-JSON response");
+    try {
+      const errorData = await response.json();
+      console.error("Failed to fetch flags:", response.status, errorData);
+    } catch {
+      console.error("Failed to fetch flags:", response.status);
+    }
     return { flags: [], page, limit };
   }
 

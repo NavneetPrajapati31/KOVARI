@@ -154,7 +154,7 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="max-w-full mx-auto space-y-8">
+    <div className="max-w-full mx-auto space-y-6">
       <DashboardAutoRefresh />
       
       <div className="space-y-0">
@@ -164,37 +164,41 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         <section>
           <SectionHeader>System Overview</SectionHeader>
           <GroupContainer>
             <ListRow
-              icon={<Clock className="h-5 w-5" />}
+              icon={<Clock className="text-primary h-4 w-4" />}
               label="Active Sessions"
               secondary="Currently active user sessions"
-              trailing={<span className="font-semibold text-foreground">{metrics.sessionsActive}</span>}
+              trailing={<span className="text-foreground">{metrics.sessionsActive}</span>}
               showChevron={false}
+              className="gap-4"
             />
             <ListRow
-              icon={<Flag className="h-5 w-5" />}
+              icon={<Flag className="text-primary h-4 w-4" />}
               label="Pending Flags"
               secondary="Flags awaiting review"
-              trailing={<span className={metrics.pendingFlags > 0 ? "font-semibold text-foreground" : "text-foreground"}>{metrics.pendingFlags}</span>}
+              trailing={<span className={metrics.pendingFlags > 0 ? "text-foreground" : "text-foreground"}>{metrics.pendingFlags}</span>}
               showChevron={false}
+              className="gap-4"
             />
             <ListRow
-              icon={<Users className="h-5 w-5" />}
+              icon={<Users className="text-primary h-4 w-4" />}
               label="Total Users"
               secondary="Registered users in system"
-              trailing={<span className="font-semibold text-foreground">{totalUsers}</span>}
+              trailing={<span className="text-foreground">{totalUsers}</span>}
               showChevron={false}
+              className="gap-4"
             />
             <ListRow
-              icon={<TrendingUp className="h-5 w-5" />}
+              icon={<TrendingUp className="text-primary h-4 w-4" />}
               label="Matches (24h)"
               secondary="Matches generated today"
-              trailing={<span className="font-semibold text-foreground">{metrics.matches24h}</span>}
+              trailing={<span className="text-foreground">{metrics.matches24h}</span>}
               showChevron={false}
+              className="gap-4"
             />
           </GroupContainer>
         </section>
@@ -204,28 +208,31 @@ export default async function DashboardPage() {
           <GroupContainer>
             <Link href="/flags" className="block">
               <ListRow
-                icon={<Flag className="h-5 w-5" />}
+                icon={<Flag className="text-primary h-4 w-4" />}
                 label="Review Flags"
                 secondary="Manage user and group reports"
+                className="gap-4"
               />
             </Link>
             <Link href="/sessions" className="block">
               <ListRow
-                icon={<Clock className="h-5 w-5" />}
+                icon={<Clock className="text-primary h-4 w-4" />}
                 label="Monitor Sessions"
                 secondary="Real-time session tracking"
+                className="gap-4"
               />
             </Link>
             <Link href="/settings" className="block">
               <ListRow
-                icon={settings.maintenance_mode ? <PowerOff className="h-5 w-5" /> : <Power className="h-5 w-5" />}
+                icon={settings.maintenance_mode ? <PowerOff className="text-primary h-4 w-4" /> : <Power className="text-primary h-4 w-4" />}
                 label="Maintenance Mode"
                 secondary={settings.maintenance_mode ? "Maintenance is currently active" : "System is running normally"}
                 trailing={
-                  <span className={settings.maintenance_mode ? "text-red-500 font-medium" : "text-emerald-500 font-medium"}>
+                  <span className={settings.maintenance_mode ? "text-primary font-medium" : "text-primary font-medium"}>
                     {settings.maintenance_mode ? "Active" : "Off"}
                   </span>
                 }
+                className="gap-4"
               />
             </Link>
           </GroupContainer>
@@ -262,7 +269,7 @@ export default async function DashboardPage() {
             )}
             {recentActions.length > 0 && (
               <Link href="/audit" className="block">
-                <div className="px-4 py-3 text-center border-none hover:bg-secondary transition-colors">
+                <div className="px-4 py-4 text-center border-none hover:bg-secondary transition-colors">
                   <span className="text-sm font-medium text-primary">View All Actions</span>
                 </div>
               </Link>
