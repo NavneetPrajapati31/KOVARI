@@ -51,7 +51,15 @@ export async function GET(req: Request) {
       "total session keys"
     );
 
-    const matchingSessions = [];
+    const matchingSessions: Array<{
+      sessionKey: string;
+      userId: string | null;
+      createdAt: string | null;
+      ttlSeconds: number | null;
+      destination: string | null;
+      budget: number | null;
+      metadata: any;
+    }> = [];
 
     // Fetch and filter sessions
     for (

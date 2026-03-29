@@ -53,6 +53,7 @@ export async function GET(req: Request) {
       ttlSeconds: number | null;
       destination: string | null;
       budget: number | null;
+      metadata: any;
     }> = [];
     let nextCursor: string | number | null = null;
 
