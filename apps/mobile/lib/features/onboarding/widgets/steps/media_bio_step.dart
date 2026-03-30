@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../shared/widgets/text_input_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../../shared/widgets/secondary_button.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -21,7 +22,9 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
   @override
   void initState() {
     super.initState();
-    _bioController = TextEditingController(text: ref.read(onboardingProvider).bio);
+    _bioController = TextEditingController(
+      text: ref.read(onboardingProvider).bio,
+    );
   }
 
   @override
@@ -32,30 +35,32 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Column(
         children: [
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             "Profile picture",
-            style: AppTextStyles.h1,
+            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             "Add a photo and short bio",
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mutedForeground),
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.mutedForeground,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.lg),
 
           // Avatar Selector mirroring web UX
           GestureDetector(
             onTap: () {
-               // Placeholder for image picker functionality
+              // Placeholder for image picker functionality
             },
             child: Stack(
               children: [
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
                     color: AppColors.secondary,
                     shape: BoxShape.circle,
@@ -68,7 +73,11 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                         : null,
                   ),
                   child: state.profilePicUrl == null
-                      ? const Icon(LucideIcons.userRound, size: 48, color: AppColors.mutedForeground)
+                      ? const Icon(
+                          LucideIcons.userRound,
+                          size: 28,
+                          color: AppColors.mutedForeground,
+                        )
                       : null,
                 ),
                 Positioned(
@@ -80,36 +89,50 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                       color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(LucideIcons.scanFace, color: Colors.white, size: 16),
+                    child: const Icon(
+                      LucideIcons.scanFace,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.lg),
 
           TextInputField(
             label: 'Bio',
             hintText: 'Tell us about your travel style...',
             controller: _bioController,
             maxLines: 4,
-            onChanged: (v) => ref.read(onboardingProvider.notifier).updateMediaBio(bio: v),
+            onChanged: (v) =>
+                ref.read(onboardingProvider.notifier).updateMediaBio(bio: v),
           ),
-          
-          const SizedBox(height: AppSpacing.xxl),
-          PrimaryButton(
-            text: 'Continue',
-            onPressed: () => ref.read(onboardingProvider.notifier).setStep(3),
-            icon: LucideIcons.chevronRight,
+
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: SecondaryButton(
+                  text: 'Back',
+                  icon: LucideIcons.chevronLeft,
+                  onPressed: () =>
+                      ref.read(onboardingProvider.notifier).setStep(1),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: PrimaryButton(
+                  text: 'Continue',
+                  onPressed: () =>
+                      ref.read(onboardingProvider.notifier).setStep(3),
+                  icon: LucideIcons.chevronRight,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => ref.read(onboardingProvider.notifier).setStep(1),
-            child: Text(
-              'Back', 
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mutedForeground),
-            ),
-          ),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );

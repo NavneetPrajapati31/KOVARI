@@ -56,25 +56,29 @@ class _IdentityStepState extends ConsumerState<IdentityStep> {
         key: _formKey,
         child: Column(
           children: [
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               "Let's get started",
-              style: AppTextStyles.h1,
+              style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               "Tell us about yourself to create your profile",
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mutedForeground),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.mutedForeground,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
 
             TextInputField(
               label: 'First Name',
               hintText: 'John',
               controller: _firstController,
-              onChanged: (v) => ref.read(onboardingProvider.notifier).updateIdentity(first: v),
+              onChanged: (v) => ref
+                  .read(onboardingProvider.notifier)
+                  .updateIdentity(first: v),
               validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -83,7 +87,8 @@ class _IdentityStepState extends ConsumerState<IdentityStep> {
               label: 'Last Name',
               hintText: 'Doe',
               controller: _lastController,
-              onChanged: (v) => ref.read(onboardingProvider.notifier).updateIdentity(last: v),
+              onChanged: (v) =>
+                  ref.read(onboardingProvider.notifier).updateIdentity(last: v),
               validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -92,7 +97,8 @@ class _IdentityStepState extends ConsumerState<IdentityStep> {
               label: 'Username',
               hintText: 'your_username',
               controller: _userController,
-              onChanged: (v) => ref.read(onboardingProvider.notifier).updateIdentity(user: v),
+              onChanged: (v) =>
+                  ref.read(onboardingProvider.notifier).updateIdentity(user: v),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Required';
                 if (v.length < 3) return 'Too short (min 3 chars)';
@@ -105,24 +111,33 @@ class _IdentityStepState extends ConsumerState<IdentityStep> {
                 padding: const EdgeInsets.all(12),
                 child: state.isUsernameChecking
                     ? const SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 14,
+                        height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : (state.isUsernameAvailable == true
-                        ? const Icon(LucideIcons.check, color: Colors.green, size: 18)
-                        : (state.isUsernameAvailable == false
-                            ? const Icon(LucideIcons.circleAlert, color: AppColors.destructive, size: 18)
-                            : null)),
+                          ? const Icon(
+                              LucideIcons.check,
+                              color: AppColors.primary,
+                              size: 18,
+                            )
+                          : (state.isUsernameAvailable == false
+                                ? const Icon(
+                                    LucideIcons.circleAlert,
+                                    color: AppColors.destructive,
+                                    size: 18,
+                                  )
+                                : null)),
               ),
             ),
-            
-            const SizedBox(height: AppSpacing.xxl),
+
+            const SizedBox(height: AppSpacing.md),
             PrimaryButton(
               text: 'Continue',
               onPressed: _onNext,
               icon: LucideIcons.chevronRight,
             ),
+            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import '../../core/theme/app_radius.dart';
 
 class TextInputField extends StatelessWidget {
   final String label;
+  final String? initialValue;
   final String? hintText;
   final String? errorText;
   final bool obscureText;
@@ -14,10 +15,12 @@ class TextInputField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final FormFieldValidator<String>? validator;
   final int maxLines;
+  final FocusNode? focusNode;
 
   const TextInputField({
     super.key,
     required this.label,
+    this.initialValue,
     this.hintText,
     this.errorText,
     this.obscureText = false,
@@ -27,6 +30,7 @@ class TextInputField extends StatelessWidget {
     this.onChanged,
     this.validator,
     this.maxLines = 1,
+    this.focusNode,
   });
 
   @override
@@ -35,17 +39,19 @@ class TextInputField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4.0),
+          padding: const EdgeInsets.only(left: 0),
           child: Text(
-            label.toUpperCase(),
-            style: AppTextStyles.labelUppercase.copyWith(
+            label,
+            style: AppTextStyles.label.copyWith(
               color: AppColors.mutedForeground,
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         TextFormField(
+          initialValue: initialValue,
           controller: controller,
+          focusNode: focusNode,
           obscureText: obscureText,
           keyboardType: keyboardType,
           onChanged: onChanged,
@@ -55,7 +61,16 @@ class TextInputField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hintText,
             suffixIcon: suffixIcon,
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 0,
+              minHeight: 0,
+            ),
             errorText: errorText,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
             filled: true,
             fillColor: AppColors.background,
             enabledBorder: OutlineInputBorder(

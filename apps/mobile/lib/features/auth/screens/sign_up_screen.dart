@@ -106,8 +106,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         text: 'Continue with Google',
                         icon: Image.asset(
                           'assets/google_logo.png',
-                          height: 20,
-                          width: 20,
+                          height: 16,
+                          width: 16,
                         ),
                         onPressed: () {},
                       ),
@@ -136,7 +136,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         obscureText: true,
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Submit
                       PrimaryButton(

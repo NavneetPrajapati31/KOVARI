@@ -94,8 +94,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         text: 'Continue with Google',
                         icon: Image.asset(
                           'assets/google_logo.png',
-                          height: 20,
-                          width: 20,
+                          height: 16,
+                          width: 16,
                         ),
                         onPressed: () {},
                       ),
@@ -135,7 +135,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   activeColor: AppColors.primary,
                                   side: const BorderSide(
-                                    color: AppColors.border,
+                                    color: AppColors.muted,
                                     width: 1.5,
                                   ),
                                   shape: RoundedRectangleBorder(
@@ -148,6 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 'Remember me',
                                 style: AppTextStyles.bodySmall.copyWith(
                                   color: AppColors.mutedForeground,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -170,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Submit
                       PrimaryButton(

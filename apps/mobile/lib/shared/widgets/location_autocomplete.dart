@@ -22,12 +22,15 @@ class LocationAutocomplete extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<LocationAutocomplete> createState() => _LocationAutocompleteState();
+  ConsumerState<LocationAutocomplete> createState() =>
+      _LocationAutocompleteState();
 }
 
 class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
+  final GlobalKey _fieldKey = GlobalKey();
   OverlayEntry? _overlayEntry;
   List<GeoapifyResult> _suggestions = [];
   bool _isLoading = false;
@@ -39,93 +42,182 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
     if (widget.initialValue != null) {
       _controller.text = widget.initialValue!;
     }
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) {
+      _hideOverlay();
+    } else if (_controller.text.length >= 3) {
+      _showOverlay();
+    }
   }
 
   void _onChanged(String value) {
     if (value.trim().length < 3) {
       _hideOverlay();
+      setState(() => _suggestions = []);
       return;
     }
 
+    _showOverlay(); // Show "Searching..." state immediately
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 400), () => _fetchSuggestions(value));
+    _debounceTimer = Timer(
+      const Duration(milliseconds: 400),
+      () => _fetchSuggestions(value),
+    );
   }
 
   Future<void> _fetchSuggestions(String query) async {
     setState(() => _isLoading = true);
-    
-    // In a production app, we'd use a provider for the service
-    // but here we keep it localized for the reconstruction phase as requested
-    final apiClient = ApiClientFactory.create(forceReal: true);
-    final service = LocationService(apiClient);
-    
-    final results = await service.searchLocation(query);
-    
+    _updateOverlay();
+
+    final service = LocationService();
+    var results = await service.searchLocation(query);
+
     if (mounted) {
       setState(() {
         _suggestions = results;
         _isLoading = false;
       });
-      _showOverlay();
+      _updateOverlay();
     }
   }
 
   void _showOverlay() {
-    _hideOverlay();
-    if (_suggestions.isEmpty) return;
+    if (_overlayEntry != null) {
+      _updateOverlay();
+      return;
+    }
 
     final overlay = Overlay.of(context);
     _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: _layerLink.leaderSize?.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: const Offset(0, 75), // Matches spacing for Step UI parity
-          child: Material(
-            elevation: 8,
-            borderRadius: AppRadius.medium,
-            color: Colors.white,
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 250),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.border),
-                borderRadius: AppRadius.medium,
-              ),
-              child: ListView.separated(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                itemCount: _suggestions.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.border),
-                itemBuilder: (context, index) {
-                  final suggestion = _suggestions[index];
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    title: Text(
-                      suggestion.city.isNotEmpty ? suggestion.city : suggestion.formatted.split(',')[0],
-                      style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      suggestion.formatted,
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.mutedForeground),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () {
-                      _controller.text = suggestion.formatted;
-                      widget.onSelect(suggestion);
-                      _hideOverlay();
-                    },
-                  );
-                },
+      builder: (context) {
+        final RenderBox? renderBox =
+            _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+        final size = renderBox?.size ?? Size.zero;
+
+        return Positioned(
+          width: size.width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: Offset(0, size.height + 4),
+            child: TapRegion(
+              groupId: 'location_autocomplete',
+              child: Material(
+                elevation: 8,
+                borderRadius: AppRadius.large,
+                color: Colors.white,
+                shadowColor: Colors.black.withValues(alpha: 0.1),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: AppRadius.large,
+                  ),
+                  child: _buildOverlayContent(),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     overlay.insert(_overlayEntry!);
+  }
+
+  Widget _buildOverlayContent() {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(10),
+        child: Center(
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (_suggestions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(10),
+        child: Center(
+          child: Text(
+            'No results found',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.mutedForeground,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      shrinkWrap: true,
+      itemCount: _suggestions.length,
+      itemBuilder: (context, index) {
+        final suggestion = _suggestions[index];
+        return InkWell(
+          onTap: () async {
+            // 1. Update UI immediately (match web)
+            _controller.text = suggestion.formatted;
+            _hideOverlay();
+            _focusNode.unfocus();
+
+            // 2. Fetch full details if needed (match web handleSelect)
+            setState(() => _isLoading = true);
+            final service = LocationService();
+            final details = await service.getLocationDetails(
+              suggestion.placeId,
+            );
+            setState(() => _isLoading = false);
+
+            if (details != null) {
+              widget.onSelect(details);
+            } else {
+              widget.onSelect(suggestion);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  suggestion.city.isNotEmpty
+                      ? suggestion.city
+                      : suggestion.formatted.split(',')[0],
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  suggestion.formatted,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.mutedForeground,
+                    height: 1.1,
+                    fontSize: 10,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _updateOverlay() {
+    _overlayEntry?.markNeedsBuild();
   }
 
   void _hideOverlay() {
@@ -135,23 +227,19 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: TextInputField(
-        label: widget.label,
-        controller: _controller,
-        hintText: 'Search city...',
-        onChanged: _onChanged,
-        suffixIcon: _isLoading
-            ? const Padding(
-                padding: EdgeInsets.all(12),
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : const Icon(LucideIcons.mapPin, size: 18),
+    return TapRegion(
+      groupId: 'location_autocomplete',
+      onTapOutside: (_) => _hideOverlay(),
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: TextInputField(
+          key: _fieldKey,
+          label: widget.label,
+          controller: _controller,
+          focusNode: _focusNode,
+          hintText: 'Search city...',
+          onChanged: _onChanged,
+        ),
       ),
     );
   }
@@ -160,6 +248,8 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
   void dispose() {
     _debounceTimer?.cancel();
     _controller.dispose();
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     _hideOverlay();
     super.dispose();
   }

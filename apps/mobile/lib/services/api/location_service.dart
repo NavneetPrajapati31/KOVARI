@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+import '../../core/config/env.dart';
 import 'api_client.dart';
 
 class GeoapifyResult {
@@ -34,21 +36,19 @@ class GeoapifyResult {
 }
 
 class LocationService {
-  final ApiClient _apiClient;
+  final Dio _dio = Dio();
 
-  LocationService(this._apiClient);
-
-  /// Searches for locations using the backend Geoapify proxy.
-  /// Type: 'autocomplete'
+  /// Searches for locations using direct Geoapify API to match web-production logic.
   Future<List<GeoapifyResult>> searchLocation(String query) async {
     if (query.trim().length < 3) return [];
 
     try {
-      final response = await _apiClient.get(
-        'proxy/geocoding',
+      final response = await _dio.get(
+        'https://api.geoapify.com/v1/geocode/autocomplete',
         queryParameters: {
-          'type': 'autocomplete',
-          'q': query,
+          'text': query,
+          'apiKey': Env.geoapifyKey,
+          'limit': 5,
         },
       );
 
@@ -61,15 +61,14 @@ class LocationService {
     }
   }
 
-  /// Gets detailed geocoding data for a specific place_id.
-  /// Type: 'details'
+  /// Gets detailed geocoding data for a specific placeId using direct Geoapify.
   Future<GeoapifyResult?> getLocationDetails(String placeId) async {
     try {
-      final response = await _apiClient.get(
-        'proxy/geocoding',
+      final response = await _dio.get(
+        'https://api.geoapify.com/v1/geocode/search',
         queryParameters: {
-          'type': 'details',
-          'placeId': placeId,
+          'id': placeId,
+          'apiKey': Env.geoapifyKey,
         },
       );
 

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../../shared/widgets/secondary_button.dart';
+import '../../../../shared/widgets/select_field.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -21,62 +23,34 @@ class GenderBirthStep extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Column(
         children: [
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             "About you",
-            style: AppTextStyles.h1,
+            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             "Select your gender and date of birth",
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mutedForeground),
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.mutedForeground,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.xxl),
-
-          // Gender Selection with parity formatting
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text('Gender', style: AppTextStyles.label),
-          ),
-          const SizedBox(height: 8),
-          Column(
-            children: genderOptions.map((opt) {
-              final isSelected = state.gender == opt;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: InkWell(
-                  onTap: () => ref.read(onboardingProvider.notifier).updateGenderBirth(gender: opt),
-                  borderRadius: AppRadius.defaultRadius,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primaryLight : Colors.white,
-                      borderRadius: AppRadius.defaultRadius,
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.border,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          opt,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected ? AppColors.primary : AppColors.foreground,
-                          ),
-                        ),
-                        if (isSelected) const Icon(LucideIcons.check, size: 16, color: AppColors.primary),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
           const SizedBox(height: AppSpacing.lg),
+
+          // Modern Gender Dropdown Selection
+          SelectField<String>(
+            label: 'Gender',
+            value: state.gender,
+            hintText: 'Select gender',
+            options: genderOptions,
+            itemLabelBuilder: (v) => v,
+            onChanged: (v) => ref
+                .read(onboardingProvider.notifier)
+                .updateGenderBirth(gender: v),
+          ),
+          const SizedBox(height: AppSpacing.md),
 
           // Birthday Selection mirroring web date picker
           Align(
@@ -88,13 +62,15 @@ class GenderBirthStep extends ConsumerWidget {
             onTap: () async {
               final picked = await showDatePicker(
                 context: context,
-                initialDate: state.birthday ?? DateTime.now().subtract(const Duration(days: 365 * 18)),
+                initialDate:
+                    state.birthday ??
+                    DateTime.now().subtract(const Duration(days: 365 * 18)),
                 firstDate: DateTime(1900),
                 lastDate: DateTime.now(),
                 builder: (context, child) {
                   return Theme(
                     data: Theme.of(context).copyWith(
-                      colorScheme: ColorScheme.light(
+                      colorScheme: const ColorScheme.light(
                         primary: AppColors.primary,
                         onPrimary: Colors.white,
                         onSurface: AppColors.foreground,
@@ -105,7 +81,9 @@ class GenderBirthStep extends ConsumerWidget {
                 },
               );
               if (picked != null) {
-                ref.read(onboardingProvider.notifier).updateGenderBirth(birthday: picked);
+                ref
+                    .read(onboardingProvider.notifier)
+                    .updateGenderBirth(birthday: picked);
               }
             },
             borderRadius: AppRadius.defaultRadius,
@@ -120,49 +98,69 @@ class GenderBirthStep extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    state.birthday == null ? 'Select Date' : DateFormat('dd MMM yyyy').format(state.birthday!),
+                    state.birthday == null
+                        ? 'Select Date'
+                        : DateFormat('dd MMM yyyy').format(state.birthday!),
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: state.birthday == null ? AppColors.mutedForeground : AppColors.foreground,
+                      color: state.birthday == null
+                          ? AppColors.mutedForeground
+                          : AppColors.foreground,
                     ),
                   ),
-                  const Icon(LucideIcons.calendar, size: 18, color: AppColors.mutedForeground),
+                  const Icon(
+                    LucideIcons.calendar,
+                    size: 18,
+                    color: AppColors.mutedForeground,
+                  ),
                 ],
               ),
             ),
           ),
 
-          const SizedBox(height: AppSpacing.xxl),
-          PrimaryButton(
-            text: 'Continue',
-            onPressed: (state.gender != null && state.birthday != null)
-                ? () {
-                    final today = DateTime.now();
-                    var age = today.year - state.birthday!.year;
-                    if (today.month < state.birthday!.month || (today.month == state.birthday!.month && today.day < state.birthday!.day)) {
-                      age--;
-                    }
-                    if (age < 18) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('You must be at least 18 years old'),
-                          backgroundColor: AppColors.destructive,
-                        ),
-                      );
-                      return;
-                    }
-                    ref.read(onboardingProvider.notifier).setStep(4);
-                  }
-                : null,
-            icon: LucideIcons.chevronRight,
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: SecondaryButton(
+                  text: 'Back',
+                  icon: LucideIcons.chevronLeft,
+                  onPressed: () =>
+                      ref.read(onboardingProvider.notifier).setStep(2),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: PrimaryButton(
+                  text: 'Continue',
+                  onPressed: (state.gender != null && state.birthday != null)
+                      ? () {
+                          final today = DateTime.now();
+                          var age = today.year - state.birthday!.year;
+                          if (today.month < state.birthday!.month ||
+                              (today.month == state.birthday!.month &&
+                                  today.day < state.birthday!.day)) {
+                            age--;
+                          }
+                          if (age < 18) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'You must be at least 18 years old',
+                                ),
+                                backgroundColor: AppColors.destructive,
+                              ),
+                            );
+                            return;
+                          }
+                          ref.read(onboardingProvider.notifier).setStep(4);
+                        }
+                      : null,
+                  icon: LucideIcons.chevronRight,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => ref.read(onboardingProvider.notifier).setStep(2),
-            child: Text(
-              'Back',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mutedForeground),
-            ),
-          ),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );

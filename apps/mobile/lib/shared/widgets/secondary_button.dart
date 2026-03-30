@@ -3,25 +3,26 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_text_styles.dart';
 
-class AuthSocialButton extends StatelessWidget {
+class SecondaryButton extends StatelessWidget {
   final String text;
-  final Widget icon;
   final VoidCallback? onPressed;
   final bool isLoading;
+  final IconData? icon;
+  final double height;
 
-  const AuthSocialButton({
+  const SecondaryButton({
     super.key,
     required this.text,
-    required this.icon,
     this.onPressed,
     this.isLoading = false,
+    this.icon,
+    this.height = 40.0,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: double.infinity,
-      height: 40,
+      height: height,
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
@@ -31,31 +32,30 @@ class AuthSocialButton extends StatelessWidget {
           backgroundColor: AppColors.background,
           elevation: 0,
           shadowColor: Colors.transparent,
+          foregroundColor: AppColors.foreground,
         ),
         child: isLoading
             ? const SizedBox(
-                height: 20,
-                width: 20,
+                height: 16,
+                width: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.foreground,
+                    AppColors.mutedForeground,
                   ),
                 ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  icon,
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      text,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.foreground,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  if (icon != null) ...[
+                    Icon(icon, size: 16, color: AppColors.foreground),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    text,
+                    style: AppTextStyles.button.copyWith(
+                      color: AppColors.foreground,
                     ),
                   ),
                 ],

@@ -32,7 +32,7 @@ class SelectChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: AppTextStyles.bodyMedium.copyWith(
+          style: AppTextStyles.bodySmall.copyWith(
             color: isSelected ? AppColors.primary : AppColors.foreground,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),

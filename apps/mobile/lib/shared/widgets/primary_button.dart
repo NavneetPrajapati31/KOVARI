@@ -18,7 +18,7 @@ class PrimaryButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
     this.icon,
-    this.height = 48.0,
+    this.height = 40.0,
     this.backgroundColor,
     this.foregroundColor,
   });
@@ -31,15 +31,15 @@ class PrimaryButton extends StatelessWidget {
         backgroundColor: backgroundColor ?? AppColors.primary,
         foregroundColor: foregroundColor ?? AppColors.primaryForeground,
         minimumSize: Size(double.infinity, height!),
-        disabledBackgroundColor: AppColors.muted,
+        disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.large),
         elevation: 0,
         shadowColor: Colors.transparent,
       ),
       child: isLoading
           ? const SizedBox(
-              height: 20,
-              width: 20,
+              height: 16,
+              width: 16,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -48,16 +48,20 @@ class PrimaryButton extends StatelessWidget {
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 18),
-                  const SizedBox(width: 8),
-                ],
                 Text(
                   text,
                   style: AppTextStyles.button.copyWith(
                     color: foregroundColor ?? AppColors.primaryForeground,
                   ),
                 ),
+                if (icon != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: foregroundColor ?? AppColors.primaryForeground,
+                  ),
+                ],
               ],
             ),
     );
