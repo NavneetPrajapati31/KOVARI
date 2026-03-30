@@ -18,6 +18,7 @@ const isWaitlistPublicPath = createRouteMatcher([
   "/",
   "/landing",
   "/api/waitlist",
+  "/api/users/sync",
   "/api/cron/send-waitlist-emails",
   "/pricing",
   "/about",

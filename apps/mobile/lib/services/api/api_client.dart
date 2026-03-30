@@ -1,144 +1,188 @@
-import 'dart:convert';
-import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import '../../core/constants/api_constants.dart';
-import '../../core/utils/api_exceptions.dart';
+import '../../core/config/env.dart';
 
-class ApiClient {
-  static final ApiClient _instance = ApiClient._internal();
-  factory ApiClient() => _instance;
-  ApiClient._internal();
+/// Base API client interface
+abstract class ApiClient {
+  Future<Response> get(String path, {Map<String, dynamic>? queryParameters});
+  Future<Response> post(String path, {dynamic data});
+  Future<Response> patch(String path, {dynamic data});
+  Future<Response> delete(String path, {dynamic data});
+  
+  /// Dynamically update the authentication token
+  void setToken(String token);
+  
+  /// Clear the current authentication token (Logout)
+  void clearToken();
+  
+  /// Access the current token state
+  String? get token;
+}
 
-  final http.Client _client = http.Client();
+/// Production implementation using Dio
+class DioApiClient implements ApiClient {
+  final Dio _dio;
+  String? _token;
 
-  Uri _buildUri(String endpoint) {
-    final cleanPath = endpoint.startsWith('/')
-        ? endpoint.substring(1)
-        : endpoint;
-    final baseUrl = ApiConstants.baseUrl;
-    final fullUrl = baseUrl.endsWith('/')
-        ? '$baseUrl$cleanPath'
-        : '$baseUrl/$cleanPath';
-    return Uri.parse(fullUrl);
+  DioApiClient([this._token])
+      : _dio = Dio(BaseOptions(
+          baseUrl: Env.apiBaseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          headers: {
+            'Content-Type': 'application/json',
+            if (_token != null) 'Authorization': 'Bearer $_token',
+          },
+        )) {
+    
+    // Add custom debug logging interceptor
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (kDebugMode) {
+          print('🚀 [API REQUEST] ${options.method} ${options.uri}');
+          // Note: Headers and tokens are NOT logged for security
+        }
+        return handler.next(options);
+      },
+      onResponse: (response, handler) {
+        if (kDebugMode) {
+          print('✅ [API RESPONSE] ${response.statusCode} ${response.requestOptions.path}');
+        }
+        return handler.next(response);
+      },
+      onError: (DioException e, handler) {
+        if (kDebugMode) {
+          print('❌ [API ERROR] ${e.response?.statusCode} ${e.requestOptions.path}');
+          print('Message: ${e.message}');
+        }
+        return handler.next(e);
+      },
+    ));
+    
+    // Add global error handler interceptor (optional refinement)
+    _dio.interceptors.add(InterceptorsWrapper(
+      onError: (DioException e, handler) {
+        // Here we could handle 401 Unauthorized globally if needed (auto-logout)
+        return handler.next(e); 
+      },
+    ));
   }
 
-  Map<String, String> _buildHeaders(Map<String, String>? extraHeaders) {
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...?extraHeaders,
-    };
+  @override
+  String? get token => _token;
+
+  @override
+  void setToken(String token) {
+    _token = token;
+    _dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
-  Future<dynamic> get(String endpoint, {Map<String, String>? headers}) async {
-    return _request(
-      () => _client.get(_buildUri(endpoint), headers: _buildHeaders(headers)),
-    );
+  @override
+  void clearToken() {
+    _token = null;
+    _dio.options.headers.remove('Authorization');
   }
 
-  Future<dynamic> post(
-    String endpoint,
-    Map<String, dynamic> body, {
-    Map<String, String>? headers,
-  }) async {
-    return _request(
-      () => _client.post(
-        _buildUri(endpoint),
-        headers: _buildHeaders(headers),
-        body: jsonEncode(body),
-      ),
-    );
+  @override
+  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) {
+    return _dio.get(path, queryParameters: queryParameters);
   }
 
-  Future<dynamic> put(
-    String endpoint,
-    Map<String, dynamic> body, {
-    Map<String, String>? headers,
-  }) async {
-    return _request(
-      () => _client.put(
-        _buildUri(endpoint),
-        headers: _buildHeaders(headers),
-        body: jsonEncode(body),
-      ),
-    );
+  @override
+  Future<Response> post(String path, {dynamic data}) {
+    return _dio.post(path, data: data);
   }
 
-  Future<dynamic> delete(
-    String endpoint, {
-    Map<String, String>? headers,
-  }) async {
-    return _request(
-      () =>
-          _client.delete(_buildUri(endpoint), headers: _buildHeaders(headers)),
-    );
+  @override
+  Future<Response> patch(String path, {dynamic data}) {
+    return _dio.patch(path, data: data);
   }
 
-  Future<dynamic> _request(Future<http.Response> Function() requestFn) async {
-    try {
-      final response = await requestFn().timeout(
-        const Duration(milliseconds: ApiConstants.connectTimeout),
+  @override
+  Future<Response> delete(String path, {dynamic data}) {
+    return _dio.delete(path, data: data);
+  }
+}
+
+/// Mock implementation for local development without backend
+class MockApiClient implements ApiClient {
+  final Duration delay;
+  String? _token;
+
+  MockApiClient({this.delay = const Duration(milliseconds: 500)});
+
+  @override
+  String? get token => _token;
+
+  @override
+  void setToken(String token) {
+    _token = token;
+  }
+
+  @override
+  void clearToken() {
+    _token = null;
+  }
+
+  @override
+  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+    await Future.delayed(delay);
+    
+    if (path == 'users/me') {
+      return Response(
+        requestOptions: RequestOptions(path: path),
+        data: {
+          'clerkId': 'user_mock_123',
+          'supabaseUuid': '550e8400-e29b-41d4-a716-446655440000',
+        },
+        statusCode: 200,
       );
-      _logRequest(response);
-      return _processResponse(response);
-    } on SocketException catch (e) {
-      throw NetworkException(e.message);
-    } catch (e) {
-      if (e is ApiException) rethrow;
-      throw ApiException(e.toString());
     }
+    
+    return Response(
+      requestOptions: RequestOptions(path: path),
+      data: {'message': 'Mock data for $path', 'token_received': _token != null},
+      statusCode: 200,
+    );
   }
 
-  dynamic _processResponse(http.Response response) {
-    final int statusCode = response.statusCode;
-    final dynamic body = _tryParseJson(response.body);
-
-    if (statusCode >= 200 && statusCode < 300) {
-      return body;
-    }
-
-    final String message =
-        _extractMessage(body) ?? 'Request failed with status: $statusCode';
-
-    switch (statusCode) {
-      case 401:
-        throw UnauthorizedException(message);
-      case 404:
-        throw NotFoundException(message);
-      default:
-        throw ApiException(message, statusCode: statusCode);
-    }
+  @override
+  Future<Response> post(String path, {dynamic data}) async {
+    await Future.delayed(delay);
+    return Response(
+      requestOptions: RequestOptions(path: path),
+      data: {'success': true},
+      statusCode: 201,
+    );
   }
 
-  dynamic _tryParseJson(String body) {
-    if (body.isEmpty) return null;
-    try {
-      return jsonDecode(body);
-    } catch (_) {
-      return body;
-    }
+  @override
+  Future<Response> patch(String path, {dynamic data}) async {
+    await Future.delayed(delay);
+    return Response(
+      requestOptions: RequestOptions(path: path),
+      data: {'success': true},
+      statusCode: 200,
+    );
   }
 
-  String? _extractMessage(dynamic body) {
-    if (body is Map) {
-      return body['message'] ?? body['error'] ?? body['msg'];
-    }
-    return null;
+  @override
+  Future<Response> delete(String path, {dynamic data}) async {
+    await Future.delayed(delay);
+    return Response(
+      requestOptions: RequestOptions(path: path),
+      data: {'success': true},
+      statusCode: 200,
+    );
   }
+}
 
-  void _logRequest(http.Response response) {
-    if (kDebugMode) {
-      debugPrint('--> ${response.request?.method} ${response.request?.url}');
-      debugPrint('Status: ${response.statusCode}');
-      if (response.body.isNotEmpty) {
-        debugPrint('Response: ${response.body}');
-      }
-      debugPrint('<-- END ${response.request?.method}');
+/// Factory to get the appropriate API client
+class ApiClientFactory {
+  static ApiClient create({String? token, bool forceReal = false}) {
+    if (Env.useMockApi && !forceReal) {
+      return MockApiClient();
     }
-  }
-
-  void dispose() {
-    _client.close();
+    return DioApiClient(token);
   }
 }
