@@ -8,6 +8,10 @@ import 'features/auth/services/auth_service.dart';
 import 'services/api/api_client.dart';
 import 'services/storage/local_storage.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/theme/app_colors.dart';
+import 'core/config/routes.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,9 +25,18 @@ void main() async {
   }
 
   runApp(
-    ClerkAuth(
-      config: ClerkAuthConfig(publishableKey: Env.clerkPublishableKey),
-      child: const KovariApp(),
+    ProviderScope(
+      child: MaterialApp(
+        title: 'KOVARI',
+        debugShowCheckedModeBanner: false,
+        themeMode: ThemeMode.light,
+        theme: AppTheme.lightTheme,
+        routes: AppRoutes.routes,
+        home: ClerkAuth(
+          config: ClerkAuthConfig(publishableKey: Env.clerkPublishableKey),
+          child: const KovariApp(),
+        ),
+      ),
     ),
   );
 }
@@ -33,17 +46,34 @@ class KovariApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'KOVARI',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: ClerkAuthBuilder(
-        signedInBuilder: (context, authState) {
-          return const AuthHandler();
-        },
-        signedOutBuilder: (context, authState) {
-          return const LoginScreen();
-        },
+    return Stack(
+      children: [
+        const BrandedLoading(),
+        Theme(
+          data: Theme.of(context).copyWith(
+            progressIndicatorTheme: const ProgressIndicatorThemeData(
+              color: Colors.transparent,
+            ),
+          ),
+          child: ClerkAuthBuilder(
+            signedInBuilder: (context, authState) => const AuthHandler(),
+            signedOutBuilder: (context, authState) => const LoginScreen(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class BrandedLoading extends StatelessWidget {
+  const BrandedLoading({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: Image.asset('assets/logo.png', width: 80, fit: BoxFit.contain),
       ),
     );
   }
@@ -100,24 +130,7 @@ class _AuthHandlerState extends State<AuthHandler> {
   @override
   Widget build(BuildContext context) {
     if (_isSyncing) {
-      return const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Colors.black),
-              SizedBox(height: 24),
-              Text(
-                'Synchronizing KOVARI Profile...',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return const BrandedLoading();
     }
 
     if (_error != null) {

@@ -10,29 +10,40 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/config/routes.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class SignUpScreen extends ConsumerStatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _rememberMe = false;
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSignUp() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Passwords don't match"),
+          backgroundColor: AppColors.destructive,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    // TODO: Implement actual Clerk sign-in logic
+    // TODO: Implement actual Clerk sign-up logic
     await Future.delayed(const Duration(seconds: 1)); // Mock
     if (mounted) {
       setState(() => _isLoading = false);
@@ -80,16 +91,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Welcome back', style: AppTextStyles.h3),
+                      Text('Join Kovari', style: AppTextStyles.h3),
                       const SizedBox(height: 4),
                       Text(
-                        'Log in back to your account',
+                        'Create your account to get started',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.mutedForeground,
                         ),
                       ),
                       const SizedBox(height: 24),
 
+                      // Social Buttons
                       AuthSocialButton(
                         text: 'Continue with Google',
                         icon: Image.asset(
@@ -116,66 +128,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         hintText: 'Enter password',
                         obscureText: true,
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Remember & Forgot
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (val) => setState(
-                                    () => _rememberMe = val ?? false,
-                                  ),
-                                  activeColor: AppColors.primary,
-                                  side: const BorderSide(
-                                    color: AppColors.border,
-                                    width: 1.5,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: AppRadius.extraSmall,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Remember me',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.mutedForeground,
-                                ),
-                              ),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () {},
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: Text(
-                              'Forgot password',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.mutedForeground,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                      TextInputField(
+                        label: 'Confirm Password',
+                        controller: _confirmPasswordController,
+                        hintText: 'Confirm password',
+                        obscureText: true,
                       ),
 
                       const SizedBox(height: 24),
 
                       // Submit
                       PrimaryButton(
-                        text: _isLoading ? 'Signing in...' : 'Log in',
-                        onPressed: _isLoading ? null : _handleLogin,
+                        text: _isLoading
+                            ? 'Creating account...'
+                            : 'Create account',
+                        onPressed: _isLoading ? null : _handleSignUp,
                         isLoading: _isLoading,
                       ),
                     ],
@@ -189,20 +157,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account? ",
+                      "Already have an account? ",
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.mutedForeground,
                       ),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/sign-up'),
+                      onPressed: () => Navigator.pushReplacementNamed(
+                        context,
+                        AppRoutes.login,
+                      ), // Back to Login
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        'Create one for free',
+                        'Log in',
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.foreground,
                           fontWeight: FontWeight.w600,
