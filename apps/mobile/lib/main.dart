@@ -5,7 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/auth/services/auth_service.dart';
-import 'services/api/api_client.dart';
+import 'core/network/api_client.dart';
 import 'services/storage/local_storage.dart';
 
 void main() async {
@@ -82,7 +82,7 @@ class _AuthHandlerState extends State<AuthHandler> {
       await authService.refreshSessionToken();
 
       // Step 2: Critical Sync (ensure backend knows this user)
-      await authService.syncUser();
+      await authService.legacySyncUser();
 
       if (mounted) {
         setState(() => _isSyncing = false);

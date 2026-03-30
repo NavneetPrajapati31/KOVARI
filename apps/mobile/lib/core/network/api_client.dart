@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/config/env.dart';
+import '../../core/services/token_service.dart';
 
 /// Base API client interface
 abstract class ApiClient {
@@ -29,19 +30,23 @@ class DioApiClient implements ApiClient {
           baseUrl: Env.apiBaseUrl,
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
-          headers: {
-            'Content-Type': 'application/json',
-            if (_token != null) 'Authorization': 'Bearer $_token',
-          },
         )) {
     
     // Add custom debug logging interceptor
     _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
+      onRequest: (options, handler) async {
+        final token = await TokenService.getToken();
+
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+
+        options.headers['Content-Type'] = 'application/json';
+
         if (kDebugMode) {
           print('🚀 [API REQUEST] ${options.method} ${options.uri}');
-          // Note: Headers and tokens are NOT logged for security
         }
+
         return handler.next(options);
       },
       onResponse: (response, handler) {
@@ -74,13 +79,11 @@ class DioApiClient implements ApiClient {
   @override
   void setToken(String token) {
     _token = token;
-    _dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
   @override
   void clearToken() {
     _token = null;
-    _dio.options.headers.remove('Authorization');
   }
 
   @override

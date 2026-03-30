@@ -1,8 +1,9 @@
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter/foundation.dart';
-import '../../../services/api/api_client.dart';
+import '../../../core/network/api_client.dart';
 import '../../../services/storage/local_storage.dart';
 import '../../../shared/models/kovari_user.dart';
+import '../../../core/network/api_endpoints.dart';
 
 class AuthService {
   final ApiClient _apiClient;
@@ -13,7 +14,16 @@ class AuthService {
 
   /// Handle User Synchronization with Backend
   /// POST /api/users/sync
-  Future<KovariUser?> syncUser() async {
+  Future<String> syncUser(String clerkUserId) async {
+    final res = await _apiClient.post(
+      ApiEndpoints.syncUser,
+      data: {"clerkUserId": clerkUserId},
+    );
+
+    return res.data["userId"];
+  }
+
+  Future<KovariUser?> legacySyncUser() async {
     try {
       final user = _authState.user;
       if (user == null) return null;

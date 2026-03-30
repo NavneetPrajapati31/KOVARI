@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
-import '../../services/api/api_client.dart';
-import '../../core/utils/api_error_handler.dart';
+import '../../core/network/api_client.dart';
+import '../../core/network/api_error_handler.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
