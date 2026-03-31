@@ -14,7 +14,8 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  ConsumerState<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
@@ -32,18 +33,21 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter your email')));
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(ApiClientFactory.create(), LocalStorage());
+      final authService = AuthService(
+        ApiClientFactory.create(),
+        LocalStorage(),
+      );
       await authService.requestPasswordReset(email);
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -83,19 +87,19 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Logo
-                Image.asset(
-                  'assets/logo.webp',
-                  height: 20,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => Text(
-                    'KOVARI',
-                    style: AppTextStyles.h1.copyWith(
-                      letterSpacing: 4,
-                      fontSize: 28,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
+                // Image.asset(
+                //   'assets/logo.webp',
+                //   height: 20,
+                //   fit: BoxFit.contain,
+                //   errorBuilder: (context, error, stackTrace) => Text(
+                //     'KOVARI',
+                //     style: AppTextStyles.h1.copyWith(
+                //       letterSpacing: 4,
+                //       fontSize: 28,
+                //     ),
+                //   ),
+                // ),
+                // const SizedBox(height: 32),
 
                 // Auth Card
                 Container(
@@ -108,7 +112,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     borderRadius: AppRadius.extraLarge,
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: _isSubmitted ? _buildSuccessState() : _buildFormState(),
+                  child: _isSubmitted
+                      ? _buildSuccessState()
+                      : _buildFormState(),
                 ),
               ],
             ),
@@ -122,7 +128,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Reset Password', style: AppTextStyles.h3),
+        Text(
+          'Reset Password',
+          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 4),
         Text(
           'Enter your email address and we will send you a link to reset your password.',
@@ -139,8 +148,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           hintText: 'example@example.com',
           keyboardType: TextInputType.emailAddress,
         ),
-        
-        const SizedBox(height: 24),
+
+        const SizedBox(height: 8),
 
         // Submit
         PrimaryButton(
@@ -156,9 +165,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Icon(Icons.mark_email_read_rounded, size: 60, color: AppColors.primary),
+        const Icon(
+          Icons.mark_email_read_outlined,
+          size: 30,
+          color: AppColors.primary,
+        ),
         const SizedBox(height: 16),
-        Text('Check your email', style: AppTextStyles.h3),
+        Text(
+          'Check your email',
+          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         Text(
           'We have sent a password reset link to ${_emailController.text.trim()}. You can return to the login screen.',

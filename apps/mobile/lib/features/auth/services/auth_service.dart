@@ -90,6 +90,9 @@ class AuthService {
       );
     } catch (e) {
       debugPrint('❌ Forgot Password request failed: $e');
+      rethrow;
+    }
+  }
   /// Verify 6-digit OTP and finalize registration
   Future<KovariUser> verifyOtp(String email, String code) async {
     try {

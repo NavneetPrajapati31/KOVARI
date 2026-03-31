@@ -16,7 +16,8 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key, required this.token});
 
   @override
-  ConsumerState<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  ConsumerState<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
 }
 
 class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
@@ -37,16 +38,16 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     final confirmPassword = _confirmPasswordController.text;
 
     if (newPassword.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
     if (newPassword != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -60,7 +61,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(ApiClientFactory.create(), LocalStorage());
+      final authService = AuthService(
+        ApiClientFactory.create(),
+        LocalStorage(),
+      );
       await authService.resetPassword(widget.token, newPassword);
 
       if (mounted) {
@@ -164,7 +168,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           hintText: 'Retype new password',
           obscureText: true,
         ),
-        
+
         const SizedBox(height: 24),
 
         PrimaryButton(
@@ -180,7 +184,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Icon(Icons.check_circle_outline, size: 60, color: AppColors.primary),
+        const Icon(
+          Icons.check_circle_outline,
+          size: 60,
+          color: AppColors.primary,
+        ),
         const SizedBox(height: 16),
         Text('Password Reset', style: AppTextStyles.h3),
         const SizedBox(height: 8),
@@ -195,7 +203,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         PrimaryButton(
           text: 'Proceed to Login',
           onPressed: () {
-            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/login', (route) => false);
           },
         ),
       ],

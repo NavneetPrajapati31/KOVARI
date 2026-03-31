@@ -35,8 +35,8 @@ class DioApiClient implements ApiClient {
     : _dio = Dio(
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
         ),
       ) {
     // We use QueuedInterceptorsWrapper to handle concurrent 401s properly
@@ -211,32 +211,23 @@ class DioApiClient implements ApiClient {
 
   @override
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) {
-    final url = "${_dio.options.baseUrl}${path.startsWith('/') ? path : '/$path'}";
-    if (kDebugMode) print("FINAL URL: $url");
-    return _dio.get(url, queryParameters: queryParameters);
+    return _dio.get(path, queryParameters: queryParameters);
   }
 
   @override
   Future<Response> post(String path, {dynamic data}) {
-    final url = "${_dio.options.baseUrl}${path.startsWith('/') ? path : '/$path'}";
-    if (kDebugMode) print("FINAL URL: $url");
-    return _dio.post(url, data: data);
+    return _dio.post(path, data: data);
   }
 
   @override
   Future<Response> patch(String path, {dynamic data}) {
-    final url = "${_dio.options.baseUrl}${path.startsWith('/') ? path : '/$path'}";
-    if (kDebugMode) print("FINAL URL: $url");
-    return _dio.patch(url, data: data);
+    return _dio.patch(path, data: data);
   }
 
   @override
   Future<Response> delete(String path, {dynamic data}) {
-    final url = "${_dio.options.baseUrl}${path.startsWith('/') ? path : '/$path'}";
-    if (kDebugMode) print("FINAL URL: $url");
-    return _dio.delete(url, data: data);
+    return _dio.delete(path, data: data);
   }
-
 }
 
 /// Mock implementation for local development without backend

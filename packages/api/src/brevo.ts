@@ -8,7 +8,7 @@ import { registrationVerificationEmail } from "./email-templates/registration-ve
 import { getEmailConfig } from "./email-config";
 
 const MAX_RETRIES = 3;
-const RETRY_DELAYS_MS = [2000, 4000, 8000];
+const RETRY_DELAYS_MS = [1000, 2000, 4000];
 
 interface BrevoEmailParams {
   to: Array<{ email: string }>;
@@ -27,7 +27,7 @@ async function sendBrevoWithRetry(
   const defaultClient = SibApiV3Sdk.ApiClient.instance;
   const apiKey = defaultClient.authentications["api-key"];
   apiKey.apiKey = process.env.BREVO_API_KEY!;
-  defaultClient.timeout = 90000;
+  defaultClient.timeout = 15000; // 15 seconds per single attempt
 
   const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
   const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();

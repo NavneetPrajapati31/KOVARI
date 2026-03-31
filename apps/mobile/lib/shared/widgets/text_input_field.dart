@@ -83,10 +83,7 @@ class TextInputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: AppRadius.large,
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.5,
-              ),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             hintStyle: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.mutedForeground,
