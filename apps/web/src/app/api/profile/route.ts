@@ -132,6 +132,19 @@ export async function POST(req: NextRequest) {
     ...result.data,
   };
 
+  // 1. Sync email back to users table if available (Identity source of truth)
+  if (primaryEmail) {
+    const { error: userUpdateError } = await supabase
+      .from("users")
+      .update({ email: primaryEmail })
+      .eq("id", internalUserId)
+      .is("email", null); // Only update if not already set or mismatched
+
+    if (userUpdateError) {
+      console.error("Failed to sync email to users table:", userUpdateError);
+    }
+  }
+
   // Remove keys that are not in the profiles table schema
   // @ts-ignore
   delete profileData.firstName;
