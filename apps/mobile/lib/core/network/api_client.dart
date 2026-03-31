@@ -211,23 +211,32 @@ class DioApiClient implements ApiClient {
 
   @override
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) {
-    return _dio.get(path, queryParameters: queryParameters);
+    final url = "${_dio.options.baseUrl}${path.startsWith('/') ? path : '/$path'}";
+    if (kDebugMode) print("FINAL URL: $url");
+    return _dio.get(url, queryParameters: queryParameters);
   }
 
   @override
   Future<Response> post(String path, {dynamic data}) {
-    return _dio.post(path, data: data);
+    final url = "${_dio.options.baseUrl}${path.startsWith('/') ? path : '/$path'}";
+    if (kDebugMode) print("FINAL URL: $url");
+    return _dio.post(url, data: data);
   }
 
   @override
   Future<Response> patch(String path, {dynamic data}) {
-    return _dio.patch(path, data: data);
+    final url = "${_dio.options.baseUrl}${path.startsWith('/') ? path : '/$path'}";
+    if (kDebugMode) print("FINAL URL: $url");
+    return _dio.patch(url, data: data);
   }
 
   @override
   Future<Response> delete(String path, {dynamic data}) {
-    return _dio.delete(path, data: data);
+    final url = "${_dio.options.baseUrl}${path.startsWith('/') ? path : '/$path'}";
+    if (kDebugMode) print("FINAL URL: $url");
+    return _dio.delete(url, data: data);
   }
+
 }
 
 /// Mock implementation for local development without backend

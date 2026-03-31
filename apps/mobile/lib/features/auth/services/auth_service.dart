@@ -81,6 +81,15 @@ class AuthService {
     }
   }
 
+  /// Request Password Reset via Email
+  Future<void> requestPasswordReset(String email) async {
+    try {
+      await _apiClient.post(
+        ApiEndpoints.forgotPassword,
+        data: {'email': email},
+      );
+    } catch (e) {
+      debugPrint('❌ Forgot Password request failed: $e');
   /// Verify 6-digit OTP and finalize registration
   Future<KovariUser> verifyOtp(String email, String code) async {
     try {
@@ -96,6 +105,18 @@ class AuthService {
     }
   }
 
+  /// Reset Password with token
+  Future<void> resetPassword(String token, String newPassword) async {
+    try {
+      await _apiClient.post(
+        ApiEndpoints.resetPassword,
+        data: {'token': token, 'newPassword': newPassword},
+      );
+    } catch (e) {
+      debugPrint('❌ Reset Password failed: $e');
+      rethrow;
+    }
+  }
   /// Resend a fresh verification code
   Future<void> resendOtp(String email) async {
     try {
