@@ -126,6 +126,27 @@ class BrandedLoading extends StatelessWidget {
   }
 }
 
+class SimpleLoading extends StatelessWidget {
+  const SimpleLoading({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+            strokeWidth: 3, // Slightly thinner for the smaller size
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class AuthHandler extends ConsumerStatefulWidget {
   const AuthHandler({super.key});
 
@@ -174,7 +195,7 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
   @override
   Widget build(BuildContext context) {
     if (_isSyncing) {
-      return const BrandedLoading();
+      return const SimpleLoading();
     }
 
     if (_error != null) {

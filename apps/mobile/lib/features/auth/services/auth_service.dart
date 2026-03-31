@@ -53,8 +53,9 @@ class AuthService {
     }
   }
 
-  /// Handle custom Email/Password Registration
-  Future<KovariUser?> registerWithEmail(
+  /// Handle custom Email/Password Registration (Initial Step)
+  /// Returns a Map containing {'verificationRequired': true} or the user data
+  Future<Map<String, dynamic>> registerWithEmail(
     String email,
     String password, {
     String? name,
@@ -62,12 +63,45 @@ class AuthService {
     try {
       final response = await _apiClient.post(
         ApiEndpoints.emailRegister,
-        data: {'email': email, 'password': password, 'name': ?name},
+        data: {'email': email, 'password': password, 'name': name},
       );
 
-      return _handleAuthResponse(response.data);
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['verificationRequired'] == true) {
+        return data; // Return to UI for navigation
+      }
+
+      // Legacy fallback (if direct creation is ever re-enabled)
+      await _handleAuthResponse(data);
+      return data;
     } catch (e) {
       debugPrint('❌ Registration failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Verify 6-digit OTP and finalize registration
+  Future<KovariUser> verifyOtp(String email, String code) async {
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.verifyOtp,
+        data: {'email': email, 'code': code},
+      );
+
+      return await _handleAuthResponse(response.data);
+    } catch (e) {
+      debugPrint('❌ OTP Verification failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Resend a fresh verification code
+  Future<void> resendOtp(String email) async {
+    try {
+      await _apiClient.post(ApiEndpoints.resendOtp, data: {'email': email});
+    } catch (e) {
+      debugPrint('❌ OTP Resend failed: $e');
       rethrow;
     }
   }
@@ -115,17 +149,16 @@ class AuthService {
       final refreshToken = await _storage.getRefreshToken();
       if (refreshToken != null) {
         // Use best-effort logout call
-        await _apiClient.post(
-          ApiEndpoints.logout, 
-          data: {'refreshToken': refreshToken},
-        ).timeout(const Duration(seconds: 3));
+        await _apiClient
+            .post(ApiEndpoints.logout, data: {'refreshToken': refreshToken})
+            .timeout(const Duration(seconds: 3));
       }
 
       // 2. Clear Google Session
       await _googleSignIn.signOut();
     } catch (e) {
       debugPrint('ℹ️ Logout cleanup (server or Google): $e');
-    } 
+    }
 
     // 3. Wipe local state
     _apiClient.clearToken();

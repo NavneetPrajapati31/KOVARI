@@ -12,6 +12,7 @@ import '../../../core/services/local_storage.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
+import 'verify_email_screen.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -62,12 +63,21 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         ApiClientFactory.create(),
         LocalStorage(),
       );
-      await authService.registerWithEmail(email, password);
+      final result = await authService.registerWithEmail(email, password);
 
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
+        if (result['verificationRequired'] == true) {
+          setState(() => _isLoading = false);
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => VerifyEmailScreen(email: email),
+            ),
+          );
+        } else {
+          Navigator.of(
+            context,
+          ).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
+        }
       }
     } catch (e) {
       if (mounted) {

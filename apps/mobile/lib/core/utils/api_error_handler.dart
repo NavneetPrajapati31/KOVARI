@@ -23,11 +23,18 @@ class ApiErrorHandler {
           return 'Connection timed out. Please try again.';
         case DioExceptionType.badResponse:
           final statusCode = error.response?.statusCode;
-          if (statusCode == 401) return 'Unauthorized. Please login again.';
-          if (statusCode == 403) return 'Access denied.';
-          if (statusCode == 404) return 'Resource not found.';
-          if (statusCode != null && statusCode >= 500)
+          if (statusCode == 401) {
+            return 'Unauthorized. Please login again.';
+          }
+          if (statusCode == 403) {
+            return 'Access denied.';
+          }
+          if (statusCode == 404) {
+            return 'Resource not found.';
+          }
+          if (statusCode != null && statusCode >= 500) {
             return 'Server error occurred.';
+          }
           return 'An unexpected error occurred (${statusCode ?? "unknown"}).';
         case DioExceptionType.cancel:
           return 'Request was cancelled.';
