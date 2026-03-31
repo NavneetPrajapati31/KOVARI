@@ -26,4 +26,9 @@ class LocalStorage {
   Future<void> saveUserData(Map<String, dynamic> userData) async {
     await _storage.write(key: _userKey, value: jsonEncode(userData));
   }
+
+  static Future<void> saveUserIds(String clerkId, String uuid) async {
+    await _storage.write(key: "clerkId", value: clerkId);
+    await _storage.write(key: "uuid", value: uuid);
+  }
 }

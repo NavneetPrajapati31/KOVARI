@@ -7,10 +7,13 @@ class KovariUser {
     required this.supabaseUuid,
   });
 
-  factory KovariUser.fromJson(Map<String, dynamic> json) {
+  factory KovariUser.fromSyncResponse({
+    required String clerkId,
+    required Map<String, dynamic> json,
+  }) {
     return KovariUser(
-      clerkId: json['clerkId'] as String,
-      supabaseUuid: json['supabaseUuid'] as String,
+      clerkId: clerkId,
+      supabaseUuid: json['userId'] as String,
     );
   }
 
@@ -19,5 +22,12 @@ class KovariUser {
       'clerkId': clerkId,
       'supabaseUuid': supabaseUuid,
     };
+  }
+
+  factory KovariUser.fromJson(Map<String, dynamic> json) {
+    return KovariUser(
+      clerkId: json['clerkId'] as String,
+      supabaseUuid: json['supabaseUuid'] as String,
+    );
   }
 }
