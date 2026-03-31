@@ -4,6 +4,7 @@ if (typeof window !== "undefined") {
 import * as Sentry from "@sentry/nextjs";
 import { passwordResetEmail } from "./email-templates/password-reset";
 import { groupInviteEmail } from "./email-templates/group-invite";
+import { registrationVerificationEmail } from "./email-templates/registration-verification";
 import { getEmailConfig } from "./email-config";
 
 const MAX_RETRIES = 3;
@@ -207,6 +208,71 @@ export const sendGroupInviteEmail = async ({
       span.setAttribute("error", true);
       span.setAttribute("error_message", errorMsg);
       console.error("Error sending group invite email:", { to, error: errorMsg });
+      return { success: false, error: errorMsg };
+    }
+  );
+};
+
+export interface SendRegistrationVerificationEmailParams {
+  to: string;
+  code: string;
+}
+
+/**
+ * Sends a 6-digit registration verification OTP email.
+ * Uses shared retry logic and premium HTML template.
+ */
+export const sendRegistrationVerificationEmail = async ({
+  to,
+  code,
+}: SendRegistrationVerificationEmailParams): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}> => {
+  if (!process.env.BREVO_API_KEY) {
+    return { success: false, error: "BREVO_API_KEY is not configured" };
+  }
+
+  return Sentry.startSpan(
+    {
+      op: "email.send",
+      name: "Send Registration Verification Email",
+    },
+    async (span) => {
+      span.setAttribute("recipient", to);
+      const systemEmailConfig = getEmailConfig("system");
+      span.setAttribute("sender", systemEmailConfig.email);
+
+      const subject = `${code} is your KOVARI verification code`;
+      const html = registrationVerificationEmail({ code });
+
+      const sendSmtpEmail = {
+        to: [{ email: to }],
+        sender: { email: systemEmailConfig.email, name: systemEmailConfig.name },
+        replyTo: { email: systemEmailConfig.replyTo, name: systemEmailConfig.name },
+        subject,
+        htmlContent: html,
+      };
+
+      const result = await sendBrevoWithRetry(sendSmtpEmail);
+
+      if ("messageId" in result) {
+        const messageId = result.messageId || "unknown";
+        span.setAttribute("success", true);
+        span.setAttribute("message_id", messageId);
+        console.log("Registration verification email sent successfully:", { to, messageId });
+        return { success: true, messageId };
+      }
+
+      const errorMsg = "error" in result ? result.error : "Unknown error";
+      Sentry.captureMessage("Registration verification email send failed", {
+        level: "error",
+        extra: { error: errorMsg, recipient: to },
+      });
+      span.setAttribute("error", true);
+      span.setAttribute("error_message", errorMsg);
+      console.error("Error sending registration verification email:", { to, error: errorMsg });
       return { success: false, error: errorMsg };
     }
   );

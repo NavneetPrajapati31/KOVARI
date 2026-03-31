@@ -15,6 +15,7 @@ class TextInputField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final FormFieldValidator<String>? validator;
   final int maxLines;
+  final int? maxLength;
   final FocusNode? focusNode;
 
   const TextInputField({
@@ -30,6 +31,7 @@ class TextInputField extends StatelessWidget {
     this.onChanged,
     this.validator,
     this.maxLines = 1,
+    this.maxLength,
     this.focusNode,
   });
 
@@ -57,8 +59,10 @@ class TextInputField extends StatelessWidget {
           onChanged: onChanged,
           validator: validator,
           maxLines: maxLines,
+          maxLength: maxLength,
           style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500),
           decoration: InputDecoration(
+            counterText: "", // Hide character counter for cleaner aesthetic
             hintText: hintText,
             suffixIcon: suffixIcon,
             suffixIconConstraints: const BoxConstraints(

@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
         p_email: email,
         p_name: name,
         p_google_id: googleId,
+        p_clerk_id: null,
+        p_password_hash: null,
       });
 
     if (syncError || !userId) {

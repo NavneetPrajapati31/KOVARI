@@ -25,6 +25,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _rememberMe = false;
   bool _isLoading = false;
 
+  final _storage = LocalStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedData();
+  }
+
+  Future<void> _loadRememberedData() async {
+    final rememberMe = await _storage.getRememberMe();
+    if (rememberMe) {
+      final email = await _storage.getRememberedEmail();
+      if (mounted && email != null) {
+        setState(() {
+          _rememberMe = true;
+          _emailController.text = email;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -46,11 +67,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(ApiClientFactory.create(), LocalStorage());
+      final authService = AuthService(ApiClientFactory.create(), _storage);
       await authService.loginWithEmail(email, password);
-      
+
+      // Save Remember Me preference
+      await _storage.saveRememberMe(_rememberMe);
+      if (_rememberMe) {
+        await _storage.saveRememberedEmail(email);
+      } else {
+        await _storage.clearRememberedEmail();
+      }
+
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
+        Navigator.of(
+          context,
+        ).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
       }
     } catch (e) {
       if (mounted) {
@@ -69,9 +100,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(ApiClientFactory.create(), LocalStorage());
+      final authService = AuthService(ApiClientFactory.create(), _storage);
       await authService.loginWithGoogle();
-      
+
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/');
       }

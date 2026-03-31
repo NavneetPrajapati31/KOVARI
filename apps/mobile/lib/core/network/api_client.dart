@@ -83,10 +83,11 @@ class DioApiClient implements ApiClient {
 
             // Use the newer token if it exists and was recently updated
             if (currentToken != null && currentToken != requestToken) {
-              if (kDebugMode)
+              if (kDebugMode) {
                 print(
                   '🔄 [AUTH] Parallel refresh detected. Retrying with new token...',
                 );
+              }
 
               final options = e.requestOptions;
               options.headers['Authorization'] = 'Bearer $currentToken';
@@ -109,8 +110,9 @@ class DioApiClient implements ApiClient {
             final refreshToken = await _tokenService.getRefreshToken();
             if (refreshToken != null) {
               try {
-                if (kDebugMode)
+                if (kDebugMode) {
                   print('🔄 [AUTH] Attempting silent token refresh...');
+                }
 
                 // Use a separate Dio instance for refresh to avoid interceptor recursion
                 final refreshDio = Dio(BaseOptions(baseUrl: Env.apiBaseUrl));
@@ -129,10 +131,11 @@ class DioApiClient implements ApiClient {
                   await _tokenService.saveRefreshToken(newRefreshToken);
                   setToken(newAccessToken);
 
-                  if (kDebugMode)
+                  if (kDebugMode) {
                     print(
                       '✨ [AUTH] Token refreshed successfully. Retrying request...',
                     );
+                  }
 
                   // Retry original request with new token
                   final options = e.requestOptions;
@@ -151,8 +154,9 @@ class DioApiClient implements ApiClient {
                   return handler.resolve(retryResponse);
                 }
               } catch (refreshError) {
-                if (kDebugMode)
+                if (kDebugMode) {
                   print('🚨 [AUTH] Refresh failed: $refreshError');
+                }
 
                 if (refreshError is DioException) {
                   final statusCode = refreshError.response?.statusCode;
@@ -161,18 +165,20 @@ class DioApiClient implements ApiClient {
                       (statusCode == 401 ||
                           statusCode == 403 ||
                           statusCode == 400)) {
-                    if (kDebugMode)
+                    if (kDebugMode) {
                       print('🚨 [AUTH] Refresh token invalid. Forcing logout.');
+                    }
                     await _tokenService.clearToken();
                     clearToken();
                     _onLogout?.call();
                   } else {
                     // For network errors (timeout, no internet), we do NOT logout.
                     // We let the original request fail, but keep the tokens for later.
-                    if (kDebugMode)
+                    if (kDebugMode) {
                       print(
                         'ℹ️ [AUTH] Network error during refresh. Retaining session.',
                       );
+                    }
                   }
                 }
               }
