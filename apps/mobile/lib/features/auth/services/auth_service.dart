@@ -72,7 +72,31 @@ class AuthService {
     }
   }
 
-  /// Unified response handler for tokens and user data
+  /// Request Password Reset via Email
+  Future<void> requestPasswordReset(String email) async {
+    try {
+      await _apiClient.post(
+        ApiEndpoints.forgotPassword,
+        data: {'email': email},
+      );
+    } catch (e) {
+      debugPrint('❌ Forgot Password request failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Reset Password with token
+  Future<void> resetPassword(String token, String newPassword) async {
+    try {
+      await _apiClient.post(
+        ApiEndpoints.resetPassword,
+        data: {'token': token, 'newPassword': newPassword},
+      );
+    } catch (e) {
+      debugPrint('❌ Reset Password failed: $e');
+      rethrow;
+    }
+  }
   Future<KovariUser> _handleAuthResponse(dynamic data) async {
     final Map<String, dynamic> responseData = data as Map<String, dynamic>;
 

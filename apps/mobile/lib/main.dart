@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'core/theme/app_theme.dart';
@@ -10,7 +11,10 @@ import 'core/network/api_client.dart';
 import 'core/services/local_storage.dart';
 import 'core/theme/app_colors.dart';
 import 'features/onboarding/data/profile_service.dart';
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 import 'core/config/routes.dart';
+import 'features/auth/screens/reset_password_screen.dart';
 // KovariUser import removed as it is now managed via authStateProvider
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
@@ -29,13 +33,70 @@ void main() async {
   Env.validate();
 
   // Initialize Google Sign In (Required for 7.x+)
-  await GoogleSignIn.instance.initialize(serverClientId: Env.googleClientId);
+  try {
+    await GoogleSignIn.instance.initialize(
+      clientId: Env.googleClientId, // fixes Chrome error
+      serverClientId: kIsWeb ? null : Env.googleClientId,
+    );
+  } catch (e) {
+    debugPrint('Google Sign-In initialization failed or unsupported: $e');
+  }
 
   runApp(const ProviderScope(child: KovariApp()));
 }
 
-class KovariApp extends StatelessWidget {
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+class KovariApp extends StatefulWidget {
   const KovariApp({super.key});
+
+  @override
+  State<KovariApp> createState() => _KovariAppState();
+}
+
+class _KovariAppState extends State<KovariApp> {
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _initDeepLinks() {
+    _appLinks = AppLinks();
+
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        _handleDeepLink(uri);
+      }
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.path.contains('forgot-password') && uri.queryParameters.containsKey('token')) {
+      final token = uri.queryParameters['token']!;
+      // Delay navigation to let the app route system mount first if from cold start
+      Future.delayed(const Duration(milliseconds: 300), () {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => ResetPasswordScreen(token: token),
+          ),
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +105,7 @@ class KovariApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.light,
       theme: AppTheme.lightTheme,
+      navigatorKey: navigatorKey,
       routes: AppRoutes.routes,
       home: const AuthWrapper(),
     );

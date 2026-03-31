@@ -26,8 +26,9 @@ class ApiErrorHandler {
           if (statusCode == 401) return 'Unauthorized. Please login again.';
           if (statusCode == 403) return 'Access denied.';
           if (statusCode == 404) return 'Resource not found.';
-          if (statusCode != null && statusCode >= 500)
+          if (statusCode != null && statusCode >= 500) {
             return 'Server error occurred.';
+          }
           return 'An unexpected error occurred (${statusCode ?? "unknown"}).';
         case DioExceptionType.cancel:
           return 'Request was cancelled.';
