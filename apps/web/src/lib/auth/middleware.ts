@@ -22,6 +22,24 @@ export async function getUserFromRequest(req: NextRequest): Promise<UserContext 
       return null;
     }
 
+    // Case 11: Logout then reuse token -> Rejected
+    // If the token was linked to a session, verify the session still exists.
+    if (payload.tokenHash) {
+      const { createRouteHandlerSupabaseClientWithServiceRole } = await import("@kovari/api");
+      const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+      
+      const { data: session, error } = await supabase
+        .from("refresh_tokens")
+        .select("id")
+        .eq("token_hash", payload.tokenHash)
+        .maybeSingle();
+
+      if (error || !session) {
+        console.warn(`[AUTH] Rejected access token for user ${payload.userId} (Session invalid/logged out)`);
+        return null;
+      }
+    }
+
     return {
       id: payload.userId,
     };

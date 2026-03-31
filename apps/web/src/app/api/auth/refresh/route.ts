@@ -53,8 +53,9 @@ export async function POST(req: NextRequest) {
       .eq("id", storedToken.id);
 
     // 4. Generate & Store new pair
-    const newAccessToken = generateAccessToken(payload.userId);
     const newRefreshToken = generateRefreshToken(payload.userId);
+    const newTokenHash = hashToken(newRefreshToken);
+    const newAccessToken = generateAccessToken(payload.userId, newTokenHash);
     
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
       .from("refresh_tokens")
       .insert({
         user_id: payload.userId,
-        token_hash: hashToken(newRefreshToken),
+        token_hash: newTokenHash,
         expires_at: expiresAt.toISOString(),
       });
 

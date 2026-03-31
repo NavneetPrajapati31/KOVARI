@@ -3,7 +3,7 @@ import {
   clerkMiddleware,
   createRouteMatcher,
 } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const isBannedPage = createRouteMatcher(["/banned"]);
@@ -65,10 +65,12 @@ async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
   }
 }
 
-export default clerkMiddleware(async (auth, req) => {
+const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
   const url = req.nextUrl.clone();
   const host = req.headers.get("host");
 
+
+  // 2. /landing to / redirect (Consolidate content at root)
 
   // 2. /landing to / redirect (Consolidate content at root)
   if (url.pathname === "/landing") {
@@ -91,7 +93,14 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.next();
     }
 
-    const { userId, sessionId } = await auth();
+    let authData: any = {};
+    try {
+      authData = await auth();
+    } catch (e) {
+      console.warn("Clerk auth() failed in waitlist middleware (possibly tampered session):", e);
+    }
+    
+    const { userId, sessionId } = authData;
     if (userId) {
       if (await isLaunchBypassUser(userId)) {
         return NextResponse.next();
@@ -120,7 +129,14 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  const { userId, sessionId } = await auth();
+  let authData: any = {};
+  try {
+    authData = await auth();
+  } catch (e) {
+    console.warn("Clerk auth() failed in middleware (possibly tampered session):", e);
+  }
+
+  const { userId, sessionId } = authData;
 
   if (userId) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -226,6 +242,18 @@ export default clerkMiddleware(async (auth, req) => {
 
   return NextResponse.next();
 });
+
+export default async function middleware(req: NextRequest, evt: any) {
+  // 1. Intercept Mobile JWTs (Avoid Clerk middleware crash on tampered headers)
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ") && !authHeader.includes("__clerk_session")) {
+    // This is a mobile-specific JWT, let the route handlers manage it.
+    // Bypassing clerkMiddleware prevents it from crashing on the malformed token.
+    return NextResponse.next();
+  }
+
+  return (clerk as any)(req, evt);
+}
 
 export const config = {
   matcher: [

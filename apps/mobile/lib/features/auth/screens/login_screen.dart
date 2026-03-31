@@ -9,6 +9,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/services/local_storage.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -56,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(ApiErrorHandler.extractError(e)),
             backgroundColor: AppColors.destructive,
           ),
         );
@@ -79,7 +80,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(ApiErrorHandler.extractError(e)),
             backgroundColor: AppColors.destructive,
           ),
         );

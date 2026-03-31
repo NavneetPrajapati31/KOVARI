@@ -11,29 +11,25 @@ import 'core/services/local_storage.dart';
 import 'core/theme/app_colors.dart';
 import 'features/onboarding/data/profile_service.dart';
 import 'core/config/routes.dart';
-import 'shared/models/kovari_user.dart';
+// KovariUser import removed as it is now managed via authStateProvider
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
+
+import 'core/providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Load environment variables
-  const envFile = String.fromEnvironment('ENV_FILE', defaultValue: '.env.development');
+  const envFile = String.fromEnvironment(
+    'ENV_FILE',
+    defaultValue: '.env.development',
+  );
   await dotenv.load(fileName: envFile);
   Env.validate();
 
   // Initialize Google Sign In (Required for 7.x+)
   await GoogleSignIn.instance.initialize(serverClientId: Env.googleClientId);
-
-  final storage = LocalStorage();
-  final apiClient = ApiClientFactory.create();
-
-  // Initial token injection from secure storage
-  final token = await storage.getAccessToken();
-  if (token != null) {
-    apiClient.setToken(token);
-  }
 
   runApp(const ProviderScope(child: KovariApp()));
 }
@@ -63,25 +59,33 @@ class AuthWrapper extends ConsumerStatefulWidget {
 
 class _AuthWrapperState extends ConsumerState<AuthWrapper> {
   bool _checkedStatus = false;
-  KovariUser? _user;
 
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuth();
+    });
   }
 
   Future<void> _checkAuth() async {
     try {
       final storage = LocalStorage();
       final apiClient = ApiClientFactory.create();
-      final authService = AuthService(apiClient, storage);
 
+      // Wire up global logout listener (Case 10: Force Logout)
+      apiClient.setOnLogout(() {
+        if (mounted) {
+          ref.read(authStateProvider.notifier).state = null;
+        }
+      });
+
+      final authService = AuthService(apiClient, storage);
       final user = await authService.checkSession();
 
       if (mounted) {
+        ref.read(authStateProvider.notifier).state = user;
         setState(() {
-          _user = user;
           _checkedStatus = true;
         });
       }
@@ -98,8 +102,10 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
   Widget build(BuildContext context) {
     if (!_checkedStatus) return const BrandedLoading();
 
+    final user = ref.watch(authStateProvider);
+
     // If no user/session exists, go to LoginScreen
-    if (_user == null) return const LoginScreen();
+    if (user == null) return const LoginScreen();
 
     // If session exists, let AuthHandler handle profile/onboarding logic
     return const AuthHandler();
@@ -114,7 +120,7 @@ class BrandedLoading extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
-        child: Image.asset('assets/logo.png', width: 80, fit: BoxFit.contain),
+        child: Image.asset('assets/logo.png', width: 140, fit: BoxFit.contain),
       ),
     );
   }

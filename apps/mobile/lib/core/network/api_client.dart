@@ -17,6 +17,9 @@ abstract class ApiClient {
   /// Clear the current authentication token (Logout)
   void clearToken();
 
+  /// Register a callback for global logout events
+  void setOnLogout(VoidCallback onLogout);
+
   /// Access the current token state
   String? get token;
 }
@@ -26,6 +29,7 @@ class DioApiClient implements ApiClient {
   final Dio _dio;
   final TokenService _tokenService = TokenService();
   String? _token;
+  VoidCallback? _onLogout;
 
   DioApiClient([this._token])
     : _dio = Dio(
@@ -71,14 +75,43 @@ class DioApiClient implements ApiClient {
           // Handle 401 Unauthorized (Expired Tokens)
           if (e.response?.statusCode == 401 &&
               !e.requestOptions.path.contains(ApiEndpoints.refresh)) {
-            final refreshToken = await _tokenService.getRefreshToken();
+            // 1. Check if the token has already been refreshed by a parallel request
+            final currentToken = await _tokenService.getToken();
+            final requestToken = e.requestOptions.headers['Authorization']
+                ?.toString()
+                .replaceFirst('Bearer ', '');
 
+            // Use the newer token if it exists and was recently updated
+            if (currentToken != null && currentToken != requestToken) {
+              if (kDebugMode)
+                print(
+                  '🔄 [AUTH] Parallel refresh detected. Retrying with new token...',
+                );
+
+              final options = e.requestOptions;
+              options.headers['Authorization'] = 'Bearer $currentToken';
+              setToken(currentToken);
+
+              final retryResponse = await _dio.request(
+                options.path,
+                data: options.data,
+                queryParameters: options.queryParameters,
+                options: Options(
+                  method: options.method,
+                  headers: options.headers,
+                ),
+              );
+
+              return handler.resolve(retryResponse);
+            }
+
+            // 2. If no new token exists, perform the refresh (Sequentially)
+            final refreshToken = await _tokenService.getRefreshToken();
             if (refreshToken != null) {
               try {
                 if (kDebugMode)
                   print('🔄 [AUTH] Attempting silent token refresh...');
 
-                // 1. Request new tokens from backend
                 // Use a separate Dio instance for refresh to avoid interceptor recursion
                 final refreshDio = Dio(BaseOptions(baseUrl: Env.apiBaseUrl));
                 final refreshResponse = await refreshDio.post(
@@ -91,7 +124,7 @@ class DioApiClient implements ApiClient {
                   final newAccessToken = refreshResponse.data['accessToken'];
                   final newRefreshToken = refreshResponse.data['refreshToken'];
 
-                  // 2. Persist new tokens
+                  // Update storage and local state
                   await _tokenService.saveToken(newAccessToken);
                   await _tokenService.saveRefreshToken(newRefreshToken);
                   setToken(newAccessToken);
@@ -101,7 +134,7 @@ class DioApiClient implements ApiClient {
                       '✨ [AUTH] Token refreshed successfully. Retrying request...',
                     );
 
-                  // 3. Retry original request with new token
+                  // Retry original request with new token
                   final options = e.requestOptions;
                   options.headers['Authorization'] = 'Bearer $newAccessToken';
 
@@ -120,9 +153,28 @@ class DioApiClient implements ApiClient {
               } catch (refreshError) {
                 if (kDebugMode)
                   print('🚨 [AUTH] Refresh failed: $refreshError');
-                // Refresh failed (e.g. refresh token also expired)
-                await _tokenService.clearToken();
-                clearToken();
+
+                if (refreshError is DioException) {
+                  final statusCode = refreshError.response?.statusCode;
+                  // If it's a structural auth error (401, 403, 400) -> Session is dead.
+                  if (statusCode != null &&
+                      (statusCode == 401 ||
+                          statusCode == 403 ||
+                          statusCode == 400)) {
+                    if (kDebugMode)
+                      print('🚨 [AUTH] Refresh token invalid. Forcing logout.');
+                    await _tokenService.clearToken();
+                    clearToken();
+                    _onLogout?.call();
+                  } else {
+                    // For network errors (timeout, no internet), we do NOT logout.
+                    // We let the original request fail, but keep the tokens for later.
+                    if (kDebugMode)
+                      print(
+                        'ℹ️ [AUTH] Network error during refresh. Retaining session.',
+                      );
+                  }
+                }
               }
             }
           }
@@ -144,6 +196,11 @@ class DioApiClient implements ApiClient {
   @override
   void clearToken() {
     _token = null;
+  }
+
+  @override
+  void setOnLogout(VoidCallback onLogout) {
+    _onLogout = onLogout;
   }
 
   @override
@@ -186,6 +243,9 @@ class MockApiClient implements ApiClient {
   void clearToken() {
     _token = null;
   }
+
+  @override
+  void setOnLogout(VoidCallback onLogout) {}
 
   @override
   Future<Response> get(

@@ -9,6 +9,7 @@ const REFRESH_TOKEN_EXPIRY = "7d"; // 7 days
 
 export interface JWTPayload {
   userId: string;
+  tokenHash?: string; // Hash of the associated refresh token (for Case 11 validation)
 }
 
 /**
@@ -18,8 +19,8 @@ export const hashToken = (token: string): string => {
   return crypto.createHash("sha256").update(token).digest("hex");
 };
 
-export const generateAccessToken = (userId: string): string => {
-  return jwt.sign({ userId }, ACCESS_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+export const generateAccessToken = (userId: string, tokenHash?: string): string => {
+  return jwt.sign({ userId, tokenHash }, ACCESS_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
 };
 
 export const generateRefreshToken = (userId: string): string => {

@@ -10,6 +10,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/config/routes.dart';
 import '../../../core/services/local_storage.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -57,18 +58,23 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(ApiClientFactory.create(), LocalStorage());
+      final authService = AuthService(
+        ApiClientFactory.create(),
+        LocalStorage(),
+      );
       await authService.registerWithEmail(email, password);
-      
+
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
+        Navigator.of(
+          context,
+        ).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(ApiErrorHandler.extractError(e)),
             backgroundColor: AppColors.destructive,
           ),
         );
@@ -80,9 +86,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(ApiClientFactory.create(), LocalStorage());
+      final authService = AuthService(
+        ApiClientFactory.create(),
+        LocalStorage(),
+      );
       await authService.loginWithGoogle();
-      
+
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/');
       }
@@ -91,7 +100,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(ApiErrorHandler.extractError(e)),
             backgroundColor: AppColors.destructive,
           ),
         );
