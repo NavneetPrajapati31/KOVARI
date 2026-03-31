@@ -8,6 +8,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/config/routes.dart';
+import '../../../core/services/local_storage.dart';
+import '../../../core/network/api_client.dart';
+import '../services/auth_service.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -31,7 +34,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   Future<void> _handleSignUp() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter email and password')),
+      );
+      return;
+    }
+
+    if (password != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Passwords don't match"),
@@ -42,11 +55,47 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
 
     setState(() => _isLoading = true);
-    // TODO: Implement actual Clerk sign-up logic
-    await Future.delayed(const Duration(seconds: 1)); // Mock
-    if (mounted) {
-      setState(() => _isLoading = false);
-      Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
+
+    try {
+      final authService = AuthService(ApiClientFactory.create(), LocalStorage());
+      await authService.registerWithEmail(email, password);
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.destructive,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = AuthService(ApiClientFactory.create(), LocalStorage());
+      await authService.loginWithGoogle();
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.destructive,
+          ),
+        );
+      }
     }
   }
 
@@ -108,7 +157,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           height: 16,
                           width: 16,
                         ),
-                        onPressed: () {},
+                        onPressed: _isLoading ? null : _handleGoogleLogin,
                       ),
 
                       const AuthDivider(),

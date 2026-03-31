@@ -13,6 +13,11 @@ import '../widgets/steps/languages_interests_step.dart';
 import '../widgets/steps/lifestyle_step.dart';
 import '../widgets/steps/policy_step.dart';
 import '../widgets/steps/success_step.dart';
+import 'package:flutter/foundation.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/services/local_storage.dart';
+import '../../../core/config/routes.dart';
+import '../../auth/services/auth_service.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -23,6 +28,21 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
+
+  Future<void> _handleDevReset() async {
+    final storage = LocalStorage();
+    final apiClient = ApiClientFactory.create();
+    final authService = AuthService(apiClient, storage);
+
+    await authService.logout();
+
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.login,
+        (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,11 +100,45 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Step ${state.currentStep} of $totalSteps',
-                          style: AppTextStyles.label.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.mutedForeground,
+                        GestureDetector(
+                          onLongPress: () {
+                            if (kDebugMode) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Dev Reset'),
+                                  content: const Text(
+                                    'Clear session and return to Login? (Dev only)',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        _handleDevReset();
+                                      },
+                                      child: const Text(
+                                        'Reset',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
+                          child: Text(
+                            'Step ${state.currentStep} of $totalSteps',
+                            style: AppTextStyles.label.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.mutedForeground,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 8),

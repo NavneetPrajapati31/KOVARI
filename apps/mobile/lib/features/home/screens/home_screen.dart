@@ -1,4 +1,3 @@
-import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter/material.dart';
 import '../../auth/services/auth_service.dart';
 import '../../../core/network/api_client.dart';
@@ -10,11 +9,9 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authState = ClerkAuth.of(context);
     final authService = AuthService(
       ApiClientFactory.create(),
       LocalStorage(),
-      authState,
     );
 
     return Scaffold(
@@ -46,7 +43,7 @@ class HomeScreen extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'Your Clerk and Supabase accounts are synced.',
+              'Your Google and Secure JWT session is active.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),

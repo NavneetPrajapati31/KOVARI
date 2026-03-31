@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/config/env.dart';
 import '../../core/services/token_service.dart';
+import 'api_endpoints.dart';
 
 /// Base API client interface
 abstract class ApiClient {
@@ -34,9 +35,9 @@ class DioApiClient implements ApiClient {
           receiveTimeout: const Duration(seconds: 10),
         ),
       ) {
-    // Add custom debug logging interceptor
+    // We use QueuedInterceptorsWrapper to handle concurrent 401s properly
     _dio.interceptors.add(
-      InterceptorsWrapper(
+      QueuedInterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = _token ?? await _tokenService.getToken();
 
@@ -60,23 +61,72 @@ class DioApiClient implements ApiClient {
           }
           return handler.next(response);
         },
-        onError: (DioException e, handler) {
+        onError: (DioException e, handler) async {
           if (kDebugMode) {
             print(
               '❌ [API ERROR] ${e.response?.statusCode} ${e.requestOptions.path}',
             );
-            print('Message: ${e.message}');
           }
-          return handler.next(e);
-        },
-      ),
-    );
 
-    // Add global error handler interceptor (optional refinement)
-    _dio.interceptors.add(
-      InterceptorsWrapper(
-        onError: (DioException e, handler) {
-          // Here we could handle 401 Unauthorized globally if needed (auto-logout)
+          // Handle 401 Unauthorized (Expired Tokens)
+          if (e.response?.statusCode == 401 &&
+              !e.requestOptions.path.contains(ApiEndpoints.refresh)) {
+            final refreshToken = await _tokenService.getRefreshToken();
+
+            if (refreshToken != null) {
+              try {
+                if (kDebugMode)
+                  print('🔄 [AUTH] Attempting silent token refresh...');
+
+                // 1. Request new tokens from backend
+                // Use a separate Dio instance for refresh to avoid interceptor recursion
+                final refreshDio = Dio(BaseOptions(baseUrl: Env.apiBaseUrl));
+                final refreshResponse = await refreshDio.post(
+                  ApiEndpoints.refresh,
+                  data: {'refreshToken': refreshToken},
+                );
+
+                if (refreshResponse.statusCode == 200 ||
+                    refreshResponse.statusCode == 201) {
+                  final newAccessToken = refreshResponse.data['accessToken'];
+                  final newRefreshToken = refreshResponse.data['refreshToken'];
+
+                  // 2. Persist new tokens
+                  await _tokenService.saveToken(newAccessToken);
+                  await _tokenService.saveRefreshToken(newRefreshToken);
+                  setToken(newAccessToken);
+
+                  if (kDebugMode)
+                    print(
+                      '✨ [AUTH] Token refreshed successfully. Retrying request...',
+                    );
+
+                  // 3. Retry original request with new token
+                  final options = e.requestOptions;
+                  options.headers['Authorization'] = 'Bearer $newAccessToken';
+
+                  final retryResponse = await _dio.request(
+                    options.path,
+                    data: options.data,
+                    queryParameters: options.queryParameters,
+                    options: Options(
+                      method: options.method,
+                      headers: options.headers,
+                    ),
+                  );
+
+                  return handler.resolve(retryResponse);
+                }
+              } catch (refreshError) {
+                if (kDebugMode)
+                  print('🚨 [AUTH] Refresh failed: $refreshError');
+                // Refresh failed (e.g. refresh token also expired)
+                await _tokenService.clearToken();
+                clearToken();
+              }
+            }
+          }
+
           return handler.next(e);
         },
       ),
@@ -148,8 +198,9 @@ class MockApiClient implements ApiClient {
       return Response(
         requestOptions: RequestOptions(path: path),
         data: {
-          'clerkId': 'user_mock_123',
-          'supabaseUuid': '550e8400-e29b-41d4-a716-446655440000',
+          'id': 'mock_user_123',
+          'email': 'mock@example.com',
+          'name': 'Mock User',
         },
         statusCode: 200,
       );
@@ -168,6 +219,23 @@ class MockApiClient implements ApiClient {
   @override
   Future<Response> post(String path, {dynamic data}) async {
     await Future.delayed(delay);
+
+    if (path.contains('auth')) {
+      return Response(
+        requestOptions: RequestOptions(path: path),
+        data: {
+          'accessToken': 'mock_access_token',
+          'refreshToken': 'mock_refresh_token',
+          'user': {
+            'id': 'mock_user_123',
+            'email': data['email'] ?? 'mock@example.com',
+            'name': data['name'] ?? 'Mock User',
+          },
+        },
+        statusCode: 201,
+      );
+    }
+
     return Response(
       requestOptions: RequestOptions(path: path),
       data: {'success': true},

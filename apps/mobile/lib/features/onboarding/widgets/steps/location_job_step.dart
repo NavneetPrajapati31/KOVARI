@@ -45,7 +45,7 @@ class LocationJobStep extends ConsumerWidget {
             onSelect: (result) {
               ref
                   .read(onboardingProvider.notifier)
-                  .updateLocationJob(loc: result.formatted);
+                  .updateLocationJob(loc: result.formatted, details: result);
             },
           ),
           const SizedBox(height: AppSpacing.md),

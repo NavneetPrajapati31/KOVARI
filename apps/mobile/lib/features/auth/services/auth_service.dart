@@ -1,5 +1,5 @@
-import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/local_storage.dart';
 import '../../../shared/models/kovari_user.dart';
@@ -8,81 +8,126 @@ import '../../../core/network/api_endpoints.dart';
 class AuthService {
   final ApiClient _apiClient;
   final LocalStorage _storage;
-  final ClerkAuthState _authState;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
-  AuthService(this._apiClient, this._storage, this._authState);
+  AuthService(this._apiClient, this._storage);
 
-  /// Handle User Synchronization with Backend
-  /// POST /api/users/sync
-  Future<String> syncUser(String clerkUserId) async {
-    final res = await _apiClient.post(
-      ApiEndpoints.syncUser,
-      data: {"clerkUserId": clerkUserId},
-    );
-
-    return res.data["userId"];
-  }
-
-  Future<KovariUser?> legacySyncUser() async {
+  /// Handle Google Sign-In SSO
+  Future<KovariUser?> loginWithGoogle() async {
     try {
-      final user = _authState.user;
-      if (user == null) return null;
+      // In 7.x+, authenticate() returns the account.
+      // authentication getter is no longer a Future.
+      final account = await _googleSignIn.authenticate();
+      final GoogleSignInAuthentication auth = account.authentication;
+      final String? idToken = auth.idToken;
 
-      // Force real API for the critical sync endpoint
-      final realClient = ApiClientFactory.create(forceReal: true);
+      if (idToken == null) {
+        throw Exception("Failed to retrieve Google ID Token");
+      }
 
-      // Inject token before call
-      final sessionToken = await _authState.sessionToken();
-      final token = sessionToken.jwt;
-      realClient.setToken(token);
-
-      final response = await realClient.post(
-        'users/sync',
-        data: {'clerkUserId': user.id},
+      // Step 2: Send idToken to backend
+      final response = await _apiClient.post(
+        ApiEndpoints.googleAuth,
+        data: {'idToken': idToken},
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
-        final supabaseUuid = data['userId'] as String;
-
-        final kovariUser = KovariUser(
-          clerkId: user.id,
-          supabaseUuid: supabaseUuid,
-        );
-
-        // Persist full user data locally
-        await _storage.saveUserData(kovariUser.toJson());
-
-        return kovariUser;
-      }
+      return _handleAuthResponse(response.data);
     } catch (e) {
-      debugPrint('❌ User sync failed: $e');
+      debugPrint('❌ Google Login failed: $e');
       rethrow;
     }
-    return null;
   }
 
-  /// Get current session token from Clerk and inject into ApiClient
-  Future<String?> refreshSessionToken() async {
-    if (!_authState.isSignedIn) return null;
-
+  /// Handle custom Email/Password Login
+  Future<KovariUser?> loginWithEmail(String email, String password) async {
     try {
-      final sessionToken = await _authState.sessionToken();
-      final token = sessionToken.jwt;
+      final response = await _apiClient.post(
+        ApiEndpoints.emailLogin,
+        data: {'email': email, 'password': password},
+      );
 
-      _apiClient.setToken(token);
-      await _storage.saveToken(token);
-
-      return token;
+      return _handleAuthResponse(response.data);
     } catch (e) {
-      debugPrint('❌ Failed to refresh session token: $e');
-      return null;
+      debugPrint('❌ Email Login failed: $e');
+      rethrow;
     }
+  }
+
+  /// Handle custom Email/Password Registration
+  Future<KovariUser?> registerWithEmail(
+    String email,
+    String password, {
+    String? name,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.emailRegister,
+        data: {'email': email, 'password': password, 'name': ?name},
+      );
+
+      return _handleAuthResponse(response.data);
+    } catch (e) {
+      debugPrint('❌ Registration failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Unified response handler for tokens and user data
+  Future<KovariUser> _handleAuthResponse(dynamic data) async {
+    final Map<String, dynamic> responseData = data as Map<String, dynamic>;
+
+    final accessToken = responseData['accessToken'] as String;
+    final refreshToken = responseData['refreshToken'] as String;
+    final userMap = responseData['user'] as Map<String, dynamic>;
+
+    // 1. Store tokens securely
+    await _storage.saveAccessToken(accessToken);
+    await _storage.saveRefreshToken(refreshToken);
+
+    // 2. Map user
+    final user = KovariUser.fromAuthResponse(userMap);
+    await _storage.saveUserData(user.toJson());
+
+    // 3. Update ApiClient
+    _apiClient.setToken(accessToken);
+
+    return user;
+  }
+
+  /// Restore session from storage
+  Future<KovariUser?> checkSession() async {
+    final token = await _storage.getAccessToken();
+    if (token == null) return null;
+
+    final userData = await _storage.getUserData();
+    if (userData == null) return null;
+
+    // Inject token back into client
+    _apiClient.setToken(token);
+
+    return KovariUser.fromJson(userData);
   }
 
   /// Logout and clear all storage
   Future<void> logout() async {
-    await _authState.signOut();
+    try {
+      // 1. Invalidate session on server-side
+      final refreshToken = await _storage.getRefreshToken();
+      if (refreshToken != null) {
+        // Use best-effort logout call
+        await _apiClient.post(
+          ApiEndpoints.logout, 
+          data: {'refreshToken': refreshToken},
+        ).timeout(const Duration(seconds: 3));
+      }
+
+      // 2. Clear Google Session
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('ℹ️ Logout cleanup (server or Google): $e');
+    } 
+
+    // 3. Wipe local state
     _apiClient.clearToken();
     await _storage.clear();
   }

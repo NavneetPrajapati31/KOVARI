@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/profile_service.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/location_service.dart';
 
 class OnboardingState {
   final int currentStep;
@@ -15,6 +16,7 @@ class OnboardingState {
   final String? gender;
   final DateTime? birthday;
   final String? location;
+  final GeoapifyResult? locationDetails;
   final String? nationality;
   final String? jobType;
   final List<String> languages;
@@ -40,6 +42,7 @@ class OnboardingState {
     this.gender,
     this.birthday,
     this.location,
+    this.locationDetails,
     this.nationality,
     this.jobType,
     this.languages = const [],
@@ -66,6 +69,7 @@ class OnboardingState {
     String? gender,
     DateTime? birthday,
     String? location,
+    GeoapifyResult? locationDetails,
     String? nationality,
     String? jobType,
     List<String>? languages,
@@ -91,6 +95,7 @@ class OnboardingState {
       gender: gender ?? this.gender,
       birthday: birthday ?? this.birthday,
       location: location ?? this.location,
+      locationDetails: locationDetails ?? this.locationDetails,
       nationality: nationality ?? this.nationality,
       jobType: jobType ?? this.jobType,
       languages: languages ?? this.languages,
@@ -113,7 +118,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
 
   @override
   OnboardingState build() {
-    final apiClient = ApiClientFactory.create(forceReal: true);
+    final apiClient = ApiClientFactory.create();
     _profileService = ProfileService(apiClient);
 
     ref.onDispose(() {
@@ -164,9 +169,15 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     );
   }
 
-  void updateLocationJob({String? loc, String? nation, String? job}) {
+  void updateLocationJob({
+    String? loc,
+    GeoapifyResult? details,
+    String? nation,
+    String? job,
+  }) {
     state = state.copyWith(
       location: loc ?? state.location,
+      locationDetails: details ?? state.locationDetails,
       nationality: nation ?? state.nationality,
       jobType: job ?? state.jobType,
     );
@@ -214,8 +225,61 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
   Future<bool> submit() async {
     state = state.copyWith(isSubmitting: true, errorMessage: null);
     try {
-      // Workaround: Bypass real API calls for now to show Success Step
-      await Future.delayed(const Duration(milliseconds: 800));
+      if (state.birthday == null) throw 'Birthday is required';
+
+      // 1. Calculate Age
+      final now = DateTime.now();
+      int age = now.year - state.birthday!.year;
+      if (now.month < state.birthday!.month ||
+          (now.month == state.birthday!.month && now.day < state.birthday!.day)) {
+        age--;
+      }
+
+      // 2. Prepare Profile Payload
+      final profilePayload = {
+        'name': '${state.firstName} ${state.lastName}'.trim(),
+        'firstName': state.firstName,
+        'lastName': state.lastName,
+        'username': state.username,
+        'age': age,
+        'gender': (state.gender == 'Prefer not to say' || state.gender == null) 
+            ? 'Other' 
+            : state.gender, 
+        'birthday': state.birthday!.toUtc().toIso8601String(), // Correct ISO format
+        'bio': state.bio,
+        'profile_photo': state.profilePicUrl,
+        'location': state.location,
+        'location_details': state.locationDetails != null ? {
+          'lat': state.locationDetails!.lat,
+          'lon': state.locationDetails!.lon,
+          'city': state.locationDetails!.city,
+          'state': state.locationDetails!.state,
+          'country': state.locationDetails!.country,
+          'formatted': state.locationDetails!.formatted,
+        } : null,
+        'languages': state.languages,
+        'nationality': state.nationality,
+        'job': state.jobType,
+        'religion': state.religion ?? 'Prefer not to say',
+        'smoking': state.smoking ?? 'No',
+        'drinking': state.drinking ?? 'No',
+        'personality': state.personality ?? 'Ambivert',
+        'food_preference': state.foodPreference ?? 'Veg',
+        'interests': state.interests,
+      };
+
+      // 2.5 Remove null values from payload
+      profilePayload.removeWhere((key, value) => value == null);
+
+      // 3. Update Profile
+      await _profileService.updateProfile(profilePayload);
+
+      // 4. Accept Policies
+      await _profileService.acceptPolicies(
+        termsVersion: '1.0',
+        privacyVersion: '1.0',
+        guidelinesVersion: '1.0',
+      );
 
       setStep(8);
       state = state.copyWith(isSubmitting: false);

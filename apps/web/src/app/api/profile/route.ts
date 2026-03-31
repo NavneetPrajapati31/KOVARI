@@ -1,6 +1,8 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { NextRequest } from "next/server";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -15,9 +17,9 @@ const schema = z.object({
   gender: z.enum(["Male", "Female", "Other"]),
   birthday: z.string().datetime(),
   bio: z.string().max(300),
-  profile_photo: z.string().url().optional(),
+  profile_photo: z.string().url().optional().nullable(),
   location: z.string().min(1),
-  location_details: z.any().optional(),
+  location_details: z.any().optional().nullable(),
   languages: z.array(z.string()),
   nationality: z.string(),
   job: z.string(),
@@ -29,15 +31,18 @@ const schema = z.object({
   interests: z.array(z.string()).optional().default([]),
 });
 
-export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId)
+export async function POST(req: NextRequest) {
+  const authUser = await getAuthenticatedUser(req);
+  if (!authUser)
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
 
   const body = await req.json();
+  const userId = authUser.clerkUserId;
+  const internalUserId = authUser.id;
+  
   const result = schema.safeParse(body);
 
   if (!result.success) {
@@ -50,10 +55,10 @@ export async function POST(req: Request) {
   const supabase = createAdminSupabaseClient();
 
   // First, try to get the user
-  let { data: userRow, error: userFetchError } = await supabase
+  const { data: userRow, error: userFetchError } = await supabase
     .from("users")
     .select('id, "isDeleted"')
-    .eq("clerk_user_id", userId)
+    .eq("id", internalUserId)
     .maybeSingle();
 
   // Block access if the user is soft-deleted in our DB.
@@ -64,40 +69,11 @@ export async function POST(req: Request) {
     });
   }
 
-  // If user is not found, try to create them (always attempt creation if not found)
-  if ((!userRow || !userRow.id) && !userFetchError) {
-    const { data: newUser, error: createError } = await supabase
-      .from("users")
-      .insert({ clerk_user_id: userId })
-      // Select the same shape as the fetch above to satisfy TS
-      .select('id, "isDeleted"')
-      .single();
-
-    if (createError || !newUser) {
-      console.error("Error creating user in Supabase:", createError);
-      return new Response(
-        JSON.stringify({
-          error: "Failed to create user record in Supabase. Please try again.",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
-    }
-    userRow = newUser;
-  } else if (userFetchError) {
+  if (userFetchError || !userRow) {
     console.error("Error fetching user from Supabase:", userFetchError);
     return new Response(
       JSON.stringify({
         error: "Error accessing user record in Supabase. Please try again.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  if (!userRow || !userRow.id) {
-    return new Response(
-      JSON.stringify({
-        error:
-          "User record not found in Supabase and could not be created. Please try again.",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
@@ -108,7 +84,7 @@ export async function POST(req: Request) {
     .from("profiles")
     .select("user_id")
     .ilike("username", result.data.username)
-    .not("user_id", "eq", userRow.id)
+    .not("user_id", "eq", internalUserId)
     .maybeSingle();
 
   if (existingProfileError) {
@@ -136,16 +112,18 @@ export async function POST(req: Request) {
   // Get the Clerk email and persist it into profiles.email so we don't rely
   // on any dummy or trigger-generated email values.
   let primaryEmail: string | null = null;
-  try {
-    const clerk = await clerkClient();
-    const clerkUser = await clerk.users.getUser(userId);
-    const primary = clerkUser.primaryEmailAddress;
-    primaryEmail =
-      primary?.emailAddress ??
-      clerkUser.emailAddresses[0]?.emailAddress ??
-      null;
-  } catch (err) {
-    console.error("Error fetching Clerk user email", err);
+  if (userId) { // Only attempt Clerk lookup if we have a Clerk session
+    try {
+      const clerk = await clerkClient();
+      const clerkUser = await clerk.users.getUser(userId);
+      const primary = clerkUser.primaryEmailAddress;
+      primaryEmail =
+        primary?.emailAddress ??
+        clerkUser.emailAddresses[0]?.emailAddress ??
+        null;
+    } catch (err) {
+      console.error("Error fetching Clerk user email", err);
+    }
   }
 
   const profileData = {
@@ -176,21 +154,23 @@ export async function POST(req: Request) {
     );
   }
 
-  try {
-    const client = await clerkClient();
-    await client.users.updateUser(userId, {
-      username: result.data.username,
-      firstName: result.data.firstName,
-      lastName: result.data.lastName,
-    });
-  } catch (err) {
-    console.error("Error updating clerk user", err);
-    return new Response(
-      JSON.stringify({
-        error: "Profile saved, but failed to sync username with Clerk.",
-      }),
-      { status: 500 },
-    );
+  if (userId) { // Only update Clerk if we have a Clerk session
+    try {
+      const client = await clerkClient();
+      await client.users.updateUser(userId, {
+        username: result.data.username,
+        firstName: result.data.firstName,
+        lastName: result.data.lastName,
+      });
+    } catch (err) {
+      console.error("Error updating clerk user", err);
+      return new Response(
+        JSON.stringify({
+          error: "Profile saved, but failed to sync username with Clerk.",
+        }),
+        { status: 500 },
+      );
+    }
   }
 
   return new Response(

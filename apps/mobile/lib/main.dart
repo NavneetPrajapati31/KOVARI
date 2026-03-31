@@ -1,42 +1,39 @@
-import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter/material.dart';
-import 'core/config/env.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 import 'features/auth/services/auth_service.dart';
 import 'core/network/api_client.dart';
 import 'core/services/local_storage.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
+import 'features/onboarding/data/profile_service.dart';
 import 'core/config/routes.dart';
+import 'shared/models/kovari_user.dart';
+import 'core/config/env.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Google Sign In (Required for 7.x+)
+  await GoogleSignIn.instance.initialize(
+    serverClientId: Env.googleClientId,
+  );
 
   final storage = LocalStorage();
   final apiClient = ApiClientFactory.create();
 
   // Initial token injection from secure storage
-  final token = await storage.getToken();
+  final token = await storage.getAccessToken();
   if (token != null) {
     apiClient.setToken(token);
   }
 
   runApp(
-    ProviderScope(
-      child: MaterialApp(
-        title: 'KOVARI',
-        debugShowCheckedModeBanner: false,
-        themeMode: ThemeMode.light,
-        theme: AppTheme.lightTheme,
-        routes: AppRoutes.routes,
-        home: ClerkAuth(
-          config: ClerkAuthConfig(publishableKey: Env.clerkPublishableKey),
-          child: const KovariApp(),
-        ),
-      ),
+    const ProviderScope(
+      child: KovariApp(),
     ),
   );
 }
@@ -46,22 +43,66 @@ class KovariApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const BrandedLoading(),
-        Theme(
-          data: Theme.of(context).copyWith(
-            progressIndicatorTheme: const ProgressIndicatorThemeData(
-              color: Colors.transparent,
-            ),
-          ),
-          child: ClerkAuthBuilder(
-            signedInBuilder: (context, authState) => const AuthHandler(),
-            signedOutBuilder: (context, authState) => const LoginScreen(),
-          ),
-        ),
-      ],
+    return MaterialApp(
+      title: 'KOVARI',
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.light,
+      theme: AppTheme.lightTheme,
+      routes: AppRoutes.routes,
+      home: const AuthWrapper(),
     );
+  }
+}
+
+class AuthWrapper extends ConsumerStatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  ConsumerState<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends ConsumerState<AuthWrapper> {
+  bool _checkedStatus = false;
+  KovariUser? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    try {
+      final storage = LocalStorage();
+      final apiClient = ApiClientFactory.create();
+      final authService = AuthService(apiClient, storage);
+      
+      final user = await authService.checkSession();
+      
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _checkedStatus = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _checkedStatus = true;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_checkedStatus) return const BrandedLoading();
+    
+    // If no user/session exists, go to LoginScreen
+    if (_user == null) return const LoginScreen();
+    
+    // If session exists, let AuthHandler handle profile/onboarding logic
+    return const AuthHandler();
   }
 }
 
@@ -79,21 +120,21 @@ class BrandedLoading extends StatelessWidget {
   }
 }
 
-class AuthHandler extends StatefulWidget {
+class AuthHandler extends ConsumerStatefulWidget {
   const AuthHandler({super.key});
 
   @override
-  State<AuthHandler> createState() => _AuthHandlerState();
+  ConsumerState<AuthHandler> createState() => _AuthHandlerState();
 }
 
-class _AuthHandlerState extends State<AuthHandler> {
+class _AuthHandlerState extends ConsumerState<AuthHandler> {
   bool _isSyncing = true;
+  bool _needsOnboarding = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    // Synchronization must happen after the first frame to ensure context is valid
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeApp();
     });
@@ -101,21 +142,18 @@ class _AuthHandlerState extends State<AuthHandler> {
 
   Future<void> _initializeApp() async {
     try {
-      final authState = ClerkAuth.of(context, listen: false);
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
-        authState,
-      );
-
-      // Step 1: Ensure ApiClient has the latest Clerk token
-      await authService.refreshSessionToken();
-
-      // Step 2: Critical Sync (ensure backend knows this user)
-      await authService.legacySyncUser();
+      final apiClient = ApiClientFactory.create();
+      
+      // Since checkSession already set the token in main() or AuthWrapper, 
+      // we just need to verify the profile.
+      final profileService = ProfileService(apiClient);
+      final profile = await profileService.getCurrentProfile();
 
       if (mounted) {
-        setState(() => _isSyncing = false);
+        setState(() {
+          _isSyncing = false;
+          _needsOnboarding = profile == null;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -144,7 +182,7 @@ class _AuthHandlerState extends State<AuthHandler> {
                 const Icon(Icons.error_outline, color: Colors.red, size: 48),
                 const SizedBox(height: 16),
                 const Text(
-                  'Sync Failed',
+                  'Initialization Failed',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
@@ -158,7 +196,7 @@ class _AuthHandlerState extends State<AuthHandler> {
                     });
                     _initializeApp();
                   },
-                  child: const Text('Retry Synchronization'),
+                  child: const Text('Retry'),
                 ),
               ],
             ),
@@ -167,6 +205,6 @@ class _AuthHandlerState extends State<AuthHandler> {
       );
     }
 
-    return const HomeScreen();
+    return _needsOnboarding ? const OnboardingScreen() : const HomeScreen();
   }
 }

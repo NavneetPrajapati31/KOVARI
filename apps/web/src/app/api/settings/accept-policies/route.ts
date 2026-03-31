@@ -1,29 +1,23 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { createAdminSupabaseClient } from "@kovari/api";
 
 export const dynamic = "force-dynamic";
-import { createClient } from "@supabase/supabase-js";
-
-function getAdminSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 /** GET /api/settings/accept-policies
  *  Returns the stored policy acceptance info for the current user.
  */
-export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest) {
+  const authUser = await getAuthenticatedUser(req);
+  if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const supabase = getAdminSupabase();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("users")
     .select(
       "terms_accepted_at, privacy_accepted_at, guidelines_accepted_at, terms_version, privacy_version, guidelines_version"
     )
-    .eq("clerk_user_id", userId)
+    .eq("id", authUser.id)
     .maybeSingle();
 
   if (error) {
@@ -39,8 +33,8 @@ export async function GET() {
  *  Writes acceptance timestamps + versions to the users row.
  */
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authUser = await getAuthenticatedUser(req);
+  if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: { termsVersion?: string; privacyVersion?: string; guidelinesVersion?: string } = {};
   try {
@@ -55,7 +49,7 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
-  const supabase = getAdminSupabase();
+  const supabase = createAdminSupabaseClient();
 
   const { error } = await supabase
     .from("users")
@@ -67,7 +61,7 @@ export async function POST(req: NextRequest) {
       privacy_version: privacyVersion,
       guidelines_version: guidelinesVersion,
     })
-    .eq("clerk_user_id", userId);
+    .eq("id", authUser.id);
 
   if (error) {
     console.error("accept-policies POST error:", error);

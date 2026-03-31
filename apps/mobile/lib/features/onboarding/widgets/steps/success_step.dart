@@ -48,8 +48,7 @@ class SuccessStep extends ConsumerWidget {
           PrimaryButton(
             text: 'Get Started',
             onPressed: () {
-              // Future: Navigate to Dashboard
-              Navigator.of(context).pushReplacementNamed('/dashboard');
+              Navigator.of(context).pushReplacementNamed('/home');
             },
           ),
           const SizedBox(height: AppSpacing.lg),

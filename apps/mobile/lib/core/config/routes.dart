@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
+import '../../features/home/screens/home_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/sign_up_screen.dart';
 
@@ -14,6 +15,7 @@ class AppRoutes {
       login: (context) => const LoginScreen(),
       signUp: (context) => const SignUpScreen(),
       onboarding: (context) => const OnboardingScreen(),
+      home: (context) => const HomeScreen(),
     };
   }
 }

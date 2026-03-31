@@ -1,33 +1,35 @@
 class KovariUser {
-  final String clerkId;
-  final String supabaseUuid;
+  final String id;
+  final String email;
+  final String? name;
 
   KovariUser({
-    required this.clerkId,
-    required this.supabaseUuid,
+    required this.id,
+    required this.email,
+    this.name,
   });
 
-  factory KovariUser.fromSyncResponse({
-    required String clerkId,
-    required Map<String, dynamic> json,
-  }) {
+  factory KovariUser.fromAuthResponse(Map<String, dynamic> json) {
     return KovariUser(
-      clerkId: clerkId,
-      supabaseUuid: json['userId'] as String,
+      id: json['id'] as String,
+      email: json['email'] as String,
+      name: json['name'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'clerkId': clerkId,
-      'supabaseUuid': supabaseUuid,
+      'id': id,
+      'email': email,
+      'name': name,
     };
   }
 
   factory KovariUser.fromJson(Map<String, dynamic> json) {
     return KovariUser(
-      clerkId: json['clerkId'] as String,
-      supabaseUuid: json['supabaseUuid'] as String,
+      id: json['id'] as String,
+      email: json['email'] as String,
+      name: json['name'] as String?,
     );
   }
 }

@@ -1,53 +1,35 @@
-import { auth } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { NextRequest } from "next/server";
 
-export async function GET() {
-  const { userId } = await auth();
-  if (!userId) {
+export async function GET(request: NextRequest) {
+  const authUser = await getAuthenticatedUser(request);
+  if (!authUser) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
 
+  const userId = authUser.clerkUserId;
+  const internalUserId = authUser.id;
+
   const supabase = createAdminSupabaseClient();
 
   try {
-    // Get user from users table
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .eq("isDeleted", false)
-      .single();
-
-    if (userError || !user) {
-      console.error("[api/profile/current] User lookup failed", {
-        clerkUserId: userId,
-        code: userError?.code,
-        message: userError?.message,
-        details: (userError as any)?.details,
-        hint: (userError as any)?.hint,
-      });
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     // Get profile data (including interests directly on profiles)
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", internalUserId)
       .single();
 
     if (profileError) {
       console.error("Error fetching profile:", profileError);
       Sentry.captureException(profileError, {
         tags: { endpoint: "/api/profile/current", action: "fetch_profile" },
-        extra: { clerkUserId: userId, internalUserId: user.id },
+        extra: { clerkUserId: userId, internalUserId },
       });
       return new Response(
         JSON.stringify({ error: "Failed to fetch profile data" }),
@@ -59,7 +41,7 @@ export async function GET() {
     const { data: travelPrefs } = await supabase
       .from("travel_preferences")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", internalUserId)
       .maybeSingle();
 
     // Consider onboarding complete only when both username and name are set.
@@ -79,7 +61,7 @@ export async function GET() {
 
     // Transform data to match ProfileEditForm structure
     const profileData = {
-      id: user.id, // Add the internal user UUID
+      id: internalUserId, // Add the internal user UUID
       avatar: profile.profile_photo || "",
       name: profile.name || "",
       username: profile.username || "",
@@ -113,7 +95,7 @@ export async function GET() {
     console.error("Error in profile fetch:", error);
     Sentry.captureException(error, {
       tags: { endpoint: "/api/profile/current", action: "handler_error" },
-      extra: { clerkUserId: userId },
+      extra: { clerkUserId: userId, internalUserId },
     });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
