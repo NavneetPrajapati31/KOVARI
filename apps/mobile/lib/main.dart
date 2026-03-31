@@ -12,15 +12,19 @@ import 'core/theme/app_colors.dart';
 import 'features/onboarding/data/profile_service.dart';
 import 'core/config/routes.dart';
 import 'shared/models/kovari_user.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Load environment variables
+  const envFile = String.fromEnvironment('ENV_FILE', defaultValue: '.env.development');
+  await dotenv.load(fileName: envFile);
+  Env.validate();
+
   // Initialize Google Sign In (Required for 7.x+)
-  await GoogleSignIn.instance.initialize(
-    serverClientId: Env.googleClientId,
-  );
+  await GoogleSignIn.instance.initialize(serverClientId: Env.googleClientId);
 
   final storage = LocalStorage();
   final apiClient = ApiClientFactory.create();
@@ -31,11 +35,7 @@ void main() async {
     apiClient.setToken(token);
   }
 
-  runApp(
-    const ProviderScope(
-      child: KovariApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: KovariApp()));
 }
 
 class KovariApp extends StatelessWidget {
@@ -76,9 +76,9 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
       final storage = LocalStorage();
       final apiClient = ApiClientFactory.create();
       final authService = AuthService(apiClient, storage);
-      
+
       final user = await authService.checkSession();
-      
+
       if (mounted) {
         setState(() {
           _user = user;
@@ -97,10 +97,10 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     if (!_checkedStatus) return const BrandedLoading();
-    
+
     // If no user/session exists, go to LoginScreen
     if (_user == null) return const LoginScreen();
-    
+
     // If session exists, let AuthHandler handle profile/onboarding logic
     return const AuthHandler();
   }
@@ -143,8 +143,8 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
   Future<void> _initializeApp() async {
     try {
       final apiClient = ApiClientFactory.create();
-      
-      // Since checkSession already set the token in main() or AuthWrapper, 
+
+      // Since checkSession already set the token in main() or AuthWrapper,
       // we just need to verify the profile.
       final profileService = ProfileService(apiClient);
       final profile = await profileService.getCurrentProfile();

@@ -1,23 +1,48 @@
-class Env {
-  // Use String.fromEnvironment for sensitive values to keep them out of source control.
-  // Provide these values via --dart-define=KEY=VALUE during build/run.
-  
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://192.168.39.98:3000/api/',
-  );
-  
-  static const String socketUrl = String.fromEnvironment(
-    'SOCKET_URL',
-    defaultValue: 'ws://kovari.in/socket',
-  );
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-  static const String geoapifyKey = String.fromEnvironment('GEOAPIFY_KEY');
+class Env {
+  /// Internal helper to get a required variable or throw
+  static String _getRequired(String key) {
+    final value = dotenv.maybeGet(key);
+    if (value == null || value.isEmpty) {
+      throw Exception(
+        'Environment variable $key is missing. Please check your .env file.',
+      );
+    }
+    return value;
+  }
+
+  /// Internal helper for optional values
+  static String? _getOptional(String key) {
+    final value = dotenv.maybeGet(key);
+    return (value?.isEmpty ?? true) ? null : value;
+  }
+
+  // API & Backend
+  static String get apiBaseUrl => _getRequired('API_BASE_URL');
+  static String get socketUrl => _getRequired('SOCKET_URL');
+
+  // Third Party
+  static String? get geoapifyKey => _getOptional('GEOAPIFY_KEY');
 
   // Google OAuth - REQUIRED for Mobile Auth
-  static const String googleClientId = String.fromEnvironment('GOOGLE_CLIENT_ID');
-  static const String googleClientSecret = String.fromEnvironment('GOOGLE_CLIENT_SECRET');
+  static String? get googleClientId => _getOptional('GOOGLE_CLIENT_ID');
+  static String? get googleClientSecret => _getOptional('GOOGLE_CLIENT_SECRET');
 
   // Toggle for mock data
-  static const bool useMockApi = bool.fromEnvironment('USE_MOCK_API', defaultValue: false);
+  static bool get useMockApi =>
+      dotenv.get('USE_MOCK_API', fallback: 'false').toLowerCase() == 'true';
+
+  /// Validates that all critical environment variables are present.
+  static void validate() {
+    // These will throw if missing during access, but we can pre-check them here.
+    _getRequired('API_BASE_URL');
+    _getRequired('SOCKET_URL');
+  }
+
+  /// Returns the current loaded environment file name for debugging
+  static String get currentEnv => const String.fromEnvironment(
+    'ENV_FILE',
+    defaultValue: '.env.development',
+  );
 }
