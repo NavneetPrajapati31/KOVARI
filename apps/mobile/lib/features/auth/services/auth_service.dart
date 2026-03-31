@@ -1,7 +1,7 @@
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
-import '../../../services/storage/local_storage.dart';
+import '../../../core/services/local_storage.dart';
 import '../../../shared/models/kovari_user.dart';
 import '../../../core/network/api_endpoints.dart';
 

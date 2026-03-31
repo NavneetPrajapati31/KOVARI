@@ -2,7 +2,7 @@ import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter/material.dart';
 import '../../auth/services/auth_service.dart';
 import '../../../core/network/api_client.dart';
-import '../../../services/storage/local_storage.dart';
+import '../../../core/services/local_storage.dart';
 import '../../auth/screens/login_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -12,7 +12,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authState = ClerkAuth.of(context);
     final authService = AuthService(
-      ApiClientFactory.create(), 
+      ApiClientFactory.create(),
       LocalStorage(),
       authState,
     );

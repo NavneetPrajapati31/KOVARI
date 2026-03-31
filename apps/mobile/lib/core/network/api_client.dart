@@ -9,13 +9,13 @@ abstract class ApiClient {
   Future<Response> post(String path, {dynamic data});
   Future<Response> patch(String path, {dynamic data});
   Future<Response> delete(String path, {dynamic data});
-  
+
   /// Dynamically update the authentication token
   void setToken(String token);
-  
+
   /// Clear the current authentication token (Logout)
   void clearToken();
-  
+
   /// Access the current token state
   String? get token;
 }
@@ -23,54 +23,64 @@ abstract class ApiClient {
 /// Production implementation using Dio
 class DioApiClient implements ApiClient {
   final Dio _dio;
+  final TokenService _tokenService = TokenService();
   String? _token;
 
   DioApiClient([this._token])
-      : _dio = Dio(BaseOptions(
+    : _dio = Dio(
+        BaseOptions(
           baseUrl: Env.apiBaseUrl,
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
-        )) {
-    
+        ),
+      ) {
     // Add custom debug logging interceptor
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await TokenService.getToken();
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = _token ?? await _tokenService.getToken();
 
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
 
-        options.headers['Content-Type'] = 'application/json';
+          options.headers['Content-Type'] = 'application/json';
 
-        if (kDebugMode) {
-          print('🚀 [API REQUEST] ${options.method} ${options.uri}');
-        }
+          if (kDebugMode) {
+            print('🚀 [API REQUEST] ${options.method} ${options.uri}');
+          }
 
-        return handler.next(options);
-      },
-      onResponse: (response, handler) {
-        if (kDebugMode) {
-          print('✅ [API RESPONSE] ${response.statusCode} ${response.requestOptions.path}');
-        }
-        return handler.next(response);
-      },
-      onError: (DioException e, handler) {
-        if (kDebugMode) {
-          print('❌ [API ERROR] ${e.response?.statusCode} ${e.requestOptions.path}');
-          print('Message: ${e.message}');
-        }
-        return handler.next(e);
-      },
-    ));
-    
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          if (kDebugMode) {
+            print(
+              '✅ [API RESPONSE] ${response.statusCode} ${response.requestOptions.path}',
+            );
+          }
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          if (kDebugMode) {
+            print(
+              '❌ [API ERROR] ${e.response?.statusCode} ${e.requestOptions.path}',
+            );
+            print('Message: ${e.message}');
+          }
+          return handler.next(e);
+        },
+      ),
+    );
+
     // Add global error handler interceptor (optional refinement)
-    _dio.interceptors.add(InterceptorsWrapper(
-      onError: (DioException e, handler) {
-        // Here we could handle 401 Unauthorized globally if needed (auto-logout)
-        return handler.next(e); 
-      },
-    ));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (DioException e, handler) {
+          // Here we could handle 401 Unauthorized globally if needed (auto-logout)
+          return handler.next(e);
+        },
+      ),
+    );
   }
 
   @override
@@ -128,9 +138,12 @@ class MockApiClient implements ApiClient {
   }
 
   @override
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
     await Future.delayed(delay);
-    
+
     if (path == 'users/me') {
       return Response(
         requestOptions: RequestOptions(path: path),
@@ -141,10 +154,13 @@ class MockApiClient implements ApiClient {
         statusCode: 200,
       );
     }
-    
+
     return Response(
       requestOptions: RequestOptions(path: path),
-      data: {'message': 'Mock data for $path', 'token_received': _token != null},
+      data: {
+        'message': 'Mock data for $path',
+        'token_received': _token != null,
+      },
       statusCode: 200,
     );
   }

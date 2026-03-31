@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import '../../core/config/env.dart';
-import 'api_client.dart';
 
 class GeoapifyResult {
   final String placeId;

@@ -6,7 +6,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/auth/services/auth_service.dart';
 import 'core/network/api_client.dart';
-import 'services/storage/local_storage.dart';
+import 'core/services/local_storage.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';

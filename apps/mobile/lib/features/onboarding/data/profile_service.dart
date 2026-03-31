@@ -1,4 +1,4 @@
-import '../../../services/api/api_client.dart';
+import '../../../core/network/api_client.dart';
 
 class ProfileService {
   final ApiClient _apiClient;
@@ -9,10 +9,7 @@ class ProfileService {
   /// Replicates the backend profile update logic.
   Future<bool> updateProfile(Map<String, dynamic> profileData) async {
     try {
-      final response = await _apiClient.post(
-        'profile',
-        data: profileData,
-      );
+      final response = await _apiClient.post('profile', data: profileData);
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       return false;
@@ -21,7 +18,9 @@ class ProfileService {
 
   /// POST /api/travel-preferences
   /// Replicates the travel preferences submission.
-  Future<bool> updateTravelPreferences(Map<String, dynamic> preferencesData) async {
+  Future<bool> updateTravelPreferences(
+    Map<String, dynamic> preferencesData,
+  ) async {
     try {
       final response = await _apiClient.post(
         'travel-preferences',
@@ -61,7 +60,7 @@ class ProfileService {
     if (username.trim().length < 3) return false;
     try {
       final response = await _apiClient.post(
-        'check-username', 
+        'check-username',
         data: {'username': username},
       );
       final data = response.data as Map<String, dynamic>;

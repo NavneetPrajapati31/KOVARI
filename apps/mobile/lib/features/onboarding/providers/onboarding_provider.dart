@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/profile_service.dart';
-import '../../../services/api/api_client.dart';
+import '../../../core/network/api_client.dart';
 
 class OnboardingState {
   final int currentStep;
