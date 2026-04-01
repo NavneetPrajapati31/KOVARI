@@ -79,7 +79,7 @@ class UserProfile {
       personality: json['personality'] ?? '',
       foodPreference:
           json['foodPreference'] ?? '', // API key is 'foodPreference'
-      userId: json['user_id'] ?? '',
+      userId: json['id'] ?? json['user_id'] ?? '',
     );
   }
 

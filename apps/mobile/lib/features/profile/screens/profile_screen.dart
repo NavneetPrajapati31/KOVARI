@@ -10,7 +10,9 @@ import '../../../shared/utils/url_utils.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
 import '../models/user_profile.dart';
 import '../../app_shell/providers/app_shell_provider.dart';
+import 'connections_screen.dart';
 
+import '../../../shared/widgets/kovari_image_modal.dart';
 import '../../../shared/widgets/kovari_popover.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -69,9 +71,19 @@ class ProfileScreen extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              KovariAvatar(
-                imageUrl: UrlUtils.getFullImageUrl(profile.profileImage),
-                size: 70,
+              GestureDetector(
+                onTap: () {
+                  if (profile.profileImage.isNotEmpty) {
+                    KovariImageModal.show(
+                      context,
+                      UrlUtils.getFullImageUrl(profile.profileImage)!,
+                    );
+                  }
+                },
+                child: KovariAvatar(
+                  imageUrl: UrlUtils.getFullImageUrl(profile.profileImage),
+                  size: 65,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -142,9 +154,39 @@ class ProfileScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        _buildStatItem(profile.followers, 'Followers'),
+                        _buildStatItem(
+                          profile.followers,
+                          'Followers',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ConnectionsScreen(
+                                  userId: profile.userId,
+                                  username: profile.username,
+                                  initialTab: 'followers',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(width: 16),
-                        _buildStatItem(profile.following, 'Following'),
+                        _buildStatItem(
+                          profile.following,
+                          'Following',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ConnectionsScreen(
+                                  userId: profile.userId,
+                                  username: profile.username,
+                                  initialTab: 'following',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ],
@@ -197,27 +239,31 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatItem(String count, String label) {
-    return Row(
-      children: [
-        Text(
-          count,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-            color: Colors.black,
+  Widget _buildStatItem(String count, String label, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        children: [
+          Text(
+            count,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: Colors.black,
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

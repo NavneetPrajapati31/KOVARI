@@ -4,7 +4,7 @@ import '../../home/screens/home_screen.dart';
 import '../../explore/screens/explore_screen.dart';
 import '../../chat/screens/chat_inbox_screen.dart';
 import '../../community/screens/community_screen.dart';
-import '../../profile/screens/profile_screen.dart';
+import '../widgets/profile_tab.dart';
 import '../../../shared/widgets/kovari_bottom_nav.dart';
 import '../providers/app_shell_provider.dart';
 
@@ -23,7 +23,7 @@ class AppShellScreen extends ConsumerWidget {
           ExploreScreen(),
           ChatInboxScreen(),
           CommunityScreen(),
-          ProfileScreen(),
+          ProfileTab(),
         ],
       ),
       bottomNavigationBar: KovariBottomNav(
