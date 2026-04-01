@@ -109,7 +109,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
                 color: Colors.white,
                 shadowColor: Colors.black.withValues(alpha: 0.1),
                 child: Container(
-                  constraints: const BoxConstraints(maxHeight: 250),
+                  constraints: const BoxConstraints(maxHeight: 240),
                   decoration: BoxDecoration(
                     border: Border.all(color: AppColors.border),
                     borderRadius: AppRadius.large,
@@ -190,18 +190,17 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
                   suggestion.city.isNotEmpty
                       ? suggestion.city
                       : suggestion.formatted.split(',')[0],
-                  style: AppTextStyles.bodySmall.copyWith(
-                    fontWeight: FontWeight.w600,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
                     height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   suggestion.formatted,
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.mutedForeground,
                     height: 1.1,
-                    fontSize: 10,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

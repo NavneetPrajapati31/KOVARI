@@ -51,39 +51,52 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               "Profile Picture",
               style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             ListTile(
+              visualDensity: VisualDensity.compact,
+              dense: true,
               leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+                padding: const EdgeInsets.all(6),
+                child: const Icon(
+                  LucideIcons.camera,
+                  size: 22,
+                  color: AppColors.mutedForeground,
                 ),
-                child: const Icon(LucideIcons.camera, color: AppColors.primary),
               ),
-              title: Text("Take Photo", style: AppTextStyles.bodyMedium),
+              title: Text(
+                "Take Photo",
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.camera);
               },
             ),
             ListTile(
+              visualDensity: VisualDensity.compact,
+              dense: true,
               leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  shape: BoxShape.circle,
+                padding: const EdgeInsets.all(6),
+                child: const Icon(
+                  LucideIcons.image,
+                  size: 22,
+                  color: AppColors.mutedForeground,
                 ),
-                child: const Icon(LucideIcons.image, color: Colors.blue),
               ),
               title: Text(
                 "Choose from Gallery",
-                style: AppTextStyles.bodyMedium,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mutedForeground,
+                ),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -93,14 +106,13 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
             if (ref.read(onboardingProvider).localProfilePicPath != null ||
                 ref.read(onboardingProvider).profilePicUrl != null)
               ListTile(
+                visualDensity: VisualDensity.compact,
+                dense: true,
                 leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.destructive.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
+                  padding: const EdgeInsets.all(6),
                   child: const Icon(
                     LucideIcons.trash2,
+                    size: 22,
                     color: AppColors.destructive,
                   ),
                 ),
@@ -108,6 +120,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                   "Remove Photo",
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.destructive,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 onTap: () {
@@ -141,20 +154,28 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
         sourcePath: filePath,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'Edit Profile Picture',
-            toolbarColor: AppColors.primary,
+            toolbarTitle: '', // Clean, minimal look
+            toolbarColor: Colors.black,
             toolbarWidgetColor: Colors.white,
+            statusBarColor: Colors.black,
+            backgroundColor: Colors.black,
+            activeControlsWidgetColor: AppColors.primary,
             initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true,
-            activeControlsWidgetColor: AppColors.primary,
+            showCropGrid: false, // Remove distractions for a "calm" feel
+            hideBottomControls: true, // Modern, thoughtful minimalist design
             cropStyle: CropStyle.circle,
             aspectRatioPresets: [CropAspectRatioPreset.square],
           ),
           IOSUiSettings(
-            title: 'Edit Profile Picture',
+            title: '', // Remove title
             aspectRatioLockEnabled: true,
             resetButtonHidden: true,
             rotateButtonsHidden: true,
+            rotateClockwiseButtonHidden: true,
+            aspectRatioPickerButtonHidden: true,
+            doneButtonTitle: 'Done',
+            cancelButtonTitle: 'Cancel',
             cropStyle: CropStyle.circle,
             aspectRatioPresets: [CropAspectRatioPreset.square],
           ),
@@ -201,12 +222,12 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
             child: Stack(
               children: [
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.secondary,
+                    color: AppColors.background,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border, width: 2),
+                    border: Border.all(color: AppColors.border, width: 1),
                     image: state.localProfilePicPath != null
                         ? DecorationImage(
                             image: FileImage(File(state.localProfilePicPath!)),
@@ -224,7 +245,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                           state.profilePicUrl == null)
                       ? const Icon(
                           LucideIcons.userRound,
-                          size: 32,
+                          size: 28,
                           color: AppColors.mutedForeground,
                         )
                       : null,
@@ -233,7 +254,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                   bottom: 0,
                   right: 0,
                   child: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(6),
                     decoration: const BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,
@@ -246,9 +267,9 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                       ],
                     ),
                     child: const Icon(
-                      LucideIcons.camera,
-                      color: Colors.white,
-                      size: 16,
+                      LucideIcons.pencil,
+                      color: AppColors.primaryForeground,
+                      size: 12,
                     ),
                   ),
                 ),

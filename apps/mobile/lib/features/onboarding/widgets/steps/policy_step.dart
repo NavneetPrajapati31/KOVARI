@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/secondary_button.dart';
 import '../../../../shared/widgets/app_card.dart';
@@ -44,19 +45,28 @@ class PolicyStep extends ConsumerWidget {
                 _buildPolicyItem(
                   context: context,
                   title: 'Terms of Service',
-                  onTap: () {}, // Future: Open policies link
+                  onTap: () => launchUrl(
+                    Uri.parse('https://kovari.in/terms'),
+                    mode: LaunchMode.externalApplication,
+                  ),
                 ),
                 const Divider(height: 24, color: AppColors.border),
                 _buildPolicyItem(
                   context: context,
                   title: 'Privacy Policy',
-                  onTap: () {},
+                  onTap: () => launchUrl(
+                    Uri.parse('https://kovari.in/privacy'),
+                    mode: LaunchMode.externalApplication,
+                  ),
                 ),
                 const Divider(height: 24, color: AppColors.border),
                 _buildPolicyItem(
                   context: context,
                   title: 'Community Guidelines',
-                  onTap: () {},
+                  onTap: () => launchUrl(
+                    Uri.parse('https://kovari.in/community-guidelines'),
+                    mode: LaunchMode.externalApplication,
+                  ),
                 ),
               ],
             ),

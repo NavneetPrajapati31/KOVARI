@@ -6,6 +6,8 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/location_service.dart';
 import '../../../core/network/cloudinary_service.dart';
 
+const Object _sentinel = Object();
+
 class OnboardingState {
   final int currentStep;
   final String firstName;
@@ -68,8 +70,8 @@ class OnboardingState {
     String? username,
     bool? isUsernameAvailable,
     bool? isUsernameChecking,
-    String? profilePicUrl,
-    String? localProfilePicPath,
+    Object? profilePicUrl = _sentinel,
+    Object? localProfilePicPath = _sentinel,
     String? bio,
     String? gender,
     DateTime? birthday,
@@ -95,8 +97,12 @@ class OnboardingState {
       username: username ?? this.username,
       isUsernameAvailable: isUsernameAvailable ?? this.isUsernameAvailable,
       isUsernameChecking: isUsernameChecking ?? this.isUsernameChecking,
-      profilePicUrl: profilePicUrl ?? this.profilePicUrl,
-      localProfilePicPath: localProfilePicPath ?? this.localProfilePicPath,
+      profilePicUrl: profilePicUrl == _sentinel
+          ? this.profilePicUrl
+          : (profilePicUrl as String?),
+      localProfilePicPath: localProfilePicPath == _sentinel
+          ? this.localProfilePicPath
+          : (localProfilePicPath as String?),
       bio: bio ?? this.bio,
       gender: gender ?? this.gender,
       birthday: birthday ?? this.birthday,
@@ -163,10 +169,10 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     });
   }
 
-  void updateMediaBio({String? url, String? localPath, String? bio}) {
+  void updateMediaBio({Object? url = _sentinel, Object? localPath = _sentinel, String? bio}) {
     state = state.copyWith(
-      profilePicUrl: url ?? state.profilePicUrl,
-      localProfilePicPath: localPath ?? state.localProfilePicPath,
+      profilePicUrl: url,
+      localProfilePicPath: localPath,
       bio: bio ?? state.bio,
     );
   }
