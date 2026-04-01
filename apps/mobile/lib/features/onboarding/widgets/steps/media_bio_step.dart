@@ -157,7 +157,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
             toolbarTitle: '', // Clean, minimal look
             toolbarColor: Colors.black,
             toolbarWidgetColor: Colors.white,
-            statusBarColor: Colors.black,
+            statusBarLight: true,
             backgroundColor: Colors.black,
             activeControlsWidgetColor: AppColors.primary,
             initAspectRatio: CropAspectRatioPreset.square,

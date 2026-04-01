@@ -27,12 +27,20 @@ abstract class ApiClient {
 /// Production implementation using Dio
 class DioApiClient implements ApiClient {
   final Dio _dio;
+  final Dio _retryDio; // Dedicated instance for retries to avoid deadlocks
   final TokenService _tokenService = TokenService();
   String? _token;
   VoidCallback? _onLogout;
 
   DioApiClient([this._token])
     : _dio = Dio(
+        BaseOptions(
+          baseUrl: Env.apiBaseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      ),
+      _retryDio = Dio(
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
           connectTimeout: const Duration(seconds: 30),
@@ -93,7 +101,7 @@ class DioApiClient implements ApiClient {
               options.headers['Authorization'] = 'Bearer $currentToken';
               setToken(currentToken);
 
-              final retryResponse = await _dio.request(
+              final retryResponse = await _retryDio.request(
                 options.path,
                 data: options.data,
                 queryParameters: options.queryParameters,
@@ -114,9 +122,8 @@ class DioApiClient implements ApiClient {
                   print('🔄 [AUTH] Attempting silent token refresh...');
                 }
 
-                // Use a separate Dio instance for refresh to avoid interceptor recursion
-                final refreshDio = Dio(BaseOptions(baseUrl: Env.apiBaseUrl));
-                final refreshResponse = await refreshDio.post(
+                // Use the dedicated retryDio for refresh to avoid recursion
+                final refreshResponse = await _retryDio.post(
                   ApiEndpoints.refresh,
                   data: {'refreshToken': refreshToken},
                 );
@@ -137,11 +144,11 @@ class DioApiClient implements ApiClient {
                     );
                   }
 
-                  // Retry original request with new token
+                  // Retry original request with new token using retryDio to avoid deadlock
                   final options = e.requestOptions;
                   options.headers['Authorization'] = 'Bearer $newAccessToken';
 
-                  final retryResponse = await _dio.request(
+                  final retryResponse = await _retryDio.request(
                     options.path,
                     data: options.data,
                     queryParameters: options.queryParameters,
