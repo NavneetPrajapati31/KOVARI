@@ -5,9 +5,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/providers/profile_provider.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
 import '../models/user_profile.dart';
+
+import '../../../shared/widgets/kovari_popover.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -34,7 +37,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildHeaderCard(profile),
+                    _buildHeaderCard(context, ref, profile),
                     const SizedBox(height: 12),
                     _buildContentCard(profile),
                   ],
@@ -47,7 +50,11 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeaderCard(UserProfile profile) {
+  Widget _buildHeaderCard(
+    BuildContext context,
+    WidgetRef ref,
+    UserProfile profile,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -59,15 +66,13 @@ class ProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Avatar
               KovariAvatar(
                 imageUrl: UrlUtils.getFullImageUrl(profile.profileImage),
                 size: 70,
               ),
               const SizedBox(width: AppSpacing.md),
-              // Name & Stats
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,10 +89,45 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        const Icon(
-                          LucideIcons.menu,
-                          size: 16,
-                          color: Colors.black87,
+                        KovariPopover(
+                          items: [
+                            KovariMenuAction(
+                              icon: LucideIcons.settings,
+                              label: 'Settings',
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Settings coming soon'),
+                                  ),
+                                );
+                              },
+                            ),
+                            KovariMenuAction(
+                              icon: LucideIcons.shieldCheck,
+                              label: 'Safety',
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Safety coming soon'),
+                                  ),
+                                );
+                              },
+                            ),
+                            KovariMenuAction(
+                              icon: LucideIcons.logOut,
+                              label: 'Log out',
+                              isDestructive: true,
+                              onTap: () {
+                                ref.read(authStateProvider.notifier).state =
+                                    null;
+                              },
+                            ),
+                          ],
+                          child: const Icon(
+                            LucideIcons.menu,
+                            size: 16,
+                            color: Colors.black87,
+                          ),
                         ),
                       ],
                     ),
@@ -143,6 +183,13 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget safeAreas({required Widget child}) {
+    return Material(
+      color: Colors.transparent,
+      child: SafeArea(child: child),
     );
   }
 
