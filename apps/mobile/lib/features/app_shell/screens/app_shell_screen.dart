@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../home/screens/home_screen.dart';
-import '../../search/screens/search_screen.dart';
 import '../../explore/screens/explore_screen.dart';
+import '../../chat/screens/chat_inbox_screen.dart';
 import '../../community/screens/community_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../../shared/widgets/kovari_bottom_nav.dart';
@@ -20,8 +20,8 @@ class AppShellScreen extends ConsumerWidget {
         index: currentIndex,
         children: const [
           HomeScreen(),
-          SearchScreen(),
           ExploreScreen(),
+          ChatInboxScreen(),
           CommunityScreen(),
           ProfileScreen(),
         ],

@@ -25,9 +25,7 @@ class KovariBottomNav extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(color: Colors.grey.withValues(alpha: 0.15), width: 1),
-        ),
+        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: SafeArea(
         child: Container(

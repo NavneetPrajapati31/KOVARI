@@ -9,6 +9,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
 import '../models/user_profile.dart';
+import '../../app_shell/providers/app_shell_provider.dart';
 
 import '../../../shared/widgets/kovari_popover.dart';
 
@@ -174,7 +175,10 @@ class ProfileScreen extends ConsumerWidget {
               Expanded(
                 child: _buildActionButton(
                   'Explore',
-                  onPressed: () {},
+                  onPressed: () {
+                    // Navigate to the Explore tab (index 1)
+                    ref.read(appShellIndexProvider.notifier).state = 1;
+                  },
                   backgroundColor: AppColors.secondary,
                   textColor: AppColors.secondaryForeground,
                 ),
