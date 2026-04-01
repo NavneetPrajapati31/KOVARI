@@ -70,9 +70,9 @@ async function runTests() {
 
   try {
     ProfileResponseSchema.parse(routeGeneratedProfile);
-    console.log("✅ Test 2 Passed: Empty/default route-generated profile parsed correctly!");
+    console.log(" Test 2 Passed: Empty/default route-generated profile parsed correctly!");
   } catch (e) {
-    console.error("❌ Test 2 Failed - Contract rejected route defaults", (e as z.ZodError).issues);
+    console.error(" Test 2 Failed - Contract rejected route defaults", (e as z.ZodError).issues);
     process.exit(1);
   }
 
