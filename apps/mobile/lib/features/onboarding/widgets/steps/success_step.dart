@@ -11,26 +11,29 @@ class SuccessStep extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.lg,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: AppSpacing.md),
+          // const SizedBox(height: AppSpacing.lg),
           // Success Checkmark Circle
-          Container(
-            width: 64,
-            height: 64,
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check_rounded,
-              size: 28,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
+          // Container(
+          //   width: 34,
+          //   height: 34,
+          //   decoration: const BoxDecoration(
+          //     color: AppColors.primary,
+          //     shape: BoxShape.circle,
+          //   ),
+          //   child: const Icon(
+          //     Icons.check_rounded,
+          //     size: 20,
+          //     color: Colors.white,
+          //   ),
+          // ),
+          // const SizedBox(height: AppSpacing.lg),
           Text(
             "Welcome aboard! 🎉",
             style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
@@ -44,14 +47,14 @@ class SuccessStep extends ConsumerWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.lg),
           PrimaryButton(
             text: 'Get Started',
             onPressed: () {
               Navigator.of(context).pushReplacementNamed('/home');
             },
           ),
-          const SizedBox(height: AppSpacing.lg),
+          // const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );

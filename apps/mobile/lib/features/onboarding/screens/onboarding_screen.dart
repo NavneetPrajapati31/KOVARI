@@ -37,21 +37,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await authService.logout();
 
     if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.login,
-        (route) => false,
-      );
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingProvider);
-    final totalSteps = 8;
+    const totalSteps = 7;
+    final isComplete = state.currentStep > totalSteps;
 
-    // Synchronize PageView with currentStep state
+    // Synchronize PageView with currentStep state (only for active steps)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_pageController.hasClients &&
+      if (!isComplete &&
+          _pageController.hasClients &&
           _pageController.page?.round() != (state.currentStep - 1)) {
         _pageController.animateToPage(
           state.currentStep - 1,
@@ -61,7 +62,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       }
     });
 
-    // List of steps to render dynamically
+    // List of active onboarding steps
     final List<Widget> steps = const [
       IdentityStep(),
       MediaBioStep(),
@@ -70,7 +71,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       LanguagesInterestsStep(),
       LifestyleStep(),
       PolicyStep(),
-      SuccessStep(),
     ];
 
     return Scaffold(
@@ -85,92 +85,95 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: AppRadius.large,
+                borderRadius: AppRadius.extraLarge,
                 border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Progress Indicator (Step X of Y)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.lg,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        GestureDetector(
-                          onLongPress: () {
-                            if (kDebugMode) {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Dev Reset'),
-                                  content: const Text(
-                                    'Clear session and return to Login? (Dev only)',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Cancel'),
+                  // Progress Indicator (Step X of Y) - Only shown during active steps
+                  if (!isComplete)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.lg,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onLongPress: () {
+                              if (kDebugMode) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Dev Reset'),
+                                    content: const Text(
+                                      'Clear session and return to Login? (Dev only)',
                                     ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                        _handleDevReset();
-                                      },
-                                      child: const Text(
-                                        'Reset',
-                                        style: TextStyle(
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.bold,
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          _handleDevReset();
+                                        },
+                                        child: const Text(
+                                          'Reset',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-                          },
-                          child: Text(
-                            'Step ${state.currentStep} of $totalSteps',
-                            style: AppTextStyles.label.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.mutedForeground,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: List.generate(
-                            totalSteps,
-                            (index) => Expanded(
-                              child: Container(
-                                height: 6,
-                                margin: EdgeInsets.only(
-                                  right: index == totalSteps - 1 ? 0 : 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: (index + 1) <= state.currentStep
-                                      ? AppColors.primary
-                                      : AppColors.border,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
+                                    ],
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text(
+                              'Step ${state.currentStep} of $totalSteps',
+                              style: AppTextStyles.label.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
-                          ).toList(),
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: List.generate(
+                              totalSteps,
+                              (index) => Expanded(
+                                child: Container(
+                                  height: 6,
+                                  margin: EdgeInsets.only(
+                                    right: index == totalSteps - 1 ? 0 : 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: (index + 1) <= state.currentStep
+                                        ? AppColors.primary
+                                        : AppColors.border,
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                              ),
+                            ).toList(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
                   // Dynamic Height Step Container
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: KeyedSubtree(
                       key: ValueKey('step_${state.currentStep}'),
-                      child: steps[state.currentStep - 1],
+                      child: isComplete
+                          ? const SuccessStep()
+                          : steps[state.currentStep - 1],
                     ),
                   ),
                 ],
