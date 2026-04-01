@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/profile_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/location_service.dart';
+import '../../../core/network/cloudinary_service.dart';
 
 class OnboardingState {
   final int currentStep;
@@ -12,6 +14,7 @@ class OnboardingState {
   final bool? isUsernameAvailable;
   final bool isUsernameChecking;
   final String? profilePicUrl;
+  final String? localProfilePicPath;
   final String bio;
   final String? gender;
   final DateTime? birthday;
@@ -38,6 +41,7 @@ class OnboardingState {
     this.isUsernameAvailable,
     this.isUsernameChecking = false,
     this.profilePicUrl,
+    this.localProfilePicPath,
     this.bio = '',
     this.gender,
     this.birthday,
@@ -65,6 +69,7 @@ class OnboardingState {
     bool? isUsernameAvailable,
     bool? isUsernameChecking,
     String? profilePicUrl,
+    String? localProfilePicPath,
     String? bio,
     String? gender,
     DateTime? birthday,
@@ -91,6 +96,7 @@ class OnboardingState {
       isUsernameAvailable: isUsernameAvailable ?? this.isUsernameAvailable,
       isUsernameChecking: isUsernameChecking ?? this.isUsernameChecking,
       profilePicUrl: profilePicUrl ?? this.profilePicUrl,
+      localProfilePicPath: localProfilePicPath ?? this.localProfilePicPath,
       bio: bio ?? this.bio,
       gender: gender ?? this.gender,
       birthday: birthday ?? this.birthday,
@@ -114,12 +120,14 @@ class OnboardingState {
 
 class OnboardingNotifier extends Notifier<OnboardingState> {
   late final ProfileService _profileService;
+  late final CloudinaryService _cloudinaryService;
   Timer? _debounceTimer;
 
   @override
   OnboardingState build() {
     final apiClient = ApiClientFactory.create();
     _profileService = ProfileService(apiClient);
+    _cloudinaryService = CloudinaryService(apiClient);
 
     ref.onDispose(() {
       _debounceTimer?.cancel();
@@ -155,9 +163,10 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     });
   }
 
-  void updateMediaBio({String? url, String? bio}) {
+  void updateMediaBio({String? url, String? localPath, String? bio}) {
     state = state.copyWith(
       profilePicUrl: url ?? state.profilePicUrl,
+      localProfilePicPath: localPath ?? state.localProfilePicPath,
       bio: bio ?? state.bio,
     );
   }
@@ -227,7 +236,22 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     try {
       if (state.birthday == null) throw 'Birthday is required';
 
-      // 1. Calculate Age
+      // 1. Upload Profile Photo if local path exists
+      String? finalProfilePicUrl = state.profilePicUrl;
+      if (state.localProfilePicPath != null) {
+        try {
+          finalProfilePicUrl = await _cloudinaryService.uploadImage(
+            File(state.localProfilePicPath!),
+            folder: 'kovari-profiles',
+          );
+          // Update state with the new URL for future attempts
+          state = state.copyWith(profilePicUrl: finalProfilePicUrl);
+        } catch (uploadError) {
+          throw 'Failed to upload profile photo: $uploadError';
+        }
+      }
+
+      // 2. Calculate Age
       final now = DateTime.now();
       int age = now.year - state.birthday!.year;
       if (now.month < state.birthday!.month ||
@@ -247,7 +271,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
             : state.gender, 
         'birthday': state.birthday!.toUtc().toIso8601String(), // Correct ISO format
         'bio': state.bio,
-        'profile_photo': state.profilePicUrl,
+        'profile_photo': finalProfilePicUrl,
         'location': state.location,
         'location_details': state.locationDetails != null ? {
           'lat': state.locationDetails!.lat,

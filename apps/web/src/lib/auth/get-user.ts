@@ -5,6 +5,7 @@ import { createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
 
 export interface AuthenticatedUser {
   id: string; // Supabase UUID
+  email: string;
   clerkUserId?: string;
   isMobile: boolean;
 }
@@ -14,21 +15,32 @@ export interface AuthenticatedUser {
  */
 export async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser | null> {
   try {
+    const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+
     // 1. Try Mobile JWT first (Check for Authorization header)
     const mobileUser = await getUserFromRequest(req);
     if (mobileUser) {
-      return {
-        id: mobileUser.id,
-        isMobile: true,
-      };
+      // For mobile, fetch the real identity email from our users table
+      const { data: user, error } = await supabase
+        .from("users")
+        .select("id, email")
+        .eq("id", mobileUser.id)
+        .maybeSingle();
+
+      if (user && !error) {
+        return {
+          id: user.id,
+          email: user.email,
+          isMobile: true,
+        };
+      }
+      return null; // Token represents a non-existent or deleted user
     }
 
     // 2. Fallback to Clerk (Web)
     try {
       const { userId: clerkUserId } = await auth();
       if (clerkUserId) {
-        const supabase = createRouteHandlerSupabaseClientWithServiceRole();
-        
         // Attempt A: Match by clerk_user_id (Primary/Fast path)
         const { data: user, error } = await supabase
           .from("users")
@@ -39,6 +51,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<Authentica
         if (user && !error) {
           return {
             id: user.id,
+            email: user.email,
             clerkUserId,
             isMobile: false,
           };
@@ -56,7 +69,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<Authentica
             // Perform a case-insensitive search by email
             const { data: matchedUser, error: matchError } = await supabase
               .from("users")
-              .select("id, clerk_user_id")
+              .select("id, clerk_user_id, email")
               .ilike("email", email) 
               .maybeSingle();
 
@@ -70,6 +83,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<Authentica
 
               return {
                 id: matchedUser.id,
+                email: matchedUser.email,
                 clerkUserId,
                 isMobile: false,
               };

@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 
   // Get the Clerk email and persist it into profiles.email so we don't rely
   // on any dummy or trigger-generated email values.
-  let primaryEmail: string | null = null;
+  let primaryEmail: string | null = authUser.email;
   if (userId) { // Only attempt Clerk lookup if we have a Clerk session
     try {
       const clerk = await clerkClient();

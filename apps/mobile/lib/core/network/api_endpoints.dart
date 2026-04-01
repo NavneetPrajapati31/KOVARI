@@ -11,4 +11,6 @@ class ApiEndpoints {
   static const resetPassword = "auth/reset-password";
   static const refresh = "auth/refresh";
   static const logout = "auth/logout";
+  
+  static const cloudinarySign = "cloudinary/sign";
 }

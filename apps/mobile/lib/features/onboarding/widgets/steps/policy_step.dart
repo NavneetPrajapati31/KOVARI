@@ -106,14 +106,7 @@ class PolicyStep extends ConsumerWidget {
                               .read(onboardingProvider.notifier)
                               .submit();
                           if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Profile completed successfully!',
-                                ),
-                                backgroundColor: AppColors.accent,
-                              ),
-                            );
+                            return;
                           } else if (state.errorMessage != null &&
                               context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
