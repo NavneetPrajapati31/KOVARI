@@ -40,6 +40,7 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   google_fonts: ^6.2.1
   lucide_icons_flutter: ^1.1.0
+  flutter_svg: ^2.0.10+1
   intl: ^0.20.2
   image_picker: ^1.2.1
   image_cropper: ^12.1.1

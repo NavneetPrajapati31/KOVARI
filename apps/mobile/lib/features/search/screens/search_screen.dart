@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class SearchScreen extends StatelessWidget {
+  const SearchScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +17,13 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('KOVARI', style: AppTextStyles.h1),
+                    Text(
+                      'Search',
+                      style: AppTextStyles.h1,
+                    ),
                     const SizedBox(height: 8),
                     Text(
-                      'Your journey starts here',
+                      'Find travel buddies and communities',
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.mutedForeground,
                       ),

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/login_screen.dart';
-import 'features/home/screens/home_screen.dart';
+import 'features/app_shell/screens/app_shell_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'features/auth/services/auth_service.dart';
 import 'core/network/api_client.dart';
@@ -20,6 +20,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
 
 import 'core/providers/auth_provider.dart';
+import 'core/providers/profile_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,11 +87,11 @@ class _KovariAppState extends State<KovariApp> {
 
   void _handleDeepLink(Uri uri) {
     debugPrint('🔗 Deep Link received: $uri');
-    
+
     // Support both HTTPS (Universal Links) and Custom Scheme (Fallback)
-    bool isResetPath = uri.path.contains('forgot-password') || 
-                      uri.host == 'reset-password';
-    
+    bool isResetPath =
+        uri.path.contains('forgot-password') || uri.host == 'reset-password';
+
     String? token = uri.queryParameters['token'];
 
     if (isResetPath && token != null) {
@@ -250,9 +251,11 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
       final profile = await profileService.getCurrentProfile();
 
       if (mounted) {
+        ref.read(profileProvider.notifier).state = profile;
         setState(() {
           _isSyncing = false;
-          _needsOnboarding = profile == null || profile['onboardingCompleted'] == false;
+          _needsOnboarding =
+              profile == null || profile['onboardingCompleted'] == false;
         });
       }
     } catch (e) {
@@ -305,6 +308,6 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
       );
     }
 
-    return _needsOnboarding ? const OnboardingScreen() : const HomeScreen();
+    return _needsOnboarding ? const OnboardingScreen() : const AppShellScreen();
   }
 }
