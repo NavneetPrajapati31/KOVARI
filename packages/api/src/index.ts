@@ -14,3 +14,4 @@ export * from "./brevo";
 export * from "./send-waitlist-confirmation";
 export * from "./email-config";
 export * from "./geocoding";
+export * from "./contracts/profile";
