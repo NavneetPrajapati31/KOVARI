@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shimmer/shimmer.dart' as shim;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/network/api_client.dart';
 import '../models/user_connection.dart';
@@ -121,14 +122,27 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 ),
                 centerTitle: false,
                 titleSpacing: 0, // Tighten gap between back icon and title
-                title: Text(
-                  widget.username,
-                  style: const TextStyle(
-                    color: AppColors.foreground,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                title: _isLoading && widget.username.isEmpty
+                    ? shim.Shimmer.fromColors(
+                        baseColor: AppColors.secondary,
+                        highlightColor: AppColors.secondary,
+                        child: Container(
+                          width: 80,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                        ),
+                      )
+                    : Text(
+                        widget.username,
+                        style: const TextStyle(
+                          color: AppColors.foreground,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(48),
                   child: Container(
@@ -200,26 +214,6 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   Widget _buildUserList(List<UserConnection> users, String type) {
-    if (_isLoading) {
-      return _buildSkeletonList();
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(LucideIcons.info, color: Colors.red, size: 40),
-            const SizedBox(height: 12),
-            Text(_error!, textAlign: TextAlign.center),
-            TextButton(onPressed: _loadData, child: const Text('Retry')),
-          ],
-        ),
-      );
-    }
-
-    final filteredUsers = _getFilteredList(users);
-
     return Builder(
       builder: (context) {
         return CustomScrollView(
@@ -228,7 +222,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
-            // Search Bar (In Body to prevent overlap issues and match Web behavior)
+            // Search Bar (Always visible)
             SliverToBoxAdapter(
               child: Container(
                 padding: const EdgeInsets.all(12),
@@ -238,10 +232,11 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                     bottom: BorderSide(color: AppColors.border, width: 1),
                   ),
                 ),
-                child: Container(
+                child: SizedBox(
                   height: 38,
                   child: TextField(
                     controller: _searchController,
+                    enabled: !_isLoading, // Disable while loading
                     style: const TextStyle(
                       fontSize: 13,
                       color: Colors.black,
@@ -257,7 +252,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                       fillColor: AppColors.secondary,
                       hintText: 'Search',
                       hintStyle: const TextStyle(
-                        color: Color(0xFF94A3B8),
+                        color: AppColors.mutedForeground,
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
                       ),
@@ -275,7 +270,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                           : const Icon(
                               LucideIcons.search,
                               size: 18,
-                              color: Color(0xFF94A3B8),
+                              color: AppColors.mutedForeground,
                             ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -298,7 +293,27 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 ),
               ),
             ),
-            if (filteredUsers.isEmpty)
+            if (_isLoading)
+              SliverToBoxAdapter(child: _buildSkeletonList())
+            else if (_error != null)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(LucideIcons.info, color: Colors.red, size: 40),
+                      const SizedBox(height: 12),
+                      Text(_error!, textAlign: TextAlign.center),
+                      TextButton(
+                        onPressed: _loadData,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (_getFilteredList(users).isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: _buildEmptyState(type),
@@ -306,6 +321,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
+                  final filteredUsers = _getFilteredList(users);
                   final user = filteredUsers[index];
                   return UserListItem(
                     user: user,
@@ -320,7 +336,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                           }
                         : null,
                   );
-                }, childCount: filteredUsers.length),
+                }, childCount: _getFilteredList(users).length),
               ),
           ],
         );
@@ -329,40 +345,66 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   Widget _buildSkeletonList() {
-    return ListView.builder(
-      itemCount: 10,
-      padding: EdgeInsets.zero,
-      itemBuilder: (context, index) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: AppColors.secondary,
-                shape: BoxShape.circle,
+    return shim.Shimmer.fromColors(
+      baseColor: AppColors.secondary, // Match image (Lighter)
+      highlightColor: AppColors.secondary,
+      child: ListView.separated(
+        shrinkWrap: true, // Crucial for inside SliverToBoxAdapter
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 8,
+        padding: EdgeInsets.zero,
+        separatorBuilder: (context, index) =>
+            const Divider(height: 1, thickness: 1, color: AppColors.border),
+        itemBuilder: (context, index) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              // Avatar Skeleton (Match image: 44px)
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(width: 100, height: 12, color: AppColors.secondary),
-                const SizedBox(height: 6),
-                Container(width: 60, height: 10, color: AppColors.secondary),
-              ],
-            ),
-            const Spacer(),
-            Container(
-              width: 80,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.secondary,
-                borderRadius: BorderRadius.circular(12),
+              const SizedBox(width: 12),
+              // User Info Skeleton
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 60,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const Spacer(),
+              // Action Button Skeleton
+              Container(
+                width: 80,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

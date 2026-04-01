@@ -46,7 +46,7 @@ class UserListItem extends StatelessWidget {
       padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: Row(
         children: [
@@ -156,10 +156,10 @@ class UserListItem extends StatelessWidget {
       height: 32,
       child: IconButton(
         onPressed: isLoading ? null : onPressed,
-        icon: const Icon(LucideIcons.x, size: 18),
+        icon: const Icon(LucideIcons.x, size: 16),
         style: IconButton.styleFrom(
           backgroundColor: AppColors.secondary,
-          foregroundColor: AppColors.secondaryForeground,
+          foregroundColor: AppColors.mutedForeground,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
