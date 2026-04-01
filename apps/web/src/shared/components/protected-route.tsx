@@ -93,25 +93,22 @@ export default function ProtectedRoute({
         method: "GET",
         headers: { "Content-Type": "application/json" },
       })
-        .then((res) => {
-          /* if (debug) {
-            console.log("[ProtectedRoute] /api/profile/current", {
-              status: res.status,
-              ok: res.ok,
-              path,
-            });
-          } */
+        .then(async (res) => {
           if (res.ok) {
-            profileConfirmedRef.current = true;
-            setPhase("allow");
+            const data = await res.json();
+            if (data.onboardingCompleted) {
+              profileConfirmedRef.current = true;
+              setPhase("allow");
+            } else {
+              setPhase("redirect");
+              router.replace(ONBOARDING_PATH_PREFIX);
+            }
           } else {
             setPhase("redirect");
             router.replace(ONBOARDING_PATH_PREFIX);
           }
         })
         .catch((err) => {
-          /* if (debug)
-            console.error("[ProtectedRoute] profile check failed", err); */
           setPhase("redirect");
           router.replace(ONBOARDING_PATH_PREFIX);
         });
