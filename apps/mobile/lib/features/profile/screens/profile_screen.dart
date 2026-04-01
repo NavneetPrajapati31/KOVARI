@@ -261,17 +261,21 @@ class ProfileScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'About',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
+          SizedBox(
+            width: 50,
+            child: const Text(
+              'About',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
           ),
           const SizedBox(height: 4),
           Container(
-            width: 40,
+            width: 50,
             height: 2,
             decoration: BoxDecoration(
               color: AppColors.primary,

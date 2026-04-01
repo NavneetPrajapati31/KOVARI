@@ -24,6 +24,8 @@ export const ProfileResponseSchema = z.object({
   destinations: z.array(z.string()),
   tripFocus: z.array(z.string()),
   travelFrequency: z.string(),
+  followers: z.number(),
+  following: z.number(),
   onboardingCompleted: z.boolean(),
 });
 

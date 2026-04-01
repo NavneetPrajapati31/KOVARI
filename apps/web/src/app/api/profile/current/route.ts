@@ -47,6 +47,58 @@ export async function GET(request: NextRequest) {
     const hasCompletedOnboarding = !!(usernameSet && nameSet);
 
     const interests = profile?.interests || [];
+    
+    // Fetch follower ids
+    const { data: followerRows, error: followerRowsError } = await supabase
+      .from("user_follows")
+      .select("follower_id")
+      .eq("following_id", internalUserId);
+
+    if (followerRowsError) {
+      console.error("Error fetching follower ids:", followerRowsError);
+      throw followerRowsError;
+    }
+
+    const followerIds = (followerRows || []).map((r: any) => r.follower_id);
+    let followersCount = 0;
+    if (followerIds.length > 0) {
+      const { count, error: countError } = await supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .in("id", followerIds)
+        .eq("isDeleted", false);
+      if (countError) {
+        console.error("Error counting followers:", countError);
+        throw countError;
+      }
+      followersCount = count ?? 0;
+    }
+
+    // Fetch following ids
+    const { data: followingRows, error: followingRowsError } = await supabase
+      .from("user_follows")
+      .select("following_id")
+      .eq("follower_id", internalUserId);
+
+    if (followingRowsError) {
+      console.error("Error fetching following ids:", followingRowsError);
+      throw followingRowsError;
+    }
+
+    const followingIds = (followingRows || []).map((r: any) => r.following_id);
+    let followingCount = 0;
+    if (followingIds.length > 0) {
+      const { count, error: countError } = await supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .in("id", followingIds)
+        .eq("isDeleted", false);
+      if (countError) {
+        console.error("Error counting following:", countError);
+        throw countError;
+      }
+      followingCount = count ?? 0;
+    }
 
     // ✅ SANITIZE RESPONSE
     // Transform data to match ProfileResponse structure
@@ -75,6 +127,8 @@ export async function GET(request: NextRequest) {
       destinations: travelPrefs?.destinations || [],
       tripFocus: travelPrefs?.trip_focus || [],
       travelFrequency: travelPrefs?.frequency ?? "",
+      followers: followersCount,
+      following: followingCount,
       onboardingCompleted: hasCompletedOnboarding,
     };
 
