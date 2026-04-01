@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { ensureRedisConnection } from "@kovari/api";
+import bcrypt from "bcryptjs";
+import { ensureRedisConnection, createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
 import * as Sentry from "@sentry/nextjs";
 
 const REDIS_KEY_PREFIX = "password_reset:";
@@ -28,17 +29,52 @@ export async function POST(req: NextRequest) {
 
     const redis = await ensureRedisConnection();
     const redisKey = `${REDIS_KEY_PREFIX}${token}`;
-    const userId = await redis.get(redisKey);
+    const storedData = await redis.get(redisKey);
 
-    if (!userId) {
+    if (!storedData) {
       return NextResponse.json(
         { error: "Reset link is invalid or has expired. Please request a new one." },
         { status: 400 }
       );
     }
 
+    // Handle both legacy (string) and new (JSON) data formats for robustness
+    let userId: string;
+    let email: string | null = null;
+
+    try {
+      const parsed = JSON.parse(storedData);
+      userId = parsed.userId;
+      email = parsed.email;
+    } catch {
+      userId = storedData;
+    }
+
     const client = await clerkClient();
+    
+    // 1. Update Clerk Password
     await client.users.updateUser(userId, { password: newPassword });
+
+    // 2. Synchronize with Supabase (KOVARI's primary email/password logic)
+    if (email) {
+      try {
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+        const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+
+        const { error: syncError } = await supabase
+          .from("users")
+          .update({ password_hash: passwordHash })
+          .ilike("email", email);
+
+        if (syncError) {
+          console.error("[SYNC] Failed to sync password hash to Supabase:", syncError);
+          // We don't fail the whole request since Clerk is updated, but we log it
+        }
+      } catch (err) {
+        console.error("[SYNC] Critical error during Supabase password sync:", err);
+      }
+    }
 
     await redis.del(redisKey);
 

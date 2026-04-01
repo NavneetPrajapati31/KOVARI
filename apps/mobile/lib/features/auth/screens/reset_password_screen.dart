@@ -106,19 +106,19 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Logo
-                Image.asset(
-                  'assets/logo.webp',
-                  height: 20,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => Text(
-                    'KOVARI',
-                    style: AppTextStyles.h1.copyWith(
-                      letterSpacing: 4,
-                      fontSize: 28,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
+                // Image.asset(
+                //   'assets/logo.webp',
+                //   height: 20,
+                //   fit: BoxFit.contain,
+                //   errorBuilder: (context, error, stackTrace) => Text(
+                //     'KOVARI',
+                //     style: AppTextStyles.h1.copyWith(
+                //       letterSpacing: 4,
+                //       fontSize: 28,
+                //     ),
+                //   ),
+                // ),
+                // const SizedBox(height: 32),
 
                 // Auth Card
                 Container(
@@ -169,7 +169,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           obscureText: true,
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         PrimaryButton(
           text: _isLoading ? 'Resetting...' : 'Reset Password',
@@ -184,22 +184,18 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Icon(
-          Icons.check_circle_outline,
-          size: 60,
-          color: AppColors.primary,
-        ),
-        const SizedBox(height: 16),
+        // const Icon(Icons.check, size: 30, color: AppColors.primary),
+        // const SizedBox(height: 16),
         Text('Password Reset', style: AppTextStyles.h3),
         const SizedBox(height: 8),
         Text(
-          'Your password has been successfully reset. Click below to log in magically.',
+          'Your password has been successfully reset. Click below to log in.',
           textAlign: TextAlign.center,
           style: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.mutedForeground,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         PrimaryButton(
           text: 'Proceed to Login',
           onPressed: () {

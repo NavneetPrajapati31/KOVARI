@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "PREFIX.com.example.mobile",
+        "paths": ["/forgot-password*"]
+      }
+    ]
+  }
+}

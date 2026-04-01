@@ -86,7 +86,7 @@ class AuthService {
     try {
       await _apiClient.post(
         ApiEndpoints.forgotPassword,
-        data: {'email': email},
+        data: {'email': email, 'platform': 'mobile'},
       );
     } catch (e) {
       debugPrint('❌ Forgot Password request failed: $e');

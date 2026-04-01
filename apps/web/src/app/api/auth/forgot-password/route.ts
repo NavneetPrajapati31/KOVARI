@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const email = typeof body?.email === "string" ? body.email.trim() : "";
     const fromRaw = typeof body?.from === "string" ? body.from.trim() : "";
+    const platform = typeof body?.platform === "string" ? body.platform.trim() : "web";
     const from =
       fromRaw === "settings" || fromRaw === "sign-in" ? fromRaw : undefined;
 
@@ -51,12 +52,22 @@ export async function POST(req: NextRequest) {
     const redisKey = `${REDIS_KEY_PREFIX}${token}`;
 
     const redis = await ensureRedisConnection();
-    await redis.setEx(redisKey, RESET_TOKEN_TTL_SECONDS, userId);
+    // Store both Clerk ID and Email to ensure we can sync Supabase later
+    await redis.setEx(
+      redisKey,
+      RESET_TOKEN_TTL_SECONDS,
+      JSON.stringify({ userId, email }),
+    );
 
     const baseUrl = getBaseUrl(req);
-    const resetLink = `${baseUrl}/forgot-password?token=${token}${
+    let resetLink = `${baseUrl}/forgot-password?token=${token}${
       from ? `&from=${encodeURIComponent(from)}` : ""
     }`;
+
+    // For mobile requests, use the custom scheme to bypass browser redirection
+    if (platform === "mobile") {
+      resetLink = `kovari://reset-password?token=${token}`;
+    }
 
     const result = await sendPasswordResetEmail({
       to: email,

@@ -128,10 +128,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Reset Password',
-          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-        ),
+        Text('Reset Password', style: AppTextStyles.h3),
         const SizedBox(height: 4),
         Text(
           'Enter your email address and we will send you a link to reset your password.',
@@ -171,10 +168,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           color: AppColors.primary,
         ),
         const SizedBox(height: 16),
-        Text(
-          'Check your email',
-          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-        ),
+        Text('Check your email', style: AppTextStyles.h3),
         const SizedBox(height: 8),
         Text(
           'We have sent a password reset link to ${_emailController.text.trim()}. You can return to the login screen.',

@@ -85,15 +85,26 @@ class _KovariAppState extends State<KovariApp> {
   }
 
   void _handleDeepLink(Uri uri) {
-    if (uri.path.contains('forgot-password') && uri.queryParameters.containsKey('token')) {
-      final token = uri.queryParameters['token']!;
-      // Delay navigation to let the app route system mount first if from cold start
-      Future.delayed(const Duration(milliseconds: 300), () {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (context) => ResetPasswordScreen(token: token),
-          ),
-        );
+    debugPrint('🔗 Deep Link received: $uri');
+    
+    // Support both HTTPS (Universal Links) and Custom Scheme (Fallback)
+    bool isResetPath = uri.path.contains('forgot-password') || 
+                      uri.host == 'reset-password';
+    
+    String? token = uri.queryParameters['token'];
+
+    if (isResetPath && token != null) {
+      // Delay navigation to let the app route system/MaterialApp mount first
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (navigatorKey.currentState != null) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(token: token),
+            ),
+          );
+        } else {
+          debugPrint('❌ Navigator is not ready for deep link navigation');
+        }
       });
     }
   }

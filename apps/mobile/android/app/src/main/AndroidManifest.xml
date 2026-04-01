@@ -26,13 +26,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Deep linking for Forgot Password -->
+            <!-- Android App Links (Verified HTTPS) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="http" android:host="localhost" android:port="3000" />
                 <data android:scheme="https" android:host="kovari.app" />
+            </intent-filter>
+
+            <!-- Custom Scheme Deep Linking (Fallback) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kovari" android:host="reset-password" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
