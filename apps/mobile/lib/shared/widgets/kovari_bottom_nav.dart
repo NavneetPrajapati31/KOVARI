@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/providers/profile_provider.dart';
 import '../utils/kovari_icons.dart';
+import '../utils/url_utils.dart';
+import 'kovari_avatar.dart';
 
 class KovariBottomNav extends ConsumerWidget {
   final int currentIndex;
@@ -19,7 +20,7 @@ class KovariBottomNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider);
-    final profilePhoto = profile?['profile_photo'] as String?;
+    final profilePhoto = UrlUtils.getFullImageUrl(profile?.profileImage);
 
     return Container(
       decoration: BoxDecoration(
@@ -103,31 +104,19 @@ class KovariBottomNav extends ConsumerWidget {
           height: double.infinity,
           alignment: Alignment.center,
           child: Container(
-            width: 28,
-            height: 28,
+            padding: const EdgeInsets.all(2.0),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                // Web app uses ring-2 and ring-offset-2 which is a bold border
                 color: isSelected ? AppColors.primary : Colors.transparent,
-                width: 2.0,
+                width: 1.5,
               ),
-              image: profilePhoto != null
-                  ? DecorationImage(
-                      image: NetworkImage(profilePhoto),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
             ),
-            child: profilePhoto == null
-                ? Icon(
-                    isSelected
-                        ? CupertinoIcons.person_fill
-                        : CupertinoIcons.person,
-                    size: 20,
-                    color: isSelected ? AppColors.primary : Colors.black,
-                  )
-                : null,
+            child: KovariAvatar(
+              imageUrl: profilePhoto,
+              size: 26,
+              isSelected: isSelected,
+            ),
           ),
         ),
       ),

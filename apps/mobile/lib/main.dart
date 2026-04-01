@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'features/profile/models/user_profile.dart';
 import 'features/app_shell/screens/app_shell_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'features/auth/services/auth_service.dart';
@@ -248,14 +249,20 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
       // Since checkSession already set the token in main() or AuthWrapper,
       // we just need to verify the profile.
       final profileService = ProfileService(apiClient);
-      final profile = await profileService.getCurrentProfile();
+      final profileJson = await profileService.getCurrentProfile();
 
       if (mounted) {
-        ref.read(profileProvider.notifier).state = profile;
+        if (profileJson != null) {
+          final userProfile = UserProfile.fromJson(profileJson);
+          ref.read(profileProvider.notifier).state = userProfile;
+        }
+
         setState(() {
           _isSyncing = false;
+          // Determine onboarding status based on presence and completion of profile
           _needsOnboarding =
-              profile == null || profile['onboardingCompleted'] == false;
+              profileJson == null ||
+              profileJson['onboardingCompleted'] == false;
         });
       }
     } catch (e) {

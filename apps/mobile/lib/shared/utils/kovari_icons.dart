@@ -93,7 +93,7 @@ class KovariIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     // Convert Color to hex string for SVG replacement
     final hexColor =
-        '#${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
+        '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
     final processedSvg = svgString.replaceAll('currentColor', hexColor);
 
     return SvgPicture.string(processedSvg, width: size, height: size);
