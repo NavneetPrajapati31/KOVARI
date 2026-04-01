@@ -252,7 +252,7 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
       if (mounted) {
         setState(() {
           _isSyncing = false;
-          _needsOnboarding = profile == null;
+          _needsOnboarding = profile == null || profile['onboardingCompleted'] == false;
         });
       }
     } catch (e) {

@@ -1,15 +1,12 @@
 import * as Sentry from "@sentry/nextjs";
-import { createAdminSupabaseClient } from "@kovari/api";
+import { createAdminSupabaseClient, ProfileResponseSchema, ProfileResponse } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const authUser = await getAuthenticatedUser(request);
   if (!authUser) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const userId = authUser.clerkUserId;
@@ -25,16 +22,14 @@ export async function GET(request: NextRequest) {
       .eq("user_id", internalUserId)
       .single();
 
-    if (profileError) {
+    if (profileError || !profile) {
       console.error("Error fetching profile:", profileError);
-      Sentry.captureException(profileError, {
+      Sentry.captureException(profileError || new Error("Profile not found"), {
         tags: { endpoint: "/api/profile/current", action: "fetch_profile" },
         extra: { clerkUserId: userId, internalUserId },
       });
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch profile data" }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
+      // ❗ HANDLE NO PROFILE returns 404
+      return Response.json({ error: "Profile not found" }, { status: 404 });
     }
 
     // Get travel preferences
@@ -49,58 +44,51 @@ export async function GET(request: NextRequest) {
     const usernameSet =
       profile?.username != null && String(profile.username).trim() !== "";
     const nameSet = profile?.name != null && String(profile.name).trim() !== "";
-    const hasCompletedOnboarding = usernameSet && nameSet;
-    if (!hasCompletedOnboarding) {
-      return new Response(
-        JSON.stringify({ error: "Profile incomplete", incomplete: true }),
-        { status: 404, headers: { "Content-Type": "application/json" } },
-      );
-    }
+    const hasCompletedOnboarding = !!(usernameSet && nameSet);
 
     const interests = profile?.interests || [];
 
-    // Transform data to match ProfileEditForm structure
-    const profileData = {
+    // ✅ SANITIZE RESPONSE
+    // Transform data to match ProfileResponse structure
+    const profileData: ProfileResponse = {
       id: internalUserId, // Add the internal user UUID
-      avatar: profile.profile_photo || "",
-      name: profile.name || "",
-      username: profile.username || "",
-      age: profile.age || 0,
-      gender: profile.gender || "Prefer not to say",
-      nationality: profile.nationality || "",
-      profession: profile.job || "",
+      avatar: profile.profile_photo ?? "",
+      name: profile.name ?? "",
+      username: profile.username ?? "",
+      age: profile.age ?? 0,
+      gender: profile.gender ?? "Prefer not to say",
+      nationality: profile.nationality ?? "",
+      profession: profile.job ?? "",
       interests,
       languages: profile.languages || [],
-      bio: profile.bio || "",
-      birthday: profile.birthday || "",
-      location: profile.location || "",
+      bio: profile.bio ?? "",
+      birthday: profile.birthday ?? "",
+      location: profile.location ?? "",
       location_details: profile.location_details || {},
-      religion: profile.religion || "",
-      smoking: profile.smoking || "",
-      drinking: profile.drinking || "",
-      personality: profile.personality || "",
-      foodPreference: profile.food_preference || "",
-      verified: profile.verified || false,
+      religion: profile.religion ?? "",
+      smoking: profile.smoking ?? "",
+      drinking: profile.drinking ?? "",
+      personality: profile.personality ?? "",
+      foodPreference: profile.food_preference ?? "",
+      verified: profile.verified ?? false,
       // Travel preferences
       destinations: travelPrefs?.destinations || [],
       tripFocus: travelPrefs?.trip_focus || [],
-      travelFrequency: travelPrefs?.frequency || "",
+      travelFrequency: travelPrefs?.frequency ?? "",
+      onboardingCompleted: hasCompletedOnboarding,
     };
 
-    return new Response(JSON.stringify(profileData), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    const parsed = ProfileResponseSchema.parse(profileData);
+    console.info("PROFILE_RESPONSE", parsed);
+
+    return Response.json(parsed);
   } catch (error) {
     console.error("Error in profile fetch:", error);
     Sentry.captureException(error, {
       tags: { endpoint: "/api/profile/current", action: "handler_error" },
       extra: { clerkUserId: userId, internalUserId },
     });
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
