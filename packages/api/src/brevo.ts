@@ -278,3 +278,66 @@ export const sendRegistrationVerificationEmail = async ({
   );
 };
 
+import { passwordChangedAlertEmail } from "./email-templates/password-changed-alert";
+
+export interface SendPasswordChangedAlertParams {
+  to: string;
+}
+
+/**
+ * Sends a security alert email after a successful password reset.
+ */
+export const sendPasswordChangedAlert = async ({
+  to,
+}: SendPasswordChangedAlertParams): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}> => {
+  if (!process.env.BREVO_API_KEY) {
+    return { success: false, error: "BREVO_API_KEY is not configured" };
+  }
+
+  return Sentry.startSpan(
+    {
+      op: "email.send",
+      name: "Send Password Changed Alert Email",
+    },
+    async (span) => {
+      span.setAttribute("recipient", to);
+      const systemEmailConfig = getEmailConfig("system");
+      span.setAttribute("sender", systemEmailConfig.email);
+
+      const subject = "Security Alert: Your Kovari password was changed";
+      const html = passwordChangedAlertEmail();
+
+      const sendSmtpEmail = {
+        to: [{ email: to }],
+        sender: { email: systemEmailConfig.email, name: systemEmailConfig.name },
+        replyTo: { email: systemEmailConfig.replyTo, name: systemEmailConfig.name },
+        subject,
+        htmlContent: html,
+      };
+
+      const result = await sendBrevoWithRetry(sendSmtpEmail);
+
+      if ("messageId" in result) {
+        const messageId = result.messageId || "unknown";
+        span.setAttribute("success", true);
+        span.setAttribute("message_id", messageId);
+        console.log("Password changed alert email sent successfully:", { to, messageId });
+        return { success: true, messageId };
+      }
+
+      const errorMsg = "error" in result ? result.error : "Unknown error";
+      Sentry.captureMessage("Password changed alert email send failed", {
+        level: "error",
+        extra: { error: errorMsg, recipient: to },
+      });
+      span.setAttribute("error", true);
+      span.setAttribute("error_message", errorMsg);
+      console.error("Error sending password changed alert email:", { to, error: errorMsg });
+      return { success: false, error: errorMsg };
+    }
+  );
+};
