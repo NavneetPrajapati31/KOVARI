@@ -5,8 +5,8 @@ class AppRadius {
   static const double sm = 4.0;
   static const double md = 6.0;
   static const double def = 8.0;
-  static const double lg = 12.0;
-  static const double xl = 16.0;
+  static const double lg = 20.0;
+  static const double xl = 24.0;
 
   static final BorderRadius extraSmall = BorderRadius.circular(xs);
   static final BorderRadius small = BorderRadius.circular(sm);
