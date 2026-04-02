@@ -3,15 +3,18 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/common/skeleton.dart';
 
 class HomeHeader extends StatelessWidget {
   final String firstName;
   final int unreadNotificationsCount;
+  final bool isLoading;
 
   const HomeHeader({
     super.key,
     this.firstName = 'User',
     this.unreadNotificationsCount = 0,
+    this.isLoading = false,
   });
 
   @override
@@ -21,44 +24,57 @@ class HomeHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hi, $firstName',
-                style: AppTextStyles.h3.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+          if (isLoading)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Skeleton(width: 100, height: 16),
+                const SizedBox(height: 4),
+                const Skeleton(width: 160, height: 14),
+              ],
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hi, $firstName',
+                  style: AppTextStyles.h3.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              // const SizedBox(height: 2),
-              Text(
-                'Welcome back to Kovari 👋🏻',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.mutedForeground,
-                  fontWeight: FontWeight.w500,
+                // const SizedBox(height: 2),
+                Text(
+                  'Welcome back to Kovari 👋🏻',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.mutedForeground,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              _buildIconButton(
-                icon: LucideIcons.bell,
-                showBadge: unreadNotificationsCount > 0,
-                onTap: () {
-                  // Navigate to notifications
-                },
-              ),
-              const SizedBox(width: AppSpacing.md),
-              _buildIconButton(
-                icon: LucideIcons.heart,
-                onTap: () {
-                  // Navigate to requests
-                },
-              ),
-            ],
-          ),
+              ],
+            ),
+          if (isLoading)
+            const Skeleton(width: 64, height: 20)
+          else
+            Row(
+              children: [
+                _buildIconButton(
+                  icon: LucideIcons.bell,
+                  showBadge: unreadNotificationsCount > 0,
+                  onTap: () {
+                    // Navigate to notifications
+                  },
+                ),
+                const SizedBox(width: AppSpacing.md),
+                _buildIconButton(
+                  icon: LucideIcons.heart,
+                  onTap: () {
+                    // Navigate to requests
+                  },
+                ),
+              ],
+            ),
         ],
       ),
     );

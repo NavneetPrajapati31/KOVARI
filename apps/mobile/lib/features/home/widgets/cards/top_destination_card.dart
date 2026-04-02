@@ -6,6 +6,8 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
+import '../../../../core/widgets/common/skeleton.dart';
+
 class TopDestinationCard extends StatelessWidget {
   final String name;
   final String? imageUrl;
@@ -155,13 +157,7 @@ class TopDestinationCard extends StatelessWidget {
   }
 
   Widget _buildSkeleton() {
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: AppRadius.defaultRadius,
-      ),
-    );
+    return Skeleton(height: 180, borderRadius: AppRadius.large);
   }
 
   Widget _buildEmptyState() {

@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/widgets/common/skeleton.dart';
 
 class MockRequest {
   final String id;
@@ -96,7 +97,17 @@ class RequestsSection extends StatelessWidget {
   }
 
   Widget _buildSkeleton() {
-    return Column(children: List.generate(3, (i) => _RequestCardSkeleton()));
+    return Column(
+      children: List.generate(
+        7,
+        (i) => Column(
+          children: [
+            _RequestCardSkeleton(),
+            if (i < 6) const Divider(height: 1, color: AppColors.border),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildEmptyState() {
@@ -155,7 +166,7 @@ class _RequestCard extends StatelessWidget {
                   : null,
             ),
             child: request.avatarUrl == null
-                ? Icon(
+                ? const Icon(
                     LucideIcons.user,
                     color: AppColors.mutedForeground,
                     size: 20,
@@ -260,44 +271,30 @@ class _RequestCardSkeleton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
-        vertical: 12,
+        vertical: 10,
       ),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.muted.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-          ),
+          const Skeleton.circle(size: 40),
           const SizedBox(width: AppSpacing.sm * 1.5),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 100,
-                  height: 12,
-                  color: AppColors.muted.withValues(alpha: 0.2),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  width: 60,
-                  height: 10,
-                  color: AppColors.muted.withValues(alpha: 0.2),
-                ),
+                Skeleton(width: 96, height: 14),
+                SizedBox(height: 4),
+                Skeleton(width: 80, height: 12),
               ],
             ),
           ),
-          Container(
-            width: 60,
-            height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.muted.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
+          const SizedBox(width: AppSpacing.md),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Skeleton(width: 80, height: 32, borderRadius: AppRadius.small),
+              const SizedBox(width: AppSpacing.sm),
+              Skeleton(width: 32, height: 32, borderRadius: AppRadius.small),
+            ],
           ),
         ],
       ),

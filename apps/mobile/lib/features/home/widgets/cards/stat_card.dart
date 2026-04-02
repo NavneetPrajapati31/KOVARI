@@ -3,6 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/common/skeleton.dart';
 
 class StatCard extends StatelessWidget {
   final String title;
@@ -44,14 +45,7 @@ class StatCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               if (isLoading)
-                Container(
-                  width: 80,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: AppColors.muted.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                )
+                const Skeleton(width: 80, height: 14)
               else
                 Text(
                   value,

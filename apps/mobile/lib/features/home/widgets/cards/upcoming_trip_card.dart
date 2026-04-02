@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/common/skeleton.dart';
 
 class UpcomingTripCard extends StatelessWidget {
   final String name;
@@ -157,12 +158,9 @@ class UpcomingTripCard extends StatelessWidget {
   }
 
   Widget _buildSkeleton() {
-    return Container(
+    return Skeleton(
       height: 180,
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: AppRadius.defaultRadius,
-      ),
+      borderRadius: AppRadius.large,
     );
   }
 

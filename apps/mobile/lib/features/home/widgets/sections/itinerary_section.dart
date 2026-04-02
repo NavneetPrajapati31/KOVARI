@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/widgets/common/skeleton.dart';
 
 enum EventColor { sky, amber, violet, rose, emerald, orange }
 
@@ -127,11 +128,30 @@ class ItinerarySection extends StatelessWidget {
   Widget _buildSkeleton() {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: AppColors.muted.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+      child: Column(
+        children: List.generate(
+          3,
+          (i) => Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Skeleton(width: 64, height: 14),
+                    const SizedBox(width: AppSpacing.sm),
+                    const Expanded(child: Divider(height: 1)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Skeleton(
+                  width: double.infinity,
+                  height: 80,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

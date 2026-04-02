@@ -10,7 +10,9 @@ import '../widgets/sections/requests_section.dart';
 import '../widgets/sections/itinerary_section.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final bool isLoading;
+
+  const HomeScreen({super.key, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -87,9 +89,10 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Header
-              const HomeHeader(
+              HomeHeader(
                 firstName: 'Navneet',
                 unreadNotificationsCount: 2,
+                isLoading: isLoading,
               ),
               const SizedBox(height: AppSpacing.xs),
 
@@ -99,6 +102,7 @@ class HomeScreen extends StatelessWidget {
                 imageUrl:
                     'https://images.pexels.com/photos/302820/pexels-photo-302820.jpeg',
                 onExplore: () {},
+                isLoading: isLoading,
               ),
               const SizedBox(height: AppSpacing.mds),
 
@@ -109,25 +113,34 @@ class HomeScreen extends StatelessWidget {
                 imageUrl:
                     'https://images.pexels.com/photos/29941695/pexels-photo-29941695.jpeg',
                 onExplore: () {},
+                isLoading: isLoading,
               ),
               const SizedBox(height: AppSpacing.mds),
 
               // 4. Stats Column
-              const StatCard(title: 'Total Travel Days', value: '42 days'),
+              StatCard(
+                title: 'Total Travel Days',
+                value: '42 days',
+                isLoading: isLoading,
+              ),
               const SizedBox(height: AppSpacing.mds),
-              const StatCard(title: 'Profile Impressions', value: '1.2k views'),
+              StatCard(
+                title: 'Profile Impressions',
+                value: '1.2k views',
+                isLoading: isLoading,
+              ),
               const SizedBox(height: AppSpacing.mds),
 
               // 5. Travel Groups Section
-              GroupsSection(groups: mockGroups),
+              GroupsSection(groups: mockGroups, isLoading: isLoading),
               const SizedBox(height: AppSpacing.mds),
 
               // 6. Requests Section
-              RequestsSection(requests: mockRequests),
+              RequestsSection(requests: mockRequests, isLoading: isLoading),
               const SizedBox(height: AppSpacing.mds),
 
               // 7. Itinerary Section
-              ItinerarySection(events: mockEvents),
+              ItinerarySection(events: mockEvents, isLoading: isLoading),
 
               const SizedBox(height: AppSpacing.md),
             ],
