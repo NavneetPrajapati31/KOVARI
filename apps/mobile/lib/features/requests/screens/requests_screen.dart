@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../providers/request_provider.dart';
 import '../models/request_model.dart';
+import '../../../shared/widgets/kovari_avatar.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -248,18 +249,10 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundImage: interest.senderAvatar.isNotEmpty
-                    ? NetworkImage(interest.senderAvatar)
-                    : null,
-                backgroundColor: AppColors.secondary,
-                child: interest.senderAvatar.isEmpty
-                    ? Text(
-                        interest.senderName[0],
-                        style: AppTextStyles.h3.copyWith(fontSize: 14),
-                      )
-                    : null,
+              KovariAvatar(
+                imageUrl: interest.senderAvatar,
+                size: 40,
+                fullName: interest.senderName,
               ),
               const SizedBox(width: AppSpacing.sm + 4),
               Expanded(
@@ -548,18 +541,10 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundImage: invitation.groupCoverImage != null
-                    ? NetworkImage(invitation.groupCoverImage!)
-                    : null,
-                backgroundColor: AppColors.secondary,
-                child: invitation.groupCoverImage == null
-                    ? Text(
-                        invitation.groupName[0],
-                        style: AppTextStyles.h3.copyWith(fontSize: 14),
-                      )
-                    : null,
+              KovariAvatar(
+                imageUrl: invitation.groupCoverImage,
+                size: 40,
+                fullName: invitation.groupName,
               ),
               const SizedBox(width: AppSpacing.sm + 4),
               Expanded(

@@ -4,6 +4,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/common/skeleton.dart';
+import '../../../../shared/widgets/kovari_avatar.dart';
 
 class MockGroup {
   final String id;
@@ -155,26 +156,10 @@ class _GroupCard extends StatelessWidget {
         child: Row(
           children: [
             // Avatar
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.secondary,
-                shape: BoxShape.circle,
-                image: group.imageUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(group.imageUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: group.imageUrl == null
-                  ? Icon(
-                      Icons.group,
-                      color: AppColors.mutedForeground,
-                      size: 20,
-                    )
-                  : null,
+            KovariAvatar(
+              imageUrl: group.imageUrl,
+              size: 40,
+              fullName: group.name,
             ),
             const SizedBox(width: AppSpacing.sm * 1.5),
             // Info

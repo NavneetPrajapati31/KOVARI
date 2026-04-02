@@ -5,7 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/common/skeleton.dart';
-import '../../../../core/widgets/common/user_avatar_fallback.dart';
+import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../../../features/requests/screens/requests_screen.dart';
 import '../../../../features/requests/providers/request_provider.dart';
 import '../../../../features/requests/models/request_model.dart';
@@ -240,20 +240,11 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       child: Row(
         children: [
           // Avatar
-          widget.interest.senderAvatar.isNotEmpty
-              ? Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary,
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: NetworkImage(widget.interest.senderAvatar),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                )
-              : const UserAvatarFallback(size: 40),
+          KovariAvatar(
+            imageUrl: widget.interest.senderAvatar,
+            size: 40,
+            fullName: widget.interest.senderName,
+          ),
           const SizedBox(width: AppSpacing.sm * 1.5),
           // Info
           Expanded(

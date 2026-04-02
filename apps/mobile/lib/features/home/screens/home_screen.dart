@@ -117,7 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // 1. Header
           HomeHeader(
             firstName: data?.profile.name.split(' ')[0] ?? 'User',
-            isLoading: false,
+            isLoading: isLoading,
           ),
           const SizedBox(height: AppSpacing.xs),
 
