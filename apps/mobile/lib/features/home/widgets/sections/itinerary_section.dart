@@ -140,7 +140,9 @@ class ItinerarySection extends StatelessWidget {
                   children: [
                     const Skeleton(width: 64, height: 14),
                     const SizedBox(width: AppSpacing.sm),
-                    const Expanded(child: Divider(height: 1)),
+                    const Expanded(
+                      child: Divider(height: 1, color: AppColors.border),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -159,7 +161,7 @@ class ItinerarySection extends StatelessWidget {
 
   Widget _buildEmptyState() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
         child: Column(
           children: [
@@ -172,7 +174,7 @@ class ItinerarySection extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'There are no events scheduled for this time period.',
+              'There are no events scheduled.',
               textAlign: TextAlign.center,
               style: AppTextStyles.label.copyWith(
                 color: AppColors.mutedForeground,

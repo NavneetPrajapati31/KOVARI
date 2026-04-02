@@ -7,7 +7,7 @@ import '../models/notification_model.dart';
 import '../../../core/widgets/common/user_avatar_fallback.dart';
 
 class NotificationItem extends StatelessWidget {
-  final MockNotification notification;
+  final NotificationModel notification;
   final VoidCallback? onTap;
 
   const NotificationItem({super.key, required this.notification, this.onTap});
@@ -19,7 +19,7 @@ class NotificationItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: 12,
+          vertical: AppSpacing.md,
         ),
         decoration: BoxDecoration(
           color: notification.isRead
@@ -38,7 +38,7 @@ class NotificationItem extends StatelessWidget {
                 children: [
                   Text(
                     notification.title,
-                    style: AppTextStyles.bodySmall.copyWith(
+                    style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.foreground,
                     ),
@@ -49,8 +49,7 @@ class NotificationItem extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: notification.message,
-                          style: AppTextStyles.label.copyWith(
-                            fontSize: 12,
+                          style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.mutedForeground,
                           ),
                         ),
@@ -78,7 +77,7 @@ class NotificationItem extends StatelessWidget {
             const SizedBox(width: 8),
             Icon(
               LucideIcons.chevronRight,
-              size: 14,
+              size: 16,
               color: AppColors.mutedForeground,
             ),
           ],

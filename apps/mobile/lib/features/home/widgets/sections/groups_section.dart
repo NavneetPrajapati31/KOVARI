@@ -3,6 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../core/widgets/common/skeleton.dart';
 
 class MockGroup {
   final String id;
@@ -97,12 +98,22 @@ class GroupsSection extends StatelessWidget {
   }
 
   Widget _buildSkeleton() {
-    return Column(children: List.generate(3, (i) => _GroupCardSkeleton()));
+    return Column(
+      children: List.generate(
+        7,
+        (i) => Column(
+          children: [
+            _GroupCardSkeleton(),
+            if (i < 6) const Divider(height: 1, color: AppColors.border),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildEmptyState() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
         child: Column(
           children: [
@@ -234,30 +245,29 @@ class _GroupCardSkeleton extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.muted.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-          ),
+          const Skeleton.circle(size: 40),
           const SizedBox(width: AppSpacing.sm * 1.5),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 120,
-                  height: 12,
-                  color: AppColors.muted.withValues(alpha: 0.2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Skeleton(
+                      width: 96,
+                      height: 12,
+                      borderRadius: AppRadius.small,
+                    ),
+                    Skeleton(
+                      width: 48,
+                      height: 12,
+                      borderRadius: AppRadius.small,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
-                Container(
-                  width: 80,
-                  height: 10,
-                  color: AppColors.muted.withValues(alpha: 0.2),
-                ),
+                Skeleton(width: 64, height: 12, borderRadius: AppRadius.small),
               ],
             ),
           ),

@@ -45,7 +45,12 @@ class StatCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               if (isLoading)
-                const Skeleton(width: 80, height: 14)
+                Column(
+                  children: [
+                    const SizedBox(height: 4),
+                    const Skeleton(width: 80, height: 14),
+                  ],
+                )
               else
                 Text(
                   value,

@@ -113,7 +113,7 @@ class RequestsSection extends StatelessWidget {
 
   Widget _buildEmptyState() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
         child: Column(
           children: [
@@ -271,25 +271,18 @@ class _RequestCardSkeleton extends StatelessWidget {
         children: [
           const Skeleton.circle(size: 40),
           const SizedBox(width: AppSpacing.sm * 1.5),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Skeleton(width: 96, height: 14),
-                SizedBox(height: 4),
-                Skeleton(width: 80, height: 12),
+                Skeleton(width: 96, height: 12, borderRadius: AppRadius.small),
+                const SizedBox(height: 4),
+                Skeleton(width: 64, height: 12, borderRadius: AppRadius.small),
               ],
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Skeleton(width: 80, height: 32, borderRadius: AppRadius.small),
-              const SizedBox(width: AppSpacing.sm),
-              Skeleton(width: 32, height: 32, borderRadius: AppRadius.small),
-            ],
-          ),
+          Skeleton(width: 64, height: 28, borderRadius: AppRadius.medium),
         ],
       ),
     );

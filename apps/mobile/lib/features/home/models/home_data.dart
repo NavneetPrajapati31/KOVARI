@@ -101,8 +101,9 @@ class TripStats {
   }
 
   String get travelDaysDisplay => '$totalTravelDays days';
-  String get impressionsDisplay =>
-      profileImpressions >= 1000 ? '${(profileImpressions / 1000).toStringAsFixed(1)}k views' : '$profileImpressions views';
+  String get impressionsDisplay => profileImpressions >= 1000
+      ? '${(profileImpressions / 1000).toStringAsFixed(1)}k impressions'
+      : '$profileImpressions impressions';
 }
 
 class TopDestination {
@@ -110,11 +111,7 @@ class TopDestination {
   final String country;
   final String? imageUrl;
 
-  TopDestination({
-    required this.name,
-    required this.country,
-    this.imageUrl,
-  });
+  TopDestination({required this.name, required this.country, this.imageUrl});
 
   factory TopDestination.fromJson(Map<String, dynamic> json) {
     return TopDestination(

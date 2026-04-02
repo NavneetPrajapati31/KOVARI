@@ -86,7 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           HomeHeader(
             firstName: data?.profile.name.split(' ')[0] ?? 'User',
             unreadNotificationsCount: data?.unreadNotificationCount ?? 0,
-            isLoading: isLoading,
+            isLoading: false,
           ),
           const SizedBox(height: AppSpacing.xs),
 
@@ -122,7 +122,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: AppSpacing.mds),
           StatCard(
             title: 'Profile Impressions',
-            value: data?.stats.impressionsDisplay ?? '0 views',
+            value: data?.stats.impressionsDisplay ?? '0 impressions',
             isLoading: isLoading,
           ),
           const SizedBox(height: AppSpacing.mds),
@@ -140,11 +140,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
 
           // 7. Itinerary Section (Featured Trip Items)
-          if (isLoading || (data?.featuredTrip?.itinerary.isNotEmpty ?? false)) ...[
+          if (isLoading || data != null) ...[
             _buildItinerarySection(data, isLoading),
           ],
 
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
         ],
       ),
     );
@@ -153,39 +153,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildGroupsSection(HomeData? data, bool isLoading) {
     // Current UI expects MockGroup, we should map TravelGroup -> MockGroup or update widget
     // For now we map to satisfy existing interface
-    final groups = (data?.activeGroups ?? []).map((g) => MockGroup(
-      id: g.id,
-      name: g.name,
-      destination: g.destination ?? 'Unknown',
-      members: g.members,
-      imageUrl: g.coverImage ?? '',
-    )).toList();
+    final groups = (data?.activeGroups ?? [])
+        .map(
+          (g) => MockGroup(
+            id: g.id,
+            name: g.name,
+            destination: g.destination ?? 'Unknown',
+            members: g.members,
+            imageUrl: g.coverImage ?? '',
+          ),
+        )
+        .toList();
 
     return GroupsSection(groups: groups, isLoading: isLoading);
   }
 
   Widget _buildRequestsSection(HomeData? data, bool isLoading) {
-    final requests = (data?.connectionRequests ?? []).map((r) => MockRequest(
-      id: r.id,
-      name: r.sender.name,
-      location: r.sender.location,
-      avatarUrl: r.sender.avatar,
-    )).toList();
+    final requests = (data?.connectionRequests ?? [])
+        .map(
+          (r) => MockRequest(
+            id: r.id,
+            name: r.sender.name,
+            location: r.sender.location,
+            avatarUrl: r.sender.avatar,
+          ),
+        )
+        .toList();
 
     return RequestsSection(requests: requests, isLoading: isLoading);
   }
 
   Widget _buildItinerarySection(HomeData? data, bool isLoading) {
-    final events = (data?.featuredTrip?.itinerary ?? []).map((i) => MockEvent(
-      id: i.id,
-      title: i.title,
-      description: i.description ?? '',
-      // We need accurate dates for the UI, but we'll mock the specific day logic for now
-      start: DateTime.now(),
-      end: DateTime.now().add(const Duration(hours: 1)),
-      location: 'Trip Destination',
-      color: EventColor.sky,
-    )).toList();
+    final events = (data?.featuredTrip?.itinerary ?? [])
+        .map(
+          (i) => MockEvent(
+            id: i.id,
+            title: i.title,
+            description: i.description ?? '',
+            start: i.datetime != null
+                ? DateTime.parse(i.datetime!).toLocal()
+                : DateTime.now(),
+            end: i.datetime != null
+                ? DateTime.parse(
+                    i.datetime!,
+                  ).toLocal().add(const Duration(hours: 1))
+                : DateTime.now().add(const Duration(hours: 1)),
+            location: data?.featuredTrip?.destination ?? 'Trip Destination',
+            color: EventColor.sky,
+          ),
+        )
+        .toList();
 
     return ItinerarySection(events: events, isLoading: isLoading);
   }
@@ -199,15 +216,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             const Icon(Icons.error_outline, color: Colors.red, size: 48),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              'Something went wrong',
-              style: AppTextStyles.h3,
-            ),
+            Text('Something went wrong', style: AppTextStyles.h3),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Failed to load home data. Please check your connection.',
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.mutedForeground),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.mutedForeground,
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
@@ -219,7 +235,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
               ),
               child: const Text('Retry'),
             ),

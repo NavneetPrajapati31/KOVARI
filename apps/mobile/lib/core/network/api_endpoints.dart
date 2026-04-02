@@ -20,4 +20,10 @@ class ApiEndpoints {
   
   static const cloudinarySign = "cloudinary/sign";
   static const home = "mobile/home";
+  
+  // Notifications
+  static const notifications = "notifications";
+  static const notificationsUnreadCount = "notifications/unread-count";
+  static const notificationsMarkAllRead = "notifications/mark-all-read";
+  static String notificationMarkRead(String id) => "notifications/$id";
 }
