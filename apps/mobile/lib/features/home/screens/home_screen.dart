@@ -91,9 +91,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: AppSpacing.xs),
 
           // 2. Top Destination Card
-          if (isLoading || data?.topDestination != null) ...[
+          if (isLoading || data != null) ...[
             TopDestinationCard(
-              name: data?.topDestination?.name ?? 'Discover',
+              name: data?.topDestination?.name ?? '',
               imageUrl: data?.topDestination?.imageUrl,
               onExplore: () {},
               isLoading: isLoading,

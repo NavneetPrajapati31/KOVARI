@@ -26,4 +26,10 @@ class ApiEndpoints {
   static const notificationsUnreadCount = "notifications/unread-count";
   static const notificationsMarkAllRead = "notifications/mark-all-read";
   static String notificationMarkRead(String id) => "notifications/$id";
+
+  // Requests (Interests & Invitations)
+  static const interests = "interests";
+  static const interestsRespond = "interests/respond";
+  static const pendingInvitations = "pending-invitations";
+  static const groupInvitation = "group-invitation";
 }

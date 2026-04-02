@@ -1,36 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
+    const authUser = await getAuthenticatedUser(request);
 
-    if (!clerkUserId) {
+    if (!authUser) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    // Get the user's UUID from their Clerk ID
+    const userId = authUser.id;
     const supabaseAdmin = createAdminSupabaseClient();
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", clerkUserId)
-      .single();
-
-    if (userError || !userData) {
-      console.error("Error fetching user:", userError);
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    const userId = userData.id;
 
     // Fetch incoming interests ('solo' type)
     // We want interests where to_user_id = current user

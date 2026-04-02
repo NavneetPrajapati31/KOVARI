@@ -88,7 +88,7 @@ class NotificationsScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(8),
         child: const Icon(
-          LucideIcons.chevronLeft,
+          LucideIcons.arrowLeft,
           size: 20,
           color: AppColors.foreground,
         ),

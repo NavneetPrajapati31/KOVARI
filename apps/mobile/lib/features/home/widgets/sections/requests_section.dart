@@ -6,6 +6,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/common/skeleton.dart';
 import '../../../../core/widgets/common/user_avatar_fallback.dart';
+import '../../../../features/requests/screens/requests_screen.dart';
 
 class MockRequest {
   final String id;
@@ -46,28 +47,60 @@ class RequestsSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Interests',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.foreground,
-                    ),
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        const RequestsScreen(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          const begin = Offset(1.0, 0.0);
+                          const end = Offset.zero;
+                          const curve = Curves.easeOutQuart;
+                          var tween = Tween(
+                            begin: begin,
+                            end: end,
+                          ).chain(CurveTween(curve: curve));
+                          var offsetAnimation = animation.drive(tween);
+                          return SlideTransition(
+                            position: offsetAnimation,
+                            child: child,
+                          );
+                        },
+                    transitionDuration: const Duration(milliseconds: 350),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${requests.length} pending interests',
-                    style: AppTextStyles.label.copyWith(
-                      fontSize: 12,
-                      color: AppColors.mutedForeground,
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Interests',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.foreground,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${requests.length} pending interests',
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 12,
+                            color: AppColors.mutedForeground,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const Divider(height: 1, color: AppColors.border),

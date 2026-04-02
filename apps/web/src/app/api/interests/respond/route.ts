@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient, AI } from "@kovari/api";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { createNotification } from "../../../../lib/notifications/createNotification";
 import { NotificationType } from "@kovari/types";
 
@@ -8,13 +8,13 @@ const { logMatchEvent, createMatchEventLog } = AI.Logging;
 const { extractFeaturesForSoloMatch } = AI.FeatureExtraction;
 import { getSetting } from "@kovari/utils";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
+    const authUser = await getAuthenticatedUser(request);
     const body = await request.json();
     const { interestId, action } = body;
 
-    if (!clerkUserId) {
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

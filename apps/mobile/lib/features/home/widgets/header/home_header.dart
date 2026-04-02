@@ -6,6 +6,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/common/skeleton.dart';
 
 import '../../../notifications/screens/notifications_screen.dart';
+import '../../../requests/screens/requests_screen.dart';
 
 class HomeHeader extends StatelessWidget {
   final String firstName;
@@ -94,7 +95,29 @@ class HomeHeader extends StatelessWidget {
                 _buildIconButton(
                   icon: LucideIcons.heart,
                   onTap: () {
-                    // Navigate to requests
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            const RequestsScreen(),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                               const begin = Offset(1.0, 0.0);
+                               const end = Offset.zero;
+                               const curve = Curves.easeOutQuart;
+                               var tween = Tween(
+                                 begin: begin,
+                                 end: end,
+                               ).chain(CurveTween(curve: curve));
+                               var offsetAnimation = animation.drive(tween);
+                               return SlideTransition(
+                                 position: offsetAnimation,
+                                 child: child,
+                               );
+                            },
+                        transitionDuration: const Duration(milliseconds: 350),
+                      ),
+                    );
                   },
                 ),
               ],

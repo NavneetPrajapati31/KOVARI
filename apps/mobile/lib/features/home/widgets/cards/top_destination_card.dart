@@ -36,6 +36,7 @@ class TopDestinationCard extends StatelessWidget {
 
     return Container(
       height: 180,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.muted,
         borderRadius: AppRadius.large,
@@ -157,17 +158,22 @@ class TopDestinationCard extends StatelessWidget {
   }
 
   Widget _buildSkeleton() {
-    return Skeleton(height: 180, borderRadius: AppRadius.large);
+    return Skeleton(
+      height: 180,
+      borderRadius: AppRadius.large,
+      width: double.infinity,
+    );
   }
 
   Widget _buildEmptyState() {
     return Container(
       height: 180,
+      width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.card,
         border: Border.all(color: AppColors.border),
-        borderRadius: AppRadius.defaultRadius,
+        borderRadius: AppRadius.large,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -186,8 +192,7 @@ class TopDestinationCard extends StatelessWidget {
             'Your top destination will appear here once you have trips',
             textAlign: TextAlign.center,
             style: AppTextStyles.label.copyWith(
-              fontSize: 10,
-              color: AppColors.mutedForeground.withValues(alpha: 0.7),
+              color: AppColors.mutedForeground,
             ),
           ),
         ],
