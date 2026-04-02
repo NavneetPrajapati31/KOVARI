@@ -12,6 +12,7 @@ class SelectField<T> extends StatefulWidget {
   final String Function(T) itemLabelBuilder;
   final ValueChanged<T?>? onChanged;
   final String? errorText;
+  final Color? fillColor;
 
   const SelectField({
     super.key,
@@ -22,6 +23,7 @@ class SelectField<T> extends StatefulWidget {
     required this.itemLabelBuilder,
     this.onChanged,
     this.errorText,
+    this.fillColor,
   });
 
   @override
@@ -75,10 +77,10 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                   onPressed: () => widget.onChanged?.call(option),
                   style: MenuItemButton.styleFrom(
                     backgroundColor: isSelected
-                        ? AppColors.primary.withValues(alpha: 0.05)
+                        ? AppColors.primaryLight
                         : Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: AppRadius.small,
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -121,12 +123,13 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: AppRadius.large,
+                      color: widget.fillColor ?? AppColors.background,
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
                       border: Border.all(
                         color: widget.errorText != null
                             ? AppColors.destructive
                             : AppColors.border,
+                        width: 1,
                       ),
                     ),
                     child: Row(

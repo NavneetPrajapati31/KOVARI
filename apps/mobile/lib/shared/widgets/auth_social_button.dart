@@ -26,7 +26,9 @@ class AuthSocialButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.large),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           backgroundColor: AppColors.background,
           elevation: 0,

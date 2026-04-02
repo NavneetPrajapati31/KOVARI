@@ -7,12 +7,14 @@ class SelectChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color? fillColor;
 
   const SelectChip({
     super.key,
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.fillColor,
   });
 
   @override
@@ -23,7 +25,9 @@ class SelectChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : Colors.white,
+          color: isSelected
+              ? AppColors.primaryLight
+              : (fillColor ?? AppColors.background),
           borderRadius: AppRadius.extraLarge,
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.border,

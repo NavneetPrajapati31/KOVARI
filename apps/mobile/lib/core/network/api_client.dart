@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/env.dart';
 import '../../core/services/token_service.dart';
 import 'api_endpoints.dart';
@@ -346,3 +347,7 @@ class ApiClientFactory {
     return DioApiClient(token);
   }
 }
+
+final apiClientProvider = Provider<ApiClient>((ref) {
+  return ApiClientFactory.create();
+});

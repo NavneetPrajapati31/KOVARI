@@ -169,7 +169,11 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     });
   }
 
-  void updateMediaBio({Object? url = _sentinel, Object? localPath = _sentinel, String? bio}) {
+  void updateMediaBio({
+    Object? url = _sentinel,
+    Object? localPath = _sentinel,
+    String? bio,
+  }) {
     state = state.copyWith(
       profilePicUrl: url,
       localProfilePicPath: localPath,
@@ -261,7 +265,8 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       final now = DateTime.now();
       int age = now.year - state.birthday!.year;
       if (now.month < state.birthday!.month ||
-          (now.month == state.birthday!.month && now.day < state.birthday!.day)) {
+          (now.month == state.birthday!.month &&
+              now.day < state.birthday!.day)) {
         age--;
       }
 
@@ -272,21 +277,27 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
         'lastName': state.lastName,
         'username': state.username,
         'age': age,
-        'gender': (state.gender == 'Prefer not to say' || state.gender == null) 
-            ? 'Other' 
-            : state.gender, 
-        'birthday': state.birthday!.toUtc().toIso8601String(), // Correct ISO format
+        'gender': (state.gender == 'Prefer not to say' || state.gender == null)
+            ? 'Other'
+            : state.gender,
+        'birthday': DateTime.utc(
+          state.birthday!.year,
+          state.birthday!.month,
+          state.birthday!.day,
+        ).toIso8601String(), // Correct UTC-0 format to prevent date shift
         'bio': state.bio,
         'profile_photo': finalProfilePicUrl,
         'location': state.location,
-        'location_details': state.locationDetails != null ? {
-          'lat': state.locationDetails!.lat,
-          'lon': state.locationDetails!.lon,
-          'city': state.locationDetails!.city,
-          'state': state.locationDetails!.state,
-          'country': state.locationDetails!.country,
-          'formatted': state.locationDetails!.formatted,
-        } : null,
+        'location_details': state.locationDetails != null
+            ? {
+                'lat': state.locationDetails!.lat,
+                'lon': state.locationDetails!.lon,
+                'city': state.locationDetails!.city,
+                'state': state.locationDetails!.state,
+                'country': state.locationDetails!.country,
+                'formatted': state.locationDetails!.formatted,
+              }
+            : null,
         'languages': state.languages,
         'nationality': state.nationality,
         'job': state.jobType,

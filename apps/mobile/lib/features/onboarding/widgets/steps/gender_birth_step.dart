@@ -12,6 +12,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../providers/onboarding_provider.dart';
 
+import '../../../../shared/widgets/flat_date_picker.dart';
+
 class GenderBirthStep extends ConsumerWidget {
   const GenderBirthStep({super.key});
 
@@ -210,7 +212,7 @@ class GenderBirthStep extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  child: _FlatDatePicker(
+                  child: FlatDatePicker(
                     initialDate: tempDate,
                     onDateChanged: (date) => tempDate = date,
                   ),

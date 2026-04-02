@@ -2,19 +2,20 @@ import 'package:flutter/material.dart';
 import '../../core/constants/countries.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/theme/app_radius.dart';
 import 'text_input_field.dart';
 
 class NationalityAutocomplete extends StatefulWidget {
   final String label;
   final String? initialValue;
   final Function(String) onSelect;
+  final Color? fillColor;
 
   const NationalityAutocomplete({
     super.key,
     required this.label,
     this.initialValue,
     required this.onSelect,
+    this.fillColor,
   });
 
   @override
@@ -90,14 +91,14 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
               groupId: 'nationality_autocomplete',
               child: Material(
                 elevation: 8,
-                borderRadius: AppRadius.large,
+                borderRadius: BorderRadius.all(Radius.circular(12)),
                 color: Colors.white,
                 shadowColor: Colors.black.withValues(alpha: 0.1),
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 200),
                   decoration: BoxDecoration(
                     border: Border.all(color: AppColors.border),
-                    borderRadius: AppRadius.large,
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                   child: _buildOverlayContent(),
                 ),
@@ -114,7 +115,7 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
   Widget _buildOverlayContent() {
     if (_filteredCountries.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(20),
         child: Text(
           'No nationality found',
           style: AppTextStyles.bodySmall.copyWith(
@@ -175,6 +176,7 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
           focusNode: _focusNode,
           hintText: 'Search nationality...',
           onChanged: _onChanged,
+          fillColor: widget.fillColor,
         ),
       ),
     );

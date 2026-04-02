@@ -13,7 +13,7 @@ const schema = z.object({
     .min(3)
     .max(32)
     .regex(/^[a-zA-Z0-9_]+$/),
-  age: z.number().min(13).max(100),
+  age: z.coerce.number().min(13).max(100),
   gender: z.enum(["Male", "Female", "Other"]),
   birthday: z.string().datetime(),
   bio: z.string().max(300),
@@ -42,10 +42,20 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const userId = authUser.clerkUserId;
   const internalUserId = authUser.id;
-  
+
+  // Robust field mapping for Mobile/Consistency
+  if (body.profession && !body.job) body.job = body.profession;
+  if (body.foodPreference && !body.food_preference)
+    body.food_preference = body.foodPreference;
+  if (body.avatar && !body.profile_photo) body.profile_photo = body.avatar;
+
   const result = schema.safeParse(body);
 
   if (!result.success) {
+    console.error("Profile validation failed:", {
+      errors: result.error.flatten(),
+      receivedBody: body,
+    });
     return new Response(JSON.stringify({ error: result.error.flatten() }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -147,9 +157,13 @@ export async function POST(req: NextRequest) {
 
   // Remove keys that are not in the profiles table schema
   // @ts-ignore
-  delete profileData.firstName;
-  // @ts-ignore
   delete profileData.lastName;
+
+  console.info("UPSERT_PROFILE_DATA", {
+    userId: internalUserId,
+    clerkUserId: userId,
+    data: profileData,
+  });
 
   // Upsert profile data (insert or update)
   const { error: profileUpsertError } = await supabase

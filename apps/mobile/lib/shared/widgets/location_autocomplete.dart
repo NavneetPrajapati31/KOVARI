@@ -11,12 +11,14 @@ class LocationAutocomplete extends ConsumerStatefulWidget {
   final String label;
   final String? initialValue;
   final Function(GeoapifyResult) onSelect;
+  final Color? fillColor;
 
   const LocationAutocomplete({
     super.key,
     required this.label,
     this.initialValue,
     required this.onSelect,
+    this.fillColor,
   });
 
   @override
@@ -236,6 +238,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
           focusNode: _focusNode,
           hintText: 'Search city...',
           onChanged: _onChanged,
+          fillColor: widget.fillColor,
         ),
       ),
     );

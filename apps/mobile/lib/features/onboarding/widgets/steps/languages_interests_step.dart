@@ -130,6 +130,7 @@ class LanguagesInterestsStep extends ConsumerWidget {
                 return SelectChip(
                   label: lang,
                   isSelected: state.languages.contains(lang),
+                  fillColor: AppColors.card,
                   onTap: () => ref
                       .read(onboardingProvider.notifier)
                       .toggleLanguage(lang),
@@ -154,6 +155,7 @@ class LanguagesInterestsStep extends ConsumerWidget {
                 return SelectChip(
                   label: interest,
                   isSelected: state.interests.contains(interest),
+                  fillColor: AppColors.card,
                   onTap: () => ref
                       .read(onboardingProvider.notifier)
                       .toggleInterest(interest),

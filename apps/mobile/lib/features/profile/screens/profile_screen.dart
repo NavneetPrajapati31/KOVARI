@@ -11,6 +11,7 @@ import '../../../shared/widgets/kovari_avatar.dart';
 import '../models/user_profile.dart';
 import '../../app_shell/providers/app_shell_provider.dart';
 import 'connections_screen.dart';
+import 'edit_profile_screen.dart';
 
 import '../../../shared/widgets/kovari_image_modal.dart';
 import '../../../shared/widgets/kovari_popover.dart';
@@ -208,7 +209,30 @@ class ProfileScreen extends ConsumerWidget {
               Expanded(
                 child: _buildActionButton(
                   'Edit Profile',
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            EditProfileScreen(profile: profile),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(0.0, 1.0);
+                              const end = Offset.zero;
+                              const curve = Curves.easeOutCubic;
+                              var tween = Tween(
+                                begin: begin,
+                                end: end,
+                              ).chain(CurveTween(curve: curve));
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                        fullscreenDialog: true,
+                      ),
+                    );
+                  },
                   backgroundColor: AppColors.primary,
                   textColor: AppColors.primaryForeground,
                 ),

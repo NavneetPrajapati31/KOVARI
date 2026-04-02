@@ -22,6 +22,7 @@ class UserProfile {
   final String drinking;
   final String personality;
   final String foodPreference;
+  final String? birthday;
   final String userId;
 
   UserProfile({
@@ -48,6 +49,7 @@ class UserProfile {
     required this.drinking,
     required this.personality,
     required this.foodPreference,
+    this.birthday,
     required this.userId,
   });
 
@@ -79,6 +81,7 @@ class UserProfile {
       personality: json['personality'] ?? '',
       foodPreference:
           json['foodPreference'] ?? '', // API key is 'foodPreference'
+      birthday: json['birthday'],
       userId: json['id'] ?? json['user_id'] ?? '',
     );
   }
@@ -107,6 +110,7 @@ class UserProfile {
       'drinking': drinking,
       'personality': personality,
       'foodPreference': foodPreference,
+      'birthday': birthday,
       'user_id': userId,
     };
   }
