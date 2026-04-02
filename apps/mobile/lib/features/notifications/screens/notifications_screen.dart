@@ -94,14 +94,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         children: [
           _buildBackButton(context),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           const Expanded(
             child: Text(
               'Notifications',
@@ -139,7 +139,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return GestureDetector(
       onTap: () => Navigator.pop(context),
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(8),
         child: const Icon(
           LucideIcons.chevronLeft,
           size: 20,

@@ -44,38 +44,33 @@ class NotificationItem extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.message,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: notification.message,
                           style: AppTextStyles.label.copyWith(
                             fontSize: 12,
                             color: AppColors.mutedForeground,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        ' · ',
-                        style: AppTextStyles.label.copyWith(
-                          color: AppColors.mutedForeground.withValues(
-                            alpha: 0.6,
+                        TextSpan(
+                          text: ' · ',
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.mutedForeground,
                           ),
                         ),
-                      ),
-                      Text(
-                        _formatTime(notification.createdAt),
-                        style: AppTextStyles.label.copyWith(
-                          fontSize: 11,
-                          color: AppColors.mutedForeground.withValues(
-                            alpha: 0.8,
+                        TextSpan(
+                          text: _formatTime(notification.createdAt),
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 11,
+                            color: AppColors.mutedForeground,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
