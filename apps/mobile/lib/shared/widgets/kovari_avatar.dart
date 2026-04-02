@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/widgets/common/user_avatar_fallback.dart';
 
 class KovariAvatar extends StatelessWidget {
   final String? imageUrl;
@@ -56,19 +55,6 @@ class KovariAvatar extends StatelessWidget {
   }
 
   Widget _buildFallback() {
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        color: AppColors.secondary,
-        shape: BoxShape.circle,
-      ),
-      padding: EdgeInsets.all(size * 0.2), // Matches web's 3/5 size for icon
-      child: Icon(
-        LucideIcons.userRound,
-        size: size * 0.6,
-        color: AppColors.foreground,
-      ),
-    );
+    return UserAvatarFallback(size: size);
   }
 }

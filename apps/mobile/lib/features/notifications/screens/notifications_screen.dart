@@ -187,7 +187,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildSkeleton() {
     return ListView.builder(
-      itemCount: 8,
+      itemCount: 12,
       itemBuilder: (context, index) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

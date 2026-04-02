@@ -5,6 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/common/skeleton.dart';
+import '../../../../core/widgets/common/user_avatar_fallback.dart';
 
 class MockRequest {
   final String id;
@@ -152,27 +153,20 @@ class _RequestCard extends StatelessWidget {
       child: Row(
         children: [
           // Avatar
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.secondary,
-              shape: BoxShape.circle,
-              image: request.avatarUrl != null
-                  ? DecorationImage(
+          request.avatarUrl != null
+              ? Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary,
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
                       image: NetworkImage(request.avatarUrl!),
                       fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: request.avatarUrl == null
-                ? const Icon(
-                    LucideIcons.user,
-                    color: AppColors.mutedForeground,
-                    size: 20,
-                  )
-                : null,
-          ),
+                    ),
+                  ),
+                )
+              : const UserAvatarFallback(size: 40),
           const SizedBox(width: AppSpacing.sm * 1.5),
           // Info
           Expanded(

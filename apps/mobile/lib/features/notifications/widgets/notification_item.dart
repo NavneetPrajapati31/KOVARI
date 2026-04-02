@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../models/notification_model.dart';
+import '../../../core/widgets/common/user_avatar_fallback.dart';
 
 class NotificationItem extends StatelessWidget {
   final MockNotification notification;
@@ -116,40 +117,7 @@ class NotificationItem extends StatelessWidget {
       );
     }
 
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: const BoxDecoration(
-        color: AppColors.secondary,
-        shape: BoxShape.circle,
-      ),
-      child: Center(child: _getTypeIcon()),
-    );
-  }
-
-  Widget _getTypeIcon() {
-    switch (notification.type) {
-      case NotificationType.groupInviteReceived:
-      case NotificationType.groupJoinRequestReceived:
-      case NotificationType.groupJoinApproved:
-        return const Icon(
-          LucideIcons.users,
-          size: 20,
-          color: AppColors.mutedForeground,
-        );
-      case NotificationType.newMessage:
-        return const Icon(
-          LucideIcons.messageSquare,
-          size: 20,
-          color: AppColors.mutedForeground,
-        );
-      default:
-        return const Icon(
-          LucideIcons.user,
-          size: 20,
-          color: AppColors.mutedForeground,
-        );
-    }
+    return const UserAvatarFallback(size: 40);
   }
 
   String _formatTime(DateTime date) {

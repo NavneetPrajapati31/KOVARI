@@ -1,7 +1,7 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/common/user_avatar_fallback.dart';
 
 class KovariImageModal extends StatelessWidget {
   final String imageUrl;
@@ -70,13 +70,9 @@ class KovariImageModal extends StatelessWidget {
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: AppColors.secondary,
-                    child: const Icon(
-                      LucideIcons.userRound,
-                      size: 80,
-                      color: AppColors.foreground,
-                    ),
+                  errorBuilder: (context, error, stackTrace) => UserAvatarFallback(
+                    size: size,
+                    backgroundColor: AppColors.secondary,
                   ),
                 ),
               ),

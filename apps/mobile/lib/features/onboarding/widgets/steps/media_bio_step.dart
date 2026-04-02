@@ -11,6 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../providers/onboarding_provider.dart';
+import '../../../../core/widgets/common/user_avatar_fallback.dart';
 
 class MediaBioStep extends ConsumerStatefulWidget {
   const MediaBioStep({super.key});
@@ -243,10 +244,11 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                   child:
                       (state.localProfilePicPath == null &&
                           state.profilePicUrl == null)
-                      ? const Icon(
-                          LucideIcons.userRound,
-                          size: 28,
-                          color: AppColors.mutedForeground,
+                      ? const Center(
+                          child: UserAvatarFallback(
+                            size: 80,
+                            backgroundColor: Colors.transparent,
+                          ),
                         )
                       : null,
                 ),
