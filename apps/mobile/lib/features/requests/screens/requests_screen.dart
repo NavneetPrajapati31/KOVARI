@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/common/skeleton.dart';
 import '../providers/request_provider.dart';
 import '../models/request_model.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
@@ -166,15 +167,7 @@ class _InterestsList extends ConsumerWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: 5,
-      itemBuilder: (context, index) => Container(
-        height: 200,
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-      ),
+      itemBuilder: (context, index) => const _RequestCardSkeleton(),
     );
   }
 }
@@ -458,15 +451,7 @@ class _InvitationsList extends ConsumerWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: 5,
-      itemBuilder: (context, index) => Container(
-        height: 250,
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-      ),
+      itemBuilder: (context, index) => const _RequestCardSkeleton(),
     );
   }
 }
@@ -712,6 +697,77 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
               ],
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _RequestCardSkeleton extends StatelessWidget {
+  const _RequestCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 185,
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Column(
+          children: [
+            // Header: Avatar + Info
+            Row(
+              children: [
+                const Skeleton.circle(size: 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Skeleton(width: 100, height: 12),
+                      const SizedBox(height: 8),
+                      const Skeleton(width: 60, height: 12),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Content
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Skeleton(width: 100, height: 12),
+                const SizedBox(height: 8),
+                Skeleton(width: double.infinity, height: 12),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: Skeleton(
+                    height: 36,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Skeleton(
+                    height: 36,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

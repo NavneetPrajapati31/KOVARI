@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
 import '../../../../core/widgets/common/skeleton.dart';
+import '../../../../core/widgets/common/kovari_image.dart';
 
 class TopDestinationCard extends StatelessWidget {
   final String name;
@@ -50,7 +51,10 @@ class TopDestinationCard extends StatelessWidget {
             // Background Image or Fallback
             Positioned.fill(
               child: hasImage
-                  ? Image.network(imageUrl!, fit: BoxFit.cover)
+                  ? KovariImage(
+                      imageUrl: imageUrl!,
+                      borderRadius: AppRadius.large,
+                    )
                   : Container(
                       color: AppColors.secondary,
                       child: Center(

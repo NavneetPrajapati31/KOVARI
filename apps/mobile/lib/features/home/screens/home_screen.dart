@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/network/api_client.dart';
 import '../widgets/header/home_header.dart';
 import '../widgets/cards/top_destination_card.dart';
 import '../widgets/cards/upcoming_trip_card.dart';
@@ -11,8 +11,8 @@ import '../widgets/cards/stat_card.dart';
 import '../widgets/sections/groups_section.dart';
 import '../widgets/sections/requests_section.dart';
 import '../widgets/sections/itinerary_section.dart';
-import '../data/home_service.dart';
 import '../models/home_data.dart';
+import '../providers/home_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../app_shell/providers/app_shell_provider.dart';
@@ -24,33 +24,16 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  late Future<HomeData> _fetchFuture;
-
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with AutomaticKeepAliveClientMixin {
   @override
-  void initState() {
-    super.initState();
-    _fetchHomeData();
-  }
-
-  void _fetchHomeData() {
-    print("DEBUG: HomeScreen _fetchHomeData triggered");
-    try {
-      final apiClient = ApiClientFactory.create();
-      final homeService = HomeService(apiClient);
-      _fetchFuture = homeService.getHomeData();
-    } catch (e) {
-      print("DEBUG: HomeScreen _fetchHomeData error: $e");
-    }
-  }
+  bool get wantKeepAlive => true;
 
   Future<void> _handleRefresh() async {
-    setState(() {
-      _fetchHomeData();
-    });
+    // Refresh the home data provider
+    await ref.read(homeDataProvider.notifier).refresh();
     // Also refresh the reactive unread count notifier
     ref.read(unreadCountProvider.notifier).refresh();
-    await _fetchFuture;
   }
 
   Future<void> _handleExploreTopDestination(String name) async {
@@ -76,38 +59,99 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleExploreUpcomingTrip(String? groupId) {
-    // For now, navigate to the Community tab (index 3)
+    // Navigate to the Community tab (index 3)
     ref.read(appShellIndexProvider.notifier).state = 3;
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required by AutomaticKeepAliveClientMixin
+
+    final homeDataAsync = ref.watch(homeDataProvider);
+
+    // Synchronized Pre-caching Side Effect (Instant-Load Fix)
+    ref.listen(homeDataProvider, (previous, next) {
+      if (next.hasValue) {
+        final data = next.value!;
+        // Pre-cache all dashboard images using the same provider as the widgets
+        if (data.topDestination?.imageUrl != null &&
+            data.topDestination!.imageUrl!.isNotEmpty) {
+          precacheImage(
+            CachedNetworkImageProvider(data.topDestination!.imageUrl!),
+            context,
+          );
+        }
+        if (data.featuredTrip?.coverImage != null &&
+            data.featuredTrip!.coverImage!.isNotEmpty) {
+          precacheImage(
+            CachedNetworkImageProvider(data.featuredTrip!.coverImage!),
+            context,
+          );
+        }
+        if (data.profile.avatar.isNotEmpty) {
+          precacheImage(
+            CachedNetworkImageProvider(data.profile.avatar),
+            context,
+          );
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _handleRefresh,
           color: AppColors.primary,
-          child: FutureBuilder<HomeData>(
-            future: _fetchFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildHomeUI(isLoading: true);
-              } else if (snapshot.hasError) {
-                return _buildErrorState(snapshot.error.toString());
-              } else if (!snapshot.hasData) {
-                return _buildErrorState("No data available");
-              }
-
-              return _buildHomeUI(data: snapshot.data!);
-            },
+          child: homeDataAsync.when(
+            data: (data) => _buildHomeUI(context, data: data),
+            loading: () => homeDataAsync.hasValue
+                ? _buildHomeUI(context, data: homeDataAsync.value)
+                : _buildHomeUI(context, isLoading: true),
+            error: (error, _) => homeDataAsync.hasValue
+                ? _buildHomeUI(context, data: homeDataAsync.value)
+                : _buildErrorState(error.toString()),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHomeUI({HomeData? data, bool isLoading = false}) {
+  Widget _buildHomeUI(
+    BuildContext context, {
+    HomeData? data,
+    bool isLoading = false,
+  }) {
+    // Correctly map data for sections
+    final mockGroups =
+        data?.activeGroups
+            .map<MockGroup>(
+              (g) => MockGroup(
+                id: g.id,
+                name: g.name,
+                destination: g.destination ?? '',
+                members: g.members,
+                imageUrl: g.coverImage,
+              ),
+            )
+            .toList() ??
+        [];
+
+    final mockEvents =
+        data?.featuredTrip?.itinerary
+            .map<MockEvent>(
+              (i) => MockEvent(
+                id: i.id,
+                title: i.title,
+                description: i.description,
+                start: DateTime.tryParse(i.datetime ?? '') ?? DateTime.now(),
+                end: (DateTime.tryParse(i.datetime ?? '') ?? DateTime.now())
+                    .add(const Duration(hours: 1)),
+              ),
+            )
+            .toList() ??
+        [];
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -117,13 +161,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // 1. Header
           HomeHeader(
             firstName: data?.profile.name.split(' ')[0] ?? 'User',
-            isLoading: isLoading,
+            isLoading: false,
           ),
           const SizedBox(height: AppSpacing.xs),
 
           // 2. Top Destination Card
           if (isLoading || data != null) ...[
             TopDestinationCard(
+              key: data?.topDestination != null
+                  ? ValueKey('top-${data!.topDestination!.name}')
+                  : null,
               name: data?.topDestination?.name ?? '',
               imageUrl: data?.topDestination?.imageUrl,
               onExplore: () => _handleExploreTopDestination(
@@ -137,6 +184,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // 3. Featured/Upcoming Trip Card (Shows Empty state if null)
           if (isLoading || data != null) ...[
             UpcomingTripCard(
+              key: data?.featuredTrip != null
+                  ? ValueKey('upcoming-${data!.featuredTrip!.id}')
+                  : null,
               name: data?.featuredTrip?.name ?? '',
               groupId: data?.featuredTrip?.id,
               imageUrl: data?.featuredTrip?.coverImage,
@@ -163,69 +213,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           // 5. Travel Groups Section
           if (isLoading || data != null) ...[
-            _buildGroupsSection(data, isLoading),
-            const SizedBox(height: AppSpacing.mds),
+            GroupsSection(groups: mockGroups, isLoading: isLoading),
+            const SizedBox(height: AppSpacing.md),
           ],
 
-          // 6. Requests Section (Interests)
+          // 6. Network/Requests Section
           if (isLoading || data != null) ...[
-            const RequestsSection(),
-            const SizedBox(height: AppSpacing.mds),
+            RequestsSection(isLoading: isLoading),
+            const SizedBox(height: AppSpacing.md),
           ],
 
-          // 7. Itinerary Section (Featured Trip Items)
+          // 7. Itinerary Section
           if (isLoading || data != null) ...[
-            _buildItinerarySection(data, isLoading),
+            ItinerarySection(events: mockEvents, isLoading: isLoading),
           ],
-
-          const SizedBox(height: AppSpacing.sm),
         ],
       ),
     );
-  }
-
-  Widget _buildGroupsSection(HomeData? data, bool isLoading) {
-    // Current UI expects MockGroup, we should map TravelGroup -> MockGroup or update widget
-    // For now we map to satisfy existing interface
-    final groups = (data?.activeGroups ?? [])
-        .map(
-          (g) => MockGroup(
-            id: g.id,
-            name: g.name,
-            destination: g.destination ?? 'Unknown',
-            members: g.members,
-            imageUrl: g.coverImage ?? '',
-          ),
-        )
-        .toList();
-
-    return GroupsSection(groups: groups, isLoading: isLoading);
-  }
-
-  // _buildRequestsSection removed as RequestsSection now uses interestsProvider directly
-
-  Widget _buildItinerarySection(HomeData? data, bool isLoading) {
-    final events = (data?.featuredTrip?.itinerary ?? [])
-        .map(
-          (i) => MockEvent(
-            id: i.id,
-            title: i.title,
-            description: i.description ?? '',
-            start: i.datetime != null
-                ? DateTime.parse(i.datetime!).toLocal()
-                : DateTime.now(),
-            end: i.datetime != null
-                ? DateTime.parse(
-                    i.datetime!,
-                  ).toLocal().add(const Duration(hours: 1))
-                : DateTime.now().add(const Duration(hours: 1)),
-            location: data?.featuredTrip?.destination ?? 'Trip Destination',
-            color: EventColor.sky,
-          ),
-        )
-        .toList();
-
-    return ItinerarySection(events: events, isLoading: isLoading);
   }
 
   Widget _buildErrorState(String error) {
@@ -235,12 +239,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: AppSpacing.md),
-            Text('Something went wrong', style: AppTextStyles.h3),
-            const SizedBox(height: AppSpacing.xs),
+            Text('Oops! Something went wrong', style: AppTextStyles.h3),
+            const SizedBox(height: AppSpacing.sm),
             Text(
-              'Failed to load home data. Please check your connection.',
+              error,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.mutedForeground,
@@ -248,20 +252,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _fetchHomeData();
-                });
-              },
+              onPressed: _handleRefresh,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Retry'),
+              child: const Text('Try Again'),
             ),
           ],
         ),
