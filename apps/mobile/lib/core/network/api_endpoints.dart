@@ -19,4 +19,5 @@ class ApiEndpoints {
   static const logout = "auth/logout";
   
   static const cloudinarySign = "cloudinary/sign";
+  static const home = "mobile/home";
 }

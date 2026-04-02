@@ -41,6 +41,8 @@ export async function GET(req: NextRequest) {
             pendingInvitesRes,
             recentNotificationsRes,
             travelPreferencesRes,
+            impressionsRes,
+            interestsRes,
         ] = await Promise.all([
             // Profile
             supabase
@@ -62,6 +64,7 @@ export async function GET(req: NextRequest) {
             start_date,
             end_date,
             cover_image,
+            destination_image,
             members_count,
             status
           )
@@ -97,6 +100,21 @@ export async function GET(req: NextRequest) {
                 .select("destinations, trip_focus, frequency")
                 .eq("user_id", userId)
                 .maybeSingle(),
+
+            // Profile Impressions Count
+            supabase
+                .from("profile_impressions")
+                .select("id", { count: "exact", head: true })
+                .eq("user_id", userId),
+
+            // Pending Connection Requests (Solo Match Interests)
+            supabase
+                .from("match_interests")
+                .select("id, from_user_id, destination_id, created_at, status")
+                .eq("to_user_id", userId)
+                .eq("match_type", "solo")
+                .eq("status", "pending")
+                .order("created_at", { ascending: false }),
         ]);
 
         // Handle generic errors
@@ -106,15 +124,34 @@ export async function GET(req: NextRequest) {
         const allMemberships = membershipsRes.data || [];
         const unreadNotificationCount = unreadNotificationsRes.count || 0;
         const pendingInvitesCount = pendingInvitesRes.count || 0;
-        const notifications = recentNotificationsRes.data || [];
+        const notificationsData = recentNotificationsRes.data || [];
         const travelPreferences = travelPreferencesRes.data || null;
+        const profileImpressions = impressionsRes.count || 0;
+        const pendingInterests = interestsRes.data || [];
 
-        // 3. Stats Calculation (Blueprint aligned)
+        // 3. Stats & Analytics Calculation (Blueprint + Web Parity)
         const now = new Date();
+        let totalTravelDaysCount = 0;
+        const destinationFrequency: Record<string, number> = {};
+
         const activeGroups = allMemberships
             .filter(m => m.group && (m.group as any).status !== 'removed')
             .map(m => {
                 const g = m.group as any;
+                
+                // Track travel days
+                if (g.start_date && g.end_date) {
+                    const start = parseISO(g.start_date);
+                    const end = parseISO(g.end_date);
+                    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                    if (!isNaN(days)) totalTravelDaysCount += days;
+                }
+
+                // Track destination frequency
+                if (g.destination) {
+                    destinationFrequency[g.destination] = (destinationFrequency[g.destination] || 0) + 1;
+                }
+
                 return {
                     id: g.id,
                     name: g.name,
@@ -124,8 +161,27 @@ export async function GET(req: NextRequest) {
                     startDate: g.start_date,
                     endDate: g.end_date,
                     coverImage: g.cover_image,
+                    destinationImage: g.destination_image
                 };
             });
+
+        // Determine Top Destination
+        const sortedDestinations = Object.entries(destinationFrequency).sort((a, b) => b[1] - a[1]);
+        const topDestinationName = sortedDestinations[0]?.[0] || null;
+        let topDestination = null;
+
+        if (topDestinationName) {
+            const latestGroupForTopDest = activeGroups
+                .filter(g => g.destination === topDestinationName)
+                .sort((a, b) => b.startDate ? (a.startDate ? parseISO(b.startDate).getTime() - parseISO(a.startDate).getTime() : -1) : 1)[0];
+            
+            const parts = topDestinationName.split(",").map(p => p.trim());
+            topDestination = {
+                name: parts[0] || topDestinationName,
+                country: parts[1] || "",
+                imageUrl: latestGroupForTopDest?.destinationImage || latestGroupForTopDest?.coverImage || null
+            };
+        }
 
         const upcomingGroups = activeGroups.filter(g => g.startDate && isAfter(parseISO(g.startDate), now));
         const pastGroups = activeGroups.filter(g => g.startDate && isBefore(parseISO(g.startDate), now));
@@ -134,6 +190,8 @@ export async function GET(req: NextRequest) {
             totalTrips: activeGroups.length,
             upcomingTripsCount: upcomingGroups.length,
             pastTripsCount: pastGroups.length,
+            totalTravelDays: totalTravelDaysCount,
+            profileImpressions: profileImpressions
         };
 
         // 4. Identify Featured Trip & Fetch Itinerary Summary
@@ -159,11 +217,11 @@ export async function GET(req: NextRequest) {
             };
         }
 
-        // 5. Enrich Notifications (Matching web/api/notifications logic)
+        // 5. Enrich Notifications & Connection Requests
         const userIdsToFetch = new Set<string>();
         const groupIdsToFetch = new Set<string>();
 
-        notifications.forEach((n) => {
+        notificationsData.forEach((n) => {
             if (!n.entity_id) return;
             if (n.entity_type === "match" || n.entity_type === "chat") {
                 userIdsToFetch.add(n.entity_id);
@@ -172,11 +230,13 @@ export async function GET(req: NextRequest) {
             }
         });
 
+        pendingInterests.forEach(i => userIdsToFetch.add(i.from_user_id));
+
         const [profilesResult, groupsResult] = await Promise.all([
             userIdsToFetch.size > 0
                 ? supabase
                     .from("profiles")
-                    .select("user_id, profile_photo")
+                    .select("user_id, name, username, profile_photo, location")
                     .in("user_id", Array.from(userIdsToFetch))
                 : Promise.resolve({ data: [] }),
             groupIdsToFetch.size > 0
@@ -188,19 +248,35 @@ export async function GET(req: NextRequest) {
         ]);
 
         const profileMap = new Map();
-        profilesResult.data?.forEach((p: any) => profileMap.set(p.user_id, p.profile_photo));
+        profilesResult.data?.forEach((p: any) => profileMap.set(p.user_id, p));
 
         const groupMap = new Map();
         groupsResult.data?.forEach((g: any) => {
             if (g?.status !== "removed") groupMap.set(g.id, g.cover_image);
         });
 
-        const enrichedNotifications = notifications.map((n) => ({
+        const enrichedNotifications = notificationsData.map((n) => ({
             ...n,
             image_url: (n.entity_type === "match" || n.entity_type === "chat")
-                ? profileMap.get(n.entity_id)
+                ? profileMap.get(n.entity_id)?.profile_photo
                 : groupMap.get(n.entity_id)
         }));
+
+        const connectionRequests = pendingInterests.map(i => {
+            const senderProfile = profileMap.get(i.from_user_id);
+            return {
+                id: i.id,
+                sender: {
+                    id: i.from_user_id,
+                    name: senderProfile?.name || "Unknown User",
+                    avatar: senderProfile?.profile_photo || "",
+                    location: senderProfile?.location || "Unknown Location"
+                },
+                destination: i.destination_id,
+                sentAt: i.created_at,
+                status: "pending"
+            };
+        });
 
         // 6. Final Response
         return NextResponse.json({
@@ -210,11 +286,13 @@ export async function GET(req: NextRequest) {
                 avatar: profile?.profile_photo || "",
             },
             stats,
+            topDestination,
             featuredTrip,
             recentNotifications: enrichedNotifications,
             unreadNotificationCount,
             activeGroups,
             pendingInvitesCount,
+            connectionRequests,
             travelPreferences
         });
 
