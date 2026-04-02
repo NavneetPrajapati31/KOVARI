@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -79,7 +80,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       onTap: () => Navigator.pop(context),
       child: Container(
         padding: const EdgeInsets.all(8),
-        child: const Icon(
+        child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
           color: AppColors.foreground,
@@ -104,6 +105,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
         child: TabBar(
           controller: _tabController,
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+          splashFactory: NoSplash.splashFactory,
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             color: AppColors.primaryLight,
@@ -119,7 +122,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           ),
           indicatorSize: TabBarIndicatorSize.tab,
           dividerColor: Colors.transparent,
-          tabs: [
+          tabs: const [
             Tab(text: 'Interests'),
             Tab(text: 'Invitations'),
           ],
@@ -175,151 +178,254 @@ class _InterestsList extends ConsumerWidget {
   }
 }
 
-class _InterestCard extends ConsumerWidget {
+class _InterestCard extends ConsumerStatefulWidget {
   final InterestModel interest;
 
   const _InterestCard({required this.interest});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_InterestCard> createState() => _InterestCardState();
+}
+
+class _InterestCardState extends ConsumerState<_InterestCard> {
+  String? _loadingAction;
+  bool _isAccepted = false;
+
+  Future<void> _handleAction(String action) async {
+    setState(() => _loadingAction = action);
+    try {
+      final success = await ref
+          .read(interestsProvider.notifier)
+          .respond(widget.interest.id, action);
+
+      if (mounted) {
+        if (success) {
+          if (action == 'accept') {
+            setState(() {
+              _isAccepted = true;
+              _loadingAction = null;
+            });
+          }
+        } else {
+          setState(() => _loadingAction = null);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to perform action. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingAction = null);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final interest = widget.interest;
+    final dateFormatted = DateFormat(
+      'MMM d, yyyy',
+    ).format(interest.sentAt.toLocal());
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
+          // Header: User Info & Timestamp
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundImage: interest.senderAvatar.isNotEmpty
+                    ? NetworkImage(interest.senderAvatar)
+                    : null,
+                backgroundColor: AppColors.secondary,
+                child: interest.senderAvatar.isEmpty
+                    ? Text(
+                        interest.senderName[0],
+                        style: AppTextStyles.h3.copyWith(fontSize: 14),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: AppSpacing.sm + 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            interest.senderName,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          dateFormatted,
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 11,
+                            color: AppColors.mutedForeground,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '@${interest.senderUsername}',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.mutedForeground,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Content: Destination
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'INTERESTED IN TRAVELLING TO',
+                style: AppTextStyles.label.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mutedForeground,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                interest.destination,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Actions
+          if (_isAccepted)
+            Container(
+              width: double.infinity,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                "It's a match! Chat now.",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            )
+          else
+            Row(
               children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundImage: interest.senderAvatar.isNotEmpty
-                      ? NetworkImage(interest.senderAvatar)
-                      : null,
-                  backgroundColor: AppColors.secondary,
-                  child: interest.senderAvatar.isEmpty
-                      ? Text(
-                          interest.senderName[0],
-                          style: AppTextStyles.h3.copyWith(fontSize: 14),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        interest.senderName,
-                        style: AppTextStyles.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w700,
+                  child: SizedBox(
+                    height: 36,
+                    child: OutlinedButton(
+                      onPressed: _loadingAction != null
+                          ? null
+                          : () => _handleAction('decline'),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: AppColors.background,
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      Text(
-                        '@${interest.senderUsername}',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
-                        ),
-                      ),
-                    ],
+                      child: _loadingAction == 'decline'
+                          ? const SizedBox(
+                              height: 14,
+                              width: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.foreground,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: AppColors.foreground,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                    ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    interest.mutualConnections > 0
-                        ? '${interest.mutualConnections} mutual'
-                        : 'New traveler',
-                    style: AppTextStyles.label.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: SizedBox(
+                    height: 36,
+                    child: ElevatedButton(
+                      onPressed: _loadingAction != null
+                          ? null
+                          : () => _handleAction('accept'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _loadingAction == 'accept'
+                          ? const SizedBox(
+                              height: 14,
+                              width: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Connect',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
                     ),
                   ),
                 ),
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Text(
-              'Interested in traveling with you to ${interest.destination}',
-              style: AppTextStyles.bodyMedium,
-            ),
-          ),
-          if (interest.senderBio.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text(
-                interest.senderBio,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          const Divider(height: 1),
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => ref
-                      .read(interestsProvider.notifier)
-                      .respond(interest.id, 'decline'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    'Pass',
-                    style: TextStyle(
-                      color: AppColors.mutedForeground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              Container(width: 1, height: 40, color: AppColors.border),
-              Expanded(
-                child: TextButton(
-                  onPressed: () => ref
-                      .read(interestsProvider.notifier)
-                      .respond(interest.id, 'accept'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    'Accept',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -372,166 +478,254 @@ class _InvitationsList extends ConsumerWidget {
   }
 }
 
-class _InvitationCard extends ConsumerWidget {
+class _InvitationCard extends ConsumerStatefulWidget {
   final InvitationModel invitation;
 
   const _InvitationCard({required this.invitation});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_InvitationCard> createState() => _InvitationCardState();
+}
+
+class _InvitationCardState extends ConsumerState<_InvitationCard> {
+  String? _loadingAction;
+  bool _isAccepted = false;
+
+  Future<void> _handleAction(String action) async {
+    setState(() => _loadingAction = action);
+    try {
+      final success = await ref
+          .read(invitationsProvider.notifier)
+          .respond(widget.invitation.id, action);
+
+      if (mounted) {
+        if (success) {
+          if (action == 'accept') {
+            setState(() {
+              _isAccepted = true;
+              _loadingAction = null;
+            });
+          }
+        } else {
+          setState(() => _loadingAction = null);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to perform action. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingAction = null);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final invitation = widget.invitation;
+    final dateFormatted = DateFormat(
+      'MMM d, yyyy',
+    ).format(invitation.inviteDate.toLocal());
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (invitation.groupCoverImage != null)
-            Image.network(
-              invitation.groupCoverImage!,
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        invitation.groupName,
-                        style: AppTextStyles.h3.copyWith(fontSize: 14),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      '${invitation.expiresInDays}d left',
-                      style: AppTextStyles.label.copyWith(
-                        color: AppColors.destructive,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 14,
-                      color: AppColors.mutedForeground,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      invitation.destination,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-                if (invitation.dates != null) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: AppColors.mutedForeground,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        invitation.dates!,
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundImage: invitation.creatorAvatar.isNotEmpty
-                          ? NetworkImage(invitation.creatorAvatar)
-                          : null,
-                      backgroundColor: AppColors.secondary,
-                      child: invitation.creatorAvatar.isEmpty
-                          ? Text(
-                              invitation.creatorName[0],
-                              style: const TextStyle(fontSize: 10),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Organized by ',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
-                      ),
-                    ),
-                    Text(
-                      invitation.creatorName,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
+          // Header: Group Info & Timestamp
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => ref
-                      .read(invitationsProvider.notifier)
-                      .respond(invitation.id, 'decline'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    'Decline',
-                    style: TextStyle(
-                      color: AppColors.mutedForeground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+              CircleAvatar(
+                radius: 20,
+                backgroundImage: invitation.groupCoverImage != null
+                    ? NetworkImage(invitation.groupCoverImage!)
+                    : null,
+                backgroundColor: AppColors.secondary,
+                child: invitation.groupCoverImage == null
+                    ? Text(
+                        invitation.groupName[0],
+                        style: AppTextStyles.h3.copyWith(fontSize: 14),
+                      )
+                    : null,
               ),
-              Container(width: 1, height: 40, color: AppColors.border),
+              const SizedBox(width: AppSpacing.sm + 4),
               Expanded(
-                child: TextButton(
-                  onPressed: () => ref
-                      .read(invitationsProvider.notifier)
-                      .respond(invitation.id, 'accept'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    'Accept',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            invitation.groupName,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          dateFormatted,
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 11,
+                            color: AppColors.mutedForeground,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                    Text(
+                      'Invited by @${invitation.creatorUsername}',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.mutedForeground,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Content: Destination
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "LET'S PLAN A TRIP TOGETHER TO",
+                style: AppTextStyles.label.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mutedForeground,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                invitation.destination,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Actions
+          if (_isAccepted)
+            Container(
+              width: double.infinity,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                "Accepted! Joining group...",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 36,
+                    child: OutlinedButton(
+                      onPressed: _loadingAction != null
+                          ? null
+                          : () => _handleAction('decline'),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: AppColors.background,
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _loadingAction == 'decline'
+                          ? const SizedBox(
+                              height: 14,
+                              width: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.foreground,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Decline',
+                              style: TextStyle(
+                                color: AppColors.foreground,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: SizedBox(
+                    height: 36,
+                    child: ElevatedButton(
+                      onPressed: _loadingAction != null
+                          ? null
+                          : () => _handleAction('accept'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _loadingAction == 'accept'
+                          ? const SizedBox(
+                              height: 14,
+                              width: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Accept',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

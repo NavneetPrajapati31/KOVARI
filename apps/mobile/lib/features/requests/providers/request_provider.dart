@@ -24,18 +24,27 @@ class InterestsNotifier extends AsyncNotifier<List<InterestModel>> {
     state = await AsyncValue.guard(() => _fetchInterests());
   }
 
-  Future<void> respond(String interestId, String action) async {
+  Future<bool> respond(String interestId, String action) async {
     final service = ref.read(requestServiceProvider);
     final previousState = state.value ?? [];
 
-    // Optimistic update
-    state = AsyncData(previousState.where((i) => i.id != interestId).toList());
-
     final success = await service.respondToInterest(interestId, action);
-    if (!success) {
-      // Revert if failed
-      state = AsyncData(previousState);
+    if (success) {
+      if (action == 'accept') {
+        // Wait 3 seconds before removing to match web UX feedback
+        Future.delayed(const Duration(seconds: 3), () {
+          if (state.hasValue) {
+            state = AsyncData(
+              state.value!.where((i) => i.id != interestId).toList(),
+            );
+          }
+        });
+      } else {
+        // Decline/Delete is immediate
+        state = AsyncData(previousState.where((i) => i.id != interestId).toList());
+      }
     }
+    return success;
   }
 }
 
@@ -60,17 +69,26 @@ class InvitationsNotifier extends AsyncNotifier<List<InvitationModel>> {
     state = await AsyncValue.guard(() => _fetchInvitations());
   }
 
-  Future<void> respond(String groupId, String action) async {
+  Future<bool> respond(String groupId, String action) async {
     final service = ref.read(requestServiceProvider);
     final previousState = state.value ?? [];
 
-    // Optimistic update
-    state = AsyncData(previousState.where((i) => i.id != groupId).toList());
-
     final success = await service.respondToInvitation(groupId, action);
-    if (!success) {
-      // Revert if failed
-      state = AsyncData(previousState);
+    if (success) {
+      if (action == 'accept') {
+        // Wait 3 seconds before removing to match web UX feedback
+        Future.delayed(const Duration(seconds: 3), () {
+          if (state.hasValue) {
+            state = AsyncData(
+              state.value!.where((i) => i.id != groupId).toList(),
+            );
+          }
+        });
+      } else {
+        // Decline/Decline is immediate
+        state = AsyncData(previousState.where((i) => i.id != groupId).toList());
+      }
     }
+    return success;
   }
 }

@@ -7,33 +7,21 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/common/skeleton.dart';
 import '../../../../core/widgets/common/user_avatar_fallback.dart';
 import '../../../../features/requests/screens/requests_screen.dart';
+import '../../../../features/requests/providers/request_provider.dart';
+import '../../../../features/requests/models/request_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class MockRequest {
-  final String id;
-  final String name;
-  final String location;
-  final String? avatarUrl;
+// MockRequest removed to use InterestModel directly
 
-  MockRequest({
-    required this.id,
-    required this.name,
-    required this.location,
-    this.avatarUrl,
-  });
-}
-
-class RequestsSection extends StatelessWidget {
-  final List<MockRequest> requests;
+class RequestsSection extends ConsumerWidget {
   final bool isLoading;
 
-  const RequestsSection({
-    super.key,
-    required this.requests,
-    this.isLoading = false,
-  });
+  const RequestsSection({super.key, this.isLoading = false});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final interestsAsync = ref.watch(interestsProvider);
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -90,11 +78,22 @@ class RequestsSection extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          '${requests.length} pending interests',
-                          style: AppTextStyles.label.copyWith(
-                            fontSize: 12,
-                            color: AppColors.mutedForeground,
+                        interestsAsync.when(
+                          data: (interests) => Text(
+                            '${interests.length} pending interests',
+                            style: AppTextStyles.label.copyWith(
+                              fontSize: 12,
+                              color: AppColors.mutedForeground,
+                            ),
+                          ),
+                          loading: () => const SizedBox(
+                            height: 12,
+                            width: 64,
+                            child: LinearProgressIndicator(),
+                          ),
+                          error: (_, __) => const Text(
+                            'Error loading',
+                            style: TextStyle(fontSize: 10),
                           ),
                         ),
                       ],
@@ -105,25 +104,30 @@ class RequestsSection extends StatelessWidget {
             ),
             const Divider(height: 1, color: AppColors.border),
 
-            if (isLoading)
-              _buildSkeleton()
-            else if (requests.isEmpty)
-              _buildEmptyState()
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: requests.length,
-                separatorBuilder: (context, index) => const Divider(
-                  height: 1,
-                  color: AppColors.border,
-                  indent: 0,
-                  endIndent: 0,
-                ),
-                itemBuilder: (context, index) {
-                  return _RequestCard(request: requests[index]);
-                },
+            interestsAsync.when(
+              data: (interests) {
+                if (interests.isEmpty) return _buildEmptyState();
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: interests.length,
+                  separatorBuilder: (context, index) => const Divider(
+                    height: 1,
+                    color: AppColors.border,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  itemBuilder: (context, index) {
+                    return _RequestCard(interest: interests[index]);
+                  },
+                );
+              },
+              loading: () => _buildSkeleton(),
+              error: (err, __) => Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('Error: $err'),
               ),
+            ),
           ],
         ),
       ),
@@ -171,13 +175,63 @@ class RequestsSection extends StatelessWidget {
   }
 }
 
-class _RequestCard extends StatelessWidget {
-  final MockRequest request;
+class _RequestCard extends ConsumerStatefulWidget {
+  final InterestModel interest;
 
-  const _RequestCard({required this.request});
+  const _RequestCard({required this.interest});
+
+  @override
+  ConsumerState<_RequestCard> createState() => _RequestCardState();
+}
+
+class _RequestCardState extends ConsumerState<_RequestCard> {
+  String? _loadingAction;
+  bool _isAccepted = false;
+
+  Future<void> _handleAction(String action) async {
+    setState(() => _loadingAction = action);
+    try {
+      final success = await ref
+          .read(interestsProvider.notifier)
+          .respond(widget.interest.id, action);
+
+      if (mounted && success && action == 'accept') {
+        setState(() {
+          _isAccepted = true;
+          _loadingAction = null;
+        });
+      }
+    } finally {
+      if (mounted && !_isAccepted) {
+        setState(() => _loadingAction = null);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isAccepted) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 16,
+        ),
+        child: Row(
+          children: [
+            const Icon(LucideIcons.check, color: Colors.green, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              'Accepted! Joining group...',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -186,7 +240,7 @@ class _RequestCard extends StatelessWidget {
       child: Row(
         children: [
           // Avatar
-          request.avatarUrl != null
+          widget.interest.senderAvatar.isNotEmpty
               ? Container(
                   width: 40,
                   height: 40,
@@ -194,7 +248,7 @@ class _RequestCard extends StatelessWidget {
                     color: AppColors.secondary,
                     shape: BoxShape.circle,
                     image: DecorationImage(
-                      image: NetworkImage(request.avatarUrl!),
+                      image: NetworkImage(widget.interest.senderAvatar),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -207,7 +261,7 @@ class _RequestCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  request.name,
+                  widget.interest.senderName,
                   style: AppTextStyles.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.foreground,
@@ -217,7 +271,7 @@ class _RequestCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 1),
                 Text(
-                  request.location,
+                  widget.interest.destination,
                   style: AppTextStyles.label.copyWith(
                     fontSize: 12,
                     color: AppColors.mutedForeground,
@@ -237,10 +291,15 @@ class _RequestCard extends StatelessWidget {
                 label: 'Connect',
                 backgroundColor: AppColors.primary,
                 textColor: Colors.white,
-                onTap: () {},
+                onTap: () => _handleAction('accept'),
+                isLoading: _loadingAction == 'accept',
               ),
               const SizedBox(width: AppSpacing.sm),
-              _buildSimpleIconButton(icon: LucideIcons.x, onTap: () {}),
+              _buildSimpleIconButton(
+                icon: LucideIcons.x,
+                onTap: () => _handleAction('reject'),
+                isLoading: _loadingAction == 'reject',
+              ),
             ],
           ),
         ],
@@ -253,23 +312,38 @@ class _RequestCard extends StatelessWidget {
     required Color backgroundColor,
     required Color textColor,
     required VoidCallback onTap,
+    bool isLoading = false,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        height: 28,
+        constraints: const BoxConstraints(minWidth: 64),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: isLoading
+              ? backgroundColor.withValues(alpha: 0.7)
+              : backgroundColor,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Text(
-          label,
-          style: AppTextStyles.label.copyWith(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: textColor,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(
+                label,
+                style: AppTextStyles.label.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
       ),
     );
   }
@@ -277,16 +351,31 @@ class _RequestCard extends StatelessWidget {
   Widget _buildSimpleIconButton({
     required IconData icon,
     required VoidCallback onTap,
+    bool isLoading = false,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
         padding: const EdgeInsets.all(6),
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, size: 14, color: AppColors.mutedForeground),
+        child: isLoading
+            ? const SizedBox(
+                width: 10,
+                height: 10,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColors.mutedForeground,
+                  ),
+                ),
+              )
+            : Icon(icon, size: 14, color: AppColors.mutedForeground),
       ),
     );
   }

@@ -41,6 +41,10 @@ class NotificationsScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context, WidgetRef ref) {
+    final unreadCountAsync = ref.watch(unreadCountProvider);
+    final canMarkAllRead =
+        unreadCountAsync.value != null && unreadCountAsync.value! > 0;
+
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: const BoxDecoration(
@@ -61,20 +65,19 @@ class NotificationsScreen extends ConsumerWidget {
             ),
           ),
           TextButton(
-            onPressed: () =>
-                ref.read(notificationProvider.notifier).markAllAsRead(),
+            onPressed: canMarkAllRead
+                ? () => ref.read(notificationProvider.notifier).markAllAsRead()
+                : null,
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: AppColors.primary,
+              disabledForegroundColor: AppColors.primary.withOpacity(0.5),
             ),
             child: const Text(
               'Mark all as read',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primary,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
         ],

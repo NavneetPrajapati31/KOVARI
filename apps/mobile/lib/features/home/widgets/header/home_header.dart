@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -6,22 +7,25 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/common/skeleton.dart';
 
 import '../../../notifications/screens/notifications_screen.dart';
+import '../../../notifications/providers/notification_provider.dart';
 import '../../../requests/screens/requests_screen.dart';
 
-class HomeHeader extends StatelessWidget {
+class HomeHeader extends ConsumerWidget {
   final String firstName;
-  final int unreadNotificationsCount;
   final bool isLoading;
 
   const HomeHeader({
     super.key,
     this.firstName = 'User',
-    this.unreadNotificationsCount = 0,
     this.isLoading = false,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch unread count for robust, reactive badge updates
+    final unreadCountAsync = ref.watch(unreadCountProvider);
+    final unreadCount = unreadCountAsync.value ?? 0;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
@@ -47,7 +51,6 @@ class HomeHeader extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                // const SizedBox(height: 2),
                 Text(
                   'Welcome back to Kovari 👋🏻',
                   style: AppTextStyles.bodyMedium.copyWith(
@@ -64,7 +67,7 @@ class HomeHeader extends StatelessWidget {
               children: [
                 _buildIconButton(
                   icon: LucideIcons.bell,
-                  showBadge: unreadNotificationsCount > 0,
+                  showBadge: unreadCount > 0,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -73,19 +76,19 @@ class HomeHeader extends StatelessWidget {
                             const NotificationsScreen(),
                         transitionsBuilder:
                             (context, animation, secondaryAnimation, child) {
-                              const begin = Offset(1.0, 0.0);
-                              const end = Offset.zero;
-                              const curve = Curves.easeOutQuart;
-                              var tween = Tween(
-                                begin: begin,
-                                end: end,
-                              ).chain(CurveTween(curve: curve));
-                              var offsetAnimation = animation.drive(tween);
-                              return SlideTransition(
-                                position: offsetAnimation,
-                                child: child,
-                              );
-                            },
+                          const begin = Offset(1.0, 0.0);
+                          const end = Offset.zero;
+                          const curve = Curves.easeOutQuart;
+                          var tween = Tween(
+                            begin: begin,
+                            end: end,
+                          ).chain(CurveTween(curve: curve));
+                          var offsetAnimation = animation.drive(tween);
+                          return SlideTransition(
+                            position: offsetAnimation,
+                            child: child,
+                          );
+                        },
                         transitionDuration: const Duration(milliseconds: 350),
                       ),
                     );
@@ -102,19 +105,19 @@ class HomeHeader extends StatelessWidget {
                             const RequestsScreen(),
                         transitionsBuilder:
                             (context, animation, secondaryAnimation, child) {
-                               const begin = Offset(1.0, 0.0);
-                               const end = Offset.zero;
-                               const curve = Curves.easeOutQuart;
-                               var tween = Tween(
-                                 begin: begin,
-                                 end: end,
-                               ).chain(CurveTween(curve: curve));
-                               var offsetAnimation = animation.drive(tween);
-                               return SlideTransition(
-                                 position: offsetAnimation,
-                                 child: child,
-                               );
-                            },
+                          const begin = Offset(1.0, 0.0);
+                          const end = Offset.zero;
+                          const curve = Curves.easeOutQuart;
+                          var tween = Tween(
+                            begin: begin,
+                            end: end,
+                          ).chain(CurveTween(curve: curve));
+                          var offsetAnimation = animation.drive(tween);
+                          return SlideTransition(
+                            position: offsetAnimation,
+                            child: child,
+                          );
+                        },
                         transitionDuration: const Duration(milliseconds: 350),
                       ),
                     );
@@ -144,12 +147,12 @@ class HomeHeader extends StatelessWidget {
               top: -1,
               right: -0.5,
               child: Container(
-                width: 10,
-                height: 10,
+                width: 12,
+                height: 12,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.background, width: 1.5),
+                  border: Border.all(color: AppColors.background, width: 2),
                 ),
               ),
             ),

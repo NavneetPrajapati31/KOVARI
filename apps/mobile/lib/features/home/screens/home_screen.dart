@@ -13,6 +13,9 @@ import '../widgets/sections/requests_section.dart';
 import '../widgets/sections/itinerary_section.dart';
 import '../data/home_service.dart';
 import '../models/home_data.dart';
+import '../../notifications/providers/notification_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../app_shell/providers/app_shell_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -45,7 +48,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() {
       _fetchHomeData();
     });
+    // Also refresh the reactive unread count notifier
+    ref.read(unreadCountProvider.notifier).refresh();
     await _fetchFuture;
+  }
+
+  Future<void> _handleExploreTopDestination(String name) async {
+    if (name.isEmpty) return;
+    final Uri url = Uri.parse(
+      'https://maps.apple.com/search?q=${Uri.encodeComponent(name)}',
+    );
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+      } else {
+        // Fallback to Google Maps if Apple Maps isn't available/supported
+        final Uri googleMapsUrl = Uri.parse(
+          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(name)}',
+        );
+        if (await canLaunchUrl(googleMapsUrl)) {
+          await launchUrl(googleMapsUrl);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error launching maps: $e');
+    }
+  }
+
+  void _handleExploreUpcomingTrip(String? groupId) {
+    // For now, navigate to the Community tab (index 3)
+    ref.read(appShellIndexProvider.notifier).state = 3;
   }
 
   @override
@@ -85,7 +117,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // 1. Header
           HomeHeader(
             firstName: data?.profile.name.split(' ')[0] ?? 'User',
-            unreadNotificationsCount: data?.unreadNotificationCount ?? 0,
             isLoading: false,
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -95,7 +126,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             TopDestinationCard(
               name: data?.topDestination?.name ?? '',
               imageUrl: data?.topDestination?.imageUrl,
-              onExplore: () {},
+              onExplore: () => _handleExploreTopDestination(
+                data?.topDestination?.name ?? '',
+              ),
               isLoading: isLoading,
             ),
             const SizedBox(height: AppSpacing.mds),
@@ -107,7 +140,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               name: data?.featuredTrip?.name ?? '',
               groupId: data?.featuredTrip?.id,
               imageUrl: data?.featuredTrip?.coverImage,
-              onExplore: () {},
+              onExplore: () =>
+                  _handleExploreUpcomingTrip(data?.featuredTrip?.id),
               isLoading: isLoading,
             ),
             const SizedBox(height: AppSpacing.mds),
@@ -135,7 +169,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           // 6. Requests Section (Interests)
           if (isLoading || data != null) ...[
-            _buildRequestsSection(data, isLoading),
+            const RequestsSection(),
             const SizedBox(height: AppSpacing.mds),
           ],
 
@@ -168,20 +202,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return GroupsSection(groups: groups, isLoading: isLoading);
   }
 
-  Widget _buildRequestsSection(HomeData? data, bool isLoading) {
-    final requests = (data?.connectionRequests ?? [])
-        .map(
-          (r) => MockRequest(
-            id: r.id,
-            name: r.sender.name,
-            location: r.sender.location,
-            avatarUrl: r.sender.avatar,
-          ),
-        )
-        .toList();
-
-    return RequestsSection(requests: requests, isLoading: isLoading);
-  }
+  // _buildRequestsSection removed as RequestsSection now uses interestsProvider directly
 
   Widget _buildItinerarySection(HomeData? data, bool isLoading) {
     final events = (data?.featuredTrip?.itinerary ?? [])
