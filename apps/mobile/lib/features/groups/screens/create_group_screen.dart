@@ -291,7 +291,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                 text: "Create Group",
                 onPressed: _submit,
                 isLoading: _isSubmitting,
-                height: 44,
+                height: 42,
               ),
               const SizedBox(height: AppSpacing.xl),
             ],
