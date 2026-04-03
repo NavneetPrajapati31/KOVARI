@@ -32,4 +32,5 @@ class ApiEndpoints {
   static const interestsRespond = "interests/respond";
   static const pendingInvitations = "pending-invitations";
   static const groupInvitation = "group-invitation";
+  static const myGroups = "mobile/groups";
 }

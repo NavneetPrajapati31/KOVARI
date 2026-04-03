@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_text_styles.dart';
 
 class SecondaryButton extends StatelessWidget {
@@ -27,7 +26,9 @@ class SecondaryButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.large),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           backgroundColor: AppColors.background,
           elevation: 0,

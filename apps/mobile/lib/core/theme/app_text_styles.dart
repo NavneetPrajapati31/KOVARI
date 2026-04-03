@@ -33,7 +33,7 @@ class AppTextStyles {
 
   // UI Elements
   static TextStyle get button =>
-      base.copyWith(fontSize: 14, fontWeight: FontWeight.w600);
+      base.copyWith(fontSize: 13, fontWeight: FontWeight.w600);
 
   static TextStyle get label => base.copyWith(
     fontSize: 12,

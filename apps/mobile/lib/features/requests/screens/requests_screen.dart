@@ -9,6 +9,8 @@ import '../../../core/widgets/common/skeleton.dart';
 import '../providers/request_provider.dart';
 import '../models/request_model.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
+import '../../../shared/widgets/primary_button.dart';
+import '../../../shared/widgets/secondary_button.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -317,97 +319,31 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
 
           // Actions
           if (_isAccepted)
-            Container(
-              width: double.infinity,
+            PrimaryButton(
+              text: "It's a match! Chat now.",
+              onPressed: () {
+                // Navigate to chat
+              },
               height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                "It's a match! Chat now.",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
             )
           else
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
+                  child: SecondaryButton(
+                    text: 'Delete',
+                    onPressed: () => _handleAction('decline'),
+                    isLoading: _loadingAction == 'decline',
                     height: 36,
-                    child: OutlinedButton(
-                      onPressed: _loadingAction != null
-                          ? null
-                          : () => _handleAction('decline'),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: AppColors.background,
-                        side: const BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _loadingAction == 'decline'
-                          ? const SizedBox(
-                              height: 14,
-                              width: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.foreground,
-                                ),
-                              ),
-                            )
-                          : const Text(
-                              'Delete',
-                              style: TextStyle(
-                                color: AppColors.foreground,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
-                  child: SizedBox(
+                  child: PrimaryButton(
+                    text: 'Connect',
+                    onPressed: () => _handleAction('accept'),
+                    isLoading: _loadingAction == 'accept',
                     height: 36,
-                    child: ElevatedButton(
-                      onPressed: _loadingAction != null
-                          ? null
-                          : () => _handleAction('accept'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _loadingAction == 'accept'
-                          ? const SizedBox(
-                              height: 14,
-                              width: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : const Text(
-                              'Connect',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                    ),
                   ),
                 ),
               ],
@@ -601,97 +537,31 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
 
           // Actions
           if (_isAccepted)
-            Container(
-              width: double.infinity,
+            PrimaryButton(
+              text: "Accepted! Joining group...",
+              onPressed: () {
+                // Navigate to group
+              },
               height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                "Accepted! Joining group...",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
             )
           else
             Row(
               children: [
                 Expanded(
-                  child: SizedBox(
+                  child: SecondaryButton(
+                    text: 'Decline',
+                    onPressed: () => _handleAction('decline'),
+                    isLoading: _loadingAction == 'decline',
                     height: 36,
-                    child: OutlinedButton(
-                      onPressed: _loadingAction != null
-                          ? null
-                          : () => _handleAction('decline'),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: AppColors.background,
-                        side: const BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _loadingAction == 'decline'
-                          ? const SizedBox(
-                              height: 14,
-                              width: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.foreground,
-                                ),
-                              ),
-                            )
-                          : const Text(
-                              'Decline',
-                              style: TextStyle(
-                                color: AppColors.foreground,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
-                  child: SizedBox(
+                  child: PrimaryButton(
+                    text: 'Accept',
+                    onPressed: () => _handleAction('accept'),
+                    isLoading: _loadingAction == 'accept',
                     height: 36,
-                    child: ElevatedButton(
-                      onPressed: _loadingAction != null
-                          ? null
-                          : () => _handleAction('accept'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _loadingAction == 'accept'
-                          ? const SizedBox(
-                              height: 14,
-                              width: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : const Text(
-                              'Accept',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                    ),
                   ),
                 ),
               ],
