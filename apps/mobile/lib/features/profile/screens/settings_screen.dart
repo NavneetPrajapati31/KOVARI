@@ -85,9 +85,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         // Direct update succeeded (unlikely now)
         final currentProfile = ref.read(profileProvider);
         if (currentProfile != null) {
-          ref.read(profileProvider.notifier).state = currentProfile.copyWith(
+          ref.read(profileProvider.notifier).setProfile(currentProfile.copyWith(
             email: _emailController.text,
-          );
+          ));
         }
         setState(() => _showEmailForm = false);
         _showSnackBar('Email updated successfully');
@@ -114,9 +114,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _showSnackBar('Email updated successfully');
       final currentProfile = ref.read(profileProvider);
       if (currentProfile != null) {
-        ref.read(profileProvider.notifier).state = currentProfile.copyWith(
+        ref.read(profileProvider.notifier).setProfile(currentProfile.copyWith(
           email: _pendingNewEmail,
-        );
+        ));
       }
       setState(() {
         _showEmailForm = false;
@@ -247,7 +247,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       try {
         await ref.read(settingsServiceProvider).deleteAccount();
         _showSnackBar('Account deleted successfully');
-        ref.read(authStateProvider.notifier).state = null;
+        await ref.read(authStateProvider.notifier).logout();
         Navigator.of(context).popUntil((route) => route.isFirst);
       } catch (e) {
         _showSnackBar(

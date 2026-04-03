@@ -59,8 +59,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _handleExploreUpcomingTrip(String? groupId) {
-    // Navigate to the Community tab (index 3)
-    ref.read(appShellIndexProvider.notifier).state = 3;
+    // Navigate to the Groups tab (index 3)
+    ref.read(appShellIndexProvider.notifier).setIndex(3);
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 
@@ -14,6 +15,9 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
 
   @override
   FutureOr<List<NotificationModel>> build() async {
+    // Watch auth state to trigger re-build on login/logout
+    ref.watch(authStateProvider);
+    
     _service = ref.read(notificationServiceProvider);
     return _fetch();
   }
@@ -83,6 +87,9 @@ class UnreadCountNotifier extends AsyncNotifier<int> {
 
   @override
   FutureOr<int> build() {
+    // Watch auth state to trigger re-build on login/logout
+    ref.watch(authStateProvider);
+
     // Start polling when provider is initialized
     _startPolling();
 

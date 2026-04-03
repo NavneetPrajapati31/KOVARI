@@ -365,10 +365,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       // Update local provider
       final currentProfile = ref.read(profileProvider);
       if (currentProfile != null) {
-        ref.read(profileProvider.notifier).state = UserProfile.fromJson({
+        ref.read(profileProvider.notifier).setProfile(UserProfile.fromJson({
           ...currentProfile.toJson(),
           ...updatedData,
-        });
+        }));
       }
 
       if (mounted) {

@@ -113,7 +113,8 @@ class ProfileScreen extends ConsumerWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const SettingsScreen(),
+                                    builder: (context) =>
+                                        const SettingsScreen(),
                                   ),
                                 );
                               },
@@ -133,10 +134,8 @@ class ProfileScreen extends ConsumerWidget {
                               icon: LucideIcons.logOut,
                               label: 'Log out',
                               isDestructive: true,
-                              onTap: () {
-                                ref.read(authStateProvider.notifier).state =
-                                    null;
-                              },
+                              onTap: () =>
+                                  ref.read(authStateProvider.notifier).logout(),
                             ),
                           ],
                           child: const Icon(
@@ -245,7 +244,7 @@ class ProfileScreen extends ConsumerWidget {
                   'Explore',
                   onPressed: () {
                     // Navigate to the Explore tab (index 1)
-                    ref.read(appShellIndexProvider.notifier).state = 1;
+                    ref.read(appShellIndexProvider.notifier).setIndex(1);
                   },
                   backgroundColor: AppColors.secondary,
                   textColor: AppColors.secondaryForeground,

@@ -151,7 +151,7 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
       // Wire up global logout listener (Case 10: Force Logout)
       apiClient.setOnLogout(() {
         if (mounted) {
-          ref.read(authStateProvider.notifier).state = null;
+          ref.read(authStateProvider.notifier).logout();
         }
       });
 
@@ -159,7 +159,7 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
       final user = await authService.checkSession();
 
       if (mounted) {
-        ref.read(authStateProvider.notifier).state = user;
+        ref.read(authStateProvider.notifier).setUser(user);
         setState(() {
           _checkedStatus = true;
         });
@@ -254,7 +254,7 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
       if (mounted) {
         if (profileJson != null) {
           final userProfile = UserProfile.fromJson(profileJson);
-          ref.read(profileProvider.notifier).state = userProfile;
+          ref.read(profileProvider.notifier).setProfile(userProfile);
         }
 
         setState(() {

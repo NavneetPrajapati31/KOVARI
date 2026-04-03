@@ -29,7 +29,7 @@ class AppShellScreen extends ConsumerWidget {
       bottomNavigationBar: KovariBottomNav(
         currentIndex: currentIndex,
         onTap: (index) {
-          ref.read(appShellIndexProvider.notifier).state = index;
+          ref.read(appShellIndexProvider.notifier).setIndex(index);
         },
       ),
     );
