@@ -6,6 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../providers/group_provider.dart';
 import '../widgets/group_card.dart';
 import '../widgets/group_card_skeleton.dart';
+import 'create_group_screen.dart';
 
 class GroupsScreen extends ConsumerWidget {
   const GroupsScreen({super.key});
@@ -34,7 +35,12 @@ class GroupsScreen extends ConsumerWidget {
                         "New group",
                         false,
                         onTap: () {
-                          // Navigate to create group
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CreateGroupScreen(),
+                            ),
+                          );
                         },
                       ),
                     ],

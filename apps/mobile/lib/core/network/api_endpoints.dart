@@ -7,7 +7,7 @@ class ApiEndpoints {
   static String removeFollower(String userId) => "profile/$userId/followers";
   static String unfollow(String userId) => "profile/$userId/following";
   static String follow(String userId) => "profile/$userId/followers";
-  
+
   static const googleAuth = "auth/google";
   static const emailLogin = "auth/login";
   static const emailRegister = "auth/register";
@@ -17,10 +17,10 @@ class ApiEndpoints {
   static const resetPassword = "auth/reset-password";
   static const refresh = "auth/refresh";
   static const logout = "auth/logout";
-  
+
   static const cloudinarySign = "cloudinary/sign";
   static const home = "mobile/home";
-  
+
   // Notifications
   static const notifications = "notifications";
   static const notificationsUnreadCount = "notifications/unread-count";
@@ -33,4 +33,5 @@ class ApiEndpoints {
   static const pendingInvitations = "pending-invitations";
   static const groupInvitation = "group-invitation";
   static const myGroups = "mobile/groups";
+  static const createGroup = "mobile/groups";
 }
