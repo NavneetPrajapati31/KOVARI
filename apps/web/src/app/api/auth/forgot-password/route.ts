@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { randomBytes } from "crypto";
-import { ensureRedisConnection } from "@kovari/api";
-import { sendPasswordResetEmail } from "@kovari/api";
+import { 
+  ensureRedisConnection, 
+  sendPasswordResetEmail,
+  createRouteHandlerSupabaseClientWithServiceRole 
+} from "@kovari/api";
 import * as Sentry from "@sentry/nextjs";
 
 const RESET_TOKEN_TTL_SECONDS = 3600; // 1 hour
@@ -94,11 +97,22 @@ export async function POST(req: NextRequest) {
       limit: 1,
     });
 
-    if (!users?.length) {
-      return handleSuccess();
+    let userId = users[0]?.id;
+    
+    // 4.1 Check Identity in Supabase if not found in Clerk (Unified SOT fallback)
+    if (!userId) {
+      const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+      const { data: suUser } = await supabase
+        .from("users")
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle();
+      
+      if (!suUser) {
+        return handleSuccess();
+      }
+      userId = suUser.id;
     }
-
-    const userId = users[0].id;
 
     // 5. Atomic Concurrency Lock (Ensures Single Dispatch)
     const lockKey = `pwd_reset_lock:email:${email}`;

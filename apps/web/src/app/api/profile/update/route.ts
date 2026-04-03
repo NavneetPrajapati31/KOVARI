@@ -1,7 +1,8 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
-import { createAdminSupabaseClient } from "@kovari/api";
+import { createAdminSupabaseClient, createRouteHandlerSupabaseClientWithServiceRole, sendRegistrationVerificationEmail } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import crypto from "crypto";
 
 const updateProfileSchema = z.object({
   field: z.string(),
@@ -52,7 +53,7 @@ export async function PATCH(req: Request) {
       });
     }
 
-    // 2. Handle Email (Special Case)
+    // 2. Handle Email (Verification Flow)
     if (field === "email") {
       const emailValue = typeof value === "string" ? value.trim() : String(value ?? "");
       if (!emailValue) {
@@ -62,34 +63,64 @@ export async function PATCH(req: Request) {
         });
       }
 
-      // Update profiles table
-      const { error: profileEmailError } = await supabase
-        .from("profiles")
-        .update({ email: emailValue })
-        .eq("user_id", user.id);
+      // Check if email already in use
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id")
+        .ilike("email", emailValue)
+        .maybeSingle();
 
-      if (profileEmailError) {
-        console.error("Error updating profile email:", profileEmailError);
-        return new Response(JSON.stringify({ error: "Failed to update profile email" }), {
+      if (existingUser && existingUser.id !== user.id) {
+        return new Response(JSON.stringify({ error: "Email already in use" }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Generate OTP
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+      const adminSupabase = createRouteHandlerSupabaseClientWithServiceRole();
+
+      // Upsert to verification_codes
+      const { error: otpError } = await adminSupabase
+        .from("verification_codes")
+        .upsert({
+          email: emailValue,
+          code: otp,
+          expires_at: expiresAt.toISOString(),
+          payload: { pendingEmail: emailValue, userId: user.id },
+          is_sending: true,
+          last_sent_at: new Date().toISOString(),
+        }, { onConflict: 'email' });
+
+      if (otpError) {
+        console.error("Failed to store OTP for email change:", otpError);
+        return new Response(JSON.stringify({ error: "Failed to initialize verification" }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
         });
       }
 
-      // If mobile user, also update users table (Unified SOT)
-      if (!user.clerkUserId) {
-        const { error: userEmailError } = await supabase
-          .from("users")
-          .update({ email: emailValue })
-          .eq("id", user.id);
-
-        if (userEmailError) {
-          console.error("Error updating user email (mobile):", userEmailError);
-          // Non-fatal for the profile update but log it
-        }
+      // Dispatch Email
+      try {
+        await sendRegistrationVerificationEmail({ to: emailValue, code: otp });
+      } catch (emailError) {
+        console.error("Email dispatch failed:", emailError);
+        await adminSupabase.from("verification_codes").update({ is_sending: false }).eq("email", emailValue);
+        return new Response(JSON.stringify({ error: "Verification email service unavailable" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
-      return new Response(JSON.stringify({ message: "Profile email updated successfully", field: "email", value: emailValue }), {
+      await adminSupabase.from("verification_codes").update({ is_sending: false }).eq("email", emailValue);
+
+      return new Response(JSON.stringify({
+        verificationRequired: true,
+        message: "A verification code has been sent to your new email."
+      }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });

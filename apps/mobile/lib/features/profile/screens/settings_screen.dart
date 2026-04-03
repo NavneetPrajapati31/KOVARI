@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../../auth/services/auth_service.dart';
+import '../../../core/services/local_storage.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/utils/api_error_handler.dart';
 // import '../../../shared/widgets/kovari_avatar.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -62,15 +69,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     setState(() => _isEmailLoading = true);
     try {
-      await ref
+      final response = await ref
           .read(settingsServiceProvider)
           .updateEmail(_emailController.text);
 
-      setState(() {
-        _pendingNewEmail = _emailController.text;
-        _verificationStep = true;
-      });
-      _showSnackBar('Verification code sent to your new email.');
+      if (response['verificationRequired'] == true) {
+        setState(() {
+          _pendingNewEmail = _emailController.text;
+          _verificationStep = true;
+        });
+        _showSnackBar(
+          response['message'] ?? 'Verification code sent to your new email.',
+        );
+      } else {
+        // Direct update succeeded (unlikely now)
+        final currentProfile = ref.read(profileProvider);
+        if (currentProfile != null) {
+          ref.read(profileProvider.notifier).state = currentProfile.copyWith(
+            email: _emailController.text,
+          );
+        }
+        setState(() => _showEmailForm = false);
+        _showSnackBar('Email updated successfully');
+      }
     } catch (e) {
       _showSnackBar(e.toString().replaceAll('Exception: ', ''), isError: true);
     } finally {
@@ -79,17 +100,58 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleVerifyEmail() async {
-    _showSnackBar('Email updated successfully');
-    final currentProfile = ref.read(profileProvider);
-    if (currentProfile != null) {
-      ref.read(profileProvider.notifier).state = currentProfile.copyWith(
-        email: _pendingNewEmail,
-      );
+    if (_verificationCodeController.text.length != 6) {
+      _showSnackBar('Please enter a 6-digit code', isError: true);
+      return;
     }
-    setState(() {
-      _showEmailForm = false;
-      _verificationStep = false;
-    });
+
+    setState(() => _isEmailLoading = true);
+    try {
+      await ref
+          .read(settingsServiceProvider)
+          .verifyEmail(_pendingNewEmail, _verificationCodeController.text);
+
+      _showSnackBar('Email updated successfully');
+      final currentProfile = ref.read(profileProvider);
+      if (currentProfile != null) {
+        ref.read(profileProvider.notifier).state = currentProfile.copyWith(
+          email: _pendingNewEmail,
+        );
+      }
+      setState(() {
+        _showEmailForm = false;
+        _verificationStep = false;
+        _emailController.clear();
+        _confirmEmailController.clear();
+        _verificationCodeController.clear();
+      });
+    } catch (e) {
+      _showSnackBar(e.toString().replaceAll('Exception: ', ''), isError: true);
+    } finally {
+      if (mounted) setState(() => _isEmailLoading = false);
+    }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    final profile = ref.read(profileProvider);
+    if (profile?.email == null || profile!.email.isEmpty) {
+      _showSnackBar('No email associated with your account', isError: true);
+      return;
+    }
+
+    setState(() => _isPasswordLoading = true);
+    try {
+      final authService = AuthService(
+        ApiClientFactory.create(),
+        LocalStorage(),
+      );
+      await authService.requestPasswordReset(profile.email);
+      _showSnackBar('Password reset link sent to ${profile.email}');
+    } catch (e) {
+      _showSnackBar(ApiErrorHandler.extractError(e), isError: true);
+    } finally {
+      if (mounted) setState(() => _isPasswordLoading = false);
+    }
   }
 
   Future<void> _handleChangePassword() async {
@@ -122,22 +184,61 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _handleDeleteAccount() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to delete your account? This action is irreversible.',
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Delete your account?',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.foreground,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'This will permanently delete your account and all associated data. This action cannot be undone.',
+                textAlign: TextAlign.start,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: SecondaryButton(
+                      text: 'Cancel',
+                      height: 36,
+                      onPressed: () => Navigator.pop(context, false),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: PrimaryButton(
+                      text: 'Delete',
+                      height: 36,
+                      backgroundColor: AppColors.destructive,
+                      onPressed: () => Navigator.pop(context, true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.destructive),
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
 
@@ -311,7 +412,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             children: [
               const Text(
                 'Current email',
-                style: TextStyle(fontSize: 13, color: AppColors.foreground),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.foreground,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -358,8 +463,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 hint: 'Enter 6-digit code',
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 2),
               Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Expanded(
                     child: _buildActionButton(
@@ -368,7 +474,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       isLoading: _isEmailLoading,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   _buildCancelButton(
                     () => setState(() {
                       _showEmailForm = false;
@@ -393,13 +499,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               label: 'New email',
               hint: 'Enter new email',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             _buildTextField(
               controller: _confirmEmailController,
               label: 'Confirm email',
               hint: 'Confirm new email',
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 2),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -407,9 +513,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   'Continue',
                   onPressed: _handleRequestVerification,
                   isLoading: _isEmailLoading,
-                  width: 100,
+                  width: null, // Allow intrinsic width
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 _buildCancelButton(
                   () => setState(() => _showEmailForm = false),
                 ),
@@ -463,33 +569,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               hint: 'Enter current password',
               obscureText: true,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             _buildTextField(
               controller: _newPasswordController,
               label: 'New Password',
               hint: 'Enter new password',
               obscureText: true,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             _buildTextField(
               controller: _confirmPasswordController,
               label: 'Confirm Password',
               hint: 'Confirm new password',
               obscureText: true,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 2),
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildActionButton(
-                  'Save',
-                  onPressed: _handleChangePassword,
-                  isLoading: _isPasswordLoading,
-                  width: 100,
+                GestureDetector(
+                  onTap: _isPasswordLoading ? null : _handleForgotPassword,
+                  child: Text(
+                    'Forgot password',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary.withOpacity(
+                        _isPasswordLoading ? 0.5 : 1,
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 12),
-                _buildCancelButton(
-                  () => setState(() => _showPasswordForm = false),
+                Row(
+                  children: [
+                    _buildActionButton(
+                      'Save',
+                      onPressed: _handleChangePassword,
+                      isLoading: _isPasswordLoading,
+                      width: null,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildCancelButton(
+                      () => setState(() => _showPasswordForm = false),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -526,6 +649,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onPressed: _handleDeleteAccount,
               isLoading: _isDeleteLoading,
               isDestructive: true,
+              height: 36,
+              width: double.infinity,
             ),
           ],
         ),
@@ -539,12 +664,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _buildExpandingList(
           title: 'POLICY DOCUMENTS',
           children: [
-            _buildLegalTile('Terms of Service', LucideIcons.fileText),
-            _buildLegalTile('Privacy Policy', LucideIcons.shield),
-            _buildLegalTile('Community Guidelines', LucideIcons.bookOpen),
+            _buildLegalTile(
+              'Terms of Service',
+              LucideIcons.fileText,
+              url: 'https://kovari.in/terms',
+            ),
+            _buildLegalTile(
+              'Privacy Policy',
+              LucideIcons.shield,
+              url: 'https://kovari.in/privacy',
+            ),
+            _buildLegalTile(
+              'Community Guidelines',
+              LucideIcons.bookOpen,
+              url: 'https://kovari.in/community-guidelines',
+            ),
             _buildLegalTile(
               'Data Deletion Policy',
               LucideIcons.trash2,
+              url: 'https://kovari.in/data-deletion',
               isLast: true,
             ),
           ],
@@ -661,18 +799,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
         ),
-        if (!isLast)
-          const Divider(
-            height: 1,
-            indent: 16,
-            endIndent: 16,
-            color: AppColors.border,
-          ),
+        if (!isLast) const Divider(height: 1, color: AppColors.border),
       ],
     );
   }
 
-  Widget _buildLegalTile(String title, IconData icon, {bool isLast = false}) {
+  Widget _buildLegalTile(
+    String title,
+    IconData icon, {
+    required String url,
+    bool isLast = false,
+  }) {
     return Column(
       children: [
         ListTile(
@@ -690,17 +827,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             size: 14,
             color: AppColors.mutedForeground,
           ),
-          onTap: () {}, // Link behavior
+          onTap: () =>
+              launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           visualDensity: VisualDensity.compact,
         ),
-        if (!isLast)
-          const Divider(
-            height: 1,
-            indent: 16,
-            endIndent: 16,
-            color: AppColors.border,
-          ),
+        if (!isLast) const Divider(height: 1, color: AppColors.border),
       ],
     );
   }
@@ -717,38 +849,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.foreground,
+          ),
         ),
         const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 14),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: AppColors.mutedForeground,
-              fontSize: 13,
+        SizedBox(
+          height: 40,
+          child: TextField(
+            controller: controller,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            style: const TextStyle(fontSize: 13),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: AppColors.mutedForeground,
+                fontSize: 13,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary),
+              ),
+              filled: true,
+              fillColor: AppColors.card,
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-            filled: true,
-            fillColor: AppColors.card,
           ),
         ),
       ],
@@ -782,24 +922,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildCancelButton(VoidCallback onPressed) {
-    return SizedBox(
-      height: 36,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-        ),
-        child: const Text(
-          'Cancel',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppColors.foreground,
-          ),
-        ),
-      ),
+    return SecondaryButton(
+      onPressed: onPressed,
+      icon: LucideIcons.x,
+      width: 32,
+      height: 32,
     );
   }
 
@@ -809,39 +936,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     bool isLoading = false,
     bool isDestructive = false,
     double? width,
+    double? height,
   }) {
-    return Container(
-      width: width ?? double.infinity,
-      height: 36,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isDestructive
-              ? AppColors.destructive
-              : AppColors.primary,
-          foregroundColor: AppColors.primaryForeground,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primaryForeground,
-                ),
-              )
-            : Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-      ),
+    return PrimaryButton(
+      text: label,
+      onPressed: onPressed,
+      isLoading: isLoading,
+      width: width ?? 0,
+      height: height ?? 32,
+      backgroundColor: isDestructive
+          ? AppColors.destructive
+          : AppColors.primary,
+      foregroundColor: AppColors.primaryForeground,
+      isDestructive: isDestructive,
     );
   }
 }

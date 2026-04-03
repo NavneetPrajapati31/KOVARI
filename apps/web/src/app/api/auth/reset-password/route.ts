@@ -56,8 +56,14 @@ export async function POST(req: NextRequest) {
     const client = await clerkClient();
     const supabase = createRouteHandlerSupabaseClientWithServiceRole();
     
-    // 1. Update Clerk Password
-    await client.users.updateUser(userId, { password: newPassword });
+    // 1. Update Clerk Password (Only if it's a Clerk User)
+    const isClerkUser = userId.startsWith("user_");
+    if (isClerkUser) {
+      await client.users.updateUser(userId, { password: newPassword });
+      console.log(`[AUTH] Successfully updated Clerk password for user ${userId}`);
+    } else {
+      console.log(`[AUTH] Skipping Clerk update for mobile/custom user ${userId}`);
+    }
 
     // 2. Industry Standard: Invalidate All Active Session Tokens (Global Log-out)
     try {

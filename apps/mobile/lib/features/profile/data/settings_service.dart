@@ -36,17 +36,27 @@ class SettingsService {
     }
   }
 
-  Future<void> updateEmail(String newEmail) async {
+  Future<Map<String, dynamic>> updateEmail(String newEmail) async {
     try {
-      await _apiClient.patch(
+      final response = await _apiClient.patch(
         'profile/update',
-        data: {
-          'field': 'email',
-          'value': newEmail,
-        },
+        data: {'field': 'email', 'value': newEmail},
       );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       final message = e.response?.data['error'] ?? 'Failed to update email';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> verifyEmail(String email, String code) async {
+    try {
+      await _apiClient.post(
+        'profile/verify-email',
+        data: {'email': email, 'code': code},
+      );
+    } on DioException catch (e) {
+      final message = e.response?.data['error'] ?? 'Invalid verification code';
       throw Exception(message);
     }
   }
