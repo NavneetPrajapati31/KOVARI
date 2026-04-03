@@ -140,8 +140,8 @@ class ProfileScreen extends ConsumerWidget {
                           ],
                           child: const Icon(
                             LucideIcons.menu,
-                            size: 16,
-                            color: Colors.black87,
+                            size: 18,
+                            color: AppColors.foreground,
                           ),
                         ),
                       ],
