@@ -130,6 +130,7 @@ export async function GET(request: NextRequest) {
       followers: followersCount,
       following: followingCount,
       onboardingCompleted: hasCompletedOnboarding,
+      email: profile.email ?? "",
     };
 
     const parsed = ProfileResponseSchema.parse(profileData);

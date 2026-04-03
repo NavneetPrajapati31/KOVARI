@@ -24,6 +24,7 @@ class UserProfile {
   final String foodPreference;
   final String? birthday;
   final String userId;
+  final String email;
 
   UserProfile({
     required this.name,
@@ -51,6 +52,7 @@ class UserProfile {
     required this.foodPreference,
     this.birthday,
     required this.userId,
+    required this.email,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -83,6 +85,7 @@ class UserProfile {
           json['foodPreference'] ?? '', // API key is 'foodPreference'
       birthday: json['birthday'],
       userId: json['id'] ?? json['user_id'] ?? '',
+      email: json['email'] ?? '',
     );
   }
 
@@ -112,7 +115,66 @@ class UserProfile {
       'foodPreference': foodPreference,
       'birthday': birthday,
       'user_id': userId,
+      'email': email,
     };
+  }
+
+  UserProfile copyWith({
+    String? name,
+    String? username,
+    String? age,
+    String? gender,
+    String? nationality,
+    String? profession,
+    List<String>? interests,
+    List<String>? languages,
+    String? bio,
+    String? followers,
+    String? following,
+    String? likes,
+    String? coverImage,
+    String? profileImage,
+    List<UserPost>? posts,
+    bool? isFollowing,
+    bool? isOwnProfile,
+    String? location,
+    String? religion,
+    String? smoking,
+    String? drinking,
+    String? personality,
+    String? foodPreference,
+    String? birthday,
+    String? userId,
+    String? email,
+  }) {
+    return UserProfile(
+      name: name ?? this.name,
+      username: username ?? this.username,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
+      nationality: nationality ?? this.nationality,
+      profession: profession ?? this.profession,
+      interests: interests ?? this.interests,
+      languages: languages ?? this.languages,
+      bio: bio ?? this.bio,
+      followers: followers ?? this.followers,
+      following: following ?? this.following,
+      likes: likes ?? this.likes,
+      coverImage: coverImage ?? this.coverImage,
+      profileImage: profileImage ?? this.profileImage,
+      posts: posts ?? this.posts,
+      isFollowing: isFollowing ?? this.isFollowing,
+      isOwnProfile: isOwnProfile ?? this.isOwnProfile,
+      location: location ?? this.location,
+      religion: religion ?? this.religion,
+      smoking: smoking ?? this.smoking,
+      drinking: drinking ?? this.drinking,
+      personality: personality ?? this.personality,
+      foodPreference: foodPreference ?? this.foodPreference,
+      birthday: birthday ?? this.birthday,
+      userId: userId ?? this.userId,
+      email: email ?? this.email,
+    );
   }
 }
 

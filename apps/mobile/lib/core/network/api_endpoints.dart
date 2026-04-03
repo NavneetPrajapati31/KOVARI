@@ -34,4 +34,9 @@ class ApiEndpoints {
   static const groupInvitation = "group-invitation";
   static const myGroups = "mobile/groups";
   static const createGroup = "mobile/groups";
+
+  // Settings
+  static const changePassword = "settings/change-password";
+  static const deleteAccount = "settings/delete-account";
+  static const acceptPolicies = "settings/accept-policies";
 }

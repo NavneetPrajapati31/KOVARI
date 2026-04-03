@@ -1,15 +1,16 @@
-import { auth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 const updateProfileSchema = z.object({
   field: z.string(),
-  value: z.any(), // Allowed any for future-proofing, specifically need object for location_details
+  value: z.any(),
 });
 
 export async function PATCH(req: Request) {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await getAuthenticatedUser(req as any);
+  if (!user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -27,26 +28,10 @@ export async function PATCH(req: Request) {
   }
 
   const { field, value } = result.data;
-
   const supabase = createAdminSupabaseClient();
 
   try {
-    // Get user from users table
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .eq("isDeleted", false)
-      .single();
-
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Directly handle interests by updating profiles.interests
+    // 1. Handle Interests
     if (field === "interests") {
       const { error: interestsUpdateError } = await supabase
         .from("profiles")
@@ -54,82 +39,63 @@ export async function PATCH(req: Request) {
         .eq("user_id", user.id);
 
       if (interestsUpdateError) {
-        console.error(
-          "Error updating profile interests:",
-          interestsUpdateError,
-        );
-        return new Response(
-          JSON.stringify({ error: "Failed to update interests" }),
-          { status: 500, headers: { "Content-Type": "application/json" } },
-        );
+        console.error("Error updating profile interests:", interestsUpdateError);
+        return new Response(JSON.stringify({ error: "Failed to update interests" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
-      return new Response(
-        JSON.stringify({
-          message: "Interests updated successfully",
-          field,
-          value,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ message: "Interests updated successfully", field, value }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Directly handle email so we can return a clear error if DB/RLS fails
+    // 2. Handle Email (Special Case)
     if (field === "email") {
-      const emailValue =
-        typeof value === "string" ? value.trim() : String(value ?? "");
+      const emailValue = typeof value === "string" ? value.trim() : String(value ?? "");
       if (!emailValue) {
-        return new Response(
-          JSON.stringify({ error: "Email value is required" }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: "Email value is required" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      const { data: updated, error: emailUpdateError } = await supabase
+
+      // Update profiles table
+      const { error: profileEmailError } = await supabase
         .from("profiles")
         .update({ email: emailValue })
-        .eq("user_id", user.id)
-        .select("user_id, email");
+        .eq("user_id", user.id);
 
-      if (emailUpdateError) {
-        console.error("Error updating profile email:", emailUpdateError);
-        return new Response(
-          JSON.stringify({
-            error: "Failed to update profile email",
-            details: emailUpdateError.message,
-          }),
-          { status: 500, headers: { "Content-Type": "application/json" } },
-        );
+      if (profileEmailError) {
+        console.error("Error updating profile email:", profileEmailError);
+        return new Response(JSON.stringify({ error: "Failed to update profile email" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      // If no row was updated, the profile row may not exist for this user
-      if (!updated?.length) {
-        const { error: upsertError } = await supabase
-          .from("profiles")
-          .upsert(
-            { user_id: user.id, email: emailValue },
-            { onConflict: "user_id" },
-          );
-        if (upsertError) {
-          console.error("Error upserting profile email:", upsertError);
-          return new Response(
-            JSON.stringify({
-              error: "Failed to sync email to profile",
-              details: upsertError.message,
-            }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-          );
+
+      // If mobile user, also update users table (Unified SOT)
+      if (!user.clerkUserId) {
+        const { error: userEmailError } = await supabase
+          .from("users")
+          .update({ email: emailValue })
+          .eq("id", user.id);
+
+        if (userEmailError) {
+          console.error("Error updating user email (mobile):", userEmailError);
+          // Non-fatal for the profile update but log it
         }
       }
-      return new Response(
-        JSON.stringify({
-          message: "Profile email updated successfully",
-          field: "email",
-          value: emailValue,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+
+      return new Response(JSON.stringify({ message: "Profile email updated successfully", field: "email", value: emailValue }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Map frontend field names to database column names for profiles table
+    // Mapping...
     const fieldMapping: Record<string, string> = {
       avatar: "profile_photo",
       name: "name",
@@ -150,41 +116,30 @@ export async function PATCH(req: Request) {
       drinking: "drinking",
       personality: "personality",
       foodPreference: "food_preference",
-      // Travel fields (will be handled separately if they map here)
       destinations: "destinations",
       tripFocus: "trip_focus",
       travelFrequency: "frequency",
     };
 
-    // If it's a travel preference field, update the travel_preferences table
     const travelFields = ["destinations", "tripFocus", "travelFrequency"];
     if (travelFields.includes(field)) {
       const dbField = fieldMapping[field];
-      const payload = {
-        user_id: user.id,
-        [dbField]: value,
-      };
-
       const { error: travelUpdateError } = await supabase
         .from("travel_preferences")
-        .upsert(payload, { onConflict: "user_id" });
+        .upsert({ user_id: user.id, [dbField]: value }, { onConflict: "user_id" });
 
       if (travelUpdateError) {
         console.error("Error updating travel preferences:", travelUpdateError);
-        return new Response(
-          JSON.stringify({ error: "Failed to update travel preferences" }),
-          { status: 500, headers: { "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: "Failed to update travel preferences" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
-      return new Response(
-        JSON.stringify({
-          message: "Travel preferences updated successfully",
-          field,
-          value,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ message: "Travel preferences updated successfully", field, value }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const dbField = fieldMapping[field];
@@ -195,82 +150,58 @@ export async function PATCH(req: Request) {
       });
     }
 
-    // Transform value if needed
-    let transformedValue = value;
-
-    // Check if username is already taken (only for username updates)
+    // Username availability check
     if (field === "username" && typeof value === "string") {
-      const { data: existingProfile, error: existingProfileError } =
-        await supabase
-          .from("profiles")
-          .select("user_id")
-          .ilike("username", value)
-          .not("user_id", "eq", user.id)
-          .maybeSingle();
-
-      if (existingProfileError) {
-        console.error("Error checking username:", existingProfileError);
-        return new Response(
-          JSON.stringify({ error: "Error checking username availability" }),
-          { status: 500, headers: { "Content-Type": "application/json" } },
-        );
-      }
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .ilike("username", value)
+        .not("user_id", "eq", user.id)
+        .maybeSingle();
 
       if (existingProfile) {
-        return new Response(
-          JSON.stringify({ error: "Username is already taken" }),
-          { status: 409, headers: { "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ error: "Username is already taken" }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        });
       }
     }
 
-    // Update the profile
+    // Update Profile
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ [dbField]: transformedValue })
+      .update({ [dbField]: value })
       .eq("user_id", user.id);
 
     if (updateError) {
       console.error("Error updating profile:", updateError);
-      return new Response(
-        JSON.stringify({ error: "Failed to update profile" }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "Failed to update profile" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Update Clerk user data for specific fields
-    try {
-      const { clerkClient } = await import("@clerk/nextjs/server");
-      const client = await clerkClient();
-
-      // Update Clerk username if username was changed
-      if (field === "username" && typeof value === "string") {
-        await client.users.updateUser(userId, {
-          username: value,
-        });
+    // Sync to Clerk (WEB ONLY)
+    if (user.clerkUserId) {
+      try {
+        const client = await clerkClient();
+        if (field === "username") {
+          await client.users.updateUser(user.clerkUserId, { username: value });
+        } else if (field === "name") {
+          await client.users.updateUser(user.clerkUserId, {
+            firstName: value.split(" ")[0] || "",
+            lastName: value.split(" ").slice(1).join(" ") || "",
+          });
+        }
+      } catch (err) {
+        console.error("Error updating Clerk user:", err);
       }
-
-      // Update Clerk name if name was changed
-      if (field === "name" && typeof value === "string") {
-        await client.users.updateUser(userId, {
-          firstName: value.split(" ")[0] || "",
-          lastName: value.split(" ").slice(1).join(" ") || "",
-        });
-      }
-    } catch (err) {
-      console.error("Error updating Clerk user:", err);
-      // Don't fail the request, just log the error
-      // The database update was successful, so we return success
     }
 
-    return new Response(
-      JSON.stringify({
-        message: "Profile updated successfully",
-        field,
-        value: transformedValue,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ message: "Profile updated successfully", field, value }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error in profile update:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {

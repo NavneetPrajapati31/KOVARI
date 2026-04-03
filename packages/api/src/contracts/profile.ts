@@ -27,6 +27,7 @@ export const ProfileResponseSchema = z.object({
   followers: z.number(),
   following: z.number(),
   onboardingCompleted: z.boolean(),
+  email: z.string(),
 });
 
 export type ProfileResponse = z.infer<typeof ProfileResponseSchema>;
