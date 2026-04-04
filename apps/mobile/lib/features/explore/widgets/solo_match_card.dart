@@ -50,12 +50,11 @@ class SoloMatchCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         AspectRatio(
-                          aspectRatio: 4 / 3,
+                          aspectRatio: 1 / 1,
                           child: Container(
                             decoration: BoxDecoration(
                               color: AppColors.secondary,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.border),
                             ),
                             clipBehavior: Clip.antiAlias,
                             child: avatar != null

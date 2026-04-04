@@ -219,20 +219,26 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                ],
-                _buildSectionTitle('Personality'),
-                SelectField<String>(
-                  label: '',
-                  value: _filters.personality,
-                  hintText: 'Select personality',
-                  options: const ["Any", "Extrovert", "Introvert", "Ambivert"],
-                  itemLabelBuilder: (val) => val,
-                  onChanged: (val) => setState(
-                    () =>
-                        _filters = _filters.copyWith(personality: val ?? 'Any'),
+                  _buildSectionTitle('Personality'),
+                  SelectField<String>(
+                    label: '',
+                    value: _filters.personality,
+                    hintText: 'Select personality',
+                    options: const [
+                      "Any",
+                      "Extrovert",
+                      "Introvert",
+                      "Ambivert",
+                    ],
+                    itemLabelBuilder: (val) => val,
+                    onChanged: (val) => setState(
+                      () => _filters = _filters.copyWith(
+                        personality: val ?? 'Any',
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                ],
                 _buildSectionTitle('Languages'),
                 _buildChips(
                   options: languageOptions,

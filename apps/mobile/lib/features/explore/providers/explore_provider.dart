@@ -86,7 +86,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
           'full_name': 'Aarav Sharma',
           'age': 24,
           'avatar':
-              'https://images.unsplash.com/photo-1599661046289-e31887846eac?auto=format&fit=crop&q=80&w=300',
+              'https://images.pexels.com/photos/15393590/pexels-photo-15393590.jpeg',
           'bio':
               'Adventure seeker and mountain lover. Looking for someone to join me on a trek to Spiti Valley!',
           'gender': 'Male',
@@ -161,7 +161,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
         'description':
             'Exploring the royal heritage of Jaipur, Jodhpur, and Udaipur. Join us for a 10-day cultural journey!',
         'cover_image':
-            'https://images.unsplash.com/photo-1599661046289-e31887846eac?auto=format&fit=crop&q=80&w=300',
+            'https://images.pexels.com/photos/36020918/pexels-photo-36020918.jpeg',
         'memberCount': 5,
         'creator': {'name': 'Priya Singh'},
         'destination': 'Rajasthan, India',

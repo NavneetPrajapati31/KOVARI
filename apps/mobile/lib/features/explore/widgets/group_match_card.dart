@@ -37,29 +37,31 @@ class GroupMatchCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 0),
+              padding: const EdgeInsets.all(0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Mobile Header Section
                   Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      top: 12,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         AspectRatio(
-                          aspectRatio: 4 / 3,
+                          aspectRatio: 1 / 1,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: AppColors.background,
+                              color: AppColors.secondary,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.border),
                             ),
                             clipBehavior: Clip.antiAlias,
                             child: coverImage != null
@@ -70,8 +72,9 @@ class GroupMatchCard extends ConsumerWidget {
                                         (context, error, stackTrace) => Center(
                                           child: Icon(
                                             Icons.group_outlined,
-                                            size: 40,
-                                            color: AppColors.muted,
+                                            size: 48,
+                                            color: AppColors.mutedForeground
+                                                .withValues(alpha: 0.5),
                                           ),
                                         ),
                                   )
@@ -79,7 +82,8 @@ class GroupMatchCard extends ConsumerWidget {
                                     child: Icon(
                                       Icons.group_outlined,
                                       size: 40,
-                                      color: AppColors.muted,
+                                      color: AppColors.mutedForeground
+                                          .withValues(alpha: 0.5),
                                     ),
                                   ),
                           ),
@@ -104,10 +108,15 @@ class GroupMatchCard extends ConsumerWidget {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
-                  const Divider(height: 1, color: AppColors.border),
+                  const Divider(
+                    indent: 20,
+                    endIndent: 20,
+                    color: AppColors.border,
+                  ),
 
                   // Content Sections
                   Padding(
@@ -197,11 +206,16 @@ class GroupMatchCard extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const Divider(
+                    indent: 20,
+                    endIndent: 20,
+                    color: AppColors.border,
+                  ),
+                  _buildActions(ref, group['id'] ?? ''),
                 ],
               ),
             ),
           ),
-          _buildActions(ref, group['id'] ?? ''),
         ],
       ),
     );
@@ -209,7 +223,7 @@ class GroupMatchCard extends ConsumerWidget {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title.toUpperCase(),
         style: AppTextStyles.bodySmall.copyWith(
@@ -258,10 +272,7 @@ class GroupMatchCard extends ConsumerWidget {
 
   Widget _buildActions(WidgetRef ref, String groupId) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
-      ),
+      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 20),
       child: Row(
         children: [
           Expanded(
@@ -285,7 +296,7 @@ class GroupMatchCard extends ConsumerWidget {
             child: PrimaryButton(
               onPressed: () =>
                   ref.read(exploreProvider.notifier).handleInterested(groupId),
-              icon: Icons.group_add_outlined,
+              icon: Icons.check_rounded,
               height: 44,
             ),
           ),

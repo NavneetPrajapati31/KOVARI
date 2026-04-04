@@ -147,28 +147,20 @@ class GroupsScreen extends ConsumerWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primaryLight : AppColors.card,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.border,
             width: 1,
           ),
-          boxShadow: isSelected
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
+          boxShadow: isSelected ? null : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: AppTextStyles.bodySmall.fontSize,
             fontWeight: FontWeight.w600,
             color: isSelected ? AppColors.primary : AppColors.foreground,
           ),
