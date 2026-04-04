@@ -23,7 +23,7 @@ class KovariSwitchTile extends StatelessWidget {
       margin: margin ?? const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [

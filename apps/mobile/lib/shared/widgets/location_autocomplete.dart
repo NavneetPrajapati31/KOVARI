@@ -10,6 +10,7 @@ import 'text_input_field.dart';
 class LocationAutocomplete extends ConsumerStatefulWidget {
   final String label;
   final String? initialValue;
+  final String? hintText;
   final Function(GeoapifyResult) onSelect;
   final Color? fillColor;
 
@@ -17,6 +18,7 @@ class LocationAutocomplete extends ConsumerStatefulWidget {
     super.key,
     required this.label,
     this.initialValue,
+    this.hintText,
     required this.onSelect,
     this.fillColor,
   });
@@ -236,7 +238,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
           label: widget.label,
           controller: _controller,
           focusNode: _focusNode,
-          hintText: 'Search city...',
+          hintText: widget.hintText ?? 'Search city...',
           onChanged: _onChanged,
           fillColor: widget.fillColor,
         ),

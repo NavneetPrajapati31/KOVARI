@@ -41,18 +41,20 @@ class TextInputField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: Text(
-            label,
-            style: AppTextStyles.label.copyWith(
-              color: AppColors.mutedForeground,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+        if (label.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              label,
+              style: AppTextStyles.label.copyWith(
+                color: AppColors.mutedForeground,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 6),
+          const SizedBox(height: 6),
+        ],
         TextFormField(
           initialValue: initialValue,
           controller: controller,

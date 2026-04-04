@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../shared/widgets/kovari_switch_tile.dart';
+import '../../../shared/widgets/secondary_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/location_autocomplete.dart';
 import '../../../shared/widgets/select_chip.dart';
 import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/kovari_switch_tile.dart';
+import '../../../shared/widgets/select_field.dart';
 import '../models/explore_state.dart';
 import '../providers/explore_provider.dart';
 
@@ -30,49 +32,18 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
     _filters = state.filters;
   }
 
-  static const List<String> genderOptions = ["Any", "Male", "Female", "Other"];
-  static const List<String> interestOptions = [
-    "Adventure",
-    "Culture",
-    "Food",
-    "Nature",
-    "Nightlife",
-    "Relaxation",
-    "Shopping",
-    "Sports",
-    "Photography",
-    "History",
-    "Beach",
-    "Mountains",
-    "Urban",
-    "Rural",
-    "Wellness",
-    "Education",
-  ];
-  static const List<String> personalityOptions = [
-    "Any",
-    "Extrovert",
-    "Introvert",
-    "Ambivert",
-  ];
-  static const List<String> nationalityOptions = [
-    "Any",
-    "Indian",
-    "American",
-    "British",
-    "Canadian",
-    "Australian",
-    "German",
-    "French",
-    "Japanese",
-    "Chinese",
-    "Korean",
-    "Singaporean",
-    "Thai",
-    "Vietnamese",
-    "Indonesian",
-    "Malaysian",
-    "Filipino",
+  static const List<String> languageOptions = [
+    "English",
+    "Hindi",
+    "Bengali",
+    "Telugu",
+    "Marathi",
+    "Tamil",
+    "Gujarati",
+    "Urdu",
+    "Kannada",
+    "Malayalam",
+    "Punjabi",
   ];
 
   @override
@@ -93,6 +64,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                 LocationAutocomplete(
                   label: '',
                   initialValue: _searchData.destination,
+                  hintText: "Where do you want to go?",
                   onSelect: (result) {
                     setState(() {
                       _searchData = _searchData.copyWith(
@@ -108,11 +80,15 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                   },
                 ),
                 const SizedBox(height: 24),
-                _buildSectionTitle('Trip Dates'),
+                _buildSectionTitle('Travel Dates'),
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
+                      child: SecondaryButton(
+                        isDate: true,
+                        text: DateFormat(
+                          'MMM dd, yyyy',
+                        ).format(_searchData.startDate),
                         onPressed: () async {
                           final date = await showDatePicker(
                             context: context,
@@ -130,16 +106,15 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                             });
                           }
                         },
-                        child: Text(
-                          DateFormat(
-                            'MMM d, yyyy',
-                          ).format(_searchData.startDate),
-                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: OutlinedButton(
+                      child: SecondaryButton(
+                        isDate: true,
+                        text: DateFormat(
+                          'MMM dd, yyyy',
+                        ).format(_searchData.endDate),
                         onPressed: () async {
                           final date = await showDatePicker(
                             context: context,
@@ -155,36 +130,66 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                             });
                           }
                         },
-                        child: Text(
-                          DateFormat('MMM d, yyyy').format(_searchData.endDate),
-                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                _buildSectionTitle('Budget'),
+                _buildSectionTitle('Budget Range'),
                 Slider(
                   value: _searchData.budget,
                   min: 5000,
-                  max: 200000,
-                  divisions: 39,
-                  label: '₹${_searchData.budget.round()}',
+                  max: 50000,
+                  divisions: 45,
                   onChanged: (value) {
                     setState(() {
                       _searchData = _searchData.copyWith(budget: value);
                     });
                   },
                 ),
-                Center(
-                  child: Text(
-                    'Budget: ₹${_searchData.budget.round()}',
-                    style: AppTextStyles.bodySmall,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('₹5,000', style: AppTextStyles.label),
+                    Text(
+                      '₹${NumberFormat('#,###').format(_searchData.budget)}',
+                      style: AppTextStyles.label.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text('₹50,000+', style: AppTextStyles.label),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildSectionTitle('Quick Select'),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [10000, 20000, 35000, 50000].map((budget) {
+                      final isSelected = _searchData.budget == budget;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: SelectChip(
+                          label: budget == 50000
+                              ? "₹50k+"
+                              : '₹${NumberFormat('#,###').format(budget)}',
+                          isSelected: isSelected,
+                          onTap: () => setState(
+                            () => _searchData = _searchData.copyWith(
+                              budget: budget.toDouble(),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
                 const SizedBox(height: 24),
                 if (_searchData.travelMode == TravelMode.solo) ...[
-                  _buildSectionTitle('Age Range'),
+                  _buildSectionTitle(
+                    'Age Range: ${_filters.ageRange[0]} - ${_filters.ageRange[1]}',
+                  ),
                   RangeSlider(
                     values: RangeValues(
                       _filters.ageRange[0].toDouble(),
@@ -193,10 +198,6 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                     min: 18,
                     max: 80,
                     divisions: 62,
-                    labels: RangeLabels(
-                      '${_filters.ageRange[0]}',
-                      '${_filters.ageRange[1]}',
-                    ),
                     onChanged: (values) {
                       setState(() {
                         _filters = _filters.copyWith(
@@ -205,72 +206,73 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                       });
                     },
                   ),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Gender'),
-                  _buildChips(
-                    options: genderOptions,
-                    selected: [_filters.gender],
-                    onSelected: (val) => setState(
-                      () => _filters = _filters.copyWith(gender: val),
+                  const SizedBox(height: 20),
+                  _buildSectionTitle('Gender Preference'),
+                  SelectField<String>(
+                    label: '',
+                    value: _filters.gender,
+                    hintText: 'Select gender',
+                    options: const ["Any", "Male", "Female", "Other"],
+                    itemLabelBuilder: (val) => val,
+                    onChanged: (val) => setState(
+                      () => _filters = _filters.copyWith(gender: val ?? 'Any'),
                     ),
                   ),
                   const SizedBox(height: 24),
                 ],
                 _buildSectionTitle('Personality'),
-                _buildChips(
-                  options: personalityOptions,
-                  selected: [_filters.personality],
-                  onSelected: (val) => setState(
-                    () => _filters = _filters.copyWith(personality: val),
+                SelectField<String>(
+                  label: '',
+                  value: _filters.personality,
+                  hintText: 'Select personality',
+                  options: const ["Any", "Extrovert", "Introvert", "Ambivert"],
+                  itemLabelBuilder: (val) => val,
+                  onChanged: (val) => setState(
+                    () =>
+                        _filters = _filters.copyWith(personality: val ?? 'Any'),
                   ),
                 ),
                 const SizedBox(height: 24),
-                _buildSectionTitle('Interests'),
+                _buildSectionTitle('Languages'),
                 _buildChips(
-                  options: interestOptions,
-                  selected: _filters.interests,
+                  options: languageOptions,
+                  selected: _filters.languages,
                   onSelected: (val) {
-                    final interests = List<String>.from(_filters.interests);
-                    if (interests.contains(val)) {
-                      interests.remove(val);
+                    final languages = List<String>.from(_filters.languages);
+                    if (languages.contains(val)) {
+                      languages.remove(val);
                     } else {
-                      interests.add(val);
+                      languages.add(val);
                     }
                     setState(
-                      () => _filters = _filters.copyWith(interests: interests),
+                      () => _filters = _filters.copyWith(languages: languages),
                     );
                   },
                   multiple: true,
                 ),
                 const SizedBox(height: 24),
                 KovariSwitchTile(
-                  label: 'Smoking allowed?',
-                  value: _filters.smoking == 'Yes',
+                  label: _filters.smoking == 'No'
+                      ? 'Strictly non-smoking'
+                      : "I'm okay with smoking",
+                  value: _filters.smoking == 'No',
                   onChanged: (val) => setState(
                     () => _filters = _filters.copyWith(
-                      smoking: val ? 'Yes' : 'No',
+                      smoking: val ? 'No' : 'Yes',
                     ),
                   ),
                 ),
                 KovariSwitchTile(
-                  label: 'Drinking allowed?',
-                  value: _filters.drinking == 'Yes',
+                  label: _filters.drinking == 'No'
+                      ? 'Strictly non-drinking'
+                      : "I'm okay with drinking",
+                  value: _filters.drinking == 'No',
                   onChanged: (val) => setState(
                     () => _filters = _filters.copyWith(
-                      drinking: val ? 'Yes' : 'No',
+                      drinking: val ? 'No' : 'Yes',
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                _buildSectionTitle('Nationality'),
-                _buildChips(
-                  options: nationalityOptions,
-                  selected: [_filters.nationality],
-                  onSelected: (val) => setState(
-                    () => _filters = _filters.copyWith(nationality: val),
-                  ),
-                ),
-                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -282,17 +284,27 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Filters', style: AppTextStyles.h3),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.pop(context),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Search & Filters',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              InkWell(
+                onTap: () => Navigator.pop(context),
+                child: const Icon(Icons.close, size: 20),
+              ),
+            ],
           ),
         ],
       ),
@@ -320,16 +332,18 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, {bool isHeader = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Text(
-        title.toUpperCase(),
-        style: AppTextStyles.bodySmall.copyWith(
-          fontWeight: FontWeight.bold,
-          color: AppColors.mutedForeground,
-          letterSpacing: 1.2,
-        ),
+        title,
+        style: (isHeader ? AppTextStyles.bodyMedium : AppTextStyles.bodySmall)
+            .copyWith(
+              fontWeight: FontWeight.bold,
+              color: isHeader
+                  ? AppColors.foreground
+                  : AppColors.mutedForeground,
+            ),
       ),
     );
   }

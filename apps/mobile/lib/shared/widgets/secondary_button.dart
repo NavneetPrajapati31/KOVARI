@@ -9,6 +9,7 @@ class SecondaryButton extends StatelessWidget {
   final IconData? icon;
   final double height;
   final double? width;
+  final bool isDate;
 
   const SecondaryButton({
     super.key,
@@ -18,6 +19,7 @@ class SecondaryButton extends StatelessWidget {
     this.icon,
     this.height = 40.0,
     this.width,
+    this.isDate = false,
   });
 
   @override
@@ -36,7 +38,9 @@ class SecondaryButton extends StatelessWidget {
           backgroundColor: AppColors.background,
           elevation: 0,
           shadowColor: Colors.transparent,
-          foregroundColor: AppColors.foreground,
+          foregroundColor: isDate
+              ? AppColors.mutedForeground
+              : AppColors.foreground,
         ),
         child: isLoading
             ? const SizedBox(
@@ -59,7 +63,10 @@ class SecondaryButton extends StatelessWidget {
                     Text(
                       text,
                       style: AppTextStyles.button.copyWith(
-                        color: AppColors.foreground,
+                        color: isDate
+                            ? AppColors.mutedForeground
+                            : AppColors.foreground,
+                        fontWeight: isDate ? FontWeight.w500 : FontWeight.w600,
                       ),
                     ),
                   ],

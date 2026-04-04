@@ -40,13 +40,16 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.label,
-              style: AppTextStyles.label.copyWith(
-                color: AppColors.mutedForeground,
+            if (widget.label.isNotEmpty) ...[
+              Text(
+                widget.label,
+                style: AppTextStyles.label.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
+              const SizedBox(height: 4),
+            ] else
+              const SizedBox(height: 0),
             MenuAnchor(
               controller: _controller,
               style: MenuStyle(
