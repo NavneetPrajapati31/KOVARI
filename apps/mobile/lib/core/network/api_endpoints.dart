@@ -39,4 +39,12 @@ class ApiEndpoints {
   static const changePassword = "settings/change-password";
   static const deleteAccount = "settings/delete-account";
   static const acceptPolicies = "settings/accept-policies";
+
+  // Explore
+  static const exploreSession = "explore/session";
+  static const matchSolo = "explore/match-solo";
+  static const matchGroups = "explore/match-groups";
+  static const exploreInterest = "explore/interest";
+  static const exploreSkip = "explore/skip";
+  static const exploreReport = "explore/report";
 }

@@ -12,6 +12,7 @@ class PrimaryButton extends StatelessWidget {
   final Color? backgroundColor;
   final Color? foregroundColor;
   final bool isDestructive;
+  final double borderRadius;
 
   const PrimaryButton({
     super.key,
@@ -24,6 +25,7 @@ class PrimaryButton extends StatelessWidget {
     this.backgroundColor,
     this.foregroundColor,
     this.isDestructive = false,
+    this.borderRadius = 12,
   });
 
   @override
@@ -39,7 +41,9 @@ class PrimaryButton extends StatelessWidget {
         disabledBackgroundColor:
             (isDestructive ? AppColors.destructive : AppColors.primary)
                 .withValues(alpha: 0.6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
         elevation: 0,
         shadowColor: Colors.transparent,
       ),
