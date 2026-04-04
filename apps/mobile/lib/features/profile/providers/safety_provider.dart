@@ -72,11 +72,6 @@ class SafetyNotifier extends Notifier<SafetyState> {
   }
 
   Future<void> searchTargets(String type, String query) async {
-    if (query.isEmpty) {
-      state = state.copyWith(searchResults: [], isSearchLoading: false);
-      return;
-    }
-
     state = state.copyWith(isSearchLoading: true, searchError: null);
     try {
       final targets = await _service.searchTargets(type, query);

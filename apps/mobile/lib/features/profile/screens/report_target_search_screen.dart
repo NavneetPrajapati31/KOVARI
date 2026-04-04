@@ -8,15 +8,13 @@ import '../../../shared/widgets/kovari_avatar.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../providers/safety_provider.dart';
 import '../models/safety_report.dart';
+import '../../../shared/widgets/text_input_field.dart';
 import 'submit_report_screen.dart';
 
 class ReportTargetSearchScreen extends ConsumerStatefulWidget {
   final String targetType; // 'user' or 'group'
 
-  const ReportTargetSearchScreen({
-    super.key,
-    required this.targetType,
-  });
+  const ReportTargetSearchScreen({super.key, required this.targetType});
 
   @override
   ConsumerState<ReportTargetSearchScreen> createState() =>
@@ -65,14 +63,20 @@ class _ReportTargetSearchScreenState
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            padding: const EdgeInsets.only(left: 8),
+            padding: const EdgeInsets.only(left: 12),
             child: Row(
               children: [
-                const Icon(LucideIcons.chevronLeft, color: AppColors.primary, size: 24),
+                const Icon(
+                  LucideIcons.chevronLeft,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 4),
                 Text(
                   'Safety',
-                  style: AppTextStyles.bodyMedium.copyWith(
+                  style: TextStyle(
                     color: AppColors.primary,
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -82,15 +86,13 @@ class _ReportTargetSearchScreenState
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: AppColors.border.withOpacity(0.5), height: 1),
+          child: Container(color: AppColors.border, height: 1),
         ),
       ),
       body: Column(
         children: [
           _buildSearchBar(),
-          Expanded(
-            child: _buildResultsList(state),
-          ),
+          Expanded(child: _buildResultsList(state)),
         ],
       ),
     );
@@ -98,55 +100,56 @@ class _ReportTargetSearchScreenState
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Report a ${widget.targetType == 'user' ? 'User' : 'Group'}',
-            style: AppTextStyles.h3.copyWith(
-              fontSize: 18,
+            style: AppTextStyles.h2.copyWith(
+              fontSize: 15,
               fontWeight: FontWeight.w600,
+              color: AppColors.foreground,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Select the profile you want to report',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.mutedForeground,
-            ),
+          Text(
+            'Select the ${widget.targetType == 'user' ? 'profile' : 'group'} you want to report',
+            style: TextStyle(fontSize: 14, color: AppColors.mutedForeground),
           ),
           const SizedBox(height: 20),
-          TextField(
+          TextInputField(
+            fillColor: AppColors.card,
+            label: "",
             controller: _searchController,
             onChanged: _onSearchChanged,
-            style: AppTextStyles.bodyMedium,
-            decoration: InputDecoration(
-              hintText:
-                  'Search ${widget.targetType == 'user' ? 'users' : 'groups'}...',
-              hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.mutedForeground),
-              prefixIcon: const Icon(LucideIcons.search, size: 18, color: AppColors.mutedForeground),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(LucideIcons.x, size: 18, color: AppColors.mutedForeground),
-                      onPressed: () {
-                        _searchController.clear();
-                        ref
-                            .read(safetyProvider.notifier)
-                            .searchTargets(widget.targetType, '');
-                        setState(() {});
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: AppColors.secondary.withOpacity(0.6),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            hintText:
+                'Search ${widget.targetType == 'user' ? 'users' : 'groups'}...',
+            prefixIcon: Icon(
+              LucideIcons.search,
+              size: 18,
+              color: AppColors.mutedForeground,
             ),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(
+                      LucideIcons.x,
+                      size: 18,
+                      color: AppColors.mutedForeground,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    splashRadius: 16,
+                    onPressed: () {
+                      _searchController.clear();
+                      ref
+                          .read(safetyProvider.notifier)
+                          .searchTargets(widget.targetType, '');
+                      setState(() {});
+                    },
+                  )
+                : const SizedBox(width: 40, height: 40),
           ),
         ],
       ),
@@ -154,11 +157,11 @@ class _ReportTargetSearchScreenState
   }
 
   Widget _buildResultsList(SafetyState state) {
-    if (state.isSearchLoading) {
+    if (state.isSearchLoading && state.searchResults.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (state.searchError != null) {
+    if (state.searchError != null && state.searchResults.isEmpty) {
       return Center(
         child: Text(
           state.searchError!,
@@ -174,19 +177,15 @@ class _ReportTargetSearchScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              widget.targetType == 'user' ? LucideIcons.user : LucideIcons.users,
-              size: 48,
-              color: AppColors.mutedForeground.withOpacity(0.3),
-            ),
-            const SizedBox(height: 16),
             Text(
               'No ${widget.targetType == 'user' ? 'users' : 'groups'} found',
               style: TextStyle(
-                color: AppColors.mutedForeground.withOpacity(0.5),
-                fontSize: 14,
+                color: AppColors.mutedForeground,
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
               ),
             ),
+            const SizedBox(height: 60), // Space for bottom
           ],
         ),
       );
@@ -194,59 +193,61 @@ class _ReportTargetSearchScreenState
 
     return ListView.builder(
       itemCount: results.length,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemBuilder: (context, index) {
         final target = results[index];
-        final isLast = index == results.length - 1;
-        
-        return Column(
-          children: [
-            if (index == 0) const SizedBox(height: 8),
-            Material(
-              color: Colors.transparent,
-              child: ListTile(
-                onTap: () => _onSelectTarget(target),
-                contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(
-                    top: index == 0 ? const Radius.circular(12) : Radius.zero,
-                    bottom: isLast ? const Radius.circular(12) : Radius.zero,
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: InkWell(
+            onTap: () => _onSelectTarget(target),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 12,
+                bottom: 12,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border, width: 1),
+              ),
+              child: Row(
+                children: [
+                  KovariAvatar(
+                    imageUrl: UrlUtils.getFullImageUrl(target.imageUrl ?? ''),
+                    size: 40,
                   ),
-                ),
-                tileColor: Colors.white,
-                leading: KovariAvatar(
-                  imageUrl: UrlUtils.getFullImageUrl(target.imageUrl ?? ''),
-                  size: 36,
-                ),
-                title: Text(
-                  target.name,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                subtitle: target.username != null
-                    ? Text(
-                        '@${target.username}',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
-                          fontSize: 13,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          target.name,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.foreground,
+                          ),
                         ),
-                      )
-                    : null,
-                trailing: Icon(
-                  LucideIcons.chevronRight,
-                  size: 18,
-                  color: AppColors.mutedForeground.withOpacity(0.5),
-                ),
+                        if (target.username != null)
+                          Text(
+                            '@${target.username}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.mutedForeground,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            if (!isLast)
-              const Divider(
-                height: 1,
-                color: AppColors.border,
-                indent: 60,
-              ),
-          ],
+          ),
         );
       },
     );

@@ -11,6 +11,7 @@ class TextInputField extends StatelessWidget {
   final TextEditingController? controller;
   final TextInputType keyboardType;
   final Widget? suffixIcon;
+  final Widget? prefixIcon;
   final ValueChanged<String>? onChanged;
   final FormFieldValidator<String>? validator;
   final int maxLines;
@@ -28,6 +29,7 @@ class TextInputField extends StatelessWidget {
     this.controller,
     this.keyboardType = TextInputType.text,
     this.suffixIcon,
+    this.prefixIcon,
     this.onChanged,
     this.validator,
     this.maxLines = 1,
@@ -69,16 +71,23 @@ class TextInputField extends StatelessWidget {
           decoration: InputDecoration(
             counterText: "", // Hide character counter for cleaner aesthetic
             hintText: hintText,
+            prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 40,
+              minHeight: 40,
+              maxHeight: 40,
+            ),
             suffixIconConstraints: const BoxConstraints(
-              minWidth: 0,
-              minHeight: 0,
+              minWidth: 40,
+              minHeight: 40,
+              maxHeight: 40,
             ),
             errorText: errorText,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
-              vertical: 10,
+              vertical: 8,
             ),
             filled: true,
             fillColor: fillColor ?? AppColors.background,
