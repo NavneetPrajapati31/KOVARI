@@ -36,48 +36,75 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(
-            LucideIcons.chevronLeft,
-            color: AppColors.foreground,
+      body: Column(
+        children: [
+          Container(
+            color: AppColors.card,
+            child: SafeArea(bottom: false, child: _buildHeader(context)),
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Safety & Trust',
-          style: AppTextStyles.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildHero(context),
+                  const SizedBox(height: AppSpacing.xl),
+                  _buildActions(context),
+                  const SizedBox(height: AppSpacing.xl),
+                  if (profile != null) _buildStatus(context, profile),
+                  const SizedBox(height: AppSpacing.xl),
+                  _buildHowItWorks(context),
+                  const SizedBox(height: AppSpacing.xl),
+                  _buildGuidelines(context),
+                  const SizedBox(height: AppSpacing.xl),
+                  _buildEmergencyHelp(context, profile?.userId ?? ''),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildSafetyFooter(),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+              ),
+            ),
           ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: AppColors.border, height: 1),
-        ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: AppSpacing.lg),
-            _buildHero(context),
-            const SizedBox(height: AppSpacing.xl),
-            _buildActions(context),
-            const SizedBox(height: AppSpacing.xl),
-            if (profile != null) _buildStatus(context, profile),
-            const SizedBox(height: AppSpacing.xl),
-            _buildHowItWorks(context),
-            const SizedBox(height: AppSpacing.xl),
-            _buildGuidelines(context),
-            const SizedBox(height: AppSpacing.xl),
-            _buildEmergencyHelp(context, profile?.userId ?? ''),
-            const SizedBox(height: AppSpacing.xl),
-            _buildSafetyFooter(),
-            const SizedBox(height: 48),
-          ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          _buildBackButton(context),
+          const SizedBox(width: 4),
+          const Expanded(
+            child: Text(
+              'Safety & Trust',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.foreground,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: const Icon(
+          LucideIcons.arrowLeft,
+          size: 20,
+          color: AppColors.foreground,
         ),
       ),
     );
@@ -242,7 +269,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                   label,
                   style: AppTextStyles.bodyMedium.copyWith(
                     fontWeight: FontWeight.w400,
-                    fontSize: 16,
+                    fontSize: 15,
                     color: isDestructive
                         ? AppColors.destructive
                         : AppColors.foreground,
@@ -287,7 +314,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                   ? _formatDate(profile.createdAt)
                   : 'Recently',
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 color: AppColors.mutedForeground,
               ),
             ),
@@ -316,7 +343,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
               label,
               style: AppTextStyles.bodyMedium.copyWith(
                 fontWeight: FontWeight.w400,
-                fontSize: 16,
+                fontSize: 15,
               ),
             ),
           ),
@@ -412,7 +439,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
               text: TextSpan(
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.mutedForeground,
-                  fontSize: 13,
+                  fontSize: 14,
                   height: 1.5,
                 ),
                 children: [
@@ -434,7 +461,6 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             ),
           ),
         ]),
-        const SizedBox(height: 20),
       ],
     );
   }
@@ -447,13 +473,13 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
           'Research local emergency numbers',
           'Leave quietly if you feel uncomfortable',
         ]),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
         _buildGuidelineSection('Group Travel Guidelines', [
           'Meet in a public space before departing',
           'Discuss budgets and styles clearly upfront',
           'Avoid sharing sensitive financial info',
         ]),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
         _buildGuidelineSection('Real-Life Meetings', [
           'First meeting must be in a well-lit cafe',
           'Arrange your own independent transport',
@@ -534,23 +560,28 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             isCall: false,
             onTap: () => _copyProfileLink(context, userId),
           ),
-        ]),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.only(left: 30, right: 30),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'If in immediate danger, contact local authorities immediately.',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.mutedForeground,
-                fontSize: 12,
-                height: 1.4,
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
+            child: RichText(
+              text: TextSpan(
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.mutedForeground,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                children: [
+                  const TextSpan(
+                    text:
+                        'If in immediate danger, contact local authorities immediately.',
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 32),
+        ]),
       ],
     );
   }
@@ -576,7 +607,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     title,
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w400,
-                      fontSize: 16,
+                      fontSize: 15,
                       color: isCall ? AppColors.foreground : AppColors.primary,
                     ),
                   ),
@@ -587,7 +618,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                       style: AppTextStyles.bodyLarge.copyWith(
                         color: AppColors.destructive,
                         fontWeight: FontWeight.w500,
-                        fontSize: 16,
+                        fontSize: 15,
                       ),
                     ),
                   ],
@@ -637,7 +668,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             width: 4,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.mutedForeground,
+              color: AppColors.border,
               shape: BoxShape.circle,
             ),
           ),
