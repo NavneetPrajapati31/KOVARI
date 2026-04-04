@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'api_client.dart';
-import 'api_endpoints.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/network/api_endpoints.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CloudinaryService {
   final ApiClient _apiClient;
@@ -27,7 +28,7 @@ class CloudinaryService {
   }
 
   /// Uploads an image file to Cloudinary using a signed request
-  Future<String> uploadImage(File file, {String folder = 'kovari-profiles'}) async {
+  Future<Map<String, dynamic>> uploadImage(File file, {String folder = 'kovari-profiles'}) async {
     try {
       // 1. Get signature from our backend
       final signData = await _getSignature(folder);
@@ -59,8 +60,7 @@ class CloudinaryService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
-        return data['secure_url'] as String;
+        return response.data as Map<String, dynamic>;
       }
       
       throw Exception('Cloudinary upload failed with status ${response.statusCode}');
@@ -73,3 +73,8 @@ class CloudinaryService {
     }
   }
 }
+
+final cloudinaryServiceProvider = Provider<CloudinaryService>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return CloudinaryService(apiClient);
+});

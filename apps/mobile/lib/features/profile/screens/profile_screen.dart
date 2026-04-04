@@ -13,6 +13,7 @@ import '../../app_shell/providers/app_shell_provider.dart';
 import 'connections_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
+import 'safety_screen.dart';
 
 import '../../../shared/widgets/kovari_image_modal.dart';
 import '../../../shared/widgets/kovari_popover.dart';
@@ -123,9 +124,10 @@ class ProfileScreen extends ConsumerWidget {
                               icon: LucideIcons.shieldCheck,
                               label: 'Safety',
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Safety coming soon'),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SafetyScreen(),
                                   ),
                                 );
                               },

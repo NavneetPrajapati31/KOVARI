@@ -321,10 +321,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       String? finalProfilePicUrl = _profilePicUrl;
       if (_profileImageFile != null) {
         try {
-          finalProfilePicUrl = await cloudinaryService.uploadImage(
+          final result = await cloudinaryService.uploadImage(
             _profileImageFile!,
             folder: 'kovari-profiles',
           );
+          finalProfilePicUrl = result['secure_url'];
         } catch (uploadError) {
           throw 'Failed to upload profile photo: $uploadError';
         }

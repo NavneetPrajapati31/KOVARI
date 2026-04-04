@@ -250,10 +250,11 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       String? finalProfilePicUrl = state.profilePicUrl;
       if (state.localProfilePicPath != null) {
         try {
-          finalProfilePicUrl = await _cloudinaryService.uploadImage(
+          final result = await _cloudinaryService.uploadImage(
             File(state.localProfilePicPath!),
             folder: 'kovari-profiles',
           );
+          finalProfilePicUrl = result['secure_url'];
           // Update state with the new URL for future attempts
           state = state.copyWith(profilePicUrl: finalProfilePicUrl);
         } catch (uploadError) {

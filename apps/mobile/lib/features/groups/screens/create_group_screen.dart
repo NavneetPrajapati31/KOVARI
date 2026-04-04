@@ -9,7 +9,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/network/cloudinary_service.dart';
-import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/location_autocomplete.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../shared/widgets/primary_button.dart';
@@ -67,17 +66,15 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       });
 
       try {
-        final cloudinaryService = CloudinaryService(
-          ref.read(apiClientProvider),
-        );
+        final cloudinaryService = ref.read(cloudinaryServiceProvider);
 
-        final url = await cloudinaryService.uploadImage(
+        final result = await cloudinaryService.uploadImage(
           _imageFile!,
           folder: 'kovari-groups',
         );
 
         setState(() {
-          _coverImageUrl = url;
+          _coverImageUrl = result['secure_url'];
           _isUploadingImage = false;
         });
       } catch (e) {

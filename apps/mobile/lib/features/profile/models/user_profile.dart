@@ -25,6 +25,8 @@ class UserProfile {
   final String? birthday;
   final String userId;
   final String email;
+  final bool isVerified;
+  final String createdAt;
 
   UserProfile({
     required this.name,
@@ -53,6 +55,8 @@ class UserProfile {
     this.birthday,
     required this.userId,
     required this.email,
+    this.isVerified = false,
+    this.createdAt = '',
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -86,6 +90,8 @@ class UserProfile {
       birthday: json['birthday'],
       userId: json['id'] ?? json['user_id'] ?? '',
       email: json['email'] ?? '',
+      isVerified: json['verified'] ?? json['is_verified'] ?? false,
+      createdAt: json['created_at'] ?? '',
     );
   }
 
@@ -146,6 +152,8 @@ class UserProfile {
     String? birthday,
     String? userId,
     String? email,
+    bool? isVerified,
+    String? createdAt,
   }) {
     return UserProfile(
       name: name ?? this.name,
@@ -174,6 +182,8 @@ class UserProfile {
       birthday: birthday ?? this.birthday,
       userId: userId ?? this.userId,
       email: email ?? this.email,
+      isVerified: isVerified ?? this.isVerified,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }
