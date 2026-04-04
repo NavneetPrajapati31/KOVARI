@@ -71,11 +71,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             _buildHeader(state),
             Expanded(
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                margin: const EdgeInsets.only(
+                  right: 16.0,
+                  left: 16.0,
+                  bottom: 16,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   border: Border.all(color: AppColors.border),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(20),
+                    bottom: Radius.circular(20),
+                  ),
                 ),
                 child: _buildBody(state),
               ),

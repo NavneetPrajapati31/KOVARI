@@ -3,7 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 
 class PrimaryButton extends StatelessWidget {
-  final String text;
+  final String? text;
   final VoidCallback? onPressed;
   final bool isLoading;
   final IconData? icon;
@@ -16,7 +16,7 @@ class PrimaryButton extends StatelessWidget {
 
   const PrimaryButton({
     super.key,
-    required this.text,
+    this.text,
     this.onPressed,
     this.isLoading = false,
     this.icon,
@@ -59,20 +59,21 @@ class PrimaryButton extends StatelessWidget {
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  text,
-                  style: AppTextStyles.button.copyWith(
-                    color: foregroundColor ?? AppColors.primaryForeground,
-                  ),
-                ),
                 if (icon != null) ...[
-                  const SizedBox(width: 8),
                   Icon(
                     icon,
                     size: 18,
                     color: foregroundColor ?? AppColors.primaryForeground,
                   ),
+                  if (text != null) const SizedBox(width: 8),
                 ],
+                if (text != null)
+                  Text(
+                    text!,
+                    style: AppTextStyles.button.copyWith(
+                      color: foregroundColor ?? AppColors.primaryForeground,
+                    ),
+                  ),
               ],
             ),
     );

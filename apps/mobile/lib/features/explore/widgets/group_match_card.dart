@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
 import '../providers/explore_provider.dart';
@@ -21,12 +20,18 @@ class GroupMatchCard extends ConsumerWidget {
     final int memberCount = group['memberCount'] ?? 0;
     final Map<String, dynamic>? creator = group['creator'];
 
-    final DateTime? startDate = group['startDate'] != null ? DateTime.parse(group['startDate'].toString()) : null;
-    final DateTime? endDate = group['endDate'] != null ? DateTime.parse(group['endDate'].toString()) : null;
+    final DateTime? startDate = group['startDate'] != null
+        ? DateTime.tryParse(group['startDate'].toString())
+        : null;
+    final DateTime? endDate = group['endDate'] != null
+        ? DateTime.tryParse(group['endDate'].toString())
+        : null;
     final String dateRange = startDate != null && endDate != null
         ? "${DateFormat('MMM d').format(startDate)} - ${DateFormat('MMM d, yyyy').format(endDate)}"
         : "Dates TBD";
-    final int? tripLength = startDate != null && endDate != null ? endDate.difference(startDate).inDays + 1 : null;
+    final int? tripLength = startDate != null && endDate != null
+        ? endDate.difference(startDate).inDays + 1
+        : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -38,68 +43,160 @@ class GroupMatchCard extends ConsumerWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      KovariAvatar(
-                        imageUrl: coverImage,
-                        size: 80,
-                        fullName: name,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(name, style: AppTextStyles.h3),
-                            if (description != null) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                description,
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: AppColors.mutedForeground,
-                                ),
-                              ),
-                            ],
-                          ],
+                  // Mobile Header Section
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 4 / 3,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: coverImage != null
+                                ? Image.network(
+                                    coverImage,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) => Center(
+                                          child: Icon(
+                                            Icons.group_outlined,
+                                            size: 40,
+                                            color: AppColors.muted,
+                                          ),
+                                        ),
+                                  )
+                                : Center(
+                                    child: Icon(
+                                      Icons.group_outlined,
+                                      size: 40,
+                                      color: AppColors.muted,
+                                    ),
+                                  ),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        Text(name, style: AppTextStyles.h3),
+                        if (description != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            description,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.mutedForeground,
+                            ),
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'No description provided.',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.mutedForeground,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                  const Divider(height: 48),
-                  _buildSectionTitle('Trip Details'),
-                  _buildPillList([
-                    _PillData(icon: Icons.map, label: group['destination'].toString().split(',')[0]),
-                    _PillData(icon: Icons.calendar_today, label: dateRange),
-                    if (tripLength != null) _PillData(icon: Icons.timelapse, label: "$tripLength days"),
-                    if (group['budget'] != null) _PillData(icon: Icons.currency_rupee, label: "${group['budget']} per person"),
-                  ]),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('About'),
-                  _buildPillList([
-                    if (creator != null) _PillData(icon: Icons.person, label: "Created by ${creator['name']}"),
-                    _PillData(icon: Icons.group, label: "$memberCount members"),
-                  ]),
-                  const SizedBox(height: 24),
-                  if (group['tags'] != null && (group['tags'] as List).isNotEmpty) ...[
-                    _buildSectionTitle('Group Interests'),
-                    _buildPillList((group['tags'] as List).map((i) => _PillData(label: i.toString())).toList()),
-                    const SizedBox(height: 24),
-                  ],
-                  if (group['languages'] != null && (group['languages'] as List).isNotEmpty) ...[
-                    _buildSectionTitle('Languages'),
-                    _buildPillList((group['languages'] as List).map((i) => _PillData(icon: Icons.translate, label: i.toString())).toList()),
-                    const SizedBox(height: 24),
-                  ],
-                  _buildSectionTitle('Lifestyle'),
-                  _buildPillList([
-                    if (group['smokingPolicy'] != null) _PillData(icon: Icons.smoking_rooms, label: "Smoking: ${group['smokingPolicy']}"),
-                    if (group['drinkingPolicy'] != null) _PillData(icon: Icons.local_bar, label: "Drinking: ${group['drinkingPolicy']}"),
-                  ]),
+                  const Divider(height: 1, color: AppColors.border),
+
+                  // Content Sections
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionTitle('Trip Details'),
+                        _buildPillList([
+                          _PillData(
+                            icon: Icons.location_on_outlined,
+                            label: group['destination'].toString().split(
+                              ',',
+                            )[0],
+                          ),
+                          _PillData(
+                            icon: Icons.calendar_today_outlined,
+                            label: dateRange,
+                          ),
+                          if (tripLength != null)
+                            _PillData(
+                              icon: Icons.timelapse_outlined,
+                              label: "$tripLength days",
+                            ),
+                          if (group['budget'] != null)
+                            _PillData(
+                              icon: Icons.currency_rupee,
+                              label: "${group['budget']} per person",
+                            ),
+                        ]),
+                        const SizedBox(height: 24),
+
+                        _buildSectionTitle('About'),
+                        _buildPillList([
+                          if (creator != null)
+                            _PillData(
+                              icon: Icons.person_pin_outlined,
+                              label: "By ${creator['name']}",
+                            ),
+                          _PillData(
+                            icon: Icons.group_outlined,
+                            label: "$memberCount members",
+                          ),
+                        ]),
+                        const SizedBox(height: 24),
+
+                        if (group['tags'] != null &&
+                            (group['tags'] as List).isNotEmpty) ...[
+                          _buildSectionTitle('Group Interests'),
+                          _buildPillList(
+                            (group['tags'] as List)
+                                .map((i) => _PillData(label: i.toString()))
+                                .toList(),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        if (group['languages'] != null &&
+                            (group['languages'] as List).isNotEmpty) ...[
+                          _buildSectionTitle('Languages'),
+                          _buildPillList(
+                            (group['languages'] as List)
+                                .map(
+                                  (i) => _PillData(
+                                    icon: Icons.translate_outlined,
+                                    label: i.toString(),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        _buildSectionTitle('Lifestyle'),
+                        _buildPillList([
+                          if (group['smokingPolicy'] != null)
+                            _PillData(
+                              icon: Icons.smoking_rooms_outlined,
+                              label: "Smoking: ${group['smokingPolicy']}",
+                            ),
+                          if (group['drinkingPolicy'] != null)
+                            _PillData(
+                              icon: Icons.local_bar_outlined,
+                              label: "Drinking: ${group['drinkingPolicy']}",
+                            ),
+                        ]),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -134,7 +231,7 @@ class GroupMatchCard extends ConsumerWidget {
 
   Widget _buildPill(_PillData data) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(20),
@@ -144,12 +241,15 @@ class GroupMatchCard extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (data.icon != null) ...[
-            Icon(data.icon, size: 14, color: AppColors.mutedForeground),
-            const SizedBox(width: 6),
+            Icon(data.icon, size: 16, color: AppColors.foreground),
+            const SizedBox(width: 8),
           ],
           Text(
             data.label,
-            style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w500),
+            style: AppTextStyles.bodySmall.copyWith(
+              fontWeight: FontWeight.w500,
+              color: AppColors.foreground,
+            ),
           ),
         ],
       ),
@@ -158,7 +258,7 @@ class GroupMatchCard extends ConsumerWidget {
 
   Widget _buildActions(WidgetRef ref, String groupId) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.border, width: 1)),
       ),
@@ -166,17 +266,27 @@ class GroupMatchCard extends ConsumerWidget {
         children: [
           Expanded(
             child: SecondaryButton(
-              text: 'Skip',
-              onPressed: () => ref.read(exploreProvider.notifier).handlePass(groupId),
-              icon: Icons.close,
+              onPressed: () =>
+                  ref.read(exploreProvider.notifier).handlePass(groupId),
+              icon: Icons.close_rounded,
+              height: 44,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SecondaryButton(
+              onPressed: () => {}, // TODO: Implement report dialog
+              icon: Icons.flag_outlined,
+              height: 44,
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: PrimaryButton(
-              text: 'Join Group',
-              onPressed: () => ref.read(exploreProvider.notifier).handleInterested(groupId),
+              onPressed: () =>
+                  ref.read(exploreProvider.notifier).handleInterested(groupId),
               icon: Icons.group_add_outlined,
+              height: 44,
             ),
           ),
         ],
