@@ -30,67 +30,71 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        leadingWidth: 100,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            padding: const EdgeInsets.only(left: 8),
-            child: Row(
-              children: [
-                const Icon(
-                  LucideIcons.chevronLeft,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-                Text(
-                  'Safety',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+      body: Column(
+        children: [
+          Container(
+            color: AppColors.card,
+            child: SafeArea(bottom: false, child: _buildHeader(context, state)),
+          ),
+          Expanded(child: _buildBody(state)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, SafetyState state) {
+    return Container(
+      padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          _buildBackButton(context),
+          const SizedBox(width: 4),
+          const Expanded(
+            child: Text(
+              'My Reports',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.foreground,
+              ),
             ),
           ),
-        ),
-        title: Text(
-          'My Reports',
-          style: AppTextStyles.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        actions: [
           if (state.reports.isNotEmpty)
             Container(
-              margin: const EdgeInsets.only(right: 16, top: 16, bottom: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.secondary,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Center(
-                child: Text(
-                  '${state.reports.length} TOTAL',
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mutedForeground,
-                  ),
+              child: Text(
+                '${state.reports.length} Total',
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: AppColors.border.withOpacity(0.5), height: 1),
+      ),
+    );
+  }
+
+  Widget _buildBackButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: const Icon(
+          LucideIcons.arrowLeft,
+          size: 20,
+          color: AppColors.foreground,
         ),
       ),
-      body: _buildBody(state),
     );
   }
 
@@ -145,9 +149,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
             Text(
               "We're glad things are safe. You can report concerns here anytime.",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.mutedForeground.withOpacity(0.6),
-              ),
+              style: TextStyle(color: AppColors.mutedForeground),
             ),
           ],
         ),
@@ -176,16 +178,16 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
               child: Text(
                 dateKey,
                 style: AppTextStyles.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   color: AppColors.mutedForeground,
                 ),
               ),
             ),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border.withOpacity(0.5)),
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 children: List.generate(reports.length, (i) {
@@ -205,7 +207,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                 }),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
           ],
         );
       },
@@ -225,7 +227,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                 imageUrl: UrlUtils.getFullImageUrl(report.targetImageUrl),
                 size: 40,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,6 +245,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         _buildStatusBadge(report.status),
                       ],
                     ),
@@ -269,11 +272,14 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                 const TextSpan(
                   text: 'Reason: ',
                   style: TextStyle(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.mutedForeground,
                   ),
                 ),
-                TextSpan(text: report.reason),
+                TextSpan(
+                  text: report.reason,
+                  style: const TextStyle(fontWeight: FontWeight.w400),
+                ),
               ],
             ),
           ),
@@ -289,11 +295,14 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                   const TextSpan(
                     text: 'Additional Context: ',
                     style: TextStyle(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       color: AppColors.mutedForeground,
                     ),
                   ),
-                  TextSpan(text: '"${report.additionalNotes}"'),
+                  TextSpan(
+                    text: '"${report.additionalNotes}"',
+                    style: const TextStyle(fontWeight: FontWeight.w400),
+                  ),
                 ],
               ),
             ),
@@ -310,7 +319,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withOpacity(0.5),
+                  color: AppColors.secondary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -318,15 +327,15 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                   children: [
                     const Icon(
                       LucideIcons.image,
-                      size: 14,
+                      size: 13,
                       color: AppColors.primary,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       'View Evidence',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         fontSize: 12,
                       ),
                     ),
@@ -342,47 +351,56 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
 
   Widget _buildStatusBadge(String status) {
     Color color;
-    Color bgColor;
 
     switch (status.toLowerCase()) {
       case 'pending':
-        color = Colors.orange;
-        bgColor = Colors.orange.withOpacity(0.1);
+        color = const Color(0xFFD97706); // Amber 600
         break;
       case 'resolved':
-      case 'reviewed':
-        color = Colors.blue;
-        bgColor = Colors.blue.withOpacity(0.1);
-        break;
       case 'action taken':
-        color = Colors.green;
-        bgColor = Colors.green.withOpacity(0.1);
+        color = const Color(0xFF16A34A); // Green 600
+        break;
+      case 'reviewed':
+      case 'ongoing':
+        color = AppColors.primary;
         break;
       case 'dismissed':
-        color = Colors.grey;
-        bgColor = Colors.grey.withOpacity(0.1);
+        color = AppColors.mutedForeground;
         break;
       default:
-        color = AppColors.mutedForeground;
-        bgColor = AppColors.secondary;
+        color = const Color(0xFFD97706);
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
+    // Capitalize status
+    final String label = status.toLowerCase() == 'pending'
+        ? 'Pending'
+        : status.toLowerCase() == 'ongoing' ||
+              status.toLowerCase() == 'reviewed'
+        ? 'Ongoing'
+        : status.toLowerCase() == 'resolved' ||
+              status.toLowerCase() == 'action taken'
+        ? 'Resolved'
+        : status.substring(0, 1).toUpperCase() +
+              status.substring(1).toLowerCase();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-      ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: color,
+            fontWeight: FontWeight.w500,
+            fontSize: 13,
+          ),
+        ),
+      ],
     );
   }
 

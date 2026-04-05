@@ -55,42 +55,12 @@ class _ReportTargetSearchScreenState
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        leadingWidth: 100,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            padding: const EdgeInsets.only(left: 12),
-            child: Row(
-              children: [
-                const Icon(
-                  LucideIcons.chevronLeft,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Safety',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: AppColors.border, height: 1),
-        ),
-      ),
       body: Column(
         children: [
+          Container(
+            color: AppColors.card,
+            child: SafeArea(bottom: false, child: _buildHeader(context)),
+          ),
           _buildSearchBar(),
           Expanded(child: _buildResultsList(state)),
         ],
@@ -98,9 +68,49 @@ class _ReportTargetSearchScreenState
     );
   }
 
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          _buildBackButton(context),
+          const SizedBox(width: 4),
+          const Expanded(
+            child: Text(
+              'Safety',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.foreground,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: const Icon(
+          LucideIcons.arrowLeft,
+          size: 20,
+          color: AppColors.foreground,
+        ),
+      ),
+    );
+  }
+
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -193,7 +203,7 @@ class _ReportTargetSearchScreenState
 
     return ListView.builder(
       itemCount: results.length,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemBuilder: (context, index) {
         final target = results[index];
 
@@ -201,7 +211,6 @@ class _ReportTargetSearchScreenState
           padding: const EdgeInsets.only(bottom: 12),
           child: InkWell(
             onTap: () => _onSelectTarget(target),
-            borderRadius: BorderRadius.circular(16),
             child: Container(
               padding: const EdgeInsets.only(
                 left: 16,
@@ -211,7 +220,7 @@ class _ReportTargetSearchScreenState
               ),
               decoration: BoxDecoration(
                 color: AppColors.card,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border, width: 1),
               ),
               child: Row(
