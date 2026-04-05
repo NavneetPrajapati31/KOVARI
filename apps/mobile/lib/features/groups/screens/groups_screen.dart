@@ -19,129 +19,139 @@ class GroupsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => ref.refresh(myGroupsProvider.future),
-          color: AppColors.primary,
-          child: CustomScrollView(
-            slivers: [
-              // Header Sliver
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      _buildTabButton("My Groups", true),
-                      const SizedBox(width: 8),
-                      _buildTabButton(
-                        "New group",
-                        false,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreateGroupScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+        child: Column(
+          children: [
+            // Sticky Header
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  _buildTabButton("My Groups", true),
+                  const SizedBox(width: 8),
+                  _buildTabButton(
+                    "New group",
+                    false,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CreateGroupScreen(),
+                        ),
+                      );
+                    },
                   ),
-                ),
+                ],
               ),
+            ),
 
-              // Groups List Sliver
-              groupsAsync.when(
-                data: (groups) {
-                  if (groups.isEmpty) {
-                    return SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              LucideIcons.users,
-                              size: 48,
-                              color: AppColors.muted,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              "You haven't joined any groups yet.",
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.mutedForeground,
+            // Scrollable Content
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => ref.refresh(myGroupsProvider.future),
+                color: AppColors.primary,
+                child: CustomScrollView(
+                  slivers: [
+                    groupsAsync.when(
+                      data: (groups) {
+                        if (groups.isEmpty) {
+                          return SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    LucideIcons.users,
+                                    size: 48,
+                                    color: AppColors.muted,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    "You haven't joined any groups yet.",
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      color: AppColors.mutedForeground,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
+                          );
+                        }
 
-                  return SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final group = groups[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: GroupCard(
-                            group: group,
-                            onAction: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => GroupDetailsScreen(groupId: group.id),
+                        return SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final group = groups[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16.0),
+                                child: GroupCard(
+                                  group: group,
+                                  onAction: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            GroupDetailsScreen(
+                                              groupId: group.id,
+                                            ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               );
-                            },
+                            }, childCount: groups.length),
                           ),
                         );
-                      }, childCount: groups.length),
-                    ),
-                  );
-                },
-                loading: () => SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => const GroupCardSkeleton(),
-                      childCount: 3,
-                    ),
-                  ),
-                ),
-                error: (error, stack) => SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.destructive,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          "Failed to load groups. Please try again.",
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.destructive,
+                      },
+                      loading: () => SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => const GroupCardSkeleton(),
+                            childCount: 3,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: () => ref.refresh(myGroupsProvider),
-                          child: const Text(
-                            "Retry",
-                            style: TextStyle(color: AppColors.primary),
+                      ),
+                      error: (error, stack) => SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: AppColors.destructive,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                "Failed to load groups. Please try again.",
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.destructive,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextButton(
+                                onPressed: () => ref.refresh(myGroupsProvider),
+                                child: const Text(
+                                  "Retry",
+                                  style: TextStyle(color: AppColors.primary),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
