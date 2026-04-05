@@ -52,6 +52,7 @@ dependencies:
   shimmer: ^3.0.0
   cached_network_image: ^3.4.1
   share_plus: ^12.0.2
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_test:
@@ -63,7 +64,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  flutter_native_splash: ^2.4.7
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -74,6 +74,11 @@ flutter_native_splash:
   android: true
   ios: true
   fullscreen: true
+  android_12:
+    color: "#F9FAFB"
+    # Use a solid background-colored square as the icon to "hide" the native logo.
+    # This ensures no circle/distortion or Flutter icon appears.
+    image: assets/invisible_icon.png
 
 # The following section is specific to Flutter packages.
 flutter:

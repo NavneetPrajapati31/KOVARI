@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -24,7 +25,8 @@ import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Load environment variables
   const envFile = String.fromEnvironment(
@@ -180,15 +182,30 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
     final user = ref.watch(authStateProvider);
 
     // If no user/session exists, go to LoginScreen
-    if (user == null) return const LoginScreen();
+    if (user == null) {
+      FlutterNativeSplash.remove();
+      return const LoginScreen();
+    }
 
     // If session exists, let AuthHandler handle profile/onboarding logic
     return const AuthHandler();
   }
 }
 
-class BrandedLoading extends StatelessWidget {
+class BrandedLoading extends StatefulWidget {
   const BrandedLoading({super.key});
+
+  @override
+  State<BrandedLoading> createState() => _BrandedLoadingState();
+}
+
+class _BrandedLoadingState extends State<BrandedLoading> {
+  @override
+  void initState() {
+    super.initState();
+    // Remove native splash as quickly as possible to show the centered Dart logo
+    FlutterNativeSplash.remove();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +295,7 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
   @override
   Widget build(BuildContext context) {
     if (_isSyncing) {
-      return const SimpleLoading();
+      return const BrandedLoading();
     }
 
     if (_error != null) {
@@ -313,6 +330,10 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
           ),
         ),
       );
+    }
+
+    if (!_isSyncing && _error == null) {
+      FlutterNativeSplash.remove();
     }
 
     return _needsOnboarding ? const OnboardingScreen() : const AppShellScreen();
