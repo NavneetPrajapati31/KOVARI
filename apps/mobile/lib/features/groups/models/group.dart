@@ -146,6 +146,8 @@ class ItineraryItem {
   final String status;
   final String location;
   final String priority;
+  final List<String>? assignedTo;
+  final String? notes;
 
   ItineraryItem({
     required this.id,
@@ -156,6 +158,8 @@ class ItineraryItem {
     required this.status,
     required this.location,
     required this.priority,
+    this.assignedTo,
+    this.notes,
   });
 
   factory ItineraryItem.fromJson(Map<String, dynamic> json) {
@@ -168,6 +172,10 @@ class ItineraryItem {
       status: json['status'] as String,
       location: json['location'] as String,
       priority: json['priority'] as String,
+      assignedTo: (json['assigned_to'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      notes: json['notes'] as String?,
     );
   }
 }
