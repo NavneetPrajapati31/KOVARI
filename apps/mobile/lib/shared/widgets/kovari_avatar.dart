@@ -55,6 +55,6 @@ class KovariAvatar extends StatelessWidget {
   }
 
   Widget _buildFallback() {
-    return UserAvatarFallback(size: size);
+    return UserAvatarFallback(size: size, name: fullName);
   }
 }

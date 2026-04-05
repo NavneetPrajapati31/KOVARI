@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Group {
   final String id;
   final String name;
@@ -39,7 +41,9 @@ class Group {
     // Handle both mobile-specific mapping (dateRange object) and generic API (start_date/end_date)
     GroupDateRange dateRange;
     if (json['dateRange'] != null) {
-      dateRange = GroupDateRange.fromJson(json['dateRange'] as Map<String, dynamic>);
+      dateRange = GroupDateRange.fromJson(
+        json['dateRange'] as Map<String, dynamic>,
+      );
     } else {
       dateRange = GroupDateRange(
         start: json['start_date'] as String?,
@@ -51,19 +55,28 @@ class Group {
     return Group(
       id: json['id'] as String,
       name: json['name'] as String,
-      privacy: (json['privacy'] as String?) ?? (json['is_public'] == true ? 'public' : 'private'),
+      privacy:
+          (json['privacy'] as String?) ??
+          (json['is_public'] == true ? 'public' : 'private'),
       destination: json['destination'] as String,
       description: json['description'] as String?,
       notes: json['notes'] as String?,
       aiOverview: json['ai_overview'] as String?,
       dateRange: dateRange,
-      memberCount: (json['memberCount'] as int?) ?? (json['members_count'] as int?) ?? 0,
+      memberCount:
+          (json['memberCount'] as int?) ?? (json['members_count'] as int?) ?? 0,
       userStatus: json['userStatus'] as String?,
-      creator: json['creator'] != null 
+      creator: json['creator'] != null
           ? GroupCreator.fromJson(json['creator'] as Map<String, dynamic>)
           : GroupCreator(name: 'Unknown', username: 'unknown'),
-      creatorId: (json['creatorId'] as String?) ?? (json['creator_id'] as String?) ?? '',
-      createdAt: (json['created_at'] as String?) ?? (json['createdAt'] as String?) ?? '',
+      creatorId:
+          (json['creatorId'] as String?) ??
+          (json['creator_id'] as String?) ??
+          '',
+      createdAt:
+          (json['created_at'] as String?) ??
+          (json['createdAt'] as String?) ??
+          '',
       coverImage: json['cover_image'] as String?,
       destinationImage: json['destination_image'] as String?,
       status: json['status'] as String?,
@@ -76,11 +89,7 @@ class GroupDateRange {
   final String? end;
   final bool isOngoing;
 
-  GroupDateRange({
-    this.start,
-    this.end,
-    required this.isOngoing,
-  });
+  GroupDateRange({this.start, this.end, required this.isOngoing});
 
   factory GroupDateRange.fromJson(Map<String, dynamic> json) {
     return GroupDateRange(
@@ -96,11 +105,7 @@ class GroupCreator {
   final String username;
   final String? avatar;
 
-  GroupCreator({
-    required this.name,
-    required this.username,
-    this.avatar,
-  });
+  GroupCreator({required this.name, required this.username, this.avatar});
 
   factory GroupCreator.fromJson(Map<String, dynamic> json) {
     return GroupCreator(
@@ -132,7 +137,7 @@ class GroupMember {
       name: json['name'] as String,
       avatar: json['avatar'] as String?,
       username: json['username'] as String,
-      role: json['role'] as String,
+      role: (json['role'] ?? 'member') as String,
     );
   }
 }
@@ -163,19 +168,38 @@ class ItineraryItem {
   });
 
   factory ItineraryItem.fromJson(Map<String, dynamic> json) {
+    // Primary database key is 'assigned_to' (uuid[] in Postgres)
+    var assignedData = json['assigned_to'] ?? json['assignedTo'];
+
+    // Handle case where assigned_to might be a JSON string (e.g. from some proxies)
+    if (assignedData is String && assignedData.startsWith('[')) {
+      try {
+        assignedData = jsonDecode(assignedData);
+      } catch (_) {}
+    }
+
     return ItineraryItem(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      datetime: json['datetime'] as String,
-      type: json['type'] as String,
-      status: json['status'] as String,
-      location: json['location'] as String,
-      priority: json['priority'] as String,
-      assignedTo: (json['assigned_to'] as List<dynamic>?)
-          ?.map((e) => e as String)
+      id: (json['id'] ?? '') as String,
+      title: (json['title'] ?? 'Untitled') as String,
+      description: (json['description'] ?? '') as String,
+      datetime:
+          (json['datetime'] ?? DateTime.now().toIso8601String()) as String,
+      type: (json['type'] ?? 'other') as String,
+      status: (json['status'] ?? 'pending') as String,
+      location: (json['location'] ?? '') as String,
+      priority: (json['priority'] ?? 'medium') as String,
+      assignedTo: (assignedData as List<dynamic>?)
+          ?.map((e) {
+            if (e is Map<String, dynamic>) {
+              // Robust mapping for potential nested member objects
+              return (e['id'] ?? e['uid'] ?? e['userId'] ?? e['uuid'] ?? '')
+                  .toString();
+            }
+            return e.toString();
+          })
+          .where((id) => id.isNotEmpty)
           .toList(),
-      notes: json['notes'] as String?,
+      notes: (json['notes'] ?? json['itemNotes']) as String?,
     );
   }
 }
