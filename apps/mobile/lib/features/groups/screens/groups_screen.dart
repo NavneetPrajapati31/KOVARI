@@ -7,6 +7,7 @@ import '../providers/group_provider.dart';
 import '../widgets/group_card.dart';
 import '../widgets/group_card_skeleton.dart';
 import 'create_group_screen.dart';
+import 'group_details_screen.dart';
 
 class GroupsScreen extends ConsumerWidget {
   const GroupsScreen({super.key});
@@ -86,8 +87,12 @@ class GroupsScreen extends ConsumerWidget {
                           child: GroupCard(
                             group: group,
                             onAction: () {
-                              // Navigate to group details
-                              print('Navigate to group ${group.id}');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => GroupDetailsScreen(groupId: group.id),
+                                ),
+                              );
                             },
                           ),
                         );

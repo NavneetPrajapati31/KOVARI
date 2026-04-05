@@ -246,10 +246,26 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
 export default async function middleware(req: NextRequest, evt: any) {
   // 1. Intercept Mobile JWTs (Avoid Clerk middleware crash on tampered headers)
   const authHeader = req.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ") && !authHeader.includes("__clerk_session")) {
-    // This is a mobile-specific JWT, let the route handlers manage it.
-    // Bypassing clerkMiddleware prevents it from crashing on the malformed token.
-    return NextResponse.next();
+  if (
+    authHeader?.startsWith("Bearer ") &&
+    !authHeader.includes("__clerk_session")
+  ) {
+    // This is a mobile-specific JWT.
+    // We MUST run clerkMiddleware to satisfy Clerk's internal "auth() was called but Clerk can't detect usage of clerkMiddleware()" check.
+    // However, we pass a clone of the request without the Authorization header so Clerk doesn't crash on the non-Clerk token.
+    const reqWithoutAuth = new NextRequest(req, {
+      headers: new Headers(req.headers),
+    });
+    reqWithoutAuth.headers.delete("authorization");
+
+    const res = await (clerk as any)(reqWithoutAuth, evt);
+
+    // If it's a "next" response, we restore the original authorization header
+    // so the route handler can manage the mobile JWT.
+    if (res instanceof NextResponse) {
+      res.headers.set("authorization", authHeader);
+    }
+    return res;
   }
 
   return (clerk as any)(req, evt);

@@ -34,6 +34,14 @@ class ApiEndpoints {
   static const groupInvitation = "group-invitation";
   static const myGroups = "mobile/groups";
   static const createGroup = "mobile/groups";
+  static String groupDetails(String groupId) => "groups/$groupId";
+  static String groupMembers(String groupId) => "groups/$groupId/members";
+  static String groupItinerary(String groupId) => "groups/$groupId/itinerary";
+  static String groupMembership(String groupId) => "groups/$groupId/membership";
+  static String groupAiOverview(String groupId) => "groups/$groupId/ai-overview";
+  static String groupJoinRequest(String groupId) => "groups/$groupId/join-request";
+  static String groupLeave(String groupId) => "groups/$groupId/leave";
+  static String groupDelete(String groupId) => "groups/$groupId/delete";
 
   // Settings
   static const changePassword = "settings/change-password";

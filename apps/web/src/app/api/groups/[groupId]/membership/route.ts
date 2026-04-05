@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
 
@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getAuthUserId(req);
     const { groupId } = await params;
 
     if (!userId) {
@@ -20,13 +20,19 @@ export async function GET(
 
     const supabase = createAdminSupabaseClient();
 
-    // Get user UUID from Clerk userId
-    const { data: user, error: userError } = await supabase
+    // Get user's internal ID based on Clerk ID or direct UUID
+    const userQuery = supabase
       .from("users")
       .select("id")
-      .eq("clerk_user_id", userId)
-      .eq("isDeleted", false)
-      .single();
+      .eq("isDeleted", false);
+
+    if (userId.startsWith("user_")) {
+      userQuery.eq("clerk_user_id", userId);
+    } else {
+      userQuery.eq("id", userId);
+    }
+
+    const { data: user, error: userError } = await userQuery.single();
 
     if (userError || !user) {
       console.error("Error finding user:", userError);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
 
 const ISO_DATE_REGEX = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
@@ -8,7 +8,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
-  const { userId } = await auth();
+  const userId = await getAuthUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -16,13 +16,15 @@ export async function GET(
   const supabase = createAdminSupabaseClient();
   const { groupId } = await params;
 
-  // Map Clerk user id -> internal uuid
-  const { data: userRow, error: userError } = await supabase
-    .from("users")
-    .select("id")
-    .eq("clerk_user_id", userId)
-    .eq("isDeleted", false)
-    .single();
+  // Get user's internal ID based on Clerk ID or direct UUID
+  const userQuery = supabase.from("users").select("id").eq("isDeleted", false);
+  if (userId.startsWith("user_")) {
+    userQuery.eq("clerk_user_id", userId);
+  } else {
+    userQuery.eq("id", userId);
+  }
+
+  const { data: userRow, error: userError } = await userQuery.single();
 
   if (userError || !userRow) {
     console.error("[GET /api/groups/:id] user lookup failed", {
@@ -84,7 +86,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
-  const { userId } = await auth();
+  const userId = await getAuthUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -108,12 +110,15 @@ export async function PATCH(
     is_public,
   } = body;
 
-  // Validate user and membership
-  const { data: userRow, error: userError } = await supabase
-    .from("users")
-    .select("id")
-    .eq("clerk_user_id", userId)
-    .single();
+  // Validate user and membership based on Clerk ID or direct UUID
+  const userQuery = supabase.from("users").select("id").eq("isDeleted", false);
+  if (userId.startsWith("user_")) {
+    userQuery.eq("clerk_user_id", userId);
+  } else {
+    userQuery.eq("id", userId);
+  }
+
+  const { data: userRow, error: userError } = await userQuery.single();
 
   if (userError || !userRow) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });

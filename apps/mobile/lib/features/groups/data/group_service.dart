@@ -38,4 +38,50 @@ class GroupService {
       rethrow;
     }
   }
+
+  Future<Group> getGroupDetails(String groupId) async {
+    final response = await _apiClient.get(ApiEndpoints.groupDetails(groupId));
+    return Group.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<List<GroupMember>> getGroupMembers(String groupId) async {
+    final response = await _apiClient.get(ApiEndpoints.groupMembers(groupId));
+    final List<dynamic> members = response.data['members'] as List<dynamic>;
+    return members.map((j) => GroupMember.fromJson(j as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<ItineraryItem>> getGroupItinerary(String groupId) async {
+    final response = await _apiClient.get(ApiEndpoints.groupItinerary(groupId));
+    final List<dynamic> items = response.data as List<dynamic>;
+    return items.map((j) => ItineraryItem.fromJson(j as Map<String, dynamic>)).toList();
+  }
+
+  Future<MembershipInfo> getGroupMembership(String groupId) async {
+    final response = await _apiClient.get(ApiEndpoints.groupMembership(groupId));
+    return MembershipInfo.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> sendJoinRequest(String groupId) async {
+    await _apiClient.post(ApiEndpoints.groupJoinRequest(groupId));
+  }
+
+  Future<void> generateAiOverview(String groupId) async {
+    await _apiClient.post(ApiEndpoints.groupAiOverview(groupId));
+  }
+
+  Future<Group> updateGroupNotes(String groupId, String notes) async {
+    final response = await _apiClient.patch(
+      ApiEndpoints.groupDetails(groupId),
+      data: {'notes': notes},
+    );
+    return Group.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> leaveGroup(String groupId) async {
+    await _apiClient.post(ApiEndpoints.groupLeave(groupId));
+  }
+
+  Future<void> deleteGroup(String groupId) async {
+    await _apiClient.delete(ApiEndpoints.groupDelete(groupId));
+  }
 }

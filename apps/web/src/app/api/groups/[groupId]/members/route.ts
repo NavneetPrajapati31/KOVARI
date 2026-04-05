@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
 
 export async function GET(
@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getAuthUserId(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -15,13 +15,19 @@ export async function GET(
     const { groupId } = await params;
     const supabase = createAdminSupabaseClient();
 
-    // Get user's internal ID
-    const { data: userRow, error: userError } = await supabase
+    // Get user's internal ID based on whether it's a Clerk ID or a direct UUID (from mobile)
+    const userQuery = supabase
       .from("users")
       .select("id")
-      .eq("clerk_user_id", userId)
-      .eq("isDeleted", false)
-      .single();
+      .eq("isDeleted", false);
+
+    if (userId.startsWith("user_")) {
+      userQuery.eq("clerk_user_id", userId);
+    } else {
+      userQuery.eq("id", userId);
+    }
+
+    const { data: userRow, error: userError } = await userQuery.single();
 
     if (userError || !userRow) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -134,7 +140,7 @@ export async function DELETE(
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   try {
-    const { userId: currentUserId } = await auth();
+    const currentUserId = await getAuthUserId(req);
     if (!currentUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -171,12 +177,15 @@ export async function DELETE(
       );
     }
 
-    // Get current user's internal ID
-    const { data: currentUserRow, error: currentUserError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", currentUserId)
-      .single();
+    // Get current user's internal ID based on Clerk ID or direct UUID
+    const currentQuery = supabase.from("users").select("id").eq("isDeleted", false);
+    if (currentUserId.startsWith("user_")) {
+      currentQuery.eq("clerk_user_id", currentUserId);
+    } else {
+      currentQuery.eq("id", currentUserId);
+    }
+
+    const { data: currentUserRow, error: currentUserError } = await currentQuery.single();
 
     if (currentUserError || !currentUserRow) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
