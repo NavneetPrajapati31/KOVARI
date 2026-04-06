@@ -77,6 +77,22 @@ class GroupService {
     return Group.fromJson(response.data as Map<String, dynamic>);
   }
 
+  Future<void> updateItineraryItem(
+    String groupId,
+    String itemId,
+    Map<String, dynamic> data,
+  ) async {
+    await _apiClient.put(ApiEndpoints.itineraryItem(groupId, itemId), data: data);
+  }
+
+  Future<void> updateItineraryItemWithPatch(
+    String groupId,
+    String itemId,
+    Map<String, dynamic> data,
+  ) async {
+    await _apiClient.patch(ApiEndpoints.itineraryItem(groupId, itemId), data: data);
+  }
+
   Future<void> leaveGroup(String groupId) async {
     await _apiClient.post(ApiEndpoints.groupLeave(groupId));
   }

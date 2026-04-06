@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'api_endpoints.dart';
 abstract class ApiClient {
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters});
   Future<Response> post(String path, {dynamic data});
+  Future<Response> put(String path, {dynamic data});
   Future<Response> patch(String path, {dynamic data});
   Future<Response> delete(String path, {dynamic data});
 
@@ -32,6 +34,7 @@ class DioApiClient implements ApiClient {
   final TokenService _tokenService = TokenService();
   String? _token;
   VoidCallback? _onLogout;
+  Completer<String?>? _refreshCompleter;
 
   DioApiClient([this._token])
     : _dio = Dio(
@@ -62,6 +65,10 @@ class DioApiClient implements ApiClient {
 
           if (kDebugMode) {
             print('🚀 [API REQUEST] ${options.method} ${options.uri}');
+            print('🔑 [API HEADERS] ${options.headers}');
+            if (options.data != null) {
+              print('📦 [API REQUEST BODY] ${options.data}');
+            }
           }
 
           return handler.next(options);
@@ -79,6 +86,9 @@ class DioApiClient implements ApiClient {
             print(
               '❌ [API ERROR] ${e.response?.statusCode} ${e.requestOptions.path}',
             );
+            if (e.response?.data != null) {
+              print('📄 [API ERROR BODY] ${e.response?.data}');
+            }
           }
 
           // Handle 401 Unauthorized (Expired Tokens)
@@ -116,6 +126,29 @@ class DioApiClient implements ApiClient {
             }
 
             // 2. If no new token exists, perform the refresh (Sequentially)
+            if (_refreshCompleter != null) {
+              if (kDebugMode) {
+                print('⏳ [AUTH] Already refreshing. Waiting for completer...');
+              }
+              final newToken = await _refreshCompleter!.future;
+              if (newToken != null) {
+                final options = e.requestOptions;
+                options.headers['Authorization'] = 'Bearer $newToken';
+                setToken(newToken);
+                final retryResponse = await _retryDio.request(
+                  options.path,
+                  data: options.data,
+                  queryParameters: options.queryParameters,
+                  options: Options(
+                    method: options.method,
+                    headers: options.headers,
+                  ),
+                );
+                return handler.resolve(retryResponse);
+              }
+            }
+
+            _refreshCompleter = Completer<String?>();
             final refreshToken = await _tokenService.getRefreshToken();
             if (refreshToken != null) {
               try {
@@ -145,6 +178,9 @@ class DioApiClient implements ApiClient {
                     );
                   }
 
+                  _refreshCompleter?.complete(newAccessToken);
+                  _refreshCompleter = null;
+
                   // Retry original request with new token using retryDio to avoid deadlock
                   final options = e.requestOptions;
                   options.headers['Authorization'] = 'Bearer $newAccessToken';
@@ -166,6 +202,9 @@ class DioApiClient implements ApiClient {
                   print('🚨 [AUTH] Refresh failed: $refreshError');
                 }
 
+                _refreshCompleter?.complete(null);
+                _refreshCompleter = null;
+
                 if (refreshError is DioException) {
                   final statusCode = refreshError.response?.statusCode;
                   // If it's a structural auth error (401, 403, 400) -> Session is dead.
@@ -179,17 +218,12 @@ class DioApiClient implements ApiClient {
                     await _tokenService.clearToken();
                     clearToken();
                     _onLogout?.call();
-                  } else {
-                    // For network errors (timeout, no internet), we do NOT logout.
-                    // We let the original request fail, but keep the tokens for later.
-                    if (kDebugMode) {
-                      print(
-                        'ℹ️ [AUTH] Network error during refresh. Retaining session.',
-                      );
-                    }
                   }
                 }
               }
+            } else {
+              _refreshCompleter?.complete(null);
+              _refreshCompleter = null;
             }
           }
 
@@ -225,6 +259,11 @@ class DioApiClient implements ApiClient {
   @override
   Future<Response> post(String path, {dynamic data}) {
     return _dio.post(path, data: data);
+  }
+
+  @override
+  Future<Response> put(String path, {dynamic data}) {
+    return _dio.put(path, data: data);
   }
 
   @override
@@ -314,6 +353,16 @@ class MockApiClient implements ApiClient {
       requestOptions: RequestOptions(path: path),
       data: {'success': true},
       statusCode: 201,
+    );
+  }
+
+  @override
+  Future<Response> put(String path, {dynamic data}) async {
+    await Future.delayed(delay);
+    return Response(
+      requestOptions: RequestOptions(path: path),
+      data: {'success': true},
+      statusCode: 200,
     );
   }
 

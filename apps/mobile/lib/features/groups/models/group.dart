@@ -153,6 +153,9 @@ class ItineraryItem {
   final String priority;
   final List<String>? assignedTo;
   final String? notes;
+  final String? imageUrl;
+  final String? externalLink;
+  final bool? isArchived;
 
   ItineraryItem({
     required this.id,
@@ -165,6 +168,9 @@ class ItineraryItem {
     required this.priority,
     this.assignedTo,
     this.notes,
+    this.imageUrl,
+    this.externalLink,
+    this.isArchived,
   });
 
   factory ItineraryItem.fromJson(Map<String, dynamic> json) {
@@ -200,7 +206,28 @@ class ItineraryItem {
           .where((id) => id.isNotEmpty)
           .toList(),
       notes: (json['notes'] ?? json['itemNotes']) as String?,
+      imageUrl: json['image_url'] as String?,
+      externalLink: json['external_link'] as String?,
+      isArchived: json['is_archived'] as bool?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'datetime': datetime,
+      'type': type,
+      'status': status,
+      'location': location,
+      'priority': priority,
+      'assigned_to': assignedTo ?? [],
+      'notes': notes,
+      'image_url': imageUrl,
+      'external_link': externalLink,
+      'is_archived': isArchived,
+    };
   }
 }
 

@@ -37,6 +37,7 @@ class ApiEndpoints {
   static String groupDetails(String groupId) => "groups/$groupId";
   static String groupMembers(String groupId) => "groups/$groupId/members";
   static String groupItinerary(String groupId) => "groups/$groupId/itinerary";
+  static String itineraryItem(String groupId, String itemId) => "groups/$groupId/itinerary/$itemId";
   static String groupMembership(String groupId) => "groups/$groupId/membership";
   static String groupAiOverview(String groupId) => "groups/$groupId/ai-overview";
   static String groupJoinRequest(String groupId) => "groups/$groupId/join-request";

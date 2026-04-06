@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../models/group.dart';
 import '../../providers/group_details_provider.dart';
+import '../../providers/group_provider.dart';
 
 class ItineraryTab extends ConsumerWidget {
   final Group group;
@@ -16,9 +18,14 @@ class ItineraryTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final itineraryAsync = ref.watch(groupItineraryProvider(group.id));
     final membersAsync = ref.watch(groupMembersProvider(group.id));
+    final optimisticStore = ref.watch(optimisticStoreProvider);
+    final optimisticItinerary = optimisticStore[group.id];
 
     return itineraryAsync.when(
-      data: (itinerary) {
+      data: (baseItinerary) {
+        // Use optimistic state if it exists, otherwise use base server data
+        final itinerary = optimisticItinerary ?? baseItinerary;
+
         final members = membersAsync.value ?? [];
         // Group by status
         final todo = itinerary.where((i) => i.status == 'pending').toList();
@@ -52,25 +59,37 @@ class ItineraryTab extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               _buildItinerarySection(
+                context,
+                ref,
                 "To do",
+                "pending",
                 todo,
                 const Color(0xFFF59E0B),
                 members,
               ),
               _buildItinerarySection(
+                context,
+                ref,
                 "In Progress",
+                "confirmed",
                 inProgress,
                 const Color(0xFF007AFF),
                 members,
               ),
               _buildItinerarySection(
+                context,
+                ref,
                 "Done",
+                "completed",
                 done,
                 const Color(0xFF34C759),
                 members,
               ),
               _buildItinerarySection(
+                context,
+                ref,
                 "Cancelled",
+                "cancelled",
                 cancelled,
                 const Color(0xFFF31260),
                 members,
@@ -85,96 +104,165 @@ class ItineraryTab extends ConsumerWidget {
   }
 
   Widget _buildItinerarySection(
+    BuildContext context,
+    WidgetRef ref,
     String title,
+    String targetStatus,
     List<ItineraryItem> items,
     Color dotColor,
     List<GroupMember> groupMembers,
   ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              border: Border(bottom: BorderSide(color: AppColors.border)),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
+    return DragTarget<ItineraryItem>(
+      onWillAccept: (data) => data?.status != targetStatus,
+      onAccept: (item) async {
+        final service = ref.read(groupServiceProvider);
+        final messenger = ScaffoldMessenger.of(context);
+        try {
+          await GroupActionsNotifier(
+            service,
+            ref,
+            group.id,
+          ).updateItineraryStatus(item, targetStatus);
+        } catch (e) {
+          String errorMessage = "Failed to update item";
+          if (e is DioException) {
+            final data = e.response?.data;
+            if (data is Map && data.containsKey('error')) {
+              errorMessage = "${data['error']}";
+            } else {
+              errorMessage = e.message ?? errorMessage;
+            }
+          }
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: dotColor,
-                    shape: BoxShape.circle,
+          );
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        final bool isOver = candidateData.isNotEmpty;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isOver ? AppColors.primary : AppColors.border,
+              width: isOver ? 2 : 1,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  border: Border(bottom: BorderSide(color: AppColors.border)),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    "${items.length}",
-                    style: const TextStyle(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "${items.length}",
+                        style: const TextStyle(
+                          color: AppColors.mutedForeground,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      LucideIcons.plus,
+                      size: 18,
                       color: AppColors.mutedForeground,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
+                  ],
                 ),
-                const Spacer(),
-                Icon(
-                  LucideIcons.plus,
-                  size: 18,
-                  color: AppColors.mutedForeground,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  children: [
+                    if (items.isEmpty)
+                      const SizedBox(height: 12)
+                    else
+                      ...items.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 2, 14, 2),
+                          child: _buildDraggableItineraryItem(
+                            item,
+                            groupMembers,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              children: [
-                if (items.isEmpty)
-                  const SizedBox(height: 12)
-                else
-                  ...items.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 2, 14, 2),
-                      child: _buildItineraryItemCard(item, groupMembers),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDraggableItineraryItem(
+    ItineraryItem item,
+    List<GroupMember> groupMembers,
+  ) {
+    return LongPressDraggable<ItineraryItem>(
+      data: item,
+      hapticFeedbackOnStart: true,
+      feedback: SizedBox(
+        width: 300, // Approximate width of the card
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(16),
+          child: _buildItineraryItemCard(item, groupMembers),
+        ),
       ),
+      childWhenDragging: Opacity(
+        opacity: 0.4,
+        child: _buildItineraryItemCard(item, groupMembers),
+      ),
+      child: _buildItineraryItemCard(item, groupMembers),
     );
   }
 
