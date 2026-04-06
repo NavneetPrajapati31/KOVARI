@@ -41,13 +41,18 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (widget.label.isNotEmpty) ...[
-              Text(
-                widget.label,
-                style: AppTextStyles.label.copyWith(
-                  color: AppColors.mutedForeground,
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Text(
+                  widget.label,
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.mutedForeground,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
             ] else
               const SizedBox(height: 0),
             MenuAnchor(
@@ -61,7 +66,7 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                 shape: WidgetStateProperty.all(
                   RoundedRectangleBorder(
                     borderRadius: AppRadius.large,
-                    side: const BorderSide(color: AppColors.border, width: 0.5),
+                    side: const BorderSide(color: AppColors.border, width: 1),
                   ),
                 ),
                 padding: WidgetStateProperty.all(const EdgeInsets.all(8)),

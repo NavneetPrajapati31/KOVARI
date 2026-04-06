@@ -7,12 +7,16 @@ class KovariMenuAction {
   final String label;
   final VoidCallback onTap;
   final bool isDestructive;
+  final double? labelFontSize;
+  final double? iconSize;
 
   const KovariMenuAction({
     required this.icon,
     required this.label,
     required this.onTap,
     this.isDestructive = false,
+    this.labelFontSize,
+    this.iconSize,
   });
 }
 
@@ -162,12 +166,16 @@ class _KovariPopoverState extends State<KovariPopover> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
-              Icon(action.icon, size: 16, color: color.withValues(alpha: 0.7)),
+              Icon(
+                action.icon,
+                size: action.iconSize ?? 16,
+                color: color.withValues(alpha: 0.7),
+              ),
               const SizedBox(width: 12),
               Text(
                 action.label,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: action.labelFontSize ?? 14,
                   fontWeight: FontWeight.w500,
                   color: color,
                   letterSpacing: -0.3,

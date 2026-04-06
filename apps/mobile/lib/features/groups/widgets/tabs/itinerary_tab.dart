@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/widgets/primary_button.dart';
+import '../../../../shared/widgets/secondary_button.dart';
+import '../../../../shared/widgets/kovari_avatar.dart';
+import '../../../../shared/widgets/kovari_popover.dart';
 import '../../models/group.dart';
 import '../../providers/group_details_provider.dart';
 import '../modals/itinerary_form_modal.dart';
-import '../../../../shared/widgets/kovari_popover.dart';
 
 class ItineraryTab extends ConsumerWidget {
   final Group group;
@@ -157,9 +160,11 @@ class ItineraryTab extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 0,
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.card,
@@ -210,6 +215,8 @@ class ItineraryTab extends ConsumerWidget {
                     IconButton(
                       icon: const Icon(LucideIcons.plus, size: 18),
                       color: AppColors.mutedForeground,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                       onPressed: () {
                         showDialog(
                           context: context,
@@ -316,10 +323,13 @@ class ItineraryTab extends ConsumerWidget {
                   ],
                 ),
                 KovariPopover(
+                  width: 120,
+                  offset: const Offset(-102, 24),
                   items: [
                     KovariMenuAction(
                       icon: LucideIcons.pencil,
                       label: 'Edit',
+                      labelFontSize: 14,
                       onTap: () {
                         showDialog(
                           context: context,
@@ -333,28 +343,76 @@ class ItineraryTab extends ConsumerWidget {
                     KovariMenuAction(
                       icon: LucideIcons.trash2,
                       label: 'Delete',
+                      labelFontSize: 14,
                       isDestructive: true,
                       onTap: () async {
                         final confirmed = await showDialog<bool>(
                           context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Delete Item'),
-                            content: const Text(
-                              'Are you sure you want to delete this itinerary item?',
+                          builder: (context) => Dialog(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel'),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 18,
                               ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.destructive,
-                                ),
-                                child: const Text('Delete'),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Delete itinerary item?',
+                                          style: AppTextStyles.h2.copyWith(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Are you sure you want to delete "${item.title}"? This action cannot be undone.',
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      color: AppColors.mutedForeground,
+                                      height: 1.4,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: SecondaryButton(
+                                          text: 'Cancel',
+                                          height: 36,
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: PrimaryButton(
+                                          text: 'Delete',
+                                          height: 36,
+                                          isDestructive: true,
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         );
 
@@ -456,6 +514,32 @@ class ItineraryTab extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 6),
+            if (item.notes != null && item.notes!.isNotEmpty) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(
+                    LucideIcons.fileText,
+                    size: 14,
+                    color: AppColors.mutedForeground,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item.notes!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.mutedForeground,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+            ],
             Row(
               children: [
                 const Text(
