@@ -85,12 +85,18 @@ class GroupService {
     await _apiClient.put(ApiEndpoints.itineraryItem(groupId, itemId), data: data);
   }
 
-  Future<void> updateItineraryItemWithPatch(
+  Future<void> createItineraryItem(
     String groupId,
-    String itemId,
     Map<String, dynamic> data,
   ) async {
-    await _apiClient.patch(ApiEndpoints.itineraryItem(groupId, itemId), data: data);
+    await _apiClient.post(ApiEndpoints.groupItinerary(groupId), data: data);
+  }
+
+  Future<void> deleteItineraryItem(
+    String groupId,
+    String itemId,
+  ) async {
+    await _apiClient.delete(ApiEndpoints.itineraryItem(groupId, itemId));
   }
 
   Future<void> leaveGroup(String groupId) async {

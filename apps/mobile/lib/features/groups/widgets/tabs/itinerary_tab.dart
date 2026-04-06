@@ -7,7 +7,8 @@ import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../models/group.dart';
 import '../../providers/group_details_provider.dart';
-import '../../providers/group_provider.dart';
+import '../modals/itinerary_form_modal.dart';
+import '../../../../shared/widgets/kovari_popover.dart';
 
 class ItineraryTab extends ConsumerWidget {
   final Group group;
@@ -115,14 +116,11 @@ class ItineraryTab extends ConsumerWidget {
     return DragTarget<ItineraryItem>(
       onWillAccept: (data) => data?.status != targetStatus,
       onAccept: (item) async {
-        final service = ref.read(groupServiceProvider);
         final messenger = ScaffoldMessenger.of(context);
         try {
-          await GroupActionsNotifier(
-            service,
-            ref,
-            group.id,
-          ).updateItineraryStatus(item, targetStatus);
+          await ref
+              .read(groupActionsProvider(group.id))
+              .updateItineraryStatus(item, targetStatus);
         } catch (e) {
           String errorMessage = "Failed to update item";
           if (e is DioException) {
@@ -161,7 +159,7 @@ class ItineraryTab extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 12,
+                  vertical: 0,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.card,
@@ -209,10 +207,18 @@ class ItineraryTab extends ConsumerWidget {
                       ),
                     ),
                     const Spacer(),
-                    Icon(
-                      LucideIcons.plus,
-                      size: 18,
+                    IconButton(
+                      icon: const Icon(LucideIcons.plus, size: 18),
                       color: AppColors.mutedForeground,
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => ItineraryFormModal(
+                            groupId: group.id,
+                            initialStatus: targetStatus,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -228,6 +234,8 @@ class ItineraryTab extends ConsumerWidget {
                         (item) => Padding(
                           padding: const EdgeInsets.fromLTRB(14, 2, 14, 2),
                           child: _buildDraggableItineraryItem(
+                            context,
+                            ref,
                             item,
                             groupMembers,
                           ),
@@ -244,6 +252,8 @@ class ItineraryTab extends ConsumerWidget {
   }
 
   Widget _buildDraggableItineraryItem(
+    BuildContext context,
+    WidgetRef ref,
     ItineraryItem item,
     List<GroupMember> groupMembers,
   ) {
@@ -253,20 +263,22 @@ class ItineraryTab extends ConsumerWidget {
       feedback: SizedBox(
         width: 300, // Approximate width of the card
         child: Material(
-          elevation: 8,
+          elevation: 3.0,
           borderRadius: BorderRadius.circular(16),
-          child: _buildItineraryItemCard(item, groupMembers),
+          child: _buildItineraryItemCard(context, ref, item, groupMembers),
         ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.4,
-        child: _buildItineraryItemCard(item, groupMembers),
+        child: _buildItineraryItemCard(context, ref, item, groupMembers),
       ),
-      child: _buildItineraryItemCard(item, groupMembers),
+      child: _buildItineraryItemCard(context, ref, item, groupMembers),
     );
   }
 
   Widget _buildItineraryItemCard(
+    BuildContext context,
+    WidgetRef ref,
     ItineraryItem item,
     List<GroupMember> groupMembers,
   ) {
@@ -284,7 +296,12 @@ class ItineraryTab extends ConsumerWidget {
       ),
       color: AppColors.card,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(
+          left: 14,
+          right: 14,
+          top: 14,
+          bottom: 14,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -298,14 +315,72 @@ class ItineraryTab extends ConsumerWidget {
                     _buildPriorityBadge(item.priority),
                   ],
                 ),
-                Icon(
-                  LucideIcons.ellipsis,
-                  size: 18,
-                  color: AppColors.mutedForeground,
+                KovariPopover(
+                  items: [
+                    KovariMenuAction(
+                      icon: LucideIcons.pencil,
+                      label: 'Edit',
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => ItineraryFormModal(
+                            groupId: group.id,
+                            initialItem: item,
+                          ),
+                        );
+                      },
+                    ),
+                    KovariMenuAction(
+                      icon: LucideIcons.trash2,
+                      label: 'Delete',
+                      isDestructive: true,
+                      onTap: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Item'),
+                            content: const Text(
+                              'Are you sure you want to delete this itinerary item?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.destructive,
+                                ),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          try {
+                            await ref
+                                .read(groupActionsProvider(group.id))
+                                .deleteItineraryItem(item.id);
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to delete: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                  child: const Icon(
+                    LucideIcons.ellipsis,
+                    size: 18,
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Text(
               item.title,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
@@ -323,7 +398,7 @@ class ItineraryTab extends ConsumerWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Row(
               children: [
                 const Icon(
@@ -357,7 +432,7 @@ class ItineraryTab extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               children: [
                 const Icon(

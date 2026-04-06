@@ -59,7 +59,7 @@ final groupMembershipProvider = FutureProvider.family<MembershipInfo, String>((
 
 class GroupActionsNotifier {
   final GroupService _service;
-  final WidgetRef _ref;
+  final Ref _ref;
   final String _groupId;
 
   GroupActionsNotifier(this._service, this._ref, this._groupId);
@@ -129,4 +129,24 @@ class GroupActionsNotifier {
       _ref.read(optimisticStoreProvider.notifier).set(_groupId, null);
     }
   }
+
+  Future<void> createItineraryItem(Map<String, dynamic> data) async {
+    await _service.createItineraryItem(_groupId, data);
+    _ref.invalidate(groupItineraryProvider(_groupId));
+  }
+
+  Future<void> deleteItineraryItem(String itemId) async {
+    await _service.deleteItineraryItem(_groupId, itemId);
+    _ref.invalidate(groupItineraryProvider(_groupId));
+  }
+
+  Future<void> updateItineraryItem(String itemId, Map<String, dynamic> data) async {
+    await _service.updateItineraryItem(_groupId, itemId, data);
+    _ref.invalidate(groupItineraryProvider(_groupId));
+  }
 }
+
+final groupActionsProvider = Provider.family<GroupActionsNotifier, String>((ref, groupId) {
+  final service = ref.watch(groupServiceProvider);
+  return GroupActionsNotifier(service, ref, groupId);
+});

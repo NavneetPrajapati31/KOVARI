@@ -8,7 +8,6 @@ import '../../../shared/widgets/kovari_avatar.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
 import '../providers/group_details_provider.dart';
-import '../providers/group_provider.dart';
 import '../models/group.dart';
 import '../widgets/group_tab_bar.dart';
 import '../widgets/tabs/overview_tab.dart';
@@ -273,12 +272,9 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                 onPressed: membership.hasPendingRequest
                     ? null
                     : () {
-                        final service = ref.read(groupServiceProvider);
-                        GroupActionsNotifier(
-                          service,
-                          ref,
-                          widget.groupId,
-                        ).joinRequest();
+                        ref
+                            .read(groupActionsProvider(widget.groupId))
+                            .joinRequest();
                       },
               ),
               const SizedBox(height: 12),

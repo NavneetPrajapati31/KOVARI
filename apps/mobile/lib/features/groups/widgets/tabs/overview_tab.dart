@@ -10,7 +10,6 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/utils/url_utils.dart';
 import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../models/group.dart';
-import '../../providers/group_provider.dart';
 import '../../providers/group_details_provider.dart';
 
 class OverviewTab extends ConsumerWidget {
@@ -695,12 +694,9 @@ class OverviewTab extends ConsumerWidget {
                 constraints: const BoxConstraints(),
                 onPressed: () {
                   if (isEditingNotes) {
-                    final service = ref.read(groupServiceProvider);
-                    GroupActionsNotifier(
-                      service,
-                      ref,
-                      group.id,
-                    ).updateNotes(notesController.text);
+                    ref
+                        .read(groupActionsProvider(group.id))
+                        .updateNotes(notesController.text);
                   }
                   onEditNotesToggle();
                 },

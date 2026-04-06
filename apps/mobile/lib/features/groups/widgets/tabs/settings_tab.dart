@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../models/group.dart';
-import '../../providers/group_provider.dart';
 import '../../providers/group_details_provider.dart';
 
 class SettingsTab extends ConsumerWidget {
@@ -156,8 +155,7 @@ class SettingsTab extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () {
-              final service = ref.read(groupServiceProvider);
-              GroupActionsNotifier(service, ref, group.id).leaveGroup();
+              ref.read(groupActionsProvider(group.id)).leaveGroup();
               Navigator.pop(context);
               Navigator.pop(context);
             },
@@ -186,8 +184,7 @@ class SettingsTab extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () {
-              final service = ref.read(groupServiceProvider);
-              GroupActionsNotifier(service, ref, group.id).deleteGroup();
+              ref.read(groupActionsProvider(group.id)).deleteGroup();
               Navigator.pop(context);
               Navigator.pop(context);
             },
