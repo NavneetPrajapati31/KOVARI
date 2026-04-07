@@ -387,31 +387,17 @@ export async function POST(request: NextRequest) {
           { status: 404 },
         );
       }
+    }
 
-      // Check if user has required location data
-      // Location can be a string (city name) or coordinates object
-      const location = (userProfile as any).location;
-      if (!location || (typeof location === 'string' && location.trim() === '')) {
-        console.error(
-          `User profile found but missing location for Clerk ID: ${userId}`,
-        );
-        return NextResponse.json(
-          {
-            message:
-              "User profile is incomplete. Please add your home location in your profile settings.",
-            error: "PROFILE_INCOMPLETE",
-            hint: "Visit /profile/edit to update your profile",
-          },
-          { status: 400 },
-        );
-      }
-      
-      // If location is a string, convert it to coordinates for compatibility
-      // (The session API expects coordinates, but we accept string and convert)
-      if (typeof location === 'string') {
-        // Location is stored as string in database - this is fine for the check
-        // The actual coordinates are not needed for session creation, just the existence check
-        console.log(`Profile location is string: ${location} (this is acceptable)`);
+    // 2.5 Resolve user's home coordinates for matching performance (Architectural Fix)
+    let userHomeCoords = null;
+    const profileLocation = (userProfile as any)?.location;
+    if (profileLocation) {
+      if (typeof profileLocation === 'string' && profileLocation.trim() !== '') {
+        console.log(`Pre-resolving home location for matching: ${profileLocation}`);
+        userHomeCoords = await getCoordinatesForLocation(profileLocation);
+      } else if (profileLocation.lat && profileLocation.lon) {
+        userHomeCoords = { lat: profileLocation.lat, lon: profileLocation.lon };
       }
     }
 
@@ -424,6 +410,8 @@ export async function POST(request: NextRequest) {
       endDate,
       mode: "solo",
       interests: (userProfile as any).interests || ["travel", "exploration"],
+      location: userHomeCoords,
+      geoSource: userHomeCoords ? "resolved" : "pending",
       // NO static_attributes here - they come from Supabase when needed
     };
 

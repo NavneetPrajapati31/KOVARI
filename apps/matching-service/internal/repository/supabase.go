@@ -1,0 +1,288 @@
+package repository
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/kovari/matching-service/internal/models"
+)
+
+type SupabaseRepository struct {
+	url         string
+	anonKey     string
+	geoapifyKey string
+	client      *http.Client
+	redis       *RedisRepository
+	geoInFlight sync.Map
+}
+
+func NewSupabaseRepository(url, anonKey, geoKey string, redis *RedisRepository) (*SupabaseRepository, error) {
+	if url == "" || anonKey == "" {
+		return nil, fmt.Errorf("Supabase URL and Anon Key are required")
+	}
+	url = strings.TrimSuffix(url, "/")
+	return &SupabaseRepository{
+		url:         url,
+		anonKey:     anonKey,
+		geoapifyKey: geoKey,
+		redis:       redis,
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}, nil
+}
+
+func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (float64, float64, bool) {
+	if raw == "" || r.geoapifyKey == "" { return 0, 0, false }
+	
+	// Normalize: Extract city, lowercase and trim for better cache hits
+	cityPart := strings.Split(raw, ",")[0]
+	city := strings.ToLower(strings.TrimSpace(cityPart))
+	if city == "" { return 0, 0, false }
+
+	cacheKey := fmt.Sprintf("geo:%s", city)
+
+	// Step 1: Check Static fallback (fast, pure compute)
+	fallback := map[string][]float64{
+		"mumbai": {19.0760, 72.8777},
+		"surat":  {21.1702, 72.8311},
+	}
+	if coords, ok := fallback[city]; ok {
+		log.Printf("GEO STATIC FALLBACK: %s", city)
+		return coords[0], coords[1], true
+	}
+
+	// Step 2: Non-blocking Background resolution (Redis + API)
+	if _, loaded := r.geoInFlight.LoadOrStore(cacheKey, true); loaded {
+		log.Printf("GEO RESOLUTION IN-FLIGHT: %s (Skipping trigger)", cacheKey)
+		return 0, 0, false
+	}
+
+	go func() {
+		defer r.geoInFlight.Delete(cacheKey)
+		
+		bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		log.Printf("BACKGROUND GEO START: %s (Checking Redis first)", cacheKey)
+
+		// 2.1 Check Redis Cache (now in background)
+		if r.redis != nil {
+			if val, err := r.redis.GetCache(bgCtx, cacheKey); err == nil {
+				var coords []float64
+				if err := json.Unmarshal([]byte(val), &coords); err == nil && len(coords) == 2 {
+					log.Printf("BACKGROUND GEO CACHE HIT: %s -> %v", cacheKey, coords)
+					return
+				}
+			}
+		}
+
+		// 2.2 Live API call (if Redis miss)
+		log.Printf("BACKGROUND GEO API CALL: %s", cacheKey)
+		apiURL := fmt.Sprintf("https://api.geoapify.com/v1/geocode/autocomplete?text=%s&type=city&limit=1&lang=en&apiKey=%s", 
+			strings.ReplaceAll(city, " ", "%20"), r.geoapifyKey)
+		
+		req, _ := http.NewRequestWithContext(bgCtx, "GET", apiURL, nil)
+		resp, err := r.client.Do(req)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			log.Printf("BACKGROUND GEO FAILED: %s (Error: %v)", cacheKey, err)
+			return
+		}
+		defer resp.Body.Close()
+
+		var result struct {
+			Features []struct {
+				Properties struct {
+					Lat float64 `json:"lat"`
+					Lon float64 `json:"lon"`
+				} `json:"properties"`
+			} `json:"features"`
+		}
+		
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil || len(result.Features) == 0 {
+			log.Printf("BACKGROUND GEO FAILED: %s (No results)", cacheKey)
+			return
+		}
+
+		lat, lon := result.Features[0].Properties.Lat, result.Features[0].Properties.Lon
+		
+		// 2.3 Store in Redis for future requests
+		if r.redis != nil {
+			coordsJson, _ := json.Marshal([]float64{lat, lon})
+			r.redis.SetCache(context.Background(), cacheKey, string(coordsJson), 30*24*time.Hour)
+		}
+		log.Printf("BACKGROUND GEO RESOLVED & CACHED: %s -> %v,%v", cacheKey, lat, lon)
+	}()
+
+	return 0, 0, false
+}
+
+func parseCoord(v interface{}) float64 {
+	if v == nil {
+		return 0
+	}
+	switch val := v.(type) {
+	case float64:
+		return val
+	case float32:
+		return float64(val)
+	case int:
+		return float64(val)
+	case int64:
+		return float64(val)
+	case string:
+		// Handle string coordinates (common in some DB exports)
+		f, err := strconv.ParseFloat(strings.TrimSpace(val), 64)
+		if err != nil {
+			return 0
+		}
+		return f
+	default:
+		return 0
+	}
+}
+
+type profileResponse struct {
+	UserID       string      `json:"user_id"`
+	Name         *string     `json:"name"`
+	Age          *int        `json:"age"`
+	Gender       *string     `json:"gender"`
+	Personality  *string     `json:"personality"`
+	Location     interface{} `json:"location"`
+	Smoking      *string     `json:"smoking"`
+	Drinking     *string     `json:"drinking"`
+	Religion     *string     `json:"religion"`
+	Interests    []string    `json:"interests"`
+	Languages    []string    `json:"languages"`
+	Nationality  *string     `json:"nationality"`
+	Profession   *string     `json:"job"`
+	Avatar       *string     `json:"profile_photo"`
+	Bio          *string     `json:"bio"`
+	// Alternate coordinate columns in case 'location' is just a string
+	Latitude     *float64    `json:"latitude"`
+	Longitude    *float64    `json:"longitude"`
+}
+
+func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserIds []string, preResolved map[string]models.Coordinates) (map[string]*models.StaticAttributes, error) {
+	if len(clerkUserIds) == 0 {
+		return make(map[string]*models.StaticAttributes), nil
+	}
+
+	// OPTIMIZED: Single query with inner join and minimal fields
+	t1 := time.Now()
+	idsParam := fmt.Sprintf("(\"%s\")", strings.Join(clerkUserIds, "\",\"")) 
+	profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,users!inner(clerk_user_id)&users.clerk_user_id=in.%s", r.url, idsParam)
+	
+	req, _ := http.NewRequestWithContext(ctx, "GET", profilesURL, nil)
+	req.Header.Set("apikey", r.anonKey)
+	req.Header.Set("Authorization", "Bearer "+r.anonKey)
+	
+	resp, err := r.client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		log.Printf("Supabase Optimization Failed: %v", err)
+		return nil, fmt.Errorf("profile lookup failed")
+	}
+
+	var rawProfiles []struct {
+		profileResponse
+		Users struct {
+			ClerkUserId string `json:"clerk_user_id"`
+		} `json:"users"`
+	}
+	json.NewDecoder(resp.Body).Decode(&rawProfiles)
+	resp.Body.Close()
+	// Removed redundant timer here - captured at bottom of function
+
+
+
+	results := make(map[string]*models.StaticAttributes)
+	for _, raw := range rawProfiles {
+		p := raw.profileResponse
+		clerkID := raw.Users.ClerkUserId
+
+
+		attr := &models.StaticAttributes{
+			ClerkUserId: clerkID,
+		}
+
+		// Inject pre-resolved coordinates from session if available (High Priority)
+		if coords, ok := preResolved[clerkID]; ok && (coords.Lat != 0 || coords.Lon != 0) {
+			attr.Location = coords
+			log.Printf("Supabase: Using pre-resolved coordinates for %s: %+v", clerkID, coords)
+		}
+
+		if p.Name != nil { attr.Name = *p.Name }
+		if p.Age != nil { attr.Age = *p.Age }
+		if p.Gender != nil { attr.Gender = *p.Gender }
+		if p.Personality != nil { attr.Personality = *p.Personality }
+		if p.Smoking != nil { attr.Smoking = *p.Smoking }
+		if p.Drinking != nil { attr.Drinking = *p.Drinking }
+		if p.Religion != nil { attr.Religion = *p.Religion }
+		if p.Nationality != nil { attr.Nationality = *p.Nationality }
+		if p.Profession != nil { attr.Profession = *p.Profession }
+		attr.GeoSource = "static" // Default to static/db
+
+		if p.Avatar != nil { attr.Avatar = *p.Avatar }
+		if p.Bio != nil { attr.Bio = *p.Bio }
+		attr.Interests = p.Interests
+		attr.Languages = p.Languages
+
+		if p.Location != nil {
+			if m, ok := p.Location.(map[string]interface{}); ok {
+				// Handle multiple key variations and types
+				lat := parseCoord(m["lat"])
+				if lat == 0 {
+					lat = parseCoord(m["latitude"])
+				}
+				lon := parseCoord(m["lon"])
+				if lon == 0 {
+					lon = parseCoord(m["longitude"])
+				}
+
+				attr.Location.Lat = lat
+				attr.Location.Lon = lon
+				
+				// Fallback to separate columns if map-based lat/lon failed
+				if attr.Location.Lat == 0 && p.Latitude != nil {
+					attr.Location.Lat = *p.Latitude
+				}
+				if attr.Location.Lon == 0 && p.Longitude != nil {
+					attr.Location.Lon = *p.Longitude
+				}
+
+				if attr.Location.Lat != 0 || attr.Location.Lon != 0 {
+					log.Printf("Supabase: Successfully mapped location for %s: %+v", clerkID, attr.Location)
+				} else {
+					log.Printf("Supabase WARNING: Location found for %s but keys (lat/lon/latitude/longitude) are zero or invalid. Raw: %+v", clerkID, m)
+				}
+			} else if s, ok := p.Location.(string); ok {
+				attr.RawLocation = strings.TrimSpace(s)
+			} else {
+				log.Printf("Supabase WARNING: Location field for %s is not a JSON object or string, got type: %T", clerkID, p.Location)
+			}
+		}
+		if attr.Location.Lat != 0 || attr.Location.Lon != 0 {
+			attr.GeoSource = "resolved"
+		}
+		results[clerkID] = attr
+	}
+
+	// STEP 4: Trigger Parallel Geocode for RawLocations (Non-blocking)
+	for _, attr := range results {
+		if attr.RawLocation != "" && attr.Location.Lat == 0 && attr.Location.Lon == 0 {
+			// Trigger geocoding but DON'T wait
+			r.GeocodeGeoapify(ctx, attr.RawLocation)
+			attr.GeoSource = "background_pending"
+		}
+	}
+
+	log.Printf("TIMER: FetchProfilesBatch TOTAL took: %v", time.Since(t1))
+	return results, nil
+}

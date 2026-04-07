@@ -1,4 +1,5 @@
-import { SoloSession, StaticAttributes } from "@kovari/types";
+import { SoloSession } from "@kovari/types";
+import { getSharedMatchingConfig } from "./config-loader";
 
 // --- 1. DATA TYPE DEFINITIONS ---
 
@@ -172,17 +173,8 @@ export const calculateFinalCompatibilityScore = async (
   useML: boolean = true,
   providedMLScore?: number | null
 ) => {
-  const baseWeights = {
-    destination: 0.25,
-    dateOverlap: 0.2,
-    budget: 0.2,
-    interests: 0.1,
-    age: 0.1,
-    personality: 0.05,
-    locationOrigin: 0.05,
-    lifestyle: 0.03,
-    religion: 0.02,
-  };
+  const config = getSharedMatchingConfig();
+  const baseWeights = config.soloWeights;
 
   const weights = filterBoost ? calculateDynamicWeights(baseWeights, filterBoost) : baseWeights;
   const uA = user.static_attributes || ({} as any);
@@ -202,10 +194,13 @@ export const calculateFinalCompatibilityScore = async (
 
   const ruleBasedScore = Object.entries(breakdown).reduce((sum, [key, score]) => {
     const weightKey = key.replace("Score", "") as keyof typeof weights;
-    return sum + score * (weights[weightKey] || 0);
+    // Map dateOverlap to dates for consistency with Go/JSON
+    const finalKey = weightKey === "dateOverlap" ? "dates" : weightKey;
+    return sum + score * (weights[finalKey] || 0);
   }, 0);
 
   let finalScore = ruleBasedScore;
+  const mlBlend = config.mlBlend.solo;
   let mlScore = providedMLScore ?? undefined;
 
   if (useML && mlScore === undefined) {
@@ -220,15 +215,16 @@ export const calculateFinalCompatibilityScore = async (
 
   // Use ML score only if it's a valid number
   if (typeof mlScore === "number" && !isNaN(mlScore)) {
-    finalScore = mlScore * 0.6 + ruleBasedScore * 0.4;
+    finalScore = mlScore * mlBlend + ruleBasedScore * (1 - mlBlend);
   } else {
     // If ML is missing/null, use the rule-based score exclusively
     finalScore = ruleBasedScore;
   }
 
-  // Final safety check for serialization
+  // Final safety check for serialization + rounding to 3 decimals
+  finalScore = Math.round(finalScore * 1000) / 1000;
   if (isNaN(finalScore) || !isFinite(finalScore)) {
-    finalScore = ruleBasedScore || 0.5;
+    finalScore = Math.round((ruleBasedScore || 0.5) * 1000) / 1000;
   }
 
   return {
