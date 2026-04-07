@@ -76,6 +76,8 @@ export interface SoloSession {
   endDate: string;
   mode: string;
   interests?: string[];
+  location?: Coordinates | null;
+  geoSource?: string;
   static_attributes?: StaticAttributes; // Optional now - only for existing sessions
 }
 
