@@ -10,7 +10,7 @@ import { SoloSession, StaticAttributes } from "@kovari/types";
 import { redis, ensureRedisConnection  } from "@kovari/api";
 import { getSetting } from "@kovari/utils";
 import * as Sentry from "@sentry/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 // Mock user data for testing
 const mockUsers = {
@@ -310,8 +310,8 @@ const mockUsers = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
       return NextResponse.json(
         { message: "Unauthorized", error: "UNAUTHORIZED" },
         { status: 401 },
@@ -331,7 +331,8 @@ export async function POST(request: NextRequest) {
     const { userId, destinationName, budget, startDate, endDate, destination } = body;
 
     // Prevent user-id spoofing; session can only be created for caller.
-    if (!userId || userId !== clerkUserId) {
+    // Allow either the Web Clerk ID or Mobile Supabase ID
+    if (!userId || (userId !== authUser.clerkUserId && userId !== authUser.id)) {
       return NextResponse.json(
         { message: "Forbidden", error: "FORBIDDEN" },
         { status: 403 },
@@ -350,12 +351,15 @@ export async function POST(request: NextRequest) {
          if (destination.name) {
              finalDestinationName = destination.name;
          }
-    } else {
+    } else if (destinationName && destinationName.trim() !== '') {
          // Fallback to geocoding if explicit coords not provided
          destinationCoords = await getCoordinatesForLocation(destinationName);
+    } else {
+         // Global Match Allowed
+         destinationCoords = { lat: 0, lon: 0 };
     }
 
-    if (!destinationCoords) {
+    if (!destinationCoords && destinationName) {
       return NextResponse.json(
         { message: `Could not find location: ${destinationName}` },
         { status: 400 },
@@ -401,10 +405,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Construct the session object - ONLY dynamic attributes in Redis
     const sessionData: SoloSession = {
       userId,
-      destination: { name: finalDestinationName, ...destinationCoords },
+      destination: { 
+        name: finalDestinationName || "Global", 
+        lat: destinationCoords!.lat, 
+        lon: destinationCoords!.lon 
+      },
       budget: Number(budget),
       startDate,
       endDate,

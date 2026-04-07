@@ -48,3 +48,26 @@ yarn-error.log*
 .env.sentry-build-plugin
 
 .vercel
+ 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+
+# Go
+/bin/
+/out/
+*.test
+*.prof
+
+# Logs
+*.log
+

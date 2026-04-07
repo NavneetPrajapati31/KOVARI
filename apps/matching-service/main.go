@@ -241,7 +241,9 @@ func main() {
 
 
 		if userSession.StaticAttributes == nil {
-			log.Printf("Error: Requester %s has no profile in Supabase", req.UserId)
+			log.Printf("🔥 CRITICAL ERROR: Requester %s has no profile in Supabase!", req.UserId)
+			log.Printf("DEBUG PROFILE TRACE: userSession.UserId=%s, userSession.GeoSource=%s", userSession.UserId, userSession.GeoSource)
+			log.Printf("HINT: If this user was just created, ensure their Supabase UUID exists in the profiles table and FetchProfilesBatch resolved it.")
 			http.Error(w, "Requester profile missing", 400)
 			return
 		}
@@ -284,6 +286,9 @@ func main() {
 			Score            float64            `json:"score"`
 			Breakdown        matching.Breakdown `json:"breakdown"`
 			BudgetDifference string             `json:"budgetDifference"`
+			StartDate        string             `json:"startDate"`
+			EndDate          string             `json:"endDate"`
+			Budget           float64            `json:"budget"`
 		}
 
 		finalMatches := make([]ScoredMatch, 0, len(validCandidates))
@@ -307,10 +312,22 @@ func main() {
 					Bio:         match.StaticAttributes.Bio,
 					Avatar:      match.StaticAttributes.Avatar,
 					Budget:      match.Budget,
+					Location:    match.StaticAttributes.RawLocation,
+					Smoking:     match.StaticAttributes.Smoking,
+					Drinking:    match.StaticAttributes.Drinking,
+					Interests:   match.StaticAttributes.Interests,
+					Languages:   match.StaticAttributes.Languages,
+					Nationality: match.StaticAttributes.Nationality,
+					Religion:    match.StaticAttributes.Religion,
+					Profession:  match.StaticAttributes.Profession,
+					FoodPreference: match.StaticAttributes.FoodPreference,
 				},
 				Score:            result.Score,
 				Breakdown:        result.Breakdown,
 				BudgetDifference: result.BudgetDifference,
+				StartDate:        match.StartDate,
+				EndDate:          match.EndDate,
+				Budget:           match.Budget,
 			})
 		}
 

@@ -34,6 +34,7 @@ type StaticAttributes struct {
 	Bio         string      `json:"bio,omitempty"`
 	RawLocation string      `json:"raw_location,omitempty"`
 	GeoSource   string      `json:"geoSource,omitempty"`
+	FoodPreference string   `json:"foodPreference,omitempty"`
 }
 
 type SoloSession struct {
@@ -86,12 +87,21 @@ type GroupMatchResult struct {
 }
 
 type UserPreview struct {
-	UserId      string  `json:"userId"`
-	Name        string  `json:"name"`
-	Age         int     `json:"age"`
-	Gender      string  `json:"gender"`
-	Personality string  `json:"personality"`
-	Bio         string  `json:"bio"`
-	Avatar      string  `json:"avatar"`
-	Budget      float64 `json:"budget"`
+	UserId      string   `json:"userId"`
+	Name        string   `json:"name"`
+	Age         int      `json:"age"`
+	Gender      string   `json:"gender"`
+	Personality string   `json:"personality"`
+	Bio         string   `json:"bio"`
+	Avatar      string   `json:"avatar"`
+	Budget      float64  `json:"budget"`
+	Location    string   `json:"location"`
+	Smoking     string   `json:"smoking"`
+	Drinking    string   `json:"drinking"`
+	Interests   []string `json:"interests"`
+	Languages   []string `json:"languages"`
+	Nationality string   `json:"nationality"`
+	Religion    string   `json:"religion"`
+	Profession  string   `json:"profession"`
+	FoodPreference string `json:"foodPreference"`
 }

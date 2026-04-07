@@ -171,12 +171,14 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
             _hideOverlay();
             _focusNode.unfocus();
 
-            // 2. Fetch full details if needed (match web handleSelect)
+            if (!mounted) return;
             setState(() => _isLoading = true);
             final service = LocationService();
             final details = await service.getLocationDetails(
               suggestion.placeId,
             );
+            
+            if (!mounted) return;
             setState(() => _isLoading = false);
 
             if (details != null) {

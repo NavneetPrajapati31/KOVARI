@@ -164,10 +164,11 @@ type profileResponse struct {
 	Nationality  *string     `json:"nationality"`
 	Profession   *string     `json:"job"`
 	Avatar       *string     `json:"profile_photo"`
-	Bio          *string     `json:"bio"`
+	Bio            *string     `json:"bio"`
+	FoodPreference *string     `json:"food_preference"`
 	// Alternate coordinate columns in case 'location' is just a string
-	Latitude     *float64    `json:"latitude"`
-	Longitude    *float64    `json:"longitude"`
+	Latitude       *float64    `json:"latitude"`
+	Longitude      *float64    `json:"longitude"`
 }
 
 func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserIds []string, preResolved map[string]models.Coordinates) (map[string]*models.StaticAttributes, error) {
@@ -175,19 +176,15 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 		return make(map[string]*models.StaticAttributes), nil
 	}
 
-	// OPTIMIZED: Single query with inner join and minimal fields
+	var uuidList []string
+	var clerkIdList []string
 	t1 := time.Now()
-	idsParam := fmt.Sprintf("(\"%s\")", strings.Join(clerkUserIds, "\",\"")) 
-	profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,users!inner(clerk_user_id)&users.clerk_user_id=in.%s", r.url, idsParam)
-	
-	req, _ := http.NewRequestWithContext(ctx, "GET", profilesURL, nil)
-	req.Header.Set("apikey", r.anonKey)
-	req.Header.Set("Authorization", "Bearer "+r.anonKey)
-	
-	resp, err := r.client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		log.Printf("Supabase Optimization Failed: %v", err)
-		return nil, fmt.Errorf("profile lookup failed")
+	for _, id := range clerkUserIds {
+		if len(id) == 36 && strings.Count(id, "-") == 4 {
+			uuidList = append(uuidList, id)
+		} else {
+			clerkIdList = append(clerkIdList, id)
+		}
 	}
 
 	var rawProfiles []struct {
@@ -196,24 +193,71 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 			ClerkUserId string `json:"clerk_user_id"`
 		} `json:"users"`
 	}
-	json.NewDecoder(resp.Body).Decode(&rawProfiles)
-	resp.Body.Close()
-	// Removed redundant timer here - captured at bottom of function
 
+	// Fetch Clerk profiles
+	if len(clerkIdList) > 0 {
+		idsParam := fmt.Sprintf("(\"%s\")", strings.Join(clerkIdList, "\",\"")) 
+		profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,food_preference,users!inner(clerk_user_id)&users.clerk_user_id=in.%s", r.url, idsParam)
+		
+		req, _ := http.NewRequestWithContext(ctx, "GET", profilesURL, nil)
+		req.Header.Set("apikey", r.anonKey)
+		req.Header.Set("Authorization", "Bearer "+r.anonKey)
+		
+		resp, err := r.client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var chunk []struct {
+				profileResponse
+				Users struct {
+					ClerkUserId string `json:"clerk_user_id"`
+				} `json:"users"`
+			}
+			json.NewDecoder(resp.Body).Decode(&chunk)
+			rawProfiles = append(rawProfiles, chunk...)
+			resp.Body.Close()
+		} else {
+			log.Printf("Supabase ClerkID Fetch Failed: %v", err)
+		}
+	}
 
-
+	// Fetch UUID profiles
+	if len(uuidList) > 0 {
+		idsParam := fmt.Sprintf("(\"%s\")", strings.Join(uuidList, "\",\"")) 
+		profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,food_preference,users(clerk_user_id)&user_id=in.%s", r.url, idsParam)
+		
+		req, _ := http.NewRequestWithContext(ctx, "GET", profilesURL, nil)
+		req.Header.Set("apikey", r.anonKey)
+		req.Header.Set("Authorization", "Bearer "+r.anonKey)
+		
+		resp, err := r.client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var chunk []struct {
+				profileResponse
+				Users struct {
+					ClerkUserId string `json:"clerk_user_id"`
+				} `json:"users"`
+			}
+			json.NewDecoder(resp.Body).Decode(&chunk)
+			rawProfiles = append(rawProfiles, chunk...)
+			resp.Body.Close()
+		} else {
+			log.Printf("Supabase UUID Fetch Failed: %v", err)
+		}
+	}
 	results := make(map[string]*models.StaticAttributes)
 	for _, raw := range rawProfiles {
 		p := raw.profileResponse
 		clerkID := raw.Users.ClerkUserId
-
+		uuid := p.UserID
 
 		attr := &models.StaticAttributes{
 			ClerkUserId: clerkID,
 		}
 
 		// Inject pre-resolved coordinates from session if available (High Priority)
-		if coords, ok := preResolved[clerkID]; ok && (coords.Lat != 0 || coords.Lon != 0) {
+		if coords, ok := preResolved[uuid]; ok && (coords.Lat != 0 || coords.Lon != 0) {
+			attr.Location = coords
+			log.Printf("Supabase: Using pre-resolved coordinates for %s: %+v", uuid, coords)
+		} else if coords, ok := preResolved[clerkID]; ok && (coords.Lat != 0 || coords.Lon != 0) {
 			attr.Location = coords
 			log.Printf("Supabase: Using pre-resolved coordinates for %s: %+v", clerkID, coords)
 		}
@@ -231,6 +275,7 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 
 		if p.Avatar != nil { attr.Avatar = *p.Avatar }
 		if p.Bio != nil { attr.Bio = *p.Bio }
+		if p.FoodPreference != nil { attr.FoodPreference = *p.FoodPreference }
 		attr.Interests = p.Interests
 		attr.Languages = p.Languages
 
@@ -258,20 +303,27 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 				}
 
 				if attr.Location.Lat != 0 || attr.Location.Lon != 0 {
-					log.Printf("Supabase: Successfully mapped location for %s: %+v", clerkID, attr.Location)
+					log.Printf("Supabase: Successfully mapped location for %s: %+v", uuid, attr.Location)
 				} else {
-					log.Printf("Supabase WARNING: Location found for %s but keys (lat/lon/latitude/longitude) are zero or invalid. Raw: %+v", clerkID, m)
+					log.Printf("Supabase WARNING: Location found for %s but keys (lat/lon/latitude/longitude) are zero or invalid. Raw: %+v", uuid, m)
 				}
 			} else if s, ok := p.Location.(string); ok {
 				attr.RawLocation = strings.TrimSpace(s)
 			} else {
-				log.Printf("Supabase WARNING: Location field for %s is not a JSON object or string, got type: %T", clerkID, p.Location)
+				log.Printf("Supabase WARNING: Location field for %s is not a JSON object or string, got type: %T", uuid, p.Location)
 			}
 		}
 		if attr.Location.Lat != 0 || attr.Location.Lon != 0 {
 			attr.GeoSource = "resolved"
 		}
-		results[clerkID] = attr
+		
+		// Map under both UUID and ClerkID (if exists) so any backend module can resolve it seamlessly
+		if uuid != "" {
+			results[uuid] = attr
+		}
+		if clerkID != "" {
+			results[clerkID] = attr
+		}
 	}
 
 	// STEP 4: Trigger Parallel Geocode for RawLocations (Non-blocking)

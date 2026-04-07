@@ -3,7 +3,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../shared/models/kovari_user.dart';
 import '../models/explore_state.dart';
 import '../services/explore_service.dart';
-
+import '../services/match_service.dart';
 class ExploreNotifier extends Notifier<ExploreState> {
   @override
   ExploreState build() {
@@ -11,6 +11,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
   }
 
   ExploreService get _service => ref.read(exploreServiceProvider);
+  MatchService get _matchService => ref.read(matchServiceProvider);
   KovariUser? get _user => ref.watch(authStateProvider);
 
   String? get _userId => _user?.id;
@@ -32,28 +33,54 @@ class ExploreNotifier extends Notifier<ExploreState> {
     );
   }
 
-  Future<void> performSearch() async {
-    final userId = _userId ?? 'dummy-user-id'; // Fallback for testing
+  Future<void> performSearch({bool isRefresh = false, bool isLoadMore = false}) async {
+    final userId = _userId ?? 'dummy-user-id';
 
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-      matches: [],
-      currentIndex: 0,
-    );
+    if (!isRefresh && !isLoadMore) {
+      if (state.lastFetchTime != null && state.searchData.travelMode == TravelMode.solo) {
+        if (DateTime.now().difference(state.lastFetchTime!).inSeconds < 30) {
+          return; // Cache valid
+        }
+      }
+    }
+
+    if (isLoadMore) {
+      if (!state.hasMore || state.searchData.travelMode != TravelMode.solo) return;
+    } else {
+      state = state.copyWith(
+        isLoading: true,
+        error: null,
+        matches: [],
+        currentIndex: 0,
+        page: 1,
+        hasMore: true,
+      );
+    }
 
     try {
-      List<dynamic> matches = [];
+      List<dynamic> matches = List.from(state.matches);
+      bool newHasMore = state.hasMore;
+      int newPage = state.page;
+
       if (state.searchData.travelMode == TravelMode.solo) {
         try {
-          await _service.createSession(state.searchData, userId);
-          matches = await _service.matchSolo(userId, state.filters);
-        } catch (e) {
-          // Silent fail for testing, fallback to dummy data below
-        }
+          if (!isLoadMore) {
+            await _service.createSession(state.searchData, userId);
+          }
+          final fetchPage = isLoadMore ? state.page + 1 : 1;
+          final response = await _matchService.getMatches(page: fetchPage);
+          final fetchedMatches = response.matches.toList();
+          fetchedMatches.sort((a, b) => b.score.compareTo(a.score));
 
-        if (matches.isEmpty) {
-          matches = _getDummySoloMatches();
+          if (isLoadMore) {
+            matches.addAll(fetchedMatches);
+          } else {
+            matches = fetchedMatches;
+          }
+          newHasMore = response.hasMore;
+          newPage = fetchPage;
+        } catch (e) {
+          print('Match fetching error: $e');
         }
       } else {
         try {
@@ -62,15 +89,20 @@ class ExploreNotifier extends Notifier<ExploreState> {
             state.searchData,
             state.filters,
           );
-        } catch (e) {
-          // Silent fail for testing, fallback to dummy data below
-        }
+        } catch (e) {}
 
         if (matches.isEmpty) {
           matches = _getDummyGroupMatches();
         }
       }
-      state = state.copyWith(matches: matches, hasSearched: true);
+      
+      state = state.copyWith(
+        matches: matches,
+        hasSearched: true,
+        page: newPage,
+        hasMore: newHasMore,
+        lastFetchTime: isLoadMore ? state.lastFetchTime : DateTime.now(),
+      );
     } catch (e) {
       state = state.copyWith(error: e.toString());
     } finally {
@@ -78,80 +110,6 @@ class ExploreNotifier extends Notifier<ExploreState> {
     }
   }
 
-  List<dynamic> _getDummySoloMatches() {
-    return [
-      {
-        'user': {
-          'id': 'dummy-solo-1',
-          'full_name': 'Aarav Sharma',
-          'age': 24,
-          'avatar':
-              'https://images.pexels.com/photos/15393590/pexels-photo-15393590.jpeg',
-          'bio':
-              'Adventure seeker and mountain lover. Looking for someone to join me on a trek to Spiti Valley!',
-          'gender': 'Male',
-          'nationality': 'Indian',
-          'profession': 'Software Engineer',
-          'personality': 'Extrovert',
-          'religion': 'Hindu',
-          'interests': ['Hiking', 'Photography', 'Coding'],
-          'foodPreference': 'Vegetarian',
-          'smoking': 'No',
-          'drinking': 'Occasionally',
-        },
-        'destination': 'Spiti Valley, Himachal Pradesh',
-        'start_date': '2026-06-15',
-        'end_date': '2026-06-25',
-        'budget': 25000,
-      },
-      {
-        'user': {
-          'id': 'dummy-solo-2',
-          'full_name': 'Ishita Kapur',
-          'age': 22,
-          'avatar': 'https://i.pravatar.cc/300?u=ishita',
-          'bio':
-              'Beach bum and sunset lover. Planning a relaxing trip to South Goa. Join me for some fish thali and scooty rides!',
-          'gender': 'Female',
-          'nationality': 'Indian',
-          'profession': 'Graphic Designer',
-          'personality': 'Ambivert',
-          'religion': 'Sikh',
-          'interests': ['Painting', 'Yoga', 'Cooking'],
-          'foodPreference': 'Non-Vegetarian',
-          'smoking': 'No',
-          'drinking': 'No',
-        },
-        'destination': 'South Goa, Goa',
-        'start_date': '2026-05-10',
-        'end_date': '2026-05-17',
-        'budget': 15000,
-      },
-      {
-        'user': {
-          'id': 'dummy-solo-3',
-          'full_name': 'Kabir Varma',
-          'age': 27,
-          'avatar': 'https://i.pravatar.cc/300?u=kabir',
-          'bio':
-              'History buff and architecture enthusiast. Exploring the ruins of Hampi. Join me for a journey through time!',
-          'gender': 'Male',
-          'nationality': 'Indian',
-          'profession': 'Architect',
-          'personality': 'Introvert',
-          'religion': 'Atheist',
-          'interests': ['Architecture', 'Reading', 'Cycling'],
-          'foodPreference': 'Anything',
-          'smoking': 'Occasionally',
-          'drinking': 'Yes',
-        },
-        'destination': 'Hampi, Karnataka',
-        'start_date': '2026-08-20',
-        'end_date': '2026-08-25',
-        'budget': 18000,
-      },
-    ];
-  }
 
   List<dynamic> _getDummyGroupMatches() {
     return [
@@ -197,9 +155,19 @@ class ExploreNotifier extends Notifier<ExploreState> {
   void nextMatch() {
     if (state.currentIndex < state.matches.length - 1) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
+      
+      if (state.searchData.travelMode == TravelMode.solo &&
+          state.currentIndex >= state.matches.length - 3 &&
+          state.hasMore) {
+        performSearch(isLoadMore: true);
+      }
     } else {
-      // Clear matches or show "no more results"
-      state = state.copyWith(matches: [], currentIndex: 0);
+      if (state.searchData.travelMode == TravelMode.solo && state.hasMore) {
+        performSearch(isLoadMore: true);
+      } else {
+        // Clear matches or show "no more results"
+        state = state.copyWith(matches: [], currentIndex: 0);
+      }
     }
   }
 

@@ -20,7 +20,9 @@ class ExploreService {
 
     if (searchData.destinationDetails != null) {
       payload['destination'] = {
-        'name': searchData.destinationDetails!['formatted'] ?? searchData.destination,
+        'name':
+            searchData.destinationDetails!['formatted'] ??
+            searchData.destination,
         'lat': searchData.destinationDetails!['lat'],
         'lon': searchData.destinationDetails!['lon'],
         'city': searchData.destinationDetails!['city'],
@@ -51,11 +53,25 @@ class ExploreService {
       queryParams['languages'] = filters.languages.join(',');
     }
 
-    final response = await _apiClient.get(ApiEndpoints.matchSolo, queryParameters: queryParams);
-    return response.data as List<dynamic>;
+    final response = await _apiClient.get(
+      ApiEndpoints.matchSolo,
+      queryParameters: queryParams,
+    );
+
+    if (response.data is List) {
+      return response.data as List<dynamic>;
+    } else if (response.data is Map && response.data['matches'] != null) {
+      return response.data['matches'] as List<dynamic>;
+    }
+
+    return [];
   }
 
-  Future<List<dynamic>> matchGroups(String userId, SearchData searchData, ExploreFilters filters) async {
+  Future<List<dynamic>> matchGroups(
+    String userId,
+    SearchData searchData,
+    ExploreFilters filters,
+  ) async {
     final payload = {
       'userId': userId,
       'destination': searchData.destination,
@@ -68,7 +84,9 @@ class ExploreService {
       'interests': filters.interests,
       'smoking': filters.smoking == 'Yes',
       'drinking': filters.drinking == 'Yes',
-      'nationality': filters.nationality != 'Any' ? filters.nationality : 'Unknown',
+      'nationality': filters.nationality != 'Any'
+          ? filters.nationality
+          : 'Unknown',
     };
 
     if (searchData.destinationDetails != null) {
@@ -76,7 +94,10 @@ class ExploreService {
       payload['lon'] = searchData.destinationDetails!['lon'];
     }
 
-    final response = await _apiClient.post(ApiEndpoints.matchGroups, data: payload);
+    final response = await _apiClient.post(
+      ApiEndpoints.matchGroups,
+      data: payload,
+    );
     return (response.data['groups'] ?? []) as List<dynamic>;
   }
 
@@ -87,10 +108,7 @@ class ExploreService {
     required String destinationId,
     required bool isSolo,
   }) async {
-    final payload = {
-      'fromUserId': fromUserId,
-      'destinationId': destinationId,
-    };
+    final payload = {'fromUserId': fromUserId, 'destinationId': destinationId};
 
     if (isSolo) {
       payload['toUserId'] = toUserId!;
@@ -99,7 +117,9 @@ class ExploreService {
     }
 
     await _apiClient.post(
-      isSolo ? ApiEndpoints.exploreInterest : ApiEndpoints.exploreInterest, // Adjust if different
+      isSolo
+          ? ApiEndpoints.exploreInterest
+          : ApiEndpoints.exploreInterest, // Adjust if different
       data: payload,
     );
   }
@@ -121,7 +141,7 @@ class ExploreService {
       payload['skippedUserId'] = skippedUserId!;
     } else {
       // payload['skippedGroupId'] = skippedGroupId!; // Adjust if backend expects this
-      payload['toGroupId'] = skippedGroupId!; 
+      payload['toGroupId'] = skippedGroupId!;
     }
 
     await _apiClient.post(ApiEndpoints.exploreSkip, data: payload);

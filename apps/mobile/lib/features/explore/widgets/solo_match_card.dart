@@ -1,30 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
+import '../models/match_user.dart';
 import '../providers/explore_provider.dart';
 
 class SoloMatchCard extends ConsumerWidget {
-  final Map<String, dynamic> match;
+  final MatchUser match;
 
   const SoloMatchCard({super.key, required this.match});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = match['user'] ?? {};
+    final Map<String, dynamic> user = Map<String, dynamic>.from(
+      match.raw['user'] ?? {},
+    );
     final String name = user['full_name'] ?? user['name'] ?? 'Traveler';
-    final int? age = user['age'];
-    final String? avatar = user['avatar'];
+    final int? age = match.age > 0 ? match.age : null;
     final String? bio = user['bio'];
 
-    final DateTime startDate = DateTime.parse(match['start_date'].toString());
-    final DateTime endDate = DateTime.parse(match['end_date'].toString());
-    final String dateRange =
-        "${DateFormat('MMM d').format(startDate)} - ${DateFormat('MMM d, yyyy').format(endDate)}";
-    final int tripLength = endDate.difference(startDate).inDays + 1;
+    final String? startStr = match.raw['start_date']?.toString();
+    final String? endStr = match.raw['end_date']?.toString();
+    final DateTime? startDate = startStr != null
+        ? DateTime.tryParse(startStr)
+        : null;
+    final DateTime? endDate = endStr != null ? DateTime.tryParse(endStr) : null;
+
+    String? dateRange;
+    int? tripLength;
+    if (startDate != null && endDate != null) {
+      dateRange =
+          "${DateFormat('MMM d').format(startDate)} - ${DateFormat('MMM d, yyyy').format(endDate)}";
+      tripLength = endDate.difference(startDate).inDays + 1;
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -57,28 +69,23 @@ class SoloMatchCard extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(16),
                             ),
                             clipBehavior: Clip.antiAlias,
-                            child: avatar != null
-                                ? Image.network(
-                                    avatar,
+                            child: match.image.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: match.image,
                                     fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) => Center(
-                                          child: Icon(
-                                            Icons.person,
-                                            size: 48,
-                                            color: AppColors.mutedForeground
-                                                .withValues(alpha: 0.5),
-                                          ),
+                                    placeholder: (context, url) => Container(
+                                      color: AppColors.secondary,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
                                         ),
-                                  )
-                                : Center(
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 40,
-                                      color: AppColors.mutedForeground
-                                          .withValues(alpha: 0.5),
+                                      ),
                                     ),
-                                  ),
+                                    errorWidget:
+                                        (context, url, dynamic error) =>
+                                            _buildInitialsFallback(match.name),
+                                  )
+                                : _buildInitialsFallback(match.name),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -86,14 +93,16 @@ class SoloMatchCard extends ConsumerWidget {
                           age != null ? "$name, $age" : name,
                           style: AppTextStyles.h3,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          bio ?? 'No bio provided.',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.mutedForeground,
-                            fontStyle: bio == null ? FontStyle.italic : null,
+
+                        if (bio != null && bio.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            bio,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.mutedForeground,
+                            ),
                           ),
-                        ),
+                        ],
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -114,22 +123,23 @@ class SoloMatchCard extends ConsumerWidget {
                         _buildPillList([
                           _PillData(
                             icon: Icons.location_on_outlined,
-                            label: match['destination'].toString().split(
-                              ',',
-                            )[0],
+                            label: match.location.split(',')[0],
                           ),
-                          _PillData(
-                            icon: Icons.calendar_today_outlined,
-                            label: dateRange,
-                          ),
-                          _PillData(
-                            icon: Icons.timelapse_outlined,
-                            label: "$tripLength days",
-                          ),
-                          _PillData(
-                            icon: Icons.currency_rupee,
-                            label: match['budget'].toString(),
-                          ),
+                          if (dateRange != null)
+                            _PillData(
+                              icon: Icons.calendar_today_outlined,
+                              label: dateRange,
+                            ),
+                          if (tripLength != null)
+                            _PillData(
+                              icon: Icons.timelapse_outlined,
+                              label: "$tripLength days",
+                            ),
+                          if (match.raw['budget'] != null)
+                            _PillData(
+                              icon: Icons.currency_rupee,
+                              label: match.raw['budget'].toString(),
+                            ),
                         ]),
                         const SizedBox(height: 24),
 
@@ -175,6 +185,7 @@ class SoloMatchCard extends ConsumerWidget {
                         const SizedBox(height: 24),
 
                         if (user['interests'] != null &&
+                            user['interests'] is List &&
                             (user['interests'] as List).isNotEmpty) ...[
                           _buildSectionTitle('Interests'),
                           _buildPillList(
@@ -211,12 +222,28 @@ class SoloMatchCard extends ConsumerWidget {
                     endIndent: 20,
                     color: AppColors.border,
                   ),
-                  _buildActions(ref, user['userId'] ?? ''),
+                  _buildActions(ref, match.id),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInitialsFallback(String name) {
+    if (name.isEmpty) name = '?';
+    final initial = name[0].toUpperCase();
+    return Container(
+      color: AppColors.primaryLight,
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: AppTextStyles.h1.copyWith(
+          color: AppColors.primary,
+          fontSize: 64,
+        ),
       ),
     );
   }

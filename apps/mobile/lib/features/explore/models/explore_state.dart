@@ -111,6 +111,9 @@ class ExploreState {
   final bool isLoading;
   final String? error;
   final bool hasSearched;
+  final DateTime? lastFetchTime;
+  final int page;
+  final bool hasMore;
 
   ExploreState({
     required this.searchData,
@@ -120,6 +123,9 @@ class ExploreState {
     required this.isLoading,
     this.error,
     required this.hasSearched,
+    this.lastFetchTime,
+    required this.page,
+    required this.hasMore,
   });
 
   factory ExploreState.initial() {
@@ -136,6 +142,9 @@ class ExploreState {
       currentIndex: 0,
       isLoading: false,
       hasSearched: false,
+      lastFetchTime: null,
+      page: 1,
+      hasMore: true,
     );
   }
 
@@ -147,6 +156,9 @@ class ExploreState {
     bool? isLoading,
     String? error,
     bool? hasSearched,
+    DateTime? lastFetchTime,
+    int? page,
+    bool? hasMore,
   }) {
     return ExploreState(
       searchData: searchData ?? this.searchData,
@@ -156,6 +168,9 @@ class ExploreState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       hasSearched: hasSearched ?? this.hasSearched,
+      lastFetchTime: lastFetchTime ?? this.lastFetchTime,
+      page: page ?? this.page,
+      hasMore: hasMore ?? this.hasMore,
     );
   }
 }

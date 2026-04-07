@@ -158,6 +158,8 @@ export async function POST(req: NextRequest) {
   // Remove keys that are not in the profiles table schema
   // @ts-ignore
   delete profileData.lastName;
+  // @ts-ignore
+  delete profileData.firstName;
 
   console.info("UPSERT_PROFILE_DATA", {
     userId: internalUserId,

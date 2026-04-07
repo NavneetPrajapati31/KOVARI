@@ -6,6 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../providers/explore_provider.dart';
 import '../models/explore_state.dart';
 import '../widgets/explore_filters_sheet.dart';
+import 'package:shimmer/shimmer.dart';
 import '../widgets/solo_match_card.dart';
 import '../widgets/group_match_card.dart';
 
@@ -17,12 +18,13 @@ class ExploreScreen extends ConsumerStatefulWidget {
 }
 
 class _ExploreScreenState extends ConsumerState<ExploreScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -45,8 +47,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(exploreProvider.notifier).performSearch(isRefresh: true);
+    }
   }
 
   void _showFilters() {
@@ -163,12 +173,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   }
 
   Widget _buildBody(ExploreState state) {
-    if (state.isLoading) {
-      return const Center(
+    if (state.isLoading && state.matches.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 3),
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Shimmer.fromColors(
+            baseColor: AppColors.card,
+            highlightColor: AppColors.background,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+          ),
         ),
       );
     }
@@ -220,11 +239,24 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     }
 
     final match = state.matches[state.currentIndex];
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: state.searchData.travelMode == TravelMode.solo
-          ? SoloMatchCard(match: match)
-          : GroupMatchCard(group: match),
+    return RefreshIndicator(
+      onRefresh: () => ref.read(exploreProvider.notifier).performSearch(),
+      color: AppColors.primary,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.7, // Fixed height for the card
+              child: state.searchData.travelMode == TravelMode.solo
+                  ? SoloMatchCard(match: match)
+                  : GroupMatchCard(group: match),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -277,13 +309,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             ),
             const SizedBox(height: 24),
             Text(
-              'No matches found',
+              'No travelers found yet',
               style: AppTextStyles.h2,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
-              'Try adjusting your search criteria or dates to find more results.',
+              'Try adjusting your preferences or dates to find more companions.',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.mutedForeground,
               ),
