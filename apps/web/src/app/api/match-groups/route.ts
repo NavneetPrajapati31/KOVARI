@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { resolveUser } from "@/lib/auth/resolveUser";
 import { createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { detectClient } from "@/lib/api/clientDetection";
@@ -26,20 +27,18 @@ export async function POST(req: NextRequest) {
   // ⚡ TRUE LEGACY ISOLATION
   if (client === "web") {
     try {
-      const authUser = await getAuthenticatedUser(req);
-      if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const authResult = await resolveUser(req, { mode: 'protected' });
+      if (!authResult.ok || !authResult.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
       const body = await req.json();
       const { userId: reqUserId, ...payloadContext } = body;
 
-      const email = authUser.email;
-      const { data: dbUser } = await supabase.from("users").select("id").eq("email", email).single();
-      if (!dbUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+      const userId = authResult.user.userId;
 
       const goResponse = await fetch(`${GO_URL}/v1/match/group`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: dbUser.id, context: payloadContext }),
+        body: JSON.stringify({ userId, context: payloadContext }),
       });
 
       const rawGroups = await goResponse.json();
@@ -77,18 +76,17 @@ async function handleStandardMatchGroup(
   client: KovariClient
 ): Promise<NextResponse> {
   try {
-    const authUser = await getAuthenticatedUser(req);
-    if (!authUser) return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+    const authResult = await resolveUser(req, { mode: 'protected' });
+    if (!authResult.ok || !authResult.user) return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
 
     const body = await req.json();
     const { userId: reqUserId, ...payloadContext } = body;
-    const email = authUser.email;
-    const { data: dbUser } = await supabase.from("users").select("id").eq("email", email).single();
+    const userId = authResult.user.userId;
 
     const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/group`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: dbUser?.id, context: payloadContext }),
+      body: JSON.stringify({ userId, context: payloadContext }),
       requestId,
     });
 

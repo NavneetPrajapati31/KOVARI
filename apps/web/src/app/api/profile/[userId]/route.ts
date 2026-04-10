@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { resolveUser } from "@/lib/auth/resolveUser";
 import { createAdminSupabaseClient } from "@kovari/api";
 
 export async function GET(
@@ -156,60 +157,21 @@ export async function GET(
   let isOwnProfile = false;
 
   try {
-    const { userId: clerkUserId } = await auth();
-    console.log("[DEBUG] clerkUserId:", clerkUserId);
-
-    if (clerkUserId) {
-      const serverSupabase = createAdminSupabaseClient();
-
-      // Get current user's internal UUID from Clerk userId
-      const { data: currentUserRow, error: currentUserError } =
-        await serverSupabase
-          .from("users")
+    const authResult = await resolveUser(req, { mode: 'optional' });
+    
+    if (authResult.ok && authResult.user) {
+      const currentUserId = authResult.user.userId;
+      isOwnProfile = currentUserId === targetInternalUserId;
+      
+      if (!isOwnProfile) {
+        const { data: followData } = await supabase
+          .from("user_follows")
           .select("id")
-          .eq("clerk_user_id", clerkUserId)
-          .eq("isDeleted", false)
-          .single();
-
-      console.log("[DEBUG] currentUserRow.id (follower):", currentUserRow?.id);
-      console.log("[DEBUG] currentUserError:", currentUserError);
-
-      if (currentUserError || !currentUserRow) {
-        console.error("Error finding current user:", currentUserError);
-      } else {
-        // Always map the target userId param to internal UUID
-        let targetUserId = targetInternalUserId;
-        if (userId.length !== 36) {
-          // If not a UUID, assume it's a Clerk ID
-          const { data: targetUserRow } = await serverSupabase
-            .from("users")
-            .select("id")
-            .eq("clerk_user_id", userId)
-            .eq("isDeleted", false)
-            .single();
-          if (targetUserRow?.id) targetUserId = targetUserRow.id;
-        }
-        console.log("[DEBUG] targetUserId (following):", targetUserId);
-
-        // Debug log for currentUserRow.id and targetUserId
-        console.log("[DEBUG] currentUserRow.id:", currentUserRow.id);
-        console.log("[DEBUG] targetUserId:", targetUserId);
-
-        isOwnProfile = currentUserRow.id === targetUserId;
-        console.log("[DEBUG] isOwnProfile:", isOwnProfile);
-
-        if (!isOwnProfile) {
-          // Check if current user is following the target user
-          const { data: followData } = await serverSupabase
-            .from("user_follows")
-            .select("id")
-            .eq("follower_id", currentUserRow.id)
-            .eq("following_id", targetUserId)
-            .maybeSingle();
-          console.log("[DEBUG] followData:", followData);
-
-          isFollowing = !!followData;
-        }
+          .eq("follower_id", currentUserId)
+          .eq("following_id", targetInternalUserId)
+          .maybeSingle();
+        
+        isFollowing = !!followData;
       }
     }
   } catch (error) {

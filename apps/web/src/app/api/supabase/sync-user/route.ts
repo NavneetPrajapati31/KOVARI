@@ -46,109 +46,36 @@ export async function POST() {
 
     console.log(`[SYNC-USER] Starting identity resolution for Clerk user: ${userId} (${email})`);
 
-    // 2. Identity Resolution
-    // Attempt A: Match by Clerk ID
-    let { data: user, error: fetchError } = await supabase
+    // 2. Atomic Identity Sync (Consolidated Source of Truth)
+    // This RPC handles find-or-create atomically and handles concurrent requests.
+    // It also intentionally does NOT create a profile, enforcing onboarding-driven flow.
+    const { data: userIdFromRpc, error: syncError } = await supabase
+      .rpc("sync_user_identity", {
+        p_email: email,
+        p_name: (clerkUser.firstName || "") + " " + (clerkUser.lastName || ""),
+        p_clerk_id: userId,
+        p_google_id: null,
+        p_password_hash: null,
+      });
+
+    if (syncError || !userIdFromRpc) {
+      console.error("[api/supabase/sync-user] Atomic identity sync failed:", syncError);
+      return NextResponse.json({ error: "Identity resolution failed" }, { status: 500 });
+    }
+
+    // 3. Final Check (Optional: check for soft deletion)
+    const { data: user, error: fetchError } = await supabase
       .from("users")
-      .select('id, "isDeleted", clerk_user_id, name, email')
-      .eq("clerk_user_id", userId)
-      .maybeSingle();
+      .select('id, "isDeleted"')
+      .eq("id", userIdFromRpc)
+      .single();
 
-    // Attempt B: Link by email if not found by Clerk ID
-    if (!user && !fetchError) {
-      console.log(`[SYNC-USER] User ${email} not found by Clerk ID. Attempting case-insensitive email match...`);
-      const { data: matchedUser, error: matchError } = await supabase
-        .from("users")
-        .select('id, "isDeleted", clerk_user_id, name, email')
-        .ilike("email", email) 
-        .maybeSingle();
-
-      if (matchError) {
-        console.error("[api/supabase/sync-user] Email match error", matchError);
-      }
-
-      if (matchedUser) {
-        console.log(`[SYNC-USER] Match found for ${email} (ID: ${matchedUser.id}). Linking identities...`);
-        const { data: linkedUser, error: linkError } = await supabase
-          .from("users")
-          .update({ clerk_user_id: userId })
-          .eq("id", matchedUser.id)
-          .select('id, "isDeleted", clerk_user_id, name, email')
-          .single();
-
-        if (linkError) {
-          console.error("[api/supabase/sync-user] Link failed", linkError);
-          return NextResponse.json({ error: "Failed to link identity" }, { status: 500 });
-        }
-        user = linkedUser;
-      } else {
-        console.log(`[SYNC-USER] No existing user found for email: ${email}`);
-      }
+    if (fetchError || !user) {
+      console.error("[api/supabase/sync-user] Post-sync verification failed", fetchError);
+      return NextResponse.json({ error: "Failed to verify synced identity" }, { status: 500 });
     }
 
-    // Attempt C: Create new user if still not found
-    if (!user) {
-      console.log(`[SYNC-USER] Creating new user record for ${email}...`);
-      const { data: newUser, error: createError } = await supabase
-        .from("users")
-        .insert({ 
-          clerk_user_id: userId,
-          email: email,
-          name: (clerkUser.firstName || "") + " " + (clerkUser.lastName || "")
-        })
-        .select('id, "isDeleted", clerk_user_id, name, email')
-        .single();
-
-      if (createError) {
-        console.error("[api/supabase/sync-user] Creation failed", createError);
-        return NextResponse.json({ error: createError.message }, { status: 500 });
-      }
-      user = newUser;
-    }
-
-    if (fetchError) {
-      console.error("[api/supabase/sync-user] Fetch failed", fetchError);
-      return NextResponse.json({ error: fetchError.message }, { status: 500 });
-    }
-
-    if (!user) {
-      return NextResponse.json({ error: "Failed to resolve user" }, { status: 500 });
-    }
-
-    // 3. Clean up Profile Data (Avoid dummy emails and satisfy NOT NULL constraints)
-    // Generate a default username if profile is new or missing it
-    const defaultUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "") + "_" + Math.floor(Math.random() * 1000);
-    
-    // Check if profile exists first to avoid overwriting existing usernames
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("username, email, name")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    console.log(`[SYNC-USER] Profile check for ${user.id}: ${existingProfile ? "Existing" : "New"}`);
-
-    const profileUpsertData: any = {
-      user_id: user.id,
-      email: email, // Fix dummy email (OVERWRITE placeholder)
-      name: user.name || (clerkUser.firstName || "") + " " + (clerkUser.lastName || ""),
-    };
-
-    // We MUST include the username in the upsert if we want to satisfy the NOT NULL constraint on INSERT
-    // If it's an update, it's safer to include it too to handle any weirdness with Postgres upserts.
-    profileUpsertData.username = existingProfile?.username || defaultUsername;
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert(profileUpsertData, { onConflict: "user_id" });
-
-    if (profileError) {
-      console.error("[api/supabase/sync-user] Profile update failed", profileError);
-    } else {
-       console.log(`[SYNC-USER] Successfully synced profile for ${user.id} (${email})`);
-    }
-
-    if ((user as any)?.isDeleted === true) {
+    if (user.isDeleted === true) {
       return NextResponse.json(
         { error: "Account has been deleted" },
         { status: 403 },

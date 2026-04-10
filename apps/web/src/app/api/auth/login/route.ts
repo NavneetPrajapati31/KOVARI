@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
       }
 
-      const refreshToken = generateRefreshToken(user.id);
+      const refreshToken = generateRefreshToken(user.id, user.email);
       const tokenHash = hashToken(refreshToken);
-      const accessToken = generateAccessToken(user.id, tokenHash);
+      const accessToken = generateAccessToken(user.id, user.email, tokenHash);
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
@@ -83,9 +83,9 @@ async function handleStandardLogin(
       return formatErrorResponse("Invalid credentials", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
-    const refreshToken = generateRefreshToken(user.id);
+    const refreshToken = generateRefreshToken(user.id, user.email);
     const tokenHash = hashToken(refreshToken);
-    const accessToken = generateAccessToken(user.id, tokenHash);
+    const accessToken = generateAccessToken(user.id, user.email, tokenHash);
 
     const authData = {
       accessToken,

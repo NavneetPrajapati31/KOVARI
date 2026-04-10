@@ -855,8 +855,9 @@ export default function ProfileSetupForm() {
         return;
       }
 
-      // Step 3: Submit profile data to API
-      const profileRes = await fetch("/api/profile", {
+      // Step 3: Submit profile data to ATOMIC creation API
+      // This endpoint is the single source of truth for onboarding completion
+      const profileRes = await fetch("/api/profile/create", {
         method: "POST",
         body: JSON.stringify(profileData),
         headers: { "Content-Type": "application/json" },

@@ -35,34 +35,49 @@ export function PolicyGate({ children }: { children: React.ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
   const [needsAcceptance, setNeedsAcceptance] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [manuallyAccepted, setManuallyAccepted] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     if (!isLoaded || !isSignedIn) {
-      setLoading(false);
+      if (mounted) setLoading(false);
       return;
     }
     const check = async () => {
       try {
-        const res = await fetch("/api/settings/accept-policies", { cache: "no-store", headers: { 'Cache-Control': 'no-cache' } });
-        if (!res.ok) { setLoading(false); return; }
+        const res = await fetch("/api/settings/accept-policies", { 
+          cache: "no-store", 
+          headers: { 'Cache-Control': 'no-cache' } 
+        });
+        if (!res.ok) { 
+          if (mounted) setLoading(false);
+          return; 
+        }
         const data: PolicyData = await res.json();
         const outdated =
-          data.terms_version !== TERMS_VERSION ||
-          data.privacy_version !== PRIVACY_VERSION ||
-          data.guidelines_version !== GUIDELINES_VERSION;
-        setNeedsAcceptance(outdated);
+          (data.terms_version || "") !== TERMS_VERSION ||
+          (data.privacy_version || "") !== PRIVACY_VERSION ||
+          (data.guidelines_version || "") !== GUIDELINES_VERSION;
+        
+        if (mounted && !manuallyAccepted) {
+          setNeedsAcceptance(outdated);
+        }
       } catch {
-        // fail open — don't block on network errors
+        // fail open
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
     check();
-  }, [isLoaded, isSignedIn]);
+    return () => { mounted = false; };
+  }, [isLoaded, isSignedIn, manuallyAccepted]);
 
   const handleAccept = async () => {
     if (!checked || submitting) return;
     setSubmitting(true);
+    setManuallyAccepted(true);
+    setNeedsAcceptance(false);
+
     try {
       await fetch("/api/settings/accept-policies", {
         method: "POST",
@@ -73,10 +88,8 @@ export function PolicyGate({ children }: { children: React.ReactNode }) {
           guidelinesVersion: GUIDELINES_VERSION,
         }),
       });
-      setNeedsAcceptance(false);
     } catch {
       // fail open
-      setNeedsAcceptance(false);
     } finally {
       setSubmitting(false);
     }

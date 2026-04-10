@@ -59,14 +59,6 @@ class PrimaryButton extends StatelessWidget {
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (icon != null) ...[
-                  Icon(
-                    icon,
-                    size: 18,
-                    color: foregroundColor ?? AppColors.primaryForeground,
-                  ),
-                  if (text != null) const SizedBox(width: 8),
-                ],
                 if (text != null)
                   Text(
                     text!,
@@ -74,6 +66,14 @@ class PrimaryButton extends StatelessWidget {
                       color: foregroundColor ?? AppColors.primaryForeground,
                     ),
                   ),
+                if (icon != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: foregroundColor ?? AppColors.primaryForeground,
+                  ),
+                ],
               ],
             ),
     );

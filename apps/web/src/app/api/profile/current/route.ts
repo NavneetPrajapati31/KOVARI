@@ -39,12 +39,19 @@ export async function GET(request: NextRequest) {
       .eq("user_id", internalUserId)
       .maybeSingle();
 
-    // Consider onboarding complete only when both username and name are set.
-    // DB trigger may create a profile with a default username; name is only set by the onboarding form.
-    const usernameSet =
-      profile?.username != null && String(profile.username).trim() !== "";
-    const nameSet = profile?.name != null && String(profile.name).trim() !== "";
-    const hasCompletedOnboarding = !!(usernameSet && nameSet);
+    // Fetch explicit onboarding status from users table
+    const { data: userStatus, error: userError } = await supabase
+      .from("users")
+      .select("onboarding_completed")
+      .eq("id", internalUserId)
+      .single();
+
+    if (userError || !userStatus) {
+      console.error("Error fetching user onboarding status:", userError);
+      // Fallback to false to be safe (forces onboarding)
+    }
+
+    const hasCompletedOnboarding = userStatus?.onboarding_completed ?? false;
 
     const interests = profile?.interests || [];
     

@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Generate Tokens
-    const refreshToken = generateRefreshToken(userId);
+    const refreshToken = generateRefreshToken(userId, email);
     const tokenHash = hashToken(refreshToken);
-    const accessToken = generateAccessToken(userId, tokenHash);
+    const accessToken = generateAccessToken(userId, email, tokenHash);
 
     // 7. Store Refresh Token
     const expiresAt = new Date();

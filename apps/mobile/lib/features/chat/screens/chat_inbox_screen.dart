@@ -7,9 +7,9 @@ class ChatInboxScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
+    return Material(
+      color: AppColors.background,
+      child: SafeArea(
         child: CustomScrollView(
           slivers: [
             SliverFillRemaining(

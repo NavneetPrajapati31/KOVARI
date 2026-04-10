@@ -1,6 +1,6 @@
 class ApiEndpoints {
   static const currentProfile = "profile/current";
-  static const createProfile = "profile";
+  static const createProfile = "profile/create";
   static String profileDetail(String userId) => "profile/$userId";
   static String followers(String userId) => "profile/$userId/followers";
   static String following(String userId) => "profile/$userId/following";

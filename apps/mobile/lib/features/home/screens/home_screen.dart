@@ -97,9 +97,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
+    return Material(
+      color: AppColors.background,
+      child: SafeArea(
         child: RefreshIndicator(
           onRefresh: _handleRefresh,
           color: AppColors.primary,
