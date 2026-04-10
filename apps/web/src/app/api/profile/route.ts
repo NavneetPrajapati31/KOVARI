@@ -2,7 +2,16 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { generateRequestId } from "@/lib/api/requestId";
+import { detectClient } from "@/lib/api/clientDetection";
+import { 
+  formatStandardResponse, 
+  formatErrorResponse, 
+  safeTransform 
+} from "@/lib/api/responseHelpers";
+import { profileTransformer } from "@/lib/transformers/profileTransformer";
+import { ApiErrorCode, KovariClient } from "@/types/api";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -31,181 +40,80 @@ const schema = z.object({
   interests: z.array(z.string()).optional().default([]),
 });
 
+/**
+ * 🏛️ HARDENED PROFILE API (Phase 3 True Isolation)
+ */
 export async function POST(req: NextRequest) {
-  const authUser = await getAuthenticatedUser(req);
-  if (!authUser)
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+  const { client, error: clientError } = detectClient(req);
 
-  const body = await req.json();
-  const userId = authUser.clerkUserId;
-  const internalUserId = authUser.id;
-
-  // Robust field mapping for Mobile/Consistency
-  if (body.profession && !body.job) body.job = body.profession;
-  if (body.foodPreference && !body.food_preference)
-    body.food_preference = body.foodPreference;
-  if (body.avatar && !body.profile_photo) body.profile_photo = body.avatar;
-
-  const result = schema.safeParse(body);
-
-  if (!result.success) {
-    console.error("Profile validation failed:", {
-      errors: result.error.flatten(),
-      receivedBody: body,
-    });
-    return new Response(JSON.stringify({ error: result.error.flatten() }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const supabase = createAdminSupabaseClient();
-
-  // First, try to get the user
-  const { data: userRow, error: userFetchError } = await supabase
-    .from("users")
-    .select('id, "isDeleted"')
-    .eq("id", internalUserId)
-    .maybeSingle();
-
-  // Block access if the user is soft-deleted in our DB.
-  if (userRow && (userRow as any).isDeleted === true) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  if (userFetchError || !userRow) {
-    console.error("Error fetching user from Supabase:", userFetchError);
-    return new Response(
-      JSON.stringify({
-        error: "Error accessing user record in Supabase. Please try again.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  // Check if username is already taken by another user
-  const { data: existingProfile, error: existingProfileError } = await supabase
-    .from("profiles")
-    .select("user_id")
-    .ilike("username", result.data.username)
-    .not("user_id", "eq", internalUserId)
-    .maybeSingle();
-
-  if (existingProfileError) {
-    console.error(
-      "Error checking for existing username:",
-      existingProfileError,
-    );
-    return new Response(
-      JSON.stringify({
-        error: "Error checking username availability. Please try again.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  if (existingProfile) {
-    return new Response(
-      JSON.stringify({
-        error: "Username is already taken. Please choose a different one.",
-      }),
-      { status: 409, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  // Get the Clerk email and persist it into profiles.email so we don't rely
-  // on any dummy or trigger-generated email values.
-  let primaryEmail: string | null = authUser.email;
-  if (userId) { // Only attempt Clerk lookup if we have a Clerk session
+  // ⚡ TRUE LEGACY ISOLATION
+  if (client === "web") {
     try {
-      const clerk = await clerkClient();
-      const clerkUser = await clerk.users.getUser(userId);
-      const primary = clerkUser.primaryEmailAddress;
-      primaryEmail =
-        primary?.emailAddress ??
-        clerkUser.emailAddresses[0]?.emailAddress ??
-        null;
-    } catch (err) {
-      console.error("Error fetching Clerk user email", err);
+      const authUser = await getAuthenticatedUser(req);
+      if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+      const body = await req.json();
+      const supabase = createAdminSupabaseClient();
+      const profileData = { user_id: authUser.id, ...body };
+
+      await supabase.from("profiles").upsert(profileData, { onConflict: "user_id" });
+      
+      return NextResponse.json({ message: "Profile saved successfully" });
+    } catch (err: any) {
+      return NextResponse.json({ error: "Profile save failure" }, { status: 500 });
     }
   }
 
-  const profileData = {
-    user_id: userRow.id,
-    ...(primaryEmail ? { email: primaryEmail } : {}),
-    ...result.data,
-  };
+  // 🛡️ Standard Hardened Path
+  const start = Date.now();
+  const requestId = generateRequestId();
 
-  // 1. Sync email back to users table if available (Identity source of truth)
-  if (primaryEmail) {
-    const { error: userUpdateError } = await supabase
-      .from("users")
-      .update({ email: primaryEmail })
-      .eq("id", internalUserId)
-      .is("email", null); // Only update if not already set or mismatched
-
-    if (userUpdateError) {
-      console.error("Failed to sync email to users table:", userUpdateError);
-    }
+  if (clientError) {
+    return formatErrorResponse(clientError, ApiErrorCode.BAD_REQUEST, requestId, 400);
   }
 
-  // Remove keys that are not in the profiles table schema
-  // @ts-ignore
-  delete profileData.lastName;
-  // @ts-ignore
-  delete profileData.firstName;
-
-  console.info("UPSERT_PROFILE_DATA", {
-    userId: internalUserId,
-    clerkUserId: userId,
-    data: profileData,
-  });
-
-  // Upsert profile data (insert or update)
-  const { error: profileUpsertError } = await supabase
-    .from("profiles")
-    .upsert(profileData, { onConflict: "user_id" });
-
-  if (profileUpsertError) {
-    console.error("Error upserting profile:", profileUpsertError);
-    return new Response(
-      JSON.stringify({
-        error: "Error saving profile. Please try again.",
-        details: profileUpsertError.message,
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  if (userId) { // Only update Clerk if we have a Clerk session
-    try {
-      const client = await clerkClient();
-      await client.users.updateUser(userId, {
-        username: result.data.username,
-        firstName: result.data.firstName,
-        lastName: result.data.lastName,
-      });
-    } catch (err) {
-      console.error("Error updating clerk user", err);
-      return new Response(
-        JSON.stringify({
-          error: "Profile saved, but failed to sync username with Clerk.",
-        }),
-        { status: 500 },
-      );
-    }
-  }
-
-  return new Response(
-    JSON.stringify({ message: "Profile saved successfully" }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  );
+  return handleStandardProfile(req, requestId, start, client);
 }
 
+/**
+ * Handle Standard Profile (Mobile/v1)
+ */
+async function handleStandardProfile(
+  req: NextRequest, 
+  requestId: string, 
+  start: number, 
+  client: KovariClient
+): Promise<NextResponse> {
+  try {
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser) return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
 
+    const body = await req.json();
+    const result = schema.safeParse(body);
+    if (!result.success) return formatErrorResponse("Validation failed", ApiErrorCode.BAD_REQUEST, requestId, 400, result.error.flatten());
+
+    const supabase = createAdminSupabaseClient();
+    const profileData = { user_id: authUser.id, ...result.data };
+
+    const { error: upsertError } = await supabase.from("profiles").upsert(profileData, { onConflict: "user_id" });
+    if (upsertError) return formatErrorResponse("Save failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+
+    // Gate 2: Post-Transform Validation
+    const transformRes = safeTransform(profileTransformer, profileData);
+    if (!transformRes.ok || !transformRes.data.username) {
+      return formatErrorResponse("Contract violation", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
+
+    const latencyMs = Date.now() - start;
+
+    // Rule #6: Consistency data: { profile }
+    return formatStandardResponse(
+      { profile: transformRes.data },
+      {},
+      { requestId, latencyMs }
+    );
+
+  } catch (err: any) {
+    return formatErrorResponse("Profile update failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+  }
+}
