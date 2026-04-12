@@ -7,8 +7,8 @@ export function validateGoMatchResponse(data: any): boolean {
   
   // Go service often returns an array or an object depending on the endpoint
   if (Array.isArray(data)) {
-    return data.every(item => item && (item.userId || item.id));
+    return data.every(item => Boolean(item) && Boolean(item.userId || item.id || item.group || item.groupId));
   }
   
-  return !!(data.userId || data.id || data.matches);
+  return !!(data.userId || data.id || data.matches || data.groupId || data.group);
 }

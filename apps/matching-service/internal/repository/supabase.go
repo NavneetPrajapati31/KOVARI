@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/kovari/matching-service/internal/models"
 )
 
@@ -34,7 +36,7 @@ func NewSupabaseRepository(url, anonKey, geoKey string, redis *RedisRepository) 
 		geoapifyKey: geoKey,
 		redis:       redis,
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 30 * time.Second,
 		},
 	}, nil
 }
@@ -55,13 +57,11 @@ func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (f
 		"surat":  {21.1702, 72.8311},
 	}
 	if coords, ok := fallback[city]; ok {
-		log.Printf("GEO STATIC FALLBACK: %s", city)
 		return coords[0], coords[1], true
 	}
 
 	// Step 2: Non-blocking Background resolution (Redis + API)
 	if _, loaded := r.geoInFlight.LoadOrStore(cacheKey, true); loaded {
-		log.Printf("GEO RESOLUTION IN-FLIGHT: %s (Skipping trigger)", cacheKey)
 		return 0, 0, false
 	}
 
@@ -71,21 +71,17 @@ func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (f
 		bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 
-		log.Printf("BACKGROUND GEO START: %s (Checking Redis first)", cacheKey)
-
 		// 2.1 Check Redis Cache (now in background)
 		if r.redis != nil {
 			if val, err := r.redis.GetCache(bgCtx, cacheKey); err == nil {
 				var coords []float64
 				if err := json.Unmarshal([]byte(val), &coords); err == nil && len(coords) == 2 {
-					log.Printf("BACKGROUND GEO CACHE HIT: %s -> %v", cacheKey, coords)
 					return
 				}
 			}
 		}
 
 		// 2.2 Live API call (if Redis miss)
-		log.Printf("BACKGROUND GEO API CALL: %s", cacheKey)
 		apiURL := fmt.Sprintf("https://api.geoapify.com/v1/geocode/autocomplete?text=%s&type=city&limit=1&lang=en&apiKey=%s", 
 			strings.ReplaceAll(city, " ", "%20"), r.geoapifyKey)
 		
@@ -118,7 +114,6 @@ func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (f
 			coordsJson, _ := json.Marshal([]float64{lat, lon})
 			r.redis.SetCache(context.Background(), cacheKey, string(coordsJson), 30*24*time.Hour)
 		}
-		log.Printf("BACKGROUND GEO RESOLVED & CACHED: %s -> %v,%v", cacheKey, lat, lon)
 	}()
 
 	return 0, 0, false
@@ -178,7 +173,6 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 
 	var uuidList []string
 	var clerkIdList []string
-	t1 := time.Now()
 	for _, id := range clerkUserIds {
 		if len(id) == 36 && strings.Count(id, "-") == 4 {
 			uuidList = append(uuidList, id)
@@ -194,55 +188,78 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 		} `json:"users"`
 	}
 
-	// Fetch Clerk profiles
+	g, gCtx := errgroup.WithContext(ctx)
+	var mu sync.Mutex
+
+	// Parallel Fetch 1: Clerk profiles
 	if len(clerkIdList) > 0 {
-		idsParam := fmt.Sprintf("(\"%s\")", strings.Join(clerkIdList, "\",\"")) 
-		profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,food_preference,users!inner(clerk_user_id)&users.clerk_user_id=in.%s", r.url, idsParam)
-		
-		req, _ := http.NewRequestWithContext(ctx, "GET", profilesURL, nil)
-		req.Header.Set("apikey", r.anonKey)
-		req.Header.Set("Authorization", "Bearer "+r.anonKey)
-		
-		resp, err := r.client.Do(req)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			var chunk []struct {
-				profileResponse
-				Users struct {
-					ClerkUserId string `json:"clerk_user_id"`
-				} `json:"users"`
+		g.Go(func() error {
+			idsParam := fmt.Sprintf("(\"%s\")", strings.Join(clerkIdList, "\",\"")) 
+			profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,food_preference,users!inner(clerk_user_id)&users.clerk_user_id=in.%s", r.url, idsParam)
+			
+			req, _ := http.NewRequestWithContext(gCtx, "GET", profilesURL, nil)
+			req.Header.Set("apikey", r.anonKey)
+			req.Header.Set("Authorization", "Bearer "+r.anonKey)
+			
+			resp, err := r.client.Do(req)
+			if err != nil {
+				log.Printf("Supabase ClerkID Fetch Failed: %v", err)
+				return nil // Continue with other results
 			}
-			json.NewDecoder(resp.Body).Decode(&chunk)
-			rawProfiles = append(rawProfiles, chunk...)
-			resp.Body.Close()
-		} else {
-			log.Printf("Supabase ClerkID Fetch Failed: %v", err)
-		}
+			defer resp.Body.Close()
+
+			if resp.StatusCode == http.StatusOK {
+				var chunk []struct {
+					profileResponse
+					Users struct {
+						ClerkUserId string `json:"clerk_user_id"`
+					} `json:"users"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&chunk); err == nil {
+					mu.Lock()
+					rawProfiles = append(rawProfiles, chunk...)
+					mu.Unlock()
+				}
+			}
+			return nil
+		})
 	}
 
-	// Fetch UUID profiles
+	// Parallel Fetch 2: UUID profiles
 	if len(uuidList) > 0 {
-		idsParam := fmt.Sprintf("(\"%s\")", strings.Join(uuidList, "\",\"")) 
-		profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,food_preference,users(clerk_user_id)&user_id=in.%s", r.url, idsParam)
-		
-		req, _ := http.NewRequestWithContext(ctx, "GET", profilesURL, nil)
-		req.Header.Set("apikey", r.anonKey)
-		req.Header.Set("Authorization", "Bearer "+r.anonKey)
-		
-		resp, err := r.client.Do(req)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			var chunk []struct {
-				profileResponse
-				Users struct {
-					ClerkUserId string `json:"clerk_user_id"`
-				} `json:"users"`
+		g.Go(func() error {
+			idsParam := fmt.Sprintf("(\"%s\")", strings.Join(uuidList, "\",\"")) 
+			profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,food_preference,users(clerk_user_id)&user_id=in.%s", r.url, idsParam)
+			
+			req, _ := http.NewRequestWithContext(gCtx, "GET", profilesURL, nil)
+			req.Header.Set("apikey", r.anonKey)
+			req.Header.Set("Authorization", "Bearer "+r.anonKey)
+			
+			resp, err := r.client.Do(req)
+			if err != nil {
+				log.Printf("Supabase UUID Fetch Failed: %v", err)
+				return nil
 			}
-			json.NewDecoder(resp.Body).Decode(&chunk)
-			rawProfiles = append(rawProfiles, chunk...)
-			resp.Body.Close()
-		} else {
-			log.Printf("Supabase UUID Fetch Failed: %v", err)
-		}
+			defer resp.Body.Close()
+
+			if resp.StatusCode == http.StatusOK {
+				var chunk []struct {
+					profileResponse
+					Users struct {
+						ClerkUserId string `json:"clerk_user_id"`
+					} `json:"users"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&chunk); err == nil {
+					mu.Lock()
+					rawProfiles = append(rawProfiles, chunk...)
+					mu.Unlock()
+				}
+			}
+			return nil
+		})
 	}
+
+	g.Wait()
 	results := make(map[string]*models.StaticAttributes)
 	for _, raw := range rawProfiles {
 		p := raw.profileResponse
@@ -257,10 +274,8 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 		// Inject pre-resolved coordinates from session if available (High Priority)
 		if coords, ok := preResolved[uuid]; ok && (coords.Lat != 0 || coords.Lon != 0) {
 			attr.Location = coords
-			log.Printf("Supabase: Using pre-resolved coordinates for %s: %+v", uuid, coords)
 		} else if coords, ok := preResolved[clerkID]; ok && (coords.Lat != 0 || coords.Lon != 0) {
 			attr.Location = coords
-			log.Printf("Supabase: Using pre-resolved coordinates for %s: %+v", clerkID, coords)
 		}
 
 		if p.Name != nil { attr.Name = *p.Name }
@@ -303,9 +318,7 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 					attr.Location.Lon = *p.Longitude
 				}
 
-				if attr.Location.Lat != 0 || attr.Location.Lon != 0 {
-					log.Printf("Supabase: Successfully mapped location for %s: %+v", uuid, attr.Location)
-				} else {
+				if attr.Location.Lat == 0 && attr.Location.Lon == 0 {
 					log.Printf("Supabase WARNING: Location found for %s but keys (lat/lon/latitude/longitude) are zero or invalid. Raw: %+v", uuid, m)
 				}
 			} else if s, ok := p.Location.(string); ok {
@@ -336,6 +349,5 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 		}
 	}
 
-	log.Printf("TIMER: FetchProfilesBatch TOTAL took: %v", time.Since(t1))
 	return results, nil
 }

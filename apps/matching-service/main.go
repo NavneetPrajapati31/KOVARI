@@ -121,20 +121,15 @@ func main() {
 
 
 
-		tRedisStart := time.Now()
 		g.Go(func() error {
-			t1 := time.Now()
 			var err error
 			userSession, err = repo.GetSession(gCtx, req.UserId)
-			log.Printf("TIMER: Redis GetSession (%s) took: %v", req.UserId, time.Since(t1))
 			return err
 		})
 
 		g.Go(func() error {
-			t1 := time.Now()
 			var err error
 			candidates, err = repo.FetchAllSessions(gCtx, req.UserId)
-			log.Printf("TIMER: Redis FetchAllSessions took: %v", time.Since(t1))
 			return err
 		})
 
@@ -143,7 +138,6 @@ func main() {
 			http.Error(w, fmt.Sprintf("Redis Error: %v", err), 500)
 			return
 		}
-		log.Printf("TIMER: Step 1 (Total Redis Parallel) took: %v", time.Since(tRedisStart))
 
 
 		if userSession == nil {
@@ -186,16 +180,12 @@ func main() {
 			}
 		}
 
-		log.Printf("STEP 2: Hydrating profiles for %d users", len(allUserIds))
-		tHydrateStart := time.Now()
-
 		profiles, err := sbRepo.FetchProfilesBatch(ctx, allUserIds, preResolved)
 		if err != nil {
 			log.Printf("Error: Profile hydration failed: %v", err)
 			http.Error(w, "Profile service error", 500)
 			return
 		}
-		log.Printf("TIMER: Step 2 (Total Profile Hydration) took: %v", time.Since(tHydrateStart))
 
 
 		// Apply profiles to sessions
@@ -253,8 +243,6 @@ func main() {
 				
 				// Re-verify if it needs update (already done in main flow by checking Lat != 0)
 				// We'll just re-save sessions that have coordinates now but might not have had them in Redis
-				log.Printf("Self-Healing: Checking session %s for coordinate update", reqId)
-				
 				// Read-Update-Write pattern (simplified since we have the latest session)
 				data, _ := json.Marshal(sess)
 				// Use 7 days TTL (parity with Web API default)
@@ -269,8 +257,6 @@ func main() {
 
 		if userSession.StaticAttributes == nil {
 			log.Printf("🔥 CRITICAL ERROR: Requester %s has no profile in Supabase!", req.UserId)
-			log.Printf("DEBUG PROFILE TRACE: userSession.UserId=%s, userSession.GeoSource=%s", userSession.UserId, userSession.GeoSource)
-			log.Printf("HINT: If this user was just created, ensure their Supabase UUID exists in the profiles table and FetchProfilesBatch resolved it.")
 			http.Error(w, "Requester profile missing", 400)
 			return
 		}
@@ -340,6 +326,7 @@ func main() {
 					Avatar:      match.StaticAttributes.Avatar,
 					Budget:      match.Budget,
 					Location:    match.StaticAttributes.RawLocation,
+					LocationDisplay: match.StaticAttributes.RawLocation,
 					Smoking:     match.StaticAttributes.Smoking,
 					Drinking:    match.StaticAttributes.Drinking,
 					Interests:   match.StaticAttributes.Interests,

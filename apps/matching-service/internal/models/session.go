@@ -97,6 +97,7 @@ type UserPreview struct {
 	Avatar      string   `json:"avatar"`
 	Budget      float64  `json:"budget"`
 	Location    string   `json:"location"`
+	LocationDisplay string `json:"locationDisplay"`
 	Smoking     string   `json:"smoking"`
 	Drinking    string   `json:"drinking"`
 	Interests   []string `json:"interests"`

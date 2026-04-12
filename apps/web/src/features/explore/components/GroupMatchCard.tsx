@@ -408,7 +408,7 @@ export function GroupMatchCard({
         </div>
 
         {/* Match Score Section */}
-        {/* {group.score !== undefined && (
+        {group.score !== undefined && (
           <div className="space-y-4">
             <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Match Score
@@ -434,7 +434,7 @@ export function GroupMatchCard({
               </div>
             )}
           </div>
-        )} */}
+        )}
 
         {/* About Section */}
         <div
@@ -511,7 +511,7 @@ export function GroupMatchCard({
         )}
 
         {/* Travel Style Section */}
-        {/* <div className="space-y-4">
+        <div className="space-y-4">
           <h2 className="text-sm font-semibold text-foreground">
             Travel Style
           </h2>
@@ -527,10 +527,10 @@ export function GroupMatchCard({
               <Pill text="Explorer" />
             )}
           </div>
-        </div> */}
+        </div>
 
         {/* Group Tags Section */}
-        {/* {group.tags && group.tags.length > 0 && (
+        {group.tags && group.tags.length > 0 && (
           <div className="space-y-4 pb-6 border-b border-border">
             <h2 className="text-sm font-semibold text-foreground">
               Group Tags
@@ -544,7 +544,7 @@ export function GroupMatchCard({
               ))}
             </div>
           </div>
-        )} */}
+        )}
 
         {/* Action Buttons */}
         <div className="flex flex-row gap-2 pt-4 pb-2">

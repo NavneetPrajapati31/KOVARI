@@ -58,13 +58,6 @@ export async function GET(
 
   const posts = Array.isArray(postsData) ? postsData : [];
 
-  // Debugging output
-  console.log("[DEBUG] userId:", userId);
-  console.log("[DEBUG] profileData:", profileData);
-  // removed travelPrefData debug
-  console.log("[DEBUG] postsData:", postsData);
-  console.error("[DEBUG] profileError:", profileError);
-
   if (profileError || !profileData) {
     return new Response(JSON.stringify({ error: "User not found" }), {
       status: 404,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { resolveUser } from "@/lib/auth/resolveUser";
 import { createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { detectClient } from "@/lib/api/clientDetection";
@@ -11,120 +11,149 @@ import {
 } from "@/lib/api/responseHelpers";
 import { matchTransformer } from "@/lib/transformers/matchTransformer";
 import { validateGoMatchResponse } from "@/lib/api/validators/v1/matchValidator";
-import { ApiErrorCode, KovariClient } from "@/types/api";
+import { ApiErrorCode } from "@/types/api";
 import { logger } from "@/lib/api/logger";
+import { 
+  getMatchingCache, 
+  setMatchingCache, 
+  generateMatchCacheKey,
+  tryAcquireRefreshLock 
+} from "@/lib/api/matching/cache";
+import { matchingServiceBreaker } from "@/lib/api/matching/circuitBreaker";
+import { performSoloDbMatchingFallback } from "@/lib/api/matching/fallback";
 
-const supabase = createRouteHandlerSupabaseClientWithServiceRole();
 const GO_URL = process.env.GO_SERVICE_URL || "http://localhost:8080";
 
 /**
- * 🏛️ HARDENED SOLO MATCHING API (Phase 3 True Isolation)
+ * 🏛️ HARDENED SOLO MATCHING API v2
  */
 export async function GET(request: NextRequest) {
-  const { client, error: clientError } = detectClient(request);
-
-  // ⚡ TRUE LEGACY ISOLATION (Rule #1: No shared pipeline utilities)
-  if (client === "web") {
-    try {
-      const authUser = await getAuthenticatedUser(request);
-      if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-      const email = authUser.email;
-      const { data: dbUser } = await supabase.from("users").select("id").eq("email", email).single();
-      if (!dbUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-      // Raw fetch from GO service
-      const goResponse = await fetch(`${GO_URL}/v1/match/solo`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: authUser.clerkUserId || authUser.id }),
-      });
-
-      if (!goResponse.ok) {
-        const errorText = await goResponse.text();
-        return NextResponse.json({ message: errorText || "Matching service failed" }, { status: goResponse.status });
-      }
-
-      const rawMatches = await goResponse.json();
-      
-      // Zero-overhead legacy return (Exact raw parity)
-      return NextResponse.json(rawMatches);
-    } catch (err: any) {
-      console.error("Legacy match-solo failure:", err);
-      return NextResponse.json({ message: "Legacy path failure", error: err.message }, { status: 500 });
-    }
-  }
-
-  // 🛡️ Standard Hardened Path
   const start = Date.now();
   const requestId = generateRequestId();
+  const { client } = detectClient(request);
 
-  if (clientError) {
-    return formatErrorResponse(clientError, ApiErrorCode.BAD_REQUEST, requestId, 400);
-  }
-
-  return handleStandardMatchSolo(request, requestId, start, client);
-}
-
-/**
- * Handle Standard requests (Mobile/v1)
- */
-async function handleStandardMatchSolo(
-  request: NextRequest, 
-  requestId: string, 
-  start: number, 
-  client: KovariClient
-): Promise<NextResponse> {
   try {
-    const authUser = await getAuthenticatedUser(request);
-    if (!authUser) return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+    const authResult = await resolveUser(request, { mode: 'protected' });
+    if (!authResult.ok || !authResult.user) return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
 
-    const email = authUser.email;
-    const { data: dbUser } = await supabase.from("users").select("id").eq("email", email).single();
-    
-    const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/solo`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: authUser.clerkUserId || authUser.id }),
-      requestId,
-    });
+    const userId = authResult.user.userId;
+    const clerkId = authResult.user.providerId;
 
-    const rawData = await safeParseJson(goResponse);
+    const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+    const { data: dbUser, error: fetchError } = await supabase.from("users").select("id, email").eq("id", userId).single();
     
-    // Gate 1: Upstream Validation
-    if (!validateGoMatchResponse(rawData)) {
-      return formatErrorResponse("Service Unavailable", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      logger.error(requestId, "Metadata lookup failed", fetchError);
     }
 
+    // Force a fresh fetch by bumping the version string
+    const userVersion = "v1-stable-v10";
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const offset = (page - 1) * limit;
+    const params = Object.fromEntries(searchParams.entries());
+    const cacheKey = generateMatchCacheKey(userId, "solo", params);
 
-    const pagedData = Array.isArray(rawData) ? rawData.slice(offset, offset + limit) : [];
-    
-    // Gate 2: Post-Transform Validation
-    const transformed = pagedData.map((item: any) => {
-      const res = safeTransform(matchTransformer, item);
-      if (!res.ok || !res.data.userId) return null; // Post-transform check
-      return res.data;
-    }).filter(Boolean);
+    // 1. Try Cache
+    const cache = await getMatchingCache(cacheKey);
+    if (cache && !cache.isExpired && cache.version === userVersion) {
+      // SWR Trigger: If stale, refresh in background
+      if (cache.isStale) {
+        triggerBackgroundRefresh(userId, clerkId, userVersion, cacheKey, params);
+      }
+      return formatStandardResponse(
+        { matches: await enrichMatchesWithFollowing(userId, cache.data) },
+        { source: "cache", degraded: false, hasMore: false },
+        { requestId, latencyMs: Date.now() - start }
+      );
+    }
 
-    const latencyMs = Date.now() - start;
+    // 2. Try Go Service (with Circuit Breaker)
+    if (await matchingServiceBreaker.shouldAllowRequest()) {
+      try {
+        const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/solo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: clerkId || userId, context: params }),
+          timeout: 30000,
+        });
 
-    // Rule #6: Consistency data: { matches }
+        const rawData = await safeParseJson(goResponse);
+        if (goResponse.ok && validateGoMatchResponse(rawData)) {
+          const transformed = transformMatches(rawData);
+          await setMatchingCache(userId, cacheKey, transformed, userVersion);
+          await matchingServiceBreaker.recordSuccess();
+
+          return formatStandardResponse(
+            { matches: await enrichMatchesWithFollowing(userId, transformed) },
+            { source: "go", degraded: false, hasMore: false },
+            { requestId, latencyMs: Date.now() - start }
+          );
+        }
+        await matchingServiceBreaker.recordFailure();
+      } catch (err) {
+        await matchingServiceBreaker.recordFailure();
+        logger.error(requestId, "Go Service Error", err);
+      }
+    }
+
+    // 3. Fallback to DB
+    const fallbackResults = await performSoloDbMatchingFallback(userId, params);
     return formatStandardResponse(
-      { matches: transformed },
-      { 
-        hasMore: offset + limit < (Array.isArray(rawData) ? rawData.length : 0),
-        total: Array.isArray(rawData) ? rawData.length : 0,
-        page,
-        limit 
-      },
-      { requestId, latencyMs }
+      { matches: await enrichMatchesWithFollowing(userId, fallbackResults) },
+      { source: "db", degraded: true, hasMore: false },
+      { requestId, latencyMs: Date.now() - start }
     );
 
   } catch (err: any) {
     return formatErrorResponse("Internal failure", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
+}
+
+/**
+ * Detached background refresh for SWR
+ */
+async function triggerBackgroundRefresh(userId: string, clerkId: string | undefined, version: string, key: string, params: any) {
+  if (!(await tryAcquireRefreshLock(key))) return;
+
+  // Fire and forget
+  (async () => {
+    try {
+      const goResponse = await fetch(`${GO_URL}/v1/match/solo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: clerkId || userId, context: params }),
+      });
+
+      const rawData = await goResponse.json();
+      if (goResponse.ok && validateGoMatchResponse(rawData)) {
+        await setMatchingCache(userId, key, transformMatches(rawData), version);
+      }
+    } catch (err) {
+      logger.error("SWR-Background", "SWR Refresh Error", err);
+    }
+  })().catch(() => {});
+}
+
+async function enrichMatchesWithFollowing(userId: string, matches: any[]) {
+  if (matches.length === 0) return [];
+  const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+  const matchUserIds = matches.map(m => m.userId);
+  const { data: followings } = await supabase
+    .from("user_follows")
+    .select("following_id")
+    .eq("follower_id", userId)
+    .in("following_id", matchUserIds);
+
+  const followingSet = new Set((followings || []).map(f => f.following_id));
+  return matches.map(m => ({
+    ...m,
+    isFollowing: followingSet.has(m.userId)
+  }));
+}
+
+function transformMatches(rawData: any) {
+  const data = Array.isArray(rawData) ? rawData : (rawData.matches || []);
+  return data.map((item: any) => {
+    const res = safeTransform(matchTransformer, item);
+    return res.ok ? res.data : null;
+  }).filter(Boolean);
 }

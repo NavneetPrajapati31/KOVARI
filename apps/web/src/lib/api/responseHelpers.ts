@@ -65,8 +65,7 @@ export function formatErrorResponse(
     details
   };
 
-  logger.error({
-    requestId,
+  logger.error(requestId, message, {
     route: "v1-standard",
     client: "shared",
     format: "standard",

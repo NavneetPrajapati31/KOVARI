@@ -114,7 +114,11 @@ export function SoloMatchCard({
   onReport,
   onReportClick,
 }: SoloMatchCardProps) {
-  const user = match.user ?? {};
+  // Fallback to top-level if user object is nested incorrectly
+  const user = {
+    ...((match as any) || {}),
+    ...(match.user || {})
+  };
   const [isInteresting, setIsInteresting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const [interestSent, setInterestSent] = useState(false);
@@ -345,8 +349,8 @@ export function SoloMatchCard({
       "history",
       "beach",
     ];
-    const interests = (user.interests || []).map((i) => i.toLowerCase());
-    const filtered = interests.filter((i) => candidates.includes(i));
+    const interests = (user.interests || []).map((i: string) => i.toLowerCase());
+    const filtered = interests.filter((i: string) => candidates.includes(i));
     const tags = (filtered.length > 0 ? filtered : interests).slice(0, 3);
     return tags;
   })();
@@ -356,7 +360,7 @@ export function SoloMatchCard({
     : undefined;
   const languagesList = Array.isArray(user.languages) ? user.languages : [];
 
-  // Pill component helper - modern SaaS styling
+  // Pill component helper - modern SaaS styling with error resilience
   const Pill = ({
     icon,
     text,
@@ -367,18 +371,29 @@ export function SoloMatchCard({
     text: string;
     variant?: "default" | "highlight";
     className?: string;
-  }) => (
-    <span
-      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm bg-background text-foreground border border-border ${className}`}
-    >
-      {icon && (
-        <span className="flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4 [&_svg]:shrink-0 [&_svg]:text-current">
-          {icon}
-        </span>
-      )}
-      <span>{text}</span>
-    </span>
-  );
+  }) => {
+    if (!text) return null;
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm bg-background text-foreground border border-border ${className}`}
+      >
+        {icon && (
+          <span className="flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4 [&_svg]:shrink-0 [&_svg]:text-current">
+            {icon}
+          </span>
+        )}
+        <span>{text}</span>
+      </span>
+    );
+  };
+
+  // 🛡️ RE-DERIVE WITH DEEP FALLBACKS (Atomic Level)
+  const nationality = user.nationality || (match as any).nationality || user.Nationality || (match as any).Nationality;
+  const gender = user.gender || (match as any).gender || user.Gender || (match as any).Gender;
+  const personality = user.personality || (match as any).personality || user.Personality || (match as any).Personality;
+  const locationDisplay = user.locationDisplay || (match as any).locationDisplay || user.LocationDisplay || (match as any).LocationDisplay;
+  const religion = user.religion || (match as any).religion || user.Religion || (match as any).Religion;
+  const profession = user.profession || (match as any).profession || user.Profession || (match as any).Profession;
 
   return (
     <div className="w-full h-full flex flex-col overflow-y-auto relative">
@@ -471,48 +486,48 @@ export function SoloMatchCard({
             About me
           </h2>
           <div className="flex flex-wrap gap-2">
-            {user.gender && (
+            {gender && (
               <Pill
                 icon={<UserCircle2 />}
                 text={
-                  user.gender.charAt(0).toUpperCase() + user.gender.slice(1)
+                  gender.charAt(0).toUpperCase() + gender.slice(1)
                 }
               />
             )}
-            {user.nationality && (
-              <Pill icon={<Globe />} text={user.nationality} />
+            {nationality && (
+              <Pill icon={<Globe />} text={nationality} />
             )}
-            {user.locationDisplay && (
-              <Pill icon={<Home />} text={user.locationDisplay} />
+            {locationDisplay && (
+              <Pill icon={<Home />} text={locationDisplay} />
             )}
-            {formattedProfession && (
+            {profession && (
               <Pill
-                icon={getProfessionIcon(user.profession)}
+                icon={getProfessionIcon(profession)}
                 text={
-                  formattedProfession.charAt(0).toUpperCase() +
-                  formattedProfession.slice(1)
+                  profession.charAt(0).toUpperCase() +
+                  profession.slice(1)
                 }
               />
             )}
-            {user.personality && (
+            {personality && (
               <Pill
-                icon={getPersonalityIcon(user.personality)}
+                icon={getPersonalityIcon(personality)}
                 text={
-                  user.personality.charAt(0).toUpperCase() +
-                  user.personality.slice(1)
+                  personality.charAt(0).toUpperCase() +
+                  personality.slice(1)
                 }
               />
             )}
-            {user.religion && (
+            {religion && (
               <Pill
                 icon={<BookMarked />}
                 text={
-                  user.religion.charAt(0).toUpperCase() + user.religion.slice(1)
+                  religion.charAt(0).toUpperCase() + religion.slice(1)
                 }
               />
             )}
             {languagesList.length > 0 &&
-              languagesList.map((lang, i) => (
+              languagesList.map((lang: string, i: number) => (
                 <Pill key={i} icon={<MessageCircle />} text={lang} />
               ))}
           </div>
@@ -525,7 +540,7 @@ export function SoloMatchCard({
               My interests
             </h2>
             <div className="flex flex-wrap gap-2">
-              {user.interests.map((interest, i) => (
+              {user.interests.map((interest: string, i: number) => (
                 <Pill
                   key={i}
                   text={interest.charAt(0).toUpperCase() + interest.slice(1)}

@@ -2,6 +2,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { createAdminSupabaseClient, createRouteHandlerSupabaseClientWithServiceRole, sendRegistrationVerificationEmail } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { logger } from "@/lib/api/logger";
 import crypto from "crypto";
 
 const updateProfileSchema = z.object({
@@ -40,7 +41,7 @@ export async function PATCH(req: Request) {
         .eq("user_id", user.id);
 
       if (interestsUpdateError) {
-        console.error("Error updating profile interests:", interestsUpdateError);
+        logger.error("PROFILE-UPDATE", "Error updating profile interests", interestsUpdateError);
         return new Response(JSON.stringify({ error: "Failed to update interests" }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
@@ -210,6 +211,14 @@ export async function PATCH(req: Request) {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
+    }
+
+    // 🔥 Hardening: Invalidate matching cache on profile update
+    try {
+      const { invalidateMatchingCache } = await import("@/lib/api/matching/cache");
+      await invalidateMatchingCache(user.id);
+    } catch (err: any) {
+      logger.error("CACHE-INVALIDATE", "Failed to invalidate matching cache", err);
     }
 
     // Sync to Clerk (WEB ONLY)
