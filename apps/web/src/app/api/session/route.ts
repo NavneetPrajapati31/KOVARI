@@ -439,6 +439,7 @@ export async function POST(request: NextRequest) {
 
     // Track session creation for safety signals (non-blocking)
     try {
+      await redisClient.sAdd("sessions:index", userId);
       await redisClient.incr("metrics:sessions:created:1h");
       await redisClient.expire("metrics:sessions:created:1h", 3600); // 1 hour TTL
     } catch (e) {

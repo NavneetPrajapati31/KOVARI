@@ -160,6 +160,13 @@ func main() {
 		seenIds := make(map[string]bool)
 		seenIds[req.UserId] = true
 		
+		// Phase 1.5 Early Exclusion: Add all known IDs of requester to skip-list
+		if userSession.ClerkUserId != "" { seenIds[userSession.ClerkUserId] = true }
+		if userSession.UserId != "" { seenIds[userSession.UserId] = true }
+		if userSession.StaticAttributes != nil && userSession.StaticAttributes.UserID != "" {
+			seenIds[userSession.StaticAttributes.UserID] = true
+		}
+		
 		for _, c := range candidates {
 			if c.UserId != "" && !seenIds[c.UserId] {
 				allUserIds = append(allUserIds, c.UserId)
@@ -197,8 +204,28 @@ func main() {
 		}
 		
 		var validCandidates []models.SoloSession
+		requesterInternalId := ""
+		if userSession.StaticAttributes != nil {
+			requesterInternalId = userSession.StaticAttributes.UserID
+		}
+
 		for id, session := range candidateMap {
 			if p, ok := profiles[id]; ok {
+				// 🚫 MULTI-LAYER SELF-EXCLUSION: ensure requester is NEVER a match
+				isSelf := false
+				if requesterInternalId != "" && p.UserID == requesterInternalId {
+					isSelf = true
+				} else if userSession.ClerkUserId != "" && p.ClerkUserId == userSession.ClerkUserId {
+					isSelf = true
+				} else if id == req.UserId {
+					isSelf = true
+				}
+
+				if isSelf {
+					log.Printf("Matching: Explicitly excluded requester %s (Internal: %s) from candidates", id, p.UserID)
+					continue
+				}
+
 				session.StaticAttributes = p
 				// NEW: Preserve coordinates from profile if session was missing them
 				if session.Location.Lat == 0 && session.Location.Lon == 0 && (p.Location.Lat != 0 || p.Location.Lon != 0) {

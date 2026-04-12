@@ -250,6 +250,7 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 		uuid := p.UserID
 
 		attr := &models.StaticAttributes{
+			UserID:      uuid,
 			ClerkUserId: clerkID,
 		}
 

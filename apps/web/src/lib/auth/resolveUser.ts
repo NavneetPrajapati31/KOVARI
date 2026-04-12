@@ -125,7 +125,8 @@ export async function resolveUser(
       user: {
         userId: dbUser.id,
         email: dbUser.email,
-        provider: identity.provider
+        provider: identity.provider,
+        providerId: identity.id
       },
       requestId
     };

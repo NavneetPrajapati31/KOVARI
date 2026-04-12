@@ -16,6 +16,7 @@ func (d Destination) ToCoords() Coordinates {
 }
 
 type StaticAttributes struct {
+	UserID      string      `json:"userId,omitempty"`
 	Name        string      `json:"name,omitempty"`
 	ClerkUserId string      `json:"clerkUserId,omitempty"`
 	Age         int         `json:"age"`

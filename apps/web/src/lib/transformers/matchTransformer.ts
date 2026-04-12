@@ -8,7 +8,7 @@ export interface MatchDTO {
   profilePhoto: string;
   compatibilityScore: number;
   breakdown: Record<string, any>;
-  budgetDifference: number;
+  budgetDifference: string | number;
   startDate?: string;
   endDate?: string;
   budget?: number;
@@ -31,7 +31,7 @@ export class MatchTransformer implements Transformer<any, MatchDTO> {
       profilePhoto: m.user?.avatar || '',
       compatibilityScore: typeof m.score === 'number' ? m.score : 0,
       breakdown: m.breakdown || {},
-      budgetDifference: m.budgetDifference || 0,
+      budgetDifference: m.budgetDifference ?? 0,
       startDate: m.startDate,
       endDate: m.endDate,
       budget: m.budget,

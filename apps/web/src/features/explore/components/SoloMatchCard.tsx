@@ -169,41 +169,42 @@ export function SoloMatchCard({
     }
   };
 
-  const handleSkip = async () => {
-    setIsSkipping(true);
+  const handleSkip = (e?: React.MouseEvent) => {
+    // 🛡️ EVENT PROTECTION: prevent bubbling or default behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // 🚀 INSTANT-FIRST: Advance to the next match immediately
+    // We do this before ANY validation to ensure the UI is always responsive
+    if (onSkip) {
+      onSkip(user.userId || "", destinationId);
+    }
+
     try {
-      // Validate required IDs
+      // Validate IDs only for the background recording
       if (!currentUserId || !user?.userId) {
-        console.error("handleSkip: missing currentUserId or target userId", {
+        console.warn("handleSkip background sync skipped: missing IDs", {
           currentUserId,
           targetUserId: user?.userId,
         });
-        setIsSkipping(false);
         return;
       }
 
-      // Create skip record
-      const result = await createSkipRecord(
+      // Fire and forget the network request in the background
+      createSkipRecord(
         currentUserId,
         user.userId,
         destinationId,
         "solo",
-      );
-      if (!result.success) {
-        console.error("Failed to skip:", result.error);
-        setIsSkipping(false);
-        return;
-      }
+      ).catch((err) => {
+        console.error("Background skip sync failed:", err);
+      });
 
-      // Call onSkip handler to move to next match
-      if (onSkip) {
-        await onSkip(user.userId, destinationId);
-      }
-
-      setIsSkipping(false);
     } catch (error) {
-      console.error("Error in handleSkip:", error);
-      setIsSkipping(false);
+      // Catching errors to prevent crashing the UI handler
+      console.error("Unexpected error in handleSkip:", error);
     }
   };
 

@@ -106,10 +106,22 @@ func CalculateJaccardSimilarity(a, b []string) float64 {
 		}
 	}
 
-	union := len(setA) + len(setB) - intersection
-	if union <= 0 {
-		return 0.5
+	if intersection == 0 {
+		return 0.1
 	}
 
-	return float64(intersection) / float64(union)
+	// Calculate Jaccard Similarity: |A ∩ B| / |A ∪ B|
+	union := len(setA) + len(setB) - intersection
+	jaccard := float64(intersection) / float64(union)
+
+	// Calculate Overlap Coefficient: |A ∩ B| / min(|A|, |B|)
+	minLen := len(setA)
+	if len(setB) < minLen {
+		minLen = len(setB)
+	}
+	overlap := float64(intersection) / float64(minLen)
+
+	// Hybrid approach: (Overlap + Jaccard) / 2
+	// This rewards subsets (good for users with 1-2 interests) while still rewarding large common sets
+	return (jaccard + overlap) / 2
 }

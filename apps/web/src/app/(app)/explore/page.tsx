@@ -312,11 +312,11 @@ export default function ExplorePage() {
           const soloMatchesAsGroups = soloMatches.map(
             (match: any, index: number) => ({
               id: `solo-${index}`,
-              name: `${match.user.name || match.user.full_name || "Traveler"} - ${match.destination}`,
-              destination: match.destination,
-              budget: match.user.budget || "Not specified",
-              start_date: fullSearchData.startDate,
-              end_date: fullSearchData.endDate,
+              name: `${match.user.name || match.user.full_name || "Traveler"}`,
+              destination: fullSearchData.destination,
+              budget: match.budget || "Not specified",
+              start_date: match.startDate || fullSearchData.startDate,
+              end_date: match.endDate || fullSearchData.endDate,
               compatibility_score: Math.round(match.score * 100),
               budget_difference: match.budgetDifference,
               user: {

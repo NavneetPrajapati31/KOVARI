@@ -23,7 +23,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<Authentica
     return {
       id: result.user.userId,
       email: result.user.email,
-      clerkUserId: result.user.provider === 'clerk' ? 'provided' : undefined, // Legacy compat: we don't need the actual clerk ID here for most callers
+      clerkUserId: result.user.provider === 'clerk' ? result.user.providerId : undefined,
       isMobile: result.user.provider === 'jwt',
     };
   } catch (error) {

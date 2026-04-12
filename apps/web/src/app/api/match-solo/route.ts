@@ -37,15 +37,21 @@ export async function GET(request: NextRequest) {
       const goResponse = await fetch(`${GO_URL}/v1/match/solo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: dbUser.id }),
+        body: JSON.stringify({ userId: authUser.clerkUserId || authUser.id }),
       });
+
+      if (!goResponse.ok) {
+        const errorText = await goResponse.text();
+        return NextResponse.json({ message: errorText || "Matching service failed" }, { status: goResponse.status });
+      }
 
       const rawMatches = await goResponse.json();
       
       // Zero-overhead legacy return (Exact raw parity)
       return NextResponse.json(rawMatches);
     } catch (err: any) {
-      return NextResponse.json({ error: "Legacy path failure" }, { status: 500 });
+      console.error("Legacy match-solo failure:", err);
+      return NextResponse.json({ message: "Legacy path failure", error: err.message }, { status: 500 });
     }
   }
 
@@ -79,7 +85,7 @@ async function handleStandardMatchSolo(
     const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/solo`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: dbUser?.id }),
+      body: JSON.stringify({ userId: authUser.clerkUserId || authUser.id }),
       requestId,
     });
 

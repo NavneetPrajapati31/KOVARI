@@ -20,6 +20,7 @@ export interface AuthUser {
   userId: string; // Supabase UUID
   email: string;
   provider: AuthProvider;
+  providerId?: string; // Original ID from provider (e.g. Clerk ID)
 }
 
 export type AuthResult = 
