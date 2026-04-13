@@ -29,6 +29,10 @@ export interface ApiMeta {
   total?: number;
   page?: number;
   limit?: number;
+  contractState?: 'clean' | 'filtered' | 'degraded';
+  filtered?: boolean;
+  droppedCount?: number;
+  degraded?: boolean;
   [key: string]: any;
 }
 

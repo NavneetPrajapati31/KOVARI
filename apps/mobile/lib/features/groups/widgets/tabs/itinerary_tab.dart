@@ -117,8 +117,10 @@ class ItineraryTab extends ConsumerWidget {
     List<GroupMember> groupMembers,
   ) {
     return DragTarget<ItineraryItem>(
-      onWillAccept: (data) => data?.status != targetStatus,
-      onAccept: (item) async {
+      onWillAcceptWithDetails: (details) =>
+          details.data.status != targetStatus,
+      onAcceptWithDetails: (details) async {
+        final item = details.data;
         final messenger = ScaffoldMessenger.of(context);
         try {
           await ref
@@ -199,7 +201,7 @@ class ItineraryTab extends ConsumerWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary,
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -422,6 +424,7 @@ class ItineraryTab extends ConsumerWidget {
                                 .read(groupActionsProvider(group.id))
                                 .deleteItineraryItem(item.id);
                           } catch (e) {
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Failed to delete: $e')),
                             );
@@ -686,7 +689,7 @@ class ItineraryTab extends ConsumerWidget {
 
   Widget _buildStatusBadge(String status) {
     Color color = Colors.grey;
-    Color bgColor = Colors.grey.withOpacity(0.1);
+    Color bgColor = Colors.grey.withValues(alpha: 0.1);
     String label = status.toUpperCase();
     switch (status.toLowerCase()) {
       case 'confirmed':

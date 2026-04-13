@@ -68,28 +68,33 @@ class ExploreNotifier extends Notifier<ExploreState> {
             await _service.createSession(state.searchData, userId);
           }
           final fetchPage = isLoadMore ? state.page + 1 : 1;
-          final response = await _matchService.getMatches(page: fetchPage);
-          final fetchedMatches = response.matches.toList();
-          fetchedMatches.sort((a, b) => b.score.compareTo(a.score));
+          final result = await _matchService.getMatches(page: fetchPage);
+          final fetchedMatches = result.matches.toList();
+          fetchedMatches.sort((a, b) => (b.score ?? 0).compareTo(a.score ?? 0));
 
           if (isLoadMore) {
             matches.addAll(fetchedMatches);
           } else {
             matches = fetchedMatches;
           }
-          newHasMore = response.hasMore;
+          newHasMore = result.hasMore;
           newPage = fetchPage;
         } catch (e) {
+          // ignore: avoid_print
           print('Match fetching error: $e');
         }
       } else {
         try {
-          matches = await _service.matchGroups(
+          final result = await _service.matchGroups(
             userId,
             state.searchData,
             state.filters,
           );
-        } catch (e) {}
+          matches = result.matches;
+          newHasMore = result.hasMore;
+        } catch (e) {
+          // ignore: empty_catches
+        }
 
         if (matches.isEmpty) {
           matches = _getDummyGroupMatches();

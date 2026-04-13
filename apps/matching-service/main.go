@@ -27,6 +27,23 @@ var (
 	sbRepo   *repository.SupabaseRepository
 )
 
+func sendJSONError(w http.ResponseWriter, message string, code string, status int, requestId string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": false,
+		"error": map[string]interface{}{
+			"message": message,
+			"code":    code,
+			"details": nil,
+		},
+		"context": map[string]interface{}{
+			"requestId": requestId,
+			"timestamp": time.Now().Format(time.RFC3339),
+		},
+	})
+}
+
 func main() {
 	// Try to load from root .env.local or apps/web/.env.local
 	rootEnv, _ := filepath.Abs("../../.env.local")
@@ -95,8 +112,14 @@ func main() {
 	}
 
 	http.HandleFunc("/v1/match/solo", func(w http.ResponseWriter, r *http.Request) {
+		requestId := r.Header.Get("X-Request-Id")
+		if requestId == "" {
+			requestId = fmt.Sprintf("ms-%d", time.Now().UnixNano())
+		}
+		w.Header().Set("X-Request-Id", requestId)
+
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			sendJSONError(w, "Method not allowed", "METHOD_NOT_ALLOWED", http.StatusMethodNotAllowed, requestId)
 			return
 		}
 
@@ -104,7 +127,8 @@ func main() {
 			UserId string `json:"userId"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			log.Printf("[%s] Error: Invalid request body: %v", requestId, err)
+			sendJSONError(w, "Invalid request body", "BAD_REQUEST", http.StatusBadRequest, requestId)
 			return
 		}
 
@@ -134,15 +158,15 @@ func main() {
 		})
 
 		if err := g.Wait(); err != nil {
-			log.Printf("Error: Redis fetch failed: %v", err)
-			http.Error(w, fmt.Sprintf("Redis Error: %v", err), 500)
+			log.Printf("[%s] Error: Redis fetch failed: %v", requestId, err)
+			sendJSONError(w, fmt.Sprintf("Redis Error: %v", err), "REDIS_ERROR", 500, requestId)
 			return
 		}
 
 
 		if userSession == nil {
-			log.Printf("Error: Session for %s not found in Redis", req.UserId)
-			http.Error(w, "Requester session not found", 404)
+			log.Printf("[%s] Error: Session for %s not found in Redis", requestId, req.UserId)
+			sendJSONError(w, "Requester session not found", "NOT_FOUND", 404, requestId)
 			return
 		}
 
@@ -182,8 +206,8 @@ func main() {
 
 		profiles, err := sbRepo.FetchProfilesBatch(ctx, allUserIds, preResolved)
 		if err != nil {
-			log.Printf("Error: Profile hydration failed: %v", err)
-			http.Error(w, "Profile service error", 500)
+			log.Printf("[%s] Error: Profile hydration failed: %v", requestId, err)
+			sendJSONError(w, "Profile service error", "PROFILE_SERVICE_ERROR", 500, requestId)
 			return
 		}
 
@@ -212,7 +236,6 @@ func main() {
 				}
 
 				if isSelf {
-					log.Printf("Matching: Explicitly excluded requester %s (Internal: %s) from candidates", id, p.UserID)
 					continue
 				}
 
@@ -256,8 +279,8 @@ func main() {
 
 
 		if userSession.StaticAttributes == nil {
-			log.Printf("🔥 CRITICAL ERROR: Requester %s has no profile in Supabase!", req.UserId)
-			http.Error(w, "Requester profile missing", 400)
+			log.Printf("[%s] 🔥 CRITICAL ERROR: Requester %s has no profile in Supabase!", requestId, req.UserId)
+			sendJSONError(w, "Requester profile missing", "PROFILE_MISSING", 400, requestId)
 			return
 		}
 
@@ -283,7 +306,7 @@ func main() {
 				if mlErr == nil {
 					mlUsed = true
 				} else {
-					log.Printf("ML Warning: ML fallback active: %v", mlErr)
+					log.Printf("[%s] ML Warning: ML fallback active: %v", requestId, mlErr)
 				}
 			}
 			return nil
@@ -350,16 +373,25 @@ func main() {
 		})
 
 		latency := time.Since(startTime)
-		log.Printf("[MatchRequest] Requester:%s | Mode:%s | Candidates:%d | ML_USED:%v | ML_LATENCY:%v | Latency:%v", 
-			req.UserId, matchConfig.Mode, len(finalMatches), mlUsed, mlLatency, latency)
+		log.Printf("[%s][MatchRequest] Requester:%s | Mode:%s | Candidates:%d | ML_USED:%v | ML_LATENCY:%v | Latency:%v", 
+			requestId, req.UserId, matchConfig.Mode, len(finalMatches), mlUsed, mlLatency, latency)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(finalMatches)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"matches": finalMatches,
+		})
 	})
 
 	http.HandleFunc("/v1/match/group", func(w http.ResponseWriter, r *http.Request) {
+		requestId := r.Header.Get("X-Request-Id")
+		if requestId == "" {
+			requestId = fmt.Sprintf("ms-%d", time.Now().UnixNano())
+		}
+		w.Header().Set("X-Request-Id", requestId)
+
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			sendJSONError(w, "Method not allowed", "METHOD_NOT_ALLOWED", http.StatusMethodNotAllowed, requestId)
 			return
 		}
 
@@ -369,12 +401,13 @@ func main() {
 			ConfigVersion string                `json:"configVersion"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			log.Printf("[%s] Error: Invalid request body: %v", requestId, err)
+			sendJSONError(w, "Invalid request body", "BAD_REQUEST", http.StatusBadRequest, requestId)
 			return
 		}
 
 		if req.ConfigVersion != "" && req.ConfigVersion != matchConfig.ConfigVersion {
-			log.Printf("Warning: Config version mismatch. Request: %s, Server: %s", req.ConfigVersion, matchConfig.ConfigVersion)
+			log.Printf("[%s] Warning: Config version mismatch. Request: %s, Server: %s", requestId, req.ConfigVersion, matchConfig.ConfigVersion)
 		}
 
 		// Phase 1: Features for batch ML
@@ -406,7 +439,10 @@ func main() {
 		})
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(results)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"groups":  results,
+		})
 	})
 
 	port := os.Getenv("PORT")

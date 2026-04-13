@@ -29,7 +29,7 @@ class KovariSwitchTile extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             // ignore: deprecated_member_use
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -58,7 +58,7 @@ class KovariSwitchTile extends StatelessWidget {
                 value: value,
                 onChanged: onChanged,
                 activeTrackColor: AppColors.primary,
-                trackColor: AppColors.secondary,
+                inactiveTrackColor: AppColors.secondary,
               ),
             ),
           ),

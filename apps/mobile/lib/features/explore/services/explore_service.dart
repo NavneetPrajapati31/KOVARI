@@ -1,15 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/models/api_response.dart';
+import '../../../core/providers/contract_provider.dart';
+import '../../../core/utils/safe_parser.dart';
 import '../models/explore_state.dart';
+import '../models/match_result.dart';
+import '../models/match_user.dart';
 
 class ExploreService {
   final ApiClient _apiClient;
+  final Ref _ref;
 
-  ExploreService(this._apiClient);
+  ExploreService(this._apiClient, this._ref);
 
   Future<void> createSession(SearchData searchData, String userId) async {
-    final payload = {
+    final Map<String, dynamic> payload = {
       'userId': userId,
       'destinationName': searchData.destination,
       'budget': searchData.budget,
@@ -30,11 +36,19 @@ class ExploreService {
       };
     }
 
-    await _apiClient.post(ApiEndpoints.exploreSession, data: payload);
+    // Fire-and-forget: session creation failure is non-critical
+    await _apiClient.post<void>(
+      ApiEndpoints.exploreSession,
+      data: payload,
+      parser: (_) {},
+    );
   }
 
-  Future<List<dynamic>> matchSolo(String userId, ExploreFilters filters) async {
-    final queryParams = {
+  Future<MatchResult> matchSolo(
+    String userId,
+    ExploreFilters filters,
+  ) async {
+    final queryParams = <String, dynamic>{
       'userId': userId,
       'ageMin': filters.ageRange[0].toString(),
       'ageMax': filters.ageRange[1].toString(),
@@ -48,31 +62,35 @@ class ExploreService {
     if (filters.interests.isNotEmpty) {
       queryParams['interests'] = filters.interests.join(',');
     }
-
     if (filters.languages.isNotEmpty) {
       queryParams['languages'] = filters.languages.join(',');
     }
 
-    final response = await _apiClient.get(
+    final response = await _apiClient.get<MatchResult>(
       ApiEndpoints.matchSolo,
       queryParameters: queryParams,
+      parser: (data) {
+        if (data is! Map<String, dynamic>) return MatchResult.empty();
+        final rawList = data['matches'] ?? data['data'] ?? [];
+        return MatchResult(
+          matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),
+          hasMore: data['hasMore'] as bool? ?? false,
+          totalCount: data['total'] as int? ?? 0,
+        );
+      },
     );
 
-    if (response.data is List) {
-      return response.data as List<dynamic>;
-    } else if (response.data is Map && response.data['matches'] != null) {
-      return response.data['matches'] as List<dynamic>;
-    }
+    _updateContractState(response.meta);
 
-    return [];
+    return response.data ?? MatchResult.empty();
   }
 
-  Future<List<dynamic>> matchGroups(
+  Future<MatchResult> matchGroups(
     String userId,
     SearchData searchData,
     ExploreFilters filters,
   ) async {
-    final payload = {
+    final Map<String, dynamic> payload = {
       'userId': userId,
       'destination': searchData.destination,
       'budget': searchData.budget,
@@ -94,11 +112,23 @@ class ExploreService {
       payload['lon'] = searchData.destinationDetails!['lon'];
     }
 
-    final response = await _apiClient.post(
+    final response = await _apiClient.post<MatchResult>(
       ApiEndpoints.matchGroups,
       data: payload,
+      parser: (data) {
+        if (data is! Map<String, dynamic>) return MatchResult.empty();
+        final rawList = data['groups'] ?? data['data'] ?? [];
+        return MatchResult(
+          matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),
+          hasMore: data['hasMore'] as bool? ?? false,
+          totalCount: data['total'] as int? ?? 0,
+        );
+      },
     );
-    return (response.data['groups'] ?? []) as List<dynamic>;
+
+    _updateContractState(response.meta);
+
+    return response.data ?? MatchResult.empty();
   }
 
   Future<void> sendInterest({
@@ -108,19 +138,19 @@ class ExploreService {
     required String destinationId,
     required bool isSolo,
   }) async {
-    final payload = {'fromUserId': fromUserId, 'destinationId': destinationId};
-
+    final Map<String, dynamic> payload = {
+      'fromUserId': fromUserId,
+      'destinationId': destinationId,
+    };
     if (isSolo) {
       payload['toUserId'] = toUserId!;
     } else {
       payload['toGroupId'] = toGroupId!;
     }
-
-    await _apiClient.post(
-      isSolo
-          ? ApiEndpoints.exploreInterest
-          : ApiEndpoints.exploreInterest, // Adjust if different
+    await _apiClient.post<void>(
+      ApiEndpoints.exploreInterest,
       data: payload,
+      parser: (_) {},
     );
   }
 
@@ -131,20 +161,21 @@ class ExploreService {
     required String destinationId,
     required bool isSolo,
   }) async {
-    final payload = {
+    final Map<String, dynamic> payload = {
       'skipperId': skipperId,
       'destinationId': destinationId,
       'type': isSolo ? 'solo' : 'group',
     };
-
     if (isSolo) {
       payload['skippedUserId'] = skippedUserId!;
     } else {
-      // payload['skippedGroupId'] = skippedGroupId!; // Adjust if backend expects this
       payload['toGroupId'] = skippedGroupId!;
     }
-
-    await _apiClient.post(ApiEndpoints.exploreSkip, data: payload);
+    await _apiClient.post<void>(
+      ApiEndpoints.exploreSkip,
+      data: payload,
+      parser: (_) {},
+    );
   }
 
   Future<void> reportMatch({
@@ -154,23 +185,29 @@ class ExploreService {
     required String reason,
     required bool isSolo,
   }) async {
-    final payload = {
+    final Map<String, dynamic> payload = {
       'reporterId': reporterId,
       'reason': reason,
       'type': isSolo ? 'solo' : 'group',
     };
-
     if (isSolo) {
       payload['reportedUserId'] = reportedUserId!;
     } else {
       payload['reportedGroupId'] = reportedGroupId!;
     }
+    await _apiClient.post<void>(
+      ApiEndpoints.exploreReport,
+      data: payload,
+      parser: (_) {},
+    );
+  }
 
-    await _apiClient.post(ApiEndpoints.exploreReport, data: payload);
+  void _updateContractState(ApiMeta meta) {
+    _ref.read(contractStateProvider.notifier).update(meta.contractState);
   }
 }
 
 final exploreServiceProvider = Provider<ExploreService>((ref) {
   final apiClient = ref.watch(apiClientProvider);
-  return ExploreService(apiClient);
+  return ExploreService(apiClient, ref);
 });

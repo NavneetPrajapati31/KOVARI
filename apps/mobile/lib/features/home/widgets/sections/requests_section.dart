@@ -91,6 +91,7 @@ class RequestsSection extends ConsumerWidget {
                             width: 64,
                             child: LinearProgressIndicator(),
                           ),
+                          // ignore: unnecessary_underscores
                           error: (_, __) => const Text(
                             'Error loading',
                             style: TextStyle(fontSize: 10),
@@ -123,7 +124,7 @@ class RequestsSection extends ConsumerWidget {
                 );
               },
               loading: () => _buildSkeleton(),
-              error: (err, __) => Padding(
+              error: (err, _) => Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text('Error: $err'),
               ),

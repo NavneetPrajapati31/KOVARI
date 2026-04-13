@@ -248,6 +248,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(settingsServiceProvider).deleteAccount();
         _showSnackBar('Account deleted successfully');
         await ref.read(authStateProvider.notifier).logout();
+        if (!mounted) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
       } catch (e) {
         _showSnackBar(
@@ -365,7 +366,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     String subtitle, {
     bool isDestructive = false,
   }) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,8 +595,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary.withOpacity(
-                        _isPasswordLoading ? 0.5 : 1,
+                      color: AppColors.primary.withValues(
+                        alpha: _isPasswordLoading ? 0.5 : 1,
                       ),
                     ),
                   ),

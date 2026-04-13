@@ -16,19 +16,12 @@ class SoloMatchCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final Map<String, dynamic> user = Map<String, dynamic>.from(
-      match.raw['user'] ?? {},
-    );
-    final String name = user['full_name'] ?? user['name'] ?? 'Traveler';
-    final int? age = match.age > 0 ? match.age : null;
-    final String? bio = user['bio'];
+    final String name = match.name;
+    final int? age = match.age;
+    final String? bio = match.bio;
 
-    final String? startStr = match.raw['start_date']?.toString();
-    final String? endStr = match.raw['end_date']?.toString();
-    final DateTime? startDate = startStr != null
-        ? DateTime.tryParse(startStr)
-        : null;
-    final DateTime? endDate = endStr != null ? DateTime.tryParse(endStr) : null;
+    final DateTime? startDate = match.startDate;
+    final DateTime? endDate = match.endDate;
 
     String? dateRange;
     int? tripLength;
@@ -135,62 +128,53 @@ class SoloMatchCard extends ConsumerWidget {
                               icon: Icons.timelapse_outlined,
                               label: "$tripLength days",
                             ),
-                          if (match.raw['budget'] != null)
+                          if (match.budget != null)
                             _PillData(
                               icon: Icons.currency_rupee,
-                              label: match.raw['budget'].toString(),
+                              label: match.budget!.toStringAsFixed(0),
                             ),
                         ]),
                         const SizedBox(height: 24),
 
                         _buildSectionTitle('About Me'),
                         _buildPillList([
-                          if (user['gender'] != null)
+                          if (match.gender != null)
                             _PillData(
                               icon: Icons.person_outline,
-                              label: user['gender'],
+                              label: match.gender!,
                             ),
-                          if (user['nationality'] != null)
+                          if (match.nationality != null)
                             _PillData(
                               icon: Icons.public_outlined,
-                              label: user['nationality'],
+                              label: match.nationality!,
                             ),
-                          if (user['profession'] != null)
+                          if (match.profession != null)
                             _PillData(
                               icon: Icons.work_outline,
-                              label: user['profession'],
+                              label: match.profession!,
                             ),
-                          if (user['personality'] != null)
+                          if (match.personality != null)
                             _PillData(
-                              icon:
-                                  user['personality']
-                                          .toString()
-                                          .toLowerCase() ==
-                                      'extrovert'
+                              icon: match.personality!.toLowerCase() == 'extrovert'
                                   ? Icons.bolt
-                                  : user['personality']
-                                            .toString()
-                                            .toLowerCase() ==
-                                        'introvert'
-                                  ? Icons.menu_book_outlined
-                                  : Icons.adjust,
-                              label: user['personality'],
+                                  : match.personality!.toLowerCase() == 'introvert'
+                                      ? Icons.menu_book_outlined
+                                      : Icons.adjust,
+                              label: match.personality!,
                             ),
-                          if (user['religion'] != null)
+                          if (match.religion != null)
                             _PillData(
                               icon: Icons.auto_stories_outlined,
-                              label: user['religion'],
+                              label: match.religion!,
                             ),
                         ]),
                         const SizedBox(height: 24),
 
-                        if (user['interests'] != null &&
-                            user['interests'] is List &&
-                            (user['interests'] as List).isNotEmpty) ...[
+                        if (match.interests.isNotEmpty) ...[
                           _buildSectionTitle('Interests'),
                           _buildPillList(
-                            (user['interests'] as List)
-                                .map((i) => _PillData(label: i.toString()))
+                            match.interests
+                                .map((i) => _PillData(label: i))
                                 .toList(),
                           ),
                           const SizedBox(height: 24),
@@ -198,20 +182,20 @@ class SoloMatchCard extends ConsumerWidget {
 
                         _buildSectionTitle('Lifestyle'),
                         _buildPillList([
-                          if (user['foodPreference'] != null)
+                          if (match.foodPreference != null)
                             _PillData(
                               icon: Icons.restaurant_outlined,
-                              label: user['foodPreference'],
+                              label: match.foodPreference!,
                             ),
-                          if (user['smoking'] != null)
+                          if (match.smoking != null)
                             _PillData(
                               icon: Icons.smoking_rooms_outlined,
-                              label: "Smoking: ${user['smoking']}",
+                              label: "Smoking: ${match.smoking}",
                             ),
-                          if (user['drinking'] != null)
+                          if (match.drinking != null)
                             _PillData(
                               icon: Icons.local_bar_outlined,
-                              label: "Drinking: ${user['drinking']}",
+                              label: "Drinking: ${match.drinking}",
                             ),
                         ]),
                       ],

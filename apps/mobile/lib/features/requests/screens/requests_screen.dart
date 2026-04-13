@@ -609,11 +609,11 @@ class _RequestCardSkeleton extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             // Content
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Skeleton(width: 100, height: 12),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Skeleton(width: double.infinity, height: 12),
               ],
             ),

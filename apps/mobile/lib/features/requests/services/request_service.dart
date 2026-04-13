@@ -1,5 +1,6 @@
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/utils/safe_parser.dart';
 import '../models/request_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,12 +15,14 @@ class RequestService {
 
   Future<List<InterestModel>> getInterests() async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.interests);
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => InterestModel.fromJson(json)).toList();
-      }
-      return [];
+      final response = await _apiClient.get<List<InterestModel>>(
+        ApiEndpoints.interests,
+        parser: (data) => safeParseList(
+          data is List ? data : [],
+          InterestModel.fromJson,
+        ),
+      );
+      return response.data ?? [];
     } catch (e) {
       rethrow;
     }
@@ -27,12 +30,14 @@ class RequestService {
 
   Future<List<InvitationModel>> getPendingInvitations() async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.pendingInvitations);
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => InvitationModel.fromJson(json)).toList();
-      }
-      return [];
+      final response = await _apiClient.get<List<InvitationModel>>(
+        ApiEndpoints.pendingInvitations,
+        parser: (data) => safeParseList(
+          data is List ? data : [],
+          InvitationModel.fromJson,
+        ),
+      );
+      return response.data ?? [];
     } catch (e) {
       rethrow;
     }
@@ -40,11 +45,12 @@ class RequestService {
 
   Future<bool> respondToInterest(String interestId, String action) async {
     try {
-      final response = await _apiClient.post(
+      final response = await _apiClient.post<void>(
         ApiEndpoints.interestsRespond,
         data: {'interestId': interestId, 'action': action},
+        parser: (_) {},
       );
-      return response.statusCode == 200;
+      return response.success;
     } catch (e) {
       return false;
     }
@@ -52,11 +58,12 @@ class RequestService {
 
   Future<bool> respondToInvitation(String groupId, String action) async {
     try {
-      final response = await _apiClient.post(
+      final response = await _apiClient.post<void>(
         ApiEndpoints.groupInvitation,
         data: {'groupId': groupId, 'action': action},
+        parser: (_) {},
       );
-      return response.statusCode == 200;
+      return response.success;
     } catch (e) {
       return false;
     }

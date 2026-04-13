@@ -138,7 +138,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
             Icon(
               LucideIcons.heartHandshake,
               size: 64,
-              color: AppColors.mutedForeground.withOpacity(0.3),
+              color: AppColors.primary.withValues(alpha: 0.1),
             ),
             const SizedBox(height: 16),
             const Text(

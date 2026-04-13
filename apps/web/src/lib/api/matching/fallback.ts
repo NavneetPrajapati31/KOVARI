@@ -24,6 +24,15 @@ export async function performSoloDbMatchingFallback(
       gender,
       created_at,
       location,
+      nationality,
+      profession,
+      religion,
+      smoking,
+      drinking,
+      personality,
+      food_preference,
+      interests,
+      languages,
       users (
         "isDeleted"
       )
@@ -82,7 +91,18 @@ export async function performSoloDbMatchingFallback(
         bio: p.bio,
         avatar: p.profile_photo,
         gender: p.gender,
-        age: p.age
+        age: p.age,
+        location: p.location,
+        locationDisplay: p.location,
+        nationality: p.nationality,
+        profession: p.profession,
+        religion: p.religion,
+        smoking: p.smoking,
+        drinking: p.drinking,
+        personality: p.personality,
+        foodPreference: p.food_preference,
+        interests: p.interests || [],
+        languages: p.languages || []
       }
     };
   });

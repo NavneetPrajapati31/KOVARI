@@ -1,42 +1,77 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/contract_provider.dart';
+import '../../../core/utils/safe_parser.dart';
+import '../models/match_result.dart';
 import '../models/match_user.dart';
 
+/// 🛡️ Match Service — typed, safe, crash-proof
+///
+/// Returns only typed models to UI providers.
+/// Errors, timeouts, and malformed data are absorbed here.
 class MatchService {
   final ApiClient _apiClient;
+  final Ref _ref;
 
-  MatchService(this._apiClient);
+  MatchService(this._apiClient, this._ref);
 
-  Future<({List<MatchUser> matches, bool hasMore})> getMatches({int page = 1, int limit = 20}) async {
-    try {
-      final response = await _apiClient.get('match-solo', queryParameters: {
-        'page': page,
-        'limit': limit,
-      });
+  Future<MatchResult> getMatches({int page = 1, int limit = 20}) async {
+    final response = await _apiClient.get<MatchResult>(
+      'match-solo',
+      queryParameters: {'page': page, 'limit': limit},
+      parser: (data) {
+        if (data is! Map<String, dynamic>) return MatchResult.empty();
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data != null && data['success'] == true && data['matches'] != null) {
-          final List matchesList = data['matches'];
-          final bool hasMore = data['hasMore'] ?? false;
-          return (
-            matches: matchesList
-                .where((m) => m != null)
-                .map((m) => MatchUser.fromJson(m as Map<String, dynamic>))
-                .toList(),
-            hasMore: hasMore,
-          );
-        }
-      }
-      return (matches: <MatchUser>[], hasMore: false);
-    } catch (e) {
-      print('Error fetching matches: $e');
-      return (matches: <MatchUser>[], hasMore: false);
-    }
+        final rawList = data['matches'] ?? data['data'] ?? [];
+        final hasMore = data['hasMore'] as bool? ?? false;
+        final total = data['total'] as int? ?? 0;
+
+        return MatchResult(
+          matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),
+          hasMore: hasMore,
+          totalCount: total,
+        );
+      },
+    );
+
+    _ref
+        .read(contractStateProvider.notifier)
+        .update(response.meta.contractState);
+
+    return response.data ?? MatchResult.empty();
+  }
+
+  Future<MatchResult> getGroupMatches({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final response = await _apiClient.get<MatchResult>(
+      'match-groups',
+      queryParameters: {'page': page, 'limit': limit},
+      parser: (data) {
+        if (data is! Map<String, dynamic>) return MatchResult.empty();
+
+        final rawList = data['groups'] ?? data['data'] ?? [];
+        final hasMore = data['hasMore'] as bool? ?? false;
+        final total = data['total'] as int? ?? 0;
+
+        return MatchResult(
+          matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),
+          hasMore: hasMore,
+          totalCount: total,
+        );
+      },
+    );
+
+    _ref
+        .read(contractStateProvider.notifier)
+        .update(response.meta.contractState);
+
+    return response.data ?? MatchResult.empty();
   }
 }
 
 final matchServiceProvider = Provider<MatchService>((ref) {
   final apiClient = ref.watch(apiClientProvider);
-  return MatchService(apiClient);
+  return MatchService(apiClient, ref);
 });

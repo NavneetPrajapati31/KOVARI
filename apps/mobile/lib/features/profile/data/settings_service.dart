@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 
@@ -12,59 +11,69 @@ class SettingsService {
     required String newPassword,
     required String confirmPassword,
   }) async {
-    try {
-      await _apiClient.post(
-        ApiEndpoints.changePassword,
-        data: {
-          'currentPassword': currentPassword,
-          'newPassword': newPassword,
-          'confirmPassword': confirmPassword,
-        },
-      );
-    } on DioException catch (e) {
-      final message = e.response?.data['error'] ?? 'Failed to update password';
+    final response = await _apiClient.post<void>(
+      ApiEndpoints.changePassword,
+      data: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        'confirmPassword': confirmPassword,
+      },
+      parser: (_) {},
+    );
+
+    if (!response.success) {
+      final message = response.error?.message ?? 'Failed to update password';
       throw Exception(message);
     }
   }
 
   Future<void> deleteAccount() async {
-    try {
-      await _apiClient.post(ApiEndpoints.deleteAccount);
-    } on DioException catch (e) {
-      final message = e.response?.data['error'] ?? 'Failed to delete account';
+    final response = await _apiClient.post<void>(
+      ApiEndpoints.deleteAccount,
+      parser: (_) {},
+    );
+
+    if (!response.success) {
+      final message = response.error?.message ?? 'Failed to delete account';
       throw Exception(message);
     }
   }
 
   Future<Map<String, dynamic>> updateEmail(String newEmail) async {
-    try {
-      final response = await _apiClient.patch(
-        'profile/update',
-        data: {'field': 'email', 'value': newEmail},
-      );
-      return Map<String, dynamic>.from(response.data);
-    } on DioException catch (e) {
-      final message = e.response?.data['error'] ?? 'Failed to update email';
-      throw Exception(message);
+    final response = await _apiClient.patch<Map<String, dynamic>>(
+      'profile/update',
+      data: {'field': 'email', 'value': newEmail},
+      parser: (data) => Map<String, dynamic>.from(data),
+    );
+
+    if (response.success && response.data != null) {
+      return response.data!;
     }
+
+    final message = response.error?.message ?? 'Failed to update email';
+    throw Exception(message);
   }
 
   Future<void> verifyEmail(String email, String code) async {
-    try {
-      await _apiClient.post(
-        'profile/verify-email',
-        data: {'email': email, 'code': code},
-      );
-    } on DioException catch (e) {
-      final message = e.response?.data['error'] ?? 'Invalid verification code';
+    final response = await _apiClient.post<void>(
+      'profile/verify-email',
+      data: {'email': email, 'code': code},
+      parser: (_) {},
+    );
+
+    if (!response.success) {
+      final message = response.error?.message ?? 'Invalid verification code';
       throw Exception(message);
     }
   }
 
   Future<Map<String, dynamic>> fetchPolicies() async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.acceptPolicies);
-      return response.data;
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        ApiEndpoints.acceptPolicies,
+        parser: (data) => Map<String, dynamic>.from(data),
+      );
+      return response.data ?? {};
     } catch (e) {
       // Return empty if fails, read-only display anyway
       return {};

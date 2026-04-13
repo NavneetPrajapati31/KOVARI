@@ -1,6 +1,7 @@
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/utils/api_error_handler.dart';
+import '../../../core/utils/safe_parser.dart';
 import '../models/user_connection.dart';
 
 class ConnectionsService {
@@ -11,12 +12,14 @@ class ConnectionsService {
   /// GET /api/profile/[userId]/followers
   Future<List<UserConnection>> getFollowers(String userId) async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.followers(userId));
-      if (response.statusCode == 200) {
-        final List data = response.data as List;
-        return data.map((json) => UserConnection.fromJson(json)).toList();
-      }
-      return [];
+      final response = await _apiClient.get<List<UserConnection>>(
+        ApiEndpoints.followers(userId),
+        parser: (data) => safeParseList(
+          data is List ? data : [],
+          UserConnection.fromJson,
+        ),
+      );
+      return response.data ?? [];
     } catch (e) {
       throw ApiErrorHandler.extractError(e);
     }
@@ -25,12 +28,14 @@ class ConnectionsService {
   /// GET /api/profile/[userId]/following
   Future<List<UserConnection>> getFollowing(String userId) async {
     try {
-      final response = await _apiClient.get(ApiEndpoints.following(userId));
-      if (response.statusCode == 200) {
-        final List data = response.data as List;
-        return data.map((json) => UserConnection.fromJson(json)).toList();
-      }
-      return [];
+      final response = await _apiClient.get<List<UserConnection>>(
+        ApiEndpoints.following(userId),
+        parser: (data) => safeParseList(
+          data is List ? data : [],
+          UserConnection.fromJson,
+        ),
+      );
+      return response.data ?? [];
     } catch (e) {
       throw ApiErrorHandler.extractError(e);
     }
@@ -39,7 +44,13 @@ class ConnectionsService {
   /// POST /api/profile/[userId]/followers (Follow)
   Future<void> followUser(String userId) async {
     try {
-      await _apiClient.post(ApiEndpoints.follow(userId));
+      final response = await _apiClient.post<void>(
+        ApiEndpoints.follow(userId),
+        parser: (_) {},
+      );
+      if (!response.success) {
+        throw Exception('Failed to follow user');
+      }
     } catch (e) {
       throw ApiErrorHandler.extractError(e);
     }
@@ -48,7 +59,13 @@ class ConnectionsService {
   /// DELETE /api/profile/[userId]/following (Unfollow)
   Future<void> unfollowUser(String userId) async {
     try {
-      await _apiClient.delete(ApiEndpoints.unfollow(userId));
+      final response = await _apiClient.delete<void>(
+        ApiEndpoints.unfollow(userId),
+        parser: (_) {},
+      );
+      if (!response.success) {
+        throw Exception('Failed to unfollow user');
+      }
     } catch (e) {
       throw ApiErrorHandler.extractError(e);
     }
@@ -57,7 +74,13 @@ class ConnectionsService {
   /// DELETE /api/profile/[userId]/followers (Remove follower)
   Future<void> removeFollower(String userId) async {
     try {
-      await _apiClient.delete(ApiEndpoints.removeFollower(userId));
+      final response = await _apiClient.delete<void>(
+        ApiEndpoints.removeFollower(userId),
+        parser: (_) {},
+      );
+      if (!response.success) {
+        throw Exception('Failed to remove follower');
+      }
     } catch (e) {
       throw ApiErrorHandler.extractError(e);
     }

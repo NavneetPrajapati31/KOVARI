@@ -9,7 +9,8 @@ import {
   safeTransform 
 } from "@/lib/api/responseHelpers";
 import { matchTransformer } from "@/lib/transformers/matchTransformer";
-import { validateGoMatchResponse } from "@/lib/api/validators/v1/matchValidator";
+import { validateGoMatchResponse, safeBatchValidate } from "@/lib/api/validators/v1/matchValidator";
+import { GoGroupMatchSchema } from "@/lib/api/validators/v1/matchSchemas";
 import { ApiErrorCode } from "@/types/api";
 
 const supabase = createRouteHandlerSupabaseClientWithServiceRole();
@@ -47,12 +48,19 @@ export async function POST(req: NextRequest) {
       return formatErrorResponse("Service failure", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
     }
 
+    const rawItems = Array.isArray(rawData) ? rawData : (rawData.groups || []);
+    const { validItems, droppedCount, state } = safeBatchValidate(rawItems, GoGroupMatchSchema, requestId);
+
+    if (state === 'degraded') {
+      return formatErrorResponse("Service quality below threshold", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
+    }
+
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const page = parseInt(searchParams.get("page") || "1", 10);
     const offset = (page - 1) * limit;
 
-    const pagedData = Array.isArray(rawData) ? rawData.slice(offset, offset + limit) : [];
+    const pagedData = validItems.slice(offset, offset + limit);
     const transformed = pagedData.map(g => {
       const result = safeTransform(matchTransformer, g);
       return result.ok ? result.data : null;
@@ -64,10 +72,13 @@ export async function POST(req: NextRequest) {
     return formatStandardResponse(
       { groups: transformed },
       { 
-        hasMore: offset + limit < (Array.isArray(rawData) ? rawData.length : 0),
-        total: Array.isArray(rawData) ? rawData.length : 0,
+        hasMore: offset + limit < validItems.length,
+        total: validItems.length,
         page,
-        limit 
+        limit,
+        contractState: state,
+        filtered: droppedCount > 0,
+        droppedCount
       },
       { requestId, latencyMs }
     );

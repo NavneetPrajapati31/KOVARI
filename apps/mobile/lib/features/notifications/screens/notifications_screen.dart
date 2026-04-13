@@ -73,7 +73,7 @@ class NotificationsScreen extends ConsumerWidget {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               foregroundColor: AppColors.primary,
-              disabledForegroundColor: AppColors.primary.withOpacity(0.5),
+              disabledForegroundColor: AppColors.primary.withValues(alpha: 0.5),
             ),
             child: const Text(
               'Mark all as read',

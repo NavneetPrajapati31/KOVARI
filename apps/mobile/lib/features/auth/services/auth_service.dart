@@ -14,142 +14,144 @@ class AuthService {
 
   /// Handle Google Sign-In SSO
   Future<KovariUser?> loginWithGoogle() async {
-    try {
-      // In 7.x+, authenticate() returns the account.
-      // authentication getter is no longer a Future.
-      final account = await _googleSignIn.authenticate();
-      final GoogleSignInAuthentication auth = account.authentication;
-      final String? idToken = auth.idToken;
+    // In 7.x+, authenticate() returns the account.
+    final account = await _googleSignIn.authenticate();
+    final GoogleSignInAuthentication auth = account.authentication;
+    final String? idToken = auth.idToken;
 
-      if (idToken == null) {
-        throw Exception("Failed to retrieve Google ID Token");
-      }
-
-      // Step 2: Send idToken to backend
-      final response = await _apiClient.post(
-        ApiEndpoints.googleAuth,
-        data: {'idToken': idToken},
-      );
-
-      return _handleAuthResponse(response.data);
-    } catch (e) {
-      debugPrint('❌ Google Login failed: $e');
-      rethrow;
+    if (idToken == null) {
+      throw Exception("Failed to retrieve Google ID Token");
     }
+
+    final response = await _apiClient.post<KovariUser>(
+      ApiEndpoints.googleAuth,
+      data: {'idToken': idToken},
+      parser: (data) => _parseAuthResponse(data),
+    );
+
+    if (response.success && response.data != null) {
+      await _finalizeAuthentication(response.data!, response.raw);
+      return response.data;
+    }
+    throw Exception(response.error?.message ?? "Google Login failed");
   }
 
   /// Handle custom Email/Password Login
   Future<KovariUser?> loginWithEmail(String email, String password) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.emailLogin,
-        data: {'email': email, 'password': password},
-      );
+    final response = await _apiClient.post<KovariUser>(
+      ApiEndpoints.emailLogin,
+      data: {'email': email, 'password': password},
+      parser: (data) => _parseAuthResponse(data),
+    );
 
-      return _handleAuthResponse(response.data);
-    } catch (e) {
-      debugPrint('❌ Email Login failed: $e');
-      rethrow;
+    if (response.success && response.data != null) {
+      await _finalizeAuthentication(response.data!, response.raw);
+      return response.data;
     }
+    throw Exception(response.error?.message ?? "Email Login failed");
   }
 
   /// Handle custom Email/Password Registration (Initial Step)
-  /// Returns a Map containing {'verificationRequired': true} or the user data
   Future<Map<String, dynamic>> registerWithEmail(
     String email,
     String password, {
     String? name,
   }) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.emailRegister,
-        data: {'email': email, 'password': password, 'name': name},
-      );
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.emailRegister,
+      data: {'email': email, 'password': password, 'name': name},
+      parser: (data) => data as Map<String, dynamic>,
+    );
 
-      final data = response.data as Map<String, dynamic>;
-
+    if (response.success && response.data != null) {
+      final data = response.data!;
       if (data['verificationRequired'] == true) {
         return data; // Return to UI for navigation
       }
-
-      // Legacy fallback (if direct creation is ever re-enabled)
-      await _handleAuthResponse(data);
+      // If direct creation enabled
+      final user = _parseAuthResponse(data);
+      await _finalizeAuthentication(user, data);
       return data;
-    } catch (e) {
-      debugPrint('❌ Registration failed: $e');
-      rethrow;
     }
+    throw Exception(response.error?.message ?? "Registration failed");
   }
 
   /// Request Password Reset via Email
   Future<void> requestPasswordReset(String email) async {
-    try {
-      await _apiClient.post(
-        ApiEndpoints.forgotPassword,
-        data: {'email': email, 'platform': 'mobile'},
+    final response = await _apiClient.post<void>(
+      ApiEndpoints.forgotPassword,
+      data: {'email': email, 'platform': 'mobile'},
+      parser: (_) {},
+    );
+    if (!response.success) {
+      throw Exception(
+        response.error?.message ?? "Forgot Password request failed",
       );
-    } catch (e) {
-      debugPrint('❌ Forgot Password request failed: $e');
-      rethrow;
     }
   }
+
   /// Verify 6-digit OTP and finalize registration
   Future<KovariUser> verifyOtp(String email, String code) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.verifyOtp,
-        data: {'email': email, 'code': code},
-      );
+    final response = await _apiClient.post<KovariUser>(
+      ApiEndpoints.verifyOtp,
+      data: {'email': email, 'code': code},
+      parser: (data) => _parseAuthResponse(data),
+    );
 
-      return await _handleAuthResponse(response.data);
-    } catch (e) {
-      debugPrint('❌ OTP Verification failed: $e');
-      rethrow;
+    if (response.success && response.data != null) {
+      await _finalizeAuthentication(response.data!, response.raw);
+      return response.data!;
     }
+    throw Exception(response.error?.message ?? "OTP Verification failed");
   }
 
   /// Reset Password with token
   Future<void> resetPassword(String token, String newPassword) async {
-    try {
-      await _apiClient.post(
-        ApiEndpoints.resetPassword,
-        data: {'token': token, 'newPassword': newPassword},
-      );
-    } catch (e) {
-      debugPrint('❌ Reset Password failed: $e');
-      rethrow;
+    final response = await _apiClient.post<void>(
+      ApiEndpoints.resetPassword,
+      data: {'token': token, 'newPassword': newPassword},
+      parser: (_) {},
+    );
+    if (!response.success) {
+      throw Exception(response.error?.message ?? "Reset Password failed");
     }
   }
+
   /// Resend a fresh verification code
   Future<void> resendOtp(String email) async {
-    try {
-      await _apiClient.post(ApiEndpoints.resendOtp, data: {'email': email});
-    } catch (e) {
-      debugPrint('❌ OTP Resend failed: $e');
-      rethrow;
+    final response = await _apiClient.post<void>(
+      ApiEndpoints.resendOtp,
+      data: {'email': email},
+      parser: (_) {},
+    );
+    if (!response.success) {
+      throw Exception(response.error?.message ?? "OTP Resend failed");
     }
   }
 
   /// Unified response handler for tokens and user data
-  Future<KovariUser> _handleAuthResponse(dynamic data) async {
-    final Map<String, dynamic> responseData = data as Map<String, dynamic>;
+  Future<void> _finalizeAuthentication(KovariUser user, dynamic rawData) async {
+    final Map<String, dynamic> responseData = rawData as Map<String, dynamic>;
 
     final accessToken = responseData['accessToken'] as String;
     final refreshToken = responseData['refreshToken'] as String;
-    final userMap = responseData['user'] as Map<String, dynamic>;
 
     // 1. Store tokens securely
     await _storage.saveAccessToken(accessToken);
     await _storage.saveRefreshToken(refreshToken);
 
-    // 2. Map user
-    final user = KovariUser.fromAuthResponse(userMap);
+    // 2. Map user and save
     await _storage.saveUserData(user.toJson());
 
     // 3. Update ApiClient
     _apiClient.setToken(accessToken);
+  }
 
-    return user;
+  /// Pure parser for Auth responses
+  KovariUser _parseAuthResponse(dynamic data) {
+    final Map<String, dynamic> responseData = data as Map<String, dynamic>;
+    final userMap = responseData['user'] as Map<String, dynamic>;
+    return KovariUser.fromAuthResponse(userMap);
   }
 
   /// Restore session from storage
@@ -173,9 +175,11 @@ class AuthService {
       final refreshToken = await _storage.getRefreshToken();
       if (refreshToken != null) {
         // Use best-effort logout call
-        await _apiClient
-            .post(ApiEndpoints.logout, data: {'refreshToken': refreshToken})
-            .timeout(const Duration(seconds: 3));
+        await _apiClient.post<void>(
+          ApiEndpoints.logout,
+          data: {'refreshToken': refreshToken},
+          parser: (_) {},
+        ).timeout(const Duration(seconds: 3));
       }
 
       // 2. Clear Google Session

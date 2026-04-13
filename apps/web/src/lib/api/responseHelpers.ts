@@ -9,6 +9,7 @@ import {
   TransformResult 
 } from "@/types/api";
 import { logger } from "./logger";
+import { contractMetrics } from "./metrics";
 
 /**
  * 🧱 Standard Response Assembler
@@ -20,6 +21,8 @@ export function formatStandardResponse<T>(
   context: { requestId: string; latencyMs: number },
   status = 200
 ): NextResponse {
+  const contractState = meta.contractState || (meta.degraded ? 'degraded' : (meta.filtered ? 'filtered' : 'clean'));
+  
   const apiContext: ApiContext = {
     requestId: context.requestId,
     latencyMs: context.latencyMs,
@@ -29,7 +32,10 @@ export function formatStandardResponse<T>(
   const response: ApiResponse<T> = {
     success: true,
     data,
-    meta: Object.freeze(meta),
+    meta: Object.freeze({
+      ...meta,
+      contractState
+    }),
     context: Object.freeze(apiContext),
     error: null,
     // Duplicate for legacy-backwards-compat (non-binding)
@@ -37,11 +43,15 @@ export function formatStandardResponse<T>(
     hasMore: meta.hasMore
   };
 
+  // PHASE 7: Metrics Integration
+  contractMetrics.record(contractState, context.requestId);
+
   const nextResponse = NextResponse.json(response, { status });
   
   // Production Headers
   nextResponse.headers.set("X-Request-Id", context.requestId);
   nextResponse.headers.set("X-Kovari-Version", "v1");
+  nextResponse.headers.set("X-Kovari-Contract", contractState);
   
   return nextResponse;
 }

@@ -10,7 +10,8 @@ import {
   safeTransform 
 } from "@/lib/api/responseHelpers";
 import { groupTransformer } from "@/lib/transformers/groupTransformer";
-import { validateGoMatchResponse } from "@/lib/api/validators/v1/matchValidator";
+import { validateGoMatchResponse, safeBatchValidate } from "@/lib/api/validators/v1/matchValidator";
+import { GoGroupMatchSchema } from "@/lib/api/validators/v1/matchSchemas";
 import { ApiErrorCode } from "@/types/api";
 import { logger } from "@/lib/api/logger";
 import { 
@@ -93,36 +94,55 @@ export async function POST(request: NextRequest) {
 
         const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/group`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Request-Id": requestId
+          },
           body: JSON.stringify(goPayload),
           timeout: 30000,
         });
 
         const rawData = await safeParseJson(goResponse);
         if (goResponse.ok && validateGoMatchResponse(rawData)) {
-          // HYDRATION PIPELINE: Merge the stripped Go ML response back onto the rich database candidates
-          const hydratedData = rawData.map((goMatch: any) => {
-            const parsedGroupId = goMatch.group?.groupId || goMatch.groupId || goMatch.id;
-            const originalCandidate = rawCandidates.find((c: any) => c.id === parsedGroupId);
-            
-            if (!originalCandidate) return goMatch; // In standard usage, this should never happen.
-            
-            return {
-              ...originalCandidate, // Full DB payload (description, full creator nested obj, coverImage)
-              score: goMatch.score ?? 0.5,
-              breakdown: goMatch.breakdown ?? null
-            };
-          });
+          const rawItems = Array.isArray(rawData) ? rawData : (rawData.groups || []);
 
-          const transformed = transformGroups(hydratedData);
-          await setMatchingCache(userId, cacheKey, transformed, userVersion);
-          await matchingServiceBreaker.recordSuccess();
+          // PHASE 4: Hardened Validation & Adaptive Threshold
+          const { validItems, droppedCount, state } = safeBatchValidate(rawItems, GoGroupMatchSchema, requestId);
 
-          return formatStandardResponse(
-            { groups: transformed },
-            { source: "go", degraded: false, hasMore: false },
-            { requestId, latencyMs: Date.now() - start }
-          );
+          if (state !== 'degraded') {
+            // HYDRATION PIPELINE: Merge the stripped Go ML response back onto the rich database candidates
+            const hydratedData = validItems.map((goMatch: any) => {
+              const parsedGroupId = goMatch.group?.groupId || goMatch.groupId || goMatch.id;
+              const originalCandidate = rawCandidates.find((c: any) => c.id === parsedGroupId);
+              
+              if (!originalCandidate) return null; 
+              
+              return {
+                ...originalCandidate, 
+                score: goMatch.score ?? 0.5,
+                breakdown: goMatch.breakdown ?? null
+              };
+            }).filter(Boolean);
+
+            const transformed = transformGroups(hydratedData);
+            await setMatchingCache(userId, cacheKey, transformed, userVersion);
+            await matchingServiceBreaker.recordSuccess();
+
+            return formatStandardResponse(
+              { groups: transformed },
+              { 
+                source: "go", 
+                contractState: state,
+                filtered: droppedCount > 0,
+                droppedCount,
+                degraded: false, 
+                hasMore: false 
+              },
+              { requestId, latencyMs: Date.now() - start }
+            );
+          } else {
+            logger.warn(requestId, "Go group response degraded below threshold - Returning unscored", { validCount: validItems.length });
+          }
         }
         await matchingServiceBreaker.recordFailure();
       } catch (err) {
@@ -166,9 +186,8 @@ async function triggerBackgroundRefresh(userId: string, clerkId: string | undefi
   })().catch(() => {});
 }
 
-function transformGroups(rawData: any) {
-  const data = Array.isArray(rawData) ? rawData : (rawData.groups || []);
-  return data.map((item: any) => {
+function transformGroups(rawData: any[]) {
+  return rawData.map((item: any) => {
     const res = safeTransform(groupTransformer, item);
     return res.ok ? res.data : null;
   }).filter(Boolean);

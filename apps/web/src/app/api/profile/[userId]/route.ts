@@ -1,12 +1,52 @@
-import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth/resolveUser";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
+import { z } from "zod";
+import { logger } from "@/lib/api/logger";
+
+/**
+ * 🛡️ Public Profile Contract Schema
+ */
+const PublicProfileSchema = z.object({
+  name: z.string().default(""),
+  username: z.string().default(""),
+  age: z.string().default(""),
+  gender: z.string().default(""),
+  nationality: z.string().default(""),
+  profession: z.string().default(""),
+  interests: z.array(z.string()).default([]),
+  languages: z.array(z.string()).default([]),
+  bio: z.string().default(""),
+  followers: z.string().default("0"),
+  following: z.string().default("0"),
+  likes: z.string().default("0"),
+  coverImage: z.string().default(""),
+  profileImage: z.string().default(""),
+  posts: z.array(z.object({
+    id: z.union([z.string(), z.number()]),
+    image_url: z.string()
+  })).default([]),
+  isFollowing: z.boolean().default(false),
+  isOwnProfile: z.boolean().default(false),
+  hasActiveReport: z.boolean().default(false),
+  location: z.string().default(""),
+  religion: z.string().default(""),
+  smoking: z.string().default(""),
+  drinking: z.string().default(""),
+  personality: z.string().default(""),
+  foodPreference: z.string().default(""),
+  userId: z.string()
+});
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ userId: string }> },
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
   const { userId } = await context.params;
   const supabase = createAdminSupabaseClient();
 
@@ -32,10 +72,7 @@ export async function GET(
     // ignore and fall through to 404 below
   }
   if (!targetInternalUserId) {
-    return new Response(JSON.stringify({ error: "User not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
+    return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
   }
 
   // 1. Fetch profile (include interests from profiles)
@@ -59,10 +96,7 @@ export async function GET(
   const posts = Array.isArray(postsData) ? postsData : [];
 
   if (profileError || !profileData) {
-    return new Response(JSON.stringify({ error: "User not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
+    return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
   }
 
   // 4. Count followers (exclude soft-deleted users)
@@ -72,12 +106,8 @@ export async function GET(
     .select("follower_id")
     .eq("following_id", targetInternalUserId);
 
-  if (followerRowsError) {
-    console.error("Error fetching follower ids:", followerRowsError);
-    return new Response(JSON.stringify({ error: "Failed to fetch profile" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    logger.error(requestId, "Error fetching follower ids", followerRowsError);
+    return formatErrorResponse("Failed to fetch followers", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 
   const followerIds = (followerRows || []).map((r: any) => r.follower_id);
@@ -89,14 +119,8 @@ export async function GET(
       .in("id", followerIds)
       .eq("isDeleted", false);
     if (countError) {
-      console.error("Error counting followers:", countError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch profile" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      logger.error(requestId, "Error counting followers", countError);
+      return formatErrorResponse("Failed to count followers", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
     followersCount = count ?? 0;
   }
@@ -108,11 +132,8 @@ export async function GET(
     .eq("follower_id", targetInternalUserId);
 
   if (followingRowsError) {
-    console.error("Error fetching following ids:", followingRowsError);
-    return new Response(JSON.stringify({ error: "Failed to fetch profile" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    logger.error(requestId, "Error fetching following ids", followingRowsError);
+    return formatErrorResponse("Failed to fetch following", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 
   const followingIds = (followingRows || []).map((r: any) => r.following_id);
@@ -124,14 +145,8 @@ export async function GET(
       .in("id", followingIds)
       .eq("isDeleted", false);
     if (countError) {
-      console.error("Error counting following:", countError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch profile" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      logger.error(requestId, "Error counting following", countError);
+      return formatErrorResponse("Failed to count following", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
     followingCount = count ?? 0;
   }
@@ -168,12 +183,12 @@ export async function GET(
       }
     }
   } catch (error) {
-    console.error("Error checking follow status:", error);
+    logger.error(requestId, "Error checking follow status", error);
     // Continue without follow status if there's an error
   }
 
-  // 8. Map to UserProfileType
-  const profile = {
+  // 8. Map to Public Profile
+  const rawProfile = {
     name: profileData.name || "",
     username: profileData.username || "",
     age: profileData.age ? String(profileData.age) : "",
@@ -186,16 +201,25 @@ export async function GET(
     followers: String(followersCount ?? 0),
     following: String(followingCount ?? 0),
     likes: String(likesSum),
-    coverImage: "", // Not in schema, leave blank or fetch if you add it
+    coverImage: "", 
     profileImage: profileData.profile_photo || "",
     posts,
     isFollowing,
     isOwnProfile,
     userId: targetInternalUserId,
+    // Note: location etc might be missing in simplified profile fetch above, 
+    // but the schema .parse will inject safe defaults.
   };
 
-  return new Response(JSON.stringify(profile), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    const parsed = PublicProfileSchema.parse(rawProfile);
+    return formatStandardResponse(
+      parsed,
+      { contractState: 'clean', degraded: false },
+      { requestId, latencyMs: Date.now() - start }
+    );
+  } catch (err) {
+    logger.error(requestId, "Profile Contract Failure", err);
+    return formatErrorResponse("Profile contract violation", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+  }
 }

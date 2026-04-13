@@ -12,19 +12,18 @@ class CloudinaryService {
 
   /// Gets a signed upload signature from the backend
   Future<Map<String, dynamic>> _getSignature(String folder) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.cloudinarySign,
-        data: {'folder': folder},
-      );
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.cloudinarySign,
+      data: {'folder': folder},
+      parser: (data) => data as Map<String, dynamic>,
+    );
 
-      if (response.statusCode == 200) {
-        return response.data as Map<String, dynamic>;
-      }
-      throw Exception('Failed to get Cloudinary signature');
-    } catch (e) {
-      rethrow;
+    if (response.success && response.data != null) {
+      return response.data!;
     }
+    throw Exception(
+      response.error?.message ?? 'Failed to get Cloudinary signature',
+    );
   }
 
   /// Uploads an image file to Cloudinary using a signed request

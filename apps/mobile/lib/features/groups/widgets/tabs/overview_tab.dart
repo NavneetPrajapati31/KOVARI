@@ -248,7 +248,7 @@ class OverviewTab extends ConsumerWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
@@ -453,7 +453,7 @@ class OverviewTab extends ConsumerWidget {
 
   Widget _buildStatusBadge(String status) {
     Color color = Colors.grey;
-    Color bgColor = Colors.grey.withOpacity(0.1);
+    Color bgColor = Colors.grey.withValues(alpha: 0.1);
     String label = status.toUpperCase();
 
     switch (status.toLowerCase()) {

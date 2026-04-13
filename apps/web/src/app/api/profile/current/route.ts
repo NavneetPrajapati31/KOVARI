@@ -2,11 +2,17 @@ import * as Sentry from "@sentry/nextjs";
 import { createAdminSupabaseClient, ProfileResponseSchema, ProfileResponse } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { NextRequest } from "next/server";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
+import { logger } from "@/lib/api/logger";
 
 export async function GET(request: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
   const authUser = await getAuthenticatedUser(request);
   if (!authUser) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
   }
 
   const userId = authUser.clerkUserId;
@@ -23,13 +29,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (profileError || !profile) {
-      console.error("Error fetching profile:", profileError);
+      logger.error(requestId, "Error fetching profile", profileError);
       Sentry.captureException(profileError || new Error("Profile not found"), {
         tags: { endpoint: "/api/profile/current", action: "fetch_profile" },
         extra: { clerkUserId: userId, internalUserId },
       });
-      // ❗ HANDLE NO PROFILE returns 404
-      return Response.json({ error: "Profile not found" }, { status: 404 });
+      return formatErrorResponse("Profile not found", ApiErrorCode.NOT_FOUND, requestId, 404);
     }
 
     // Get travel preferences
@@ -47,11 +52,27 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (userError || !userStatus) {
-      console.error("Error fetching user onboarding status:", userError);
+      logger.error(requestId, "Error fetching user onboarding status", userError);
       // Fallback to false to be safe (forces onboarding)
     }
 
-    const hasCompletedOnboarding = userStatus?.onboarding_completed ?? false;
+    let hasCompletedOnboarding = Boolean(userStatus?.onboarding_completed ?? false);
+
+    // 🚀 AUTO-REPAIR: If profile exists but flag is false, mark as complete.
+    // This resolves redirect loops for legacy users.
+    if (profile && !hasCompletedOnboarding) {
+      const { error: repairError } = await supabase
+        .from("users")
+        .update({ onboarding_completed: true })
+        .eq("id", internalUserId);
+      
+      if (!repairError) {
+        hasCompletedOnboarding = true;
+        logger.info(requestId, "Auto-repaired onboarding flag for profile owner", { internalUserId });
+      } else {
+        logger.error(requestId, "Failed to auto-repair onboarding flag", repairError);
+      }
+    }
 
     const interests = profile?.interests || [];
     
@@ -62,7 +83,7 @@ export async function GET(request: NextRequest) {
       .eq("following_id", internalUserId);
 
     if (followerRowsError) {
-      console.error("Error fetching follower ids:", followerRowsError);
+      logger.error(requestId, "Error fetching follower ids", followerRowsError);
       throw followerRowsError;
     }
 
@@ -75,7 +96,7 @@ export async function GET(request: NextRequest) {
         .in("id", followerIds)
         .eq("isDeleted", false);
       if (countError) {
-        console.error("Error counting followers:", countError);
+        logger.error(requestId, "Error counting followers", countError);
         throw countError;
       }
       followersCount = count ?? 0;
@@ -88,7 +109,7 @@ export async function GET(request: NextRequest) {
       .eq("follower_id", internalUserId);
 
     if (followingRowsError) {
-      console.error("Error fetching following ids:", followingRowsError);
+      logger.error(requestId, "Error fetching following ids", followingRowsError);
       throw followingRowsError;
     }
 
@@ -101,7 +122,7 @@ export async function GET(request: NextRequest) {
         .in("id", followingIds)
         .eq("isDeleted", false);
       if (countError) {
-        console.error("Error counting following:", countError);
+        logger.error(requestId, "Error counting following", countError);
         throw countError;
       }
       followingCount = count ?? 0;
@@ -141,16 +162,19 @@ export async function GET(request: NextRequest) {
     };
 
     const parsed = ProfileResponseSchema.parse(profileData);
-    console.info("PROFILE_RESPONSE", parsed);
-
-    return Response.json(parsed);
+    
+    return formatStandardResponse(
+      parsed,
+      { contractState: 'clean', degraded: false },
+      { requestId, latencyMs: Date.now() - start }
+    );
   } catch (error) {
-    console.error("Error in profile fetch:", error);
+    logger.error(requestId, "Error in profile fetch", error);
     Sentry.captureException(error, {
       tags: { endpoint: "/api/profile/current", action: "handler_error" },
       extra: { clerkUserId: userId, internalUserId },
     });
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return formatErrorResponse("Internal failure", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }
 

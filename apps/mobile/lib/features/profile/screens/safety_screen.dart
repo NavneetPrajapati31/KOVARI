@@ -357,7 +357,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.1),
+        color: Colors.green.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -730,6 +730,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
 
   void _copyProfileLink(BuildContext context, String userId) {
     final link = 'https://kovari.in/profile/$userId';
+    // ignore: deprecated_member_use
     Share.share(link, subject: 'My Kovari Profile Link');
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Profile link copied to clipboard')),

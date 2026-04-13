@@ -10,7 +10,8 @@ import {
   safeTransform 
 } from "@/lib/api/responseHelpers";
 import { matchTransformer } from "@/lib/transformers/matchTransformer";
-import { validateGoMatchResponse } from "@/lib/api/validators/v1/matchValidator";
+import { validateGoMatchResponse, safeBatchValidate } from "@/lib/api/validators/v1/matchValidator";
+import { GoSoloMatchSchema } from "@/lib/api/validators/v1/matchSchemas";
 import { ApiErrorCode } from "@/types/api";
 import { logger } from "@/lib/api/logger";
 import { 
@@ -71,22 +72,43 @@ export async function GET(request: NextRequest) {
       try {
         const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/solo`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Request-Id": requestId
+          },
           body: JSON.stringify({ userId: clerkId || userId, context: params }),
           timeout: 30000,
         });
 
         const rawData = await safeParseJson(goResponse);
+        
+        // Rule: All external responses must follow success=true logic unless internal failure
         if (goResponse.ok && validateGoMatchResponse(rawData)) {
-          const transformed = transformMatches(rawData);
-          await setMatchingCache(userId, cacheKey, transformed, userVersion);
-          await matchingServiceBreaker.recordSuccess();
+          const rawItems = Array.isArray(rawData) ? rawData : (rawData.matches || []);
+          
+          // PHASE 4: Hardened Validation & Adaptive Threshold
+          const { validItems, droppedCount, state } = safeBatchValidate(rawItems, GoSoloMatchSchema, requestId);
 
-          return formatStandardResponse(
-            { matches: await enrichMatchesWithFollowing(userId, transformed) },
-            { source: "go", degraded: false, hasMore: false },
-            { requestId, latencyMs: Date.now() - start }
-          );
+          if (state !== 'degraded') {
+            const transformed = transformMatches(validItems);
+            await setMatchingCache(userId, cacheKey, transformed, userVersion);
+            await matchingServiceBreaker.recordSuccess();
+
+            return formatStandardResponse(
+              { matches: await enrichMatchesWithFollowing(userId, transformed) },
+              { 
+                source: "go", 
+                contractState: state,
+                filtered: droppedCount > 0,
+                droppedCount,
+                degraded: false, 
+                hasMore: false 
+              },
+              { requestId, latencyMs: Date.now() - start }
+            );
+          } else {
+            logger.warn(requestId, "Go response degraded below threshold - Triggering DB Fallback", { validCount: validItems.length, totalCount: rawItems.length });
+          }
         }
         await matchingServiceBreaker.recordFailure();
       } catch (err) {
@@ -150,9 +172,8 @@ async function enrichMatchesWithFollowing(userId: string, matches: any[]) {
   }));
 }
 
-function transformMatches(rawData: any) {
-  const data = Array.isArray(rawData) ? rawData : (rawData.matches || []);
-  return data.map((item: any) => {
+function transformMatches(rawData: any[]) {
+  return rawData.map((item: any) => {
     const res = safeTransform(matchTransformer, item);
     return res.ok ? res.data : null;
   }).filter(Boolean);

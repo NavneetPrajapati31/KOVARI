@@ -102,6 +102,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
           : _selectedReason!;
 
       if (finalReason.isEmpty) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please specify a reason')),
         );
@@ -160,7 +161,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -249,7 +250,10 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: AppColors.border.withOpacity(0.5), height: 1),
+          child: Container(
+            color: AppColors.border.withValues(alpha: 0.5),
+            height: 1,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -511,7 +515,9 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          disabledBackgroundColor: AppColors.mutedForeground.withOpacity(0.3),
+          disabledBackgroundColor: AppColors.mutedForeground.withValues(
+            alpha: 0.3,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),

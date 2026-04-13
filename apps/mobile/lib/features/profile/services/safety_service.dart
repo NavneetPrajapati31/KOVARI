@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/utils/safe_parser.dart';
 import '../models/safety_report.dart';
 
 class SafetyService {
@@ -8,18 +9,28 @@ class SafetyService {
   SafetyService(this._apiClient);
 
   Future<List<SafetyReport>> fetchMyReports() async {
-    final response = await _apiClient.get('reports/my-reports');
-    final List<dynamic> reportsJson = response.data['reports'] ?? [];
-    return reportsJson.map((json) => SafetyReport.fromJson(json)).toList();
+    final response = await _apiClient.get<List<SafetyReport>>(
+      'reports/my-reports',
+      parser: (data) {
+        final List<dynamic> reportsJson =
+            data is Map<String, dynamic> ? (data['reports'] ?? []) : [];
+        return safeParseList(reportsJson, SafetyReport.fromJson);
+      },
+    );
+    return response.data ?? [];
   }
 
   Future<List<SafetyTarget>> searchTargets(String type, String query) async {
-    final response = await _apiClient.get(
+    final response = await _apiClient.get<List<SafetyTarget>>(
       'reports/targets',
       queryParameters: {'type': type, 'q': query},
+      parser: (data) {
+        final List<dynamic> targetsJson =
+            data is Map<String, dynamic> ? (data['targets'] ?? []) : [];
+        return safeParseList(targetsJson, SafetyTarget.fromJson);
+      },
     );
-    final List<dynamic> targetsJson = response.data['targets'] ?? [];
-    return targetsJson.map((json) => SafetyTarget.fromJson(json)).toList();
+    return response.data ?? [];
   }
 
   Future<Map<String, dynamic>> submitReport({
@@ -37,8 +48,12 @@ class SafetyService {
       'evidencePublicId': evidencePublicId,
     };
 
-    final response = await _apiClient.post('flags', data: payload);
-    return response.data;
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      'flags',
+      data: payload,
+      parser: (data) => data is Map<String, dynamic> ? data : {},
+    );
+    return response.data ?? {};
   }
 }
 
