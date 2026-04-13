@@ -32,6 +32,11 @@ export class GroupTransformer implements Transformer<any, GroupDTO> {
       endDate: groupData.endDate || g.endDate,
       budget: groupData.averageBudget || groupData.budget || g.budget,
       
+      // 🛡️ Mobile Compatibility Layer (Aliasing)
+      avatar: groupData.cover_image || g.cover_image || "",
+      locationDisplay: groupData.destination?.name || groupData.destination || g.destination || "Unknown",
+      userId: id, // Mobile MatchUser uses userId as key sometimes
+
       // Preserve flat structures for the UI component
       privacy: groupData.privacy || g.privacy || "public",
       cover_image: groupData.cover_image || g.cover_image,

@@ -22,9 +22,11 @@ class MatchService {
       parser: (data) {
         if (data is! Map<String, dynamic>) return MatchResult.empty();
 
-        final rawList = data['matches'] ?? data['data'] ?? [];
-        final hasMore = data['hasMore'] as bool? ?? false;
-        final total = data['total'] as int? ?? 0;
+        // 🏛️ Handle standardized { success, data: { matches: [...] } }
+        final envelope = data['data'] ?? data;
+        final rawList = envelope['matches'] ?? envelope['data'] ?? [];
+        final hasMore = envelope['hasMore'] as bool? ?? false;
+        final total = envelope['total'] as int? ?? 0;
 
         return MatchResult(
           matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),
@@ -44,16 +46,23 @@ class MatchService {
   Future<MatchResult> getGroupMatches({
     int page = 1,
     int limit = 20,
+    Map<String, dynamic>? filters,
   }) async {
-    final response = await _apiClient.get<MatchResult>(
+    final response = await _apiClient.post<MatchResult>(
       'match-groups',
-      queryParameters: {'page': page, 'limit': limit},
+      data: {
+        'page': page,
+        'limit': limit,
+        if (filters != null) ...filters,
+      },
       parser: (data) {
         if (data is! Map<String, dynamic>) return MatchResult.empty();
 
-        final rawList = data['groups'] ?? data['data'] ?? [];
-        final hasMore = data['hasMore'] as bool? ?? false;
-        final total = data['total'] as int? ?? 0;
+        // 🏛️ Handle standardized { success, data: { groups: [...] } }
+        final envelope = data['data'] ?? data;
+        final rawList = envelope['groups'] ?? envelope['data'] ?? [];
+        final hasMore = envelope['hasMore'] as bool? ?? false;
+        final total = envelope['total'] as int? ?? 0;
 
         return MatchResult(
           matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),

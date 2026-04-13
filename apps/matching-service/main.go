@@ -396,13 +396,29 @@ func main() {
 		}
 
 		var req struct {
-			User          models.SoloSession    `json:"user"`
+			UserId        string                `json:"userId"`
 			Candidates    []models.GroupProfile `json:"candidates"`
 			ConfigVersion string                `json:"configVersion"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			log.Printf("[%s] Error: Invalid request body: %v", requestId, err)
 			sendJSONError(w, "Invalid request body", "BAD_REQUEST", http.StatusBadRequest, requestId)
+			return
+		}
+
+		ctx := r.Context()
+		
+		// STEP 1: Fetch requester session from Redis
+		userSession, err := repo.GetSession(ctx, req.UserId)
+		if err != nil {
+			log.Printf("[%s] Error: Redis fetch failed: %v", requestId, err)
+			sendJSONError(w, "Redis error", "INTERNAL_SERVER_ERROR", 500, requestId)
+			return
+		}
+
+		if userSession == nil {
+			log.Printf("[%s] Error: Session for %s not found in Redis", requestId, req.UserId)
+			sendJSONError(w, "User session not found", "NOT_FOUND", 404, requestId)
 			return
 		}
 
@@ -413,7 +429,7 @@ func main() {
 		// Phase 1: Features for batch ML
 		featuresList := make([]models.MLFeatures, 0, len(req.Candidates))
 		for _, group := range req.Candidates {
-			featuresList = append(featuresList, ai.ExtractGroupFeatures(req.User, group))
+			featuresList = append(featuresList, ai.ExtractGroupFeatures(*userSession, group))
 		}
 
 		// Phase 2: Batch ML Scoring
@@ -430,7 +446,7 @@ func main() {
 				s := mlResults[i].Score
 				mlScore = &s
 			}
-			score := matching.CalculateFinalGroupScore(req.User, group, mlScore, matchConfig)
+			score := matching.CalculateFinalGroupScore(*userSession, group, mlScore, matchConfig)
 			results = append(results, score)
 		}
 

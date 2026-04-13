@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     if (rawCandidates.length > 0 && await matchingServiceBreaker.shouldAllowRequest()) {
       try {
         const goPayload = {
-          user: { userId: clerkId || userId }, // Provide bare minimum user session; Go will resolve static attributes
+          userId: clerkId || userId,
           candidates: rawCandidates.map((g: any) => ({
             groupId: g.id,
             name: g.name,

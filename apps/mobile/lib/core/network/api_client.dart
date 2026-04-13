@@ -63,8 +63,8 @@ class DioApiClient implements ApiClient {
   VoidCallback? _onLogout;
   Completer<String?>? _refreshCompleter;
 
-  // 4-second global timeout
-  static const _timeout = Duration(seconds: 4);
+  // 15-second global timeout (for mobile network stability)
+  static const _timeout = Duration(seconds: 15);
 
   DioApiClient([this._token])
     : _dio = Dio(

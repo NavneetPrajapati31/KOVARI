@@ -39,7 +39,7 @@ void main() async {
   // Initialize Google Sign In (Required for 7.x+)
   try {
     await GoogleSignIn.instance.initialize(
-      clientId: Env.googleClientId, // fixes Chrome error
+      clientId: kIsWeb ? Env.googleClientId : null, // Fix NPE on Android by removing clientId
       serverClientId: kIsWeb ? null : Env.googleClientId,
     );
   } catch (e) {

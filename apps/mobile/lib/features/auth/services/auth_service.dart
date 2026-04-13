@@ -16,13 +16,20 @@ class AuthService {
   Future<KovariUser?> loginWithGoogle() async {
     // In 7.x+, authenticate() returns the account.
     final account = await _googleSignIn.authenticate();
-    final GoogleSignInAuthentication auth = account.authentication;
+
+    if (account == null) {
+      debugPrint('ℹ️ Google Sign-In was cancelled by the user.');
+      return null;
+    }
+
+    final GoogleSignInAuthentication auth = await account.authentication;
     final String? idToken = auth.idToken;
 
     if (idToken == null) {
       throw Exception("Failed to retrieve Google ID Token");
     }
 
+    debugPrint('🚀 Sending Google ID Token to backend...');
     final response = await _apiClient.post<KovariUser>(
       ApiEndpoints.googleAuth,
       data: {'idToken': idToken},
@@ -30,8 +37,16 @@ class AuthService {
     );
 
     if (response.success && response.data != null) {
+      debugPrint('✅ Google Login successful!');
       await _finalizeAuthentication(response.data!, response.raw);
       return response.data;
+    }
+
+    debugPrint(
+      '❌ Google Login failed. Reason: ${response.meta.reason}, Error Message: ${response.error?.message}',
+    );
+    if (response.raw != null) {
+      debugPrint('📦 Raw Server Response: ${response.raw}');
     }
     throw Exception(response.error?.message ?? "Google Login failed");
   }
@@ -175,11 +190,13 @@ class AuthService {
       final refreshToken = await _storage.getRefreshToken();
       if (refreshToken != null) {
         // Use best-effort logout call
-        await _apiClient.post<void>(
-          ApiEndpoints.logout,
-          data: {'refreshToken': refreshToken},
-          parser: (_) {},
-        ).timeout(const Duration(seconds: 3));
+        await _apiClient
+            .post<void>(
+              ApiEndpoints.logout,
+              data: {'refreshToken': refreshToken},
+              parser: (_) {},
+            )
+            .timeout(const Duration(seconds: 3));
       }
 
       // 2. Clear Google Session
