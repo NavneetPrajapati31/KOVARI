@@ -20,7 +20,7 @@ class GroupMatchCard extends ConsumerWidget {
     final String? description = group.description;
     final String? coverImage = group.coverImage;
     final int memberCount = group.memberCount;
-    final GroupCreator? creator = group.creator;
+    final GroupCreator creator = group.creator;
 
     final DateTime? startDate = group.dateRange.start != null
         ? DateTime.tryParse(group.dateRange.start!)
@@ -151,11 +151,10 @@ class GroupMatchCard extends ConsumerWidget {
 
                         _buildSectionTitle('About'),
                         _buildPillList([
-                          if (creator != null)
-                            _PillData(
-                              icon: Icons.person_pin_outlined,
-                              label: "By ${creator.name}",
-                            ),
+                          _PillData(
+                            icon: Icons.person_pin_outlined,
+                            label: "By ${creator.name}",
+                          ),
                           _PillData(
                             icon: Icons.group_outlined,
                             label: "$memberCount members",
@@ -285,7 +284,7 @@ class GroupMatchCard extends ConsumerWidget {
           const SizedBox(width: 8),
           Expanded(
             child: SecondaryButton(
-              onPressed: () => {}, // TODO: Implement report dialog
+              onPressed: () => {},
               icon: Icons.flag_outlined,
               height: 44,
             ),

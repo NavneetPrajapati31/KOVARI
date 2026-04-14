@@ -17,12 +17,7 @@ class AuthService {
     // In 7.x+, authenticate() returns the account.
     final account = await _googleSignIn.authenticate();
 
-    if (account == null) {
-      debugPrint('ℹ️ Google Sign-In was cancelled by the user.');
-      return null;
-    }
-
-    final GoogleSignInAuthentication auth = await account.authentication;
+    final GoogleSignInAuthentication auth = account.authentication;
     final String? idToken = auth.idToken;
 
     if (idToken == null) {
