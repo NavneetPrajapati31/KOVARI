@@ -192,3 +192,9 @@ func (r *RedisRepository) GetCache(ctx context.Context, key string) (string, err
 func (r *RedisRepository) SetCache(ctx context.Context, key string, value string, expiration time.Duration) error {
 	return r.client.Set(ctx, key, value, expiration).Err()
 }
+
+// SetNX performs an atomic SET if Not eXists operation.
+// Returns true if the key was set, false if it already exists.
+func (r *RedisRepository) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) (bool, error) {
+	return r.client.SetNX(ctx, key, value, expiration).Result()
+}

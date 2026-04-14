@@ -12,12 +12,14 @@ import { matchTransformer } from "@/lib/transformers/matchTransformer";
 import { validateGoMatchResponse, safeBatchValidate } from "@/lib/api/validators/v1/matchValidator";
 import { GoGroupMatchSchema } from "@/lib/api/validators/v1/matchSchemas";
 import { ApiErrorCode } from "@/types/api";
+import { getInternalAuthHeaders } from "@/lib/api/internalAuth";
+import { matchingServiceBreaker } from "@/lib/api/matching/circuitBreaker";
 
 const supabase = createRouteHandlerSupabaseClientWithServiceRole();
 const GO_URL = process.env.GO_SERVICE_URL || "http://localhost:8080";
 
 /**
- * 🏛️ v1 GROUP MATCHING API (Hardened)
+ * 🏛️ v1 GROUP MATCHING API (Hardened & Zero-Trust)
  */
 export async function POST(req: NextRequest) {
   const start = Date.now();
@@ -28,22 +30,49 @@ export async function POST(req: NextRequest) {
     if (!authUser) return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
 
     const body = await req.json();
-    const { userId: reqUserId, ...payloadContext } = body;
+    const { userId: _, ...payloadContext } = body; // Strip body userId
 
     const email = authUser.email;
     const { data: dbUser } = await supabase.from("users").select("id").eq("email", email).single();
     if (!dbUser) return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
 
+    // 1. CIRCUIT BREAKER CHECK
+    const allowed = await matchingServiceBreaker.shouldAllowRequest();
+    if (!allowed) {
+      return formatErrorResponse("Service temporary unavailable", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
+    }
+
+    // 2. INTERNAL AUTH & REQUEST
+    const authHeaders = getInternalAuthHeaders(dbUser.id, requestId);
+
     const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/group`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: dbUser.id, context: payloadContext }),
+      headers: { 
+        ...authHeaders,
+        "Content-Type": "application/json" 
+      },
+      body: JSON.stringify(payloadContext),
       requestId,
     });
 
+    if (!goResponse.ok) {
+      // 3. CIRCUIT BREAKER failures
+      if (goResponse.status >= 500) {
+        await matchingServiceBreaker.recordFailure();
+      }
+
+      const errorData = await safeParseJson(goResponse);
+      return formatErrorResponse(
+        errorData?.error?.message || "Service error", 
+        errorData?.error?.code || ApiErrorCode.SERVICE_UNAVAILABLE, 
+        requestId, 
+        goResponse.status
+      );
+    }
+
+    await matchingServiceBreaker.recordSuccess();
     const rawData = await safeParseJson(goResponse);
     
-    // Rule #3: TRANSFORM ONLY VALIDATED DATA
     if (!validateGoMatchResponse(rawData)) {
       return formatErrorResponse("Service failure", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
     }
@@ -68,7 +97,6 @@ export async function POST(req: NextRequest) {
 
     const latencyMs = Date.now() - start;
 
-    // Rule #4 & #7: RESTRUCTURED ENVELOPE { groups }
     return formatStandardResponse(
       { groups: transformed },
       { 
@@ -84,6 +112,7 @@ export async function POST(req: NextRequest) {
     );
 
   } catch (err: any) {
+    await matchingServiceBreaker.recordFailure();
     return formatErrorResponse("Internal critical error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }
