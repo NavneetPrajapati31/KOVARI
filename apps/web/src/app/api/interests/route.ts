@@ -1,36 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
-    const { userId: clerkUserId } = await auth();
+    const authUser = await getAuthenticatedUser(request);
 
-    if (!clerkUserId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    if (!authUser) {
+      return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
-    // Get the user's UUID from their Clerk ID
+    const userId = authUser.id;
     const supabaseAdmin = createAdminSupabaseClient();
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", clerkUserId)
-      .single();
-
-    if (userError || !userData) {
-      console.error("Error fetching user:", userError);
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    const userId = userData.id;
 
     // Fetch incoming interests ('solo' type)
     // We want interests where to_user_id = current user
@@ -44,14 +32,11 @@ export async function GET() {
 
     if (interestsError) {
       console.error("Error fetching interests:", interestsError);
-      return NextResponse.json(
-        { error: "Failed to fetch interests" },
-        { status: 500 }
-      );
+      return formatErrorResponse("Failed to fetch interests", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
     if (!interests || interests.length === 0) {
-      return NextResponse.json([]);
+      return formatStandardResponse([], {}, { requestId, latencyMs: Date.now() - start });
     }
 
     // Collect sender IDs
@@ -145,13 +130,10 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json(formattedInterests);
+    return formatStandardResponse(formattedInterests, {}, { requestId, latencyMs: Date.now() - start });
   } catch (error: any) {
     console.error("API Error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return formatErrorResponse("Internal server error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }
 

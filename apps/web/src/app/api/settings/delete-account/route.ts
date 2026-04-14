@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { createAdminSupabaseClient } from "@kovari/api";
 import * as Sentry from "@sentry/nextjs";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 /**
  * We soft delete in our database (Supabase) because:
@@ -13,85 +14,53 @@ import * as Sentry from "@sentry/nextjs";
  * - It immediately prevents further authentication with the old account
  * - It enables clean re-signup with the same email/OAuth account
  *
- * IMPORTANT:
- * - We never hard delete our DB user row and we never cascade delete related records.
- * - We also clear unique fields on `profiles` (email/username/number) so re-signup
- *   doesn't conflict with unique constraints, while keeping the rest of the profile
- *   for history/analytics.
+ * For Mobile users (non-Clerk):
+ * - We invalidate all custom JWT refresh tokens.
  */
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabaseAdmin = createAdminSupabaseClient();
-
     const now = new Date();
 
-    // 1) Find DB user row
+    // 1) Find DB user row (Safety check)
     const { data: userRow, error: userRowError } = await supabaseAdmin
       .from("users")
       .select('id, "isDeleted", "deletedAt"')
-      .eq("clerk_user_id", clerkUserId)
+      .eq("id", user.id)
       .maybeSingle();
 
-    if (userRowError) {
-      console.error("Delete account: failed to fetch DB user row", userRowError);
-      Sentry.captureException(userRowError, {
-        tags: { endpoint: "/api/settings/delete-account", op: "fetchUserRow" },
-      });
-      return NextResponse.json(
-        { error: "Failed to delete account" },
-        { status: 500 },
-      );
-    }
-
-    if (!userRow?.id) {
+    if (userRowError || !userRow) {
+      console.error("Delete account: user not found in DB", userRowError);
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 2) Fetch profile row (for rollback + to clear unique fields for re-signup)
+    // 2) Fetch profile row
     const { data: profileRow, error: profileRowError } = await supabaseAdmin
       .from("profiles")
       .select("user_id, username, email, number, deleted")
-      .eq("user_id", userRow.id)
+      .eq("user_id", user.id)
       .maybeSingle();
 
     if (profileRowError) {
-      console.error(
-        "Delete account: failed to fetch profile row",
-        profileRowError,
-      );
-      Sentry.captureException(profileRowError, {
-        tags: { endpoint: "/api/settings/delete-account", op: "fetchProfileRow" },
-      });
-      return NextResponse.json(
-        { error: "Failed to delete account" },
-        { status: 500 },
-      );
+      console.error("Delete account: failed to fetch profile", profileRowError);
+      return NextResponse.json({ error: "Failed to delete account" }, { status: 500 });
     }
 
-    // 3) Soft delete in DB (users + profiles adjustments)
+    // 3) Prepare rollback state
     const previousUserState = {
       isDeleted: (userRow as any).isDeleted === true,
       deletedAt: (userRow as any).deletedAt ?? null,
     };
-    const previousProfileState = profileRow
-      ? {
-          deleted: profileRow.deleted === true,
-          username: profileRow.username,
-          email: profileRow.email,
-          number: profileRow.number,
-        }
-      : null;
+    const previousProfileState = profileRow ? { ...profileRow } : null;
 
-    const deletedUsername = `deleted_${userRow.id.replace(/-/g, "").slice(0, 20)}`.slice(
-      0,
-      32,
-    );
+    const deletedUsername = `deleted_${userRow.id.replace(/-/g, "").slice(0, 20)}`.slice(0, 32);
 
+    // 4) Update DB (Soft Delete)
     const { error: dbUpdateUserError } = await supabaseAdmin
       .from("users")
       .update({
@@ -101,23 +70,15 @@ export async function POST(_req: NextRequest) {
       .eq("id", userRow.id);
 
     if (dbUpdateUserError) {
-      console.error("Delete account: failed to soft delete DB user", dbUpdateUserError);
-      Sentry.captureException(dbUpdateUserError, {
-        tags: { endpoint: "/api/settings/delete-account", op: "softDeleteUser" },
-      });
-      return NextResponse.json(
-        { error: "Failed to delete account" },
-        { status: 500 },
-      );
+      console.error("Delete account: DB update failed", dbUpdateUserError);
+      return NextResponse.json({ error: "Failed to delete account" }, { status: 500 });
     }
 
-    if (profileRow?.user_id) {
+    if (profileRow) {
       const { error: dbUpdateProfileError } = await supabaseAdmin
         .from("profiles")
         .update({
           deleted: true,
-          // Clear unique fields so a user can re-sign up with the same email/username/phone.
-          // We keep other profile fields for analytics/history.
           email: null,
           number: null,
           username: deletedUsername,
@@ -125,88 +86,50 @@ export async function POST(_req: NextRequest) {
         .eq("user_id", userRow.id);
 
       if (dbUpdateProfileError) {
-        console.error(
-          "Delete account: failed to update profile for deletion",
-          dbUpdateProfileError,
-        );
-        Sentry.captureException(dbUpdateProfileError, {
-          tags: {
-            endpoint: "/api/settings/delete-account",
-            op: "softDeleteProfile",
-          },
-        });
-        // Roll back user soft delete since we couldn't safely adjust uniques.
-        await supabaseAdmin
-          .from("users")
-          .update({
-            isDeleted: previousUserState.isDeleted,
-            deletedAt: previousUserState.deletedAt,
-          })
-          .eq("id", userRow.id);
-        return NextResponse.json(
-          { error: "Failed to delete account" },
-          { status: 500 },
-        );
+        // Rollback user update
+        await supabaseAdmin.from("users").update(previousUserState).eq("id", userRow.id);
+        return NextResponse.json({ error: "Failed to delete account" }, { status: 500 });
       }
     }
 
-    // 4) Hard delete Clerk user (prevents login + enables clean re-signup)
-    try {
-      const client = await clerkClient();
-      await client.users.deleteUser(clerkUserId);
-    } catch (clerkErr) {
-      console.error("Delete account: failed to delete Clerk user", clerkErr);
-      Sentry.captureException(clerkErr, {
-        tags: { endpoint: "/api/settings/delete-account", op: "deleteClerkUser" },
-      });
-
-      // 5) Roll back DB changes if Clerk deletion fails
+    // 5) Handle Auth Platform Deletion / Session Invalidation
+    if (user.clerkUserId) {
+      // WEB: Hard delete Clerk user
       try {
-        await supabaseAdmin
-          .from("users")
-          .update({
-            isDeleted: previousUserState.isDeleted,
-            deletedAt: previousUserState.deletedAt,
-          })
-          .eq("id", userRow.id);
-
+        const client = await clerkClient();
+        await client.users.deleteUser(user.clerkUserId);
+      } catch (clerkErr) {
+        console.error("Delete account: Clerk deletion failed", clerkErr);
+        // Rollback DB
+        await supabaseAdmin.from("users").update(previousUserState).eq("id", userRow.id);
         if (previousProfileState) {
-          await supabaseAdmin
-            .from("profiles")
-            .update({
-              deleted: previousProfileState.deleted,
-              username: previousProfileState.username,
-              email: previousProfileState.email,
-              number: previousProfileState.number,
-            })
-            .eq("user_id", userRow.id);
+          await supabaseAdmin.from("profiles").update({
+            deleted: previousProfileState.deleted,
+            email: previousProfileState.email,
+            number: previousProfileState.number,
+            username: previousProfileState.username,
+          }).eq("user_id", userRow.id);
         }
-      } catch (rollbackErr) {
-        console.error("Delete account: rollback failed", rollbackErr);
-        Sentry.captureException(rollbackErr, {
-          tags: {
-            endpoint: "/api/settings/delete-account",
-            op: "rollback",
-          },
-        });
+        return NextResponse.json({ error: "Failed to delete account" }, { status: 500 });
       }
-
-      return NextResponse.json(
-        { error: "Failed to delete account" },
-        { status: 500 },
-      );
+    } else {
+      // MOBILE: Invalidate all refresh tokens
+      const { error: tokenError } = await supabaseAdmin
+        .from("refresh_tokens")
+        .delete()
+        .eq("user_id", user.id);
+      
+      if (tokenError) {
+        console.error("Delete account: failed to clear tokens", tokenError);
+        // We continue anyway as the user is soft-deleted, but log the error
+      }
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Delete account error:", error);
-    Sentry.captureException(error, {
-      tags: { endpoint: "/api/settings/delete-account" },
-    });
-    return NextResponse.json(
-      { error: "Failed to delete account" },
-      { status: 500 }
-    );
+    Sentry.captureException(error, { tags: { endpoint: "/api/settings/delete-account" } });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 

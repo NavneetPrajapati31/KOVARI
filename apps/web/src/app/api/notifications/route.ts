@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { createAdminSupabaseClient } from "@kovari/api";
 
 /**
@@ -10,30 +10,17 @@ import { createAdminSupabaseClient } from "@kovari/api";
  * - offset: number (default: 0)
  * - unreadOnly: boolean (default: false)
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
+    const authUser = await getAuthenticatedUser(request);
 
-    if (!clerkUserId) {
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = authUser.id;
     const supabase = createAdminSupabaseClient();
     const { searchParams } = new URL(request.url);
-
-    // Get user UUID from Clerk ID
-    const { data: userRow, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", clerkUserId)
-      .eq("isDeleted", false)
-      .single();
-
-    if (userError || !userRow) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userId = userRow.id;
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
     const unreadOnly = searchParams.get("unreadOnly") === "true";

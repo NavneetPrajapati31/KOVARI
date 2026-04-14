@@ -32,40 +32,57 @@ export async function POST() {
   });
 
   try {
-    const { data, error } = await supabase
-      .from("users")
-      .upsert(
-        {
-          clerk_user_id: userId,
-        },
-        { onConflict: "clerk_user_id" },
-      )
-      .select('id, "isDeleted"')
-      .single();
+    // 1. Fetch user from Clerk (Identity source of truth)
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const clerk = await clerkClient();
+    const clerkUser = await clerk.users.getUser(userId);
+    const email = clerkUser.primaryEmailAddress?.emailAddress || 
+                  clerkUser.emailAddresses[0]?.emailAddress;
 
-    if (error) {
-      console.error("[api/supabase/sync-user] Upsert failed", {
-        clerkUserId: userId,
-        code: error.code,
-        message: error.message,
-        details: (error as any).details,
-        hint: (error as any).hint,
-      });
-      Sentry.captureException(error, {
-        tags: { endpoint: "/api/supabase/sync-user", action: "upsert_user" },
-        extra: { clerkUserId: userId },
-      });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!email) {
+      console.error("[api/supabase/sync-user] No email found for Clerk user", userId);
+      return NextResponse.json({ error: "Email required for identity resolution" }, { status: 400 });
     }
 
-    if ((data as any)?.isDeleted === true) {
+    console.log(`[SYNC-USER] Starting identity resolution for Clerk user: ${userId} (${email})`);
+
+    // 2. Atomic Identity Sync (Consolidated Source of Truth)
+    // This RPC handles find-or-create atomically and handles concurrent requests.
+    // It also intentionally does NOT create a profile, enforcing onboarding-driven flow.
+    const { data: userIdFromRpc, error: syncError } = await supabase
+      .rpc("sync_user_identity", {
+        p_email: email,
+        p_name: (clerkUser.firstName || "") + " " + (clerkUser.lastName || ""),
+        p_clerk_id: userId,
+        p_google_id: null,
+        p_password_hash: null,
+      });
+
+    if (syncError || !userIdFromRpc) {
+      console.error("[api/supabase/sync-user] Atomic identity sync failed:", syncError);
+      return NextResponse.json({ error: "Identity resolution failed" }, { status: 500 });
+    }
+
+    // 3. Final Check (Optional: check for soft deletion)
+    const { data: user, error: fetchError } = await supabase
+      .from("users")
+      .select('id, "isDeleted"')
+      .eq("id", userIdFromRpc)
+      .single();
+
+    if (fetchError || !user) {
+      console.error("[api/supabase/sync-user] Post-sync verification failed", fetchError);
+      return NextResponse.json({ error: "Failed to verify synced identity" }, { status: 500 });
+    }
+
+    if (user.isDeleted === true) {
       return NextResponse.json(
         { error: "Account has been deleted" },
         { status: 403 },
       );
     }
 
-    return NextResponse.json({ success: true, userId: data.id }, { status: 200 });
+    return NextResponse.json({ success: true, userId: user.id }, { status: 200 });
   } catch (e) {
     console.error("[api/supabase/sync-user] Unexpected error", e);
     Sentry.captureException(e, {

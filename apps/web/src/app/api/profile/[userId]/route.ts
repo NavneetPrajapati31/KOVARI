@@ -1,246 +1,146 @@
-import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import { resolveUser } from "@/lib/auth/resolveUser";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
+import { z } from "zod";
+import { logger } from "@/lib/api/logger";
+import { profileMapper } from "@/lib/mappers/profileMapper";
+
+/**
+ * 🛡️ Public Profile Contract Schema
+ */
+const PublicProfileSchema = z.object({
+  name: z.string().default(""),
+  username: z.string().default(""),
+  age: z.string().default(""),
+  gender: z.string().default(""),
+  nationality: z.string().default(""),
+  profession: z.string().default(""),
+  interests: z.array(z.string()).default([]),
+  languages: z.array(z.string()).default([]),
+  bio: z.string().default(""),
+  followers: z.string().default("0"),
+  following: z.string().default("0"),
+  likes: z.string().default("0"),
+  coverImage: z.string().default(""),
+  profileImage: z.string().default(""),
+  posts: z.array(z.object({
+    id: z.union([z.string(), z.number()]),
+    image_url: z.string()
+  })).default([]),
+  isFollowing: z.boolean().default(false),
+  isOwnProfile: z.boolean().default(false),
+  hasActiveReport: z.boolean().default(false),
+  location: z.string().default(""),
+  religion: z.string().default(""),
+  smoking: z.string().default(""),
+  drinking: z.string().default(""),
+  personality: z.string().default(""),
+  foodPreference: z.string().default(""),
+  userId: z.string()
+});
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ userId: string }> },
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
   const { userId } = await context.params;
   const supabase = createAdminSupabaseClient();
 
-  // Resolve `userId` param (can be internal UUID or Clerk ID) and ensure the
-  // account is not soft-deleted. Soft delete is used so we can preserve history
-  // and relationships (matches/chats/groups/etc.) without breaking foreign keys.
-  const uuidRegex =
-    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  // 1. Detect if ID is a UUID or Clerk ID
+  const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
   const isUuid = uuidRegex.test(userId);
 
-  let targetInternalUserId: string | null = null;
-  try {
-    const { data: userRow, error: userRowError } = await supabase
-      .from("users")
-      .select("id")
-      .eq(isUuid ? "id" : "clerk_user_id", userId)
-      .eq("isDeleted", false)
-      .maybeSingle();
-    if (!userRowError && userRow?.id) {
-      targetInternalUserId = userRow.id;
-    }
-  } catch {
-    // ignore and fall through to 404 below
-  }
-  if (!targetInternalUserId) {
-    return new Response(JSON.stringify({ error: "User not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
+  // 2. Unified Fetch: users + profiles (LEFT JOIN)
+  const { data: dbUser, error: dbError } = await supabase
+    .from("users")
+    .select("*, profiles(*)")
+    .eq(isUuid ? "id" : "clerk_user_id", userId)
+    .eq("isDeleted", false)
+    .maybeSingle();
+
+
+  if (dbError || !dbUser) {
+    logger.error(requestId, "User lookup failed", dbError);
+    return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
   }
 
-  // 1. Fetch profile (include interests from profiles)
-  const { data: profileData, error: profileError } = await supabase
-    .from("profiles")
-    .select(
-      `name, username, age, gender, nationality, bio, languages, profile_photo, job, interests`,
-    )
-    .eq("user_id", targetInternalUserId)
-    .single();
+  const targetInternalUserId = dbUser.id;
+  const dbProfile = dbUser.profiles || {};
 
-  const interests = profileData?.interests || [];
+  // 2. Map via profileMapper
+  const userDto = profileMapper.fromDb(dbUser, dbProfile);
 
-  // 3. Fetch posts from user_posts
-  const { data: postsData } = await supabase
-    .from("user_posts")
-    .select("id, image_url")
-    .eq("user_id", targetInternalUserId)
-    .order("created_at", { ascending: false });
+  // 3. Fetch auxiliary content (posts, follows)
+  const [
+    { data: postsData }, 
+    { count: followersCount }, 
+    { count: followingCount }, 
+    { data: rawLikesData }
+  ] = await Promise.all([
+    supabase.from("user_posts").select("id, image_url").eq("user_id", targetInternalUserId).order("created_at", { ascending: false }),
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("following_id", targetInternalUserId),
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", targetInternalUserId),
+    supabase.from("user_posts").select("likes").eq("user_id", targetInternalUserId)
+  ]);
 
   const posts = Array.isArray(postsData) ? postsData : [];
+  const likesSum = (rawLikesData || []).reduce((acc: number, post: any) => acc + (post.likes || 0), 0);
 
-  // Debugging output
-  console.log("[DEBUG] userId:", userId);
-  console.log("[DEBUG] profileData:", profileData);
-  // removed travelPrefData debug
-  console.log("[DEBUG] postsData:", postsData);
-  console.error("[DEBUG] profileError:", profileError);
 
-  if (profileError || !profileData) {
-    return new Response(JSON.stringify({ error: "User not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  // 4. Count followers (exclude soft-deleted users)
-  // We do NOT delete follow rows for history/analytics, so we must filter counts here.
-  const { data: followerRows, error: followerRowsError } = await supabase
-    .from("user_follows")
-    .select("follower_id")
-    .eq("following_id", targetInternalUserId);
-
-  if (followerRowsError) {
-    console.error("Error fetching follower ids:", followerRowsError);
-    return new Response(JSON.stringify({ error: "Failed to fetch profile" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const followerIds = (followerRows || []).map((r: any) => r.follower_id);
-  let followersCount = 0;
-  if (followerIds.length > 0) {
-    const { count, error: countError } = await supabase
-      .from("users")
-      .select("id", { count: "exact", head: true })
-      .in("id", followerIds)
-      .eq("isDeleted", false);
-    if (countError) {
-      console.error("Error counting followers:", countError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch profile" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-    followersCount = count ?? 0;
-  }
-
-  // 5. Count following (exclude soft-deleted users)
-  const { data: followingRows, error: followingRowsError } = await supabase
-    .from("user_follows")
-    .select("following_id")
-    .eq("follower_id", targetInternalUserId);
-
-  if (followingRowsError) {
-    console.error("Error fetching following ids:", followingRowsError);
-    return new Response(JSON.stringify({ error: "Failed to fetch profile" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const followingIds = (followingRows || []).map((r: any) => r.following_id);
-  let followingCount = 0;
-  if (followingIds.length > 0) {
-    const { count, error: countError } = await supabase
-      .from("users")
-      .select("id", { count: "exact", head: true })
-      .in("id", followingIds)
-      .eq("isDeleted", false);
-    if (countError) {
-      console.error("Error counting following:", countError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch profile" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-    followingCount = count ?? 0;
-  }
-
-  // 6. Count posts and sum likes
-  const { count: postsCount, data: postsLikesData } = await supabase
-    .from("user_posts")
-    .select("likes", { count: "exact" })
-    .eq("user_id", targetInternalUserId);
-
-  const likesSum =
-    postsLikesData?.reduce((acc, post) => acc + (post.likes || 0), 0) || 0;
-
-  // 7. Check if current user is following this user
+  // 4. Check if current user is following this user
   let isFollowing = false;
   let isOwnProfile = false;
 
   try {
-    const { userId: clerkUserId } = await auth();
-    console.log("[DEBUG] clerkUserId:", clerkUserId);
-
-    if (clerkUserId) {
-      const serverSupabase = createAdminSupabaseClient();
-
-      // Get current user's internal UUID from Clerk userId
-      const { data: currentUserRow, error: currentUserError } =
-        await serverSupabase
-          .from("users")
+    const authResult = await resolveUser(req, { mode: 'optional' });
+    if (authResult.ok && authResult.user) {
+      const currentUserId = authResult.user.userId;
+      isOwnProfile = currentUserId === targetInternalUserId;
+      if (!isOwnProfile) {
+        const { data: followData } = await supabase
+          .from("user_follows")
           .select("id")
-          .eq("clerk_user_id", clerkUserId)
-          .eq("isDeleted", false)
-          .single();
-
-      console.log("[DEBUG] currentUserRow.id (follower):", currentUserRow?.id);
-      console.log("[DEBUG] currentUserError:", currentUserError);
-
-      if (currentUserError || !currentUserRow) {
-        console.error("Error finding current user:", currentUserError);
-      } else {
-        // Always map the target userId param to internal UUID
-        let targetUserId = targetInternalUserId;
-        if (userId.length !== 36) {
-          // If not a UUID, assume it's a Clerk ID
-          const { data: targetUserRow } = await serverSupabase
-            .from("users")
-            .select("id")
-            .eq("clerk_user_id", userId)
-            .eq("isDeleted", false)
-            .single();
-          if (targetUserRow?.id) targetUserId = targetUserRow.id;
-        }
-        console.log("[DEBUG] targetUserId (following):", targetUserId);
-
-        // Debug log for currentUserRow.id and targetUserId
-        console.log("[DEBUG] currentUserRow.id:", currentUserRow.id);
-        console.log("[DEBUG] targetUserId:", targetUserId);
-
-        isOwnProfile = currentUserRow.id === targetUserId;
-        console.log("[DEBUG] isOwnProfile:", isOwnProfile);
-
-        if (!isOwnProfile) {
-          // Check if current user is following the target user
-          const { data: followData } = await serverSupabase
-            .from("user_follows")
-            .select("id")
-            .eq("follower_id", currentUserRow.id)
-            .eq("following_id", targetUserId)
-            .maybeSingle();
-          console.log("[DEBUG] followData:", followData);
-
-          isFollowing = !!followData;
-        }
+          .eq("follower_id", currentUserId)
+          .eq("following_id", targetInternalUserId)
+          .maybeSingle();
+        isFollowing = !!followData;
       }
     }
   } catch (error) {
-    console.error("Error checking follow status:", error);
-    // Continue without follow status if there's an error
+    logger.error(requestId, "Error checking follow status", error);
   }
 
-  // 8. Map to UserProfileType
-  const profile = {
-    name: profileData.name || "",
-    username: profileData.username || "",
-    age: profileData.age ? String(profileData.age) : "",
-    gender: profileData.gender || "",
-    nationality: profileData.nationality || "",
-    profession: profileData.job || "",
-    interests,
-    languages: profileData.languages || [],
-    bio: profileData.bio || "",
+  // 5. Map to Public Profile Contract
+  const rawProfile = {
+    ...userDto,
+    name: userDto.displayName,
+    age: userDto.age ? String(userDto.age) : "",
     followers: String(followersCount ?? 0),
     following: String(followingCount ?? 0),
     likes: String(likesSum),
-    coverImage: "", // Not in schema, leave blank or fetch if you add it
-    profileImage: profileData.profile_photo || "",
+    coverImage: "", 
+    profileImage: userDto.avatar,
     posts,
     isFollowing,
     isOwnProfile,
     userId: targetInternalUserId,
   };
 
-  return new Response(JSON.stringify(profile), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+
+  try {
+    const parsed = PublicProfileSchema.parse(rawProfile);
+    return formatStandardResponse(
+      parsed,
+      { contractState: 'clean', degraded: false },
+      { requestId, latencyMs: Date.now() - start }
+    );
+  } catch (err) {
+    logger.error(requestId, "Profile Contract Failure", err);
+    return formatErrorResponse("Profile contract violation", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+  }
 }

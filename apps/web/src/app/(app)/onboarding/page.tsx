@@ -27,7 +27,13 @@ export default function ProfileSetupPage() {
           headers: { "Content-Type": "application/json" },
         });
         if (res.ok) {
-          setStatus("already_complete");
+          const data = await res.json();
+          // Check for explicit onboarding flag in the response data
+          if (data?.data?.onboardingCompleted === true) {
+            setStatus("already_complete");
+          } else {
+            setStatus("needs_onboarding");
+          }
         } else {
           setStatus("needs_onboarding");
         }

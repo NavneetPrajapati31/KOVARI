@@ -63,11 +63,11 @@ export function AdminFlagsTable({
 
   // Synchronize modal with URL search params
   React.useEffect(() => {
-    const flagId = searchParams.get("flagId");
-    if (flagId && flagId !== selectedFlagId) {
+    const flagId = searchParams.get("flagId") || searchParams.get("flagid");
+    if (flagId) {
       setSelectedFlagId(flagId);
     }
-  }, [searchParams, selectedFlagId]);
+  }, [searchParams]);
 
   const fetchFlags = React.useCallback(
     async (newPage: number, newStatus: string, newTargetType: string) => {
@@ -247,7 +247,15 @@ export function AdminFlagsTable({
         <FlagDetailModal
           flagId={selectedFlagId}
           open={!!selectedFlagId}
-          onOpenChange={(open: boolean) => !open && setSelectedFlagId(null)}
+          onOpenChange={(open: boolean) => {
+            if (!open) {
+              setSelectedFlagId(null);
+              // Clear flagId from URL
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete("flagId");
+              router.push(`/flags?${params.toString()}`, { scroll: false });
+            }
+          }}
           onActionComplete={async () => {
             await fetchFlags(1, status, targetType);
             if (page !== 1) router.push(`/flags?page=1&status=${status}&targetType=${targetType}`);

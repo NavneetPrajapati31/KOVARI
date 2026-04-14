@@ -16,7 +16,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3005;
 
 const httpServer = createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/') {
@@ -108,7 +108,7 @@ connectRedis().then(async () => {
   await PresenceManager.flushStalePresence();
 
   httpServer.listen(Number(PORT), "0.0.0.0", () => {
-    console.log(`[Socket] Server listening on port ${PORT} at 0.0.0.0`);
+    console.log(`[Socket] Server listening on port 3005 at 0.0.0.0`);
   });
 });
 

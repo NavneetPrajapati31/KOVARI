@@ -13,6 +13,10 @@ import { Button } from "@/shared/components/ui/button";
 import { ExploreSidebar } from "@/features/explore/components/ExploreSidebar";
 import { ResultsDisplay } from "@/features/explore/components/ResultsDisplay";
 import { SearchData, Filters } from "@/features/explore/types";
+import { 
+  fetchSoloTravelers, 
+  fetchPublicGroups,
+} from "@/features/explore/lib/fetchExploreData";
 import {
   Sheet,
   SheetContent,
@@ -281,160 +285,88 @@ export default function ExplorePage() {
         // Add a small delay to ensure Redis session is fully committed
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Step 2: Get solo matches using enhanced matching
-        const queryParams = new URLSearchParams({
+        // Step 2: Get solo matches using centralized helper
+        const { data: travelers, meta: soloMeta } = await fetchSoloTravelers(
           userId,
-          ageMin: filters.ageRange[0].toString(),
-          ageMax: filters.ageRange[1].toString(),
-          gender: filters.gender,
-          personality: filters.personality,
-          smoking: filters.smoking,
-          drinking: filters.drinking,
-          nationality: filters.nationality,
-        });
-
-        if (filters.interests && filters.interests.length > 0) {
-          queryParams.append("interests", filters.interests.join(","));
-        }
-
-        if (filters.languages && filters.languages.length > 0) {
-          queryParams.append("languages", filters.languages.join(","));
-        }
-
-        const soloMatchesRes = await fetch(
-          `/api/match-solo?${queryParams.toString()}`,
+          {
+            destination: fullSearchData.destination,
+            ageMin: filters.ageRange[0],
+            ageMax: filters.ageRange[1],
+            gender: filters.gender,
+            interests: filters.interests,
+            languages: filters.languages,
+            personality: filters.personality,
+            smoking: filters.smoking,
+            drinking: filters.drinking,
+            nationality: filters.nationality,
+            dateStart: fullSearchData.startDate,
+            dateEnd: fullSearchData.endDate,
+            budgetRange: `${filters.budgetRange[0]}-${filters.budgetRange[1]}`
+          } as any
         );
-        if (soloMatchesRes.ok) {
-          const soloMatches = await soloMatchesRes.json();
-          console.log("Solo matches found:", soloMatches.length);
 
-          // Convert solo matches to group-like format for display
-          const soloMatchesAsGroups = soloMatches.map(
-            (match: any, index: number) => ({
-              id: `solo-${index}`,
-              name: `${match.user.name || match.user.full_name || "Traveler"} - ${match.destination}`,
-              destination: match.destination,
-              budget: match.user.budget || "Not specified",
-              start_date: fullSearchData.startDate,
-              end_date: fullSearchData.endDate,
-              compatibility_score: Math.round(match.score * 100),
-              budget_difference: match.budgetDifference,
-              user: {
-                ...match.user,
-                interests:
-                  Array.isArray(match.commonInterests) &&
-                  match.commonInterests.length > 0
-                    ? match.commonInterests
-                    : match.user?.interests,
-              },
-              is_solo_match: true,
-            }),
-          );
+        if (travelers.length > 0 || !soloMeta?.degraded) {
+          // Convert lib structure to what ResultsDisplay expects
+          const soloMatchesAsGroups = travelers.map((traveler) => ({
+            ...traveler, // Preserve everything including flat profile properties
+            destination: fullSearchData.destination, // Explicitly override with the searched trip destination
+            budget: fullSearchData.budget,
+            start_date: fullSearchData.startDate,
+            end_date: fullSearchData.endDate,
+            compatibility_score: (traveler as any).compatibility_score || 85,
+            user: {
+              ...((traveler as any).user || {}), // Preserve the deeply hydrated user object
+              id: traveler.id,
+              userId: traveler.userId,
+              name: traveler.name,
+              age: traveler.age,
+              bio: traveler.bio,
+            },
+            is_solo_match: true,
+          }));
 
           setMatchedGroups(soloMatchesAsGroups);
           setCurrentGroupIndex(0);
           setLastSearchData(fullSearchData);
           setLastFilters(filters);
-        } else {
-          const errorData = await soloMatchesRes.json();
-          throw new Error(errorData.message || "Failed to fetch solo matches");
+        } else if (soloMeta?.degraded) {
+          setSearchError("Matching service is currently degraded. Showing limited results.");
         }
       } else {
-        // GROUP TRAVEL MODE - Only search for groups with filter data
-        console.log("[EXPLORE][GROUP] Search started", {
-          destination: fullSearchData.destination,
-          destinationDetails: fullSearchData.destinationDetails
-            ? {
-                lat: fullSearchData.destinationDetails.lat,
-                lon: fullSearchData.destinationDetails.lon,
-              }
-            : null,
-          budget: fullSearchData.budget,
-          dates: {
-            start: fullSearchData.startDate.toISOString().split("T")[0],
-            end: fullSearchData.endDate.toISOString().split("T")[0],
-          },
-          userId,
-          filters: {
-            ageRange: filters.ageRange,
-            languages: filters.languages,
+        // GROUP TRAVEL MODE - Use centralized helper
+        const { data: groups, meta: groupMeta } = await fetchPublicGroups(
+          userId || "",
+          {
+            destination: fullSearchData.destination,
+            dateStart: fullSearchData.startDate,
+            dateEnd: fullSearchData.endDate,
+            ageMin: filters.ageRange[0],
+            ageMax: filters.ageRange[1],
+            gender: filters.gender,
             interests: filters.interests,
+            languages: filters.languages,
             smoking: filters.smoking,
             drinking: filters.drinking,
             nationality: filters.nationality,
-          },
-        });
-        const requestBody: any = {
-          destination: fullSearchData.destination,
-          budget: fullSearchData.budget,
-          startDate: fullSearchData.startDate.toISOString().split("T")[0],
-          endDate: fullSearchData.endDate.toISOString().split("T")[0],
-          userId: userId,
-          // Include filter data for better matching
-          ageMin: filters.ageRange[0],
-          ageMax: filters.ageRange[1],
-          languages: filters.languages,
-          interests: filters.interests,
-          smoking: filters.smoking === "Yes",
-          drinking: filters.drinking === "Yes",
-          nationality:
-            filters.nationality !== "Any" ? filters.nationality : "Unknown",
-        };
+            budgetRange: `${filters.budgetRange[0]}-${filters.budgetRange[1]}`
+          } as any
+        );
 
-        if (fullSearchData.destinationDetails) {
-          requestBody.lat = fullSearchData.destinationDetails.lat;
-          requestBody.lon = fullSearchData.destinationDetails.lon;
-        }
-
-        console.log("[EXPLORE][GROUP] Request body", requestBody);
-
-        const res = await fetch("/api/match-groups", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-        });
-
-        const data = await res.json();
-        console.log("[EXPLORE][GROUP] API response", {
-          status: res.status,
-          ok: res.ok,
-          groupCount: data.groups?.length ?? 0,
-          groupIds: data.groups?.map((g: any) => g.id) ?? [],
-          error: data.error,
-        });
-        if (!res.ok) throw new Error(data.error || "Failed to fetch groups");
-
-        // Transform the API response to match GroupMatchCard's expected format
-        const transformedGroups = (data.groups || []).map((group: any) => ({
+        const transformedGroups = groups.map((group) => ({
+          ...group, // Preserve everything including flat profile properties
           id: group.id,
           name: group.name,
-          privacy: "public" as const,
-          destination: group.destination,
-          startDate: group.startDate,
-          endDate: group.endDate,
-          budget: group.budget,
-          memberCount: group.members || 0,
-          userStatus: "Open",
-          creator: {
-            name: group.creator?.name || "Unknown",
-            username: group.creator?.username || "unknown",
-            avatar: group.creator?.avatar || undefined,
-          },
-          cover_image: group.cover_image || undefined,
-          description: group.description || undefined,
-          score: group.score,
-          breakdown: group.breakdown,
-          distance: group.distance,
-          tags: group.tags || [],
-          smokingPolicy: group.smokingPolicy || "Mixed",
-          drinkingPolicy: group.drinkingPolicy || "Mixed",
-          languages: group.languages || [],
+          privacy: group.privacy,
+          destination: fullSearchData.destination, // Explicitly override with the searched trip destination
+          startDate: group.dateRange?.start || (group as any).startDate,
+          endDate: group.dateRange?.end || (group as any).endDate,
+          budget: fullSearchData.budget,
+          memberCount: group.memberCount,
+          userStatus: group.userStatus || "Open",
+          creator: group.creator,
+          cover_image: group.cover_image,
+          score: (group as any).score || 0,
         }));
-
-        console.log("[EXPLORE][GROUP] Transformed groups for display", {
-          count: transformedGroups.length,
-          ids: transformedGroups.map((g: any) => g.id),
-        });
 
         setMatchedGroups(transformedGroups);
         setCurrentGroupIndex(0);
@@ -474,7 +406,6 @@ export default function ExplorePage() {
       setCurrentGroupIndex(currentGroupIndex + 1);
     } else if (matchedGroups.length > 0) {
       // No more matches - clear the results to show "no more matches" message
-      console.log("No more matches available");
       setMatchedGroups([]);
       setCurrentGroupIndex(0);
     }
@@ -482,25 +413,17 @@ export default function ExplorePage() {
 
   // Action handlers
   const handleConnect = async (matchId: string) => {
-    console.log("Connecting with solo traveler:", matchId);
     // TODO: Implement connection logic
     handleNextGroup();
   };
 
   const handleSuperLike = async (matchId: string) => {
-    console.log("Super liking solo traveler:", matchId);
     // TODO: Implement super like logic
   };
 
   const handlePass = async (matchId: string) => {
-    console.log("handlePass: Skipping match and moving to next", {
-      matchId,
-      currentIndex: currentGroupIndex,
-      totalMatches: matchedGroups.length,
-    });
     // Move to next match after skipping
     handleNextGroup();
-    console.log("handlePass: Next group index is now:", currentGroupIndex + 1);
   };
 
   const handleComment = async (
@@ -508,15 +431,7 @@ export default function ExplorePage() {
     attribute: string,
     comment: string,
   ) => {
-    console.log(
-      "Commenting on",
-      attribute,
-      "for traveler:",
-      matchId,
-      "Comment:",
-      comment,
-    );
-    // TODO: Implement comment logic
+    // TODO: Implement comment submission logic
   };
 
   const handleViewProfile = (userId: string) => {
@@ -525,18 +440,15 @@ export default function ExplorePage() {
   };
 
   const handleJoinGroup = async (groupId: string) => {
-    console.log("Joining group:", groupId);
     // TODO: Implement join group logic
     handleNextGroup();
   };
 
   const handleRequestJoin = async (groupId: string) => {
-    console.log("Requesting to join group:", groupId);
     // TODO: Implement request join logic
   };
 
   const handlePassGroup = async (groupId: string) => {
-    console.log("Passing on group:", groupId);
     // TODO: Implement pass logic - move to next group
     handleNextGroup();
   };

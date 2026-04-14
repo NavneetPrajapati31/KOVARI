@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
+import bcrypt from "bcryptjs";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { createAdminSupabaseClient } from "@kovari/api";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
@@ -11,9 +14,9 @@ const changePasswordSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const user = await getAuthenticatedUser(req);
     
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -48,57 +51,108 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const client = await clerkClient();
-    
-    // Get current user
-    const user = await client.users.getUser(userId);
-    
-    // Check if user has password authentication enabled
-    const hasPassword = user.passwordEnabled;
-    
-    if (!hasPassword) {
-      return NextResponse.json(
-        { error: "Password authentication is not enabled for your account" },
-        { status: 400 }
-      );
-    }
+    const supabase = createAdminSupabaseClient();
 
-    try {
-      // Update the password
-      await client.users.updateUser(userId, {
-        password: newPassword,
-      });
-
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Password updated successfully",
-        },
-        { status: 200 }
-      );
-    } catch (updateError) {
-      console.error("Password update error:", updateError);
+    // 1. Handle Web User (Clerk)
+    if (user.clerkUserId) {
+      const client = await clerkClient();
       
-      // Handle specific Clerk errors
-      if (updateError && typeof updateError === "object" && "errors" in updateError) {
-        const clerkError = updateError as { errors: Array<{ message: string; code: string }> };
-        const errorMessage = clerkError.errors[0]?.message;
-        
-        // Check for common errors
-        if (errorMessage?.toLowerCase().includes("password")) {
-          return NextResponse.json(
-            { error: "Current password is incorrect" },
-            { status: 400 }
-          );
-        }
-        
+      // Get current user from Clerk
+      const clerkUser = await client.users.getUser(user.clerkUserId);
+      
+      // Check if user has password authentication enabled
+      if (!clerkUser.passwordEnabled) {
         return NextResponse.json(
-          { error: errorMessage || "Failed to update password" },
+          { error: "Password authentication is not enabled for your account" },
           { status: 400 }
         );
       }
-      
-      throw updateError;
+
+      try {
+        // Update the password in Clerk
+        await client.users.updateUser(user.clerkUserId, {
+          password: newPassword,
+        });
+
+        // Also update the password_hash in our DB for mobile parity if they ever switch
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        await supabase
+          .from("users")
+          .update({ password_hash: hashedPassword })
+          .eq("id", user.id);
+
+        return NextResponse.json(
+          { success: true, message: "Password updated successfully" },
+          { status: 200 }
+        );
+      } catch (updateError) {
+        console.error("Clerk password update error:", updateError);
+        
+        if (updateError && typeof updateError === "object" && "errors" in updateError) {
+          const clerkError = updateError as { errors: Array<{ message: string; code: string }> };
+          const errorMessage = clerkError.errors[0]?.message;
+          
+          if (errorMessage?.toLowerCase().includes("password")) {
+            return NextResponse.json(
+              { error: "Current password is incorrect" },
+              { status: 400 }
+            );
+          }
+          
+          return NextResponse.json(
+            { error: errorMessage || "Failed to update password" },
+            { status: 400 }
+          );
+        }
+        throw updateError;
+      }
+    } 
+    
+    // 2. Handle Mobile User (Custom JWT)
+    else {
+      // Get user's current password hash from DB
+      const { data: dbUser, error: dbError } = await supabase
+        .from("users")
+        .select("password_hash")
+        .eq("id", user.id)
+        .single();
+
+      if (dbError || !dbUser) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      // Verify current password
+      if (!dbUser.password_hash) {
+        return NextResponse.json(
+          { error: "Password authentication not setup for this account" },
+          { status: 400 }
+        );
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, dbUser.password_hash);
+      if (!isMatch) {
+        return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
+      }
+
+      // Hash and update new password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ password_hash: hashedPassword })
+        .eq("id", user.id);
+
+      if (updateError) {
+        console.error("Mobile password update error:", updateError);
+        return NextResponse.json({ error: "Failed to update password" }, { status: 500 });
+      }
+
+      return NextResponse.json(
+        { success: true, message: "Password updated successfully" },
+        { status: 200 }
+      );
     }
   } catch (error) {
     console.error("Change password API error:", error);

@@ -1,8 +1,8 @@
 import { io, Socket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@kovari/types";
 
-// Fallback to localhost:3001 for development
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+// Fallback to localhost:3005 for development
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3005";
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 

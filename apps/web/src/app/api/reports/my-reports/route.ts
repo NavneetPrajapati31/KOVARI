@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 /**
  * GET /api/reports/my-reports
@@ -8,29 +8,14 @@ import { createAdminSupabaseClient } from "@kovari/api";
  */
 export async function GET(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
+    const authUser = await getAuthenticatedUser(req);
 
-    if (!clerkUserId) {
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const reporterId = authUser.id;
     const supabase = createAdminSupabaseClient();
-
-    // Get current user's UUID
-    const { data: currentUserRow, error: currentUserError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", clerkUserId)
-      .single();
-
-    if (currentUserError || !currentUserRow) {
-      return NextResponse.json(
-        { error: "Current user not found" },
-        { status: 404 }
-      );
-    }
-
-    const reporterId = currentUserRow.id;
 
     // Fetch user flags
     const { data: userFlags, error: userError } = await supabase

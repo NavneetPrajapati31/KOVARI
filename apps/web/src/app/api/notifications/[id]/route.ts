@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { createAdminSupabaseClient } from "@kovari/api";
 
 /**
@@ -7,32 +7,19 @@ import { createAdminSupabaseClient } from "@kovari/api";
  * Mark a specific notification as read
  */
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId: clerkUserId } = await auth();
+    const authUser = await getAuthenticatedUser(request);
 
-    if (!clerkUserId) {
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
+    const userId = authUser.id;
     const supabase = createAdminSupabaseClient();
-
-    // Get user UUID from Clerk ID
-    const { data: userRow, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", clerkUserId)
-      .eq("isDeleted", false)
-      .single();
-
-    if (userError || !userRow) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userId = userRow.id;
 
     // Update notification (RLS will ensure user can only update their own)
     const { data, error } = await supabase

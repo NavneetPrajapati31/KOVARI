@@ -1,168 +1,285 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminSupabaseClient } from "@kovari/api";
-import { findGroupMatchesForUser } from "@kovari/api";
-import { getCoordinatesForLocation } from "@kovari/api";
-import { getSetting } from "@kovari/utils";
-import { getMatchingPresetConfig } from "@kovari/api";
-import { redis, ensureRedisConnection  } from "@kovari/api";
-import * as Sentry from "@sentry/nextjs";
-import { auth } from "@clerk/nextjs/server";
-import { getHaversineDistance } from "@kovari/api";
+import { resolveUser } from "@/lib/auth/resolveUser";
+import { createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { detectClient } from "@/lib/api/clientDetection";
+import { fetchWithTimeout, safeParseJson } from "@/lib/api/fetcher";
+import { 
+  formatStandardResponse, 
+  formatErrorResponse, 
+  safeTransform 
+} from "@/lib/api/responseHelpers";
+import { groupTransformer } from "@/lib/transformers/groupTransformer";
+import { validateGoMatchResponse, safeBatchValidate } from "@/lib/api/validators/v1/matchValidator";
+import { GoGroupMatchSchema } from "@/lib/api/validators/v1/matchSchemas";
+import { ApiErrorCode } from "@/types/api";
+import { logger } from "@/lib/api/logger";
+import { 
+  getMatchingCache, 
+  setMatchingCache, 
+  generateMatchCacheKey,
+  tryAcquireRefreshLock 
+} from "@/lib/api/matching/cache";
+import { matchingServiceBreaker } from "@/lib/api/matching/circuitBreaker";
+import { performGroupDbMatchingFallback } from "@/lib/api/matching/fallback";
+import { profileMapper } from "@/lib/mappers/profileMapper";
 
-export async function POST(req: NextRequest) {
+const GO_URL = process.env.GO_SERVICE_URL || "http://localhost:8080";
+
+/**
+ * 🏛️ HARDENED GROUP MATCHING API v2
+ */
+export async function POST(request: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+  const { client } = detectClient(request);
+
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authResult = await resolveUser(request, { mode: 'protected' });
+    if (!authResult.ok || !authResult.user) return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
 
-    const [maintenance, presetSetting] = await Promise.all([
-      getSetting("maintenance_mode"),
-      getSetting("matching_preset"),
-    ]);
+    const userId = authResult.user.userId;
+    const clerkId = authResult.user.providerId;
 
-    if (maintenance && (maintenance as any).enabled) {
-      return NextResponse.json({ error: "System under maintenance." }, { status: 503 });
+    const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+    const { data: dbUser, error: fetchError } = await supabase.from("users").select("id, email").eq("id", userId).single();
+    
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      logger.error(requestId, "Metadata lookup failed", fetchError);
     }
 
-    const presetMode = (presetSetting as any)?.mode || "balanced";
-    const presetConfig = getMatchingPresetConfig(presetMode);
+    // Force a fresh fetch to purge the empty cache caused by previous payload failures
+    const userVersion = "v1-stable-groups-v4";
 
-    const data = await req.json();
-    const {
-      destination, lat, lon, budget, startDate, endDate, userId,
-      ageMin, ageMax, languages, interests, smoking, drinking, nationality
-    } = data;
+    const body = await request.json();
+    const { userId: reqUserId, ...payloadContext } = body;
+    const cacheKey = generateMatchCacheKey(userId, "group", payloadContext);
 
-    if (!destination || !budget || !startDate || !endDate) {
-      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    // 1. Try Cache
+    const cache = await getMatchingCache(cacheKey);
+    if (cache && !cache.isExpired && cache.version === userVersion) {
+      if (cache.isStale) {
+        triggerBackgroundRefresh(userId, clerkId, userVersion, cacheKey, payloadContext);
+      }
+      return formatStandardResponse(
+        { groups: cache.data },
+        { source: "cache", degraded: false, hasMore: false },
+        { requestId, latencyMs: Date.now() - start }
+      );
     }
 
-    if (!userId || userId !== clerkUserId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // 2. Gather Candidates First (Go service acts as a scoring engine for groups)
+    const rawCandidates = await performGroupDbMatchingFallback(userId, payloadContext);
 
-    const supabase = createAdminSupabaseClient();
-    const userDestName = typeof destination === "string" ? destination : "Custom";
-
-    const [userRes, userDestCoords] = await Promise.all([
-      supabase.from("users").select("id").eq("clerk_user_id", userId).single(),
-      (!lat || !lon) && typeof destination === "string" ? getCoordinatesForLocation(destination) : Promise.resolve(null)
-    ]);
-
-    if (userRes.error || !userRes.data) return NextResponse.json({ error: "User not found." }, { status: 404 });
-    const searchingUserUuid = userRes.data.id;
-
-    const userDestinationCoords = (lat && lon) ? { lat: Number(lat), lon: Number(lon) } : userDestCoords || (typeof destination === "object" ? destination : null);
-    if (!userDestinationCoords) return NextResponse.json({ error: "Invalid coordinates." }, { status: 400 });
-
-    const userProfile = {
-      userId, destination: userDestinationCoords, budget: Number(budget),
-      startDate, endDate, age: ageMin || 25,
-      languages: languages || ["English"], interests: interests || [],
-      smoking: !!smoking, drinking: !!drinking, nationality: nationality || "Any"
-    };
-
-    // Exclusion lists
-    const [skips, reports, memberships, interestsSent] = await Promise.all([
-      supabase.from("match_skips").select("skipped_user_id").eq("user_id", searchingUserUuid).eq("match_type", "group").eq("destination_id", userDestName),
-      supabase.from("group_flags").select("group_id").eq("reporter_id", searchingUserUuid),
-      supabase.from("group_memberships").select("group_id").eq("user_id", searchingUserUuid),
-      supabase.from("match_interests").select("to_user_id").eq("from_user_id", searchingUserUuid).eq("match_type", "group").eq("destination_id", userDestName)
-    ]);
-
-    const excludedIds = new Set<string>();
-    skips.data?.forEach(s => excludedIds.add(s.skipped_user_id));
-    reports.data?.forEach(r => excludedIds.add(r.group_id));
-    memberships.data?.forEach(m => excludedIds.add(m.group_id));
-    interestsSent.data?.forEach(i => excludedIds.add(i.to_user_id));
-
-    // Fetch candidate groups from the optimized view
-    const { data: groups, error: groupErr } = await supabase
-      .from("matchable_groups_with_creator")
-      .select("id, name, destination, budget, start_date, end_date, creator_id, non_smokers, non_drinkers, dominant_languages, top_interests, average_age, members_count, cover_image, description, destination_lat, destination_lon, creator_name, creator_username, creator_profile_photo, creator_nationality")
-      .eq("status", "active")
-      .eq("is_public", true)
-      .neq("creator_id", searchingUserUuid)
-      .limit(300);
-
-    if (groupErr || !groups || groups.length === 0) return NextResponse.json({ groups: [] });
-
-    // Filter and score groups
-    const groupProfiles = await Promise.all(groups.filter(g => !excludedIds.has(g.id)).map(async g => {
-      const gCoords = (g.destination_lat != null && g.destination_lon != null)
-        ? { lat: Number(g.destination_lat), lon: Number(g.destination_lon) }
-        : await getCoordinatesForLocation(g.destination);
-
-      if (!gCoords) return null;
-
-      const distance = getHaversineDistance(userDestinationCoords.lat, userDestinationCoords.lon, gCoords.lat, gCoords.lon);
-      const nameMatch = g.destination?.toLowerCase().includes(userDestName.toLowerCase());
-
-      if (distance > presetConfig.maxDistanceKm && !nameMatch) return null;
-
-      return {
-        groupId: g.id,
-        name: g.name,
-        destination: gCoords,
-        averageBudget: Number(g.budget) || 0,
-        startDate: g.start_date,
-        endDate: g.end_date,
-        averageAge: Number(g.average_age) || 25,
-        dominantLanguages: g.dominant_languages || ["English"],
-        topInterests: g.top_interests || [],
-        smokingPolicy: g.non_smokers ? "Non-Smoking" : g.non_smokers === false ? "Smokers Welcome" : "Mixed",
-        drinkingPolicy: g.non_drinkers ? "Non-Drinking" : g.non_drinkers === false ? "Drinkers Welcome" : "Mixed",
-        dominantNationalities: g.creator_nationality ? [g.creator_nationality] : [],
-        distanceKm: distance,
-        originalData: g
-      };
-    }));
-
-    const filterBoost: any = {};
-    if (interests && Array.isArray(interests) && interests.length > 0) filterBoost.interests = { values: interests, boost: 2.0 };
-    if (ageMin || ageMax) filterBoost.age = { min: ageMin || 18, max: ageMax || 99, boost: 2.0 };
-    if (languages && Array.isArray(languages) && languages.length > 0 && languages[0] !== "Any") filterBoost.language = { values: languages, boost: 2.0 };
-    if (smoking !== undefined || drinking !== undefined) filterBoost.lifestyle = { value: smoking || drinking, boost: 2.0 };
-    if (nationality && nationality !== "Any") filterBoost.background = { value: nationality, boost: 2.0 };
-
-    const validProfiles = groupProfiles.filter(Boolean) as any[];
-    const matches = await findGroupMatchesForUser(userProfile as any, validProfiles, presetConfig.maxDistanceKm, filterBoost, true);
-
-    const result = matches
-      .filter(m => m.score >= presetConfig.minScore)
-      .map(m => {
-        const g = (m.group as any).originalData;
-        return {
-          id: m.group.groupId,
-          name: m.group.name,
-          destination: g.destination,
-          budget: m.group.averageBudget,
-          startDate: g.start_date,
-          endDate: g.end_date,
-          score: m.score,
-          breakdown: m.breakdown,
-          members: g.members_count || 0,
-          distance: (m.group as any).distanceKm,
-          cover_image: g.cover_image,
-          description: g.description,
-          creator: {
-            name: g.creator_name,
-            username: g.creator_username,
-            avatar: g.creator_profile_photo
-          },
-          tags: m.group.topInterests,
-          smokingPolicy: m.group.smokingPolicy,
-          drinkingPolicy: m.group.drinkingPolicy,
-          languages: m.group.dominantLanguages
+    // 3. Try Go Service (ML Scoring)
+    if (rawCandidates.length > 0 && await matchingServiceBreaker.shouldAllowRequest()) {
+      try {
+        const goPayload = {
+          userId: clerkId || userId,
+          candidates: rawCandidates.map((g: any) => ({
+            groupId: g.id,
+            name: g.name,
+            description: g.description,
+            destination: { name: g.destination },
+            averageBudget: g.budget || g.averageBudget || 0,
+            size: g.membersCount,
+            privacy: g.is_public ? "public" : "private",
+            creator: { 
+              userId: g.creatorId,
+              name: g.creator?.name || "Unknown",
+              username: g.creator?.username || "unknown" 
+            }
+          })),
+          configVersion: "DEFAULT"
         };
-      });
 
-    console.log("Group API Complete. Found", result.length, "groups. ML Used: true");
+        const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/group`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Request-Id": requestId
+          },
+          body: JSON.stringify(goPayload),
+          timeout: 30000,
+        });
 
-    return NextResponse.json({ groups: result, isMLUsed: true, meta: { totalSearched: validProfiles.length, configUsed: presetMode } });
+        const rawData = await safeParseJson(goResponse);
+        if (goResponse.ok && validateGoMatchResponse(rawData)) {
+          const rawItems = Array.isArray(rawData) ? rawData : (rawData.groups || []);
 
+          // PHASE 4: Hardened Validation & Adaptive Threshold
+          const { validItems, droppedCount, state } = safeBatchValidate(rawItems, GoGroupMatchSchema, requestId);
+
+          // 🛡️ [FALLBACK] Trigger DB if Go returns too few valid matches (< 3)
+          if (state === 'degraded' || validItems.length < 3) {
+            logger.warn(requestId, "Go group response insufficient (< 3 valid) - Falling back to DB", { 
+              validCount: validItems.length,
+              state 
+            });
+            // Continue to DB fallback at the end of the function
+          } else {
+            // HYDRATION PIPELINE: Merge the stripped Go ML response back onto the rich database candidates
+            const hydratedData = validItems.map((goMatch: any) => {
+              const parsedGroupId = goMatch.group?.groupId || goMatch.groupId || goMatch.id;
+              const originalCandidate = rawCandidates.find((c: any) => c.id === parsedGroupId);
+              
+              if (!originalCandidate) return null; 
+              
+              return {
+                ...originalCandidate, 
+                score: goMatch.score ?? 0.5,
+                breakdown: goMatch.breakdown ?? null
+              };
+            }).filter(Boolean);
+
+            // 🧪 [ENRICHMENT] Batch fetch missing member counts or status
+            const enrichedData = await enrichGroups(hydratedData, userId, supabase);
+            
+            const transformed = transformGroups(enrichedData);
+            
+            // 🔍 [PRODUCTION LOG] Requested by objective
+            logger.info(requestId, "Group Matching Completed", {
+              source: "go",
+              total: rawItems.length,
+              valid: validItems.length,
+              dropped: droppedCount,
+              contractState: state
+            });
+
+            await setMatchingCache(userId, cacheKey, transformed, userVersion);
+            await matchingServiceBreaker.recordSuccess();
+
+            return formatStandardResponse(
+              { groups: transformed },
+              { 
+                source: "go", 
+                contractState: state,
+                filtered: droppedCount > 0,
+                droppedCount,
+                degraded: false, 
+                hasMore: false 
+              },
+              { requestId, latencyMs: Date.now() - start }
+            );
+          }
+        }
+        await matchingServiceBreaker.recordFailure();
+      } catch (err) {
+        await matchingServiceBreaker.recordFailure();
+        logger.error(requestId, "Go Service Error (Group)", err);
+      }
+    }
+
+    // 4. Fallback: Return Unscored Candidates
+    return formatStandardResponse(
+      { groups: rawCandidates },
+      { source: "db", degraded: true, hasMore: false },
+      { requestId, latencyMs: Date.now() - start }
+    );
   } catch (err: any) {
-    Sentry.captureException(err);
-    console.error("Match Groups API error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return formatErrorResponse("Internal failure", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }
 
+/**
+ * Detached background refresh for SWR
+ */
+async function triggerBackgroundRefresh(userId: string, clerkId: string | undefined, version: string, key: string, context: any) {
+  if (!(await tryAcquireRefreshLock(key))) return;
 
+  (async () => {
+    try {
+      const goResponse = await fetch(`${GO_URL}/v1/match/group`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: clerkId || userId, context }),
+      });
+
+      const rawData = await goResponse.json();
+      if (goResponse.ok && validateGoMatchResponse(rawData)) {
+        await setMatchingCache(userId, key, transformGroups(rawData), version);
+      }
+    } catch (err) {
+      logger.error("SWR-Background", "SWR Refresh Error (Group)", err);
+    }
+  })().catch(() => {});
+}
+
+function transformGroups(rawData: any[]) {
+  return rawData.map((item: any) => {
+    const res = safeTransform(groupTransformer, item);
+    return res.ok ? res.data : null;
+  }).filter(Boolean);
+}
+
+/**
+ * 🧪 BATCH ENRICHMENT LAYER
+ * Fetches memberCount and userStatus in ONE query for all groups.
+ */
+async function enrichGroups(groups: any[], currentUserId: string, supabase: any) {
+  const groupIds = groups.map(g => g.id).filter(Boolean);
+  const creatorIds = groups.map(g => g.creatorId || g.creator_id).filter(Boolean);
+  
+  if (groupIds.length === 0) return groups;
+
+  try {
+    // 1. Fetch member counts
+    const { data: memberCounts, error: countError } = await supabase
+      .from("group_members")
+      .select("group_id")
+      .in("group_id", groupIds);
+
+    // 2. Fetch current user's status in these groups
+    const { data: userMemberships, error: memberError } = await supabase
+      .from("group_members")
+      .select("group_id, role, status")
+      .eq("user_id", currentUserId)
+      .in("group_id", groupIds);
+
+    // 3. 🏛️ HYDRATE CREATORS (JOINed fetch with identity master)
+    const { data: creatorRows } = creatorIds.length > 0 
+      ? await supabase.from("users").select("*, profiles(*)").in("id", creatorIds)
+      : { data: [] };
+
+    const creatorMap = (creatorRows || []).reduce((acc: any, curr: any) => {
+      // Map via standardized logic
+      acc[curr.id] = profileMapper.fromDb(curr, curr.profiles);
+      return acc;
+    }, {});
+
+    if (countError || memberError) throw new Error("Enrichment query failed");
+
+    // 4. Map aggregates
+    const countMap = memberCounts.reduce((acc: any, curr: any) => {
+      acc[curr.group_id] = (acc[curr.group_id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const statusMap = userMemberships.reduce((acc: any, curr: any) => {
+      acc[curr.group_id] = curr.status; 
+      return acc;
+    }, {});
+
+    // 5. Merge back
+    return groups.map(g => {
+      const cid = g.creatorId || g.creator_id;
+      const creatorDto = creatorMap[cid];
+
+      return {
+        ...g,
+        memberCount: g.memberCount || countMap[g.id] || 0,
+        userStatus: g.userStatus || statusMap[g.id] || null,
+        creator: creatorDto ? {
+          userId: creatorDto.id,
+          name: creatorDto.displayName,
+          username: creatorDto.username,
+          avatar: creatorDto.avatar
+        } : (g.creator || { name: "Traveler" })
+      };
+    });
+
+  } catch (err) {
+    logger.warn("Enrichment", "Batch enrichment failed, using available data", err);
+    return groups;
+  }
+}

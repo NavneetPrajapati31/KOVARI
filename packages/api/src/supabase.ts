@@ -114,11 +114,18 @@ export const getSupabaseUuidFromClerkId = async (
  * Fetches the full user profile including preferences and basic info
  */
 export const getUserProfile = async (
-  clerkId: string,
+  userId: string,
 ): Promise<UserProfile | null> => {
   const supabase = createRouteHandlerSupabaseClientWithServiceRole();
   
-  const supabaseUuid = await getSupabaseUuidFromClerkId(clerkId);
+  let supabaseUuid = userId;
+  
+  // Check if it's a Clerk ID (starts with user_) or not a valid UUIDv4
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
+  if (!isUuid) {
+    supabaseUuid = await getSupabaseUuidFromClerkId(userId) || "";
+  }
+  
   if (!supabaseUuid) return null;
 
   const { data, error } = await supabase

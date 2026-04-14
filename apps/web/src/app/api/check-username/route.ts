@@ -16,7 +16,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { username } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return NextResponse.json(
+        { available: false, error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const { username } = body;
     if (!username || typeof username !== "string") {
       return NextResponse.json(
         { available: false, error: "Invalid username" },

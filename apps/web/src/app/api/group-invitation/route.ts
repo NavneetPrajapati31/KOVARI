@@ -1,6 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 // Helper to generate a random token
 const generateToken = (length = 24) =>
@@ -37,10 +38,10 @@ function getInviteBaseUrl(req: Request): string {
   return "http://localhost:3000/invite";
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
@@ -57,18 +58,7 @@ export async function GET(req: Request) {
     }
     const supabase = createAdminSupabaseClient();
 
-    const { data: currentUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", clerkUserId)
-      .eq("isDeleted", false)
-      .maybeSingle();
-    if (!currentUser?.id) {
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const currentUser = { id: authUser.id };
 
     const { data: group, error: groupError } = await supabase
       .from("groups")
@@ -139,10 +129,10 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
@@ -160,33 +150,7 @@ export async function POST(req: Request) {
       );
     }
     const supabase = createAdminSupabaseClient();
-
-    // Map Clerk userId to internal UUID
-    const { data: userRow, error: userLookupError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .maybeSingle();
-    if (userLookupError) {
-      console.error("Error looking up user UUID:", userLookupError);
-      return new Response(
-        JSON.stringify({ error: "Failed to look up user UUID" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-    if (!userRow || !userRow.id) {
-      return new Response(
-        JSON.stringify({ error: "User not found in users table" }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-    const userUuid = userRow.id;
+    const userUuid = authUser.id;
 
     // Check if group exists and is not removed
     const { data: groupCheck, error: groupCheckError } = await supabase

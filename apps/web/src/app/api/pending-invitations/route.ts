@@ -1,29 +1,17 @@
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const authUser = await getAuthenticatedUser(request);
 
-    if (!userId) {
+    if (!authUser) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    const internalUserId = authUser.id;
     const supabase = createAdminSupabaseClient();
-
-    // Get the internal Supabase user_id from the clerk_user_id
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .single();
-
-    if (userError || !userData) {
-      console.error("Error fetching user:", userError);
-      return new Response("User not found", { status: 404 });
-    }
-
-    const internalUserId = userData.id;
 
     // Get groups where user has pending status
     const { data: pendingMemberships, error: membershipError } = await supabase

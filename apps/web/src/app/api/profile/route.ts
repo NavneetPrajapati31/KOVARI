@@ -1,6 +1,17 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { NextRequest, NextResponse } from "next/server";
+import { generateRequestId } from "@/lib/api/requestId";
+import { detectClient } from "@/lib/api/clientDetection";
+import { 
+  formatStandardResponse, 
+  formatErrorResponse, 
+  safeTransform 
+} from "@/lib/api/responseHelpers";
+import { profileTransformer } from "@/lib/transformers/profileTransformer";
+import { ApiErrorCode, KovariClient } from "@/types/api";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -11,13 +22,13 @@ const schema = z.object({
     .min(3)
     .max(32)
     .regex(/^[a-zA-Z0-9_]+$/),
-  age: z.number().min(13).max(100),
+  age: z.coerce.number().min(13).max(100),
   gender: z.enum(["Male", "Female", "Other"]),
   birthday: z.string().datetime(),
   bio: z.string().max(300),
-  profile_photo: z.string().url().optional(),
+  profile_photo: z.string().url().optional().nullable(),
   location: z.string().min(1),
-  location_details: z.any().optional(),
+  location_details: z.any().optional().nullable(),
   languages: z.array(z.string()),
   nationality: z.string(),
   job: z.string(),
@@ -29,174 +40,80 @@ const schema = z.object({
   interests: z.array(z.string()).optional().default([]),
 });
 
-export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId)
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+/**
+ * 🏛️ HARDENED PROFILE API (Phase 3 True Isolation)
+ */
+export async function POST(req: NextRequest) {
+  const { client, error: clientError } = detectClient(req);
 
-  const body = await req.json();
-  const result = schema.safeParse(body);
+  // ⚡ TRUE LEGACY ISOLATION
+  if (client === "web") {
+    try {
+      const authUser = await getAuthenticatedUser(req);
+      if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!result.success) {
-    return new Response(JSON.stringify({ error: result.error.flatten() }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+      const body = await req.json();
+      const supabase = createAdminSupabaseClient();
+      const profileData = { user_id: authUser.id, ...body };
 
-  const supabase = createAdminSupabaseClient();
-
-  // First, try to get the user
-  let { data: userRow, error: userFetchError } = await supabase
-    .from("users")
-    .select('id, "isDeleted"')
-    .eq("clerk_user_id", userId)
-    .maybeSingle();
-
-  // Block access if the user is soft-deleted in our DB.
-  if (userRow && (userRow as any).isDeleted === true) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  // If user is not found, try to create them (always attempt creation if not found)
-  if ((!userRow || !userRow.id) && !userFetchError) {
-    const { data: newUser, error: createError } = await supabase
-      .from("users")
-      .insert({ clerk_user_id: userId })
-      // Select the same shape as the fetch above to satisfy TS
-      .select('id, "isDeleted"')
-      .single();
-
-    if (createError || !newUser) {
-      console.error("Error creating user in Supabase:", createError);
-      return new Response(
-        JSON.stringify({
-          error: "Failed to create user record in Supabase. Please try again.",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
+      await supabase.from("profiles").upsert(profileData, { onConflict: "user_id" });
+      
+      return NextResponse.json({ message: "Profile saved successfully" });
+    } catch (err: any) {
+      return NextResponse.json({ error: "Profile save failure" }, { status: 500 });
     }
-    userRow = newUser;
-  } else if (userFetchError) {
-    console.error("Error fetching user from Supabase:", userFetchError);
-    return new Response(
-      JSON.stringify({
-        error: "Error accessing user record in Supabase. Please try again.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
   }
 
-  if (!userRow || !userRow.id) {
-    return new Response(
-      JSON.stringify({
-        error:
-          "User record not found in Supabase and could not be created. Please try again.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+  // 🛡️ Standard Hardened Path
+  const start = Date.now();
+  const requestId = generateRequestId();
+
+  if (clientError) {
+    return formatErrorResponse(clientError, ApiErrorCode.BAD_REQUEST, requestId, 400);
   }
 
-  // Check if username is already taken by another user
-  const { data: existingProfile, error: existingProfileError } = await supabase
-    .from("profiles")
-    .select("user_id")
-    .ilike("username", result.data.username)
-    .not("user_id", "eq", userRow.id)
-    .maybeSingle();
-
-  if (existingProfileError) {
-    console.error(
-      "Error checking for existing username:",
-      existingProfileError,
-    );
-    return new Response(
-      JSON.stringify({
-        error: "Error checking username availability. Please try again.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  if (existingProfile) {
-    return new Response(
-      JSON.stringify({
-        error: "Username is already taken. Please choose a different one.",
-      }),
-      { status: 409, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  // Get the Clerk email and persist it into profiles.email so we don't rely
-  // on any dummy or trigger-generated email values.
-  let primaryEmail: string | null = null;
-  try {
-    const clerk = await clerkClient();
-    const clerkUser = await clerk.users.getUser(userId);
-    const primary = clerkUser.primaryEmailAddress;
-    primaryEmail =
-      primary?.emailAddress ??
-      clerkUser.emailAddresses[0]?.emailAddress ??
-      null;
-  } catch (err) {
-    console.error("Error fetching Clerk user email", err);
-  }
-
-  const profileData = {
-    user_id: userRow.id,
-    ...(primaryEmail ? { email: primaryEmail } : {}),
-    ...result.data,
-  };
-
-  // Remove keys that are not in the profiles table schema
-  // @ts-ignore
-  delete profileData.firstName;
-  // @ts-ignore
-  delete profileData.lastName;
-
-  // Upsert profile data (insert or update)
-  const { error: profileUpsertError } = await supabase
-    .from("profiles")
-    .upsert(profileData, { onConflict: "user_id" });
-
-  if (profileUpsertError) {
-    console.error("Error upserting profile:", profileUpsertError);
-    return new Response(
-      JSON.stringify({
-        error: "Error saving profile. Please try again.",
-        details: profileUpsertError.message,
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  try {
-    const client = await clerkClient();
-    await client.users.updateUser(userId, {
-      username: result.data.username,
-      firstName: result.data.firstName,
-      lastName: result.data.lastName,
-    });
-  } catch (err) {
-    console.error("Error updating clerk user", err);
-    return new Response(
-      JSON.stringify({
-        error: "Profile saved, but failed to sync username with Clerk.",
-      }),
-      { status: 500 },
-    );
-  }
-
-  return new Response(
-    JSON.stringify({ message: "Profile saved successfully" }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  );
+  return handleStandardProfile(req, requestId, start, client);
 }
 
+/**
+ * Handle Standard Profile (Mobile/v1)
+ */
+async function handleStandardProfile(
+  req: NextRequest, 
+  requestId: string, 
+  start: number, 
+  client: KovariClient
+): Promise<NextResponse> {
+  try {
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser) return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
 
+    const body = await req.json();
+    const result = schema.safeParse(body);
+    if (!result.success) return formatErrorResponse("Validation failed", ApiErrorCode.BAD_REQUEST, requestId, 400, result.error.flatten());
+
+    const supabase = createAdminSupabaseClient();
+    const profileData = { user_id: authUser.id, ...result.data };
+
+    const { error: upsertError } = await supabase.from("profiles").upsert(profileData, { onConflict: "user_id" });
+    if (upsertError) return formatErrorResponse("Save failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+
+    // Gate 2: Post-Transform Validation
+    const transformRes = safeTransform(profileTransformer, profileData);
+    if (!transformRes.ok || !transformRes.data.username) {
+      return formatErrorResponse("Contract violation", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
+
+    const latencyMs = Date.now() - start;
+
+    // Rule #6: Consistency data: { profile }
+    return formatStandardResponse(
+      { profile: transformRes.data },
+      {},
+      { requestId, latencyMs }
+    );
+
+  } catch (err: any) {
+    return formatErrorResponse("Profile update failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+  }
+}

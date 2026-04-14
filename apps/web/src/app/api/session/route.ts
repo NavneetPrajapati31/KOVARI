@@ -10,7 +10,7 @@ import { SoloSession, StaticAttributes } from "@kovari/types";
 import { redis, ensureRedisConnection  } from "@kovari/api";
 import { getSetting } from "@kovari/utils";
 import * as Sentry from "@sentry/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 // Mock user data for testing
 const mockUsers = {
@@ -310,8 +310,8 @@ const mockUsers = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
       return NextResponse.json(
         { message: "Unauthorized", error: "UNAUTHORIZED" },
         { status: 401 },
@@ -331,7 +331,8 @@ export async function POST(request: NextRequest) {
     const { userId, destinationName, budget, startDate, endDate, destination } = body;
 
     // Prevent user-id spoofing; session can only be created for caller.
-    if (!userId || userId !== clerkUserId) {
+    // Allow either the Web Clerk ID or Mobile Supabase ID
+    if (!userId || (userId !== authUser.clerkUserId && userId !== authUser.id)) {
       return NextResponse.json(
         { message: "Forbidden", error: "FORBIDDEN" },
         { status: 403 },
@@ -350,12 +351,15 @@ export async function POST(request: NextRequest) {
          if (destination.name) {
              finalDestinationName = destination.name;
          }
-    } else {
+    } else if (destinationName && destinationName.trim() !== '') {
          // Fallback to geocoding if explicit coords not provided
          destinationCoords = await getCoordinatesForLocation(destinationName);
+    } else {
+         // Global Match Allowed
+         destinationCoords = { lat: 0, lon: 0 };
     }
 
-    if (!destinationCoords) {
+    if (!destinationCoords && destinationName) {
       return NextResponse.json(
         { message: `Could not find location: ${destinationName}` },
         { status: 400 },
@@ -387,43 +391,34 @@ export async function POST(request: NextRequest) {
           { status: 404 },
         );
       }
+    }
 
-      // Check if user has required location data
-      // Location can be a string (city name) or coordinates object
-      const location = (userProfile as any).location;
-      if (!location || (typeof location === 'string' && location.trim() === '')) {
-        console.error(
-          `User profile found but missing location for Clerk ID: ${userId}`,
-        );
-        return NextResponse.json(
-          {
-            message:
-              "User profile is incomplete. Please add your home location in your profile settings.",
-            error: "PROFILE_INCOMPLETE",
-            hint: "Visit /profile/edit to update your profile",
-          },
-          { status: 400 },
-        );
-      }
-      
-      // If location is a string, convert it to coordinates for compatibility
-      // (The session API expects coordinates, but we accept string and convert)
-      if (typeof location === 'string') {
-        // Location is stored as string in database - this is fine for the check
-        // The actual coordinates are not needed for session creation, just the existence check
-        console.log(`Profile location is string: ${location} (this is acceptable)`);
+    // 2.5 Resolve user's home coordinates for matching performance (Architectural Fix)
+    let userHomeCoords = null;
+    const profileLocation = (userProfile as any)?.location;
+    if (profileLocation) {
+      if (typeof profileLocation === 'string' && profileLocation.trim() !== '') {
+        console.log(`Pre-resolving home location for matching: ${profileLocation}`);
+        userHomeCoords = await getCoordinatesForLocation(profileLocation);
+      } else if (profileLocation.lat && profileLocation.lon) {
+        userHomeCoords = { lat: profileLocation.lat, lon: profileLocation.lon };
       }
     }
 
-    // 3. Construct the session object - ONLY dynamic attributes in Redis
     const sessionData: SoloSession = {
       userId,
-      destination: { name: finalDestinationName, ...destinationCoords },
+      destination: { 
+        name: finalDestinationName || "Global", 
+        lat: destinationCoords!.lat, 
+        lon: destinationCoords!.lon 
+      },
       budget: Number(budget),
       startDate,
       endDate,
       mode: "solo",
       interests: (userProfile as any).interests || ["travel", "exploration"],
+      location: userHomeCoords,
+      geoSource: userHomeCoords ? "resolved" : "pending",
       // NO static_attributes here - they come from Supabase when needed
     };
 
@@ -444,6 +439,7 @@ export async function POST(request: NextRequest) {
 
     // Track session creation for safety signals (non-blocking)
     try {
+      await redisClient.sAdd("sessions:index", userId);
       await redisClient.incr("metrics:sessions:created:1h");
       await redisClient.expire("metrics:sessions:created:1h", 3600); // 1 hour TTL
     } catch (e) {

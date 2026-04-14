@@ -32,6 +32,13 @@ export const getRedisClient = () => {
 
   _redis = createClient({
     url: redisUrl || "redis://localhost:6380",
+    socket: {
+      connectTimeout: 5000, // 5 seconds
+      reconnectStrategy: (retries) => {
+        if (retries > 3) return new Error("Redis reconnection failed");
+        return Math.min(retries * 100, 3000);
+      },
+    },
   });
 
   _redis.on("error", (err: any) => {
@@ -74,8 +81,13 @@ export default redis;
 export async function ensureRedisConnection() {
   const client = getRedisClient();
   if (!client.isOpen) {
-    console.log("🔌 Connecting to Redis...");
-    await client.connect();
+    try {
+      console.log("🔌 Connecting to Redis...");
+      await client.connect();
+    } catch (e) {
+      console.error("❌ Failed to connect to Redis:", e);
+      throw new Error("Redis service unavailable");
+    }
   }
   return client;
 }

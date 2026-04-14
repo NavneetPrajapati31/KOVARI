@@ -1,7 +1,5 @@
-// Optimized group matching: weighted scoring, distance decay, pre-computed Jaccard.
-// Industry patterns: content-based filtering, distance decay, weighted multi-factor scoring.
-
 import { FilterBoost } from "./solo";
+import { getSharedMatchingConfig } from "./config-loader";
 
 // --- 1. DATA TYPE DEFINITIONS ---
 
@@ -232,16 +230,8 @@ export const findGroupMatchesForUser = async (
     (user.interests || []).map((s) => s.toLowerCase().trim()).filter(Boolean),
   );
 
-  const baseWeights = {
-    budget: 0.18,
-    dateOverlap: 0.2,
-    interests: 0.15,
-    age: 0.12,
-    language: 0.1,
-    lifestyle: 0.1,
-    background: 0.05,
-    distance: 0.1,
-  };
+  const config = getSharedMatchingConfig();
+  const baseWeights = config.groupWeights;
 
   const weights = filterBoost ? calculateDynamicGroupWeights(baseWeights, filterBoost) : baseWeights;
 
@@ -301,7 +291,7 @@ export const findGroupMatchesForUser = async (
 
       const ruleBasedScore =
         budgetScore * weights.budget +
-        dateOverlapScore * weights.dateOverlap +
+        dateOverlapScore * weights.dates +
         interestScore * weights.interests +
         ageScore * weights.age +
         languageScore * weights.language +
@@ -324,16 +314,18 @@ export const findGroupMatchesForUser = async (
         }
         adjustedMlScore = Math.min(0.95, adjustedMlScore);
 
+        const mlBlend = config.mlBlend.group;
         // We shift the blend to rule-based (70%) and ML (30%) to ensure good matches aren't incorrectly filtered out.
-        finalScore = adjustedMlScore * 0.3 + ruleBasedScore * 0.7;
+        finalScore = adjustedMlScore * mlBlend + ruleBasedScore * (1 - mlBlend);
       } else {
         // Fallback to 100% rule-based if ML failed
         finalScore = ruleBasedScore;
       }
 
-      // Final safety guard
+      // Final safety guard + rounding to 3 decimals
+      finalScore = Math.round(finalScore * 1000) / 1000;
       if (isNaN(finalScore) || !isFinite(finalScore)) {
-        finalScore = ruleBasedScore || 0.5;
+        finalScore = Math.round((ruleBasedScore || 0.5) * 1000) / 1000;
       }
 
       return {

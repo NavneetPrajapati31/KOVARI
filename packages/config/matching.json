@@ -1,0 +1,30 @@
+{
+  "version": "v1",
+  "configVersion": "2024.04.05.01",
+  "mode": "enhanced",
+  "soloWeights": {
+    "destination": 0.25,
+    "dates": 0.20,
+    "budget": 0.20,
+    "interests": 0.10,
+    "personality": 0.05,
+    "religion": 0.05,
+    "age": 0.05,
+    "lifestyle": 0.05,
+    "location": 0.05
+  },
+  "groupWeights": {
+    "budget": 0.18,
+    "dates": 0.20,
+    "interests": 0.15,
+    "age": 0.10,
+    "language": 0.10,
+    "lifestyle": 0.10,
+    "background": 0.07,
+    "distance": 0.10
+  },
+  "mlBlend": {
+    "solo": 0.6,
+    "group": 0.3
+  }
+}

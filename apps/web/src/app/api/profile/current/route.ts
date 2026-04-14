@@ -1,124 +1,104 @@
-import { auth } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
-import { createAdminSupabaseClient } from "@kovari/api";
+import { createAdminSupabaseClient, ProfileResponseSchema, ProfileResponse } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { NextRequest } from "next/server";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
+import { logger } from "@/lib/api/logger";
+import { profileMapper } from "@/lib/mappers/profileMapper";
 
-export async function GET() {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+export async function GET(request: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+  const authUser = await getAuthenticatedUser(request);
+  if (!authUser) {
+    return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
   }
+
+  const userId = authUser.clerkUserId;
+  const internalUserId = authUser.id;
 
   const supabase = createAdminSupabaseClient();
 
   try {
-    // Get user from users table
-    const { data: user, error: userError } = await supabase
+    // 1. Unified Fetch: users + profiles (LEFT JOIN)
+    const { data: dbUser, error: dbError } = await supabase
       .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .eq("isDeleted", false)
+      .select("*, profiles(*)")
+      .eq("id", internalUserId)
       .single();
 
-    if (userError || !user) {
-      console.error("[api/profile/current] User lookup failed", {
-        clerkUserId: userId,
-        code: userError?.code,
-        message: userError?.message,
-        details: (userError as any)?.details,
-        hint: (userError as any)?.hint,
-      });
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (dbError || !dbUser) {
+      logger.error(requestId, "Core identity not found", dbError);
+      return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
     }
 
-    // Get profile data (including interests directly on profiles)
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+    const dbProfile = dbUser.profiles || {}; // Handle missing profile row safely
 
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
-      Sentry.captureException(profileError, {
-        tags: { endpoint: "/api/profile/current", action: "fetch_profile" },
-        extra: { clerkUserId: userId, internalUserId: user.id },
-      });
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch profile data" }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
-    }
+    // 2. Map to standardized DTO
+    const userDto = profileMapper.fromDb(dbUser, dbProfile);
 
-    // Get travel preferences
+    // 3. Get auxiliary data (travel preferences, counts)
     const { data: travelPrefs } = await supabase
       .from("travel_preferences")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", internalUserId)
       .maybeSingle();
 
-    // Consider onboarding complete only when both username and name are set.
-    // DB trigger may create a profile with a default username; name is only set by the onboarding form.
-    const usernameSet =
-      profile?.username != null && String(profile.username).trim() !== "";
-    const nameSet = profile?.name != null && String(profile.name).trim() !== "";
-    const hasCompletedOnboarding = usernameSet && nameSet;
-    if (!hasCompletedOnboarding) {
-      return new Response(
-        JSON.stringify({ error: "Profile incomplete", incomplete: true }),
-        { status: 404, headers: { "Content-Type": "application/json" } },
-      );
+    const hasCompletedOnboarding = Boolean(dbUser.onboarding_completed ?? false);
+
+    // 🚀 AUTO-REPAIR: If profile exists but flag is false, mark as complete.
+    if (dbProfile.id && !hasCompletedOnboarding) {
+      const { error: repairError } = await supabase
+        .from("users")
+        .update({ onboarding_completed: true })
+        .eq("id", internalUserId);
+      
+      if (repairError) {
+        logger.error(requestId, "Auto-repair onboarding failed", repairError);
+      }
     }
 
-    const interests = profile?.interests || [];
+    // 4. Fetch follower/following counts
+    const { count: followersCount } = await supabase
+      .from("user_follows")
+      .select("*", { count: "exact", head: true })
+      .eq("following_id", internalUserId);
 
-    // Transform data to match ProfileEditForm structure
-    const profileData = {
-      id: user.id, // Add the internal user UUID
-      avatar: profile.profile_photo || "",
-      name: profile.name || "",
-      username: profile.username || "",
-      age: profile.age || 0,
-      gender: profile.gender || "Prefer not to say",
-      nationality: profile.nationality || "",
-      profession: profile.job || "",
-      interests,
-      languages: profile.languages || [],
-      bio: profile.bio || "",
-      birthday: profile.birthday || "",
-      location: profile.location || "",
-      location_details: profile.location_details || {},
-      religion: profile.religion || "",
-      smoking: profile.smoking || "",
-      drinking: profile.drinking || "",
-      personality: profile.personality || "",
-      foodPreference: profile.food_preference || "",
-      verified: profile.verified || false,
-      // Travel preferences
-      destinations: travelPrefs?.destinations || [],
-      tripFocus: travelPrefs?.trip_focus || [],
-      travelFrequency: travelPrefs?.frequency || "",
+    const { count: followingCount } = await supabase
+      .from("user_follows")
+      .select("*", { count: "exact", head: true })
+      .eq("follower_id", internalUserId);
+
+    // ✅ Map to ProfileResponse (Final Contract)
+    const profileData: ProfileResponse = {
+      ...userDto,
+      name: userDto.displayName, // Map DTO displayName to Contract name
+      onboardingCompleted: hasCompletedOnboarding,
+      followers: followersCount || 0,
+      following: followingCount || 0,
+      // Travel preferences (overrides DTO if found in separate table)
+      destinations: travelPrefs?.destinations || userDto.destinations || [],
+      tripFocus: travelPrefs?.trip_focus || userDto.tripFocus || [],
+      travelFrequency: travelPrefs?.frequency || userDto.travelFrequency || "",
     };
 
-    return new Response(JSON.stringify(profileData), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+
+    const parsed = ProfileResponseSchema.parse(profileData);
+    
+    return formatStandardResponse(
+      parsed,
+      { contractState: 'clean', degraded: false },
+      { requestId, latencyMs: Date.now() - start }
+    );
   } catch (error) {
-    console.error("Error in profile fetch:", error);
+    logger.error(requestId, "Error in profile fetch", error);
     Sentry.captureException(error, {
       tags: { endpoint: "/api/profile/current", action: "handler_error" },
-      extra: { clerkUserId: userId },
+      extra: { clerkUserId: userId, internalUserId },
     });
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return formatErrorResponse("Internal failure", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }
 

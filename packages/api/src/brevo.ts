@@ -4,10 +4,11 @@ if (typeof window !== "undefined") {
 import * as Sentry from "@sentry/nextjs";
 import { passwordResetEmail } from "./email-templates/password-reset";
 import { groupInviteEmail } from "./email-templates/group-invite";
+import { registrationVerificationEmail } from "./email-templates/registration-verification";
 import { getEmailConfig } from "./email-config";
 
 const MAX_RETRIES = 3;
-const RETRY_DELAYS_MS = [2000, 4000, 8000];
+const RETRY_DELAYS_MS = [1000, 2000, 4000];
 
 interface BrevoEmailParams {
   to: Array<{ email: string }>;
@@ -26,7 +27,7 @@ async function sendBrevoWithRetry(
   const defaultClient = SibApiV3Sdk.ApiClient.instance;
   const apiKey = defaultClient.authentications["api-key"];
   apiKey.apiKey = process.env.BREVO_API_KEY!;
-  defaultClient.timeout = 90000;
+  defaultClient.timeout = 15000; // 15 seconds per single attempt
 
   const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
   const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
@@ -212,3 +213,131 @@ export const sendGroupInviteEmail = async ({
   );
 };
 
+export interface SendRegistrationVerificationEmailParams {
+  to: string;
+  code: string;
+}
+
+/**
+ * Sends a 6-digit registration verification OTP email.
+ * Uses shared retry logic and premium HTML template.
+ */
+export const sendRegistrationVerificationEmail = async ({
+  to,
+  code,
+}: SendRegistrationVerificationEmailParams): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}> => {
+  if (!process.env.BREVO_API_KEY) {
+    return { success: false, error: "BREVO_API_KEY is not configured" };
+  }
+
+  return Sentry.startSpan(
+    {
+      op: "email.send",
+      name: "Send Registration Verification Email",
+    },
+    async (span) => {
+      span.setAttribute("recipient", to);
+      const systemEmailConfig = getEmailConfig("system");
+      span.setAttribute("sender", systemEmailConfig.email);
+
+      const subject = `${code} is your KOVARI verification code`;
+      const html = registrationVerificationEmail({ code });
+
+      const sendSmtpEmail = {
+        to: [{ email: to }],
+        sender: { email: systemEmailConfig.email, name: systemEmailConfig.name },
+        replyTo: { email: systemEmailConfig.replyTo, name: systemEmailConfig.name },
+        subject,
+        htmlContent: html,
+      };
+
+      const result = await sendBrevoWithRetry(sendSmtpEmail);
+
+      if ("messageId" in result) {
+        const messageId = result.messageId || "unknown";
+        span.setAttribute("success", true);
+        span.setAttribute("message_id", messageId);
+        console.log("Registration verification email sent successfully:", { to, messageId });
+        return { success: true, messageId };
+      }
+
+      const errorMsg = "error" in result ? result.error : "Unknown error";
+      Sentry.captureMessage("Registration verification email send failed", {
+        level: "error",
+        extra: { error: errorMsg, recipient: to },
+      });
+      span.setAttribute("error", true);
+      span.setAttribute("error_message", errorMsg);
+      console.error("Error sending registration verification email:", { to, error: errorMsg });
+      return { success: false, error: errorMsg };
+    }
+  );
+};
+
+import { passwordChangedAlertEmail } from "./email-templates/password-changed-alert";
+
+export interface SendPasswordChangedAlertParams {
+  to: string;
+}
+
+/**
+ * Sends a security alert email after a successful password reset.
+ */
+export const sendPasswordChangedAlert = async ({
+  to,
+}: SendPasswordChangedAlertParams): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}> => {
+  if (!process.env.BREVO_API_KEY) {
+    return { success: false, error: "BREVO_API_KEY is not configured" };
+  }
+
+  return Sentry.startSpan(
+    {
+      op: "email.send",
+      name: "Send Password Changed Alert Email",
+    },
+    async (span) => {
+      span.setAttribute("recipient", to);
+      const systemEmailConfig = getEmailConfig("system");
+      span.setAttribute("sender", systemEmailConfig.email);
+
+      const subject = "Security Alert: Your Kovari password was changed";
+      const html = passwordChangedAlertEmail();
+
+      const sendSmtpEmail = {
+        to: [{ email: to }],
+        sender: { email: systemEmailConfig.email, name: systemEmailConfig.name },
+        replyTo: { email: systemEmailConfig.replyTo, name: systemEmailConfig.name },
+        subject,
+        htmlContent: html,
+      };
+
+      const result = await sendBrevoWithRetry(sendSmtpEmail);
+
+      if ("messageId" in result) {
+        const messageId = result.messageId || "unknown";
+        span.setAttribute("success", true);
+        span.setAttribute("message_id", messageId);
+        console.log("Password changed alert email sent successfully:", { to, messageId });
+        return { success: true, messageId };
+      }
+
+      const errorMsg = "error" in result ? result.error : "Unknown error";
+      Sentry.captureMessage("Password changed alert email send failed", {
+        level: "error",
+        extra: { error: errorMsg, recipient: to },
+      });
+      span.setAttribute("error", true);
+      span.setAttribute("error_message", errorMsg);
+      console.error("Error sending password changed alert email:", { to, error: errorMsg });
+      return { success: false, error: errorMsg };
+    }
+  );
+};

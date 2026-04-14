@@ -89,29 +89,31 @@ export default function ProtectedRoute({
     checkDoneThisCycleRef.current = true;
 
     const runProfileCheck = () => {
+      // Use cache: 'no-store' to ensure we never get a stale onboarding status
       fetch("/api/profile/current", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
       })
-        .then((res) => {
-          /* if (debug) {
-            console.log("[ProtectedRoute] /api/profile/current", {
-              status: res.status,
-              ok: res.ok,
-              path,
-            });
-          } */
+        .then(async (res) => {
           if (res.ok) {
-            profileConfirmedRef.current = true;
-            setPhase("allow");
+            const json = await res.json();
+            // Kovari API v1 wraps the response in a 'data' field.
+            const onboarded = json?.data?.onboardingCompleted === true;
+            
+            if (onboarded) {
+              profileConfirmedRef.current = true;
+              setPhase("allow");
+            } else {
+              setPhase("redirect");
+              router.replace(ONBOARDING_PATH_PREFIX);
+            }
           } else {
             setPhase("redirect");
             router.replace(ONBOARDING_PATH_PREFIX);
           }
         })
         .catch((err) => {
-          /* if (debug)
-            console.error("[ProtectedRoute] profile check failed", err); */
           setPhase("redirect");
           router.replace(ONBOARDING_PATH_PREFIX);
         });

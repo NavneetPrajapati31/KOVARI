@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -13,12 +13,14 @@ const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
 const LIMIT = 20; // 20 requests per minute
 const WINDOW_MS = 60 * 1000;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const userId = authUser.id; // Use our internal UUID for rate limiting
 
     const now = Date.now();
     const userRate = rateLimitMap.get(userId) || { count: 0, timestamp: now };
