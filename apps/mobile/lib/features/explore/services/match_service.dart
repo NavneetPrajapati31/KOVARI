@@ -5,6 +5,8 @@ import '../../../core/utils/safe_parser.dart';
 import '../models/match_result.dart';
 import '../models/match_user.dart';
 
+import '../../groups/models/group.dart';
+
 /// 🛡️ Match Service — typed, safe, crash-proof
 ///
 /// Returns only typed models to UI providers.
@@ -65,7 +67,7 @@ class MatchService {
         final total = envelope['total'] as int? ?? 0;
 
         return MatchResult(
-          matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),
+          matches: safeParseList<GroupModel>(rawList, GroupModel.fromJson),
           hasMore: hasMore,
           totalCount: total,
         );

@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../models/group.dart';
 
 class ChatsTab extends StatelessWidget {
-  final Group group;
+  final GroupModel group;
 
   const ChatsTab({super.key, required this.group});
 

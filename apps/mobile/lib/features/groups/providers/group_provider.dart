@@ -9,7 +9,7 @@ final groupServiceProvider = Provider<GroupService>((ref) {
   return GroupService(apiClient);
 });
 
-final myGroupsProvider = FutureProvider<List<Group>>((ref) async {
+final myGroupsProvider = FutureProvider<List<GroupModel>>((ref) async {
   // Watch auth state to trigger re-build on login/logout
   ref.watch(authStateProvider);
 

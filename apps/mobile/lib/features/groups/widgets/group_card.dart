@@ -9,7 +9,7 @@ import '../../../shared/widgets/primary_button.dart';
 import '../models/group.dart';
 
 class GroupCard extends StatelessWidget {
-  final Group group;
+  final GroupModel group;
   final VoidCallback? onAction;
 
   const GroupCard({super.key, required this.group, this.onAction});

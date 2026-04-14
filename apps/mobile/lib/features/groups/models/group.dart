@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-class Group {
+class GroupModel {
   final String id;
   final String name;
   final String privacy;
@@ -17,8 +17,14 @@ class Group {
   final String? coverImage;
   final String? destinationImage;
   final String? status;
+  final double? score;
+  final List<String>? tags;
+  final List<String>? languages;
+  final String? smokingPolicy;
+  final String? drinkingPolicy;
+  final int? budget;
 
-  Group({
+  GroupModel({
     required this.id,
     required this.name,
     required this.privacy,
@@ -35,9 +41,18 @@ class Group {
     this.coverImage,
     this.destinationImage,
     this.status,
+    this.score,
+    this.tags,
+    this.languages,
+    this.smokingPolicy,
+    this.drinkingPolicy,
+    this.budget,
   });
 
-  factory Group.fromJson(Map<String, dynamic> json) {
+  factory GroupModel.fromJson(Map<String, dynamic> json) {
+    // 🛡️ Fallback ID (UUID-like placeholder if missing)
+    final id = (json['id'] ?? json['groupId'] ?? 'unk-${DateTime.now().millisecondsSinceEpoch}').toString();
+    
     // Handle both mobile-specific mapping (dateRange object) and generic API (start_date/end_date)
     GroupDateRange dateRange;
     if (json['dateRange'] != null) {
@@ -46,19 +61,19 @@ class Group {
       );
     } else {
       dateRange = GroupDateRange(
-        start: json['start_date'] as String?,
-        end: json['end_date'] as String?,
-        isOngoing: json['end_date'] == null,
+        start: (json['startDate'] ?? json['start_date']) as String?,
+        end: (json['endDate'] ?? json['end_date']) as String?,
+        isOngoing: (json['endDate'] ?? json['end_date']) == null,
       );
     }
 
-    return Group(
-      id: json['id'] as String,
-      name: json['name'] as String,
+    return GroupModel(
+      id: id,
+      name: (json['name'] ?? 'Unnamed Group').toString(),
       privacy:
           (json['privacy'] as String?) ??
           (json['is_public'] == true ? 'public' : 'private'),
-      destination: json['destination'] as String,
+      destination: (json['destination'] as String?) ?? 'Unknown',
       description: json['description'] as String?,
       notes: json['notes'] as String?,
       aiOverview: json['ai_overview'] as String?,
@@ -77,9 +92,15 @@ class Group {
           (json['created_at'] as String?) ??
           (json['createdAt'] as String?) ??
           '',
-      coverImage: json['cover_image'] as String?,
+      coverImage: (json['cover_image'] ?? json['image'] ?? json['coverImage']) as String?,
       destinationImage: json['destination_image'] as String?,
       status: json['status'] as String?,
+      score: (json['score'] as num?)?.toDouble(),
+      tags: json['tags'] != null ? List<String>.from(json['tags'] as List) : null,
+      languages: json['languages'] != null ? List<String>.from(json['languages'] as List) : null,
+      smokingPolicy: (json['smokingPolicy'] ?? json['smoking_policy'] ?? json['non_smokers']?.toString()) as String?,
+      drinkingPolicy: (json['drinkingPolicy'] ?? json['drinking_policy'] ?? json['non_drinkers']?.toString()) as String?,
+      budget: (json['budget'] ?? json['estimated_budget']) as int?,
     );
   }
 }

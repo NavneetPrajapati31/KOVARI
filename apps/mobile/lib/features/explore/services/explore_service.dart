@@ -7,6 +7,7 @@ import '../../../core/utils/safe_parser.dart';
 import '../models/explore_state.dart';
 import '../models/match_result.dart';
 import '../models/match_user.dart';
+import '../../groups/models/group.dart';
 
 class ExploreService {
   final ApiClient _apiClient;
@@ -117,9 +118,12 @@ class ExploreService {
       data: payload,
       parser: (data) {
         if (data is! Map<String, dynamic>) return MatchResult.empty();
+        
+        // 🛡️ Contract Authority: Read from 'groups' (standard) or 'data' (fallback)
         final rawList = data['groups'] ?? data['data'] ?? [];
+        
         return MatchResult(
-          matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),
+          matches: safeParseList<GroupModel>(rawList, GroupModel.fromJson),
           hasMore: data['hasMore'] as bool? ?? false,
           totalCount: data['total'] as int? ?? 0,
         );

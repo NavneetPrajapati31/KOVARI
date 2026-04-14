@@ -7,7 +7,7 @@ import '../../models/group.dart';
 import '../../providers/group_details_provider.dart';
 
 class SettingsTab extends ConsumerWidget {
-  final Group group;
+  final GroupModel group;
   final VoidCallback onViewMembers;
 
   const SettingsTab({

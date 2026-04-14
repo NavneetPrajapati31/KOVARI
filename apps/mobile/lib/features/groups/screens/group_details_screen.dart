@@ -129,7 +129,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     );
   }
 
-  Widget _buildHeader(Group group) {
+  Widget _buildHeader(GroupModel group) {
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 6),
       decoration: const BoxDecoration(color: AppColors.background),

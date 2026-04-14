@@ -1,4 +1,5 @@
 import { createAdminSupabaseClient } from "@kovari/api";
+import { logger } from "@/lib/api/logger";
 
 /**
  * Perform legacy Supabase-based matching as a fallback for solo travelers.
@@ -132,31 +133,59 @@ export async function performGroupDbMatchingFallback(
       cover_image,
       members_count,
       description,
-      creator:users!creator_id(name)
+      status,
+      budget,
+      ai_overview,
+      non_smokers,
+      non_drinkers,
+      destination_lat,
+      destination_lon
     `)
+    .in("status", ["active", "pending"])
     .eq("is_public", true)
-    .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (filters.destination && filters.destination !== "Any") {
-    query = query.ilike("destination", `%${filters.destination}%`);
+  // Apply Search Logic (Web Parity: Extract city from formatted string)
+  if (filters && filters.destination && filters.destination !== "Any") {
+    const normalizedDest = filters.destination.split(",")[0].trim();
+    
+    // If we have coordinates, prioritize precise spatial matching
+    if (filters.lat && filters.lon) {
+      const epsilon = 0.5; // Roughly 50km
+      query = query
+        .gte("destination_lat", filters.lat - epsilon)
+        .lte("destination_lat", filters.lat + epsilon)
+        .gte("destination_lon", filters.lon - epsilon)
+        .lte("destination_lon", filters.lon + epsilon);
+    } else {
+      // Fallback to name-based match
+      query = query.ilike("destination", `%${normalizedDest}%`);
+    }
   }
 
   const { data: groups, error } = await query;
-  if (error || !groups) return [];
+  
+  if (error) {
+    logger.error("GROUP-FALLBACK", "DB Match Query Failed", error);
+    return [];
+  }
+
+  if (!groups) return [];
 
   return groups.map((g: any) => ({
     id: g.id,
     name: g.name,
     description: g.description,
     destination: g.destination,
-    membersCount: g.members_count || 0,
+    membersCount: g.members_count || 1, // Default to 1 (creator)
     score: 0.5,
     startDate: g.start_date,
     endDate: g.end_date,
     creatorId: g.creator_id,
-    creator: Array.isArray(g.creator) ? g.creator[0] : g.creator,
+    status: g.status,
+    budget: g.budget,
+    ai_overview: g.ai_overview,
     coverImage: g.cover_image,
     is_public: g.is_public
   }));

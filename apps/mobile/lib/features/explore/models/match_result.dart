@@ -1,8 +1,6 @@
-import 'match_user.dart';
-
 /// ⚡ Result wrapper for explore matches with pagination metadata.
 class MatchResult {
-  final List<MatchUser> matches;
+  final List<dynamic> matches;
   final bool hasMore;
   final int totalCount;
 

@@ -109,7 +109,14 @@ export async function POST(request: NextRequest) {
           // PHASE 4: Hardened Validation & Adaptive Threshold
           const { validItems, droppedCount, state } = safeBatchValidate(rawItems, GoGroupMatchSchema, requestId);
 
-          if (state !== 'degraded') {
+          // 🛡️ [FALLBACK] Trigger DB if Go returns too few valid matches (< 3)
+          if (state === 'degraded' || validItems.length < 3) {
+            logger.warn(requestId, "Go group response insufficient (< 3 valid) - Falling back to DB", { 
+              validCount: validItems.length,
+              state 
+            });
+            // Continue to DB fallback at the end of the function
+          } else {
             // HYDRATION PIPELINE: Merge the stripped Go ML response back onto the rich database candidates
             const hydratedData = validItems.map((goMatch: any) => {
               const parsedGroupId = goMatch.group?.groupId || goMatch.groupId || goMatch.id;
@@ -124,7 +131,20 @@ export async function POST(request: NextRequest) {
               };
             }).filter(Boolean);
 
-            const transformed = transformGroups(hydratedData);
+            // 🧪 [ENRICHMENT] Batch fetch missing member counts or status
+            const enrichedData = await enrichGroups(hydratedData, userId, supabase);
+            
+            const transformed = transformGroups(enrichedData);
+            
+            // 🔍 [PRODUCTION LOG] Requested by objective
+            logger.info(requestId, "Group Matching Completed", {
+              source: "go",
+              total: rawItems.length,
+              valid: validItems.length,
+              dropped: droppedCount,
+              contractState: state
+            });
+
             await setMatchingCache(userId, cacheKey, transformed, userVersion);
             await matchingServiceBreaker.recordSuccess();
 
@@ -140,8 +160,6 @@ export async function POST(request: NextRequest) {
               },
               { requestId, latencyMs: Date.now() - start }
             );
-          } else {
-            logger.warn(requestId, "Go group response degraded below threshold - Returning unscored", { validCount: validItems.length });
           }
         }
         await matchingServiceBreaker.recordFailure();
@@ -191,4 +209,67 @@ function transformGroups(rawData: any[]) {
     const res = safeTransform(groupTransformer, item);
     return res.ok ? res.data : null;
   }).filter(Boolean);
+}
+
+/**
+ * 🧪 BATCH ENRICHMENT LAYER
+ * Fetches memberCount and userStatus in ONE query for all groups.
+ */
+async function enrichGroups(groups: any[], currentUserId: string, supabase: any) {
+  const groupIds = groups.map(g => g.id).filter(Boolean);
+  const creatorIds = groups.map(g => g.creatorId || g.creator_id).filter(Boolean);
+  
+  if (groupIds.length === 0) return groups;
+
+  try {
+    // 1. Fetch member counts
+    const { data: memberCounts, error: countError } = await supabase
+      .from("group_members")
+      .select("group_id")
+      .in("group_id", groupIds);
+
+    // 2. Fetch current user's status in these groups
+    const { data: userMemberships, error: memberError } = await supabase
+      .from("group_members")
+      .select("group_id, role, status")
+      .eq("user_id", currentUserId)
+      .in("group_id", groupIds);
+
+    // 3. 🏛️ HYDRATE CREATORS (Since join might be fragile)
+    const { data: creatorProfiles } = creatorIds.length > 0 
+      ? await supabase.from("profiles").select("user_id, name, username, profile_photo").in("user_id", creatorIds)
+      : { data: [] };
+
+    if (countError || memberError) throw new Error("Enrichment query failed");
+
+    // 4. Map aggregates
+    const countMap = memberCounts.reduce((acc: any, curr: any) => {
+      acc[curr.group_id] = (acc[curr.group_id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const statusMap = userMemberships.reduce((acc: any, curr: any) => {
+      acc[curr.group_id] = curr.status; 
+      return acc;
+    }, {});
+
+    const profileMap = (creatorProfiles || []).reduce((acc: any, curr: any) => {
+      acc[curr.user_id] = { name: curr.name, username: curr.username, avatar: curr.profile_photo };
+      return acc;
+    }, {});
+
+    // 5. Merge back
+    return groups.map(g => {
+      const cid = g.creatorId || g.creator_id;
+      return {
+        ...g,
+        memberCount: g.memberCount || countMap[g.id] || 0,
+        userStatus: g.userStatus || statusMap[g.id] || null,
+        creator: g.creator?.name !== "Traveler" ? g.creator : (profileMap[cid] || g.creator || { name: "Traveler" })
+      };
+    });
+  } catch (err) {
+    logger.warn("Enrichment", "Batch enrichment failed, using available data", err);
+    return groups;
+  }
 }

@@ -14,7 +14,7 @@ import '../../providers/group_details_provider.dart';
 import '../modals/itinerary_form_modal.dart';
 
 class ItineraryTab extends ConsumerWidget {
-  final Group group;
+  final GroupModel group;
 
   const ItineraryTab({super.key, required this.group});
 
@@ -117,8 +117,7 @@ class ItineraryTab extends ConsumerWidget {
     List<GroupMember> groupMembers,
   ) {
     return DragTarget<ItineraryItem>(
-      onWillAcceptWithDetails: (details) =>
-          details.data.status != targetStatus,
+      onWillAcceptWithDetails: (details) => details.data.status != targetStatus,
       onAcceptWithDetails: (details) async {
         final item = details.data;
         final messenger = ScaffoldMessenger.of(context);

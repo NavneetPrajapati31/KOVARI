@@ -8,23 +8,23 @@ class GroupService {
 
   GroupService(this._apiClient);
 
-  Future<List<Group>> getMyGroups() async {
-    final response = await _apiClient.get<List<Group>>(
+  Future<List<GroupModel>> getMyGroups() async {
+    final response = await _apiClient.get<List<GroupModel>>(
       ApiEndpoints.myGroups,
       parser: (data) {
         final List<dynamic> rawList =
             data is Map<String, dynamic> ? (data['data'] ?? []) : [];
-        return safeParseList(rawList, Group.fromJson);
+        return safeParseList(rawList, GroupModel.fromJson);
       },
     );
     return response.data ?? [];
   }
 
-  Future<Group> createGroup(Map<String, dynamic> data) async {
-    final response = await _apiClient.post<Group>(
+  Future<GroupModel> createGroup(Map<String, dynamic> data) async {
+    final response = await _apiClient.post<GroupModel>(
       ApiEndpoints.createGroup,
       data: data,
-      parser: (json) => Group.fromJson(json as Map<String, dynamic>),
+      parser: (json) => GroupModel.fromJson(json as Map<String, dynamic>),
     );
     if (response.success && response.data != null) {
       return response.data!;
@@ -32,10 +32,10 @@ class GroupService {
     throw Exception(response.error?.message ?? 'Failed to create group');
   }
 
-  Future<Group> getGroupDetails(String groupId) async {
-    final response = await _apiClient.get<Group>(
+  Future<GroupModel> getGroupDetails(String groupId) async {
+    final response = await _apiClient.get<GroupModel>(
       ApiEndpoints.groupDetails(groupId),
-      parser: (json) => Group.fromJson(json as Map<String, dynamic>),
+      parser: (json) => GroupModel.fromJson(json as Map<String, dynamic>),
     );
     if (response.success && response.data != null) {
       return response.data!;
@@ -93,11 +93,11 @@ class GroupService {
     if (!response.success) throw Exception('Failed to generate AI overview');
   }
 
-  Future<Group> updateGroupNotes(String groupId, String notes) async {
-    final response = await _apiClient.patch<Group>(
+  Future<GroupModel> updateGroupNotes(String groupId, String notes) async {
+    final response = await _apiClient.patch<GroupModel>(
       ApiEndpoints.groupDetails(groupId),
       data: {'notes': notes},
-      parser: (json) => Group.fromJson(json as Map<String, dynamic>),
+      parser: (json) => GroupModel.fromJson(json as Map<String, dynamic>),
     );
     if (response.success && response.data != null) {
       return response.data!;

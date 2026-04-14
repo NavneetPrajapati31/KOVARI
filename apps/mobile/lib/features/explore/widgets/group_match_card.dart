@@ -7,24 +7,26 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
 import '../providers/explore_provider.dart';
 
+import '../../../features/groups/models/group.dart';
+
 class GroupMatchCard extends ConsumerWidget {
-  final Map<String, dynamic> group;
+  final GroupModel group;
 
   const GroupMatchCard({super.key, required this.group});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final String name = group['name'] ?? 'Travel Group';
-    final String? description = group['description'];
-    final String? coverImage = group['cover_image'];
-    final int memberCount = group['memberCount'] ?? 0;
-    final Map<String, dynamic>? creator = group['creator'];
+    final String name = group.name;
+    final String? description = group.description;
+    final String? coverImage = group.coverImage;
+    final int memberCount = group.memberCount;
+    final GroupCreator? creator = group.creator;
 
-    final DateTime? startDate = group['startDate'] != null
-        ? DateTime.tryParse(group['startDate'].toString())
+    final DateTime? startDate = group.dateRange.start != null
+        ? DateTime.tryParse(group.dateRange.start!)
         : null;
-    final DateTime? endDate = group['endDate'] != null
-        ? DateTime.tryParse(group['endDate'].toString())
+    final DateTime? endDate = group.dateRange.end != null
+        ? DateTime.tryParse(group.dateRange.end!)
         : null;
     final String dateRange = startDate != null && endDate != null
         ? "${DateFormat('MMM d').format(startDate)} - ${DateFormat('MMM d, yyyy').format(endDate)}"
@@ -128,9 +130,7 @@ class GroupMatchCard extends ConsumerWidget {
                         _buildPillList([
                           _PillData(
                             icon: Icons.location_on_outlined,
-                            label: group['destination'].toString().split(
-                              ',',
-                            )[0],
+                            label: group.destination.split(',')[0],
                           ),
                           _PillData(
                             icon: Icons.calendar_today_outlined,
@@ -141,10 +141,10 @@ class GroupMatchCard extends ConsumerWidget {
                               icon: Icons.timelapse_outlined,
                               label: "$tripLength days",
                             ),
-                          if (group['budget'] != null)
+                          if (group.budget != null)
                             _PillData(
                               icon: Icons.currency_rupee,
-                              label: "${group['budget']} per person",
+                              label: "${group.budget} per person",
                             ),
                         ]),
                         const SizedBox(height: 24),
@@ -154,7 +154,7 @@ class GroupMatchCard extends ConsumerWidget {
                           if (creator != null)
                             _PillData(
                               icon: Icons.person_pin_outlined,
-                              label: "By ${creator['name']}",
+                              label: "By ${creator.name}",
                             ),
                           _PillData(
                             icon: Icons.group_outlined,
@@ -163,22 +163,21 @@ class GroupMatchCard extends ConsumerWidget {
                         ]),
                         const SizedBox(height: 24),
 
-                        if (group['tags'] != null &&
-                            (group['tags'] as List).isNotEmpty) ...[
+                        if (group.tags != null && group.tags!.isNotEmpty) ...[
                           _buildSectionTitle('Group Interests'),
                           _buildPillList(
-                            (group['tags'] as List)
+                            group.tags!
                                 .map((i) => _PillData(label: i.toString()))
                                 .toList(),
                           ),
                           const SizedBox(height: 24),
                         ],
 
-                        if (group['languages'] != null &&
-                            (group['languages'] as List).isNotEmpty) ...[
+                        if (group.languages != null &&
+                            group.languages!.isNotEmpty) ...[
                           _buildSectionTitle('Languages'),
                           _buildPillList(
-                            (group['languages'] as List)
+                            group.languages!
                                 .map(
                                   (i) => _PillData(
                                     icon: Icons.translate_outlined,
@@ -192,15 +191,15 @@ class GroupMatchCard extends ConsumerWidget {
 
                         _buildSectionTitle('Lifestyle'),
                         _buildPillList([
-                          if (group['smokingPolicy'] != null)
+                          if (group.smokingPolicy != null)
                             _PillData(
                               icon: Icons.smoking_rooms_outlined,
-                              label: "Smoking: ${group['smokingPolicy']}",
+                              label: "Smoking: ${group.smokingPolicy}",
                             ),
-                          if (group['drinkingPolicy'] != null)
+                          if (group.drinkingPolicy != null)
                             _PillData(
                               icon: Icons.local_bar_outlined,
-                              label: "Drinking: ${group['drinkingPolicy']}",
+                              label: "Drinking: ${group.drinkingPolicy}",
                             ),
                         ]),
                       ],
@@ -211,7 +210,7 @@ class GroupMatchCard extends ConsumerWidget {
                     endIndent: 20,
                     color: AppColors.border,
                   ),
-                  _buildActions(ref, group['id'] ?? ''),
+                  _buildActions(ref, group.id),
                 ],
               ),
             ),

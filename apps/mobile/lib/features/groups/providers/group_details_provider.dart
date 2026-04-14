@@ -4,7 +4,7 @@ import '../data/group_service.dart';
 import '../models/group.dart';
 import 'group_provider.dart';
 
-final groupDetailsProvider = FutureProvider.family<Group, String>((
+final groupDetailsProvider = FutureProvider.family<GroupModel, String>((
   ref,
   groupId,
 ) async {

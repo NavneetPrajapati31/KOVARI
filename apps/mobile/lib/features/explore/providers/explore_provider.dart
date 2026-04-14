@@ -4,6 +4,7 @@ import '../../../shared/models/kovari_user.dart';
 import '../models/explore_state.dart';
 import '../services/explore_service.dart';
 import '../services/match_service.dart';
+
 class ExploreNotifier extends Notifier<ExploreState> {
   @override
   ExploreState build() {
@@ -33,11 +34,15 @@ class ExploreNotifier extends Notifier<ExploreState> {
     );
   }
 
-  Future<void> performSearch({bool isRefresh = false, bool isLoadMore = false}) async {
+  Future<void> performSearch({
+    bool isRefresh = false,
+    bool isLoadMore = false,
+  }) async {
     final userId = _userId ?? 'dummy-user-id';
 
     if (!isRefresh && !isLoadMore) {
-      if (state.lastFetchTime != null && state.searchData.travelMode == TravelMode.solo) {
+      if (state.lastFetchTime != null &&
+          state.searchData.travelMode == TravelMode.solo) {
         if (DateTime.now().difference(state.lastFetchTime!).inSeconds < 30) {
           return; // Cache valid
         }
@@ -45,7 +50,9 @@ class ExploreNotifier extends Notifier<ExploreState> {
     }
 
     if (isLoadMore) {
-      if (!state.hasMore || state.searchData.travelMode != TravelMode.solo) return;
+      if (!state.hasMore || state.searchData.travelMode != TravelMode.solo) {
+        return;
+      }
     } else {
       state = state.copyWith(
         isLoading: true,
@@ -80,8 +87,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
           newHasMore = result.hasMore;
           newPage = fetchPage;
         } catch (e) {
-          // ignore: avoid_print
-          print('Match fetching error: $e');
+          // Errors are handled by the outer catch block
         }
       } else {
         try {
@@ -95,12 +101,8 @@ class ExploreNotifier extends Notifier<ExploreState> {
         } catch (e) {
           // ignore: empty_catches
         }
-
-        if (matches.isEmpty) {
-          matches = _getDummyGroupMatches();
-        }
       }
-      
+
       state = state.copyWith(
         matches: matches,
         hasSearched: true,
@@ -115,52 +117,10 @@ class ExploreNotifier extends Notifier<ExploreState> {
     }
   }
 
-
-  List<dynamic> _getDummyGroupMatches() {
-    return [
-      {
-        'id': 'dummy-group-1',
-        'name': 'Backpackers of Rajasthan',
-        'description':
-            'Exploring the royal heritage of Jaipur, Jodhpur, and Udaipur. Join us for a 10-day cultural journey!',
-        'cover_image':
-            'https://images.pexels.com/photos/36020918/pexels-photo-36020918.jpeg',
-        'memberCount': 5,
-        'creator': {'name': 'Priya Singh'},
-        'destination': 'Rajasthan, India',
-        'startDate': '2026-07-01',
-        'endDate': '2026-07-10',
-        'budget': 35000,
-        'tags': ['Culture', 'History', 'Backpacking'],
-        'languages': ['Hindi', 'English'],
-        'smokingPolicy': 'Non-smoking preferred',
-        'drinkingPolicy': "I'm okay with drinking",
-      },
-      {
-        'id': 'dummy-group-2',
-        'name': 'Pondicherry Foodies',
-        'description':
-            'A culinary tour of the French Quarter and Auroville. Cafe hopping and beach walks!',
-        'cover_image':
-            'https://images.unsplash.com/photo-1590490359683-658d3d23f972?auto=format&fit=crop&q=80&w=300',
-        'memberCount': 3,
-        'creator': {'name': 'Rohan Das'},
-        'destination': 'Pondicherry, India',
-        'startDate': '2026-09-12',
-        'endDate': '2026-09-15',
-        'budget': 12000,
-        'tags': ['Food', 'Beach', 'Photography'],
-        'languages': ['English', 'Tamil', 'French'],
-        'smokingPolicy': 'No smoking',
-        'drinkingPolicy': 'Social drinking okay',
-      },
-    ];
-  }
-
   void nextMatch() {
     if (state.currentIndex < state.matches.length - 1) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
-      
+
       if (state.searchData.travelMode == TravelMode.solo &&
           state.currentIndex >= state.matches.length - 3 &&
           state.hasMore) {

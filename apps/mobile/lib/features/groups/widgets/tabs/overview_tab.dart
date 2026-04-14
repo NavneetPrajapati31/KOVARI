@@ -13,7 +13,7 @@ import '../../models/group.dart';
 import '../../providers/group_details_provider.dart';
 
 class OverviewTab extends ConsumerWidget {
-  final Group group;
+  final GroupModel group;
   final bool isEditingNotes;
   final TextEditingController notesController;
   final VoidCallback onEditNotesToggle;
@@ -118,7 +118,7 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildCoverImage(Group group) {
+  Widget _buildCoverImage(GroupModel group) {
     final coverImageUrl = UrlUtils.getFullImageUrl(group.coverImage);
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -150,7 +150,7 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildDatesSection(Group group) {
+  Widget _buildDatesSection(GroupModel group) {
     final start = group.dateRange.start != null
         ? DateFormat('MMMM d').format(DateTime.parse(group.dateRange.start!))
         : "";
@@ -496,7 +496,7 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildDestinationImageCard(Group group) {
+  Widget _buildDestinationImageCard(GroupModel group) {
     final destinationImageUrl = UrlUtils.getFullImageUrl(
       group.destinationImage,
     );
@@ -590,7 +590,7 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildAiOverviewCard(Group group) {
+  Widget _buildAiOverviewCard(GroupModel group) {
     if (group.aiOverview == null) return const SizedBox.shrink();
 
     return ClipRRect(
