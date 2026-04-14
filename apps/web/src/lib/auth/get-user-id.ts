@@ -28,7 +28,7 @@ export async function getAuthUserId(req: NextRequest): Promise<string | null> {
     // For mobile JWTs, the 'userId' in the payload is the internal UUID from 
     // the 'users' table (since they don't have a Clerk ID).
     // Our route handlers need to be aware of this.
-    return payload?.userId || null;
+    return payload?.sub || null;
   }
 
   return null;
