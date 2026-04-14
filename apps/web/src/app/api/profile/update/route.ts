@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createAdminSupabaseClient, createRouteHandlerSupabaseClientWithServiceRole, sendRegistrationVerificationEmail } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { logger } from "@/lib/api/logger";
+import { profileMapper } from "@/lib/mappers/profileMapper";
 import crypto from "crypto";
 
 const updateProfileSchema = z.object({
@@ -127,62 +128,47 @@ export async function PATCH(req: Request) {
       });
     }
 
-    // Mapping...
-    const fieldMapping: Record<string, string> = {
-      avatar: "profile_photo",
-      name: "name",
-      username: "username",
-      email: "email",
-      age: "age",
-      gender: "gender",
-      nationality: "nationality",
-      profession: "job",
-      languages: "languages",
-      bio: "bio",
-      interests: "interests",
-      location: "location",
-      location_details: "location_details",
-      birthday: "birthday",
-      religion: "religion",
-      smoking: "smoking",
-      drinking: "drinking",
-      personality: "personality",
-      foodPreference: "food_preference",
-      destinations: "destinations",
-      tripFocus: "trip_focus",
-      travelFrequency: "frequency",
-    };
+    // 3. Security: Whitelist Allowed Fields
+    const safeFields = [
+      "username", "bio", "avatar", "profession", "interests", "languages", 
+      "gender", "age", "nationality", "location", "location_details", 
+      "religion", "smoking", "drinking", "personality", "foodPreference",
+      "destinations", "tripFocus", "travelFrequency", "name", "email"
+    ];
 
+    if (!safeFields.includes(field)) {
+      return new Response(JSON.stringify({ error: "Update rejected: Unauthorized field" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // 4. Handle Travel Preferences (Dedicated Table)
     const travelFields = ["destinations", "tripFocus", "travelFrequency"];
     if (travelFields.includes(field)) {
-      const dbField = fieldMapping[field];
+      const { profileUpdates } = profileMapper.toDbUpdate({ [field]: value });
       const { error: travelUpdateError } = await supabase
         .from("travel_preferences")
-        .upsert({ user_id: user.id, [dbField]: value }, { onConflict: "user_id" });
+        .upsert({ user_id: user.id, ...profileUpdates }, { onConflict: "user_id" });
 
       if (travelUpdateError) {
-        console.error("Error updating travel preferences:", travelUpdateError);
+        logger.error("TRAVEL-UPDATE", "Error updating travel prefs", travelUpdateError);
         return new Response(JSON.stringify({ error: "Failed to update travel preferences" }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
         });
       }
-
-      return new Response(JSON.stringify({ message: "Travel preferences updated successfully", field, value }), {
+      return new Response(JSON.stringify({ message: "Travel preferences updated", field, value }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const dbField = fieldMapping[field];
-    if (!dbField) {
-      return new Response(JSON.stringify({ error: "Invalid field name" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    // 5. Atomic Update via profileMapper (users + profiles)
+    // Even if identity (name/email) sync is special, we still use mapper to identify targets
+    const { userUpdates, profileUpdates } = profileMapper.toDbUpdate({ [field]: value });
 
-    // Username availability check
+    // Username unique check
     if (field === "username" && typeof value === "string") {
       const { data: existingProfile } = await supabase
         .from("profiles")
@@ -199,19 +185,40 @@ export async function PATCH(req: Request) {
       }
     }
 
-    // Update Profile
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ [dbField]: value })
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      console.error("Error updating profile:", updateError);
-      return new Response(JSON.stringify({ error: "Failed to update profile" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+    // Execute User Updates if any (e.g. name, email - though email usually handled by verification flow)
+    if (Object.keys(userUpdates).length > 0) {
+      const { error: userUpdateError } = await supabase
+        .from("users")
+        .update(userUpdates)
+        .eq("id", user.id);
+      
+      if (userUpdateError) {
+        logger.error("USER-UPDATE", "Error updating identity data", userUpdateError);
+        // We continue anyway to try and update profile, or should we abort?
+        // Identity is critical, so we abort.
+        return new Response(JSON.stringify({ error: "Failed to update identity data" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     }
+
+    // Execute Profile Updates if any (e.g. bio, avatar, job)
+    if (Object.keys(profileUpdates).length > 0) {
+      const { error: profileUpdateError } = await supabase
+        .from("profiles")
+        .update(profileUpdates)
+        .eq("user_id", user.id);
+
+      if (profileUpdateError) {
+        logger.error("PROFILE-UPDATE", "Error updating display data", profileUpdateError);
+        return new Response(JSON.stringify({ error: "Failed to update profile data" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
 
     // 🔥 Hardening: Invalidate matching cache on profile update
     try {
@@ -227,16 +234,14 @@ export async function PATCH(req: Request) {
         const client = await clerkClient();
         if (field === "username") {
           await client.users.updateUser(user.clerkUserId, { username: value });
-        } else if (field === "name") {
-          await client.users.updateUser(user.clerkUserId, {
-            firstName: value.split(" ")[0] || "",
-            lastName: value.split(" ").slice(1).join(" ") || "",
-          });
         }
+        // CRITICAL: We NO LONGER sync 'name' to Clerk here as users.name is identity-only 
+        // and managed separately. profiles.name is for display only.
       } catch (err) {
         console.error("Error updating Clerk user:", err);
       }
     }
+
 
     return new Response(JSON.stringify({ message: "Profile updated successfully", field, value }), {
       status: 200,

@@ -8,6 +8,7 @@ export enum LogLevel {
   WARN = "WARN",
   ERROR = "ERROR",
   CRITICAL = "CRITICAL",
+  DEBUG = "DEBUG",
 }
 
 export interface LogEntry {
@@ -58,6 +59,9 @@ export const logger = {
     
   critical: (requestId: string, message: string, details?: any) => 
     logger.log({ level: LogLevel.CRITICAL, requestId, message, details }),
+
+  debug: (requestId: string, details: any) => 
+    logger.log({ level: LogLevel.DEBUG, requestId, message: "Debug Diagnostic", details }),
 
   // Backward compatibility for access/error
   access: (entry: any) => logger.log({ ...entry, level: LogLevel.INFO, message: "Access Log" }),

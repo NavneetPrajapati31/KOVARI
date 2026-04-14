@@ -22,6 +22,7 @@ import {
 } from "@/lib/api/matching/cache";
 import { matchingServiceBreaker } from "@/lib/api/matching/circuitBreaker";
 import { performGroupDbMatchingFallback } from "@/lib/api/matching/fallback";
+import { profileMapper } from "@/lib/mappers/profileMapper";
 
 const GO_URL = process.env.GO_SERVICE_URL || "http://localhost:8080";
 
@@ -235,10 +236,16 @@ async function enrichGroups(groups: any[], currentUserId: string, supabase: any)
       .eq("user_id", currentUserId)
       .in("group_id", groupIds);
 
-    // 3. 🏛️ HYDRATE CREATORS (Since join might be fragile)
-    const { data: creatorProfiles } = creatorIds.length > 0 
-      ? await supabase.from("profiles").select("user_id, name, username, profile_photo").in("user_id", creatorIds)
+    // 3. 🏛️ HYDRATE CREATORS (JOINed fetch with identity master)
+    const { data: creatorRows } = creatorIds.length > 0 
+      ? await supabase.from("users").select("*, profiles(*)").in("id", creatorIds)
       : { data: [] };
+
+    const creatorMap = (creatorRows || []).reduce((acc: any, curr: any) => {
+      // Map via standardized logic
+      acc[curr.id] = profileMapper.fromDb(curr, curr.profiles);
+      return acc;
+    }, {});
 
     if (countError || memberError) throw new Error("Enrichment query failed");
 
@@ -253,21 +260,24 @@ async function enrichGroups(groups: any[], currentUserId: string, supabase: any)
       return acc;
     }, {});
 
-    const profileMap = (creatorProfiles || []).reduce((acc: any, curr: any) => {
-      acc[curr.user_id] = { name: curr.name, username: curr.username, avatar: curr.profile_photo };
-      return acc;
-    }, {});
-
     // 5. Merge back
     return groups.map(g => {
       const cid = g.creatorId || g.creator_id;
+      const creatorDto = creatorMap[cid];
+
       return {
         ...g,
         memberCount: g.memberCount || countMap[g.id] || 0,
         userStatus: g.userStatus || statusMap[g.id] || null,
-        creator: g.creator?.name !== "Traveler" ? g.creator : (profileMap[cid] || g.creator || { name: "Traveler" })
+        creator: creatorDto ? {
+          userId: creatorDto.id,
+          name: creatorDto.displayName,
+          username: creatorDto.username,
+          avatar: creatorDto.avatar
+        } : (g.creator || { name: "Traveler" })
       };
     });
+
   } catch (err) {
     logger.warn("Enrichment", "Batch enrichment failed, using available data", err);
     return groups;

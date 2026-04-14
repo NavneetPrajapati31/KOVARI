@@ -1,4 +1,5 @@
 import { Transformer } from "@/types/api";
+import { profileMapper } from "../mappers/profileMapper";
 
 export interface GroupDTO {
   id: string;
@@ -9,6 +10,7 @@ export interface GroupDTO {
   startDate?: string;
   endDate?: string;
   budget?: number;
+  creator?: any;
   membersCount?: number; // Legacy compat
   [key: string]: any;
 }
@@ -25,7 +27,22 @@ export class GroupTransformer implements Transformer<any, GroupDTO> {
       throw new Error("Invalid group data: Missing id/groupId");
     }
 
-    // 3. Normalized Output Construction
+    // 3. Normalize Creator via profileMapper
+    let creator = null;
+    if (groupData.creator || g.creator) {
+      const rawCreator = groupData.creator || g.creator;
+      // Creator might be partial. Creator userId might be in rawCreator.userId or rawCreator.id
+      const creatorUserRow = { id: rawCreator.userId || rawCreator.id, ...rawCreator };
+      const creatorDto = profileMapper.fromDb(creatorUserRow, rawCreator);
+      creator = {
+        userId: creatorDto.id,
+        name: creatorDto.displayName,
+        username: creatorDto.username,
+        avatar: creatorDto.avatar,
+      };
+    }
+
+    // 4. Normalized Output Construction
     return {
       id: id,
       name: (groupData.name || g.name || "Unnamed Group").toString(),
@@ -45,7 +62,7 @@ export class GroupTransformer implements Transformer<any, GroupDTO> {
       
       // Enrichment Fields (Merge DB values)
       budget: groupData.averageBudget || groupData.budget || g.budget || 0,
-      creator: groupData.creator || g.creator || null,
+      creator,
       
       // Safe Collections
       interests: Array.isArray(groupData.topInterests || groupData.interests || g.interests) 
@@ -62,3 +79,4 @@ export class GroupTransformer implements Transformer<any, GroupDTO> {
 }
 
 export const groupTransformer = new GroupTransformer();
+

@@ -1,5 +1,6 @@
 import { createAdminSupabaseClient } from "@kovari/api";
 import { logger } from "@/lib/api/logger";
+import { profileMapper } from "@/lib/mappers/profileMapper";
 
 /**
  * Perform legacy Supabase-based matching as a fallback for solo travelers.
@@ -11,31 +12,16 @@ export async function performSoloDbMatchingFallback(
 ) {
   const supabase = createAdminSupabaseClient();
   
-  // 1. Fetch profiles (excluding self)
+  // 1. Fetch profiles (excluding self) with full user JOIN
   let query = supabase
     .from("profiles")
     .select(`
-      id,
-      name,
-      username,
-      age,
-      bio,
-      profile_photo,
-      user_id,
-      gender,
-      created_at,
-      location,
-      nationality,
-      profession,
-      religion,
-      smoking,
-      drinking,
-      personality,
-      food_preference,
-      interests,
-      languages,
-      users (
-        "isDeleted"
+      *,
+      users!inner (
+        id,
+        email,
+        name,
+        isDeleted
       )
     `)
     .eq("users.isDeleted", false)
@@ -55,11 +41,11 @@ export async function performSoloDbMatchingFallback(
     query = query.lte("age", filters.ageMax);
   }
 
-  const { data: profiles, error } = await query;
-  if (error || !profiles) return [];
+  const { data: dbRows, error } = await query;
+  if (error || !dbRows) return [];
 
-  // 2. Fetch travel preferences for these profiles
-  const userIds = profiles.map(p => p.user_id);
+  // 2. Fetch travel preferences for these users
+  const userIds = dbRows.map(p => p.user_id);
   const { data: travelPrefs } = await supabase
     .from("travel_preferences")
     .select("*")
@@ -70,15 +56,17 @@ export async function performSoloDbMatchingFallback(
     return acc;
   }, {});
 
-  // 3. Transform to standardized MatchDTO
-  return profiles.map(p => {
+  // 3. Transform via profileMapper to standardized MatchDTO
+  return dbRows.map(p => {
     const pref = prefsMap[p.user_id];
+    const userDto = profileMapper.fromDb(p.users, p);
+
     return {
-      userId: p.user_id,
-      name: p.name || "Unknown",
-      age: p.age || 0,
-      location: p.location || "Unknown",
-      profilePhoto: p.profile_photo || "",
+      userId: userDto.id,
+      name: userDto.displayName,
+      age: userDto.age,
+      location: userDto.location || "Unknown",
+      profilePhoto: userDto.avatar,
       compatibilityScore: 0.5, // Constant score for fallback
       breakdown: { source: "db_fallback" },
       budgetDifference: 0,
@@ -86,28 +74,29 @@ export async function performSoloDbMatchingFallback(
       endDate: pref?.end_date,
       budget: pref?.budget,
       user: {
-        id: p.id,
-        name: p.name,
-        username: p.username,
-        bio: p.bio,
-        avatar: p.profile_photo,
-        gender: p.gender,
-        age: p.age,
-        location: p.location,
-        locationDisplay: p.location,
-        nationality: p.nationality,
-        profession: p.profession,
-        religion: p.religion,
-        smoking: p.smoking,
-        drinking: p.drinking,
-        personality: p.personality,
-        foodPreference: p.food_preference,
-        interests: p.interests || [],
-        languages: p.languages || []
+        userId: userDto.id,
+        name: userDto.displayName,
+        username: userDto.username,
+        bio: userDto.bio,
+        avatar: userDto.avatar,
+        gender: userDto.gender,
+        age: userDto.age,
+        location: userDto.location,
+        locationDisplay: userDto.location,
+        nationality: userDto.nationality,
+        profession: userDto.profession,
+        religion: userDto.religion,
+        smoking: userDto.smoking,
+        drinking: userDto.drinking,
+        personality: userDto.personality,
+        foodPreference: userDto.foodPreference,
+        interests: userDto.interests,
+        languages: userDto.languages
       }
     };
   });
 }
+
 
 /**
  * Perform legacy Supabase-based matching as a fallback for groups.

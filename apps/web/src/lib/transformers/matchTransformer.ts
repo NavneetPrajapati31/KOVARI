@@ -1,4 +1,5 @@
 import { Transformer } from "@/types/api";
+import { profileMapper } from "../mappers/profileMapper";
 
 export interface MatchDTO {
   id: string;
@@ -45,54 +46,62 @@ export interface MatchDTO {
 
 export class MatchTransformer implements Transformer<any, MatchDTO> {
   toStandard(m: any): MatchDTO {
-    // Validate input presence
-    if (!m || !m.userId) {
+    if (!m || (!m.userId && !m.id)) {
       throw new Error("Invalid match data: Missing mandatory field userId");
     }
 
+    // 1. Resolve Identity and Profile Data via Mapper
+    // Handles various nested structures (m.user, m.profiles, or flat m)
+    const userRow = m.user || m.users || m; 
+    const profileRow = m.user || m.profiles || m;
+    const userDto = profileMapper.fromDb(userRow, profileRow);
+
+    const userId = userDto.id;
+
     return {
-      id: m.userId || m.id,
-      name: m.user?.name || m.user?.full_name || m.name || 'Traveler',
-      destination: m.user?.locationDisplay || m.user?.location || m.destination || 'India',
-      budget: m.budget?.toString() || 'Flexible',
-      start_date: m.startDate || m.start_date || new Date().toISOString(),
-      end_date: m.endDate || m.end_date || new Date().toISOString(),
-      compatibility_score: typeof m.compatibility_score === 'number' ? m.compatibility_score : (typeof m.score === 'number' ? m.score : 0),
-      budget_difference: m.budgetDifference ?? m.budget_difference ?? 0,
+      id: userId,
+      name: userDto.displayName,
+      destination: m.destination || userDto.location || 'India',
+      budget: (m.budget || m.Budget)?.toString() || 'Flexible',
+      start_date: m.start_date || m.startDate || new Date().toISOString(),
+      end_date: m.end_date || m.endDate || new Date().toISOString(),
+      compatibility_score: typeof m.compatibility_score === 'number' ? m.compatibility_score : (typeof m.score === 'number' ? m.score : 0.5),
+      budget_difference: m.budget_difference ?? m.budgetDifference ?? 0,
       is_solo_match: true,
 
-      // 🛡️ TOTAL FLATTENING: Every user field duplicated at Top Level
-      userId: m.userId || m.id,
-      age: typeof m.user?.age === 'number' ? m.user.age : (m.age || 0),
-      gender: m.user?.gender || m.user?.Gender || m.gender,
-      personality: m.user?.personality || m.user?.Personality || m.personality,
-      nationality: m.user?.nationality || m.user?.Nationality || 'India',
-      profession: m.user?.profession || m.user?.Profession || m.user?.job || m.profession,
-      interests: m.user?.interests || m.user?.Interests || m.interests || [],
-      languages: m.user?.languages || m.user?.Languages || m.languages || [],
-      locationDisplay: m.user?.locationDisplay || m.user?.LocationDisplay || m.user?.location || m.destination || 'India',
-      bio: m.user?.bio || m.user?.Bio || m.bio || '',
+      // 🛡️ TOTAL FLATTENING for backward compatibility
+      userId,
+      age: userDto.age,
+      gender: userDto.gender,
+      personality: userDto.personality,
+      nationality: userDto.nationality,
+      profession: userDto.profession,
+      interests: userDto.interests,
+      languages: userDto.languages,
+      locationDisplay: userDto.location || m.destination || 'India',
+      bio: userDto.bio,
 
       user: {
-        userId: m.userId || m.id,
-        name: m.user?.name || m.user?.full_name || m.name || 'Traveler',
-        age: typeof m.user?.age === 'number' ? m.user.age : (m.age || 0),
-        gender: m.user?.gender || m.user?.Gender || m.gender,
-        personality: m.user?.personality || m.user?.Personality || m.personality,
-        bio: m.user?.bio || m.user?.Bio || m.bio || '',
-        avatar: m.user?.avatar || m.user?.Avatar || m.avatar || '',
-        locationDisplay: m.user?.locationDisplay || m.user?.LocationDisplay || m.user?.location || m.destination || 'India',
-        interests: m.user?.interests || m.user?.Interests || m.interests || [],
-        languages: m.user?.languages || m.user?.Languages || m.languages || [],
-        nationality: m.user?.nationality || m.user?.Nationality || 'India',
-        religion: m.user?.religion || m.user?.Religion,
-        profession: m.user?.profession || m.user?.Profession || m.user?.job || m.profession,
-        smoking: m.user?.smoking || m.user?.Smoking || m.smoking,
-        drinking: m.user?.drinking || m.user?.Drinking || m.drinking,
-        foodPreference: m.user?.foodPreference || m.user?.FoodPreference || m.foodPreference,
+        userId,
+        name: userDto.displayName,
+        age: userDto.age,
+        gender: userDto.gender,
+        personality: userDto.personality,
+        bio: userDto.bio,
+        avatar: userDto.avatar,
+        locationDisplay: userDto.location || m.destination || 'India',
+        interests: userDto.interests,
+        languages: userDto.languages,
+        nationality: userDto.nationality,
+        religion: userDto.religion,
+        profession: userDto.profession,
+        smoking: userDto.smoking,
+        drinking: userDto.drinking,
+        foodPreference: userDto.foodPreference,
       }
     };
   }
 }
 
 export const matchTransformer = new MatchTransformer();
+

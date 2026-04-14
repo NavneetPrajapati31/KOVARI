@@ -1,4 +1,5 @@
 import { Transformer } from "@/types/api";
+import { profileMapper } from "../mappers/profileMapper";
 
 export interface ProfileDTO {
   id: string;
@@ -17,25 +18,17 @@ export class ProfileTransformer implements Transformer<any, ProfileDTO> {
   toStandard(p: any): ProfileDTO {
     if (!p) throw new Error("Invalid profile data: Null/Undefined");
 
+    // Resolve user context (if nested via join) or use the object itself as fallback
+    const userRow = p.users || p;
+    const dto = profileMapper.fromDb(userRow, p);
+
     return {
-      id: p.user_id || p.id,
-      name: p.name || "",
-      username: p.username || "",
-      avatar: p.profile_photo || p.avatar || "",
-      location: p.location || "",
-      age: p.age || 0,
-      bio: p.bio || "",
-      job: p.job || p.profession || "",
-      interests: p.interests || [],
-      // Preserving other complex fields if present
-      languages: p.languages || [],
-      nationality: p.nationality || "",
-      personality: p.personality || "",
-      foodPreference: p.food_preference || p.foodPreference || "",
-      smoking: p.smoking || "",
-      drinking: p.drinking || "",
+      ...dto,
+      name: dto.displayName,
+      job: dto.profession, // Backward compat for 'job' field
     };
   }
 }
 
 export const profileTransformer = new ProfileTransformer();
+

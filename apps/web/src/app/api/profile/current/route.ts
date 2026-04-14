@@ -6,6 +6,7 @@ import { generateRequestId } from "@/lib/api/requestId";
 import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
 import { ApiErrorCode } from "@/types/api";
 import { logger } from "@/lib/api/logger";
+import { profileMapper } from "@/lib/mappers/profileMapper";
 
 export async function GET(request: NextRequest) {
   const start = Date.now();
@@ -21,145 +22,68 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminSupabaseClient();
 
   try {
-    // Get profile data (including interests directly on profiles)
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", internalUserId)
+    // 1. Unified Fetch: users + profiles (LEFT JOIN)
+    const { data: dbUser, error: dbError } = await supabase
+      .from("users")
+      .select("*, profiles(*)")
+      .eq("id", internalUserId)
       .single();
 
-    if (profileError || !profile) {
-      logger.error(requestId, "Error fetching profile", profileError);
-      Sentry.captureException(profileError || new Error("Profile not found"), {
-        tags: { endpoint: "/api/profile/current", action: "fetch_profile" },
-        extra: { clerkUserId: userId, internalUserId },
-      });
-      return formatErrorResponse("Profile not found", ApiErrorCode.NOT_FOUND, requestId, 404);
+    if (dbError || !dbUser) {
+      logger.error(requestId, "Core identity not found", dbError);
+      return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
     }
 
-    // Get travel preferences
+    const dbProfile = dbUser.profiles || {}; // Handle missing profile row safely
+
+    // 2. Map to standardized DTO
+    const userDto = profileMapper.fromDb(dbUser, dbProfile);
+
+    // 3. Get auxiliary data (travel preferences, counts)
     const { data: travelPrefs } = await supabase
       .from("travel_preferences")
       .select("*")
       .eq("user_id", internalUserId)
       .maybeSingle();
 
-    // Fetch explicit onboarding status from users table
-    const { data: userStatus, error: userError } = await supabase
-      .from("users")
-      .select("onboarding_completed")
-      .eq("id", internalUserId)
-      .single();
-
-    if (userError || !userStatus) {
-      logger.error(requestId, "Error fetching user onboarding status", userError);
-      // Fallback to false to be safe (forces onboarding)
-    }
-
-    let hasCompletedOnboarding = Boolean(userStatus?.onboarding_completed ?? false);
+    const hasCompletedOnboarding = Boolean(dbUser.onboarding_completed ?? false);
 
     // 🚀 AUTO-REPAIR: If profile exists but flag is false, mark as complete.
-    // This resolves redirect loops for legacy users.
-    if (profile && !hasCompletedOnboarding) {
+    if (dbProfile.id && !hasCompletedOnboarding) {
       const { error: repairError } = await supabase
         .from("users")
         .update({ onboarding_completed: true })
         .eq("id", internalUserId);
       
-      if (!repairError) {
-        hasCompletedOnboarding = true;
-        logger.info(requestId, "Auto-repaired onboarding flag for profile owner", { internalUserId });
-      } else {
-        logger.error(requestId, "Failed to auto-repair onboarding flag", repairError);
+      if (repairError) {
+        logger.error(requestId, "Auto-repair onboarding failed", repairError);
       }
     }
 
-    const interests = profile?.interests || [];
-    
-    // Fetch follower ids
-    const { data: followerRows, error: followerRowsError } = await supabase
+    // 4. Fetch follower/following counts
+    const { count: followersCount } = await supabase
       .from("user_follows")
-      .select("follower_id")
+      .select("*", { count: "exact", head: true })
       .eq("following_id", internalUserId);
 
-    if (followerRowsError) {
-      logger.error(requestId, "Error fetching follower ids", followerRowsError);
-      throw followerRowsError;
-    }
-
-    const followerIds = (followerRows || []).map((r: any) => r.follower_id);
-    let followersCount = 0;
-    if (followerIds.length > 0) {
-      const { count, error: countError } = await supabase
-        .from("users")
-        .select("id", { count: "exact", head: true })
-        .in("id", followerIds)
-        .eq("isDeleted", false);
-      if (countError) {
-        logger.error(requestId, "Error counting followers", countError);
-        throw countError;
-      }
-      followersCount = count ?? 0;
-    }
-
-    // Fetch following ids
-    const { data: followingRows, error: followingRowsError } = await supabase
+    const { count: followingCount } = await supabase
       .from("user_follows")
-      .select("following_id")
+      .select("*", { count: "exact", head: true })
       .eq("follower_id", internalUserId);
 
-    if (followingRowsError) {
-      logger.error(requestId, "Error fetching following ids", followingRowsError);
-      throw followingRowsError;
-    }
-
-    const followingIds = (followingRows || []).map((r: any) => r.following_id);
-    let followingCount = 0;
-    if (followingIds.length > 0) {
-      const { count, error: countError } = await supabase
-        .from("users")
-        .select("id", { count: "exact", head: true })
-        .in("id", followingIds)
-        .eq("isDeleted", false);
-      if (countError) {
-        logger.error(requestId, "Error counting following", countError);
-        throw countError;
-      }
-      followingCount = count ?? 0;
-    }
-
-    // ✅ SANITIZE RESPONSE
-    // Transform data to match ProfileResponse structure
+    // ✅ Map to ProfileResponse (Final Contract)
     const profileData: ProfileResponse = {
-      id: internalUserId, // Add the internal user UUID
-      avatar: profile.profile_photo ?? "",
-      name: profile.name ?? "",
-      username: profile.username ?? "",
-      age: profile.age ?? 0,
-      gender: profile.gender ?? "Prefer not to say",
-      nationality: profile.nationality ?? "",
-      profession: profile.job ?? "",
-      interests,
-      languages: profile.languages || [],
-      bio: profile.bio ?? "",
-      birthday: profile.birthday ?? "",
-      location: profile.location ?? "",
-      location_details: profile.location_details || {},
-      religion: profile.religion ?? "",
-      smoking: profile.smoking ?? "",
-      drinking: profile.drinking ?? "",
-      personality: profile.personality ?? "",
-      foodPreference: profile.food_preference ?? "",
-      verified: profile.verified ?? false,
-      // Travel preferences
-      destinations: travelPrefs?.destinations || [],
-      tripFocus: travelPrefs?.trip_focus || [],
-      travelFrequency: travelPrefs?.frequency ?? "",
-      followers: followersCount,
-      following: followingCount,
+      ...userDto,
+      name: userDto.displayName, // Map DTO displayName to Contract name
       onboardingCompleted: hasCompletedOnboarding,
-      email: profile.email ?? "",
+      followers: followersCount || 0,
+      following: followingCount || 0,
+      // Travel preferences (overrides DTO if found in separate table)
+      destinations: travelPrefs?.destinations || userDto.destinations || [],
+      tripFocus: travelPrefs?.trip_focus || userDto.tripFocus || [],
+      travelFrequency: travelPrefs?.frequency || userDto.travelFrequency || "",
     };
+
 
     const parsed = ProfileResponseSchema.parse(profileData);
     
