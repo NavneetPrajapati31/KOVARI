@@ -23,7 +23,7 @@ const GO_URL = process.env.GO_SERVICE_URL || "http://localhost:8080";
  */
 export async function GET(request: NextRequest) {
   const start = Date.now();
-  const requestId = generateRequestId();
+  const requestId = request.headers.get("X-Request-Id") || generateRequestId();
 
   try {
     const authUser = await getAuthenticatedUser(request);

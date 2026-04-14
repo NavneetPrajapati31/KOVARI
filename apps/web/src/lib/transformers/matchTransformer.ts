@@ -54,6 +54,11 @@ export class MatchTransformer implements Transformer<any, MatchDTO> {
     // Handles various nested structures (m.user, m.profiles, or flat m)
     const userRow = m.user || m.users || m; 
     const profileRow = m.user || m.profiles || m;
+    
+    // Normalize IDs for mapper (Gateway expects .id, Go sends .userId)
+    if (!userRow.id && userRow.userId) userRow.id = userRow.userId;
+    if (!profileRow.id && profileRow.userId) profileRow.id = profileRow.userId;
+
     const userDto = profileMapper.fromDb(userRow, profileRow);
 
     const userId = userDto.id;

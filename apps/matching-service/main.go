@@ -237,6 +237,8 @@ func main() {
 					Bio:         match.StaticAttributes.Bio,
 					Avatar:      match.StaticAttributes.Avatar,
 					Budget:      match.Budget,
+					Interests:   match.StaticAttributes.Interests,
+					Languages:   match.StaticAttributes.Languages,
 				},
 				Score:            result.Score,
 				Breakdown:        result.Breakdown,
