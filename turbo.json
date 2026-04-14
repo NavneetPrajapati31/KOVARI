@@ -58,7 +58,11 @@
         "VAPID_SUBJECT",
         "ADMIN_ALLOWLIST",
         "EMAIL_FROM",
-        "SUPPORT_LINK"
+        "SUPPORT_LINK",
+        "GO_SERVICE_URL",
+        "INTERNAL_API_SECRET_CURRENT",
+        "NEXT_PUBLIC_ENABLE_V1_MATCHING",
+        "GOOGLE_CLIENT_ID"
       ]
     },
     "dev": {
