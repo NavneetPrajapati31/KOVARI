@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
+	"syscall"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -18,6 +20,7 @@ import (
 	"github.com/kovari/matching-service/internal/ai"
 	"github.com/kovari/matching-service/internal/auth"
 	"github.com/kovari/matching-service/internal/config"
+	"github.com/kovari/matching-service/internal/logger"
 	"github.com/kovari/matching-service/internal/matching"
 	"github.com/kovari/matching-service/internal/models"
 	"github.com/kovari/matching-service/internal/repository"
@@ -26,40 +29,37 @@ import (
 var (
 	mlClient *ai.MLClient
 	sbRepo   *repository.SupabaseRepository
+	repo     *repository.RedisRepository
 )
 
 func main() {
-	// Try to load from root .env.local or apps/web/.env.local
+	// Root and app-level env loading
 	rootEnv, _ := filepath.Abs("../../.env.local")
 	webEnv, _ := filepath.Abs("../web/.env.local")
-	
 	if _, err := os.Stat(rootEnv); err == nil {
 		godotenv.Load(rootEnv)
-		log.Printf("Loaded environment from %s", rootEnv)
 	}
-	
 	if _, err := os.Stat(webEnv); err == nil {
 		godotenv.Load(webEnv)
-		log.Printf("Searching environment in %s", webEnv)
 	}
 
 	// 1. FAIL-FAST STARTUP CHECKS
 	requiredEnv := []string{
-		"REDIS_URL", 
-		"NEXT_PUBLIC_SUPABASE_URL", 
-		"SUPABASE_SERVICE_ROLE_KEY", 
+		"REDIS_URL",
+		"NEXT_PUBLIC_SUPABASE_URL",
+		"SUPABASE_SERVICE_ROLE_KEY",
 		"ML_SERVER_URL",
 		"INTERNAL_API_SECRET_CURRENT",
 		"GLOBAL_RATE_LIMIT",
 	}
 	for _, env := range requiredEnv {
 		if os.Getenv(env) == "" {
-			log.Fatalf("CRITICAL ERROR: Missing required environment variable: %s", env)
+			logger.Fatal("Missing required environment variable", os.ErrNotExist)
 		}
 	}
 
 	if err := auth.InitRateLimiter(); err != nil {
-		log.Fatal(err)
+		logger.Fatal("Failed to initialize rate limiter", err)
 	}
 
 	redisURL := os.Getenv("REDIS_URL")
@@ -67,10 +67,30 @@ func main() {
 	sbKey := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 	geoKey := os.Getenv("GEOAPIFY_API_KEY")
 
+	var err error
+	repo, err = repository.NewRedisRepository(redisURL)
+	if err != nil {
+		logger.Fatal("Failed to connect to Redis", err)
+	}
+
+	// Fail-fast on Redis connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	if err := repo.Ping(ctx); err != nil {
+		cancel()
+		logger.Fatal("Redis ping failed during startup", err)
+	}
+	cancel()
+
+	sbRepo, err = repository.NewSupabaseRepository(sbURL, sbKey, geoKey, repo)
+	if err != nil {
+		logger.Fatal("Failed to connect to Supabase", err)
+	}
+
+	mlClient = ai.NewMLClient()
+
 	configPath := "../../packages/config/matching.json"
 	matchConfig, _, err := config.LoadMatchingConfig(configPath)
 	if err != nil {
-		log.Printf("Warning: Using default matching config.")
 		matchConfig = &models.MatchingConfig{
 			Version:       "v1",
 			ConfigVersion: "DEFAULT",
@@ -82,55 +102,64 @@ func main() {
 		}
 	}
 
-	mlClient = ai.NewMLClient()
+	// --- HANDLERS ---
 
-	repo, err := repository.NewRedisRepository(redisURL)
-	if err != nil {
-		log.Fatal(err)
+	healthHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
 	}
 
-	sbRepo, err = repository.NewSupabaseRepository(sbURL, sbKey, geoKey, repo)
-	if err != nil {
-		log.Fatalf("CRITICAL ERROR: Failed to connected to Supabase: %v", err)
+	readyHandler := func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		if err := repo.Ping(ctx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"ready": false,
+				"error": "Redis unreachable",
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ready":   true,
+			"metrics": logger.GetMetrics(),
+		})
 	}
 
-	// Solo Matching Handler
 	soloHandler := func(w http.ResponseWriter, r *http.Request) {
 		requestId := r.Context().Value(auth.ContextRequestID).(string)
 		userId := r.Context().Value(auth.ContextUserID).(string)
+		startTime := r.Context().Value(auth.ContextStartTime).(time.Time)
 
 		if r.Method != http.MethodPost {
 			auth.SendError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r)
 			return
 		}
 
-		// 2. HARDENED DECODING: Read max 1MB, disallow unknown fields
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-		var req struct{} // No body fields expected/trusted
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
+		var req struct{}
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&req); err != nil && err != io.EOF {
-			log.Printf("[%s] Error: Invalid request or unknown fields: %v", requestId, err)
 			auth.SendError(w, http.StatusBadRequest, "INVALID_INPUT", "Malformed request or unknown fields", r)
 			return
 		}
 
 		ctx := r.Context()
-		startTime := time.Now()
-
 		var userSession *models.SoloSession
 		var candidates []models.SoloSession
-		redisCtx, redisCancel := context.WithTimeout(ctx, 3*time.Second) // Strict timeout
+		redisCtx, redisCancel := context.WithTimeout(ctx, 3*time.Second)
 		defer redisCancel()
-		
-		g, gCtx := errgroup.WithContext(redisCtx)
 
+		g, gCtx := errgroup.WithContext(redisCtx)
 		g.Go(func() error {
 			var err error
 			userSession, err = repo.GetSession(gCtx, userId)
 			return err
 		})
-
 		g.Go(func() error {
 			var err error
 			candidates, err = repo.FetchAllSessions(gCtx, userId)
@@ -138,8 +167,7 @@ func main() {
 		})
 
 		if err := g.Wait(); err != nil {
-			log.Printf("[%s] Error: Redis fetch failed: %v", requestId, err)
-			auth.SendError(w, 500, "REDIS_ERROR", "Internal storage error", r)
+			auth.SendError(w, 503, "STORAGE_ERROR", "Redis connection failed", r)
 			return
 		}
 
@@ -148,15 +176,10 @@ func main() {
 			return
 		}
 
-		// Hydration & Scoring Logic
 		allUserIds := []string{userId}
 		candidateMap := make(map[string]models.SoloSession)
 		seenIds := make(map[string]bool)
 		seenIds[userId] = true
-		
-		if userSession.ClerkUserId != "" { seenIds[userSession.ClerkUserId] = true }
-		if userSession.UserId != "" { seenIds[userSession.UserId] = true }
-		
 		for _, c := range candidates {
 			if c.UserId != "" && !seenIds[c.UserId] {
 				allUserIds = append(allUserIds, c.UserId)
@@ -165,21 +188,15 @@ func main() {
 			}
 		}
 
-		preResolved := make(map[string]models.Coordinates)
-		if userSession.Location.Lat != 0 || userSession.Location.Lon != 0 {
-			preResolved[userSession.UserId] = userSession.Location
-		}
-
-		profiles, err := sbRepo.FetchProfilesBatch(ctx, allUserIds, preResolved)
+		profiles, err := sbRepo.FetchProfilesBatch(ctx, allUserIds, nil)
 		if err != nil {
-			auth.SendError(w, 500, "PROFILE_SERVICE_ERROR", "Failed to fetch user profiles", r)
+			auth.SendError(w, 500, "DATABASE_ERROR", "Failed to fetch profiles", r)
 			return
 		}
 
 		if p, ok := profiles[userId]; ok {
 			userSession.StaticAttributes = p
 		}
-		
 		var validCandidates []models.SoloSession
 		for id, session := range candidateMap {
 			if p, ok := profiles[id]; ok {
@@ -194,19 +211,11 @@ func main() {
 		}
 
 		var mlResults []models.MLPredictionResult
-		mlStartTime := time.Now()
-		mlCtx, mlCancel := context.WithTimeout(ctx, 200*time.Millisecond)
-		defer mlCancel()
-
-		mlGroup, _ := errgroup.WithContext(mlCtx)
-		mlGroup.Go(func() error {
-			if len(featuresList) > 0 {
-				mlResults, _ = mlClient.ScoreBatch(mlCtx, featuresList)
-			}
-			return nil
-		})
-		mlGroup.Wait()
-		mlLatency := time.Since(mlStartTime)
+		if len(featuresList) > 0 {
+			mlCtx, mlCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+			mlResults, _ = mlClient.ScoreBatch(mlCtx, featuresList)
+			mlCancel()
+		}
 
 		type ScoredMatch struct {
 			UserId           string             `json:"userId"`
@@ -249,24 +258,23 @@ func main() {
 			})
 		}
 
-		sort.Slice(finalMatches, func(i, j int) bool {
-			return finalMatches[i].Score > finalMatches[j].Score
-		})
+		sort.Slice(finalMatches, func(i, j int) bool { return finalMatches[i].Score > finalMatches[j].Score })
 
 		latency := time.Since(startTime)
-		log.Printf("[%s] SUCCESS: Matches: %d | ML_Lat: %v | Total_Lat: %v", requestId, len(finalMatches), mlLatency, latency)
-
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Response-Time", fmt.Sprintf("%dms", latency.Milliseconds()))
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
-			"matches": finalMatches,
+			"data":    map[string]interface{}{"matches": finalMatches},
+			"meta":    map[string]interface{}{"source": "go", "requestId": requestId, "latencyMs": latency.Milliseconds()},
 		})
+		logger.Info(requestId, userId, "Solo matches generated", http.StatusOK, latency, nil)
 	}
 
-	// Group Matching Handler
 	groupHandler := func(w http.ResponseWriter, r *http.Request) {
 		requestId := r.Context().Value(auth.ContextRequestID).(string)
 		userId := r.Context().Value(auth.ContextUserID).(string)
+		startTime := r.Context().Value(auth.ContextStartTime).(time.Time)
 
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		var req struct {
@@ -275,11 +283,10 @@ func main() {
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&req); err != nil {
-			auth.SendError(w, http.StatusBadRequest, "INVALID_INPUT", "Malformed request or unknown fields", r)
+			auth.SendError(w, http.StatusBadRequest, "INVALID_INPUT", "Malformed request", r)
 			return
 		}
 
-		// 3. STRICT CONSTRAINTS: Limit array size
 		if len(req.Candidates) > 50 {
 			auth.SendError(w, http.StatusBadRequest, "INVALID_INPUT", "Too many candidates", r)
 			return
@@ -297,7 +304,9 @@ func main() {
 			featuresList = append(featuresList, ai.ExtractGroupFeatures(*userSession, group))
 		}
 
-		mlResults, _ := mlClient.ScoreBatch(ctx, featuresList)
+		mlCtx, mlCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		mlResults, _ := mlClient.ScoreBatch(mlCtx, featuresList)
+		mlCancel()
 
 		results := make([]models.GroupMatchResult, 0, len(req.Candidates))
 		for i, group := range req.Candidates {
@@ -310,27 +319,58 @@ func main() {
 			results = append(results, score)
 		}
 
-		sort.Slice(results, func(i, j int) bool {
-			return results[i].Score > results[j].Score
-		})
+		sort.Slice(results, func(i, j int) bool { return results[i].Score > results[j].Score })
 
-		log.Printf("[%s] SUCCESS: Groups: %d", requestId, len(results))
-
+		latency := time.Since(startTime)
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Response-Time", fmt.Sprintf("%dms", latency.Milliseconds()))
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
-			"groups":  results,
+			"data":    map[string]interface{}{"groups": results},
+			"meta":    map[string]interface{}{"source": "go", "requestId": requestId, "latencyMs": latency.Milliseconds()},
 		})
+		logger.Info(requestId, userId, "Group matches generated", http.StatusOK, latency, nil)
 	}
 
-	// 4. APPLY SECURITY MIDDLEWARE
-	http.HandleFunc("/v1/match/solo", auth.SecurityMiddleware(repo, soloHandler))
-	http.HandleFunc("/v1/match/group", auth.SecurityMiddleware(repo, groupHandler))
+	// Route definitions
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/ready", readyHandler)
+	mux.HandleFunc("/v1/match/solo", auth.SecurityMiddleware(repo, soloHandler))
+	mux.HandleFunc("/v1/match/group", auth.SecurityMiddleware(repo, groupHandler))
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	log.Printf("Matching service starting on port %s...", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// 2. GRACEFUL SHUTDOWN
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		logger.Info("", "", "Matching service starting on port "+port, 0, 0, nil)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Server failed to start", err)
+		}
+	}()
+
+	<-stop
+	logger.Info("", "", "Shutting down matching service...", 0, 0, nil)
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Fatal("Graceful shutdown failed", err)
+	}
+	logger.Info("", "", "Service stopped clean.", 0, 0, nil)
 }

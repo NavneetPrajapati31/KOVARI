@@ -14,12 +14,14 @@ import { GoSoloMatchSchema } from "@/lib/api/validators/v1/matchSchemas";
 import { ApiErrorCode } from "@/types/api";
 import { getInternalAuthHeaders } from "@/lib/api/internalAuth";
 import { matchingServiceBreaker } from "@/lib/api/matching/circuitBreaker";
+import { performSoloDbMatchingFallback } from "@/lib/api/matching/fallback";
+import { logger } from "@/lib/api/logger";
 
 const supabase = createRouteHandlerSupabaseClientWithServiceRole();
 const GO_URL = process.env.GO_SERVICE_URL || "http://localhost:8080";
 
 /**
- * 🏛️ v1 SOLO MATCHING API (Hardened & Zero-Trust)
+ * 🏛️ v1 SOLO MATCHING API (Hardened Production Gateway)
  */
 export async function GET(request: NextRequest) {
   const start = Date.now();
@@ -33,84 +35,76 @@ export async function GET(request: NextRequest) {
     const { data: dbUser } = await supabase.from("users").select("id").eq("email", email).single();
     if (!dbUser) return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
 
-    // 1. CIRCUIT BREAKER CHECK
-    const allowed = await matchingServiceBreaker.shouldAllowRequest();
-    if (!allowed) {
-      return formatErrorResponse("Service temporary unavailable", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
-    }
-
-    // 2. INTERNAL AUTH & REQUEST
-    const authHeaders = getInternalAuthHeaders(dbUser.id, requestId);
-
-    const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/solo`, {
-      method: "POST",
-      headers: { 
-        ...authHeaders,
-        "Content-Type": "application/json" 
-      },
-      body: JSON.stringify({}), // Zero-trust: No body userId
-      requestId,
-    });
-
-    if (!goResponse.ok) {
-      // 3. CIRCUIT BREAKER: Only record failures for 5xx/timeouts
-      if (goResponse.status >= 500) {
-        await matchingServiceBreaker.recordFailure();
-      }
-      
-      const errorData = await safeParseJson(goResponse);
-      return formatErrorResponse(
-        errorData?.error?.message || "Service error", 
-        errorData?.error?.code || ApiErrorCode.SERVICE_UNAVAILABLE, 
-        requestId, 
-        goResponse.status
-      );
-    }
-
-    await matchingServiceBreaker.recordSuccess();
-    const rawData = await safeParseJson(goResponse);
-    
-    if (!validateGoMatchResponse(rawData)) {
-      return formatErrorResponse("Service failure", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
-    }
-
-    const rawItems = Array.isArray(rawData) ? rawData : (rawData.matches || []);
-    const { validItems, droppedCount, state } = safeBatchValidate(rawItems, GoSoloMatchSchema, requestId);
-
-    if (state === 'degraded') {
-      return formatErrorResponse("Service quality below threshold", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
-    }
-
+    const userId = dbUser.id;
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const offset = (page - 1) * limit;
+    const params = Object.fromEntries(searchParams.entries());
 
-    const pagedData = validItems.slice(offset, offset + limit);
-    const transformed = pagedData.map(m => {
-      const result = safeTransform(matchTransformer, m);
-      return result.ok ? result.data : null;
-    }).filter(Boolean);
+    const allowed = await matchingServiceBreaker.shouldAllowRequest();
+    
+    if (allowed) {
+      try {
+        const authHeaders = getInternalAuthHeaders(userId, requestId);
 
-    const latencyMs = Date.now() - start;
+        // 2. STRICT 3s TIMEOUT CALL
+        const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/solo`, {
+          method: "POST",
+          headers: { 
+            ...authHeaders,
+            "Content-Type": "application/json" 
+          },
+          body: JSON.stringify({}),
+          requestId,
+          timeout: 3000, 
+        });
 
+        const rawData = await safeParseJson(goResponse);
+
+        if (goResponse.ok && rawData?.success) {
+          await matchingServiceBreaker.recordSuccess();
+
+          const rawItems = rawData.data?.matches || [];
+          const { validItems, droppedCount, state } = safeBatchValidate(rawItems, GoSoloMatchSchema, requestId);
+
+          if (state !== 'degraded') {
+            const transformed = validItems.map(m => {
+              const result = safeTransform(matchTransformer, m);
+              return result.ok ? result.data : null;
+            }).filter(Boolean);
+
+            return formatStandardResponse(
+              { matches: transformed },
+              { 
+                source: "go",
+                contractState: state,
+                filtered: droppedCount > 0,
+                droppedCount
+              },
+              { requestId, latencyMs: Date.now() - start }
+            );
+          }
+        } else {
+          // Record failure for 5xx or circuit breaker logic
+          if (!goResponse.ok || goResponse.status >= 500) {
+            await matchingServiceBreaker.recordFailure();
+          }
+        }
+      } catch (err: any) {
+        // Record failure on timeout/network error
+        await matchingServiceBreaker.recordFailure();
+        logger.error(requestId, "Go service call failed - Falling back to DB", err);
+      }
+    }
+
+    // 3. PRODUCTION FALLBACK (DB MATCHING)
+    const fallbackResults = await performSoloDbMatchingFallback(userId, params);
+    
     return formatStandardResponse(
-      { matches: transformed },
-      { 
-        hasMore: offset + limit < validItems.length,
-        total: validItems.length,
-        page,
-        limit,
-        contractState: state,
-        filtered: droppedCount > 0,
-        droppedCount
-      },
-      { requestId, latencyMs }
+      { matches: fallbackResults },
+      { source: "db", degraded: true, hasMore: false },
+      { requestId, latencyMs: Date.now() - start }
     );
 
   } catch (err: any) {
-    // Record failure on hard errors (timeouts/network)
-    await matchingServiceBreaker.recordFailure();
     return formatErrorResponse("Internal critical error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }
