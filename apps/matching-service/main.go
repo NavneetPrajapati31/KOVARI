@@ -54,7 +54,7 @@ func main() {
 	}
 	for _, env := range requiredEnv {
 		if os.Getenv(env) == "" {
-			logger.Fatal("Missing required environment variable", os.ErrNotExist)
+			logger.Fatal(fmt.Sprintf("Missing required environment variable: %s", env), os.ErrNotExist)
 		}
 	}
 
