@@ -82,6 +82,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             _buildHeader(state),
             Expanded(
               child: Container(
+                clipBehavior: Clip.antiAlias,
                 margin: const EdgeInsets.symmetric(horizontal: 16.0),
                 decoration: BoxDecoration(
                   color: AppColors.card,
@@ -176,16 +177,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   Widget _buildBody(ExploreState state) {
     if (state.isLoading && state.matches.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 0),
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.7,
           child: Shimmer.fromColors(
             baseColor: AppColors.card,
-            highlightColor: AppColors.background,
+            highlightColor: AppColors.secondary,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
           ),
