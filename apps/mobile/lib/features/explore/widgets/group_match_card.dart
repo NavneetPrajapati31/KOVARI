@@ -42,177 +42,161 @@ class GroupMatchCard extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Mobile Header Section
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 20,
-                      right: 20,
-                      top: 12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 1 / 1,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: coverImage != null
-                                ? Image.network(
-                                    coverImage,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) => Center(
-                                          child: Icon(
-                                            Icons.group_outlined,
-                                            size: 48,
-                                            color: AppColors.mutedForeground
-                                                .withValues(alpha: 0.5),
-                                          ),
-                                        ),
-                                  )
-                                : Center(
-                                    child: Icon(
-                                      Icons.group_outlined,
-                                      size: 40,
-                                      color: AppColors.mutedForeground
-                                          .withValues(alpha: 0.5),
-                                    ),
-                                  ),
-                          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Mobile Header Section
+              Padding(
+                padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AspectRatio(
+                      aspectRatio: 1 / 1,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        const SizedBox(height: 16),
-                        Text(name, style: AppTextStyles.h3),
-                        if (description != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            description,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.mutedForeground,
-                            ),
-                          ),
-                        ] else ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'No description provided.',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.mutedForeground,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                  const Divider(
-                    indent: 20,
-                    endIndent: 20,
-                    color: AppColors.border,
-                  ),
-
-                  // Content Sections
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionTitle('Trip Details'),
-                        _buildPillList([
-                          _PillData(
-                            icon: Icons.location_on_outlined,
-                            label: group.destination.split(',')[0],
-                          ),
-                          _PillData(
-                            icon: Icons.calendar_today_outlined,
-                            label: dateRange,
-                          ),
-                          if (tripLength != null)
-                            _PillData(
-                              icon: Icons.timelapse_outlined,
-                              label: "$tripLength days",
-                            ),
-                          if (group.budget != null)
-                            _PillData(
-                              icon: Icons.currency_rupee,
-                              label: "${group.budget} per person",
-                            ),
-                        ]),
-                        const SizedBox(height: 24),
-
-                        _buildSectionTitle('About'),
-                        _buildPillList([
-                          _PillData(
-                            icon: Icons.person_pin_outlined,
-                            label: "By ${creator.name}",
-                          ),
-                          _PillData(
-                            icon: Icons.group_outlined,
-                            label: "$memberCount members",
-                          ),
-                        ]),
-                        const SizedBox(height: 24),
-
-                        if (group.tags != null && group.tags!.isNotEmpty) ...[
-                          _buildSectionTitle('Group Interests'),
-                          _buildPillList(
-                            group.tags!
-                                .map((i) => _PillData(label: i.toString()))
-                                .toList(),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-
-                        if (group.languages != null &&
-                            group.languages!.isNotEmpty) ...[
-                          _buildSectionTitle('Languages'),
-                          _buildPillList(
-                            group.languages!
-                                .map(
-                                  (i) => _PillData(
-                                    icon: Icons.translate_outlined,
-                                    label: i.toString(),
+                        clipBehavior: Clip.antiAlias,
+                        child: coverImage != null
+                            ? Image.network(
+                                coverImage,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Center(
+                                      child: Icon(
+                                        Icons.group_outlined,
+                                        size: 48,
+                                        color: AppColors.mutedForeground
+                                            .withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                              )
+                            : Center(
+                                child: Icon(
+                                  Icons.group_outlined,
+                                  size: 40,
+                                  color: AppColors.mutedForeground.withValues(
+                                    alpha: 0.5,
                                   ),
-                                )
-                                .toList(),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-
-                        _buildSectionTitle('Lifestyle'),
-                        _buildPillList([
-                          if (group.smokingPolicy != null)
-                            _PillData(
-                              icon: Icons.smoking_rooms_outlined,
-                              label: "Smoking: ${group.smokingPolicy}",
-                            ),
-                          if (group.drinkingPolicy != null)
-                            _PillData(
-                              icon: Icons.local_bar_outlined,
-                              label: "Drinking: ${group.drinkingPolicy}",
-                            ),
-                        ]),
-                      ],
+                                ),
+                              ),
+                      ),
                     ),
-                  ),
-                  const Divider(
-                    indent: 20,
-                    endIndent: 20,
-                    color: AppColors.border,
-                  ),
-                  _buildActions(ref, group.id),
-                ],
+                    const SizedBox(height: 16),
+                    Text(name, style: AppTextStyles.h3),
+                    if (description != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        description,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.mutedForeground,
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'No description provided.',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.mutedForeground,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-            ),
+              const Divider(indent: 20, endIndent: 20, color: AppColors.border),
+
+              // Content Sections
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('Trip Details'),
+                    _buildPillList([
+                      _PillData(
+                        icon: Icons.location_on_outlined,
+                        label: group.destination.split(',')[0],
+                      ),
+                      _PillData(
+                        icon: Icons.calendar_today_outlined,
+                        label: dateRange,
+                      ),
+                      if (tripLength != null)
+                        _PillData(
+                          icon: Icons.timelapse_outlined,
+                          label: "$tripLength days",
+                        ),
+                      if (group.budget != null)
+                        _PillData(
+                          icon: Icons.currency_rupee,
+                          label: "${group.budget} per person",
+                        ),
+                    ]),
+                    const SizedBox(height: 24),
+
+                    _buildSectionTitle('About'),
+                    _buildPillList([
+                      _PillData(
+                        icon: Icons.person_pin_outlined,
+                        label: "By ${creator.name}",
+                      ),
+                      _PillData(
+                        icon: Icons.group_outlined,
+                        label: "$memberCount members",
+                      ),
+                    ]),
+                    const SizedBox(height: 24),
+
+                    if (group.tags != null && group.tags!.isNotEmpty) ...[
+                      _buildSectionTitle('Group Interests'),
+                      _buildPillList(
+                        group.tags!
+                            .map((i) => _PillData(label: i.toString()))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    if (group.languages != null &&
+                        group.languages!.isNotEmpty) ...[
+                      _buildSectionTitle('Languages'),
+                      _buildPillList(
+                        group.languages!
+                            .map(
+                              (i) => _PillData(
+                                icon: Icons.translate_outlined,
+                                label: i.toString(),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    _buildSectionTitle('Lifestyle'),
+                    _buildPillList([
+                      if (group.smokingPolicy != null)
+                        _PillData(
+                          icon: Icons.smoking_rooms_outlined,
+                          label: "Smoking: ${group.smokingPolicy}",
+                        ),
+                      if (group.drinkingPolicy != null)
+                        _PillData(
+                          icon: Icons.local_bar_outlined,
+                          label: "Drinking: ${group.drinkingPolicy}",
+                        ),
+                    ]),
+                  ],
+                ),
+              ),
+              const Divider(indent: 20, endIndent: 20, color: AppColors.border),
+              _buildActions(ref, group.id),
+            ],
           ),
         ],
       ),

@@ -24,8 +24,10 @@ export async function performSoloDbMatchingFallback(
         isDeleted
       )
     `)
-    .eq("users.isDeleted", false)
+    .neq("users.isDeleted", false)
     .neq("user_id", currentUserId)
+    .not("name", "ilike", "%Audit%") // Exclude audit users
+    .not("username", "ilike", "%seed_%") // Exclude seed users
     .not("created_at", "is", null)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -70,9 +72,13 @@ export async function performSoloDbMatchingFallback(
       compatibilityScore: 0.5, // Constant score for fallback
       breakdown: { source: "db_fallback" },
       budgetDifference: 0,
-      startDate: pref?.start_date,
-      endDate: pref?.end_date,
-      budget: pref?.budget,
+      startDate: pref?.start_date || filters.startDate || new Date().toISOString(),
+      endDate: pref?.end_date || filters.endDate || new Date().toISOString(),
+      budget: pref?.budget || filters.budget || 0,
+      destination: filters.destination || pref?.destination || userDto.location || 'India',
+
+
+
       user: {
         userId: userDto.id,
         name: userDto.displayName,

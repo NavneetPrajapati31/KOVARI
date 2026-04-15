@@ -76,22 +76,23 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     return Material(
       color: AppColors.background,
       child: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             _buildHeader(state),
             Expanded(
               child: Container(
-                margin: const EdgeInsets.only(
-                  right: 16.0,
-                  left: 16.0,
-                  bottom: 16,
-                ),
+                margin: const EdgeInsets.symmetric(horizontal: 16.0),
                 decoration: BoxDecoration(
                   color: AppColors.card,
-                  border: Border.all(color: AppColors.border),
+                  border: Border(
+                    top: BorderSide(color: AppColors.border),
+                    left: BorderSide(color: AppColors.border),
+                    right: BorderSide(color: AppColors.border),
+                  ),
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(20),
-                    bottom: Radius.circular(20),
+                    bottom: Radius.circular(0),
                   ),
                 ),
                 child: _buildBody(state),
@@ -244,16 +245,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       color: AppColors.primary,
       child: ListView(
         padding: EdgeInsets.zero,
-        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.7, // Fixed height for the card
-              child: state.searchData.travelMode == TravelMode.solo
-                  ? SoloMatchCard(match: match)
-                  : GroupMatchCard(group: match),
-            ),
+            child: state.searchData.travelMode == TravelMode.solo
+                ? SoloMatchCard(match: match)
+                : GroupMatchCard(group: match),
           ),
         ],
       ),

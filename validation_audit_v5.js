@@ -14,9 +14,10 @@ const JWT_SECRET = process.env.JWT_ACCESS_SECRET || "8f9a2b5c3d7e1f4a6b8c0d9e2f4
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:3000";
 const GO_URL = process.env.GO_SERVICE_URL || "http://localhost:8080";
 
-const TEST_USER = {
-    id: "b2dd83a4-3e08-4154-81c6-d7bff1ac78e7",
-    email: "continuity_test@example.com"
+// TEST_USER is now resolved dynamically from the database to avoid hardcoding.
+let TEST_USER = {
+    id: "",
+    email: ""
 };
 
 const args = process.argv.slice(2);
@@ -233,6 +234,22 @@ async function main() {
         await redis.connect();
         logToAudit({ type: 'GENESIS', info: `Hardened run started with seed ${seed}` });
         
+        // Start by finding a valid test user
+        const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('user_id, email')
+            .not('name', 'ilike', '%Audit%')
+            .limit(1)
+            .single();
+            
+        if (userError || !userData) {
+            throw new Error(`Critical: Could not find a valid test user in the database. Ensure at least one non-audit profile exists.`);
+        }
+        
+        TEST_USER.id = userData.user_id;
+        TEST_USER.email = userData.email || "test@example.com";
+        console.log(`Using Test User: ${TEST_USER.id} (${TEST_USER.email})`);
+
         const token = generateToken(TEST_USER.id, TEST_USER.email);
         await warmUp(token);
 

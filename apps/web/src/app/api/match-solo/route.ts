@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Force a fresh fetch by bumping the version string
-    const userVersion = "v1-stable-v10";
+    const userVersion = "v1-stable-v11";
+
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
     const cacheKey = generateMatchCacheKey(userId, "solo", params);
@@ -81,9 +82,17 @@ export async function GET(request: NextRequest) {
         });
 
         const rawData = await safeParseJson(goResponse);
-        
-        // Rule: All external responses must follow success=true logic unless internal failure
-        if (goResponse.ok && validateGoMatchResponse(rawData)) {
+        const goValid = validateGoMatchResponse(rawData);
+
+        logger.debug(requestId, { 
+          source: "Go Service Raw Response",
+          ok: goResponse.ok, 
+          valid: goValid,
+          rawItemCount: (rawData?.matches || rawData)?.length || 0 
+        });
+
+        if (goResponse.ok && goValid) {
+
           const rawItems = Array.isArray(rawData) ? rawData : (rawData.matches || []);
           
           // PHASE 4: Hardened Validation & Adaptive Threshold

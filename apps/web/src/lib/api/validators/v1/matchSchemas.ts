@@ -4,13 +4,13 @@ import { z } from "zod";
  * 🛡️ Go Service Solo Match Item Schema
  */
 export const GoSoloMatchSchema = z.object({
-  userId: z.string(),
+  userId: z.string().default(""),
   score: z.number().default(0),
   startDate: z.string().nullish(),
   endDate: z.string().nullish(),
   budget: z.number().default(0),
+  destination: z.string().default(""),
   budgetDifference: z.string().default(""),
-  // User Preview Flattened
   user: z.object({
     userId: z.string().default(""),
     name: z.string().default("Traveler"),
@@ -29,8 +29,9 @@ export const GoSoloMatchSchema = z.object({
     religion: z.string().default(""),
     profession: z.string().default(""),
     foodPreference: z.string().default(""),
-  }).default({}),
-});
+  }).nullish().default({}),
+}).passthrough();
+
 
 /**
  * 🛡️ Go Service Group Match Item Schema

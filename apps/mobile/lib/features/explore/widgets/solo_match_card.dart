@@ -8,6 +8,7 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
 import '../models/match_user.dart';
 import '../providers/explore_provider.dart';
+import '../../../core/widgets/common/user_avatar_fallback.dart';
 
 class SoloMatchCard extends ConsumerWidget {
   final MatchUser match;
@@ -38,196 +39,203 @@ class SoloMatchCard extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Mobile Header Section
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 20,
-                      right: 20,
-                      top: 12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 1 / 1,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: match.image.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: match.image,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      color: AppColors.secondary,
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Mobile Header Section
+              Padding(
+                padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AspectRatio(
+                      aspectRatio: 1 / 1,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary,
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: match.image.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: match.image,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  color: AppColors.secondary,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
                                     ),
-                                    errorWidget:
-                                        (context, url, dynamic error) =>
-                                            _buildInitialsFallback(match.name),
-                                  )
-                                : _buildInitialsFallback(match.name),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          age != null ? "$name, $age" : name,
-                          style: AppTextStyles.h3,
-                        ),
-
-                        if (bio != null && bio.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            bio,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.mutedForeground,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                      ],
+                                  ),
+                                ),
+                                errorWidget: (context, url, dynamic error) =>
+                                    UserAvatarFallback(
+                                      name: match.name,
+                                      backgroundColor: AppColors.primaryLight,
+                                      iconColor: AppColors.primary,
+                                      shape: BoxShape.rectangle,
+                                      borderRadius: BorderRadius.circular(16),
+                                      fontSize: 64,
+                                    ),
+                              )
+                            : UserAvatarFallback(size: 100),
+                      ),
                     ),
-                  ),
-                  const Divider(
-                    indent: 20,
-                    endIndent: 20,
-                    color: AppColors.border,
-                  ),
-
-                  // Content Sections
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionTitle('Trip Details'),
-                        _buildPillList([
-                          _PillData(
-                            icon: Icons.location_on_outlined,
-                            label: match.location.split(',')[0],
-                          ),
-                          if (dateRange != null)
-                            _PillData(
-                              icon: Icons.calendar_today_outlined,
-                              label: dateRange,
-                            ),
-                          if (tripLength != null)
-                            _PillData(
-                              icon: Icons.timelapse_outlined,
-                              label: "$tripLength days",
-                            ),
-                          if (match.budget != null)
-                            _PillData(
-                              icon: Icons.currency_rupee,
-                              label: match.budget!.toStringAsFixed(0),
-                            ),
-                        ]),
-                        const SizedBox(height: 24),
-
-                        _buildSectionTitle('About Me'),
-                        _buildPillList([
-                          if (match.gender != null)
-                            _PillData(
-                              icon: Icons.person_outline,
-                              label: match.gender!,
-                            ),
-                          if (match.nationality != null)
-                            _PillData(
-                              icon: Icons.public_outlined,
-                              label: match.nationality!,
-                            ),
-                          if (match.profession != null)
-                            _PillData(
-                              icon: Icons.work_outline,
-                              label: match.profession!,
-                            ),
-                          if (match.personality != null)
-                            _PillData(
-                              icon: match.personality!.toLowerCase() == 'extrovert'
-                                  ? Icons.bolt
-                                  : match.personality!.toLowerCase() == 'introvert'
-                                      ? Icons.menu_book_outlined
-                                      : Icons.adjust,
-                              label: match.personality!,
-                            ),
-                          if (match.religion != null)
-                            _PillData(
-                              icon: Icons.auto_stories_outlined,
-                              label: match.religion!,
-                            ),
-                        ]),
-                        const SizedBox(height: 24),
-
-                        if (match.interests.isNotEmpty) ...[
-                          _buildSectionTitle('Interests'),
-                          _buildPillList(
-                            match.interests
-                                .map((i) => _PillData(label: i))
-                                .toList(),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-
-                        _buildSectionTitle('Lifestyle'),
-                        _buildPillList([
-                          if (match.foodPreference != null)
-                            _PillData(
-                              icon: Icons.restaurant_outlined,
-                              label: match.foodPreference!,
-                            ),
-                          if (match.smoking != null)
-                            _PillData(
-                              icon: Icons.smoking_rooms_outlined,
-                              label: "Smoking: ${match.smoking}",
-                            ),
-                          if (match.drinking != null)
-                            _PillData(
-                              icon: Icons.local_bar_outlined,
-                              label: "Drinking: ${match.drinking}",
-                            ),
-                        ]),
-                      ],
+                    const SizedBox(height: 16),
+                    Text(
+                      age != null ? "$name, $age" : name,
+                      style: AppTextStyles.h3,
                     ),
-                  ),
-                  const Divider(
-                    indent: 20,
-                    endIndent: 20,
-                    color: AppColors.border,
-                  ),
-                  _buildActions(ref, match.id),
-                ],
+
+                    const SizedBox(height: 8),
+                    Text(
+                      (bio != null && bio.isNotEmpty)
+                          ? bio
+                          : 'No bio provided.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.mutedForeground,
+                        fontStyle: (bio != null && bio.isNotEmpty)
+                            ? FontStyle.normal
+                            : FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ),
-            ),
+              const Divider(indent: 20, endIndent: 20, color: AppColors.border),
+
+              // Content Sections
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('Trip Details'),
+                    _buildPillList([
+                      if (match.destination.isNotEmpty)
+                        _PillData(
+                          icon: Icons.location_on_outlined,
+                          label: match.destination.split(',')[0],
+                        ),
+                      if (dateRange != null)
+                        _PillData(
+                          icon: Icons.calendar_today_outlined,
+                          label: dateRange,
+                        ),
+                      if (tripLength != null)
+                        _PillData(
+                          icon: Icons.calendar_today_outlined,
+                          label: "$tripLength days",
+                        ),
+                      if (match.budget != null && match.budget! > 0)
+                        _PillData(
+                          icon: Icons.currency_rupee,
+                          label: NumberFormat.decimalPattern(
+                            'en_IN',
+                          ).format(match.budget),
+                        ),
+                    ]),
+
+                    const SizedBox(height: 24),
+
+                    _buildSectionTitle('About Me'),
+                    _buildPillList([
+                      if (match.gender != null && match.gender!.isNotEmpty)
+                        _PillData(
+                          icon: Icons.account_circle_outlined,
+                          label:
+                              match.gender![0].toUpperCase() +
+                              match.gender!.substring(1),
+                        ),
+                      if (match.nationality != null &&
+                          match.nationality!.isNotEmpty)
+                        _PillData(
+                          icon: Icons.language,
+                          label: match.nationality ?? '',
+                        ),
+                      if (match.location.isNotEmpty)
+                        _PillData(
+                          icon: Icons.home_outlined,
+                          label: match.location,
+                        ),
+                      if (match.profession != null &&
+                          match.profession!.isNotEmpty)
+                        _PillData(
+                          icon:
+                              match.profession!.toLowerCase().contains(
+                                'student',
+                              )
+                              ? Icons.school_outlined
+                              : Icons.work_outline,
+                          label:
+                              match.profession![0].toUpperCase() +
+                              match.profession!.substring(1),
+                        ),
+                      if (match.personality != null &&
+                          match.personality!.isNotEmpty)
+                        _PillData(
+                          icon: Icons.menu_book_outlined,
+                          label: match.personality ?? '',
+                        ),
+                      if (match.religion != null && match.religion!.isNotEmpty)
+                        _PillData(
+                          icon: Icons.collections_bookmark_outlined,
+                          label: match.religion ?? '',
+                        ),
+
+                      ...match.languages.map(
+                        (lang) => _PillData(
+                          icon: Icons.chat_bubble_outline,
+                          label: lang,
+                        ),
+                      ),
+                    ]),
+
+                    const SizedBox(height: 24),
+
+                    if (match.interests.isNotEmpty) ...[
+                      _buildSectionTitle('My Interests'),
+
+                      _buildPillList(
+                        match.interests
+                            .map((i) => _PillData(label: i))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    _buildSectionTitle('Lifestyle'),
+                    _buildPillList([
+                      if (match.foodPreference != null)
+                        _PillData(
+                          icon: Icons.restaurant,
+                          label: match.foodPreference!,
+                        ),
+                      if (match.smoking != null)
+                        _PillData(
+                          icon: Icons.smoking_rooms,
+                          label:
+                              match.smoking![0].toUpperCase() +
+                              match.smoking!.substring(1),
+                        ),
+                      if (match.drinking != null)
+                        _PillData(
+                          icon: Icons.local_bar,
+                          label:
+                              match.drinking![0].toUpperCase() +
+                              match.drinking!.substring(1),
+                        ),
+                    ]),
+                  ],
+                ),
+              ),
+              const Divider(indent: 20, endIndent: 20, color: AppColors.border),
+              _buildActions(ref, match.id),
+            ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildInitialsFallback(String name) {
-    if (name.isEmpty) name = '?';
-    final initial = name[0].toUpperCase();
-    return Container(
-      color: AppColors.primaryLight,
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: AppTextStyles.h1.copyWith(
-          color: AppColors.primary,
-          fontSize: 64,
-        ),
       ),
     );
   }
@@ -248,7 +256,7 @@ class SoloMatchCard extends ConsumerWidget {
 
   Widget _buildPillList(List<_PillData> pills) {
     return Wrap(
-      spacing: 8,
+      spacing: 6,
       runSpacing: 8,
       children: pills.map((pill) => _buildPill(pill)).toList(),
     );
@@ -271,7 +279,7 @@ class SoloMatchCard extends ConsumerWidget {
           ],
           Text(
             data.label,
-            style: AppTextStyles.bodySmall.copyWith(
+            style: AppTextStyles.bodyMedium.copyWith(
               fontWeight: FontWeight.w500,
               color: AppColors.foreground,
             ),

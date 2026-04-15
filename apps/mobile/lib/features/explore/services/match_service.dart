@@ -4,6 +4,7 @@ import '../../../core/providers/contract_provider.dart';
 import '../../../core/utils/safe_parser.dart';
 import '../models/match_result.dart';
 import '../models/match_user.dart';
+import '../models/explore_state.dart';
 
 import '../../groups/models/group.dart';
 
@@ -17,10 +18,44 @@ class MatchService {
 
   MatchService(this._apiClient, this._ref);
 
-  Future<MatchResult> getMatches({int page = 1, int limit = 20}) async {
+  Future<MatchResult> getMatches({
+    int page = 1,
+    int limit = 20,
+    SearchData? searchData,
+    ExploreFilters? filters,
+  }) async {
+    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
+
+    if (searchData != null) {
+      queryParams['destination'] = searchData.destination;
+      queryParams['budget'] = searchData.budget.toString();
+      queryParams['startDate'] = searchData.startDate.toIso8601String().split(
+        'T',
+      )[0];
+      queryParams['endDate'] = searchData.endDate.toIso8601String().split(
+        'T',
+      )[0];
+    }
+
+    if (filters != null) {
+      queryParams['ageMin'] = filters.ageRange[0].toString();
+      queryParams['ageMax'] = filters.ageRange[1].toString();
+      queryParams['gender'] = filters.gender;
+      queryParams['personality'] = filters.personality;
+      queryParams['smoking'] = filters.smoking.toLowerCase();
+      queryParams['drinking'] = filters.drinking.toLowerCase();
+      queryParams['nationality'] = filters.nationality;
+      if (filters.interests.isNotEmpty) {
+        queryParams['interests'] = filters.interests.join(',');
+      }
+      if (filters.languages.isNotEmpty) {
+        queryParams['languages'] = filters.languages.join(',');
+      }
+    }
+
     final response = await _apiClient.get<MatchResult>(
       'match-solo',
-      queryParameters: {'page': page, 'limit': limit},
+      queryParameters: queryParams,
       parser: (data) {
         if (data is! Map<String, dynamic>) return MatchResult.empty();
 
@@ -52,11 +87,7 @@ class MatchService {
   }) async {
     final response = await _apiClient.post<MatchResult>(
       'match-groups',
-      data: {
-        'page': page,
-        'limit': limit,
-        if (filters != null) ...filters,
-      },
+      data: {'page': page, 'limit': limit, if (filters != null) ...filters},
       parser: (data) {
         if (data is! Map<String, dynamic>) return MatchResult.empty();
 
