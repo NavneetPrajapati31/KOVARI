@@ -75,7 +75,12 @@ class ExploreNotifier extends Notifier<ExploreState> {
             await _service.createSession(state.searchData, userId);
           }
           final fetchPage = isLoadMore ? state.page + 1 : 1;
-          final result = await _matchService.getMatches(page: fetchPage);
+          final result = await _matchService.getMatches(
+            page: fetchPage,
+            searchData: state.searchData,
+            filters: state.filters,
+          );
+
           final fetchedMatches = result.matches.toList();
           fetchedMatches.sort((a, b) => (b.score ?? 0).compareTo(a.score ?? 0));
 

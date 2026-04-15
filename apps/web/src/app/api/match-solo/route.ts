@@ -22,6 +22,7 @@ import {
 } from "@/lib/api/matching/cache";
 import { matchingServiceBreaker } from "@/lib/api/matching/circuitBreaker";
 import { performSoloDbMatchingFallback } from "@/lib/api/matching/fallback";
+import { getInternalAuthHeaders } from "@/lib/api/internalAuth";
 
 const GO_URL = process.env.GO_SERVICE_URL || "http://localhost:8080";
 
@@ -48,7 +49,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Force a fresh fetch by bumping the version string
-    const userVersion = "v1-stable-v10";
+    const userVersion = "v1-stable-final-v2";
+
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
     const cacheKey = generateMatchCacheKey(userId, "solo", params);
@@ -70,21 +72,29 @@ export async function GET(request: NextRequest) {
     // 2. Try Go Service (with Circuit Breaker)
     if (await matchingServiceBreaker.shouldAllowRequest()) {
       try {
+        const internalHeaders = getInternalAuthHeaders(clerkId || userId, requestId);
+
         const goResponse = await fetchWithTimeout(`${GO_URL}/v1/match/solo`, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
-            "X-Request-Id": requestId
+            ...internalHeaders
           },
-          body: JSON.stringify({ userId: clerkId || userId, context: params }),
           timeout: 30000,
         });
 
         const rawData = await safeParseJson(goResponse);
-        
-        // Rule: All external responses must follow success=true logic unless internal failure
-        if (goResponse.ok && validateGoMatchResponse(rawData)) {
-          const rawItems = Array.isArray(rawData) ? rawData : (rawData.matches || []);
+        const goValid = validateGoMatchResponse(rawData);
+
+        logger.debug(requestId, { 
+          source: "Go Service Raw Response",
+          ok: goResponse.ok, 
+          valid: goValid,
+          rawItemCount: (rawData?.matches || rawData)?.length || 0 
+        });
+
+        if (goResponse.ok && goValid) {
+          const rawItems = Array.isArray(rawData) ? rawData : (rawData.data?.matches || rawData.matches || []);
           
           // PHASE 4: Hardened Validation & Adaptive Threshold
           const { validItems, droppedCount, state } = safeBatchValidate(rawItems, GoSoloMatchSchema, requestId);
@@ -139,15 +149,19 @@ async function triggerBackgroundRefresh(userId: string, clerkId: string | undefi
   // Fire and forget
   (async () => {
     try {
+      const internalHeaders = getInternalAuthHeaders(clerkId || userId, "swr-" + key.slice(-8));
       const goResponse = await fetch(`${GO_URL}/v1/match/solo`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: clerkId || userId, context: params }),
+        headers: { 
+          "Content-Type": "application/json",
+          ...internalHeaders
+        },
       });
 
       const rawData = await goResponse.json();
       if (goResponse.ok && validateGoMatchResponse(rawData)) {
-        await setMatchingCache(userId, key, transformMatches(rawData), version);
+        const matches = rawData.data?.matches || rawData.matches || [];
+        await setMatchingCache(userId, key, transformMatches(matches), version);
       }
     } catch (err) {
       logger.error("SWR-Background", "SWR Refresh Error", err);

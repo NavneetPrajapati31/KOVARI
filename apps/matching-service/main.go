@@ -226,7 +226,9 @@ func main() {
 			StartDate        string             `json:"startDate"`
 			EndDate          string             `json:"endDate"`
 			Budget           float64            `json:"budget"`
+			Destination      string             `json:"destination"`
 		}
+
 
 		finalMatches := make([]ScoredMatch, 0, len(validCandidates))
 		for i, match := range validCandidates {
@@ -247,7 +249,16 @@ func main() {
 					Avatar:      match.StaticAttributes.Avatar,
 					Budget:      match.Budget,
 					Interests:   match.StaticAttributes.Interests,
-					Languages:   match.StaticAttributes.Languages,
+					Languages:      match.StaticAttributes.Languages,
+					Gender:         match.StaticAttributes.Gender,
+					Smoking:        match.StaticAttributes.Smoking,
+					Drinking:       match.StaticAttributes.Drinking,
+					Nationality:    match.StaticAttributes.Nationality,
+					Religion:       match.StaticAttributes.Religion,
+					Profession:     match.StaticAttributes.Profession,
+					FoodPreference: match.StaticAttributes.FoodPreference,
+					Location:       match.StaticAttributes.RawLocation,
+					LocationDisplay: match.StaticAttributes.RawLocation,
 				},
 				Score:            result.Score,
 				Breakdown:        result.Breakdown,
@@ -255,7 +266,14 @@ func main() {
 				StartDate:        match.StartDate,
 				EndDate:          match.EndDate,
 				Budget:           match.Budget,
+				Destination: func() string {
+					if match.Destination.Name != "" {
+						return match.Destination.Name
+					}
+					return userSession.Destination.Name
+				}(),
 			})
+
 		}
 
 		sort.Slice(finalMatches, func(i, j int) bool { return finalMatches[i].Score > finalMatches[j].Score })

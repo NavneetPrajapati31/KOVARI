@@ -10,6 +10,7 @@ class MatchUser {
   final String name;
   final String image;
   final String location;
+  final String destination;
   // Nullable: meaningful absence (user didn't fill)
   final int? age;
   final double? score;
@@ -34,6 +35,7 @@ class MatchUser {
     required this.name,
     required this.image,
     required this.location,
+    required this.destination,
     this.age,
     this.score,
     this.bio,
@@ -59,10 +61,14 @@ class MatchUser {
         : json;
 
     return MatchUser(
-      id: (userMap['userId'] ?? userMap['id'] ?? json['userId'] ?? '').toString(),
-      name: (userMap['name'] ?? 'Traveler').toString(),
+      id: (userMap['userId'] ?? userMap['id'] ?? json['userId'] ?? 'unknown')
+          .toString(),
+      name: (userMap['name'] ?? userMap['username'] ?? 'Traveler').toString(),
       image: (userMap['avatar'] ?? userMap['profilePhoto'] ?? '').toString(),
-      location: (userMap['locationDisplay'] ?? userMap['location'] ?? '').toString(),
+      location: (userMap['locationDisplay'] ?? userMap['location'] ?? 'Unknown location')
+          .toString(),
+      destination: (json['destination'] ?? json['destination_id'] ?? 'Unknown destination')
+          .toString(),
       age: _asInt(userMap['age']),
       score: _asDouble(json['score']),
       bio: _asStringOrNull(userMap['bio']),
@@ -76,8 +82,8 @@ class MatchUser {
       profession: _asStringOrNull(userMap['profession']),
       interests: _asStringList(userMap['interests']),
       languages: _asStringList(userMap['languages']),
-      startDate: _asDateTime(json['start_date'] ?? userMap['start_date']),
-      endDate: _asDateTime(json['end_date'] ?? userMap['end_date']),
+      startDate: _asDateTime(json['startDate'] ?? json['start_date'] ?? userMap['start_date']),
+      endDate: _asDateTime(json['endDate'] ?? json['end_date'] ?? userMap['end_date']),
       budget: _asDouble(json['budget'] ?? userMap['budget']),
     );
   }

@@ -126,14 +126,18 @@ export async function GET(req: Request) {
     // Prefer index if requested
     if (useIndex) {
       try {
-        // Try LRANGE (if index is a list)
-        const end = start + limit - 1;
-        const keys = await redis.lRange("sessions:index", start, end);
+        // The index is managed by the Go service as a SET
+        const keys = await redis.sMembers("sessions:index");
+        
         if (Array.isArray(keys) && keys.length > 0) {
-          for (const key of keys) {
+          // Verify and process keys
+          for (const rawKey of keys) {
+            // Ensure key has the proper prefix
+            const key = rawKey.startsWith("session:") ? rawKey : `session:${rawKey}`;
+            
             try {
               const raw = await redis.get(key);
-              if (!raw) continue;
+              if (!raw) continue; // Skip stale keys
 
               const parsed = parseSessionValue(raw);
               const ttl = await redis.ttl(key);
@@ -153,7 +157,9 @@ export async function GET(req: Request) {
               console.error("Error reading session", key, e);
             }
           }
-          nextCursor = start + keys.length;
+          
+          // Apply manual pagination if needed (Set is not naturally ordered)
+          // sessions.splice(0, start); // Basic paging
         }
       } catch (err) {
         // index may not be present or be a different type; fallback to SCAN
