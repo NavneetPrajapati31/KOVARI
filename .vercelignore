@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build artifacts
+.next/
+**/.next/
+build/
+**/build/
+dist/
+**/dist/
+.turbo/
+**/.turbo/
+
+# Other applications (not needed for admin deployment)
+apps/web/
+apps/mobile/
+apps/matching-service/
+
+# Misc
+.git/
+.vercel/
+.cursor/
+.vscode/
+tmp/
+runs/
+*.apk
+*.log
