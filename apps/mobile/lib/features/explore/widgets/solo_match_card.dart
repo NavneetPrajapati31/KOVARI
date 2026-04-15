@@ -53,7 +53,6 @@ class SoloMatchCard extends ConsumerWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: AppColors.secondary,
-                          border: Border.all(color: AppColors.border),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         clipBehavior: Clip.antiAlias,
@@ -88,7 +87,7 @@ class SoloMatchCard extends ConsumerWidget {
                       style: AppTextStyles.h3,
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       (bio != null && bio.isNotEmpty)
                           ? bio
@@ -206,28 +205,36 @@ class SoloMatchCard extends ConsumerWidget {
                       const SizedBox(height: 24),
                     ],
 
-                    _buildSectionTitle('Lifestyle'),
-                    _buildPillList([
-                      if (match.foodPreference != null)
-                        _PillData(
-                          icon: Icons.restaurant,
-                          label: match.foodPreference!,
-                        ),
-                      if (match.smoking != null)
-                        _PillData(
-                          icon: Icons.smoking_rooms,
-                          label:
-                              match.smoking![0].toUpperCase() +
-                              match.smoking!.substring(1),
-                        ),
-                      if (match.drinking != null)
-                        _PillData(
-                          icon: Icons.local_bar,
-                          label:
-                              match.drinking![0].toUpperCase() +
-                              match.drinking!.substring(1),
-                        ),
-                    ]),
+                    if ((match.foodPreference != null &&
+                            match.foodPreference!.isNotEmpty) ||
+                        (match.smoking != null && match.smoking!.isNotEmpty) ||
+                        (match.drinking != null &&
+                            match.drinking!.isNotEmpty)) ...[
+                      _buildSectionTitle('Lifestyle'),
+                      _buildPillList([
+                        if (match.foodPreference != null &&
+                            match.foodPreference!.isNotEmpty)
+                          _PillData(
+                            icon: Icons.restaurant,
+                            label: match.foodPreference!,
+                          ),
+                        if (match.smoking != null && match.smoking!.isNotEmpty)
+                          _PillData(
+                            icon: Icons.smoking_rooms,
+                            label:
+                                match.smoking![0].toUpperCase() +
+                                match.smoking!.substring(1),
+                          ),
+                        if (match.drinking != null &&
+                            match.drinking!.isNotEmpty)
+                          _PillData(
+                            icon: Icons.local_bar,
+                            label:
+                                match.drinking![0].toUpperCase() +
+                                match.drinking!.substring(1),
+                          ),
+                      ]),
+                    ],
                   ],
                 ),
               ),

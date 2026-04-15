@@ -68,12 +68,18 @@ export const GoGroupMatchSchema = z.object({
  */
 export const GoSoloResponseSchema = z.object({
   success: z.boolean(),
-  matches: z.array(z.any()),
+  data: z.object({
+    matches: z.array(z.any()),
+  }),
+  meta: z.any().optional(),
 });
 
 export const GoGroupResponseSchema = z.object({
   success: z.boolean(),
-  groups: z.array(z.any()),
+  data: z.object({
+    groups: z.array(z.any()),
+  }),
+  meta: z.any().optional(),
 });
 
 export const GoErrorResponseSchema = z.object({
