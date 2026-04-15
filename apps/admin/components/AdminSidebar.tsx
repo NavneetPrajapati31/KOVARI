@@ -41,6 +41,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import logo from "@/public/logo.webp";
 
 interface Metrics {
   pendingFlags: number;
@@ -148,10 +149,9 @@ export function AdminSidebar({
               style={{ width: 140 }}
             >
               <Image  
-                src="/logo.webp"
+                src={logo}
                 alt="Kovari"
-                width={400}
-                height={160}
+                height={16}
                 className="h-4 px-2 group-data-[state=collapsed]:px-0 w-auto object-contain block"
                 priority
                             />
