@@ -16,6 +16,7 @@
     "quick-start": "node quick-start.js"
   },
   "dependencies": {
+    "cross-env": "^10.1.0",
     "turbo": "^2.4.4"
   }
 }
