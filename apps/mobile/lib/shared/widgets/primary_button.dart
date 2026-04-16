@@ -59,19 +59,19 @@ class PrimaryButton extends StatelessWidget {
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (text != null)
+                if (icon != null)
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: foregroundColor ?? AppColors.primaryForeground,
+                  ),
+                if (text != null && text!.isNotEmpty) ...[
+                  const SizedBox(width: 8),
                   Text(
                     text!,
                     style: AppTextStyles.button.copyWith(
                       color: foregroundColor ?? AppColors.primaryForeground,
                     ),
-                  ),
-                if (icon != null) ...[
-                  const SizedBox(width: 8),
-                  Icon(
-                    icon,
-                    size: 18,
-                    color: foregroundColor ?? AppColors.primaryForeground,
                   ),
                 ],
               ],

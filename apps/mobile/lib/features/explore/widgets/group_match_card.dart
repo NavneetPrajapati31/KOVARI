@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
 import '../providers/explore_provider.dart';
+import '../../../core/widgets/common/user_avatar_fallback.dart';
 
 import '../../../features/groups/models/group.dart';
 
@@ -36,8 +38,9 @@ class GroupMatchCard extends ConsumerWidget {
         : null;
 
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -59,52 +62,46 @@ class GroupMatchCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: coverImage != null
-                            ? Image.network(
-                                coverImage,
+                        child: coverImage != null && coverImage.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: coverImage,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Center(
-                                      child: Icon(
-                                        Icons.group_outlined,
-                                        size: 48,
-                                        color: AppColors.mutedForeground
-                                            .withValues(alpha: 0.5),
+                                placeholder: (context, url) =>
+                                    const UserAvatarFallback(
+                                      shape: BoxShape.rectangle,
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(16),
                                       ),
+                                      size: 100,
+                                    ),
+                                errorWidget: (context, url, dynamic error) =>
+                                    UserAvatarFallback(
+                                      shape: BoxShape.rectangle,
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(16),
+                                      ),
+                                      size: 100,
                                     ),
                               )
-                            : Center(
-                                child: Icon(
-                                  Icons.group_outlined,
-                                  size: 40,
-                                  color: AppColors.mutedForeground.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                ),
-                              ),
+                            : UserAvatarFallback(size: 100),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Text(name, style: AppTextStyles.h3),
-                    if (description != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        description,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.mutedForeground,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      (description != null && description.isNotEmpty)
+                          ? description
+                          : 'No description provided.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.mutedForeground,
+                        fontStyle:
+                            (description != null && description.isNotEmpty)
+                            ? FontStyle.normal
+                            : FontStyle.italic,
                       ),
-                    ] else ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'No description provided.',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.mutedForeground,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -131,10 +128,12 @@ class GroupMatchCard extends ConsumerWidget {
                           icon: Icons.timelapse_outlined,
                           label: "$tripLength days",
                         ),
-                      if (group.budget != null)
+                      if (group.budget != null && group.budget! > 0)
                         _PillData(
                           icon: Icons.currency_rupee,
-                          label: "${group.budget} per person",
+                          label: NumberFormat.decimalPattern(
+                            'en_IN',
+                          ).format(group.budget),
                         ),
                     ]),
                     const SizedBox(height: 24),
@@ -150,9 +149,9 @@ class GroupMatchCard extends ConsumerWidget {
                         label: "$memberCount members",
                       ),
                     ]),
-                    const SizedBox(height: 24),
 
                     if (group.tags != null && group.tags!.isNotEmpty) ...[
+                      const SizedBox(height: 24),
                       _buildSectionTitle('Group Interests'),
                       _buildPillList(
                         group.tags!
@@ -178,19 +177,26 @@ class GroupMatchCard extends ConsumerWidget {
                       const SizedBox(height: 24),
                     ],
 
-                    _buildSectionTitle('Lifestyle'),
-                    _buildPillList([
-                      if (group.smokingPolicy != null)
-                        _PillData(
-                          icon: Icons.smoking_rooms_outlined,
-                          label: "Smoking: ${group.smokingPolicy}",
-                        ),
-                      if (group.drinkingPolicy != null)
-                        _PillData(
-                          icon: Icons.local_bar_outlined,
-                          label: "Drinking: ${group.drinkingPolicy}",
-                        ),
-                    ]),
+                    if ((group.smokingPolicy != null &&
+                            group.smokingPolicy!.isNotEmpty) ||
+                        (group.drinkingPolicy != null &&
+                            group.drinkingPolicy!.isNotEmpty)) ...[
+                      _buildSectionTitle('Lifestyle'),
+                      _buildPillList([
+                        if (group.smokingPolicy != null &&
+                            group.smokingPolicy!.isNotEmpty)
+                          _PillData(
+                            icon: Icons.smoking_rooms,
+                            label: group.smokingPolicy!,
+                          ),
+                        if (group.drinkingPolicy != null &&
+                            group.drinkingPolicy!.isNotEmpty)
+                          _PillData(
+                            icon: Icons.local_bar,
+                            label: group.drinkingPolicy!,
+                          ),
+                      ]),
+                    ],
                   ],
                 ),
               ),
@@ -219,7 +225,7 @@ class GroupMatchCard extends ConsumerWidget {
 
   Widget _buildPillList(List<_PillData> pills) {
     return Wrap(
-      spacing: 8,
+      spacing: 6,
       runSpacing: 8,
       children: pills.map((pill) => _buildPill(pill)).toList(),
     );
@@ -242,7 +248,7 @@ class GroupMatchCard extends ConsumerWidget {
           ],
           Text(
             data.label,
-            style: AppTextStyles.bodySmall.copyWith(
+            style: AppTextStyles.bodyMedium.copyWith(
               fontWeight: FontWeight.w500,
               color: AppColors.foreground,
             ),

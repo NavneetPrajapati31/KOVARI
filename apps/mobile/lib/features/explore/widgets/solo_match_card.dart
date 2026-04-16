@@ -33,8 +33,9 @@ class SoloMatchCard extends ConsumerWidget {
     }
 
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -60,14 +61,14 @@ class SoloMatchCard extends ConsumerWidget {
                             ? CachedNetworkImage(
                                 imageUrl: match.image,
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: AppColors.secondary,
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                placeholder: (context, url) =>
+                                    const UserAvatarFallback(
+                                      shape: BoxShape.rectangle,
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(16),
+                                      ),
+                                      size: 100,
                                     ),
-                                  ),
-                                ),
                                 errorWidget: (context, url, dynamic error) =>
                                     UserAvatarFallback(
                                       name: match.name,

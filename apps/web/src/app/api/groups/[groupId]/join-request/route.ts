@@ -1,6 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 type AccessContext =
   | {
@@ -17,18 +20,24 @@ type AccessContext =
     }
   | { ok: false; status: number; error: string };
 
-async function getAccessContext(groupId: string): Promise<AccessContext> {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) return { ok: false, status: 401, error: "Unauthorized" };
+async function getAccessContext(req: NextRequest, groupId: string): Promise<AccessContext> {
+  const userId = await getAuthUserId(req);
+  if (!userId) return { ok: false, status: 401, error: "Unauthorized" };
 
   const supabase = createAdminSupabaseClient();
 
-  const { data: userRow, error: userError } = await supabase
+  const userQuery = supabase
     .from("users")
     .select("id")
-    .eq("clerk_user_id", clerkUserId)
-    .eq("isDeleted", false)
-    .single();
+    .eq("isDeleted", false);
+  
+  if (userId.startsWith("user_")) {
+    userQuery.eq("clerk_user_id", userId);
+  } else {
+    userQuery.eq("id", userId);
+  }
+
+  const { data: userRow, error: userError } = await userQuery.single();
 
   if (userError || !userRow) {
     return { ok: false, status: 404, error: "User not found" };
@@ -78,6 +87,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     const { groupId } = await params;
 
@@ -85,8 +97,11 @@ export async function POST(
       return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
     }
 
-    const ctx = await getAccessContext(groupId);
+    const ctx = await getAccessContext(req, groupId);
     if (!ctx.ok) {
+      if (req.headers.get("x-kovari-client") === "mobile") {
+        return formatErrorResponse(ctx.error, ctx.status === 401 ? ApiErrorCode.UNAUTHORIZED : ApiErrorCode.FORBIDDEN, requestId, ctx.status);
+      }
       return NextResponse.json({ error: ctx.error }, { status: ctx.status });
     }
 
@@ -205,6 +220,9 @@ export async function POST(
       );
     }
 
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatStandardResponse({ success: true, message: "Join request sent" }, {}, { requestId, latencyMs: Date.now() - start });
+    }
     return NextResponse.json({ success: true, message: "Join request sent" });
   } catch (error) {
     console.error("[JOIN_REQUEST_POST] Uncaught error:", error);
@@ -219,14 +237,20 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     const { groupId } = await params;
     if (!groupId) {
       return new NextResponse("Missing groupId", { status: 400 });
     }
 
-    const ctx = await getAccessContext(groupId);
+    const ctx = await getAccessContext(req, groupId);
     if (!ctx.ok) {
+      if (req.headers.get("x-kovari-client") === "mobile") {
+        return formatErrorResponse(ctx.error, ctx.status === 401 ? ApiErrorCode.UNAUTHORIZED : ApiErrorCode.FORBIDDEN, requestId, ctx.status);
+      }
       return NextResponse.json({ error: ctx.error }, { status: ctx.status });
     }
 
@@ -262,9 +286,15 @@ export async function GET(
         requestedAt: m.joined_at,
       };
     });
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatStandardResponse({ joinRequests }, {}, { requestId, latencyMs: Date.now() - start });
+    }
     return NextResponse.json({ joinRequests });
   } catch (error) {
     console.error("[JOIN_REQUEST_GET]", error);
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Internal Server Error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
@@ -273,14 +303,20 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
+  const start = Date.now();
+  const apiRequestId = generateRequestId();
+
   try {
     const { groupId } = await params;
     if (!groupId) {
       return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
     }
 
-    const ctx = await getAccessContext(groupId);
+    const ctx = await getAccessContext(req, groupId);
     if (!ctx.ok) {
+      if (req.headers.get("x-kovari-client") === "mobile") {
+        return formatErrorResponse(ctx.error, ctx.status === 401 ? ApiErrorCode.UNAUTHORIZED : ApiErrorCode.FORBIDDEN, apiRequestId, ctx.status);
+      }
       return NextResponse.json({ error: ctx.error }, { status: ctx.status });
     }
     const isAdmin = ctx.membershipRole === "admin";
@@ -324,9 +360,15 @@ export async function DELETE(
       return NextResponse.json({ error: "Request not found" }, { status: 404 });
     }
 
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatStandardResponse({ success: true }, {}, { requestId: apiRequestId, latencyMs: Date.now() - start });
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[JOIN_REQUEST_DELETE]", error);
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Internal Server Error", ApiErrorCode.INTERNAL_SERVER_ERROR, apiRequestId, 500);
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },

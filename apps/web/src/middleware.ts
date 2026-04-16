@@ -49,18 +49,41 @@ const isWaitlistPublicPath = createRouteMatcher([
 async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !supabaseServiceKey) return false;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn("[Waitlist] Missing Supabase config in middleware:", { 
+      hasUrl: !!supabaseUrl, 
+      hasKey: !!supabaseServiceKey 
+    });
+    return false;
+  }
+
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
+
     const { data, error } = await supabase
       .from("launch_bypass_users")
       .select("clerk_user_id")
       .eq("clerk_user_id", clerkUserId)
       .maybeSingle();
-    return !error && !!data?.clerk_user_id;
-  } catch {
+
+    if (error) {
+      console.error("[Waitlist] DB error checking bypass user:", error);
+      return false;
+    }
+
+    const isMatch = !!data?.clerk_user_id;
+    if (!isMatch) {
+      console.log("[Waitlist] User not in bypass table:", clerkUserId);
+    } else {
+      console.log("[Waitlist] Bypass granted for user:", clerkUserId);
+    }
+
+    return isMatch;
+  } catch (err) {
+    console.error("[Waitlist] Unexpected error in bypass check:", err);
     return false;
   }
 }

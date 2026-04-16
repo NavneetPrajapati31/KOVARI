@@ -20,6 +20,14 @@ final groupMembersProvider = FutureProvider.family<List<GroupMember>, String>((
   return service.getGroupMembers(groupId);
 });
 
+final joinRequestsProvider = FutureProvider.family<List<JoinRequestModel>, String>((
+  ref,
+  groupId,
+) async {
+  final service = ref.watch(groupServiceProvider);
+  return service.getJoinRequests(groupId);
+});
+
 // The base source of truth itinerary
 final groupItineraryProvider =
     FutureProvider.family<List<ItineraryItem>, String>((ref, groupId) async {
@@ -67,6 +75,41 @@ class GroupActionsNotifier {
   Future<void> updateNotes(String notes) async {
     await _service.updateGroupNotes(_groupId, notes);
     _ref.invalidate(groupDetailsProvider(_groupId));
+  }
+
+  Future<void> updateGroup(Map<String, dynamic> data) async {
+    await _service.updateGroup(_groupId, data);
+    _ref.invalidate(groupDetailsProvider(_groupId));
+    _ref.invalidate(myGroupsProvider);
+  }
+
+  Future<void> approveRequest(String userId) async {
+    await _service.approveJoinRequest(_groupId, userId);
+    _ref.invalidate(joinRequestsProvider(_groupId));
+    _ref.invalidate(groupMembersProvider(_groupId));
+    _ref.invalidate(groupDetailsProvider(_groupId));
+  }
+
+  Future<void> rejectRequest(String requestId) async {
+    await _service.rejectJoinRequest(_groupId, requestId);
+    _ref.invalidate(joinRequestsProvider(_groupId));
+  }
+
+  Future<void> removeMember(String memberId, String memberClerkId) async {
+    await _service.removeMember(_groupId, memberId, memberClerkId);
+    _ref.invalidate(groupMembersProvider(_groupId));
+    _ref.invalidate(groupDetailsProvider(_groupId));
+  }
+
+  Future<void> inviteMember(String usernameOrEmail) async {
+    final Map<String, String> invite = usernameOrEmail.contains('@')
+        ? {'email': usernameOrEmail}
+        : {'username': usernameOrEmail};
+    await _service.sendGroupInvite(_groupId, [invite]);
+  }
+
+  Future<String> getInviteLink() async {
+    return _service.getInviteLink(_groupId);
   }
 
   Future<void> generateAiOverview() async {

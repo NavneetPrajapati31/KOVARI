@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../models/group.dart';
-import '../../providers/group_details_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/groups/widgets/settings_widgets.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/providers/group_details_provider.dart';
+import 'package:mobile/features/groups/widgets/edit_group_sheets.dart';
+import 'package:mobile/features/groups/widgets/management_sheets.dart';
 
 class SettingsTab extends ConsumerWidget {
   final GroupModel group;
@@ -19,124 +23,132 @@ class SettingsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final membershipAsync = ref.watch(groupMembershipProvider(group.id));
+    final dateStr = group.dateRange.start != null
+        ? "${DateFormat('MMM d').format(DateTime.parse(group.dateRange.start!))} - ${group.dateRange.end != null ? DateFormat('MMM d').format(DateTime.parse(group.dateRange.end!)) : 'Ongoing'}"
+        : "Not set";
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSettingsSection("Group Info", [
-          _buildSettingsItem(
-            icon: LucideIcons.info,
-            title: "Edit Basic Details",
-            subtitle: "Name, description, destination",
-            onTap: () {},
-          ),
-          _buildSettingsItem(
-            icon: LucideIcons.calendar,
-            title: "Travel Dates",
-            subtitle: group.dateRange.start != null
-                ? "${DateFormat('MMM d').format(DateTime.parse(group.dateRange.start!))} - ${group.dateRange.end != null ? DateFormat('MMM d').format(DateTime.parse(group.dateRange.end!)) : 'Ongoing'}"
-                : "Not set",
-            onTap: () {},
-          ),
-        ]),
-        const SizedBox(height: 24),
-        _buildSettingsSection("Management", [
-          _buildSettingsItem(
-            icon: LucideIcons.users,
-            title: "Manage Members",
-            subtitle: "Add, remove, or change roles",
-            onTap: onViewMembers,
-          ),
-          _buildSettingsItem(
-            icon: LucideIcons.shieldCheck,
-            title: "Privacy & Safety",
-            subtitle: group.privacy == 'public'
-                ? "Public Group"
-                : "Private Group",
-            onTap: () {},
-          ),
-        ]),
-        const SizedBox(height: 24),
-        _buildSettingsSection("Actions", [
-          _buildSettingsItem(
-            icon: LucideIcons.logOut,
-            title: "Leave Group",
-            titleColor: AppColors.destructive,
-            onTap: () => _showLeaveConfirmation(context, ref),
-          ),
-          if (membershipAsync.value?.isCreator == true)
-            _buildSettingsItem(
-              icon: LucideIcons.trash2,
-              title: "Delete Group",
-              titleColor: AppColors.destructive,
-              onTap: () => _showDeleteConfirmation(context, ref),
-            ),
-        ]),
-      ],
-    );
-  }
-
-  Widget _buildSettingsSection(String title, List<Widget> items) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AppColors.mutedForeground,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(children: items),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettingsItem({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    Color? titleColor,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      onTap: onTap,
-      leading: Icon(icon, size: 20, color: titleColor ?? AppColors.foreground),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: titleColor ?? AppColors.foreground,
-        ),
-      ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.mutedForeground,
+    return Container(
+      color: AppColors.background,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+        children: [
+          KovariSection(
+            title: "Group Info",
+            children: [
+              KovariListRow(
+                icon: LucideIcons.info,
+                label: "Group Details",
+                subtitle: "Name, description, destination",
+                onTap: () =>
+                    _showEditSheet(context, EditBasicInfoSheet(group: group)),
               ),
-            )
-          : null,
-      trailing: const Icon(
-        LucideIcons.chevronRight,
-        size: 16,
-        color: AppColors.muted,
+              KovariListRow(
+                icon: LucideIcons.calendar,
+                label: "Travel Dates",
+                subtitle: dateStr,
+                onTap: () => _showEditSheet(
+                  context,
+                  EditTravelDetailsSheet(group: group),
+                ),
+              ),
+              KovariListRow(
+                icon: LucideIcons.wallet,
+                label: "Estimated Budget",
+                subtitle: group.budget != null
+                    ? "\$${group.budget}"
+                    : "Not set",
+                onTap: () => _showEditSheet(
+                  context,
+                  EditTravelDetailsSheet(group: group),
+                ),
+              ),
+            ],
+          ),
+          KovariSection(
+            title: "Management",
+            children: [
+              KovariListRow(
+                icon: LucideIcons.users,
+                label: "Manage Members",
+                subtitle: "Add, remove, or change roles",
+                onTap: () => _showEditSheet(
+                  context,
+                  GroupMembersManagementSheet(
+                    group: group,
+                    isAdmin: membershipAsync.value?.isAdmin ?? false,
+                  ),
+                ),
+              ),
+              KovariListRow(
+                icon: LucideIcons.userPlus,
+                label: "Invite Members",
+                subtitle: "Share link or invite by username",
+                onTap: () =>
+                    _showEditSheet(context, InviteMembersSheet(group: group)),
+              ),
+              if (membershipAsync.value?.isAdmin == true)
+                KovariListRow(
+                  icon: LucideIcons.inbox,
+                  label: "Join Requests",
+                  subtitle: "Review pending membership requests",
+                  onTap: () =>
+                      _showEditSheet(context, JoinRequestsSheet(group: group)),
+                ),
+            ],
+          ),
+          KovariSection(
+            title: "Preferences",
+            children: [
+              KovariListRow(
+                icon: LucideIcons.shieldCheck,
+                label: "Privacy & Visibility",
+                subtitle: group.privacy == 'public'
+                    ? "Public Group"
+                    : "Private Group",
+                onTap: () =>
+                    _showEditSheet(context, EditPoliciesSheet(group: group)),
+              ),
+              KovariListRow(
+                icon: LucideIcons.info,
+                label: "Travel Policies",
+                subtitle: "Non-smoking, Non-drinking, etc.",
+                onTap: () =>
+                    _showEditSheet(context, EditPoliciesSheet(group: group)),
+              ),
+            ],
+          ),
+          KovariSection(
+            title: "Actions",
+            children: [
+              KovariListRow(
+                icon: LucideIcons.logOut,
+                iconColor: AppColors.destructive,
+                label: "Leave Group",
+                labelColor: AppColors.destructive,
+                onTap: () => _showLeaveConfirmation(context, ref),
+              ),
+              if (membershipAsync.value?.isCreator == true)
+                KovariListRow(
+                  icon: LucideIcons.trash2,
+                  iconColor: AppColors.destructive,
+                  label: "Delete Group",
+                  labelColor: AppColors.destructive,
+                  onTap: () => _showDeleteConfirmation(context, ref),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    );
+  }
+
+  void _showEditSheet(BuildContext context, Widget sheet) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => sheet,
     );
   }
 
@@ -144,14 +156,26 @@ class SettingsTab extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Leave Group?"),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "Leave Group?",
+          style: TextStyle(
+            color: AppColors.foreground,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         content: const Text(
           "Are you sure you want to leave this travel group?",
+          style: TextStyle(color: AppColors.mutedForeground, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: AppColors.mutedForeground),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -161,7 +185,10 @@ class SettingsTab extends ConsumerWidget {
             },
             child: const Text(
               "Leave",
-              style: TextStyle(color: AppColors.destructive),
+              style: TextStyle(
+                color: AppColors.destructive,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -173,14 +200,26 @@ class SettingsTab extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Group?"),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "Delete Group?",
+          style: TextStyle(
+            color: AppColors.foreground,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         content: const Text(
           "This action is permanent and will delete all trip data and chats for everyone.",
+          style: TextStyle(color: AppColors.mutedForeground, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: AppColors.mutedForeground),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -190,7 +229,10 @@ class SettingsTab extends ConsumerWidget {
             },
             child: const Text(
               "Delete",
-              style: TextStyle(color: AppColors.destructive),
+              style: TextStyle(
+                color: AppColors.destructive,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

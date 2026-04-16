@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> }
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     const userId = await getAuthUserId(req);
     if (!userId) {
+      if (req.headers.get("x-kovari-client") === "mobile") {
+        return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+      }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -30,6 +39,9 @@ export async function GET(
     const { data: userRow, error: userError } = await userQuery.single();
 
     if (userError || !userRow) {
+      if (req.headers.get("x-kovari-client") === "mobile") {
+        return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
+      }
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
@@ -125,9 +137,15 @@ export async function GET(
           joined_at: member.joined_at,
         };
       }) || [];
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatStandardResponse({ members: formattedMembers }, {}, { requestId, latencyMs: Date.now() - start });
+    }
     return NextResponse.json({ members: formattedMembers });
   } catch (error) {
     console.error("[GET_MEMBERS]", error);
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Internal Server Error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -139,9 +157,15 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> }
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     const currentUserId = await getAuthUserId(req);
     if (!currentUserId) {
+      if (req.headers.get("x-kovari-client") === "mobile") {
+        return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+      }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -292,9 +316,15 @@ export async function DELETE(
       );
     }
 
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatStandardResponse({ success: true }, {}, { requestId, latencyMs: Date.now() - start });
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[DELETE_MEMBER]", error);
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Internal Server Error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

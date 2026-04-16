@@ -12,8 +12,7 @@ class GroupService {
     final response = await _apiClient.get<List<GroupModel>>(
       ApiEndpoints.myGroups,
       parser: (data) {
-        final List<dynamic> rawList =
-            data is Map<String, dynamic> ? (data['data'] ?? []) : [];
+        final List<dynamic> rawList = data is List ? data : [];
         return safeParseList(rawList, GroupModel.fromJson);
       },
     );
@@ -46,13 +45,89 @@ class GroupService {
   Future<List<GroupMember>> getGroupMembers(String groupId) async {
     final response = await _apiClient.get<List<GroupMember>>(
       ApiEndpoints.groupMembers(groupId),
-      parser: (data) {
-        final List<dynamic> members =
-            data is Map<String, dynamic> ? (data['members'] ?? []) : [];
-        return safeParseList(members, GroupMember.fromJson);
+      parser: (json) {
+        if (json is List) {
+          return json.map((m) => GroupMember.fromJson(m)).toList();
+        }
+        if (json is Map && json['members'] is List) {
+          return (json['members'] as List)
+              .map((m) => GroupMember.fromJson(m))
+              .toList();
+        }
+        return [];
       },
     );
     return response.data ?? [];
+  }
+
+  Future<List<JoinRequestModel>> getJoinRequests(String groupId) async {
+    final response = await _apiClient.get<List<JoinRequestModel>>(
+      ApiEndpoints.groupJoinRequest(groupId),
+      parser: (json) {
+        if (json is Map && json['joinRequests'] is List) {
+          return (json['joinRequests'] as List)
+              .map((r) => JoinRequestModel.fromJson(r))
+              .toList();
+        }
+        return [];
+      },
+    );
+    return response.data ?? [];
+  }
+
+  Future<void> approveJoinRequest(String groupId, String userId) async {
+    final response = await _apiClient.post<dynamic>(
+      ApiEndpoints.groupJoin(groupId),
+      data: {'userId': userId},
+      parser: (json) => json,
+    );
+    if (!response.success)
+      throw Exception(response.error?.message ?? 'Failed to approve');
+  }
+
+  Future<void> rejectJoinRequest(String groupId, String requestId) async {
+    final response = await _apiClient.delete<dynamic>(
+      ApiEndpoints.groupJoinRequest(groupId),
+      data: {'requestId': requestId},
+      parser: (json) => json,
+    );
+    if (!response.success)
+      throw Exception(response.error?.message ?? 'Failed to reject');
+  }
+
+  Future<void> removeMember(
+    String groupId,
+    String memberId,
+    String memberClerkId,
+  ) async {
+    final response = await _apiClient.delete<dynamic>(
+      ApiEndpoints.groupMembers(groupId),
+      data: {'memberId': memberId, 'memberClerkId': memberClerkId},
+      parser: (json) => json,
+    );
+    if (!response.success)
+      throw Exception(response.error?.message ?? 'Failed to remove member');
+  }
+
+  Future<String> getInviteLink(String groupId) async {
+    final response = await _apiClient.get<String>(
+      ApiEndpoints.groupInvitationLink(groupId),
+      parser: (json) => (json as Map)['link'] as String,
+    );
+    return response.data ?? '';
+  }
+
+  Future<void> sendGroupInvite(
+    String groupId,
+    List<Map<String, String>> invites,
+  ) async {
+    final response = await _apiClient.post<dynamic>(
+      ApiEndpoints.groupInvitationSend,
+      data: {'groupId': groupId, 'invites': invites},
+      parser: (json) => json,
+    );
+    if (!response.success)
+      throw Exception(response.error?.message ?? 'Failed to send invites');
   }
 
   Future<List<ItineraryItem>> getGroupItinerary(String groupId) async {
@@ -93,16 +168,23 @@ class GroupService {
     if (!response.success) throw Exception('Failed to generate AI overview');
   }
 
-  Future<GroupModel> updateGroupNotes(String groupId, String notes) async {
+  Future<GroupModel> updateGroup(
+    String groupId,
+    Map<String, dynamic> data,
+  ) async {
     final response = await _apiClient.patch<GroupModel>(
       ApiEndpoints.groupDetails(groupId),
-      data: {'notes': notes},
+      data: data,
       parser: (json) => GroupModel.fromJson(json as Map<String, dynamic>),
     );
     if (response.success && response.data != null) {
       return response.data!;
     }
-    throw Exception('Failed to update group notes');
+    throw Exception(response.error?.message ?? 'Failed to update group');
+  }
+
+  Future<GroupModel> updateGroupNotes(String groupId, String notes) async {
+    return updateGroup(groupId, {'notes': notes});
   }
 
   Future<void> updateItineraryItem(
@@ -130,10 +212,7 @@ class GroupService {
     if (!response.success) throw Exception('Failed to create itinerary item');
   }
 
-  Future<void> deleteItineraryItem(
-    String groupId,
-    String itemId,
-  ) async {
+  Future<void> deleteItineraryItem(String groupId, String itemId) async {
     final response = await _apiClient.delete<void>(
       ApiEndpoints.itineraryItem(groupId, itemId),
       parser: (_) {},

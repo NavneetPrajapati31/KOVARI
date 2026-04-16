@@ -42,10 +42,14 @@ class ApiEndpoints {
   static String groupMembership(String groupId) => "groups/$groupId/membership";
   static String groupAiOverview(String groupId) =>
       "groups/$groupId/ai-overview";
+  static String groupJoin(String groupId) => "groups/$groupId/join";
   static String groupJoinRequest(String groupId) =>
       "groups/$groupId/join-request";
   static String groupLeave(String groupId) => "groups/$groupId/leave";
   static String groupDelete(String groupId) => "groups/$groupId/delete";
+  static String groupInvitationLink(String groupId) =>
+      "group-invitation?groupId=$groupId";
+  static const groupInvitationSend = "group-invitation";
 
   // Settings
   static const changePassword = "settings/change-password";
