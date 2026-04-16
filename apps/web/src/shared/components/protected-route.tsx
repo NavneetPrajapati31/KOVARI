@@ -99,7 +99,9 @@ export default function ProtectedRoute({
           if (res.ok) {
             const json = await res.json();
             // Kovari API v1 wraps the response in a 'data' field.
-            const onboarded = json?.data?.onboardingCompleted === true;
+            const onboarded = 
+              json?.data?.onboardingCompleted === true || 
+              json?.data?.onboarding_completed === true;
             
             if (onboarded) {
               profileConfirmedRef.current = true;
