@@ -58,13 +58,19 @@ export async function resolveUser(
         const clerk = await clerkClient();
         const clerkUser = await clerk.users.getUser(clerkUserId);
         
-        // Final Rule: Reject if no verified primary email
-        const verifiedEmail = clerkUser.emailAddresses.find(
-          e => e.id === clerkUser.primaryEmailAddressId && e.verification?.status === "verified"
-        )?.emailAddress;
+        // Final Rule: Accept ANY verified email, but prefer primary if verified
+        const primaryEmailObj = clerkUser.emailAddresses.find(e => e.id === clerkUser.primaryEmailAddressId);
+        const isPrimaryVerified = primaryEmailObj?.verification?.status === "verified";
+        
+        const anyVerifiedEmailObj = clerkUser.emailAddresses.find(e => e.verification?.status === "verified");
+        const verifiedEmail = isPrimaryVerified ? primaryEmailObj?.emailAddress : anyVerifiedEmailObj?.emailAddress;
 
         if (!verifiedEmail) {
-          logger.warn(requestId, "Clerk identity rejected (Unverified email)", { clerkUserId });
+          logger.warn(requestId, "Clerk identity rejected (No verified emails found)", { 
+            clerkUserId,
+            hasPrimary: !!primaryEmailObj,
+            primaryStatus: primaryEmailObj?.verification?.status 
+          });
           if (options.mode === 'protected') {
             return { ok: false, reason: 'UNVERIFIED_EMAIL', message: "Verified email required", requestId };
           }
