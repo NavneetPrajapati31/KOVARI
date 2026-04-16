@@ -72,7 +72,9 @@ export async function POST(request: NextRequest) {
     const rawCandidates = await performGroupDbMatchingFallback(userId, payloadContext);
 
     // 3. Try Go Service (ML Scoring)
-    if (rawCandidates.length > 0 && await matchingServiceBreaker.shouldAllowRequest()) {
+    const canUseGoService = GO_URL && (!GO_URL.includes("localhost") || process.env.NODE_ENV !== "production");
+    
+    if (canUseGoService && rawCandidates.length > 0 && await matchingServiceBreaker.shouldAllowRequest()) {
       try {
         const goPayload = {
           userId: clerkId || userId,

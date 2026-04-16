@@ -21,6 +21,8 @@ export function generateMatchCacheKey(userId: string, type: "solo" | "group", pa
  */
 export async function getMatchingCache(key: string) {
   try {
+    if (!redis) return null; // Graceful skip if Redis is disabled
+
     const data = await Promise.race([
       redis.get(key),
       new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Redis Timeout")), REDIS_TIMEOUT))
@@ -48,6 +50,7 @@ export async function getMatchingCache(key: string) {
  */
 export async function setMatchingCache(userId: string, key: string, data: any, version: string) {
   try {
+    if (!redis) return; // Graceful skip if Redis is disabled
     const payload = {
       data,
       version,
@@ -71,6 +74,7 @@ export async function setMatchingCache(userId: string, key: string, data: any, v
  */
 export async function invalidateMatchingCache(userId: string) {
   try {
+    if (!redis) return; // Graceful skip if Redis is disabled
     const indexKey = `user:${userId}:match_keys`;
     const keys = await redis.sMembers(indexKey);
     

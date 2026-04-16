@@ -70,7 +70,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Try Go Service (with Circuit Breaker)
-    if (await matchingServiceBreaker.shouldAllowRequest()) {
+    const canUseGoService = GO_URL && (!GO_URL.includes("localhost") || process.env.NODE_ENV !== "production");
+    
+    if (canUseGoService && await matchingServiceBreaker.shouldAllowRequest()) {
       try {
         const internalHeaders = getInternalAuthHeaders(clerkId || userId, requestId);
 

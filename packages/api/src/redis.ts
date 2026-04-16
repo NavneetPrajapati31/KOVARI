@@ -25,9 +25,17 @@ export const getRedisClient = () => {
     }
 
     if (!redisUrl) {
-      console.warn("⚠️ REDIS_URL not found in environment variables");
-      console.warn("⚠️ Using default redis://localhost:6380");
+      if (process.env.NODE_ENV === "production") {
+        console.warn("⚠️ REDIS_URL missing in production. Redis functionality will be disabled.");
+        return null as any; // Return null so Proxy handles it or it fails gracefully
+      }
+      console.warn("⚠️ REDIS_URL not found in environment variables. Using default redis://localhost:6380");
     }
+  }
+
+  // If no URL in production, don't even create the client
+  if (!redisUrl && process.env.NODE_ENV === "production") {
+    return null as any;
   }
 
   _redis = createClient({
