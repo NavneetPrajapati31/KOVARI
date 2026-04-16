@@ -43,7 +43,8 @@ export async function getMatchingCache(key: string) {
       version: parsed.version
     };
   } catch (err: any) {
-    logger.error("REDIS-GET", "Redis Cache Get Error", err);
+    // SILENT FAIL in production to keep logs clean
+    logger.debug("REDIS-GET", { error: "Redis Cache Get Error", message: err.message });
     return null;
   }
 }

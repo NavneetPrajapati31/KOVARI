@@ -55,7 +55,8 @@ export class RedisCircuitBreaker {
         await redis.set(this.keys.state, "OPEN", { EX: COOLDOWN_SECONDS });
       }
     } catch (err: any) {
-      logger.error("CB-FAIL", "CB Record Failure Error", err);
+      // SILENT FAIL in production to keep logs clean
+      logger.debug(this.keys.failures, { error: "CB Record Failure Error", message: err.message });
     }
   }
 
@@ -66,7 +67,8 @@ export class RedisCircuitBreaker {
         redis.set(this.keys.state, "CLOSED")
       ]);
     } catch (err: any) {
-      logger.error("CB-SUCCESS", "CB Record Success Error", err);
+      // SILENT FAIL in production
+      logger.debug(this.keys.failures, { error: "CB Record Success Error", message: err.message });
     }
   }
 
