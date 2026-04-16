@@ -39,9 +39,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
 
-    const allowed = await matchingServiceBreaker.shouldAllowRequest();
+    // 2. Try Go Service (with Circuit Breaker)
+    const isGoConfigured = !!process.env.GO_SERVICE_URL && !GO_URL.includes("localhost");
+    const canUseGoService = isGoConfigured || process.env.NODE_ENV === "development";
     
-    if (allowed) {
+    if (canUseGoService && await matchingServiceBreaker.shouldAllowRequest()) {
       try {
         const authHeaders = getInternalAuthHeaders(userId, requestId);
 

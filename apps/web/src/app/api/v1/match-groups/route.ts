@@ -40,10 +40,11 @@ export async function POST(req: NextRequest) {
 
     const userId = dbUser.id;
 
-    // 1. CIRCUIT BREAKER CHECK
-    const allowed = await matchingServiceBreaker.shouldAllowRequest();
+    // 3. Try Go Service (ML Scoring)
+    const isGoConfigured = !!process.env.GO_SERVICE_URL && !GO_URL.includes("localhost");
+    const canUseGoService = isGoConfigured || process.env.NODE_ENV === "development";
     
-    if (allowed) {
+    if (canUseGoService && await matchingServiceBreaker.shouldAllowRequest()) {
       try {
         const authHeaders = getInternalAuthHeaders(userId, requestId);
 
