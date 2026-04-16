@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { generateRequestId } from "@/lib/api/requestId";
 import { detectClient } from "@/lib/api/clientDetection";
@@ -51,6 +52,8 @@ export async function POST(req: NextRequest) {
   try {
     const authUser = await getAuthenticatedUser(req);
     if (!authUser) {
+      const { userId } = await auth();
+      console.warn(`[api/profile/create] Unauthorized attempt. Clerk UID: ${userId}, RequestID: ${requestId}`);
       return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
