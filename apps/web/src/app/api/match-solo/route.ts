@@ -70,7 +70,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Try Go Service (with Circuit Breaker)
-    const canUseGoService = GO_URL && (!GO_URL.includes("localhost") || process.env.NODE_ENV !== "production");
+    const isGoConfigured = !!process.env.GO_SERVICE_URL && !GO_URL.includes("localhost");
+    const canUseGoService = isGoConfigured || process.env.NODE_ENV === "development";
     
     if (canUseGoService && await matchingServiceBreaker.shouldAllowRequest()) {
       try {

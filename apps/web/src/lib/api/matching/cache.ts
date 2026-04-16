@@ -5,6 +5,9 @@ import { logger } from "@/lib/api/logger";
 const CACHE_VERSION = "v1";
 const REDIS_TIMEOUT = 100; // ms
 
+// Hard Check: Is Redis properly configured for this environment?
+const isRedisActive = !!process.env.REDIS_URL || process.env.NODE_ENV === "development";
+
 /**
  * Generate a consistent cache key for matching
  */
@@ -21,7 +24,7 @@ export function generateMatchCacheKey(userId: string, type: "solo" | "group", pa
  */
 export async function getMatchingCache(key: string) {
   try {
-    if (!redis) return null; // Graceful skip if Redis is disabled
+    if (!isRedisActive) return null; // Graceful skip if Redis is unconfigured
 
     const data = await Promise.race([
       redis.get(key),
@@ -50,7 +53,7 @@ export async function getMatchingCache(key: string) {
  */
 export async function setMatchingCache(userId: string, key: string, data: any, version: string) {
   try {
-    if (!redis) return; // Graceful skip if Redis is disabled
+    if (!isRedisActive) return; // Graceful skip if Redis is unconfigured
     const payload = {
       data,
       version,
@@ -74,7 +77,7 @@ export async function setMatchingCache(userId: string, key: string, data: any, v
  */
 export async function invalidateMatchingCache(userId: string) {
   try {
-    if (!redis) return; // Graceful skip if Redis is disabled
+    if (!isRedisActive) return; // Graceful skip if Redis is unconfigured
     const indexKey = `user:${userId}:match_keys`;
     const keys = await redis.sMembers(indexKey);
     
