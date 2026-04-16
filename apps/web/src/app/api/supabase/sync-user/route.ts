@@ -48,7 +48,7 @@ export async function POST() {
 
     // 2. Atomic Identity Sync (Consolidated Source of Truth)
     // This RPC handles find-or-create atomically and handles concurrent requests.
-    // It also intentionally does NOT create a profile, enforcing onboarding-driven flow.
+    // It also handles reconciliation by email if the Clerk ID has changed (Dev vs Prod).
     const { data: userIdFromRpc, error: syncError } = await supabase
       .rpc("sync_user_identity", {
         p_email: email,
@@ -58,9 +58,13 @@ export async function POST() {
         p_password_hash: null,
       });
 
-    if (syncError || !userIdFromRpc) {
+    if (syncError) {
       console.error("[api/supabase/sync-user] Atomic identity sync failed:", syncError);
       return NextResponse.json({ error: "Identity resolution failed" }, { status: 500 });
+    }
+
+    if (!userIdFromRpc) {
+      console.warn("[api/supabase/sync-user] No ID returned from RPC, possible reconciliation delay");
     }
 
     // 3. Final Check (Optional: check for soft deletion)
