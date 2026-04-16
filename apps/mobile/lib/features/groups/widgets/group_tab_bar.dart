@@ -23,7 +23,7 @@ class GroupTabBar extends StatelessWidget {
           children: List.generate(tabs.length, (index) {
             final isSelected = activeIndex == index;
             return Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: 6),
               child: _buildTabButton(tabs[index], isSelected, index),
             );
           }),

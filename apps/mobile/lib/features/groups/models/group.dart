@@ -143,6 +143,8 @@ class GroupMember {
   final String? avatar;
   final String username;
   final String role;
+  final String? clerkId;
+  final String? userIdFromUserTable;
 
   GroupMember({
     required this.id,
@@ -150,15 +152,48 @@ class GroupMember {
     this.avatar,
     required this.username,
     required this.role,
+    this.clerkId,
+    this.userIdFromUserTable,
   });
 
   factory GroupMember.fromJson(Map<String, dynamic> json) {
     return GroupMember(
-      id: json['id'] as String,
-      name: json['name'] as String,
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
       avatar: json['avatar'] as String?,
-      username: json['username'] as String,
+      username: (json['username'] ?? '').toString(),
       role: (json['role'] ?? 'member') as String,
+      clerkId: (json['clerkId'] ?? json['clerk_id']) as String?,
+      userIdFromUserTable: json['userIdFromUserTable'] as String?,
+    );
+  }
+}
+
+class JoinRequestModel {
+  final String id;
+  final String userId;
+  final String name;
+  final String username;
+  final String? avatar;
+  final String requestedAt;
+
+  JoinRequestModel({
+    required this.id,
+    required this.userId,
+    required this.name,
+    required this.username,
+    this.avatar,
+    required this.requestedAt,
+  });
+
+  factory JoinRequestModel.fromJson(Map<String, dynamic> json) {
+    return JoinRequestModel(
+      id: (json['id'] ?? '').toString(),
+      userId: (json['userId'] ?? json['user_id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      username: (json['username'] ?? '').toString(),
+      avatar: json['avatar'] as String?,
+      requestedAt: (json['requestedAt'] ?? json['requested_at'] ?? '').toString(),
     );
   }
 }

@@ -1,16 +1,25 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> }
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
-    const { userId } = await auth();
+    const userId = await getAuthUserId(req);
     const { groupId } = await params;
 
     if (!userId) {
+      if (req.headers.get("x-kovari-client") === "mobile") {
+        return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+      }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -21,12 +30,18 @@ export async function DELETE(
     const supabase = createAdminSupabaseClient();
 
     // Get user UUID from Clerk userId
-    const { data: user, error: userError } = await supabase
+    const userQuery = supabase
       .from("users")
       .select("id")
-      .eq("clerk_user_id", userId)
-      .eq("isDeleted", false)
-      .single();
+      .eq("isDeleted", false);
+
+    if (userId.startsWith("user_")) {
+      userQuery.eq("clerk_user_id", userId);
+    } else {
+      userQuery.eq("id", userId);
+    }
+
+    const { data: user, error: userError } = await userQuery.single();
 
     if (userError || !user) {
       console.error("Error finding user:", userError);
@@ -158,12 +173,18 @@ export async function DELETE(
       );
     }
 
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatStandardResponse({ success: true, message: `Group "${group.name}" has been permanently deleted` }, {}, { requestId, latencyMs: Date.now() - start });
+    }
     return NextResponse.json({
       success: true,
       message: `Group "${group.name}" has been permanently deleted`,
     });
   } catch (error) {
     console.error("[DELETE_GROUP_DELETE]", error);
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Internal Server Error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
