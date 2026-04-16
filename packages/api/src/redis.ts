@@ -74,12 +74,48 @@ export const getRedisClient = () => {
 // Export a proxy for backward compatibility that lazy-loads the client
 export const redis = new Proxy({} as ReturnType<typeof createClient>, {
   get(target, prop, receiver) {
+    // If the property is not a function, return it normally (metadata etc)
     const client = getRedisClient();
-    return Reflect.get(client, prop, receiver);
-  },
-  apply(target, thisArg, argArray) {
-    const client = getRedisClient();
-    return Reflect.apply(client as any, thisArg, argArray);
+    
+    // Safety Fallback: If client is null/false, return a "No-Op" function that swallows errors
+    if (!client) {
+      return (...args: any[]) => {
+        // Most Redis methods return Promises. Return one that resolves to null.
+        return Promise.resolve(null);
+      };
+    }
+
+    const value = Reflect.get(client, prop, receiver);
+
+    // Guard: Only wrap functions to catch execution errors (connection drops)
+    if (typeof value === 'function') {
+      return (...args: any[]) => {
+        try {
+          // Bind to client and execute
+          const result = value.apply(client, args);
+          
+          // If it's a promise, catch rejection
+          if (result instanceof Promise) {
+            return result.catch((err) => {
+              // SILENT FAIL in production, warning in dev
+              if (process.env.NODE_ENV !== 'production') {
+                console.warn(`[Redis-Proxy] Async error on ${String(prop)}:`, err.message);
+              }
+              return null;
+            });
+          }
+          return result;
+        } catch (err: any) {
+          // SILENT FAIL in production, warning in dev
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn(`[Redis-Proxy] Sync error on ${String(prop)}:`, err.message);
+          }
+          return null;
+        }
+      };
+    }
+
+    return value;
   }
 });
 
