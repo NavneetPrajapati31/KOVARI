@@ -109,14 +109,24 @@ export async function POST(req: NextRequest) {
 
     if (flagError) {
        console.error("Failed to update onboarding flag:", flagError);
-       // We don't fail the whole request here as the profile IS created,
-       // but we log it. In a production system, this could be a transaction.
     }
 
-    // Gate 2: Post-Transform Validation
-    const transformRes = safeTransform(profileTransformer, profileData);
-    if (!transformRes.ok) {
+    // 🛡️ Post-creation Integrity Check (Fetch full joined record)
+    const { data: newUserRow, error: verifyError } = await supabase
+      .from("users")
+      .select("*, profiles(*)")
+      .eq("id", authUser.id)
+      .single();
+
+    if (verifyError || !newUserRow) {
+      console.error("Post-creation verification failed:", verifyError);
       return formatErrorResponse("Post-creation integrity check failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
+
+    // 5. Transform for Response
+    const transformRes = safeTransform(profileTransformer, newUserRow);
+    if (!transformRes.ok) {
+      return formatErrorResponse("Profile transformation failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
     const latencyMs = Date.now() - start;
