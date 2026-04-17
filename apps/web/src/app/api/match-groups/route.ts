@@ -169,9 +169,9 @@ export async function POST(request: NextRequest) {
         await matchingServiceBreaker.recordFailure();
       } catch (err) {
         await matchingServiceBreaker.recordFailure();
-        logger.error(requestId, "Go Service Error (Group)", err);
-      }
+        logger.debug(requestId, { error: "Go Service Error (Group)", message: err instanceof Error ? err.message : String(err) });
     }
+  }
 
     // 4. Fallback: Return Unscored Candidates
     return formatStandardResponse(
