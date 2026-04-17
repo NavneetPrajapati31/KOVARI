@@ -126,9 +126,9 @@ export async function GET(request: NextRequest) {
         await matchingServiceBreaker.recordFailure();
       } catch (err) {
         await matchingServiceBreaker.recordFailure();
-        logger.error(requestId, "Go Service Error", err);
-      }
+        logger.debug(requestId, { error: "Go Service Error", message: err instanceof Error ? err.message : String(err) });
     }
+  }
 
     // 3. Fallback to DB
     const fallbackResults = await performSoloDbMatchingFallback(userId, params);
