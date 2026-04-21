@@ -319,61 +319,72 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
       onSave: _handleInvite,
       buttonLabel: "Send Invitation",
       children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Text(
+            "Invite people to plan and coordinate your trip together.",
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.mutedForeground,
+              fontSize: 13,
+            ),
+          ),
+        ),
         TextInputField(
           label: "Email or Username",
           controller: _inviteController,
           hintText: "Enter email or username",
-          onChanged: (val) => setState(() {}), // Force rebuild for button state
+          onChanged: (val) => setState(() {}),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
+          fillColor: AppColors.card,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4, left: 4),
+          child: Text(
+            "Share a link",
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.mutedForeground,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
         KovariSection(
-          title: "Shareable Link",
+          title: null,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        LucideIcons.link,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _inviteLink.isNotEmpty
-                              ? _inviteLink
-                              : "Generating link...",
-                          style: AppTextStyles.bodySmall.copyWith(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.foreground,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+            KovariGroupContainer(
+              backgroundColor: AppColors.card,
+              isBorder: false,
+              children: [
+                KovariListRow(
+                  label: "Generate Link",
+                  labelColor: AppColors.mutedForeground,
+                  labelSize: 14,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
                   ),
-                  const SizedBox(height: 16),
-                  SecondaryButton(
-                    text: "Copy Link",
-                    onPressed: _inviteLink.isEmpty
-                        ? null
-                        : () {
-                            // Link copying logic
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Link copied to clipboard!"),
-                              ),
-                            );
-                          },
+                  subtitle: "Anyone with this link can request to join",
+                  trailing: const Icon(
+                    LucideIcons.copy,
+                    size: 16,
+                    color: AppColors.primary,
                   ),
-                ],
-              ),
+                  onTap: _inviteLink.isEmpty
+                      ? null
+                      : () {
+                          // Link copying logic
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Link copied to clipboard!"),
+                            ),
+                          );
+                        },
+                ),
+              ],
             ),
           ],
         ),
