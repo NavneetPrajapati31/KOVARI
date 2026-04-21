@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/core/theme/app_colors.dart';
-import 'package:mobile/core/theme/app_text_styles.dart';
 import 'package:mobile/features/groups/widgets/settings_widgets.dart';
 import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/group_details_provider.dart';
@@ -36,6 +35,13 @@ class SettingsTab extends ConsumerWidget {
             title: "Group Info",
             children: [
               KovariListRow(
+                icon: LucideIcons.image,
+                label: "Cover Image",
+                subtitle: "Update the primary image for your group",
+                onTap: () =>
+                    _showEditSheet(context, EditCoverPhotoSheet(group: group)),
+              ),
+              KovariListRow(
                 icon: LucideIcons.info,
                 label: "Group Details",
                 subtitle: "Name, description, destination",
@@ -44,19 +50,9 @@ class SettingsTab extends ConsumerWidget {
               ),
               KovariListRow(
                 icon: LucideIcons.calendar,
-                label: "Travel Dates",
-                subtitle: dateStr,
-                onTap: () => _showEditSheet(
-                  context,
-                  EditTravelDetailsSheet(group: group),
-                ),
-              ),
-              KovariListRow(
-                icon: LucideIcons.wallet,
-                label: "Estimated Budget",
-                subtitle: group.budget != null
-                    ? "\$${group.budget}"
-                    : "Not set",
+                label: "Dates & Budget",
+                subtitle:
+                    "$dateStr${group.budget != null ? ' · \$${group.budget}' : ''}",
                 onTap: () => _showEditSheet(
                   context,
                   EditTravelDetailsSheet(group: group),
@@ -101,17 +97,9 @@ class SettingsTab extends ConsumerWidget {
             children: [
               KovariListRow(
                 icon: LucideIcons.shieldCheck,
-                label: "Privacy & Visibility",
-                subtitle: group.privacy == 'public'
-                    ? "Public Group"
-                    : "Private Group",
-                onTap: () =>
-                    _showEditSheet(context, EditPoliciesSheet(group: group)),
-              ),
-              KovariListRow(
-                icon: LucideIcons.info,
-                label: "Travel Policies",
-                subtitle: "Non-smoking, Non-drinking, etc.",
+                label: "Privacy & Policies",
+                subtitle:
+                    "${group.privacy == 'public' ? 'Public' : 'Private'} Group${group.smokingPolicy == 'true' || group.drinkingPolicy == 'true' ? ' · Strict Policies' : ''}",
                 onTap: () =>
                     _showEditSheet(context, EditPoliciesSheet(group: group)),
               ),

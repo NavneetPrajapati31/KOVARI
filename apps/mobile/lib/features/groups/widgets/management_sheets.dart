@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/shared/widgets/kovari_avatar.dart';
-import 'package:mobile/shared/widgets/primary_button.dart';
 import 'package:mobile/shared/widgets/secondary_button.dart';
 import 'package:mobile/shared/widgets/text_input_field.dart';
 import 'package:mobile/core/theme/app_colors.dart';
@@ -10,6 +9,7 @@ import 'package:mobile/core/theme/app_text_styles.dart';
 import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/group_details_provider.dart';
 import 'package:mobile/features/groups/widgets/edit_group_sheets.dart';
+import 'package:mobile/features/groups/widgets/settings_widgets.dart';
 
 /// 👥 Manage Group Members (Admin only view with Remove options)
 class GroupMembersManagementSheet extends ConsumerWidget {
@@ -28,82 +28,97 @@ class GroupMembersManagementSheet extends ConsumerWidget {
 
     return SettingsBottomSheet(
       title: "Group Members",
-      onSave: () => Navigator.pop(context),
       children: [
-        SizedBox(
-          height: 400,
-          child: membersAsync.when(
-            data: (members) => ListView.builder(
-              itemCount: members.length,
-              itemBuilder: (context, index) {
-                final member = members[index];
-                final isSelf = member.clerkId == null; // Simplified self-check
-                final isOtherAdmin = member.role == 'admin';
+        membersAsync.when(
+          data: (members) => KovariGroupContainer(
+            backgroundColor: AppColors.card,
+            children: members.map((member) {
+              final isOtherAdmin = member.role == 'admin';
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Row(
-                    children: [
-                      KovariAvatar(imageUrl: member.avatar, size: 40),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              member.name,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    KovariAvatar(imageUrl: member.avatar, size: 42),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            member.name,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
-                            Text(
-                              "@${member.username}",
-                              style: AppTextStyles.bodySmall.copyWith(
-                                fontSize: 12,
-                                color: AppColors.mutedForeground,
-                              ),
+                          ),
+                          // const SizedBox(height: 1),
+                          Text(
+                            "@${member.username}",
+                            style: AppTextStyles.bodySmall.copyWith(
+                              fontSize: 13,
+                              color: AppColors.mutedForeground,
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (member.role == 'admin')
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(
+                            100,
+                          ), // Pill shape
+                        ),
+                        child: Text(
+                          "Admin",
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                       ),
-                      if (member.role == 'admin')
-                        Container(
+                    if (isAdmin && !isOtherAdmin)
+                      GestureDetector(
+                        onTap: () => _confirmRemove(context, ref, member),
+                        child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
+                            horizontal: 5,
+                            vertical: 4,
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            "Admin",
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                          child: Text(
+                            "Remove",
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.destructive,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
-                      if (isAdmin && !isOtherAdmin)
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: () => _confirmRemove(context, ref, member),
-                          icon: const Icon(
-                            LucideIcons.userMinus,
-                            size: 18,
-                            color: AppColors.destructive,
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text("Error: $e")),
+                      ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (e, _) => Center(child: Text("Error: $e")),
         ),
       ],
     );
@@ -151,84 +166,95 @@ class JoinRequestsSheet extends ConsumerWidget {
 
     return SettingsBottomSheet(
       title: "Join Requests",
-      onSave: () => Navigator.pop(context),
       children: [
-        SizedBox(
-          height: 400,
-          child: requestsAsync.when(
-            data: (requests) {
-              if (requests.isEmpty) {
-                return Center(
+        requestsAsync.when(
+          data: (requests) {
+            if (requests.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
                   child: Text(
                     "No pending requests.",
-                    style: AppTextStyles.bodySmall.copyWith(
+                    style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.mutedForeground,
                     ),
                   ),
-                );
-              }
-              return ListView.builder(
-                itemCount: requests.length,
-                itemBuilder: (context, index) {
-                  final request = requests[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Row(
-                      children: [
-                        KovariAvatar(imageUrl: request.avatar, size: 40),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                request.name,
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                "@${request.username}",
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  fontSize: 12,
-                                  color: AppColors.mutedForeground,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
+                ),
+              );
+            }
+            return KovariGroupContainer(
+              backgroundColor: AppColors.card,
+              children: requests.map((request) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      KovariAvatar(imageUrl: request.avatar, size: 44),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            IconButton(
-                              onPressed: () => ref
-                                  .read(groupActionsProvider(group.id))
-                                  .approveRequest(request.userId),
-                              icon: const Icon(
-                                LucideIcons.circleCheck,
-                                color: Colors.green,
+                            Text(
+                              request.name,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            IconButton(
-                              onPressed: () => ref
-                                  .read(groupActionsProvider(group.id))
-                                  .rejectRequest(request.id),
-                              icon: const Icon(
-                                LucideIcons.circleX,
-                                color: AppColors.destructive,
+                            // const SizedBox(height: 1),
+                            Text(
+                              "@${request.username}",
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontSize: 13,
+                                color: AppColors.mutedForeground,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text("Error: $e")),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () => ref
+                                .read(groupActionsProvider(group.id))
+                                .approveRequest(request.userId),
+                            child: const Icon(
+                              LucideIcons.check,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () => ref
+                                .read(groupActionsProvider(group.id))
+                                .rejectRequest(request.id),
+                            child: const Icon(
+                              LucideIcons.x,
+                              color: AppColors.foreground,
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: CircularProgressIndicator(),
+            ),
           ),
+          error: (e, _) => Center(child: Text("Error: $e")),
         ),
       ],
     );
@@ -291,67 +317,65 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
       title: "Invite Member",
       isSubmitting: _isSending,
       onSave: _handleInvite,
+      buttonLabel: "Send Invitation",
       children: [
         TextInputField(
           label: "Email or Username",
           controller: _inviteController,
-          hintText: "e.g. travel_buddy or buddy@email.com",
+          hintText: "Enter email or username",
+          onChanged: (val) => setState(() {}), // Force rebuild for button state
         ),
         const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        KovariSection(
+          title: "Shareable Link",
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    LucideIcons.link,
-                    size: 16,
-                    color: AppColors.primary,
+                  Row(
+                    children: [
+                      const Icon(
+                        LucideIcons.link,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _inviteLink.isNotEmpty
+                              ? _inviteLink
+                              : "Generating link...",
+                          style: AppTextStyles.bodySmall.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.foreground,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Shareable Link",
-                    style: AppTextStyles.bodySmall.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.mutedForeground,
-                      letterSpacing: 1.2,
-                    ),
+                  const SizedBox(height: 16),
+                  SecondaryButton(
+                    text: "Copy Link",
+                    onPressed: _inviteLink.isEmpty
+                        ? null
+                        : () {
+                            // Link copying logic
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Link copied to clipboard!"),
+                              ),
+                            );
+                          },
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                _inviteLink.isNotEmpty ? _inviteLink : "Generating link...",
-                style: AppTextStyles.bodySmall.copyWith(
-                  fontSize: 12,
-                  color: AppColors.mutedForeground,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 12),
-              SecondaryButton(
-                text: "Copy Link",
-                onPressed: _inviteLink.isEmpty
-                    ? null
-                    : () {
-                        // Link copying logic would go here
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Link copied to clipboard!"),
-                          ),
-                        );
-                      },
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );

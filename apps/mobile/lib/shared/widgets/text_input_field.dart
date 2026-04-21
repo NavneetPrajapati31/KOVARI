@@ -18,6 +18,9 @@ class TextInputField extends StatelessWidget {
   final int? maxLength;
   final FocusNode? focusNode;
   final Color? fillColor;
+  final double? height;
+  final BoxConstraints? prefixIconConstraints;
+  final EdgeInsetsGeometry? contentPadding;
 
   const TextInputField({
     super.key,
@@ -36,6 +39,9 @@ class TextInputField extends StatelessWidget {
     this.maxLength,
     this.focusNode,
     this.fillColor,
+    this.height,
+    this.prefixIconConstraints,
+    this.contentPadding,
   });
 
   @override
@@ -73,22 +79,23 @@ class TextInputField extends StatelessWidget {
             hintText: hintText,
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
-            prefixIconConstraints: const BoxConstraints(
+            prefixIconConstraints:
+                prefixIconConstraints ??
+                BoxConstraints(
+                  minWidth: 40,
+                  minHeight: height ?? 40,
+                  maxHeight: height ?? 40,
+                ),
+            suffixIconConstraints: BoxConstraints(
               minWidth: 40,
-              minHeight: 40,
-              maxHeight: 40,
-            ),
-            suffixIconConstraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
-              maxHeight: 40,
+              minHeight: height ?? 40,
+              maxHeight: height ?? 40,
             ),
             errorText: errorText,
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
+            contentPadding:
+                contentPadding ??
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             filled: true,
             fillColor: fillColor ?? AppColors.background,
             enabledBorder: OutlineInputBorder(

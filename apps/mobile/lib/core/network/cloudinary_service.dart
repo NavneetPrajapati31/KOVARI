@@ -21,8 +21,12 @@ class CloudinaryService {
     if (response.success && response.data != null) {
       return response.data!;
     }
+
+    final reason = response.meta.reason;
+    final message = response.error?.message;
+    
     throw Exception(
-      response.error?.message ?? 'Failed to get Cloudinary signature',
+      message ?? 'Signature Error: $reason',
     );
   }
 

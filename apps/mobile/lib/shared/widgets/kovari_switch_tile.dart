@@ -9,6 +9,9 @@ class KovariSwitchTile extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
   final EdgeInsetsGeometry? margin;
+  final Color? fillColor;
+  final TextStyle? subtitleStyle;
+  final TextStyle? titleStyle;
 
   const KovariSwitchTile({
     super.key,
@@ -17,6 +20,9 @@ class KovariSwitchTile extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.margin,
+    this.fillColor,
+    this.subtitleStyle,
+    this.titleStyle,
   });
 
   @override
@@ -25,7 +31,7 @@ class KovariSwitchTile extends StatelessWidget {
       margin: margin ?? const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: fillColor ?? AppColors.background,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
@@ -47,7 +53,7 @@ class KovariSwitchTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: AppTextStyles.bodyMedium.copyWith(
+                  style: titleStyle ?? AppTextStyles.bodyMedium.copyWith(
                     fontWeight: FontWeight.w500,
                     color: AppColors.foreground,
                   ),
@@ -56,10 +62,12 @@ class KovariSwitchTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      fontSize: 12,
-                      color: AppColors.mutedForeground,
-                    ),
+                    style:
+                        subtitleStyle ??
+                        AppTextStyles.bodySmall.copyWith(
+                          fontSize: 12,
+                          color: AppColors.mutedForeground,
+                        ),
                   ),
                 ],
               ],

@@ -6,14 +6,20 @@ import 'package:mobile/core/theme/app_text_styles.dart';
 class KovariGroupContainer extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry? padding;
+  final Color? backgroundColor;
 
-  const KovariGroupContainer({super.key, required this.children, this.padding});
+  const KovariGroupContainer({
+    super.key,
+    required this.children,
+    this.padding,
+    this.backgroundColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: backgroundColor ?? AppColors.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
