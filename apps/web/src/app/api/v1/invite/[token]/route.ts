@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import {
   formatStandardResponse,
   formatErrorResponse,
@@ -14,6 +15,9 @@ export async function GET(
   const start = Date.now();
   const requestId = generateRequestId();
   const { token } = await params;
+
+  // Optional Auth for membership check
+  const clerkUserId = await getAuthUserId(req);
 
   try {
     const supabase = createAdminSupabaseClient();
@@ -99,9 +103,26 @@ export async function GET(
       .eq("user_id", group.creator_id)
       .maybeSingle();
 
-    console.log(`[Diagnostic] Inviter Profile found:`, !!inviterProfile);
-    if (inviterProfile) {
-      console.log(`[Diagnostic] Inviter Name:`, inviterProfile.name);
+    // 5. Check if requesting user is already a member (if authenticated)
+    let isMember = false;
+    if (clerkUserId) {
+      const userQuery = supabase.from("users").select("id").eq("isDeleted", false);
+      if (clerkUserId.startsWith("user_")) {
+        userQuery.eq("clerk_user_id", clerkUserId);
+      } else {
+        userQuery.eq("id", clerkUserId);
+      }
+      
+      const { data: userRow } = await userQuery.single();
+      if (userRow) {
+        const { data: membership } = await supabase
+          .from("group_memberships")
+          .select("status")
+          .eq("group_id", groupId)
+          .eq("user_id", userRow.id)
+          .maybeSingle();
+        isMember = membership?.status === "accepted";
+      }
     }
 
     return formatStandardResponse(
@@ -113,6 +134,7 @@ export async function GET(
         coverImage: group.cover_image,
         memberCount: memberCount ?? 0,
         memberAvatars,
+        isMember,
         inviter: inviterProfile ? {
           name: inviterProfile.name || inviterProfile.username || "A Traveler",
           avatar: inviterProfile.profile_photo,

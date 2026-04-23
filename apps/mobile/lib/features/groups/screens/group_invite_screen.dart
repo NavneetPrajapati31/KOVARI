@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -8,7 +9,9 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../providers/group_details_provider.dart';
 import '../providers/group_provider.dart';
+import '../../../core/providers/auth_provider.dart';
 import 'group_details_screen.dart';
+import '../../auth/screens/login_screen.dart';
 
 class GroupInviteScreen extends ConsumerStatefulWidget {
   final String token;
@@ -27,14 +30,45 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchInviteInfo();
+    // 1. Auth Guard: Only proceed if logged in
+    final user = ref.read(authStateProvider);
+    if (user == null) {
+      _isLoading = false;
+      _error = "auth_required";
+
+      // Directly redirect to Login and remove this screen from stack
+      // so they return to Dashboard/Home after login.
+      Future.microtask(() {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
+      });
+    } else {
+      _fetchInviteInfo();
+    }
   }
 
   Future<void> _fetchInviteInfo() async {
     try {
       final service = ref.read(groupServiceProvider);
       final response = await service.getInviteInfo(widget.token);
+
       if (mounted) {
+        // 2. Membership Guard: If already a member, skip invite
+        if (response['isMember'] == true) {
+          final groupId = response['id'] as String;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => GroupDetailsScreen(groupId: groupId),
+            ),
+          );
+          return;
+        }
+
         setState(() {
           _groupInfo = response;
           _isLoading = false;
@@ -199,6 +233,118 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   }
 
   Widget _buildErrorState() {
+    final isAuthError = _error == "auth_required";
+
+    if (isAuthError) {
+      return Center(
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(28, 48, 28, 40),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.08),
+                        ),
+                      ),
+                      child: const Icon(
+                        LucideIcons.lock,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      "Authentication Required",
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.h2.copyWith(
+                        color: Colors.white,
+                        fontSize: 24,
+                        letterSpacing: -0.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "This group is private. You need to log in to view and join this journey.",
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white.withOpacity(0.5),
+                        height: 1.5,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          "Login to access",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        "Go Back",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Center(
       child: Container(
         margin: const EdgeInsets.all(32),
