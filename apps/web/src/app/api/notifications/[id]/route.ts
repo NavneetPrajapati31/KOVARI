@@ -1,6 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { createAdminSupabaseClient } from "@kovari/api";
+import {
+  formatStandardResponse,
+  formatErrorResponse,
+} from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 /**
  * PATCH /api/notifications/[id]
@@ -10,11 +15,18 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const start = Date.now();
+  const requestId = "update-notif";
   try {
     const authUser = await getAuthenticatedUser(request);
 
     if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return formatErrorResponse(
+        "Unauthorized",
+        ApiErrorCode.UNAUTHORIZED,
+        requestId,
+        401
+      );
     }
 
     const { id } = await params;
@@ -32,25 +44,35 @@ export async function PATCH(
 
     if (error) {
       console.error("Error updating notification:", error);
-      return NextResponse.json(
-        { error: "Failed to update notification" },
-        { status: 500 },
+      return formatErrorResponse(
+        "Failed to update notification",
+        ApiErrorCode.INTERNAL_SERVER_ERROR,
+        requestId,
+        500
       );
     }
 
     if (!data) {
-      return NextResponse.json(
-        { error: "Notification not found" },
-        { status: 404 },
+      return formatErrorResponse(
+        "Notification not found",
+        ApiErrorCode.NOT_FOUND,
+        requestId,
+        404
       );
     }
 
-    return NextResponse.json({ notification: data });
+    return formatStandardResponse(
+      { notification: data },
+      {},
+      { requestId, latencyMs: Date.now() - start }
+    );
   } catch (error: any) {
     console.error("Exception in PATCH /api/notifications/[id]:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
+    return formatErrorResponse(
+      "Internal server error",
+      ApiErrorCode.INTERNAL_SERVER_ERROR,
+      "update-notif",
+      500
     );
   }
 }

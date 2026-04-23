@@ -153,11 +153,16 @@ class _InterestsList extends ConsumerWidget {
             ),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          itemCount: interests.length,
-          itemBuilder: (context, index) =>
-              _InterestCard(interest: interests[index]),
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () => ref.read(interestsProvider.notifier).refresh(),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.md),
+            itemCount: interests.length,
+            itemBuilder: (context, index) =>
+                _InterestCard(interest: interests[index]),
+          ),
         );
       },
       loading: () => _buildSkeleton(),
@@ -371,11 +376,16 @@ class _InvitationsList extends ConsumerWidget {
             ),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          itemCount: invitations.length,
-          itemBuilder: (context, index) =>
-              _InvitationCard(invitation: invitations[index]),
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () => ref.read(invitationsProvider.notifier).refresh(),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.md),
+            itemCount: invitations.length,
+            itemBuilder: (context, index) =>
+                _InvitationCard(invitation: invitations[index]),
+          ),
         );
       },
       loading: () => _buildSkeleton(),

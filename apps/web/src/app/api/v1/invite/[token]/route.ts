@@ -59,7 +59,7 @@ export async function GET(
     // 2. Fetch group details
     const { data: group, error: groupError } = await supabase
       .from("groups")
-      .select("id, name, destination, description, cover_image, status")
+      .select("id, name, destination, description, cover_image, status, creator_id")
       .eq("id", groupId)
       .single();
 
@@ -90,6 +90,20 @@ export async function GET(
       .map((m: any) => m.profiles?.avatar_url)
       .filter(Boolean);
 
+    console.log(`[Diagnostic] Resolved Group ${group.id}, Creator ${group.creator_id}`);
+
+    // 4. Fetch inviter info (the group creator)
+    const { data: inviterProfile } = await supabase
+      .from("profiles")
+      .select("name, profile_photo, username")
+      .eq("user_id", group.creator_id)
+      .maybeSingle();
+
+    console.log(`[Diagnostic] Inviter Profile found:`, !!inviterProfile);
+    if (inviterProfile) {
+      console.log(`[Diagnostic] Inviter Name:`, inviterProfile.name);
+    }
+
     return formatStandardResponse(
       {
         id: group.id,
@@ -99,6 +113,11 @@ export async function GET(
         coverImage: group.cover_image,
         memberCount: memberCount ?? 0,
         memberAvatars,
+        inviter: inviterProfile ? {
+          name: inviterProfile.name || inviterProfile.username || "A Traveler",
+          avatar: inviterProfile.profile_photo,
+          username: inviterProfile.username,
+        } : null,
       },
       {},
       { requestId, latencyMs: Date.now() - start }

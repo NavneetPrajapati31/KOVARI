@@ -66,7 +66,7 @@ class PrimaryButton extends StatelessWidget {
                     color: foregroundColor ?? AppColors.primaryForeground,
                   ),
                 if (text != null && text!.isNotEmpty) ...[
-                  const SizedBox(width: 8),
+                  if (icon != null) const SizedBox(width: 8),
                   Text(
                     text!,
                     style: AppTextStyles.button.copyWith(

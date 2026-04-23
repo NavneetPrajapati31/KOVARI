@@ -8,6 +8,8 @@ import {
   formatErrorResponse,
 } from "@/lib/api/responseHelpers";
 import { ApiErrorCode } from "@/types/api";
+import { createNotification } from "@/lib/notifications/createNotification";
+import { NotificationType } from "@kovari/types";
 
 // Helper to generate a random token
 const generateToken = (length = 24) =>
@@ -74,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     const { data: group, error: groupError } = await supabase
       .from("groups")
-      .select("id, status, creator_id")
+      .select("id, status, creator_id, name")
       .eq("id", groupId)
       .maybeSingle();
 
@@ -193,7 +195,7 @@ export async function POST(req: NextRequest) {
     // Check if group exists and is not removed
     const { data: groupCheck, error: groupCheckError } = await supabase
       .from("groups")
-      .select("id, status, creator_id")
+      .select("id, status, creator_id, name")
       .eq("id", groupId)
       .single();
 
@@ -254,24 +256,11 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Create notification...
-      const { createNotification } = await import(
-        "@/lib/notifications/createNotification"
-      );
-      const { NotificationType } = await import("@kovari/types");
-
-      const { data: groupData } = await supabase
-        .from("groups")
-        .select("name")
-        .eq("id", groupId)
-        .single();
-      const groupName = groupData?.name || "a group";
-
       await createNotification({
         userId: userUuid,
         type: NotificationType.GROUP_JOIN_APPROVED,
         title: "Request Approved",
-        message: `You're now a member of ${groupName}`,
+        message: `You're now a member of ${groupCheck.name}`,
         entityType: "group",
         entityId: groupId,
       });
@@ -399,22 +388,12 @@ export async function POST(req: NextRequest) {
               .from("group_memberships")
               .update({ status: "pending" })
               .eq("id", existing.id);
-            // send notification...
-            const { createNotification } = await import(
-              "@/lib/notifications/createNotification"
-            );
-            const { NotificationType } = await import("@kovari/types");
-            const { data: g } = await supabase
-              .from("groups")
-              .select("name")
-              .eq("id", groupId)
-              .single();
-            const groupName = g?.name || "a group";
+            
             await createNotification({
               userId: userRow.id,
               type: NotificationType.GROUP_INVITE_RECEIVED,
-              title: "Group invitation",
-              message: `You've been invited to join ${groupName} by ${senderName}`,
+              title: "Group Invitation",
+              message: `You've been invited back to ${groupCheck.name}!`,
               entityType: "group",
               entityId: groupId,
             });
@@ -430,7 +409,7 @@ export async function POST(req: NextRequest) {
 
         if (memberCount && memberCount.length >= 10) continue;
 
-        await supabase.from("group_memberships").insert({
+        const { error: insertError } = await supabase.from("group_memberships").insert({
           group_id: groupId,
           user_id: userRow.id,
           status: "pending",
@@ -438,22 +417,16 @@ export async function POST(req: NextRequest) {
           joined_at: new Date().toISOString(),
         });
 
-        // send notification...
-        const { createNotification } = await import(
-          "@/lib/notifications/createNotification"
-        );
-        const { NotificationType } = await import("@kovari/types");
-        const { data: g } = await supabase
-          .from("groups")
-          .select("name")
-          .eq("id", groupId)
-          .single();
-        const groupName = g?.name || "a group";
+        if (insertError) {
+          console.error("[API] Failed to insert group membership:", insertError);
+          continue; // Skip notification if DB insert failed
+        }
+
         await createNotification({
           userId: userRow.id,
           type: NotificationType.GROUP_INVITE_RECEIVED,
-          title: "Group invitation",
-          message: `You've been invited to join ${groupName} by ${senderName}`,
+          title: "Group Invitation",
+          message: `You've been invited to join ${groupCheck.name}!`,
           entityType: "group",
           entityId: groupId,
         });

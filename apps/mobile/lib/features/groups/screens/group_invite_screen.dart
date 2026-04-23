@@ -7,6 +7,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../providers/group_details_provider.dart';
 import '../providers/group_provider.dart';
+import '../../../shared/widgets/primary_button.dart';
 
 class GroupInviteScreen extends ConsumerStatefulWidget {
   final String token;
@@ -37,6 +38,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
       if (mounted) {
         setState(() {
           _groupInfo = response;
+          print("Invite Info Loaded: $_groupInfo");
           _isLoading = false;
         });
       }
@@ -121,7 +123,11 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(LucideIcons.x, color: Colors.white),
+                        icon: const Icon(
+                          LucideIcons.x,
+                          size: 20,
+                          color: Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Spacer(),
@@ -160,7 +166,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
 
   Widget _buildActionButton() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
+      padding: const EdgeInsets.fromLTRB(32, 22, 32, 22),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -168,43 +174,11 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
           colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
         ),
       ),
-      child: Container(
-        width: double.infinity,
+      child: PrimaryButton(
+        text: "Join Group",
+        onPressed: _handleJoin,
+        isLoading: _isJoining,
         height: 48,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          onPressed: _isJoining ? null : _handleJoin,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            elevation: 0,
-          ),
-          child: _isJoining
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Text(
-                  "Join Group",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                ),
-        ),
       ),
     );
   }
@@ -306,15 +280,15 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
               }),
             ),
           ),
-        const SizedBox(width: 8),
-        Text(
-          "$count ${count == 1 ? 'member' : 'members'} already exploring",
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: Colors.white.withOpacity(0.7),
-            fontWeight: FontWeight.w500,
-            fontSize: 13,
-          ),
-        ),
+        // const SizedBox(width: 8),
+        // Text(
+        //   "$count ${count == 1 ? 'member' : 'members'}",
+        //   style: AppTextStyles.bodyMedium.copyWith(
+        //     color: Colors.white.withOpacity(0.7),
+        //     fontWeight: FontWeight.w500,
+        //     fontSize: 13,
+        //   ),
+        // ),
       ],
     );
   }
@@ -336,14 +310,13 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 30),
             // Hero Image
             Container(
-              width: 140,
-              height: 140,
+              width: 85,
+              height: 85,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.3),
@@ -365,26 +338,8 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     : _buildPlaceholder(name),
               ),
             ),
-            const SizedBox(height: 24),
             // Labels
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-              ),
-              child: Text(
-                "GROUP INVITATION",
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: Colors.white.withOpacity(0.8),
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2.0,
-                  fontSize: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Text(
               name,
               style: AppTextStyles.h1.copyWith(
@@ -395,46 +350,46 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Destination Pill
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     LucideIcons.mapPin,
-                    size: 14,
-                    color: AppColors.primary,
+                    size: 13,
+                    color: Colors.white.withOpacity(0.85),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 5),
                   Text(
                     destination,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             // Social Proof
             _buildSocialProof(),
 
-            const SizedBox(height: 24),
             // Description
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(18),
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white.withOpacity(0.05)),
               ),
               child: Column(
@@ -442,14 +397,8 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        LucideIcons.info,
-                        size: 16,
-                        color: Colors.white.withOpacity(0.5),
-                      ),
-                      const SizedBox(width: 8),
                       Text(
-                        "ABOUT THIS TRIP",
+                        "ABOUT",
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.4),
                           fontWeight: FontWeight.w800,
@@ -459,7 +408,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     description,
                     style: AppTextStyles.bodyMedium.copyWith(
@@ -471,10 +420,166 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 40),
+            // Trip Highlights
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "GROUP FEATURES",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.4),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildHighlightItem(
+                    LucideIcons.messageSquare,
+                    "Group Chat",
+                    "Real-time coordination with members",
+                  ),
+                  const SizedBox(height: 12),
+                  _buildHighlightItem(
+                    LucideIcons.calendarDays,
+                    "Collaborative Itinerary",
+                    "Plan activities together",
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            _buildInviterCard(),
+            // const SizedBox(height: 18), // Space for bottom action button
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildInviterCard() {
+    final inviter = _groupInfo?['inviter'];
+    if (inviter == null) return const SizedBox.shrink();
+
+    final name = inviter['name'] ?? "A Traveler";
+    final username = inviter['username'] ?? "traveler";
+    final avatar = inviter['avatar'];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "INVITED BY",
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.4),
+              fontWeight: FontWeight.w800,
+              fontSize: 11,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.white.withOpacity(0.05),
+                backgroundImage: avatar != null
+                    ? CachedNetworkImageProvider(
+                        UrlUtils.getFullImageUrl(avatar)!,
+                      )
+                    : null,
+                child: avatar == null
+                    ? Icon(
+                        LucideIcons.user,
+                        size: 18,
+                        color: Colors.white.withOpacity(0.5),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    // const SizedBox(height: 1),
+                    Text(
+                      "@$username",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightItem(IconData icon, String title, String subtitle) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 14, color: Colors.white.withOpacity(0.7)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

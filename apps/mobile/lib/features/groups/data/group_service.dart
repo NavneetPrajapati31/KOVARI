@@ -137,8 +137,18 @@ class GroupService {
       data: {'groupId': groupId, 'invites': invites, 'platform': 'mobile'},
       parser: (json) => json,
     );
-    if (!response.success)
+    if (!response.success) {
       throw Exception(response.error?.message ?? 'Failed to send invites');
+    }
+
+    // Handle status-based "errors" that come back as 200 OK correctly
+    if (response.data is Map) {
+      final data = response.data as Map;
+      final status = data['status'];
+      if (status != null && status != 'sent' && status != 'success') {
+        throw Exception(data['message'] ?? 'Failed to send invite');
+      }
+    }
   }
 
   Future<List<ItineraryItem>> getGroupItinerary(String groupId) async {
