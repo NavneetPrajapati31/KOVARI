@@ -111,10 +111,21 @@ class GroupService {
 
   Future<String> getInviteLink(String groupId) async {
     final response = await _apiClient.get<String>(
-      ApiEndpoints.groupInvitationLink(groupId),
+      "${ApiEndpoints.groupInvitationLink(groupId)}&platform=mobile",
       parser: (json) => (json as Map)['link'] as String,
     );
     return response.data ?? '';
+  }
+
+  Future<Map<String, dynamic>> getInviteInfo(String token) async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      ApiEndpoints.v1InviteInfo(token),
+      parser: (json) => json as Map<String, dynamic>,
+    );
+    if (!response.success || response.data == null) {
+      throw Exception(response.error?.message ?? 'Invalid invite link');
+    }
+    return response.data!;
   }
 
   Future<void> sendGroupInvite(
@@ -123,7 +134,7 @@ class GroupService {
   ) async {
     final response = await _apiClient.post<dynamic>(
       ApiEndpoints.groupInvitationSend,
-      data: {'groupId': groupId, 'invites': invites},
+      data: {'groupId': groupId, 'invites': invites, 'platform': 'mobile'},
       parser: (json) => json,
     );
     if (!response.success)
@@ -158,6 +169,15 @@ class GroupService {
       parser: (_) {},
     );
     if (!response.success) throw Exception('Failed to send join request');
+  }
+
+  Future<void> joinGroup(String groupId, {bool viaInvite = false}) async {
+    final response = await _apiClient.post<void>(
+      ApiEndpoints.groupJoin(groupId),
+      data: viaInvite ? {'viaInvite': true} : {},
+      parser: (_) {},
+    );
+    if (!response.success) throw Exception('Failed to join group');
   }
 
   Future<void> generateAiOverview(String groupId) async {

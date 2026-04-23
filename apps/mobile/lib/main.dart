@@ -16,6 +16,7 @@ import 'features/onboarding/data/profile_service.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'core/config/routes.dart';
+import 'features/groups/screens/group_invite_screen.dart';
 import 'features/auth/screens/reset_password_screen.dart';
 // KovariUser import removed as it is now managed via authStateProvider
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -39,7 +40,9 @@ void main() async {
   // Initialize Google Sign In (Required for 7.x+)
   try {
     await GoogleSignIn.instance.initialize(
-      clientId: kIsWeb ? Env.googleClientId : null, // Fix NPE on Android by removing clientId
+      clientId: kIsWeb
+          ? Env.googleClientId
+          : null, // Fix NPE on Android by removing clientId
       serverClientId: kIsWeb ? null : Env.googleClientId,
     );
   } catch (e) {
@@ -91,23 +94,38 @@ class _KovariAppState extends State<KovariApp> {
   void _handleDeepLink(Uri uri) {
     debugPrint('🔗 Deep Link received: $uri');
 
+    // Path segments for parsing URLs like /invite/token or /forgot-password?token=...
+    final segments = uri.pathSegments;
+
     // Support both HTTPS (Universal Links) and Custom Scheme (Fallback)
     bool isResetPath =
         uri.path.contains('forgot-password') || uri.host == 'reset-password';
+    bool isInvitePath =
+        (segments.isNotEmpty && segments.first == 'invite') ||
+        uri.host == 'invite';
 
-    String? token = uri.queryParameters['token'];
+    String? resetToken = uri.queryParameters['token'];
 
-    if (isResetPath && token != null) {
-      // Delay navigation to let the app route system/MaterialApp mount first
+    if (isResetPath && resetToken != null) {
       Future.delayed(const Duration(milliseconds: 500), () {
         if (navigatorKey.currentState != null) {
           navigatorKey.currentState?.push(
             MaterialPageRoute(
-              builder: (context) => ResetPasswordScreen(token: token),
+              builder: (context) => ResetPasswordScreen(token: resetToken),
             ),
           );
-        } else {
-          debugPrint('❌ Navigator is not ready for deep link navigation');
+        }
+      });
+    } else if (isInvitePath) {
+      final inviteToken = uri.host == 'invite' ? segments.first : segments[1];
+      debugPrint('📩 Invite token detected: $inviteToken');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (navigatorKey.currentState != null) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => GroupInviteScreen(token: inviteToken),
+            ),
+          );
         }
       });
     }

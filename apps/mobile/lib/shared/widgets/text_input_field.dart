@@ -21,6 +21,8 @@ class TextInputField extends StatelessWidget {
   final double? height;
   final BoxConstraints? prefixIconConstraints;
   final EdgeInsetsGeometry? contentPadding;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   const TextInputField({
     super.key,
@@ -42,6 +44,8 @@ class TextInputField extends StatelessWidget {
     this.height,
     this.prefixIconConstraints,
     this.contentPadding,
+    this.readOnly = false,
+    this.onTap,
   });
 
   @override
@@ -71,6 +75,8 @@ class TextInputField extends StatelessWidget {
           keyboardType: keyboardType,
           onChanged: onChanged,
           validator: validator,
+          readOnly: readOnly,
+          onTap: onTap,
           maxLines: maxLines,
           maxLength: maxLength,
           style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500),

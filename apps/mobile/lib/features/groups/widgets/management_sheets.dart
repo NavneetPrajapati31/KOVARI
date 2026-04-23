@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/shared/widgets/kovari_avatar.dart';
-import 'package:mobile/shared/widgets/secondary_button.dart';
 import 'package:mobile/shared/widgets/text_input_field.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_text_styles.dart';
@@ -10,6 +9,7 @@ import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/group_details_provider.dart';
 import 'package:mobile/features/groups/widgets/edit_group_sheets.dart';
 import 'package:mobile/features/groups/widgets/settings_widgets.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
 
 /// 👥 Manage Group Members (Admin only view with Remove options)
 class GroupMembersManagementSheet extends ConsumerWidget {
@@ -115,7 +115,11 @@ class GroupMembersManagementSheet extends ConsumerWidget {
           loading: () => const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
-              child: CircularProgressIndicator(),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
           ),
           error: (e, _) => Center(child: Text("Error: $e")),
@@ -125,32 +129,17 @@ class GroupMembersManagementSheet extends ConsumerWidget {
   }
 
   void _confirmRemove(BuildContext context, WidgetRef ref, GroupMember member) {
-    showDialog(
+    showKovariConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Remove Member?"),
-        content: Text(
-          "Are you sure you want to remove ${member.name} from the group?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              ref
-                  .read(groupActionsProvider(group.id))
-                  .removeMember(member.id, member.clerkId ?? '');
-              Navigator.pop(context);
-            },
-            child: const Text(
-              "Remove",
-              style: TextStyle(color: AppColors.destructive),
-            ),
-          ),
-        ],
-      ),
+      title: "Remove Member?",
+      content: "Are you sure you want to remove ${member.name} from the group?",
+      confirmLabel: "Remove",
+      isDestructive: true,
+      onConfirm: () {
+        ref
+            .read(groupActionsProvider(group.id))
+            .removeMember(member.id, member.clerkId ?? '');
+      },
     );
   }
 }
@@ -251,7 +240,11 @@ class JoinRequestsSheet extends ConsumerWidget {
           loading: () => const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
-              child: CircularProgressIndicator(),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
             ),
           ),
           error: (e, _) => Center(child: Text("Error: $e")),
@@ -272,6 +265,7 @@ class InviteMembersSheet extends ConsumerStatefulWidget {
 
 class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
   final TextEditingController _inviteController = TextEditingController();
+  final TextEditingController _linkController = TextEditingController();
   String _inviteLink = "";
   bool _isSending = false;
 
@@ -285,11 +279,28 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
     final link = await ref
         .read(groupActionsProvider(widget.group.id))
         .getInviteLink();
-    if (mounted) setState(() => _inviteLink = link);
+    if (mounted) {
+      setState(() {
+        _inviteLink = link;
+        _linkController.text = link.isNotEmpty ? link : "Generate Link";
+      });
+    }
+  }
+
+  bool _isValidEmail(String input) =>
+      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(input.trim());
+
+  bool _isValidUsername(String input) =>
+      RegExp(r'^[a-zA-Z0-9_]{3,20}$').hasMatch(input.trim());
+
+  bool get _canInvite {
+    final trimmed = _inviteController.text.trim();
+    return trimmed.isNotEmpty &&
+        (_isValidEmail(trimmed) || _isValidUsername(trimmed));
   }
 
   Future<void> _handleInvite() async {
-    if (_inviteController.text.trim().isEmpty) return;
+    if (!_canInvite) return;
     setState(() => _isSending = true);
     try {
       await ref
@@ -311,12 +322,20 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
     }
   }
 
+  void _copyLink() {
+    if (_inviteLink.isEmpty) return;
+    // Link copying logic
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Link copied to clipboard!")));
+  }
+
   @override
   Widget build(BuildContext context) {
     return SettingsBottomSheet(
       title: "Invite Member",
       isSubmitting: _isSending,
-      onSave: _handleInvite,
+      onSave: _canInvite ? _handleInvite : null,
       buttonLabel: "Send Invitation",
       children: [
         Padding(
@@ -335,59 +354,33 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
           hintText: "Enter email or username",
           onChanged: (val) => setState(() {}),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
+            horizontal: 14,
+            vertical: 12,
           ),
           fillColor: AppColors.card,
         ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4, left: 4),
-          child: Text(
-            "Share a link",
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+        const SizedBox(height: 20),
+        TextInputField(
+          label: "Share a link",
+          controller: _linkController,
+          readOnly: true,
+          onTap: _copyLink,
+          hintText: "Generate Link",
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+          fillColor: AppColors.card,
+          suffixIcon: IconButton(
+            onPressed: _copyLink,
+            icon: const Icon(
+              LucideIcons.copy,
+              size: 18,
+              color: AppColors.primary,
             ),
           ),
         ),
-        KovariSection(
-          title: null,
-          children: [
-            KovariGroupContainer(
-              backgroundColor: AppColors.card,
-              isBorder: false,
-              children: [
-                KovariListRow(
-                  label: "Generate Link",
-                  labelColor: AppColors.mutedForeground,
-                  labelSize: 14,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  subtitle: "Anyone with this link can request to join",
-                  trailing: const Icon(
-                    LucideIcons.copy,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                  onTap: _inviteLink.isEmpty
-                      ? null
-                      : () {
-                          // Link copying logic
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Link copied to clipboard!"),
-                            ),
-                          );
-                        },
-                ),
-              ],
-            ),
-          ],
-        ),
+        const SizedBox(height: 8),
       ],
     );
   }
