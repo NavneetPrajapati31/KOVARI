@@ -106,12 +106,18 @@ export async function POST(
     }
 
     // Get target user (internal uuid)
-    const { data: user, error: userError } = await supabase
+    const targetUserQuery = supabase
       .from("users")
       .select("id")
-      .eq("clerk_user_id", targetClerkUserId)
-      .eq("isDeleted", false)
-      .single();
+      .eq("isDeleted", false);
+
+    if (targetClerkUserId.startsWith("user_")) {
+      targetUserQuery.eq("clerk_user_id", targetClerkUserId);
+    } else {
+      targetUserQuery.eq("id", targetClerkUserId);
+    }
+
+    const { data: user, error: userError } = await targetUserQuery.single();
 
     if (userError || !user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

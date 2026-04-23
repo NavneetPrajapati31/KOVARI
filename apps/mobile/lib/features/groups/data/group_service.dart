@@ -187,7 +187,8 @@ class GroupService {
       data: viaInvite ? {'viaInvite': true} : {},
       parser: (_) {},
     );
-    if (!response.success) throw Exception('Failed to join group');
+    print("Join API Response - Success: ${response.success}, Error: ${response.error?.message}");
+    if (!response.success) throw Exception(response.error?.message ?? 'Failed to join group');
   }
 
   Future<void> generateAiOverview(String groupId) async {

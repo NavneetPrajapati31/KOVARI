@@ -291,7 +291,7 @@ class DioApiClient implements ApiClient {
           return execute();
         }
 
-        final reason =
+        String reason =
             e.type == DioExceptionType.connectionTimeout ||
                 e.type == DioExceptionType.receiveTimeout ||
                 e.type == DioExceptionType.sendTimeout
@@ -300,7 +300,17 @@ class DioApiClient implements ApiClient {
             ? 'server_error'
             : 'network';
 
-        return ApiResponse.fallback(reason: reason, requestId: requestId);
+        // Try to extract backend error message
+        String? backendMessage;
+        if (e.response?.data is Map) {
+          final data = e.response!.data as Map;
+          backendMessage = data['error']?.toString() ?? data['message']?.toString();
+        }
+
+        return ApiResponse.fallback(
+          reason: backendMessage ?? reason, 
+          requestId: requestId,
+        );
       } catch (e) {
         return ApiResponse.fallback(reason: 'malformed', requestId: requestId);
       }

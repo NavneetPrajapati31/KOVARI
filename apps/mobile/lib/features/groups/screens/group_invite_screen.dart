@@ -8,6 +8,7 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../providers/group_details_provider.dart';
 import '../providers/group_provider.dart';
+import 'group_details_screen.dart';
 
 class GroupInviteScreen extends ConsumerStatefulWidget {
   final String token;
@@ -50,26 +51,38 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   }
 
   Future<void> _handleJoin() async {
-    if (_groupInfo == null) return;
+    print("Join Group initiated...");
+    if (_groupInfo == null) {
+      print("Error: _groupInfo is null");
+      return;
+    }
     setState(() => _isJoining = true);
     try {
       final groupId = _groupInfo!['id'] as String;
+      print("Joining Group ID: $groupId");
       await ref.read(groupActionsProvider(groupId)).joinViaInvite();
+      print("Join Successful!");
 
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Welcome to the group!")));
-        Navigator.pop(context);
+        // Replace current screen with group details
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GroupDetailsScreen(groupId: groupId),
+          ),
+        );
       }
     } catch (e) {
+      print("Join Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        setState(() => _isJoining = false);
       }
-    } finally {
-      if (mounted) setState(() => _isJoining = false);
     }
   }
 
@@ -143,7 +156,14 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 Expanded(
                   child: _isLoading
                       ? const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3,
+                            ),
+                          ),
                         )
                       : _error != null
                       ? _buildErrorState()
@@ -302,7 +322,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                         fit: BoxFit.cover,
                         fadeInDuration: const Duration(milliseconds: 500),
                         fadeOutDuration: const Duration(milliseconds: 500),
-                        placeholder: Container(color: Colors.white.withOpacity(0.1)),
+                        placeholder: Container(
+                          color: Colors.white.withOpacity(0.1),
+                        ),
                       )
                     : KovariAvatar(imageUrl: null, size: 85, fullName: name),
               ),
@@ -467,7 +489,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             children: [
               KovariAvatar(
                 imageUrl: UrlUtils.getFullImageUrl(avatar),
-                size: 40,
+                size: 38,
                 fullName: name,
               ),
               const SizedBox(width: 12),
@@ -480,7 +502,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.85),
                         fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                        fontSize: 12,
                       ),
                     ),
                     Text(
@@ -510,7 +532,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             color: Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 14, color: Colors.white.withOpacity(0.7)),
+          child: Icon(icon, size: 15, color: Colors.white.withOpacity(0.7)),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -529,7 +551,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 subtitle,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.5),
-                  fontSize: 11,
+                  fontSize: 12,
                 ),
               ),
             ],
