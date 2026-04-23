@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/common/kovari_image.dart';
+import '../../../shared/widgets/kovari_avatar.dart';
+import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../providers/group_details_provider.dart';
 import '../providers/group_provider.dart';
-import '../../../shared/widgets/primary_button.dart';
 
 class GroupInviteScreen extends ConsumerStatefulWidget {
   final String token;
@@ -32,13 +32,10 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   Future<void> _fetchInviteInfo() async {
     try {
       final service = ref.read(groupServiceProvider);
-      // We need a way to call the endpoint from GroupService
-      // I'll add getInviteInfo to GroupService in next step if missing
       final response = await service.getInviteInfo(widget.token);
       if (mounted) {
         setState(() {
           _groupInfo = response;
-          print("Invite Info Loaded: $_groupInfo");
           _isLoading = false;
         });
       }
@@ -64,7 +61,6 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
           context,
         ).showSnackBar(const SnackBar(content: Text("Welcome to the group!")));
         Navigator.pop(context);
-        // Optionally navigate to group details
       }
     } catch (e) {
       if (mounted) {
@@ -86,14 +82,16 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Immersive Blurred Background
           if (fullImageUrl != null)
             Positioned.fill(
               child: Opacity(
                 opacity: 0.4,
-                child: CachedNetworkImage(
+                child: KovariImage(
                   imageUrl: fullImageUrl,
                   fit: BoxFit.cover,
+                  fadeInDuration: const Duration(milliseconds: 500),
+                  fadeOutDuration: const Duration(milliseconds: 500),
+                  placeholder: Container(color: Colors.white.withOpacity(0.05)),
                 ),
               ),
             ),
@@ -113,11 +111,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             ),
           ),
 
-          // 2. Main Content
           SafeArea(
             child: Column(
               children: [
-                // Header
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
@@ -139,7 +135,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                         ),
                       ),
                       const Spacer(),
-                      const SizedBox(width: 48), // Padding balance
+                      const SizedBox(width: 48),
                     ],
                   ),
                 ),
@@ -154,7 +150,6 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                       : _buildInviteContent(),
                 ),
 
-                // Bottom Action
                 if (!_isLoading && _error == null) _buildActionButton(),
               ],
             ),
@@ -231,21 +226,6 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
     );
   }
 
-  Widget _buildPlaceholder(String name) {
-    return Container(
-      color: Colors.blueAccent.withOpacity(0.2),
-      child: Center(
-        child: Text(
-          name.isNotEmpty ? name.substring(0, 1).toUpperCase() : "?",
-          style: AppTextStyles.h1.copyWith(
-            color: Colors.blueAccent,
-            fontSize: 48,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSocialProof() {
     final avatars = List<String>.from(_groupInfo?['memberAvatars'] ?? []);
     final count = _groupInfo?['memberCount'] ?? 0;
@@ -257,38 +237,26 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
       children: [
         if (avatars.isNotEmpty)
           SizedBox(
-            width: (avatars.length * 20.0) + 10,
+            width: (avatars.length * 16.0) + 24,
             height: 32,
             child: Stack(
-              children: List.generate(avatars.length, (index) {
+              children: avatars.asMap().entries.map((entry) {
+                final index = entry.key;
+                final url = entry.value;
+
                 return Positioned(
-                  left: index * 20.0,
+                  left: index * 16.0,
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.black, width: 2),
                     ),
-                    child: CircleAvatar(
-                      radius: 14,
-                      backgroundColor: Colors.grey[900],
-                      backgroundImage: CachedNetworkImageProvider(
-                        UrlUtils.getFullImageUrl(avatars[index]) ?? '',
-                      ),
-                    ),
+                    child: KovariAvatar(imageUrl: url, size: 24),
                   ),
                 );
-              }),
+              }).toList(),
             ),
           ),
-        // const SizedBox(width: 8),
-        // Text(
-        //   "$count ${count == 1 ? 'member' : 'members'}",
-        //   style: AppTextStyles.bodyMedium.copyWith(
-        //     color: Colors.white.withOpacity(0.7),
-        //     fontWeight: FontWeight.w500,
-        //     fontSize: 13,
-        //   ),
-        // ),
       ],
     );
   }
@@ -327,15 +295,16 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
               ),
               child: ClipOval(
                 child: fullImageUrl != null
-                    ? CachedNetworkImage(
+                    ? KovariImage(
                         imageUrl: fullImageUrl,
+                        width: 85,
+                        height: 85,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                            Container(color: Colors.white.withOpacity(0.1)),
-                        errorWidget: (context, url, e) =>
-                            _buildPlaceholder(name),
+                        fadeInDuration: const Duration(milliseconds: 500),
+                        fadeOutDuration: const Duration(milliseconds: 500),
+                        placeholder: Container(color: Colors.white.withOpacity(0.1)),
                       )
-                    : _buildPlaceholder(name),
+                    : KovariAvatar(imageUrl: null, size: 85, fullName: name),
               ),
             ),
             // Labels
@@ -459,7 +428,6 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             ),
             const SizedBox(height: 18),
             _buildInviterCard(),
-            // const SizedBox(height: 18), // Space for bottom action button
           ],
         ),
       ),
@@ -497,21 +465,10 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.white.withOpacity(0.05),
-                backgroundImage: avatar != null
-                    ? CachedNetworkImageProvider(
-                        UrlUtils.getFullImageUrl(avatar)!,
-                      )
-                    : null,
-                child: avatar == null
-                    ? Icon(
-                        LucideIcons.user,
-                        size: 18,
-                        color: Colors.white.withOpacity(0.5),
-                      )
-                    : null,
+              KovariAvatar(
+                imageUrl: UrlUtils.getFullImageUrl(avatar),
+                size: 40,
+                fullName: name,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -526,7 +483,6 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                         fontSize: 13,
                       ),
                     ),
-                    // const SizedBox(height: 1),
                     Text(
                       "@$username",
                       style: TextStyle(
