@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/shared/widgets/kovari_avatar.dart';
@@ -161,7 +163,7 @@ class JoinRequestsSheet extends ConsumerWidget {
             if (requests.isEmpty) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  padding: const EdgeInsets.symmetric(vertical: 50),
                   child: Text(
                     "No pending requests.",
                     style: AppTextStyles.bodyMedium.copyWith(
@@ -239,7 +241,7 @@ class JoinRequestsSheet extends ConsumerWidget {
           },
           loading: () => const Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
+              padding: EdgeInsets.symmetric(vertical: 50),
               child: SizedBox(
                 height: 20,
                 width: 20,
@@ -322,12 +324,53 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
     }
   }
 
-  void _copyLink() {
+  Future<void> _copyLink() async {
     if (_inviteLink.isEmpty) return;
-    // Link copying logic
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Link copied to clipboard!")));
+
+    try {
+      // 1. Copy to clipboard
+      await Clipboard.setData(ClipboardData(text: _inviteLink));
+
+      // 2. Tactile feedback
+      Feedback.forTap(context);
+
+      // 3. Native Share (Raw URL only for maximum directness)
+      await Share.share(_inviteLink, subject: "Trip Invitation");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  LucideIcons.circleCheck,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  "Link copied & sharing opened!",
+                  style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error sharing link: $e")));
+      }
+    }
   }
 
   @override
@@ -365,7 +408,7 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
           controller: _linkController,
           readOnly: true,
           onTap: _copyLink,
-          hintText: "Generate Link",
+          hintText: "Generating Link...",
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 12,

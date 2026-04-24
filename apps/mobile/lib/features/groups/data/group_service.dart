@@ -114,7 +114,18 @@ class GroupService {
       "${ApiEndpoints.groupInvitationLink(groupId)}&platform=mobile",
       parser: (json) => (json as Map)['link'] as String,
     );
-    return response.data ?? '';
+    final rawLink = (response.data ?? '').trim();
+
+    // Industry Standard: Use the production domain for all invitation links.
+    // This transforms legacy deep links (kovari://) OR local dev links
+    // into standard Universal Links (https://kovari.in) that are perfectly
+    // clickable in WhatsApp/Email and trigger native app deep-linking.
+    if (rawLink.isNotEmpty) {
+      final token = rawLink.split('/').last;
+      return "https://kovari.in/invite/$token";
+    }
+
+    return rawLink;
   }
 
   Future<Map<String, dynamic>> getInviteInfo(String token) async {
@@ -187,8 +198,11 @@ class GroupService {
       data: viaInvite ? {'viaInvite': true} : {},
       parser: (_) {},
     );
-    print("Join API Response - Success: ${response.success}, Error: ${response.error?.message}");
-    if (!response.success) throw Exception(response.error?.message ?? 'Failed to join group');
+    print(
+      "Join API Response - Success: ${response.success}, Error: ${response.error?.message}",
+    );
+    if (!response.success)
+      throw Exception(response.error?.message ?? 'Failed to join group');
   }
 
   Future<void> generateAiOverview(String groupId) async {
