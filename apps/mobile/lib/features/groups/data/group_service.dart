@@ -76,6 +76,7 @@ class GroupService {
   }
 
   Future<void> approveJoinRequest(String groupId, String userId) async {
+    print("[GroupService] Approving join request for userId: '$userId'");
     final response = await _apiClient.post<dynamic>(
       ApiEndpoints.groupJoin(groupId),
       data: {'userId': userId},

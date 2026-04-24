@@ -58,6 +58,9 @@ export async function POST(
       typeof body?.userId === "string" && body.userId.length > 0
         ? body.userId
         : userId;
+        
+    console.log(`[GROUP_JOIN] Request Body: ${JSON.stringify(body)}`);
+    console.log(`[GROUP_JOIN] actingUserId: ${userId}, targetClerkUserId: ${targetClerkUserId}`);
     const viaInvite = body?.viaInvite === true;
     const approvingOther = targetClerkUserId !== userId;
 
@@ -154,21 +157,48 @@ export async function POST(
       );
     }
 
-    const { error: upsertError } = await supabase
+    // Determine the existing record ID to ensure a guaranteed update if it exists
+    let existingRecordId: string | null = null;
+    
+    console.log(`[GROUP_JOIN] Attempting to resolve existing membership for group ${groupId}, user ${user.id}`);
+    
+    const { data: existing, error: existingErr } = await supabase
       .from("group_memberships")
-      .upsert(
-        {
-          group_id: groupId,
-          user_id: user.id,
-          status: "accepted",
-          role: "member",
-          joined_at: new Date().toISOString(),
-        },
-        { onConflict: "group_id, user_id" },
-      );
+      .select("id, status")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+      
+    if (!existingErr && existing) {
+      existingRecordId = existing.id;
+      console.log(`[GROUP_JOIN] Found existing membership: ${existingRecordId} with status ${existing.status}`);
+    } else {
+      console.log(`[GROUP_JOIN] No existing membership found. Error: ${existingErr?.message}`);
+    }
 
-    if (upsertError) {
-      console.error("Error joining group:", upsertError);
+    const { error: dbError } = existingRecordId 
+      ? await supabase
+          .from("group_memberships")
+          .update({
+            status: "accepted",
+            role: "member",
+            joined_at: new Date().toISOString(),
+          })
+          .eq("id", existingRecordId)
+      : await supabase
+          .from("group_memberships")
+          .insert({
+            group_id: groupId,
+            user_id: user.id,
+            status: "accepted",
+            role: "member",
+            joined_at: new Date().toISOString(),
+          });
+          
+    console.log(`[GROUP_JOIN] DB Operation completed. Error: ${dbError?.message ?? 'None'}`);
+
+    if (dbError) {
+      console.error("Error joining group:", dbError);
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 

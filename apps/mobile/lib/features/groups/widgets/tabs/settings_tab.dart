@@ -83,7 +83,8 @@ class SettingsTab extends ConsumerWidget {
                 onTap: () =>
                     _showEditSheet(context, InviteMembersSheet(group: group)),
               ),
-              if (membershipAsync.value?.isAdmin == true)
+              if (membershipAsync.value?.isAdmin == true ||
+                  membershipAsync.value?.isCreator == true)
                 KovariListRow(
                   icon: LucideIcons.inbox,
                   label: "Join Requests",

@@ -116,11 +116,11 @@ class GroupMembersManagementSheet extends ConsumerWidget {
           ),
           loading: () => const Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
+              padding: EdgeInsets.symmetric(vertical: 50),
               child: SizedBox(
                 height: 20,
                 width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(strokeWidth: 3),
               ),
             ),
           ),
@@ -147,13 +147,59 @@ class GroupMembersManagementSheet extends ConsumerWidget {
 }
 
 /// 📥 Manage Join Requests
-class JoinRequestsSheet extends ConsumerWidget {
+class JoinRequestsSheet extends ConsumerStatefulWidget {
   final GroupModel group;
   const JoinRequestsSheet({super.key, required this.group});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final requestsAsync = ref.watch(joinRequestsProvider(group.id));
+  ConsumerState<JoinRequestsSheet> createState() => _JoinRequestsSheetState();
+}
+
+class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
+  final Set<String> _processingIds = {};
+
+  Future<void> _handleAction(
+    String userId,
+    String? requestId,
+    bool approve,
+  ) async {
+    if (_processingIds.contains(userId)) return;
+
+    setState(() => _processingIds.add(userId));
+    try {
+      if (approve) {
+        await ref
+            .read(groupActionsProvider(widget.group.id))
+            .approveRequest(userId);
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Member approved!")));
+        }
+      } else if (requestId != null) {
+        await ref
+            .read(groupActionsProvider(widget.group.id))
+            .rejectRequest(requestId);
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Request rejected.")));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Action failed: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _processingIds.remove(userId));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final requestsAsync = ref.watch(joinRequestsProvider(widget.group.id));
 
     return SettingsBottomSheet(
       title: "Join Requests",
@@ -176,6 +222,8 @@ class JoinRequestsSheet extends ConsumerWidget {
             return KovariGroupContainer(
               backgroundColor: AppColors.card,
               children: requests.map((request) {
+                final isProcessing = _processingIds.contains(request.userId);
+
                 return Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -183,8 +231,8 @@ class JoinRequestsSheet extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      KovariAvatar(imageUrl: request.avatar, size: 44),
-                      const SizedBox(width: 12),
+                      KovariAvatar(imageUrl: request.avatar, size: 40),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,46 +240,80 @@ class JoinRequestsSheet extends ConsumerWidget {
                             Text(
                               request.name,
                               style: AppTextStyles.bodyMedium.copyWith(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            // const SizedBox(height: 1),
                             Text(
                               "@${request.username}",
                               style: AppTextStyles.bodySmall.copyWith(
-                                fontSize: 13,
+                                fontSize: 12,
                                 color: AppColors.mutedForeground,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          GestureDetector(
-                            onTap: () => ref
-                                .read(groupActionsProvider(group.id))
-                                .approveRequest(request.userId),
-                            child: const Icon(
-                              LucideIcons.check,
-                              color: AppColors.primary,
-                              size: 20,
+                      Opacity(
+                        opacity: isProcessing ? 0.6 : 1.0,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: isProcessing
+                                  ? null
+                                  : () => _handleAction(
+                                      request.userId,
+                                      null,
+                                      true,
+                                    ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                                child: Text(
+                                  "Accept",
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: () => ref
-                                .read(groupActionsProvider(group.id))
-                                .rejectRequest(request.id),
-                            child: const Icon(
-                              LucideIcons.x,
-                              color: AppColors.foreground,
-                              size: 20,
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: isProcessing
+                                  ? null
+                                  : () => _handleAction(
+                                      request.userId,
+                                      request.id,
+                                      false,
+                                    ),
+                              child: Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(100),
+                                  border: Border.all(
+                                    color: AppColors.mutedForeground
+                                        .withOpacity(0.3),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  LucideIcons.x,
+                                  color: AppColors.mutedForeground,
+                                  size: 15,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),

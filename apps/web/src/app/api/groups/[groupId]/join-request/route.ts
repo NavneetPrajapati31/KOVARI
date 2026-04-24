@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
@@ -272,6 +273,9 @@ export async function GET(
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+    
+    console.log(`[JOIN_REQUEST_GET] Raw Data from Supabase: ${JSON.stringify(data)}`);
+    
     // Map to expected structure
     const joinRequests = (data || []).map((m: any) => {
       const user = Array.isArray(m.users) ? m.users[0] : m.users;
@@ -279,13 +283,15 @@ export async function GET(
       
       return {
         id: m.id,
-        userId: user?.clerk_user_id,
+        userId: user?.clerk_user_id || m.user_id, // Fallback to internal UUID if Clerk ID is missing
         name: profile?.name || "Unknown",
         avatar: profile?.profile_photo || "",
         username: profile?.username || "unknown",
         requestedAt: m.joined_at,
       };
     });
+    
+    console.log(`[JOIN_REQUEST_GET] Final Mapped Requests: ${JSON.stringify(joinRequests)}`);
     if (req.headers.get("x-kovari-client") === "mobile") {
       return formatStandardResponse({ joinRequests }, {}, { requestId, latencyMs: Date.now() - start });
     }
