@@ -25,7 +25,11 @@ export async function POST(request: NextRequest) {
       if (!email || !password) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
       const supabase = createRouteHandlerSupabaseClientWithServiceRole();
-      const { data: user } = await supabase.from("users").select("*").ilike("email", email).maybeSingle();
+      const { data: user } = await supabase
+        .from("users")
+        .select("id, email, name, password_hash, banned, ban_reason, ban_expires_at")
+        .ilike("email", email)
+        .maybeSingle();
 
       if (!user || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) {
         return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
@@ -47,7 +51,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         accessToken,
         refreshToken,
-        user: { id: user.id, email: user.email, name: user.name }
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          name: user.name,
+          banned: user.banned ?? false,
+          banReason: user.ban_reason || null,
+          banExpiresAt: user.ban_expires_at || null,
+        }
       });
     } catch (err: any) {
       return NextResponse.json({ error: "Auth failure" }, { status: 500 });
@@ -77,7 +88,11 @@ async function handleStandardLogin(
   try {
     const { email, password } = await request.json();
     const supabase = createRouteHandlerSupabaseClientWithServiceRole();
-    const { data: user } = await supabase.from("users").select("*").ilike("email", email).maybeSingle();
+    const { data: user } = await supabase
+      .from("users")
+      .select("id, email, name, password_hash, banned, ban_reason, ban_expires_at")
+      .ilike("email", email)
+      .maybeSingle();
 
     if (!user || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) {
       return formatErrorResponse("Invalid credentials", ApiErrorCode.UNAUTHORIZED, requestId, 401);
@@ -87,10 +102,29 @@ async function handleStandardLogin(
     const tokenHash = hashToken(refreshToken);
     const accessToken = generateAccessToken(user.id, user.email, tokenHash);
 
+    let isActuallyBanned = user.banned ?? false;
+    if (isActuallyBanned && user.ban_expires_at) {
+      if (new Date(user.ban_expires_at) < new Date()) {
+        isActuallyBanned = false;
+        
+        // Auto-lift ban in background (best effort)
+        supabase.from("users").update({ banned: false }).eq("id", user.id).then(({ error }) => {
+          if (error) console.error("Failed to auto-lift expired ban for user:", user.id, error);
+        });
+      }
+    }
+
     const authData = {
       accessToken,
       refreshToken,
-      user: { id: user.id, email: user.email, name: user.name }
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        name: user.name,
+        banned: isActuallyBanned,
+        banReason: user.ban_reason || null,
+        banExpiresAt: user.ban_expires_at || null,
+      }
     };
 
     // Gate 2: Post-Transform Validation

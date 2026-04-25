@@ -21,6 +21,7 @@ import 'features/auth/screens/reset_password_screen.dart';
 // KovariUser import removed as it is now managed via authStateProvider
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
+import 'features/auth/screens/banned_screen.dart';
 
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
@@ -203,6 +204,20 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
     if (user == null) {
       FlutterNativeSplash.remove();
       return const LoginScreen();
+    }
+
+    // If user is banned, go to BannedScreen
+    if (user.banned) {
+      // Check if ban has already expired
+      if (user.banExpiresAt != null) {
+        final expiresAt = DateTime.parse(user.banExpiresAt!).toLocal();
+        if (expiresAt.isBefore(DateTime.now())) {
+          // Suspension has ended, proceed to AuthHandler
+          return const AuthHandler();
+        }
+      }
+      FlutterNativeSplash.remove();
+      return BannedScreen(user: user);
     }
 
     // If session exists, let AuthHandler handle profile/onboarding logic
