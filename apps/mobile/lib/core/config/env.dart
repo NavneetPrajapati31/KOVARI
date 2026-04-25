@@ -1,6 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Env {
+  // Version: 1.0.1
   /// Internal helper to get a required variable or throw
   static String _getRequired(String key) {
     final value = dotenv.maybeGet(key);
@@ -21,6 +22,7 @@ class Env {
   // API & Backend
   static String get apiBaseUrl => _getRequired('API_BASE_URL');
   static String get socketUrl => _getRequired('SOCKET_URL');
+  static String get webBaseUrl => _getOptional('WEB_BASE_URL') ?? 'https://kovari.in';
 
   // Third Party
   static String? get geoapifyKey => _getOptional('GEOAPIFY_KEY');

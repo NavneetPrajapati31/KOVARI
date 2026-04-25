@@ -76,6 +76,7 @@ class GroupService {
   }
 
   Future<void> approveJoinRequest(String groupId, String userId) async {
+    print("[GroupService] Approving join request for userId: '$userId'");
     final response = await _apiClient.post<dynamic>(
       ApiEndpoints.groupJoin(groupId),
       data: {'userId': userId},
@@ -111,10 +112,32 @@ class GroupService {
 
   Future<String> getInviteLink(String groupId) async {
     final response = await _apiClient.get<String>(
-      ApiEndpoints.groupInvitationLink(groupId),
+      "${ApiEndpoints.groupInvitationLink(groupId)}&platform=mobile",
       parser: (json) => (json as Map)['link'] as String,
     );
-    return response.data ?? '';
+    final rawLink = (response.data ?? '').trim();
+
+    // Industry Standard: Use the production domain for all invitation links.
+    // This transforms legacy deep links (kovari://) OR local dev links
+    // into standard Universal Links (https://kovari.in) that are perfectly
+    // clickable in WhatsApp/Email and trigger native app deep-linking.
+    if (rawLink.isNotEmpty) {
+      final token = rawLink.split('/').last;
+      return "https://kovari.in/invite/$token";
+    }
+
+    return rawLink;
+  }
+
+  Future<Map<String, dynamic>> getInviteInfo(String token) async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      ApiEndpoints.v1InviteInfo(token),
+      parser: (json) => json as Map<String, dynamic>,
+    );
+    if (!response.success || response.data == null) {
+      throw Exception(response.error?.message ?? 'Invalid invite link');
+    }
+    return response.data!;
   }
 
   Future<void> sendGroupInvite(
@@ -123,11 +146,21 @@ class GroupService {
   ) async {
     final response = await _apiClient.post<dynamic>(
       ApiEndpoints.groupInvitationSend,
-      data: {'groupId': groupId, 'invites': invites},
+      data: {'groupId': groupId, 'invites': invites, 'platform': 'mobile'},
       parser: (json) => json,
     );
-    if (!response.success)
+    if (!response.success) {
       throw Exception(response.error?.message ?? 'Failed to send invites');
+    }
+
+    // Handle status-based "errors" that come back as 200 OK correctly
+    if (response.data is Map) {
+      final data = response.data as Map;
+      final status = data['status'];
+      if (status != null && status != 'sent' && status != 'success') {
+        throw Exception(data['message'] ?? 'Failed to send invite');
+      }
+    }
   }
 
   Future<List<ItineraryItem>> getGroupItinerary(String groupId) async {
@@ -158,6 +191,19 @@ class GroupService {
       parser: (_) {},
     );
     if (!response.success) throw Exception('Failed to send join request');
+  }
+
+  Future<void> joinGroup(String groupId, {bool viaInvite = false}) async {
+    final response = await _apiClient.post<void>(
+      ApiEndpoints.groupJoin(groupId),
+      data: viaInvite ? {'viaInvite': true} : {},
+      parser: (_) {},
+    );
+    print(
+      "Join API Response - Success: ${response.success}, Error: ${response.error?.message}",
+    );
+    if (!response.success)
+      throw Exception(response.error?.message ?? 'Failed to join group');
   }
 
   Future<void> generateAiOverview(String groupId) async {

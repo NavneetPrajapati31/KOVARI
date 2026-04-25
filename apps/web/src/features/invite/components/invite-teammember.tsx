@@ -78,14 +78,14 @@ export function InviteTeammatesModal({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to send invite");
+        throw new Error(data.error?.message || "Failed to send invite");
       }
 
-      const status = data.status as string | undefined;
+      const status = data.data?.status as string | undefined;
 
       if (status === "already_invited") {
         const message =
-          data.message ||
+          data.data?.message ||
           "This user already has a pending invitation to the group.";
         setInfoMessage({ type: "already_invited", text: message });
         toast({
@@ -97,7 +97,7 @@ export function InviteTeammatesModal({
 
       if (status === "already_member") {
         const message =
-          data.message || "This user is already a member of the group.";
+          data.data?.message || "This user is already a member of the group.";
         setInfoMessage({ type: "already_member", text: message });
         toast({
           title: "User is already a member",
@@ -108,7 +108,7 @@ export function InviteTeammatesModal({
 
       if (status === "user_not_found") {
         const message =
-          data.message ||
+          data.data?.message ||
           "No account found with this username. Please check the username and try again.";
         setInfoMessage({
           type: "user_not_found",
@@ -148,10 +148,10 @@ export function InviteTeammatesModal({
     setLinkError("");
     try {
       const res = await fetch(`/api/group-invitation?groupId=${groupId}`);
-      if (!res.ok) throw new Error("Failed to fetch link");
       const data = await res.json();
-      setInviteLink(data.link);
-      await navigator.clipboard.writeText(data.link);
+      if (!res.ok) throw new Error(data.error?.message || "Failed to fetch link");
+      setInviteLink(data.data.link);
+      await navigator.clipboard.writeText(data.data.link);
       toast({
         title: "Link copied",
         description: "Invite link has been copied to your clipboard.",

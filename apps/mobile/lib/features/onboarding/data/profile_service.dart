@@ -26,6 +26,24 @@ class ProfileService {
     }
   }
 
+  /// GET /api/profile/[userId]
+  /// Fetches the profile of a specific user.
+  Future<Map<String, dynamic>?> getProfileById(String userId) async {
+    try {
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        ApiEndpoints.profileDetail(userId),
+        parser: (data) => data is Map<String, dynamic> ? data : {},
+      );
+
+      if (response.success && response.data != null) {
+        return response.data;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// POST /api/profile
   /// Creates or updates the user's profile.
   Future<void> updateProfile(Map<String, dynamic> profileData) async {

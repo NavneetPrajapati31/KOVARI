@@ -7,7 +7,10 @@ class KovariImage extends StatelessWidget {
   final double? width;
   final double? height;
   final BoxFit fit;
-  final BorderRadius? borderRadius;
+   final BorderRadius? borderRadius;
+  final Widget? placeholder;
+  final Duration fadeInDuration;
+  final Duration fadeOutDuration;
 
   const KovariImage({
     super.key,
@@ -16,6 +19,9 @@ class KovariImage extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius,
+    this.placeholder,
+    this.fadeInDuration = const Duration(milliseconds: 500),
+    this.fadeOutDuration = Duration.zero,
   });
 
   @override
@@ -24,43 +30,31 @@ class KovariImage extends StatelessWidget {
       return Skeleton(width: width, height: height, borderRadius: borderRadius);
     }
 
-    return CachedNetworkImage(
-      key: key,
-      imageUrl: imageUrl,
-      cacheKey: imageUrl, // Absolute Identity
-      fit: fit,
-      width: width,
-      height: height,
-      // Memory cache optimization: limiting resolution to 600px ensures
-      // instantaneous decoding on return, preventing the "flicker" of high-res files.
-      memCacheWidth: 600,
-
-      // The imageBuilder pattern pins the ready image to the UI,
-      // preventing any fallback to placeholder during the rebuild phase.
-      imageBuilder: (context, imageProvider) => Container(
-        decoration: BoxDecoration(
-          borderRadius: borderRadius,
-          image: DecorationImage(image: imageProvider, fit: fit),
-        ),
-      ),
-
-      placeholder: (context, url) =>
-          Skeleton(width: width, height: height, borderRadius: borderRadius),
-      errorWidget: (context, url, error) => Container(
+    return ClipRRect(
+      borderRadius: borderRadius ?? BorderRadius.zero,
+      child: CachedNetworkImage(
+        key: key,
+        imageUrl: imageUrl,
+        cacheKey: imageUrl,
+        fit: fit,
         width: width,
         height: height,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: borderRadius,
+        memCacheWidth: 600,
+        placeholder: (context, url) =>
+            placeholder ??
+            Skeleton(width: width, height: height, borderRadius: borderRadius),
+        errorWidget: (context, url, error) => Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+          ),
+          child: const Icon(Icons.error_outline, color: Colors.grey),
         ),
-        child: const Icon(Icons.error_outline, color: Colors.grey),
+        useOldImageOnUrlChange: true,
+        fadeOutDuration: fadeOutDuration,
+        fadeInDuration: fadeInDuration,
       ),
-
-      // Instant-Swap Configuration
-      useOldImageOnUrlChange: true,
-      filterQuality: FilterQuality.low,
-      fadeOutDuration: Duration.zero,
-      fadeInDuration: Duration.zero,
     );
   }
 }

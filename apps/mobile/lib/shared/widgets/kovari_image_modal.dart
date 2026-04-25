@@ -13,26 +13,30 @@ class KovariImageModal extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Close',
-      barrierColor: Colors.black.withValues(alpha: 0.7),
-      transitionDuration: const Duration(milliseconds: 250),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (context, animation, secondaryAnimation) {
         return KovariImageModal(imageUrl: imageUrl);
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOutCirc,
-        );
+        final curve = Curves.easeOutBack.transform(animation.value);
 
-        return FadeTransition(
-          opacity: curvedAnimation,
-          child: ScaleTransition(
-            scale: Tween<double>(
-              begin: 0.96,
-              end: 1.0,
-            ).animate(curvedAnimation),
-            child: child,
-          ),
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: 5 * animation.value,
+                  sigmaY: 5 * animation.value,
+                ),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+            Transform.scale(
+              scale: 0.85 + (0.15 * curve),
+              child: Opacity(opacity: animation.value, child: child),
+            ),
+          ],
         );
       },
     );
@@ -44,41 +48,37 @@ class KovariImageModal extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // Exact Parity Blurred Backdrop
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: Container(color: Colors.transparent),
-              ),
-            ),
-          ),
-
-          // Perfectly Centered Image
-          Center(
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withValues(alpha: 0.1),
-              ),
-              child: ClipOval(
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => UserAvatarFallback(
-                    size: size,
-                    backgroundColor: AppColors.secondary,
-                  ),
+      body: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black.withValues(alpha: 0.1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
                 ),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    UserAvatarFallback(
+                      size: size,
+                      backgroundColor: AppColors.secondary,
+                    ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

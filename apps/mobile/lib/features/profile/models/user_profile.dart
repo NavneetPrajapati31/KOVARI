@@ -15,6 +15,7 @@ class UserProfile {
   final String profileImage;
   final List<UserPost> posts;
   final bool isFollowing;
+  final bool isFollowingMe;
   final bool isOwnProfile;
   final String location;
   final String religion;
@@ -45,6 +46,7 @@ class UserProfile {
     required this.profileImage,
     required this.posts,
     this.isFollowing = false,
+    this.isFollowingMe = false,
     this.isOwnProfile = false,
     required this.location,
     required this.religion,
@@ -79,6 +81,7 @@ class UserProfile {
           .map((p) => UserPost.fromJson(p))
           .toList(),
       isFollowing: json['isFollowing'] ?? false,
+      isFollowingMe: json['isFollowingMe'] ?? false,
       isOwnProfile: json['isOwnProfile'] ?? false,
       location: json['location'] ?? '',
       religion: json['religion'] ?? '',
@@ -112,6 +115,7 @@ class UserProfile {
       'cover_image': coverImage,
       'avatar': profileImage,
       'isFollowing': isFollowing,
+      'isFollowingMe': isFollowingMe,
       'isOwnProfile': isOwnProfile,
       'location': location,
       'religion': religion,
@@ -142,6 +146,7 @@ class UserProfile {
     String? profileImage,
     List<UserPost>? posts,
     bool? isFollowing,
+    bool? isFollowingMe,
     bool? isOwnProfile,
     String? location,
     String? religion,
@@ -172,6 +177,7 @@ class UserProfile {
       profileImage: profileImage ?? this.profileImage,
       posts: posts ?? this.posts,
       isFollowing: isFollowing ?? this.isFollowing,
+      isFollowingMe: isFollowingMe ?? this.isFollowingMe,
       isOwnProfile: isOwnProfile ?? this.isOwnProfile,
       location: location ?? this.location,
       religion: religion ?? this.religion,

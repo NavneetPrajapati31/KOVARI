@@ -6,6 +6,9 @@ export interface UserDTO {
   name: string;
   accessToken?: string;
   refreshToken?: string;
+  banned?: boolean;
+  banReason?: string | null;
+  banExpiresAt?: string | null;
 }
 
 export class UserTransformer implements Transformer<any, UserDTO> {
@@ -16,7 +19,10 @@ export class UserTransformer implements Transformer<any, UserDTO> {
       email: u.email || "",
       name: u.name || "",
       accessToken: u.accessToken,
-      refreshToken: u.refreshToken
+      refreshToken: u.refreshToken,
+      banned: u.banned ?? false,
+      banReason: u.ban_reason || u.banReason || null,
+      banExpiresAt: u.ban_expires_at || u.banExpiresAt || null,
     };
   }
 }

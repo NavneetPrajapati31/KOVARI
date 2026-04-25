@@ -6,16 +6,24 @@ import 'package:mobile/core/theme/app_text_styles.dart';
 class KovariGroupContainer extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry? padding;
+  final Color? backgroundColor;
+  final bool isBorder;
 
-  const KovariGroupContainer({super.key, required this.children, this.padding});
+  const KovariGroupContainer({
+    super.key,
+    required this.children,
+    this.padding,
+    this.backgroundColor,
+    this.isBorder = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: backgroundColor ?? AppColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: isBorder ? Border.all(color: AppColors.border) : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -88,6 +96,8 @@ class KovariListRow extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
   final Color? labelColor;
+  final double? labelSize;
+  final EdgeInsetsGeometry? contentPadding;
 
   const KovariListRow({
     super.key,
@@ -98,6 +108,8 @@ class KovariListRow extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.labelColor,
+    this.labelSize,
+    this.contentPadding,
   });
 
   @override
@@ -111,7 +123,9 @@ class KovariListRow extends StatelessWidget {
             highlightColor: Colors.black.withValues(alpha: 0.05),
             splashColor: Colors.black.withValues(alpha: 0.03),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding:
+                  contentPadding ??
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   if (icon != null) ...[
@@ -134,7 +148,7 @@ class KovariListRow extends StatelessWidget {
                           label,
                           style: AppTextStyles.bodyMedium.copyWith(
                             fontWeight: FontWeight.w500,
-                            fontSize: 15,
+                            fontSize: labelSize ?? 15,
                             color: labelColor ?? AppColors.foreground,
                           ),
                         ),

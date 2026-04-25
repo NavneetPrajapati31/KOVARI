@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/shared/widgets/kovari_avatar.dart';
-import 'package:mobile/shared/widgets/primary_button.dart';
-import 'package:mobile/shared/widgets/secondary_button.dart';
 import 'package:mobile/shared/widgets/text_input_field.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_text_styles.dart';
 import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/group_details_provider.dart';
 import 'package:mobile/features/groups/widgets/edit_group_sheets.dart';
+import 'package:mobile/features/groups/widgets/settings_widgets.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
 
 /// 👥 Manage Group Members (Admin only view with Remove options)
 class GroupMembersManagementSheet extends ConsumerWidget {
@@ -28,37 +30,222 @@ class GroupMembersManagementSheet extends ConsumerWidget {
 
     return SettingsBottomSheet(
       title: "Group Members",
-      onSave: () => Navigator.pop(context),
       children: [
-        SizedBox(
-          height: 400,
-          child: membersAsync.when(
-            data: (members) => ListView.builder(
-              itemCount: members.length,
-              itemBuilder: (context, index) {
-                final member = members[index];
-                final isSelf = member.clerkId == null; // Simplified self-check
-                final isOtherAdmin = member.role == 'admin';
+        membersAsync.when(
+          data: (members) => KovariGroupContainer(
+            backgroundColor: AppColors.card,
+            children: members.map((member) {
+              final isOtherAdmin = member.role == 'admin';
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    KovariAvatar(imageUrl: member.avatar, size: 42),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            member.name,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          // const SizedBox(height: 1),
+                          Text(
+                            "@${member.username}",
+                            style: AppTextStyles.bodySmall.copyWith(
+                              fontSize: 13,
+                              color: AppColors.mutedForeground,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (member.role == 'admin')
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(
+                            100,
+                          ), // Pill shape
+                        ),
+                        child: Text(
+                          "Admin",
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    if (isAdmin && !isOtherAdmin)
+                      GestureDetector(
+                        onTap: () => _confirmRemove(context, ref, member),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            "Remove",
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.destructive,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 50),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ),
+          ),
+          error: (e, _) => Center(child: Text("Error: $e")),
+        ),
+      ],
+    );
+  }
+
+  void _confirmRemove(BuildContext context, WidgetRef ref, GroupMember member) {
+    showKovariConfirmDialog(
+      context: context,
+      title: "Remove Member?",
+      content: "Are you sure you want to remove ${member.name} from the group?",
+      confirmLabel: "Remove",
+      isDestructive: true,
+      onConfirm: () {
+        ref
+            .read(groupActionsProvider(group.id))
+            .removeMember(member.id, member.clerkId ?? '');
+      },
+    );
+  }
+}
+
+/// 📥 Manage Join Requests
+class JoinRequestsSheet extends ConsumerStatefulWidget {
+  final GroupModel group;
+  const JoinRequestsSheet({super.key, required this.group});
+
+  @override
+  ConsumerState<JoinRequestsSheet> createState() => _JoinRequestsSheetState();
+}
+
+class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
+  final Set<String> _processingIds = {};
+
+  Future<void> _handleAction(
+    String userId,
+    String? requestId,
+    bool approve,
+  ) async {
+    if (_processingIds.contains(userId)) return;
+
+    setState(() => _processingIds.add(userId));
+    try {
+      if (approve) {
+        await ref
+            .read(groupActionsProvider(widget.group.id))
+            .approveRequest(userId);
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Member approved!")));
+        }
+      } else if (requestId != null) {
+        await ref
+            .read(groupActionsProvider(widget.group.id))
+            .rejectRequest(requestId);
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Request rejected.")));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Action failed: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _processingIds.remove(userId));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final requestsAsync = ref.watch(joinRequestsProvider(widget.group.id));
+
+    return SettingsBottomSheet(
+      title: "Join Requests",
+      children: [
+        requestsAsync.when(
+          data: (requests) {
+            if (requests.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 50),
+                  child: Text(
+                    "No pending requests.",
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return KovariGroupContainer(
+              backgroundColor: AppColors.card,
+              children: requests.map((request) {
+                final isProcessing = _processingIds.contains(request.userId);
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
-                      KovariAvatar(imageUrl: member.avatar, size: 40),
-                      const SizedBox(width: 12),
+                      KovariAvatar(imageUrl: request.avatar, size: 40),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              member.name,
+                              request.name,
                               style: AppTextStyles.bodyMedium.copyWith(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             Text(
-                              "@${member.username}",
+                              "@${request.username}",
                               style: AppTextStyles.bodySmall.copyWith(
                                 fontSize: 12,
                                 color: AppColors.mutedForeground,
@@ -67,168 +254,84 @@ class GroupMembersManagementSheet extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      if (member.role == 'admin')
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            "Admin",
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      if (isAdmin && !isOtherAdmin)
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: () => _confirmRemove(context, ref, member),
-                          icon: const Icon(
-                            LucideIcons.userMinus,
-                            size: 18,
-                            color: AppColors.destructive,
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text("Error: $e")),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _confirmRemove(BuildContext context, WidgetRef ref, GroupMember member) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Remove Member?"),
-        content: Text(
-          "Are you sure you want to remove ${member.name} from the group?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              ref
-                  .read(groupActionsProvider(group.id))
-                  .removeMember(member.id, member.clerkId ?? '');
-              Navigator.pop(context);
-            },
-            child: const Text(
-              "Remove",
-              style: TextStyle(color: AppColors.destructive),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 📥 Manage Join Requests
-class JoinRequestsSheet extends ConsumerWidget {
-  final GroupModel group;
-  const JoinRequestsSheet({super.key, required this.group});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final requestsAsync = ref.watch(joinRequestsProvider(group.id));
-
-    return SettingsBottomSheet(
-      title: "Join Requests",
-      onSave: () => Navigator.pop(context),
-      children: [
-        SizedBox(
-          height: 400,
-          child: requestsAsync.when(
-            data: (requests) {
-              if (requests.isEmpty) {
-                return Center(
-                  child: Text(
-                    "No pending requests.",
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                );
-              }
-              return ListView.builder(
-                itemCount: requests.length,
-                itemBuilder: (context, index) {
-                  final request = requests[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Row(
-                      children: [
-                        KovariAvatar(imageUrl: request.avatar, size: 40),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                request.name,
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                "@${request.username}",
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  fontSize: 12,
-                                  color: AppColors.mutedForeground,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
+                      Opacity(
+                        opacity: isProcessing ? 0.6 : 1.0,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              onPressed: () => ref
-                                  .read(groupActionsProvider(group.id))
-                                  .approveRequest(request.userId),
-                              icon: const Icon(
-                                LucideIcons.circleCheck,
-                                color: Colors.green,
+                            GestureDetector(
+                              onTap: isProcessing
+                                  ? null
+                                  : () => _handleAction(
+                                      request.userId,
+                                      null,
+                                      true,
+                                    ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                                child: Text(
+                                  "Accept",
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
                               ),
                             ),
-                            IconButton(
-                              onPressed: () => ref
-                                  .read(groupActionsProvider(group.id))
-                                  .rejectRequest(request.id),
-                              icon: const Icon(
-                                LucideIcons.circleX,
-                                color: AppColors.destructive,
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: isProcessing
+                                  ? null
+                                  : () => _handleAction(
+                                      request.userId,
+                                      request.id,
+                                      false,
+                                    ),
+                              child: Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(100),
+                                  border: Border.all(
+                                    color: AppColors.mutedForeground
+                                        .withOpacity(0.3),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  LucideIcons.x,
+                                  color: AppColors.mutedForeground,
+                                  size: 15,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text("Error: $e")),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 50),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ),
           ),
+          error: (e, _) => Center(child: Text("Error: $e")),
         ),
       ],
     );
@@ -246,6 +349,7 @@ class InviteMembersSheet extends ConsumerStatefulWidget {
 
 class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
   final TextEditingController _inviteController = TextEditingController();
+  final TextEditingController _linkController = TextEditingController();
   String _inviteLink = "";
   bool _isSending = false;
 
@@ -259,11 +363,28 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
     final link = await ref
         .read(groupActionsProvider(widget.group.id))
         .getInviteLink();
-    if (mounted) setState(() => _inviteLink = link);
+    if (mounted) {
+      setState(() {
+        _inviteLink = link;
+        _linkController.text = link.isNotEmpty ? link : "Generate Link";
+      });
+    }
+  }
+
+  bool _isValidEmail(String input) =>
+      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(input.trim());
+
+  bool _isValidUsername(String input) =>
+      RegExp(r'^[a-zA-Z0-9_]{3,20}$').hasMatch(input.trim());
+
+  bool get _canInvite {
+    final trimmed = _inviteController.text.trim();
+    return trimmed.isNotEmpty &&
+        (_isValidEmail(trimmed) || _isValidUsername(trimmed));
   }
 
   Future<void> _handleInvite() async {
-    if (_inviteController.text.trim().isEmpty) return;
+    if (!_canInvite) return;
     setState(() => _isSending = true);
     try {
       await ref
@@ -285,74 +406,106 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
     }
   }
 
+  Future<void> _copyLink() async {
+    if (_inviteLink.isEmpty) return;
+
+    try {
+      // 1. Copy to clipboard
+      await Clipboard.setData(ClipboardData(text: _inviteLink));
+
+      // 2. Tactile feedback
+      Feedback.forTap(context);
+
+      // 3. Native Share (Raw URL only for maximum directness)
+      await Share.share(_inviteLink, subject: "Trip Invitation");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  LucideIcons.circleCheck,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  "Link copied & sharing opened!",
+                  style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error sharing link: $e")));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SettingsBottomSheet(
       title: "Invite Member",
       isSubmitting: _isSending,
-      onSave: _handleInvite,
+      onSave: _canInvite ? _handleInvite : null,
+      buttonLabel: "Send Invitation",
       children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Text(
+            "Invite people to plan and coordinate your trip together.",
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.mutedForeground,
+              fontSize: 13,
+            ),
+          ),
+        ),
         TextInputField(
           label: "Email or Username",
           controller: _inviteController,
-          hintText: "e.g. travel_buddy or buddy@email.com",
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+          hintText: "Enter email or username",
+          onChanged: (val) => setState(() {}),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    LucideIcons.link,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Shareable Link",
-                    style: AppTextStyles.bodySmall.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.mutedForeground,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _inviteLink.isNotEmpty ? _inviteLink : "Generating link...",
-                style: AppTextStyles.bodySmall.copyWith(
-                  fontSize: 12,
-                  color: AppColors.mutedForeground,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 12),
-              SecondaryButton(
-                text: "Copy Link",
-                onPressed: _inviteLink.isEmpty
-                    ? null
-                    : () {
-                        // Link copying logic would go here
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Link copied to clipboard!"),
-                          ),
-                        );
-                      },
-              ),
-            ],
+          fillColor: AppColors.card,
+        ),
+        const SizedBox(height: 20),
+        TextInputField(
+          label: "Share a link",
+          controller: _linkController,
+          readOnly: true,
+          onTap: _copyLink,
+          hintText: "Generating Link...",
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+          fillColor: AppColors.card,
+          suffixIcon: IconButton(
+            onPressed: _copyLink,
+            icon: const Icon(
+              LucideIcons.copy,
+              size: 18,
+              color: AppColors.primary,
+            ),
           ),
         ),
+        const SizedBox(height: 8),
       ],
     );
   }

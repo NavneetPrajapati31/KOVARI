@@ -187,9 +187,12 @@ class JoinRequestModel {
   });
 
   factory JoinRequestModel.fromJson(Map<String, dynamic> json) {
+    // Priority: 'userId' (backend mapped), then 'user_id' (raw DB column)
+    final resolvedUserId = (json['userId'] ?? json['user_id'] ?? '').toString();
+    
     return JoinRequestModel(
       id: (json['id'] ?? '').toString(),
-      userId: (json['userId'] ?? json['user_id'] ?? '').toString(),
+      userId: resolvedUserId,
       name: (json['name'] ?? '').toString(),
       username: (json['username'] ?? '').toString(),
       avatar: json['avatar'] as String?,

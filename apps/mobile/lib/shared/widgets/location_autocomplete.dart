@@ -13,6 +13,7 @@ class LocationAutocomplete extends ConsumerStatefulWidget {
   final String? hintText;
   final Function(GeoapifyResult) onSelect;
   final Color? fillColor;
+  final EdgeInsetsGeometry? contentPadding;
 
   const LocationAutocomplete({
     super.key,
@@ -21,6 +22,7 @@ class LocationAutocomplete extends ConsumerStatefulWidget {
     this.hintText,
     required this.onSelect,
     this.fillColor,
+    this.contentPadding,
   });
 
   @override
@@ -132,8 +134,8 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
 
   Widget _buildOverlayContent() {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(10),
+      return Padding(
+        padding: widget.contentPadding ?? const EdgeInsets.all(10),
         child: Center(
           child: SizedBox(
             width: 16,
@@ -146,7 +148,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
 
     if (_suggestions.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.all(10),
+        padding: widget.contentPadding ?? const EdgeInsets.all(10),
         child: Center(
           child: Text(
             'No results found',
@@ -159,7 +161,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: widget.contentPadding ?? const EdgeInsets.symmetric(vertical: 4),
       shrinkWrap: true,
       itemCount: _suggestions.length,
       itemBuilder: (context, index) {
@@ -177,7 +179,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
             final details = await service.getLocationDetails(
               suggestion.placeId,
             );
-            
+
             if (!mounted) return;
             setState(() => _isLoading = false);
 
@@ -188,7 +190,9 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
             }
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding:
+                widget.contentPadding ??
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -243,6 +247,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
           hintText: widget.hintText ?? 'Search city...',
           onChanged: _onChanged,
           fillColor: widget.fillColor,
+          contentPadding: widget.contentPadding,
         ),
       ),
     );

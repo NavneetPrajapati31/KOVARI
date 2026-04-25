@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/utils/url_utils.dart';
-import '../../../shared/widgets/primary_button.dart';
+import '../../../shared/widgets/kovari_avatar.dart';
 import '../models/group.dart';
 
 class GroupCard extends StatelessWidget {
@@ -47,173 +46,70 @@ class GroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final coverImageUrl = UrlUtils.getFullImageUrl(group.coverImage);
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Cover Image Section
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: AspectRatio(
-              aspectRatio: 2,
-              child: coverImageUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: coverImageUrl,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      placeholder: (context, url) =>
-                          Container(color: AppColors.secondary),
-                      errorWidget: (context, url, error) =>
-                          _buildImagePlaceholder(),
-                    )
-                  : _buildImagePlaceholder(),
+    return InkWell(
+      onTap: onAction,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 10,
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            KovariAvatar(
+              imageUrl: coverImageUrl,
+              size: 40,
+              fullName: group.name,
             ),
-          ),
-
-          // Content Section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Group Name
-                Text(
-                  group.name,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.foreground,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-
-                // Date and Destination Row
-                Row(
-                  children: [
-                    const Icon(
-                      LucideIcons.calendar,
-                      size: 14,
-                      color: AppColors.mutedForeground,
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      flex: 4,
-                      child: Text(
-                        _formatDateRange(),
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6.0),
-                      child: Text(
-                        '|',
-                        style: TextStyle(
-                          color: AppColors.mutedForeground,
-                          fontSize: 12,
+            const SizedBox(width: AppSpacing.sm * 1.5),
+            // Info
+            Expanded(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          group.name,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.foreground,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                    const Icon(
-                      LucideIcons.mapPin,
-                      size: 14,
-                      color: AppColors.mutedForeground,
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      flex: 2,
-                      child: Text(
+                      const SizedBox(width: 24),
+                      Text(
                         _formatDestinationCity(group.destination),
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
                           fontWeight: FontWeight.w500,
+                          color: AppColors.foreground,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Member Count and Creator
-                Row(
-                  children: [
-                    Flexible(
-                      flex: 2,
-                      child: Text(
-                        _formatMemberCount(),
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6.0),
-                      child: Text(
-                        '|',
-                        style: TextStyle(
-                          color: AppColors.mutedForeground,
+                    ],
+                  ),
+                  const SizedBox(height: 1),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        group.memberCount == 1
+                            ? '1 member'
+                            : '${group.memberCount} members',
+                        style: AppTextStyles.label.copyWith(
                           fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    Flexible(
-                      flex: 3,
-                      child: Text(
-                        "Created by @${group.creator.username}",
-                        style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.mutedForeground,
-                          fontWeight: FontWeight.w500,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Action Button
-                PrimaryButton(
-                  text: "View Group",
-                  onPressed: onAction,
-                  height: 36,
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImagePlaceholder() {
-    return Container(
-      color: AppColors.secondary,
-      child: const Center(
-        child: Icon(LucideIcons.users, color: AppColors.muted, size: 32),
+          ],
+        ),
       ),
     );
   }

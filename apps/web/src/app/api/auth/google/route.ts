@@ -49,6 +49,18 @@ export async function POST(request: NextRequest) {
       return formatErrorResponse("Authentication failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
+    // 3.5 Fetch full user data including ban status
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("id, email, name, banned, ban_reason, ban_expires_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (userError || !user) {
+      console.error("Failed to fetch user after sync:", userError);
+      return formatErrorResponse("User fetch failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
+
     // 4. Generate Tokens
     const refreshToken = generateRefreshToken(userId, email);
     const tokenHash = hashToken(refreshToken);
@@ -73,15 +85,30 @@ export async function POST(request: NextRequest) {
 
     const latencyMs = Date.now() - start;
 
+    let isActuallyBanned = user.banned ?? false;
+    if (isActuallyBanned && user.ban_expires_at) {
+      if (new Date(user.ban_expires_at) < new Date()) {
+        isActuallyBanned = false;
+        
+        // Auto-lift ban in background (best effort)
+        supabase.from("users").update({ banned: false }).eq("id", user.id).then(({ error }) => {
+          if (error) console.error("Failed to auto-lift expired ban for user:", user.id, error);
+        });
+      }
+    }
+
     // 6. Return standard success envelope
     return formatStandardResponse(
       {
         accessToken,
         refreshToken,
         user: {
-          id: userId,
-          email,
-          name: name,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          banned: isActuallyBanned,
+          banReason: user.ban_reason || null,
+          banExpiresAt: user.ban_expires_at || null,
         },
       },
       {},

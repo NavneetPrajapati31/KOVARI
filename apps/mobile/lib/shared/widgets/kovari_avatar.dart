@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/widgets/common/user_avatar_fallback.dart';
+import '../../core/widgets/common/kovari_image.dart';
 
 class KovariAvatar extends StatelessWidget {
   final String? imageUrl;
@@ -30,24 +31,16 @@ class KovariAvatar extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           _buildFallback(),
-          ClipOval(
-            child: Image.network(
-              imageUrl!,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              // frameBuilder ensures we only show the image once the first frame is ready
-              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                if (wasSynchronouslyLoaded || frame != null) {
-                  return child;
-                }
-                // While still loading the first frame, show nothing (fallback is already underneath)
-                return const SizedBox.shrink();
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return _buildFallback();
-              },
-            ),
+          KovariImage(
+            imageUrl: imageUrl!,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            borderRadius: BorderRadius.circular(size),
+            fadeInDuration: const Duration(milliseconds: 500),
+            fadeOutDuration: const Duration(milliseconds: 500),
+            placeholder:
+                const SizedBox.shrink(), // Fallback is already underneath
           ),
         ],
       ),

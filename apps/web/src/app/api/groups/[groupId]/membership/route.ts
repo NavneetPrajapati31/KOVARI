@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";

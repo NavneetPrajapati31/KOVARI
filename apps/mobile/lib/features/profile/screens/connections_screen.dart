@@ -7,6 +7,9 @@ import '../../../core/network/api_client.dart';
 import '../models/user_connection.dart';
 import '../data/connections_service.dart';
 import '../widgets/user_list_item.dart';
+import '../../../core/providers/profile_provider.dart';
+import 'public_profile_screen.dart';
+import '../../../shared/widgets/kovari_confirm_dialog.dart';
 
 class ConnectionsScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -62,6 +65,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -86,6 +90,124 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
         });
       }
     }
+  }
+
+  Future<void> _handleFollowToggle(UserConnection user) async {
+    final originalState = user.isFollowing;
+    final userId = user.id;
+
+    // Optimistic UI Update
+    setState(() {
+      _followers = _followers.map((u) {
+        if (u.id == userId) return u.copyWith(isFollowing: !originalState);
+        return u;
+      }).toList();
+      _following = _following.map((u) {
+        if (u.id == userId) return u.copyWith(isFollowing: !originalState);
+        return u;
+      }).toList();
+    });
+
+    try {
+      if (originalState) {
+        await _service.unfollowUser(userId);
+      } else {
+        await _service.followUser(userId);
+      }
+      // Re-fetch connections to ensure counts are synced
+      final following = await _service.getFollowing(widget.userId);
+      if (mounted) {
+        setState(() {
+          _following = following;
+        });
+      }
+    } catch (e) {
+      // Revert on error
+      if (mounted) {
+        setState(() {
+          _followers = _followers.map((u) {
+            if (u.id == userId) return u.copyWith(isFollowing: originalState);
+            return u;
+          }).toList();
+          _following = _following.map((u) {
+            if (u.id == userId) return u.copyWith(isFollowing: originalState);
+            return u;
+          }).toList();
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    }
+  }
+
+  Future<void> _handleRemoveFollower(UserConnection user) async {
+    final userId = user.id;
+
+    // Show confirmation dialog
+    showKovariConfirmDialog(
+      context: context,
+      title: 'Remove Follower?',
+      content:
+          'Kovari won\'t tell @${user.username} they were removed from your followers.',
+      confirmLabel: 'Remove',
+      isDestructive: true,
+      onConfirm: () async {
+        // Optimistic UI Update
+        final originalFollowers = List<UserConnection>.from(_followers);
+        setState(() {
+          _followers = _followers.where((u) => u.id != userId).toList();
+        });
+
+        try {
+          await _service.removeFollower(userId);
+        } catch (e) {
+          // Revert on error
+          if (mounted) {
+            setState(() {
+              _followers = originalFollowers;
+            });
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+          }
+        }
+      },
+    );
+  }
+
+  Future<void> _handleUnfollow(UserConnection user) async {
+    final userId = user.id;
+
+    // Show confirmation dialog
+    showKovariConfirmDialog(
+      context: context,
+      title: 'Unfollow?',
+      content: 'Kovari won\'t tell ${user.name} they were unfollowed.',
+      confirmLabel: 'Unfollow',
+      isDestructive: true,
+      onConfirm: () async {
+        // Optimistic UI Update
+        final originalFollowing = List<UserConnection>.from(_following);
+        setState(() {
+          _following = _following.where((u) => u.id != userId).toList();
+        });
+
+        try {
+          await _service.unfollowUser(userId);
+        } catch (e) {
+          // Revert on error
+          if (mounted) {
+            setState(() {
+              _following = originalFollowing;
+            });
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+          }
+        }
+      },
+    );
   }
 
   List<UserConnection> _getFilteredList(List<UserConnection> list) {
@@ -323,17 +445,51 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final filteredUsers = _getFilteredList(users);
                   final user = filteredUsers[index];
+                  final currentUserId = ref.watch(profileProvider)?.userId;
+                  final isMe = user.id == currentUserId;
+                  final isViewingOwnConnections =
+                      widget.userId == currentUserId;
+
                   return UserListItem(
                     user: user,
                     type: type,
-                    isOwnProfile: true,
+                    isOwnProfile: isViewingOwnConnections,
+                    onTap: isMe
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PublicProfileScreen(userId: user.id),
+                              ),
+                            );
+                          },
                     onActionPressed: () {
-                      // TODO: Implement follow/message transition
+                      if (isViewingOwnConnections) {
+                        if (type == 'followers' && !user.isFollowing) {
+                          _handleFollowToggle(user);
+                        } else {
+                          // TODO: Navigate to chat
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Chat coming soon!')),
+                          );
+                        }
+                      } else {
+                        if (user.isFollowing) {
+                          // TODO: Navigate to chat
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Chat coming soon!')),
+                          );
+                        } else {
+                          _handleFollowToggle(user);
+                        }
+                      }
                     },
-                    onRemovePressed: type == 'followers'
-                        ? () {
-                            // TODO: Implement remove follower
-                          }
+                    onRemovePressed: isViewingOwnConnections
+                        ? (type == 'followers'
+                              ? () => _handleRemoveFollower(user)
+                              : () => _handleUnfollow(user))
                         : null,
                   );
                 }, childCount: _getFilteredList(users).length),

@@ -122,6 +122,12 @@ class GroupActionsNotifier {
     _ref.invalidate(groupMembershipProvider(_groupId));
   }
 
+  Future<void> joinViaInvite() async {
+    await _service.joinGroup(_groupId, viaInvite: true);
+    _ref.invalidate(groupMembershipProvider(_groupId));
+    _ref.invalidate(myGroupsProvider);
+  }
+
   Future<void> leaveGroup() async {
     await _service.leaveGroup(_groupId);
     _ref.invalidate(groupMembershipProvider(_groupId));

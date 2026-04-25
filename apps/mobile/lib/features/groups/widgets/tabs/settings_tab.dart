@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/core/theme/app_colors.dart';
-import 'package:mobile/core/theme/app_text_styles.dart';
 import 'package:mobile/features/groups/widgets/settings_widgets.dart';
 import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/group_details_provider.dart';
 import 'package:mobile/features/groups/widgets/edit_group_sheets.dart';
 import 'package:mobile/features/groups/widgets/management_sheets.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
 
 class SettingsTab extends ConsumerWidget {
   final GroupModel group;
@@ -36,6 +36,13 @@ class SettingsTab extends ConsumerWidget {
             title: "Group Info",
             children: [
               KovariListRow(
+                icon: LucideIcons.image,
+                label: "Cover Image",
+                subtitle: "Update the primary image for your group",
+                onTap: () =>
+                    _showEditSheet(context, EditCoverPhotoSheet(group: group)),
+              ),
+              KovariListRow(
                 icon: LucideIcons.info,
                 label: "Group Details",
                 subtitle: "Name, description, destination",
@@ -44,19 +51,9 @@ class SettingsTab extends ConsumerWidget {
               ),
               KovariListRow(
                 icon: LucideIcons.calendar,
-                label: "Travel Dates",
-                subtitle: dateStr,
-                onTap: () => _showEditSheet(
-                  context,
-                  EditTravelDetailsSheet(group: group),
-                ),
-              ),
-              KovariListRow(
-                icon: LucideIcons.wallet,
-                label: "Estimated Budget",
-                subtitle: group.budget != null
-                    ? "\$${group.budget}"
-                    : "Not set",
+                label: "Dates & Budget",
+                subtitle:
+                    "$dateStr${group.budget != null ? ' · \$${group.budget}' : ''}",
                 onTap: () => _showEditSheet(
                   context,
                   EditTravelDetailsSheet(group: group),
@@ -86,7 +83,8 @@ class SettingsTab extends ConsumerWidget {
                 onTap: () =>
                     _showEditSheet(context, InviteMembersSheet(group: group)),
               ),
-              if (membershipAsync.value?.isAdmin == true)
+              if (membershipAsync.value?.isAdmin == true ||
+                  membershipAsync.value?.isCreator == true)
                 KovariListRow(
                   icon: LucideIcons.inbox,
                   label: "Join Requests",
@@ -101,17 +99,9 @@ class SettingsTab extends ConsumerWidget {
             children: [
               KovariListRow(
                 icon: LucideIcons.shieldCheck,
-                label: "Privacy & Visibility",
-                subtitle: group.privacy == 'public'
-                    ? "Public Group"
-                    : "Private Group",
-                onTap: () =>
-                    _showEditSheet(context, EditPoliciesSheet(group: group)),
-              ),
-              KovariListRow(
-                icon: LucideIcons.info,
-                label: "Travel Policies",
-                subtitle: "Non-smoking, Non-drinking, etc.",
+                label: "Privacy & Policies",
+                subtitle:
+                    "${group.privacy == 'public' ? 'Public' : 'Private'} Group${group.smokingPolicy == 'true' || group.drinkingPolicy == 'true' ? ' · Strict Policies' : ''}",
                 onTap: () =>
                     _showEditSheet(context, EditPoliciesSheet(group: group)),
               ),
@@ -153,90 +143,31 @@ class SettingsTab extends ConsumerWidget {
   }
 
   void _showLeaveConfirmation(BuildContext context, WidgetRef ref) {
-    showDialog(
+    showKovariConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          "Leave Group?",
-          style: TextStyle(
-            color: AppColors.foreground,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: const Text(
-          "Are you sure you want to leave this travel group?",
-          style: TextStyle(color: AppColors.mutedForeground, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: AppColors.mutedForeground),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(groupActionsProvider(group.id)).leaveGroup();
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text(
-              "Leave",
-              style: TextStyle(
-                color: AppColors.destructive,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+      title: "Leave Group?",
+      content: "Are you sure you want to leave this travel group?",
+      confirmLabel: "Leave",
+      isDestructive: true,
+      onConfirm: () {
+        ref.read(groupActionsProvider(group.id)).leaveGroup();
+        Navigator.pop(context); // Close the settings sheet/screen
+      },
     );
   }
 
   void _showDeleteConfirmation(BuildContext context, WidgetRef ref) {
-    showDialog(
+    showKovariConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          "Delete Group?",
-          style: TextStyle(
-            color: AppColors.foreground,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: const Text(
+      title: "Delete Group?",
+      content:
           "This action is permanent and will delete all trip data and chats for everyone.",
-          style: TextStyle(color: AppColors.mutedForeground, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: AppColors.mutedForeground),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(groupActionsProvider(group.id)).deleteGroup();
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text(
-              "Delete",
-              style: TextStyle(
-                color: AppColors.destructive,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+      confirmLabel: "Delete",
+      isDestructive: true,
+      onConfirm: () {
+        ref.read(groupActionsProvider(group.id)).deleteGroup();
+        Navigator.pop(context); // Close settings
+      },
     );
   }
 }
