@@ -10,6 +10,7 @@ class UserListItem extends StatelessWidget {
   final bool isOwnProfile;
   final VoidCallback? onActionPressed;
   final VoidCallback? onRemovePressed;
+  final VoidCallback? onTap;
   final bool isLoading;
 
   const UserListItem({
@@ -19,6 +20,7 @@ class UserListItem extends StatelessWidget {
     this.isOwnProfile = false,
     this.onActionPressed,
     this.onRemovePressed,
+    this.onTap,
     this.isLoading = false,
   });
 
@@ -40,71 +42,79 @@ class UserListItem extends StatelessWidget {
         ? !user.isFollowing
         : (type == 'followers'
               ? !user.isFollowing
-              : true); // Message is primary in following too
+              : false); // Message is secondary in following
 
-    return Container(
-      padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
-      ),
-      child: Row(
-        children: [
-          // Web-Sized Avatar (h-10 w-10 = 40px on mobile)
-          KovariAvatar(imageUrl: user.avatar, size: 40),
-          const SizedBox(width: 12),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.only(
+          left: 12,
+          right: 12,
+          top: 12,
+          bottom: 12,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
+        ),
+        child: Row(
+          children: [
+            // Web-Sized Avatar (h-10 w-10 = 40px on mobile)
+            KovariAvatar(imageUrl: user.avatar, size: 40),
+            const SizedBox(width: 12),
 
-          // User Info (Exact text-xs parity with tighter spacing)
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+            // User Info (Exact text-xs parity with tighter spacing)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    user.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: Colors.black,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3), // Tight gap matching web
+                  Text(
+                    user.username,
+                    style: const TextStyle(
+                      color: AppColors.mutedForeground,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Action Buttons
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  user.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                    color: Colors.black,
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                _buildButton(
+                  label: buttonLabel,
+                  onPressed: onActionPressed,
+                  isPrimary: isPrimaryAction,
                 ),
-                const SizedBox(height: 3), // Tight gap matching web
-                Text(
-                  user.username,
-                  style: const TextStyle(
-                    color: AppColors.mutedForeground,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                if (isOwnProfile && onRemovePressed != null) ...[
+                  const SizedBox(width: 6),
+                  _buildRemoveButton(onRemovePressed!),
+                ],
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-
-          // Action Buttons
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildButton(
-                label: buttonLabel,
-                onPressed: onActionPressed,
-                isPrimary: isPrimaryAction,
-              ),
-              if (isOwnProfile && onRemovePressed != null) ...[
-                const SizedBox(width: 6),
-                _buildRemoveButton(onRemovePressed!),
-              ],
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -163,7 +173,6 @@ class UserListItem extends StatelessWidget {
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: AppColors.border, width: 1),
           ),
         ),
       ),

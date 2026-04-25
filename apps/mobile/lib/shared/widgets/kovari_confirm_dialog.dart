@@ -94,7 +94,7 @@ class KovariConfirmDialog extends StatelessWidget {
                           fontSize: 15,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Text(
                         content,
                         textAlign: TextAlign.center,

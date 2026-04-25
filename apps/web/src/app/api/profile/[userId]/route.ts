@@ -31,6 +31,7 @@ const PublicProfileSchema = z.object({
     image_url: z.string()
   })).default([]),
   isFollowing: z.boolean().default(false),
+  isFollowingMe: z.boolean().default(false),
   isOwnProfile: z.boolean().default(false),
   hasActiveReport: z.boolean().default(false),
   location: z.string().default(""),
@@ -94,6 +95,7 @@ export async function GET(
 
   // 4. Check if current user is following this user
   let isFollowing = false;
+  let isFollowingMe = false;
   let isOwnProfile = false;
 
   try {
@@ -109,6 +111,15 @@ export async function GET(
           .eq("following_id", targetInternalUserId)
           .maybeSingle();
         isFollowing = !!followData;
+
+        // Check if target user follows current user
+        const { data: followMeData } = await supabase
+          .from("user_follows")
+          .select("id")
+          .eq("follower_id", targetInternalUserId)
+          .eq("following_id", currentUserId)
+          .maybeSingle();
+        isFollowingMe = !!followMeData;
       }
     }
   } catch (error) {
@@ -127,6 +138,7 @@ export async function GET(
     profileImage: userDto.avatar,
     posts,
     isFollowing,
+    isFollowingMe,
     isOwnProfile,
     userId: targetInternalUserId,
   };
