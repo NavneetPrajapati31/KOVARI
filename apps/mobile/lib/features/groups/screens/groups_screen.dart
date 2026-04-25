@@ -60,14 +60,28 @@ class GroupsScreen extends ConsumerWidget {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
-                                    LucideIcons.users,
-                                    size: 48,
-                                    color: AppColors.muted,
+                                  Container(
+                                    padding: const EdgeInsets.all(24),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.secondary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      LucideIcons.users,
+                                      size: 32,
+                                      color: AppColors.mutedForeground,
+                                    ),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 24),
                                   Text(
-                                    "You haven't joined any groups yet.",
+                                    "No groups yet",
+                                    style: AppTextStyles.h3.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Create or join a group to start planning.",
                                     style: AppTextStyles.bodyMedium.copyWith(
                                       color: AppColors.mutedForeground,
                                     ),
@@ -80,39 +94,77 @@ class GroupsScreen extends ConsumerWidget {
 
                         return SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              final group = groups[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16.0),
-                                child: GroupCard(
-                                  group: group,
-                                  onAction: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            GroupDetailsScreen(
-                                              groupId: group.id,
-                                            ),
-                                      ),
+                          sliver: SliverToBoxAdapter(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.card,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.border),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.02),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: ListView.separated(
+                                  padding: EdgeInsets.zero,
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: groups.length,
+                                  separatorBuilder: (context, index) => Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: AppColors.border,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final group = groups[index];
+                                    return GroupCard(
+                                      group: group,
+                                      onAction: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                GroupDetailsScreen(
+                                                  groupId: group.id,
+                                                ),
+                                          ),
+                                        );
+                                      },
                                     );
                                   },
                                 ),
-                              );
-                            }, childCount: groups.length),
+                              ),
+                            ),
                           ),
                         );
                       },
                       loading: () => SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) => const GroupCardSkeleton(),
-                            childCount: 3,
+                        sliver: SliverToBoxAdapter(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.card,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: ListView.separated(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: 3,
+                              separatorBuilder: (context, index) => Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: AppColors.border,
+                              ),
+                              itemBuilder: (context, index) =>
+                                  const GroupCardSkeleton(),
+                            ),
                           ),
                         ),
                       ),
