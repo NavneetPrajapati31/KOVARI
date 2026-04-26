@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, kDebugMode;
+import 'dart:ui';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'core/utils/app_logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'core/theme/app_theme.dart';
@@ -25,32 +28,131 @@ import 'features/auth/screens/banned_screen.dart';
 
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
+import 'core/providers/connectivity_provider.dart';
 
 void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  runZonedGuarded(
+    () async {
+      WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  // Load environment variables
-  const envFile = String.fromEnvironment(
-    'ENV_FILE',
-    defaultValue: '.env.development',
+      // Global Error Handlers
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (kReleaseMode) {
+          Sentry.captureException(details.exception, stackTrace: details.stack);
+        } else {
+          FlutterError.presentError(details);
+        }
+        AppLogger.e(
+          'FlutterError: ${details.exception}',
+          stackTrace: details.stack,
+          reportToSentry: false,
+        );
+      };
+
+      PlatformDispatcher.instance.onError = (error, stack) {
+        if (kReleaseMode) {
+          Sentry.captureException(error, stackTrace: stack);
+        }
+        AppLogger.e(
+          'PlatformDispatcherError: $error',
+          stackTrace: stack,
+          reportToSentry: false,
+        );
+        return true;
+      };
+
+      // Custom Error Widget
+      ErrorWidget.builder = (FlutterErrorDetails details) {
+        if (kReleaseMode) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.warning_rounded,
+                    color: AppColors.primary,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Oops! Something went wrong.',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'We are working to fix it.',
+                    style: TextStyle(color: AppColors.mutedForeground),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {}, // Could reset state or navigate home
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
+                    child: const Text(
+                      'Return Home',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return ErrorWidget(details.exception);
+      };
+
+      // Load environment variables (fallback)
+      const envFile = String.fromEnvironment(
+        'ENV_FILE',
+        defaultValue: 'env/development.json',
+      );
+      try {
+        await dotenv.load(fileName: envFile);
+      } catch (e) {
+        AppLogger.w(
+          'Dotenv failed to load $envFile, falling back to dart-define.',
+        );
+      }
+      Env.validate();
+
+      // Initialize Google Sign In (Required for 7.x+)
+      try {
+        await GoogleSignIn.instance.initialize(
+          clientId: kIsWeb
+              ? Env.googleClientId
+              : null, // Fix NPE on Android by removing clientId
+          serverClientId: kIsWeb ? null : Env.googleClientId,
+        );
+      } catch (e) {
+        AppLogger.e('Google Sign-In initialization failed or unsupported: $e');
+      }
+
+      final sentryDsn = Env.sentryDsn;
+      if (sentryDsn != null && sentryDsn.isNotEmpty) {
+        await SentryFlutter.init((options) {
+          options.dsn = sentryDsn;
+          options.tracesSampleRate = 1.0;
+        }, appRunner: () => runApp(const ProviderScope(child: KovariApp())));
+      } else {
+        AppLogger.w('Sentry DSN not found. Running without Sentry.');
+        runApp(const ProviderScope(child: KovariApp()));
+      }
+    },
+    (error, stackTrace) {
+      AppLogger.e(
+        'Uncaught Zone Error: $error',
+        stackTrace: stackTrace,
+        reportToSentry: false,
+      );
+      if (kReleaseMode) {
+        Sentry.captureException(error, stackTrace: stackTrace);
+      }
+    },
   );
-  await dotenv.load(fileName: envFile);
-  Env.validate();
-
-  // Initialize Google Sign In (Required for 7.x+)
-  try {
-    await GoogleSignIn.instance.initialize(
-      clientId: kIsWeb
-          ? Env.googleClientId
-          : null, // Fix NPE on Android by removing clientId
-      serverClientId: kIsWeb ? null : Env.googleClientId,
-    );
-  } catch (e) {
-    debugPrint('Google Sign-In initialization failed or unsupported: $e');
-  }
-
-  runApp(const ProviderScope(child: KovariApp()));
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -176,6 +278,12 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
         }
       });
 
+      apiClient.setOnNetworkError(() {
+        if (mounted) {
+          ref.read(connectivityProvider.notifier).triggerHealthCheck();
+        }
+      });
+
       final authService = AuthService(apiClient, storage);
       final user = await authService.checkSession();
 
@@ -295,6 +403,12 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
   Future<void> _initializeApp() async {
     try {
       final apiClient = ApiClientFactory.create();
+
+      apiClient.setOnNetworkError(() {
+        if (mounted) {
+          ref.read(connectivityProvider.notifier).triggerHealthCheck();
+        }
+      });
 
       // Since checkSession already set the token in main() or AuthWrapper,
       // we just need to verify the profile.

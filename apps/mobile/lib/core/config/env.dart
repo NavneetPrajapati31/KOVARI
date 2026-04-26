@@ -1,22 +1,42 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Env {
-  // Version: 1.0.1
+  // Version: 1.0.2
+
   /// Internal helper to get a required variable or throw
   static String _getRequired(String key) {
-    final value = dotenv.maybeGet(key);
-    if (value == null || value.isEmpty) {
-      throw Exception(
-        'Environment variable $key is missing. Please check your .env file.',
-      );
+    // 1. Try dart-define
+    final dartDefine = String.fromEnvironment(key);
+    if (dartDefine.isNotEmpty) {
+      return dartDefine;
     }
-    return value;
+
+    // 2. Fallback to dotenv
+    final dotenvValue = dotenv.maybeGet(key);
+    if (dotenvValue != null && dotenvValue.isNotEmpty) {
+      return dotenvValue;
+    }
+
+    throw Exception(
+      'Environment variable $key is missing. Please check your dart-define config or .env file.',
+    );
   }
 
   /// Internal helper for optional values
   static String? _getOptional(String key) {
-    final value = dotenv.maybeGet(key);
-    return (value?.isEmpty ?? true) ? null : value;
+    // 1. Try dart-define
+    final dartDefine = String.fromEnvironment(key);
+    if (dartDefine.isNotEmpty) {
+      return dartDefine;
+    }
+
+    // 2. Fallback to dotenv
+    final dotenvValue = dotenv.maybeGet(key);
+    if (dotenvValue != null && dotenvValue.isNotEmpty) {
+      return dotenvValue;
+    }
+
+    return null;
   }
 
   // API & Backend
@@ -26,14 +46,16 @@ class Env {
 
   // Third Party
   static String? get geoapifyKey => _getOptional('GEOAPIFY_KEY');
+  static String? get sentryDsn => _getOptional('SENTRY_DSN');
 
   // Google OAuth - REQUIRED for Mobile Auth
   static String? get googleClientId => _getOptional('GOOGLE_CLIENT_ID');
-  static String? get googleClientSecret => _getOptional('GOOGLE_CLIENT_SECRET');
 
   // Toggle for mock data
-  static bool get useMockApi =>
-      dotenv.get('USE_MOCK_API', fallback: 'false').toLowerCase() == 'true';
+  static bool get useMockApi {
+    final val = _getOptional('USE_MOCK_API');
+    return (val ?? 'false').toLowerCase() == 'true';
+  }
 
   /// Validates that all critical environment variables are present.
   static void validate() {
@@ -45,6 +67,6 @@ class Env {
   /// Returns the current loaded environment file name for debugging
   static String get currentEnv => const String.fromEnvironment(
     'ENV_FILE',
-    defaultValue: '.env.development',
+    defaultValue: 'env/development.json',
   );
 }

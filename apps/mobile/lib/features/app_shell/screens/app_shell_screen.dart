@@ -7,6 +7,7 @@ import '../../groups/screens/groups_screen.dart';
 import '../widgets/profile_tab.dart';
 import '../../../shared/widgets/kovari_bottom_nav.dart';
 import '../providers/app_shell_provider.dart';
+import '../../../core/providers/connectivity_provider.dart';
 
 class AppShellScreen extends ConsumerWidget {
   const AppShellScreen({super.key});
@@ -14,16 +15,37 @@ class AppShellScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(appShellIndexProvider);
+    final connectivityState = ref.watch(connectivityProvider);
 
     return Scaffold(
-      body: IndexedStack(
-        index: currentIndex,
-        children: const [
-          HomeScreen(),
-          ExploreScreen(),
-          ChatInboxScreen(),
-          GroupsScreen(),
-          ProfileTab(),
+      body: Column(
+        children: [
+          if (!connectivityState.isConnected)
+            Container(
+              width: double.infinity,
+              color: Colors.red.shade600,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: const SafeArea(
+                bottom: false,
+                child: Text(
+                  'No internet connection',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          Expanded(
+            child: IndexedStack(
+              index: currentIndex,
+              children: const [
+                HomeScreen(),
+                ExploreScreen(),
+                ChatInboxScreen(),
+                GroupsScreen(),
+                ProfileTab(),
+              ],
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: KovariBottomNav(

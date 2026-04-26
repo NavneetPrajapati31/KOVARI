@@ -7,6 +7,7 @@ import '../../core/config/env.dart';
 import '../../core/services/token_service.dart';
 import '../../core/models/api_response.dart';
 import 'api_endpoints.dart';
+import '../utils/app_logger.dart';
 
 // ─────────────────────────────────────────────
 // Abstract Interface
@@ -46,6 +47,7 @@ abstract class ApiClient {
   void setToken(String token);
   void clearToken();
   void setOnLogout(VoidCallback onLogout);
+  void setOnNetworkError(VoidCallback onNetworkError);
   String? get token;
 }
 
@@ -61,26 +63,28 @@ class DioApiClient implements ApiClient {
 
   String? _token;
   VoidCallback? _onLogout;
+  VoidCallback? _onNetworkError;
   Completer<String?>? _refreshCompleter;
 
-  // 15-second global timeout (for mobile network stability)
-  static const _timeout = Duration(seconds: 15);
+  static const _connectTimeout = Duration(seconds: 8);
+  static const _sendTimeout = Duration(seconds: 12);
+  static const _receiveTimeout = Duration(seconds: 15);
 
   DioApiClient([this._token])
     : _dio = Dio(
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
-          connectTimeout: _timeout,
-          receiveTimeout: _timeout,
-          sendTimeout: _timeout,
+          connectTimeout: _connectTimeout,
+          receiveTimeout: _receiveTimeout,
+          sendTimeout: _sendTimeout,
         ),
       ),
       _retryDio = Dio(
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
-          connectTimeout: _timeout,
-          receiveTimeout: _timeout,
-          sendTimeout: _timeout,
+          connectTimeout: _connectTimeout,
+          receiveTimeout: _receiveTimeout,
+          sendTimeout: _sendTimeout,
         ),
       ) {
     // Interceptor order: onRequest → onResponse → onError
@@ -198,7 +202,37 @@ class DioApiClient implements ApiClient {
               _refreshCompleter = null;
             }
           }
+          return handler.next(e);
+        },
+      ),
+    );
 
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final requestId = options.headers['X-Request-Id'] ?? 'N/A';
+          final headers = Map<String, dynamic>.from(options.headers);
+          if (headers.containsKey('Authorization')) {
+            headers['Authorization'] = '[REDACTED]';
+          }
+          AppLogger.i('➡️ [REQ] [$requestId] ${options.method} ${options.uri}');
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          final requestId =
+              response.requestOptions.headers['X-Request-Id'] ?? 'N/A';
+          AppLogger.i(
+            '✅ [RES] [$requestId] ${response.requestOptions.method} ${response.requestOptions.uri} [${response.statusCode}]',
+          );
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          final requestId = e.requestOptions.headers['X-Request-Id'] ?? 'N/A';
+          AppLogger.e(
+            '❌ [ERR] [$requestId] ${e.requestOptions.method} ${e.requestOptions.uri} [${e.response?.statusCode}]',
+            error: e,
+            reportToSentry: true,
+          );
           return handler.next(e);
         },
       ),
@@ -209,10 +243,14 @@ class DioApiClient implements ApiClient {
   String? get token => _token;
   @override
   void setToken(String token) => _token = token;
+
   @override
   void clearToken() => _token = null;
   @override
   void setOnLogout(VoidCallback onLogout) => _onLogout = onLogout;
+  @override
+  void setOnNetworkError(VoidCallback onNetworkError) =>
+      _onNetworkError = onNetworkError;
 
   // ─────────────────────────────────────────────
   // _safeRequest: centralizes all error handling
@@ -276,18 +314,25 @@ class DioApiClient implements ApiClient {
         requestId ??= e.requestOptions.extra['requestId']?.toString();
 
         final statusCode = e.response?.statusCode ?? 0;
-        final isServer5xx = statusCode >= 500 && statusCode < 600;
+        final isGet = e.requestOptions.method.toUpperCase() == 'GET';
+
         final isTransient =
             e.type == DioExceptionType.connectionTimeout ||
             e.type == DioExceptionType.receiveTimeout ||
             e.type == DioExceptionType.sendTimeout ||
             e.type == DioExceptionType.connectionError ||
-            isServer5xx;
+            statusCode == 502 ||
+            statusCode == 503 ||
+            statusCode == 504 ||
+            (statusCode == 500 && isGet);
 
-        // Strict Single Retry Policy
+        // Strict Single Retry Policy with 300ms jittered backoff
         if (isTransient && !hasRetried) {
           hasRetried = true;
-          await Future.delayed(const Duration(milliseconds: 500));
+          _onNetworkError?.call();
+          await Future.delayed(
+            Duration(milliseconds: 300 + (DateTime.now().millisecond % 200)),
+          );
           return execute();
         }
 
@@ -296,7 +341,7 @@ class DioApiClient implements ApiClient {
                 e.type == DioExceptionType.receiveTimeout ||
                 e.type == DioExceptionType.sendTimeout
             ? 'timeout'
-            : isServer5xx
+            : (statusCode >= 500 && statusCode < 600)
             ? 'server_error'
             : 'network';
 
@@ -304,11 +349,12 @@ class DioApiClient implements ApiClient {
         String? backendMessage;
         if (e.response?.data is Map) {
           final data = e.response!.data as Map;
-          backendMessage = data['error']?.toString() ?? data['message']?.toString();
+          backendMessage =
+              data['error']?.toString() ?? data['message']?.toString();
         }
 
         return ApiResponse.fallback(
-          reason: backendMessage ?? reason, 
+          reason: backendMessage ?? reason,
           requestId: requestId,
         );
       } catch (e) {
@@ -383,6 +429,8 @@ class MockApiClient implements ApiClient {
   void clearToken() => _token = null;
   @override
   void setOnLogout(VoidCallback onLogout) {}
+  @override
+  void setOnNetworkError(VoidCallback onNetworkError) {}
 
   @override
   Future<ApiResponse<T>> get<T>(

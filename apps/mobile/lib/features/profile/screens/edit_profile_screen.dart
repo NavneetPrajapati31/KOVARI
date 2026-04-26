@@ -23,6 +23,7 @@ import 'package:image_cropper/image_cropper.dart';
 import '../../../core/network/cloudinary_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/widgets/common/user_avatar_fallback.dart';
+import '../../../core/utils/app_logger.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   final UserProfile profile;
@@ -243,7 +244,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         await _cropImage(pickedFile.path);
       }
     } catch (e) {
-      debugPrint("Error picking image: $e");
+      AppLogger.e("Error picking image: $e");
     }
   }
 
@@ -287,7 +288,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Error cropping image: $e");
+      AppLogger.e("Error cropping image: $e");
     }
   }
 

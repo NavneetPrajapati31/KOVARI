@@ -54,6 +54,8 @@ dependencies:
   share_plus: ^12.0.2
   flutter_native_splash: ^2.4.7
   uuid: ^4.5.3
+  sentry_flutter: ^8.14.2
+  connectivity_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:
@@ -88,8 +90,6 @@ flutter:
     - assets/logo.webp
     - assets/logo.png
     - assets/google_logo.png
-    - .env.development
-    - .env.production
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

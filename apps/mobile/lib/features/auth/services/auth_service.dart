@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/services/local_storage.dart';
 import '../../../shared/models/kovari_user.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/utils/app_logger.dart';
 
 class AuthService {
   final ApiClient _apiClient;
@@ -24,7 +25,7 @@ class AuthService {
       throw Exception("Failed to retrieve Google ID Token");
     }
 
-    debugPrint('🚀 Sending Google ID Token to backend...');
+    AppLogger.i('🚀 Sending Google ID Token to backend...');
     final response = await _apiClient.post<KovariUser>(
       ApiEndpoints.googleAuth,
       data: {'idToken': idToken},
@@ -32,16 +33,16 @@ class AuthService {
     );
 
     if (response.success && response.data != null) {
-      debugPrint('✅ Google Login successful!');
+      AppLogger.i('✅ Google Login successful!');
       await _finalizeAuthentication(response.data!, response.raw);
       return response.data;
     }
 
-    debugPrint(
+    AppLogger.e(
       '❌ Google Login failed. Reason: ${response.meta.reason}, Error Message: ${response.error?.message}',
     );
     if (response.raw != null) {
-      debugPrint('📦 Raw Server Response: ${response.raw}');
+      AppLogger.e('📦 Raw Server Response: ${response.raw}');
     }
     throw Exception(response.error?.message ?? "Google Login failed");
   }
@@ -197,7 +198,7 @@ class AuthService {
       // 2. Clear Google Session
       await _googleSignIn.signOut();
     } catch (e) {
-      debugPrint('ℹ️ Logout cleanup (server or Google): $e');
+      AppLogger.e('ℹ️ Logout cleanup (server or Google): $e');
     }
 
     // 3. Wipe local state

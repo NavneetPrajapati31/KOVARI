@@ -413,6 +413,8 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
       // 1. Copy to clipboard
       await Clipboard.setData(ClipboardData(text: _inviteLink));
 
+      if (!mounted) return;
+
       // 2. Tactile feedback
       Feedback.forTap(context);
 

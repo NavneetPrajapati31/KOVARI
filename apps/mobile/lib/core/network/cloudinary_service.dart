@@ -8,7 +8,13 @@ class CloudinaryService {
   final ApiClient _apiClient;
   final Dio _cloudinaryDio;
 
-  CloudinaryService(this._apiClient) : _cloudinaryDio = Dio();
+  CloudinaryService(this._apiClient) : _cloudinaryDio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 8),
+      sendTimeout: const Duration(seconds: 45),
+      receiveTimeout: const Duration(seconds: 45),
+    ),
+  );
 
   /// Gets a signed upload signature from the backend
   Future<Map<String, dynamic>> _getSignature(String folder) async {
