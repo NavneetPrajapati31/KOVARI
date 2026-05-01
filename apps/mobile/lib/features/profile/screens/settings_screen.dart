@@ -141,10 +141,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     setState(() => _isPasswordLoading = true);
     try {
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
-      );
+      final authService = ref.read(authServiceProvider);
       await authService.requestPasswordReset(profile.email);
       _showSnackBar('Password reset link sent to ${profile.email}');
     } catch (e) {
@@ -247,7 +244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       try {
         await ref.read(settingsServiceProvider).deleteAccount();
         _showSnackBar('Account deleted successfully');
-        await ref.read(authStateProvider.notifier).logout();
+        await ref.read(authProvider.notifier).logout();
         if (!mounted) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
       } catch (e) {

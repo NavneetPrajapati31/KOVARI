@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -30,11 +31,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
 
   Future<void> _handleDevReset() async {
-    final storage = LocalStorage();
-    final apiClient = ApiClientFactory.create();
-    final authService = AuthService(apiClient, storage);
-
-    await authService.logout();
+    await ref.read(authProvider.notifier).logout();
 
     if (mounted) {
       Navigator.of(

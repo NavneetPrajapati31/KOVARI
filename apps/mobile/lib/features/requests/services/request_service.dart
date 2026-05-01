@@ -5,7 +5,8 @@ import '../models/request_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final requestServiceProvider = Provider<RequestService>((ref) {
-  return RequestService(ApiClientFactory.create());
+  final apiClient = ref.read(apiClientProvider);
+  return RequestService(apiClient);
 });
 
 class RequestService {

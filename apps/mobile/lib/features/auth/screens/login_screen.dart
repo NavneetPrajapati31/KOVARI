@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../shared/widgets/auth_social_button.dart';
@@ -11,6 +12,7 @@ import '../../../core/services/local_storage.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
+import 'package:dio/dio.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -24,6 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _isLoading = false;
+  final _cancelToken = CancelToken();
 
   final _storage = LocalStorage();
 
@@ -48,6 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    _cancelToken.cancel('LoginScreen disposed');
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -67,8 +71,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(ApiClientFactory.create(), _storage);
-      await authService.loginWithEmail(email, password);
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.loginWithEmail(email, password, cancelToken: _cancelToken);
 
       // Save Remember Me preference
       await _storage.saveRememberMe(_rememberMe);
@@ -79,9 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
 
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
+        ref.read(authProvider.notifier).setUser(user);
       }
     } catch (e) {
       if (mounted) {
@@ -100,11 +102,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(ApiClientFactory.create(), _storage);
-      await authService.loginWithGoogle();
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.loginWithGoogle(cancelToken: _cancelToken);
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/');
+        ref.read(authProvider.notifier).setUser(user);
       }
     } catch (e) {
       if (mounted) {

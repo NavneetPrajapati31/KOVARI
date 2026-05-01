@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 import 'dart:ui';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/utils/app_logger.dart';
@@ -11,9 +11,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/profile/models/user_profile.dart';
 import 'features/app_shell/screens/app_shell_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
-import 'features/auth/services/auth_service.dart';
 import 'core/network/api_client.dart';
-import 'core/services/local_storage.dart';
 import 'core/theme/app_colors.dart';
 import 'features/onboarding/data/profile_service.dart';
 import 'dart:async';
@@ -21,7 +19,6 @@ import 'package:app_links/app_links.dart';
 import 'core/config/routes.dart';
 import 'features/groups/screens/group_invite_screen.dart';
 import 'features/auth/screens/reset_password_screen.dart';
-// KovariUser import removed as it is now managed via authStateProvider
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
 import 'features/auth/screens/banned_screen.dart';
@@ -29,6 +26,7 @@ import 'features/auth/screens/banned_screen.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
 import 'core/providers/connectivity_provider.dart';
+import 'core/auth/session_manager.dart';
 
 void main() async {
   runZonedGuarded(
@@ -88,7 +86,7 @@ void main() async {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () {}, // Could reset state or navigate home
+                    onPressed: () {},
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                     ),
@@ -105,7 +103,7 @@ void main() async {
         return ErrorWidget(details.exception);
       };
 
-      // Load environment variables (fallback)
+      // Load environment variables
       const envFile = String.fromEnvironment(
         'ENV_FILE',
         defaultValue: 'env/development.json',
@@ -119,16 +117,14 @@ void main() async {
       }
       Env.validate();
 
-      // Initialize Google Sign In (Required for 7.x+)
+      // Initialize Google Sign In
       try {
         await GoogleSignIn.instance.initialize(
-          clientId: kIsWeb
-              ? Env.googleClientId
-              : null, // Fix NPE on Android by removing clientId
+          clientId: kIsWeb ? Env.googleClientId : null,
           serverClientId: kIsWeb ? null : Env.googleClientId,
         );
       } catch (e) {
-        AppLogger.e('Google Sign-In initialization failed or unsupported: $e');
+        AppLogger.e('Google Sign-In initialization failed: $e');
       }
 
       final sentryDsn = Env.sentryDsn;
@@ -157,14 +153,14 @@ void main() async {
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-class KovariApp extends StatefulWidget {
+class KovariApp extends ConsumerStatefulWidget {
   const KovariApp({super.key});
 
   @override
-  State<KovariApp> createState() => _KovariAppState();
+  ConsumerState<KovariApp> createState() => _KovariAppState();
 }
 
-class _KovariAppState extends State<KovariApp> {
+class _KovariAppState extends ConsumerState<KovariApp> {
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
 
@@ -182,54 +178,38 @@ class _KovariAppState extends State<KovariApp> {
 
   void _initDeepLinks() {
     _appLinks = AppLinks();
-
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      _handleDeepLink(uri);
-    });
-
+    _linkSubscription = _appLinks.uriLinkStream.listen(_handleDeepLink);
     _appLinks.getInitialLink().then((uri) {
-      if (uri != null) {
-        _handleDeepLink(uri);
-      }
+      if (uri != null) _handleDeepLink(uri);
     });
   }
 
   void _handleDeepLink(Uri uri) {
     debugPrint('🔗 Deep Link received: $uri');
-
-    // Path segments for parsing URLs like /invite/token or /forgot-password?token=...
     final segments = uri.pathSegments;
-
-    // Support both HTTPS (Universal Links) and Custom Scheme (Fallback)
     bool isResetPath =
         uri.path.contains('forgot-password') || uri.host == 'reset-password';
     bool isInvitePath =
         (segments.isNotEmpty && segments.first == 'invite') ||
         uri.host == 'invite';
-
     String? resetToken = uri.queryParameters['token'];
 
     if (isResetPath && resetToken != null) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (navigatorKey.currentState != null) {
-          navigatorKey.currentState?.push(
-            MaterialPageRoute(
-              builder: (context) => ResetPasswordScreen(token: resetToken),
-            ),
-          );
-        }
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => ResetPasswordScreen(token: resetToken),
+          ),
+        );
       });
     } else if (isInvitePath) {
       final inviteToken = uri.host == 'invite' ? segments.first : segments[1];
-      debugPrint('📩 Invite token detected: $inviteToken');
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (navigatorKey.currentState != null) {
-          navigatorKey.currentState?.push(
-            MaterialPageRoute(
-              builder: (context) => GroupInviteScreen(token: inviteToken),
-            ),
-          );
-        }
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => GroupInviteScreen(token: inviteToken),
+          ),
+        );
       });
     }
   }
@@ -243,7 +223,117 @@ class _KovariAppState extends State<KovariApp> {
       theme: AppTheme.lightTheme,
       navigatorKey: navigatorKey,
       routes: AppRoutes.routes,
+      builder: (context, child) {
+        return Stack(children: [child!, const GlobalStatusOverlay()]);
+      },
       home: const AuthWrapper(),
+    );
+  }
+}
+
+class GlobalStatusOverlay extends ConsumerStatefulWidget {
+  const GlobalStatusOverlay({super.key});
+
+  @override
+  ConsumerState<GlobalStatusOverlay> createState() =>
+      _GlobalStatusOverlayState();
+}
+
+class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
+  Timer? _syncTimer;
+  bool _showRetry = false;
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    super.dispose();
+  }
+
+  void _resetTimer() {
+    _syncTimer?.cancel();
+    _showRetry = false;
+    final sessionManager = ref.read(sessionManagerProvider);
+    _syncTimer = Timer(sessionManager.adaptiveTimeout, () {
+      if (mounted) setState(() => _showRetry = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authProvider);
+
+    // Manage timer based on refreshing state
+    if (auth.isRefreshing) {
+      if (_syncTimer == null) _resetTimer();
+    } else {
+      _syncTimer?.cancel();
+      _syncTimer = null;
+      _showRetry = false;
+    }
+
+    if (!auth.isDegraded && !auth.isRefreshing) return const SizedBox.shrink();
+
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 10,
+      left: 20,
+      right: 20,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _showRetry
+              ? () => ref.read(authProvider.notifier).init()
+              : null,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: auth.isDegraded
+                  ? Colors.amber.shade800
+                  : AppColors.primary,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white.withOpacity(_showRetry ? 0.5 : 1),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _showRetry
+                        ? 'Connection slow. Tap to retry.'
+                        : (auth.isDegraded
+                              ? 'Degraded Mode: Reconnecting...'
+                              : 'Syncing...'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (_showRetry)
+                  const Icon(Icons.refresh, color: Colors.white, size: 14),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -256,127 +346,42 @@ class AuthWrapper extends ConsumerStatefulWidget {
 }
 
 class _AuthWrapperState extends ConsumerState<AuthWrapper> {
-  bool _checkedStatus = false;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAuth();
+      ref.read(authProvider.notifier).init();
     });
-  }
-
-  Future<void> _checkAuth() async {
-    try {
-      final storage = LocalStorage();
-      final apiClient = ApiClientFactory.create();
-
-      // Wire up global logout listener (Case 10: Force Logout)
-      apiClient.setOnLogout(() {
-        if (mounted) {
-          ref.read(authStateProvider.notifier).logout();
-        }
-      });
-
-      apiClient.setOnNetworkError(() {
-        if (mounted) {
-          ref.read(connectivityProvider.notifier).triggerHealthCheck();
-        }
-      });
-
-      final authService = AuthService(apiClient, storage);
-      final user = await authService.checkSession();
-
-      if (mounted) {
-        ref.read(authStateProvider.notifier).setUser(user);
-        setState(() {
-          _checkedStatus = true;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _checkedStatus = true;
-        });
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_checkedStatus) return const BrandedLoading();
+    final auth = ref.watch(authProvider);
 
-    final user = ref.watch(authStateProvider);
+    if (auth.isBootstrapping) {
+      return const BrandedLoading();
+    }
 
-    // If no user/session exists, go to LoginScreen
-    if (user == null) {
+    if (!auth.isAuthenticated) {
       FlutterNativeSplash.remove();
       return const LoginScreen();
     }
 
-    // If user is banned, go to BannedScreen
-    if (user.banned) {
-      // Check if ban has already expired
+    final user = auth.user;
+    if (user != null && user.banned) {
       if (user.banExpiresAt != null) {
         final expiresAt = DateTime.parse(user.banExpiresAt!).toLocal();
-        if (expiresAt.isBefore(DateTime.now())) {
-          // Suspension has ended, proceed to AuthHandler
-          return const AuthHandler();
+        if (expiresAt.isAfter(DateTime.now())) {
+          FlutterNativeSplash.remove();
+          return BannedScreen(user: user);
         }
+      } else {
+        FlutterNativeSplash.remove();
+        return BannedScreen(user: user);
       }
-      FlutterNativeSplash.remove();
-      return BannedScreen(user: user);
     }
 
-    // If session exists, let AuthHandler handle profile/onboarding logic
     return const AuthHandler();
-  }
-}
-
-class BrandedLoading extends StatefulWidget {
-  const BrandedLoading({super.key});
-
-  @override
-  State<BrandedLoading> createState() => _BrandedLoadingState();
-}
-
-class _BrandedLoadingState extends State<BrandedLoading> {
-  @override
-  void initState() {
-    super.initState();
-    // Remove native splash as quickly as possible to show the centered Dart logo
-    FlutterNativeSplash.remove();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: Image.asset('assets/logo.png', width: 140, fit: BoxFit.contain),
-      ),
-    );
-  }
-}
-
-class SimpleLoading extends StatelessWidget {
-  const SimpleLoading({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(
-            color: AppColors.primary,
-            strokeWidth: 3, // Slightly thinner for the smaller size
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -395,23 +400,12 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeApp();
-    });
+    _initializeApp();
   }
 
   Future<void> _initializeApp() async {
     try {
-      final apiClient = ApiClientFactory.create();
-
-      apiClient.setOnNetworkError(() {
-        if (mounted) {
-          ref.read(connectivityProvider.notifier).triggerHealthCheck();
-        }
-      });
-
-      // Since checkSession already set the token in main() or AuthWrapper,
-      // we just need to verify the profile.
+      final apiClient = ref.read(apiClientProvider);
       final profileService = ProfileService(apiClient);
       final profileJson = await profileService.getCurrentProfile();
 
@@ -423,7 +417,6 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
 
         setState(() {
           _isSyncing = false;
-          // Determine onboarding status based on presence and completion of profile
           _needsOnboarding =
               profileJson == null ||
               profileJson['onboardingCompleted'] == false;
@@ -441,9 +434,7 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isSyncing) {
-      return const BrandedLoading();
-    }
+    if (_isSyncing) return const BrandedLoading();
 
     if (_error != null) {
       return Scaffold(
@@ -479,10 +470,32 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
       );
     }
 
-    if (!_isSyncing && _error == null) {
-      FlutterNativeSplash.remove();
-    }
-
+    FlutterNativeSplash.remove();
     return _needsOnboarding ? const OnboardingScreen() : const AppShellScreen();
+  }
+}
+
+class BrandedLoading extends StatefulWidget {
+  const BrandedLoading({super.key});
+
+  @override
+  State<BrandedLoading> createState() => _BrandedLoadingState();
+}
+
+class _BrandedLoadingState extends State<BrandedLoading> {
+  @override
+  void initState() {
+    super.initState();
+    FlutterNativeSplash.remove();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: Image.asset('assets/logo.png', width: 140, fit: BoxFit.contain),
+      ),
+    );
   }
 }

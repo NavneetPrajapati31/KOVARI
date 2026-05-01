@@ -137,7 +137,7 @@ class ProfileScreen extends ConsumerWidget {
                               label: 'Log out',
                               isDestructive: true,
                               onTap: () =>
-                                  ref.read(authStateProvider.notifier).logout(),
+                                  ref.read(authProvider.notifier).logout(),
                             ),
                           ],
                           child: const Icon(

@@ -9,6 +9,7 @@ import '../../../core/services/local_storage.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
+import 'package:dio/dio.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String token;
@@ -25,9 +26,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _isSuccess = false;
+  final _cancelToken = CancelToken();
 
   @override
   void dispose() {
+    _cancelToken.cancel('ResetPasswordScreen disposed');
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -61,11 +64,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
-      );
-      await authService.resetPassword(widget.token, newPassword);
+      final authService = ref.read(authServiceProvider);
+      await authService.resetPassword(widget.token, newPassword, cancelToken: _cancelToken);
 
       if (mounted) {
         setState(() {

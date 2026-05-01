@@ -53,7 +53,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
         setState(() {});
       }
     });
-    _service = ConnectionsService(ApiClientFactory.create());
+    _service = ConnectionsService(ref.read(apiClientProvider));
     _loadData();
   }
 

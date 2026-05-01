@@ -35,7 +35,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final apiClient = ApiClientFactory.create();
+    final apiClient = ref.read(apiClientProvider);
     _profileService = ProfileService(apiClient);
     _connectionsService = ConnectionsService(apiClient);
     _fetchProfile();

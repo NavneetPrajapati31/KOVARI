@@ -163,7 +163,7 @@ class BannedScreen extends ConsumerWidget {
                                   text: "Sign Out",
                                   height: 44,
                                   onPressed: () => ref
-                                      .read(authStateProvider.notifier)
+                                      .read(authProvider.notifier)
                                       .logout(),
                                 ),
                               ],

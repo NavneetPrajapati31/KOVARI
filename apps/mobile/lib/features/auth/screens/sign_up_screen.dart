@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../shared/widgets/auth_social_button.dart';
@@ -13,6 +14,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'verify_email_screen.dart';
+import 'package:dio/dio.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -26,9 +28,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  final _cancelToken = CancelToken();
 
   @override
   void dispose() {
+    _cancelToken.cancel('SignUpScreen disposed');
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -59,11 +63,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
-      );
-      final result = await authService.registerWithEmail(email, password);
+      final authService = ref.read(authServiceProvider);
+      final result = await authService.registerWithEmail(email, password, cancelToken: _cancelToken);
 
       if (mounted) {
         if (result['verificationRequired'] == true) {
@@ -74,9 +75,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             ),
           );
         } else {
-          Navigator.of(
-            context,
-          ).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
+          final user = authService.parseAuthResponse(result);
+          ref.read(authProvider.notifier).setUser(user);
         }
       }
     } catch (e) {
@@ -96,14 +96,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
-      );
-      await authService.loginWithGoogle();
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.loginWithGoogle(cancelToken: _cancelToken);
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/');
+        ref.read(authProvider.notifier).setUser(user);
       }
     } catch (e) {
       if (mounted) {

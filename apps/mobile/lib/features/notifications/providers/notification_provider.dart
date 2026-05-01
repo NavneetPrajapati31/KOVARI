@@ -6,11 +6,11 @@ import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
-  // Use ApiClientFactory for consistent configuration
-  return NotificationService(ApiClientFactory.create());
+  final apiClient = ref.read(apiClientProvider);
+  return NotificationService(apiClient);
 });
 
-class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
+class NotificationNotifier extends  AsyncNotifier<List<NotificationModel>> {
   late final NotificationService _service;
 
   @override

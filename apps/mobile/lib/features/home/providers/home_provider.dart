@@ -5,7 +5,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
 
 final homeServiceProvider = Provider<HomeService>((ref) {
-  final apiClient = ApiClientFactory.create();
+  final apiClient = ref.read(apiClientProvider);
   return HomeService(apiClient);
 });
 
@@ -18,12 +18,14 @@ class HomeDataNotifier extends AsyncNotifier<HomeData> {
   Future<HomeData> build() async {
     // Watch auth state to trigger re-build on login/logout
     ref.watch(authStateProvider);
-    
+
     return ref.read(homeServiceProvider).getHomeData();
   }
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => ref.read(homeServiceProvider).getHomeData());
+    state = await AsyncValue.guard(
+      () => ref.read(homeServiceProvider).getHomeData(),
+    );
   }
 }
