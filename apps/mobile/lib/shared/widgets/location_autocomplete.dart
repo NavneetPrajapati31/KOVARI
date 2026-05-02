@@ -160,66 +160,64 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
       );
     }
 
-    return ListView.builder(
-      padding: widget.contentPadding ?? const EdgeInsets.symmetric(vertical: 4),
-      shrinkWrap: true,
-      itemCount: _suggestions.length,
-      itemBuilder: (context, index) {
-        final suggestion = _suggestions[index];
-        return InkWell(
-          onTap: () async {
-            // 1. Update UI immediately (match web)
-            _controller.text = suggestion.formatted;
-            _hideOverlay();
-            _focusNode.unfocus();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final suggestion in _suggestions)
+          InkWell(
+            onTap: () async {
+              // 1. Update UI immediately (match web)
+              _controller.text = suggestion.formatted;
+              _hideOverlay();
+              _focusNode.unfocus();
 
-            if (!mounted) return;
-            setState(() => _isLoading = true);
-            final service = LocationService();
-            final details = await service.getLocationDetails(
-              suggestion.placeId,
-            );
+              if (!mounted) return;
+              setState(() => _isLoading = true);
+              final service = LocationService();
+              final details = await service.getLocationDetails(
+                suggestion.placeId,
+              );
 
-            if (!mounted) return;
-            setState(() => _isLoading = false);
+              if (!mounted) return;
+              setState(() => _isLoading = false);
 
-            if (details != null) {
-              widget.onSelect(details);
-            } else {
-              widget.onSelect(suggestion);
-            }
-          },
-          child: Padding(
-            padding:
-                widget.contentPadding ??
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  suggestion.city.isNotEmpty
-                      ? suggestion.city
-                      : suggestion.formatted.split(',')[0],
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w500,
-                    height: 1.1,
+              if (details != null) {
+                widget.onSelect(details);
+              } else {
+                widget.onSelect(suggestion);
+              }
+            },
+            child: Padding(
+              padding: widget.contentPadding ??
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    suggestion.city.isNotEmpty
+                        ? suggestion.city
+                        : suggestion.formatted.split(',')[0],
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w500,
+                      height: 1.1,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  suggestion.formatted,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.mutedForeground,
-                    height: 1.1,
+                  const SizedBox(height: 4),
+                  Text(
+                    suggestion.formatted,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.mutedForeground,
+                      height: 1.1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        );
-      },
+      ],
     );
   }
 

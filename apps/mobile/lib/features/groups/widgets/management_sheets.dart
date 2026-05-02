@@ -301,8 +301,9 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
                                   color: Colors.transparent,
                                   borderRadius: BorderRadius.circular(100),
                                   border: Border.all(
-                                    color: AppColors.mutedForeground
-                                        .withOpacity(0.3),
+                                    color: AppColors.mutedForeground.withValues(
+                                      alpha: 0.3,
+                                    ),
                                   ),
                                 ),
                                 child: const Icon(

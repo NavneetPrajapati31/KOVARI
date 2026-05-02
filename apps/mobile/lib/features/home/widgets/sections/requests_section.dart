@@ -108,19 +108,19 @@ class RequestsSection extends ConsumerWidget {
             interestsAsync.when(
               data: (interests) {
                 if (interests.isEmpty) return _buildEmptyState();
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: interests.length,
-                  separatorBuilder: (context, index) => const Divider(
-                    height: 1,
-                    color: AppColors.border,
-                    indent: 0,
-                    endIndent: 0,
-                  ),
-                  itemBuilder: (context, index) {
-                    return _RequestCard(interest: interests[index]);
-                  },
+                return Column(
+                  children: [
+                    for (int i = 0; i < interests.length; i++) ...[
+                      _RequestCard(interest: interests[i]),
+                      if (i < interests.length - 1)
+                        const Divider(
+                          height: 1,
+                          color: AppColors.border,
+                          indent: 0,
+                          endIndent: 0,
+                        ),
+                    ],
+                  ],
                 );
               },
               loading: () => _buildSkeleton(),

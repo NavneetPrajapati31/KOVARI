@@ -125,31 +125,30 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      shrinkWrap: true,
-      itemCount: _filteredCountries.length,
-      itemBuilder: (context, index) {
-        final country = _filteredCountries[index];
-        return InkWell(
-          onTap: () {
-            _controller.text = country;
-            widget.onSelect(country);
-            _hideOverlay();
-            _focusNode.unfocus();
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Text(
-              country,
-              style: AppTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w500,
-                height: 1,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final country in _filteredCountries)
+          InkWell(
+            onTap: () {
+              _controller.text = country;
+              widget.onSelect(country);
+              _hideOverlay();
+              _focusNode.unfocus();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Text(
+                country,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w500,
+                  height: 1,
+                ),
               ),
             ),
           ),
-        );
-      },
+      ],
     );
   }
 

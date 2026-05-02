@@ -102,67 +102,69 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
     return Material(
       color: AppColors.card, // bg-card
       child: SafeArea(
-        child: Column(
-          children: [
-            // Search Bar (Sticky Top)
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: AppColors.border, width: 1),
-                ),
-              ),
-              child: SizedBox(
-                height: 38,
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val;
-                    });
-                  },
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black,
-                    fontWeight: FontWeight.w400,
+        child: CustomScrollView(
+          slivers: [
+            // Search Bar (SliverToBoxAdapter)
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.border, width: 1),
                   ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: AppColors.secondary,
-                    hintText: 'Search',
-                    hintStyle: const TextStyle(
-                      color: AppColors.mutedForeground,
+                ),
+                child: SizedBox(
+                  height: 38,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
+                    style: const TextStyle(
                       fontSize: 13,
+                      color: Colors.black,
                       fontWeight: FontWeight.w400,
                     ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(LucideIcons.x, size: 16),
-                            onPressed: _clearSearch,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          )
-                        : const Icon(
-                            LucideIcons.search,
-                            size: 18,
-                            color: AppColors.mutedForeground,
-                          ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 0,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: AppColors.secondary,
+                      hintText: 'Search',
+                      hintStyle: const TextStyle(
+                        color: AppColors.mutedForeground,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(LucideIcons.x, size: 16),
+                              onPressed: _clearSearch,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            )
+                          : const Icon(
+                              LucideIcons.search,
+                              size: 18,
+                              color: AppColors.mutedForeground,
+                            ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 0,
+                      ),
                     ),
                   ),
                 ),
@@ -170,34 +172,39 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
             ),
 
             // Messages List
-            Expanded(
-              child: filteredConversations.isEmpty
-                  ? Center(
-                      child: Text(
-                        _searchQuery.isEmpty
-                            ? 'No conversations yet.'
-                            : 'No conversations found.',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.mutedForeground,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: filteredConversations.length,
-                      itemBuilder: (context, index) {
-                        final conv = filteredConversations[index];
-                        final isLast =
-                            index == filteredConversations.length - 1;
-                        return _ChatInboxItem(
-                          conversation: conv,
-                          isLast: isLast,
-                          onTap: () {
-                            // handle tap
-                          },
-                        );
-                      },
+            if (filteredConversations.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    _searchQuery.isEmpty
+                        ? 'No conversations yet.'
+                        : 'No conversations found.',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.mutedForeground,
                     ),
-            ),
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final conv = filteredConversations[index];
+                    final isLast = index == filteredConversations.length - 1;
+                    return RepaintBoundary(
+                      child: _ChatInboxItem(
+                        conversation: conv,
+                        isLast: isLast,
+                        onTap: () {
+                          // handle tap
+                        },
+                      ),
+                    );
+                  },
+                  childCount: filteredConversations.length,
+                ),
+              ),
           ],
         ),
       ),

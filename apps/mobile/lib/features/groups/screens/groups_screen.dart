@@ -159,30 +159,28 @@ class GroupsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  itemCount: state.groups.length,
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 1, color: AppColors.border),
-                  itemBuilder: (context, index) {
-                    final group = state.groups[index];
-                    return RepaintBoundary(
-                      child: GroupCard(
-                        group: group,
-                        onAction: () {
-                          Navigator.push(
-                            context,
-                            PremiumPageRoute(
-                              builder: (context) =>
-                                  GroupDetailsScreen(groupId: group.id),
-                            ),
-                          );
-                        },
+                Column(
+                  children: [
+                    for (int i = 0; i < state.groups.length; i++) ...[
+                      RepaintBoundary(
+                        child: GroupCard(
+                          group: state.groups[i],
+                          onAction: () {
+                            Navigator.push(
+                              context,
+                              PremiumPageRoute(
+                                builder: (context) => GroupDetailsScreen(
+                                  groupId: state.groups[i].id,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    );
-                  },
+                      if (i < state.groups.length - 1)
+                        const Divider(height: 1, color: AppColors.border),
+                    ],
+                  ],
                 ),
               ],
             ),

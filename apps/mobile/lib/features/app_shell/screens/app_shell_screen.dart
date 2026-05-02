@@ -15,11 +15,34 @@ class AppShellScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(appShellIndexProvider);
-    final connectivityState = ref.watch(connectivityProvider);
+    final isOffline = ref.watch(connectivityProvider.select((s) => s.isOffline));
+    final isDegraded = ref.watch(connectivityProvider.select((s) => s.isDegraded));
 
     return Scaffold(
       body: Column(
         children: [
+          if (isOffline)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              color: Colors.red,
+              child: const Text(
+                'No Internet Connection',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            )
+          else if (isDegraded)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              color: Colors.orange,
+              child: const Text(
+                'Connecting...',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
           Expanded(
             child: IndexedStack(
               index: currentIndex,

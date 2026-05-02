@@ -19,8 +19,7 @@ class KovariBottomNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(profileProvider);
-    final profilePhoto = UrlUtils.getFullImageUrl(profile?.profileImage);
+    final profilePhoto = ref.watch(profileProvider.select((p) => UrlUtils.getFullImageUrl(p?.profileImage)));
 
     return Container(
       decoration: BoxDecoration(

@@ -9,11 +9,12 @@ class NotificationService {
   NotificationService(this._apiClient);
 
   Future<List<NotificationModel>> fetchNotifications({
-    int limit = 50,
-    int offset = 0,
+    int page = 1,
+    int limit = 20,
     bool unreadOnly = false,
     bool ignoreCache = false,
   }) async {
+    final offset = (page - 1) * limit;
     final response = await _apiClient.get<List<NotificationModel>>(
       ApiEndpoints.notifications,
       queryParameters: {

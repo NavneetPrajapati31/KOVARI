@@ -155,13 +155,26 @@ void main() {
 
       final sentryDsn = Env.sentryDsn;
       if (sentryDsn != null && sentryDsn.isNotEmpty) {
-        await SentryFlutter.init((options) {
-          options.dsn = sentryDsn;
-          options.tracesSampleRate = 1.0;
-        }, appRunner: () => runApp(UncontrolledProviderScope(container: container, child: const KovariApp())));
+        await SentryFlutter.init(
+          (options) {
+            options.dsn = sentryDsn;
+            options.tracesSampleRate = 1.0;
+          },
+          appRunner: () => runApp(
+            UncontrolledProviderScope(
+              container: container,
+              child: const KovariApp(),
+            ),
+          ),
+        );
       } else {
         AppLogger.w('Sentry DSN not found. Running without Sentry.');
-        runApp(UncontrolledProviderScope(container: container, child: const KovariApp()));
+        runApp(
+          UncontrolledProviderScope(
+            container: container,
+            child: const KovariApp(),
+          ),
+        );
       }
     },
     (error, stackTrace) {
@@ -374,7 +387,7 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -497,7 +510,9 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
     try {
       final apiClient = ref.read(apiClientProvider);
       final profileService = ProfileService(apiClient);
-      final profileJson = await profileService.getCurrentProfile(ignoreCache: true);
+      final profileJson = await profileService.getCurrentProfile(
+        ignoreCache: true,
+      );
 
       if (mounted) {
         if (profileJson != null &&
@@ -509,7 +524,8 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
 
         setState(() {
           _isSyncing = false;
-          _needsOnboarding = profileJson == null ||
+          _needsOnboarding =
+              profileJson == null ||
               (profileJson['onboardingCompleted'] != true &&
                   (profileJson['username'] as String? ?? '').isEmpty);
         });

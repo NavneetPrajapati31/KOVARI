@@ -10,10 +10,14 @@ class ConnectionsService {
   ConnectionsService(this._apiClient);
 
   /// GET /api/profile/[userId]/followers
-  Future<List<UserConnection>> getFollowers(String userId) async {
+  Future<List<UserConnection>> getFollowers(String userId, {int limit = 20, int offset = 0}) async {
     try {
       final response = await _apiClient.get<List<UserConnection>>(
         ApiEndpoints.followers(userId),
+        queryParameters: {
+          'limit': limit,
+          'offset': offset,
+        },
         parser: (data) => safeParseList(
           data is List ? data : [],
           UserConnection.fromJson,
@@ -26,10 +30,14 @@ class ConnectionsService {
   }
 
   /// GET /api/profile/[userId]/following
-  Future<List<UserConnection>> getFollowing(String userId) async {
+  Future<List<UserConnection>> getFollowing(String userId, {int limit = 20, int offset = 0}) async {
     try {
       final response = await _apiClient.get<List<UserConnection>>(
         ApiEndpoints.following(userId),
+        queryParameters: {
+          'limit': limit,
+          'offset': offset,
+        },
         parser: (data) => safeParseList(
           data is List ? data : [],
           UserConnection.fromJson,

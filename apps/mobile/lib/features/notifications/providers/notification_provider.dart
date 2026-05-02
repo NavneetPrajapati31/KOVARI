@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/cache_provider.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../models/notification_model.dart';
 import '../models/notification_state.dart';
 import '../services/notification_service.dart';
 
@@ -35,18 +32,21 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     bool ignoreCache = false,
   }) async {
     if (isInitial || ignoreCache) {
-      state = state.copyWith(isLoading: true);
+      state = state.copyWith(isLoading: true, page: 1, hasMore: true);
     }
 
     try {
       final fresh = await _ref
           .read(notificationServiceProvider)
-          .fetchNotifications(ignoreCache: ignoreCache);
+          .fetchNotifications(page: 1, ignoreCache: ignoreCache);
+      
       state = state.copyWith(
         notifications: fresh,
         isStale: false,
         isLoading: false,
         error: null,
+        page: 1,
+        hasMore: fresh.length >= 20, // Assuming 20 is the limit
       );
     } catch (e) {
       if (state.notifications.isEmpty) {
@@ -54,6 +54,32 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       } else {
         state = state.copyWith(isStale: false, isLoading: false);
       }
+    }
+  }
+
+  Future<void> fetchNextPage() async {
+    if (state.isFetchingNextPage || !state.hasMore) return;
+
+    state = state.copyWith(isFetchingNextPage: true);
+
+    try {
+      final nextPage = state.page + 1;
+      final nextNotifications = await _ref
+          .read(notificationServiceProvider)
+          .fetchNotifications(page: nextPage);
+
+      if (nextNotifications.isEmpty) {
+        state = state.copyWith(hasMore: false, isFetchingNextPage: false);
+      } else {
+        state = state.copyWith(
+          notifications: [...state.notifications, ...nextNotifications],
+          page: nextPage,
+          hasMore: nextNotifications.length >= 20,
+          isFetchingNextPage: false,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(isFetchingNextPage: false, error: e.toString());
     }
   }
 

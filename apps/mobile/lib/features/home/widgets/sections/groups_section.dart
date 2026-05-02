@@ -78,19 +78,19 @@ class GroupsSection extends StatelessWidget {
             else if (groups.isEmpty)
               _buildEmptyState()
             else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: groups.length,
-                separatorBuilder: (context, index) => const Divider(
-                  height: 1,
-                  color: AppColors.border,
-                  indent: 0,
-                  endIndent: 0,
-                ),
-                itemBuilder: (context, index) {
-                  return _GroupCard(group: groups[index]);
-                },
+              Column(
+                children: [
+                  for (int i = 0; i < groups.length; i++) ...[
+                    _GroupCard(group: groups[i]),
+                    if (i < groups.length - 1)
+                      const Divider(
+                        height: 1,
+                        color: AppColors.border,
+                        indent: 0,
+                        endIndent: 0,
+                      ),
+                  ],
+                ],
               ),
           ],
         ),

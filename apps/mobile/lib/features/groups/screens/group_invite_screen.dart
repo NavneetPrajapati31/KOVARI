@@ -149,8 +149,8 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.8),
+                    Colors.black.withValues(alpha: 0.1),
+                    Colors.black.withValues(alpha: 0.8),
                     Colors.black,
                   ],
                 ),

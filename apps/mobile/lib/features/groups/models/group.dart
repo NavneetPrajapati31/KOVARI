@@ -24,7 +24,7 @@ class GroupModel {
   final String? drinkingPolicy;
   final int? budget;
 
-  GroupModel({
+  const GroupModel({
     required this.id,
     required this.name,
     required this.privacy,
@@ -110,7 +110,7 @@ class GroupDateRange {
   final String? end;
   final bool isOngoing;
 
-  GroupDateRange({this.start, this.end, required this.isOngoing});
+  const GroupDateRange({this.start, this.end, required this.isOngoing});
 
   factory GroupDateRange.fromJson(Map<String, dynamic> json) {
     return GroupDateRange(
@@ -126,7 +126,7 @@ class GroupCreator {
   final String username;
   final String? avatar;
 
-  GroupCreator({required this.name, required this.username, this.avatar});
+  const GroupCreator({required this.name, required this.username, this.avatar});
 
   factory GroupCreator.fromJson(Map<String, dynamic> json) {
     return GroupCreator(
@@ -146,7 +146,7 @@ class GroupMember {
   final String? clerkId;
   final String? userIdFromUserTable;
 
-  GroupMember({
+  const GroupMember({
     required this.id,
     required this.name,
     this.avatar,
@@ -177,7 +177,7 @@ class JoinRequestModel {
   final String? avatar;
   final String requestedAt;
 
-  JoinRequestModel({
+  const JoinRequestModel({
     required this.id,
     required this.userId,
     required this.name,
@@ -216,7 +216,7 @@ class ItineraryItem {
   final String? externalLink;
   final bool? isArchived;
 
-  ItineraryItem({
+  const ItineraryItem({
     required this.id,
     required this.title,
     required this.description,
@@ -297,7 +297,7 @@ class MembershipInfo {
   final bool hasPendingRequest;
   final Map<String, dynamic>? membership;
 
-  MembershipInfo({
+  const MembershipInfo({
     required this.isCreator,
     required this.isMember,
     required this.isAdmin,

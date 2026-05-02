@@ -38,7 +38,16 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   List<UserConnection> _followers = [];
   List<UserConnection> _following = [];
   bool _isLoading = true;
+  bool _isFetchingMoreFollowers = false;
+  bool _isFetchingMoreFollowing = false;
+  bool _hasMoreFollowers = true;
+  bool _hasMoreFollowing = true;
+  int _followersPage = 1;
+  int _followingPage = 1;
   String? _error;
+
+  final ScrollController _followersScrollController = ScrollController();
+  final ScrollController _followingScrollController = ScrollController();
 
   @override
   void initState() {
@@ -53,6 +62,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
         setState(() {});
       }
     });
+    _followersScrollController.addListener(() => _onScroll('followers'));
+    _followingScrollController.addListener(() => _onScroll('following'));
+
     _service = ConnectionsService(ref.read(apiClientProvider));
     _loadData();
   }
@@ -61,7 +73,23 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _followersScrollController.dispose();
+    _followingScrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll(String type) {
+    final controller = type == 'followers' 
+        ? _followersScrollController 
+        : _followingScrollController;
+    
+    if (controller.position.pixels >= controller.position.maxScrollExtent - 200) {
+      if (type == 'followers') {
+        _fetchMoreFollowers();
+      } else {
+        _fetchMoreFollowing();
+      }
+    }
   }
 
   Future<void> _loadData() async {
@@ -69,16 +97,22 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
     setState(() {
       _isLoading = true;
       _error = null;
+      _followersPage = 1;
+      _followingPage = 1;
+      _hasMoreFollowers = true;
+      _hasMoreFollowing = true;
     });
 
     try {
-      final followers = await _service.getFollowers(widget.userId);
-      final following = await _service.getFollowing(widget.userId);
+      final followers = await _service.getFollowers(widget.userId, offset: 0);
+      final following = await _service.getFollowing(widget.userId, offset: 0);
 
       if (mounted) {
         setState(() {
           _followers = followers;
           _following = following;
+          _hasMoreFollowers = followers.length >= 20;
+          _hasMoreFollowing = following.length >= 20;
           _isLoading = false;
         });
       }
@@ -89,6 +123,56 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchMoreFollowers() async {
+    if (_isFetchingMoreFollowers || !_hasMoreFollowers || _searchQuery.isNotEmpty) return;
+
+    setState(() => _isFetchingMoreFollowers = true);
+
+    try {
+      final nextPage = _followersPage + 1;
+      final newFollowers = await _service.getFollowers(
+        widget.userId, 
+        offset: (_followersPage * 20),
+      );
+
+      if (mounted) {
+        setState(() {
+          _followers.addAll(newFollowers);
+          _followersPage = nextPage;
+          _hasMoreFollowers = newFollowers.length >= 20;
+          _isFetchingMoreFollowers = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isFetchingMoreFollowers = false);
+    }
+  }
+
+  Future<void> _fetchMoreFollowing() async {
+    if (_isFetchingMoreFollowing || !_hasMoreFollowing || _searchQuery.isNotEmpty) return;
+
+    setState(() => _isFetchingMoreFollowing = true);
+
+    try {
+      final nextPage = _followingPage + 1;
+      final newFollowing = await _service.getFollowing(
+        widget.userId, 
+        offset: (_followingPage * 20),
+      );
+
+      if (mounted) {
+        setState(() {
+          _following.addAll(newFollowing);
+          _followingPage = nextPage;
+          _hasMoreFollowing = newFollowing.length >= 20;
+          _isFetchingMoreFollowing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isFetchingMoreFollowing = false);
     }
   }
 
@@ -340,6 +424,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       builder: (context) {
         return CustomScrollView(
           key: PageStorageKey<String>(type),
+          controller: type == 'followers' ? _followersScrollController : _followingScrollController,
           slivers: [
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
@@ -440,7 +525,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 hasScrollBody: false,
                 child: _buildEmptyState(type),
               )
-            else
+            else ...[
               SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final filteredUsers = _getFilteredList(users);
@@ -494,6 +579,18 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                   );
                 }, childCount: _getFilteredList(users).length),
               ),
+              if ((type == 'followers' && _isFetchingMoreFollowers) ||
+                  (type == 'following' && _isFetchingMoreFollowing))
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ],
           ],
         );
       },
@@ -504,64 +601,64 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
     return shim.Shimmer.fromColors(
       baseColor: AppColors.secondary, // Match image (Lighter)
       highlightColor: AppColors.secondary,
-      child: ListView.separated(
-        shrinkWrap: true, // Crucial for inside SliverToBoxAdapter
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 8,
-        padding: EdgeInsets.zero,
-        separatorBuilder: (context, index) =>
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
-        itemBuilder: (context, index) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            children: [
-              // Avatar Skeleton (Match image: 44px)
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // User Info Skeleton
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+      child: Column(
+        children: [
+          for (int i = 0; i < 8; i++) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(
                 children: [
+                  // Avatar Skeleton (Match image: 44px)
                   Container(
-                    width: 100,
-                    height: 12,
-                    decoration: BoxDecoration(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
+                      shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(width: 12),
+                  // User Info Skeleton
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 60,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  // Action Button Skeleton
                   Container(
-                    width: 60,
-                    height: 12,
+                    width: 80,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ],
               ),
-              const Spacer(),
-              // Action Button Skeleton
-              Container(
-                width: 80,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+            if (i < 7)
+              const Divider(height: 1, thickness: 1, color: AppColors.border),
+          ],
+        ],
       ),
     );
   }

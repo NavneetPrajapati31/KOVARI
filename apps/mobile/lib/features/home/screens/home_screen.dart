@@ -46,7 +46,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (homeState.data != null) {
       final data = homeState.data!;
       if (data.topDestination?.imageUrl != null) {
-        precacheImage(CachedNetworkImageProvider(data.topDestination!.imageUrl!), context);
+        precacheImage(
+          CachedNetworkImageProvider(data.topDestination!.imageUrl!),
+          context,
+        );
       }
       if (data.profile.avatar.isNotEmpty) {
         precacheImage(CachedNetworkImageProvider(data.profile.avatar), context);
@@ -69,17 +72,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     height: 2,
                     child: const LinearProgressIndicator(
                       backgroundColor: Colors.transparent,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
 
               // 2. Header
               SliverPadding(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.only(
+                  left: AppSpacing.md,
+                  right: AppSpacing.md,
+                  top: AppSpacing.md,
+                  bottom: AppSpacing.sm,
+                ),
                 sliver: SliverToBoxAdapter(
                   child: HomeHeader(
-                    firstName: homeState.data?.profile.name.split(' ')[0] ?? 'User',
+                    firstName:
+                        homeState.data?.profile.name.split(' ')[0] ?? 'User',
                     isLoading: homeState.isLoading && homeState.data == null,
                   ),
                 ),
@@ -90,7 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 sliver: _buildSliverBody(homeState),
               ),
-              
+
               const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
             ],
           ),
@@ -114,29 +125,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
 
     if (state.error != null && state.data == null) {
-      return SliverFillRemaining(
-        child: _buildErrorState(state.error!),
-      );
+      return SliverFillRemaining(child: _buildErrorState(state.error!));
     }
 
     final data = state.data!;
-    
-    // Convert data for sections
-    final mockGroups = data.activeGroups.map<MockGroup>((g) => MockGroup(
-      id: g.id,
-      name: g.name,
-      destination: g.destination ?? '',
-      members: g.members,
-      imageUrl: g.coverImage,
-    )).toList();
 
-    final mockEvents = data.featuredTrip?.itinerary.map<MockEvent>((i) => MockEvent(
-      id: i.id,
-      title: i.title,
-      description: i.description,
-      start: DateTime.tryParse(i.datetime ?? '') ?? DateTime.now(),
-      end: (DateTime.tryParse(i.datetime ?? '') ?? DateTime.now()).add(const Duration(hours: 1)),
-    )).toList() ?? [];
+    // Convert data for sections
+    final mockGroups = data.activeGroups
+        .map<MockGroup>(
+          (g) => MockGroup(
+            id: g.id,
+            name: g.name,
+            destination: g.destination ?? '',
+            members: g.members,
+            imageUrl: g.coverImage,
+          ),
+        )
+        .toList();
+
+    final mockEvents =
+        data.featuredTrip?.itinerary
+            .map<MockEvent>(
+              (i) => MockEvent(
+                id: i.id,
+                title: i.title,
+                description: i.description,
+                start: DateTime.tryParse(i.datetime ?? '') ?? DateTime.now(),
+                end: (DateTime.tryParse(i.datetime ?? '') ?? DateTime.now())
+                    .add(const Duration(hours: 1)),
+              ),
+            )
+            .toList() ??
+        [];
 
     return SliverList(
       delegate: SliverChildListDelegate([
@@ -171,11 +191,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         const SizedBox(height: AppSpacing.mds),
 
         // Sections
-        RepaintBoundary(child: GroupsSection(groups: mockGroups, isLoading: false)),
+        RepaintBoundary(
+          child: GroupsSection(groups: mockGroups, isLoading: false),
+        ),
         const SizedBox(height: AppSpacing.md),
         const RepaintBoundary(child: RequestsSection(isLoading: false)),
         const SizedBox(height: AppSpacing.md),
-        RepaintBoundary(child: ItinerarySection(events: mockEvents, isLoading: false)),
+        RepaintBoundary(
+          child: ItinerarySection(events: mockEvents, isLoading: false),
+        ),
       ]),
     );
   }
@@ -189,7 +213,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           const SizedBox(height: AppSpacing.md),
           Text('Something went wrong', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.sm),
-          Text(error, textAlign: TextAlign.center, style: AppTextStyles.bodyMedium),
+          Text(
+            error,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyMedium,
+          ),
           const SizedBox(height: AppSpacing.lg),
           ElevatedButton(
             onPressed: _handleRefresh,

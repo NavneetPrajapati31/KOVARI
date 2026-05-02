@@ -36,7 +36,7 @@ class NotificationModel {
   final String? entityType;
   final String? entityId;
 
-  NotificationModel({
+  const NotificationModel({
     required this.id,
     required this.title,
     required this.message,
