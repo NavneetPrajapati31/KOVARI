@@ -274,7 +274,12 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final connectivity = ref.watch(connectivityProvider);
     final auth = ref.watch(authProvider);
+
+    debugPrint(
+      '🎨 [UI] Overlay Rebuild - Connectivity: ${connectivity.status.name}, Auth: (degraded: ${auth.isDegraded}, refreshing: ${auth.isRefreshing})',
+    );
 
     // Manage timer based on refreshing state
     if (auth.isRefreshing) {
@@ -285,68 +290,122 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
       _showRetry = false;
     }
 
-    if (!auth.isDegraded && !auth.isRefreshing) return const SizedBox.shrink();
+    if (!auth.isDegraded && !auth.isRefreshing && connectivity.isOnline) {
+      return const SizedBox.shrink();
+    }
 
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 10,
-      left: 20,
-      right: 20,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _showRetry
-              ? () => ref.read(authProvider.notifier).init()
-              : null,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: auth.isDegraded
-                  ? Colors.amber.shade800
-                  : AppColors.primary,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white.withOpacity(_showRetry ? 0.5 : 1),
+    return Positioned.fill(
+      key: ValueKey(
+        'overlay_${connectivity.status.name}_${auth.isDegraded}_${auth.isRefreshing}',
+      ),
+      child: Stack(
+        children: [
+          if (!connectivity.isOnline)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Material(
+                color: connectivity.isOffline
+                    ? Colors.red.shade600
+                    : Colors.amber.shade900,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 16,
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    _showRetry
-                        ? 'Connection slow. Tap to retry.'
-                        : (auth.isDegraded
-                              ? 'Degraded Mode: Reconnecting...'
-                              : 'Syncing...'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Text(
+                      connectivity.isOffline
+                          ? 'No internet connection'
+                          : 'Server unreachable',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (_showRetry)
-                  const Icon(Icons.refresh, color: Colors.white, size: 14),
-              ],
+              ),
             ),
-          ),
-        ),
+          if (auth.isDegraded || auth.isRefreshing)
+            Positioned(
+              top:
+                  MediaQuery.of(context).padding.top +
+                  (!connectivity.isOnline ? 45 : 10),
+              left: 20,
+              right: 20,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _showRetry
+                      ? () => ref.read(authProvider.notifier).init()
+                      : null,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: auth.isDegraded
+                          ? Colors.amber.shade800
+                          : AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white.withOpacity(
+                              _showRetry ? 0.5 : 1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _showRetry
+                                ? 'Connection slow. Tap to retry.'
+                                : (auth.isDegraded
+                                      ? 'Degraded Mode: Reconnecting...'
+                                      : 'Syncing...'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (_showRetry)
+                          const Icon(
+                            Icons.refresh,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -448,6 +507,19 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(connectivityProvider, (previous, next) {
+      if (next.isOnline && _error != null) {
+        AppLogger.i('🌐 Connectivity restored. Retrying initialization...');
+        if (mounted) {
+          setState(() {
+            _isSyncing = true;
+            _error = null;
+          });
+          _initializeApp();
+        }
+      }
+    });
+
     if (_isSyncing) return const BrandedLoading();
 
     if (_error != null) {

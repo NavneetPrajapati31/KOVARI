@@ -20,20 +20,6 @@ class AppShellScreen extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: [
-          if (!connectivityState.isConnected)
-            Container(
-              width: double.infinity,
-              color: Colors.red.shade600,
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              child: const SafeArea(
-                bottom: false,
-                child: Text(
-                  'No internet connection',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
           Expanded(
             child: IndexedStack(
               index: currentIndex,

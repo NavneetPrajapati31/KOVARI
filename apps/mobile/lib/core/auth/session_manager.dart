@@ -61,6 +61,7 @@ class SessionManager {
   }
 
   void setDegraded(bool val) {
+    if (_isDegraded == val) return;
     _isDegraded = val;
     _onStateChanged?.call();
   }

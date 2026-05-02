@@ -118,6 +118,7 @@ class AuthRepository {
 
         _recoveryAttempts = 0; // Successful refresh resets budget
         _sessionManager.completeRefresh();
+        _sessionManager.setDegraded(false);
 
         final duration = DateTime.now().difference(startTime).inMilliseconds;
         AppLogger.i(
@@ -193,8 +194,10 @@ class AuthRepository {
   /// Automated Offline Recovery
   void setupRecoveryListener() {
     _ref.listen(connectivityProvider, (previous, next) {
-      if (next.isConnected && previous?.status == ConnectionStatus.offline) {
-        // Connectivity Restored
+      if (next.isOnline && previous?.status != ConnectionStatus.online) {
+        // Connectivity Restored or Backend Reachable again
+        _sessionManager.setDegraded(false);
+
         if (_sessionManager.isDegraded && _recoveryAttempts < 3) {
           AppLogger.i(
             '🌐 Connectivity restored. Triggering auto-refresh recovery.',

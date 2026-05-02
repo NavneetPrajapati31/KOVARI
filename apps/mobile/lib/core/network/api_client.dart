@@ -289,7 +289,9 @@ class DioApiClient implements ApiClient {
   bool _isTokenExpiredError(DioException e) {
     if (e.response?.data is Map) {
       final data = e.response!.data as Map;
-      final code = data['error']?['code'] ?? data['code'];
+      final errorField = data['error'];
+      final code =
+          (errorField is Map ? errorField['code'] : errorField) ?? data['code'];
       return code == 'TOKEN_EXPIRED';
     }
     return false;
