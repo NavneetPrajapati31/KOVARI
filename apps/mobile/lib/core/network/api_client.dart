@@ -13,7 +13,9 @@ import '../../core/models/api_response.dart';
 import 'package:flutter/foundation.dart' show compute;
 import '../cache/local_cache.dart';
 import '../providers/cache_provider.dart';
+import '../providers/connectivity_provider.dart';
 import 'api_endpoints.dart';
+import 'mutation_queue.dart';
 import '../utils/app_logger.dart';
 import 'request_priority.dart';
 
@@ -78,6 +80,7 @@ class DioApiClient implements ApiClient {
   late final AuthRepository _authRepository;
   late final LocalCache _cache;
   final Ref _ref;
+  final Map<String, Future<Response>> _activeRequests = {};
 
   static const _uuid = Uuid();
 
@@ -133,6 +136,47 @@ class DioApiClient implements ApiClient {
               options.extra[TokenStorage.priorityKey] ??
               (isMutation ? RequestPriority.high : RequestPriority.medium);
           options.extra[TokenStorage.priorityKey] = priority;
+
+          // 3a. Connectivity Guard
+          final connectivity = _ref.read(connectivityProvider);
+          if (connectivity.isOffline) {
+            if (isMutation) {
+              // Queue mutations for later
+              _ref.read(mutationQueueProvider.notifier).enqueue(
+                path: options.path,
+                method: options.method,
+                data: options.data,
+              );
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: 'mutation_queued',
+                  type: DioExceptionType.cancel,
+                ),
+              );
+            } else {
+              // Try to find any cache, even if expired (stale fallback)
+              final cached = _cache.get(options.path, params: options.queryParameters);
+              if (cached != null) {
+                AppLogger.d('📦 [OFFLINE] Stale cache fallback for ${options.path}');
+                return handler.resolve(
+                  Response(
+                    requestOptions: options,
+                    data: cached.data,
+                    statusCode: 200,
+                    extra: {TokenStorage.fromCacheKey: true, 'isStale': true},
+                  ),
+                );
+              }
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: 'offline',
+                  type: DioExceptionType.connectionError,
+                ),
+              );
+            }
+          }
 
           // 3. Mutation Guard for Degraded Mode
           if (authRequired && isMutation && _sessionManager.isDegraded) {
@@ -287,6 +331,28 @@ class DioApiClient implements ApiClient {
             '❌ [ERR] [$requestId] ${e.requestOptions.method} ${e.requestOptions.path} [${e.response?.statusCode}]',
             error: e,
           );
+
+          // 3. Safe Request Auto-Retry (Timeout/Network errors)
+          final isSafeMethod = ['GET', 'HEAD', 'OPTIONS'].contains(e.requestOptions.method.toUpperCase());
+          final isNetworkError = e.type == DioExceptionType.connectionTimeout || 
+                                e.type == DioExceptionType.sendTimeout || 
+                                e.type == DioExceptionType.receiveTimeout ||
+                                e.type == DioExceptionType.connectionError;
+
+          if (isSafeMethod && isNetworkError && (e.requestOptions.extra['retryCount'] as int? ?? 0) < 3) {
+            final retryCount = (e.requestOptions.extra['retryCount'] as int? ?? 0) + 1;
+            final backoffMs = (pow(2, retryCount) * 1000).toInt() + Random().nextInt(500);
+            
+            AppLogger.w('🔄 [$requestId] Network error. Retrying in ${backoffMs}ms (Attempt #$retryCount)');
+            await Future.delayed(Duration(milliseconds: backoffMs));
+            
+            try {
+              return handler.resolve(await _retryRequest(e.requestOptions, retryCount));
+            } catch (_) {
+              // Continue to next error handler if retry also fails
+            }
+          }
+
           return handler.next(e);
         },
       ),
@@ -370,6 +436,15 @@ class DioApiClient implements ApiClient {
     }
 
     AppLogger.i('➡️ [REQ] [$requestId] ${options.method} ${options.uri}');
+    
+    // Detailed debug logs for development
+    AppLogger.d('[$requestId] Headers: $sanitizedHeaders');
+    if (sanitizedParams != null && sanitizedParams.isNotEmpty) {
+      AppLogger.d('[$requestId] Params: $sanitizedParams');
+    }
+    if (sanitizedData != null) {
+      AppLogger.d('[$requestId] Payload: $sanitizedData');
+    }
   }
 
   dynamic _redactSensitiveData(dynamic data) {
@@ -438,20 +513,60 @@ class DioApiClient implements ApiClient {
       }
     }
 
-    return _safeRequest(
-      () => _dio.get(
-        path,
-        queryParameters: queryParameters,
-        cancelToken: cancelToken,
-      ),
-      parser,
-      onSuccess: (data) => _cache.set(
-        path,
-        data,
-        params: queryParameters,
-        ttl: ttl ?? const Duration(hours: 1),
+    return _deduplicatedRequest(
+      path,
+      () => _safeRequest(
+        () => _dio.get(
+          path,
+          queryParameters: queryParameters,
+          cancelToken: cancelToken,
+        ),
+        parser,
+        onSuccess: (data) => _cache.set(
+          path,
+          data,
+          params: queryParameters,
+          ttl: ttl ?? const Duration(hours: 1),
+        ),
+        onFailure: () async {
+          // Stale fallback on network failure
+          final stale = _cache.get(path, params: queryParameters);
+          if (stale != null) {
+            AppLogger.d('📦 [STALE] Falling back to stale cache for $path');
+            return ApiResponse(
+              success: true,
+              data: parser((stale.data is Map && (stale.data as Map).containsKey('data')) 
+                ? (stale.data as Map)['data'] 
+                : stale.data),
+              raw: stale.data,
+              meta: const ApiMeta(degraded: true),
+            );
+          }
+          return null;
+        },
       ),
     );
+  }
+
+  Future<ApiResponse<T>> _deduplicatedRequest<T>(
+    String path,
+    Future<ApiResponse<T>> Function() request,
+  ) async {
+    if (_activeRequests.containsKey(path)) {
+      AppLogger.d('💎 [DEDUPE] Joining active request for $path');
+      final result = await _activeRequests[path];
+      return result as ApiResponse<T>;
+    }
+
+    final future = request();
+    _activeRequests[path] = future as Future<Response<dynamic>>; // Type hack for storage
+    
+    try {
+      final result = await future;
+      return result;
+    } finally {
+      _activeRequests.remove(path);
+    }
   }
 
   @override
@@ -510,6 +625,7 @@ class DioApiClient implements ApiClient {
     Future<Response> Function() request,
     T Function(dynamic) parser, {
     void Function(dynamic data)? onSuccess,
+    Future<ApiResponse<T>?> Function()? onFailure,
   }) async {
     try {
       final response = await request();
@@ -550,6 +666,12 @@ class DioApiClient implements ApiClient {
     } on DioException catch (e) {
       final requestId = e.requestOptions.extra['requestId']?.toString();
 
+      // Check for stale fallback
+      if (onFailure != null) {
+        final fallback = await onFailure();
+        if (fallback != null) return fallback;
+      }
+
       if (e.error is DegradedModeException ||
           e.error is RefreshTimeoutException ||
           e.error is TooManyRequestsException ||
@@ -569,6 +691,10 @@ class DioApiClient implements ApiClient {
 
       return ApiResponse.fallback(reason: reason, requestId: requestId);
     } catch (e) {
+      if (onFailure != null) {
+        final fallback = await onFailure();
+        if (fallback != null) return fallback;
+      }
       return ApiResponse.fallback(reason: 'malformed');
     }
   }

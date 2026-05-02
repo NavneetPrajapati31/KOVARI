@@ -29,6 +29,7 @@ import 'core/providers/profile_provider.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/providers/cache_provider.dart';
 import 'core/auth/session_manager.dart';
+import 'core/network/mutation_queue.dart';
 
 void main() {
   runZonedGuarded(
@@ -149,8 +150,9 @@ void main() {
       final container = ProviderContainer();
       try {
         await container.read(cacheInitProvider.future);
+        await container.read(mutationQueueInitProvider.future);
       } catch (e) {
-        AppLogger.e('Cache initialization failed: $e');
+        AppLogger.e('Initialization failed: $e');
       }
 
       final sentryDsn = Env.sentryDsn;
