@@ -1,4 +1,5 @@
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
@@ -18,11 +19,30 @@ class AuthService {
   AuthService(this._apiClient, this._sessionManager);
 
   Future<KovariUser?> loginWithGoogle({CancelToken? cancelToken}) async {
+    AppLogger.d('Starting Google Authentication flow...');
     final account = await _googleSignIn.authenticate();
-    final GoogleSignInAuthentication auth = account.authentication;
+
+    if (account == null) {
+      AppLogger.w('Google Authentication was cancelled by the user.');
+      return null;
+    }
+
+    AppLogger.d(
+      'Google Account retrieved: ${account.email}. Fetching tokens...',
+    );
+    final auth = account.authentication;
     final String? idToken = auth.idToken;
 
-    if (idToken == null) throw Exception("Failed to retrieve Google ID Token");
+    if (idToken == null) {
+      AppLogger.e(
+        'Failed to retrieve Google ID Token from authentication result.',
+      );
+      throw Exception("Failed to retrieve Google ID Token");
+    }
+
+    AppLogger.i(
+      'Google ID Token retrieved successfully (length: ${idToken.length}). Authenticating with backend...',
+    );
 
     final response = await _apiClient.post<KovariUser>(
       ApiEndpoints.googleAuth,
@@ -38,7 +58,11 @@ class AuthService {
     throw Exception(response.error?.message ?? "Google Login failed");
   }
 
-  Future<KovariUser?> loginWithEmail(String email, String password, {CancelToken? cancelToken}) async {
+  Future<KovariUser?> loginWithEmail(
+    String email,
+    String password, {
+    CancelToken? cancelToken,
+  }) async {
     final response = await _apiClient.post<KovariUser>(
       ApiEndpoints.emailLogin,
       data: {'email': email, 'password': password},
@@ -53,7 +77,12 @@ class AuthService {
     throw Exception(response.error?.message ?? "Email Login failed");
   }
 
-  Future<Map<String, dynamic>> registerWithEmail(String email, String password, {String? name, CancelToken? cancelToken}) async {
+  Future<Map<String, dynamic>> registerWithEmail(
+    String email,
+    String password, {
+    String? name,
+    CancelToken? cancelToken,
+  }) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.emailRegister,
       data: {'email': email, 'password': password, 'name': name},
@@ -64,7 +93,7 @@ class AuthService {
     if (response.success && response.data != null) {
       final data = response.data!;
       if (data['verificationRequired'] == true) return data;
-      
+
       final user = parseAuthResponse(data);
       await _finalizeAuthentication(user, data);
       return data;
@@ -84,7 +113,10 @@ class AuthService {
     }
   }
 
-  Future<void> requestPasswordReset(String email, {CancelToken? cancelToken}) async {
+  Future<void> requestPasswordReset(
+    String email, {
+    CancelToken? cancelToken,
+  }) async {
     final response = await _apiClient.post<void>(
       ApiEndpoints.forgotPassword,
       data: {'email': email, 'platform': 'mobile'},
@@ -92,11 +124,17 @@ class AuthService {
       cancelToken: cancelToken,
     );
     if (!response.success) {
-      throw Exception(response.error?.message ?? "Forgot Password request failed");
+      throw Exception(
+        response.error?.message ?? "Forgot Password request failed",
+      );
     }
   }
 
-  Future<void> resetPassword(String token, String newPassword, {CancelToken? cancelToken}) async {
+  Future<void> resetPassword(
+    String token,
+    String newPassword, {
+    CancelToken? cancelToken,
+  }) async {
     final response = await _apiClient.post<void>(
       ApiEndpoints.resetPassword,
       data: {'token': token, 'newPassword': newPassword},
@@ -108,7 +146,11 @@ class AuthService {
     }
   }
 
-  Future<KovariUser> verifyOtp(String email, String code, {CancelToken? cancelToken}) async {
+  Future<KovariUser> verifyOtp(
+    String email,
+    String code, {
+    CancelToken? cancelToken,
+  }) async {
     final response = await _apiClient.post<KovariUser>(
       ApiEndpoints.verifyOtp,
       data: {'email': email, 'code': code},
@@ -129,7 +171,9 @@ class AuthService {
 
     final accessToken = data['accessToken'] as String;
     final refreshToken = data['refreshToken'] as String;
-    final expiry = data['expiry'] as int? ?? (DateTime.now().millisecondsSinceEpoch + 3600000);
+    final expiry =
+        data['expiry'] as int? ??
+        (DateTime.now().millisecondsSinceEpoch + 3600000);
 
     await _storage.saveTokens(
       accessToken: accessToken,

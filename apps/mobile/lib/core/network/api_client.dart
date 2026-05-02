@@ -348,12 +348,17 @@ class DioApiClient implements ApiClient {
       sanitizedData = '[BINARY_DATA_SKIPPED]';
     }
 
-    sanitizedHeaders =
-        _redactSensitiveData(deepClone(options.headers))
-            as Map<String, dynamic>?;
-    sanitizedParams =
-        _redactSensitiveData(deepClone(options.queryParameters))
-            as Map<String, dynamic>?;
+    final redactedHeaders = _redactSensitiveData(deepClone(options.headers));
+    if (redactedHeaders is Map) {
+      sanitizedHeaders = Map<String, dynamic>.from(redactedHeaders);
+    }
+
+    final redactedParams = _redactSensitiveData(
+      deepClone(options.queryParameters),
+    );
+    if (redactedParams is Map) {
+      sanitizedParams = Map<String, dynamic>.from(redactedParams);
+    }
 
     AppLogger.i('➡️ [REQ] [$requestId] ${options.method} ${options.uri}');
   }

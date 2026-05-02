@@ -87,6 +87,7 @@ flutter_native_splash:
 flutter:
   uses-material-design: true
   assets:
+    - .env.development
     - assets/logo.webp
     - assets/logo.png
     - assets/google_logo.png

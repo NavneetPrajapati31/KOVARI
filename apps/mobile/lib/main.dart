@@ -28,7 +28,7 @@ import 'core/providers/profile_provider.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/auth/session_manager.dart';
 
-void main() async {
+void main() {
   runZonedGuarded(
     () async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -106,23 +106,32 @@ void main() async {
       // Load environment variables
       const envFile = String.fromEnvironment(
         'ENV_FILE',
-        defaultValue: 'env/development.json',
+        defaultValue: '.env.development',
       );
       try {
         await dotenv.load(fileName: envFile);
+        AppLogger.i('Loaded environment from $envFile');
       } catch (e) {
         AppLogger.w(
-          'Dotenv failed to load $envFile, falling back to dart-define.',
+          'Dotenv failed to load $envFile: $e. Falling back to dart-define.',
         );
       }
-      Env.validate();
+
+      try {
+        Env.validate();
+      } catch (e) {
+        AppLogger.e('Environment validation failed: $e');
+        // We continue to runApp so the user can see an error widget instead of a hang
+      }
 
       // Initialize Google Sign In
       try {
+        AppLogger.d('Initializing Google Sign-In (isWeb: $kIsWeb)...');
         await GoogleSignIn.instance.initialize(
           clientId: kIsWeb ? Env.googleClientId : null,
           serverClientId: kIsWeb ? null : Env.googleClientId,
         );
+        AppLogger.i('Google Sign-In initialized successfully.');
       } catch (e) {
         AppLogger.e('Google Sign-In initialization failed: $e');
       }
@@ -144,6 +153,11 @@ void main() async {
         stackTrace: stackTrace,
         reportToSentry: false,
       );
+      // Ensure app runs even on zone errors during startup
+      try {
+        runApp(const ProviderScope(child: KovariApp()));
+      } catch (_) {}
+
       if (kReleaseMode) {
         Sentry.captureException(error, stackTrace: stackTrace);
       }
