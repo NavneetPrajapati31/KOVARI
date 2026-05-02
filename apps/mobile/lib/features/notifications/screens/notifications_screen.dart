@@ -23,15 +23,26 @@ class NotificationsScreen extends ConsumerWidget {
           children: [
             _buildHeader(context, ref),
             Expanded(
-              child: notificationsAsync.when(
-                data: (notifications) => RefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(notificationProvider.notifier).refresh(),
-                  color: AppColors.primary,
-                  child: _buildList(notifications, ref),
-                ),
-                loading: () => _buildSkeleton(),
-                error: (error, stack) => _buildErrorState(ref),
+              child: Builder(
+                builder: (context) {
+                  if (notificationsAsync.isLoading &&
+                      notificationsAsync.notifications.isEmpty) {
+                    return _buildSkeleton();
+                  }
+
+                  if (notificationsAsync.error != null &&
+                      notificationsAsync.notifications.isEmpty) {
+                    return _buildErrorState(ref);
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () => ref
+                        .read(notificationProvider.notifier)
+                        .refresh(ignoreCache: true),
+                    color: AppColors.primary,
+                    child: _buildList(notificationsAsync.notifications, ref),
+                  );
+                },
               ),
             ),
           ],

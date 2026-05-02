@@ -12,12 +12,14 @@ class ProfileService {
   /// Fetches the profile of the currently authenticated user.
   Future<Map<String, dynamic>?> getCurrentProfile({
     CancelToken? cancelToken,
+    bool ignoreCache = false,
   }) async {
     try {
-      final response = await _apiClient.get<Map<String, dynamic>>(
+      final response = await _apiClient.get<Map<String, dynamic>?>(
         ApiEndpoints.currentProfile,
-        parser: (data) => data is Map<String, dynamic> ? data : {},
+        parser: (data) => data is Map<String, dynamic> ? data : null,
         cancelToken: cancelToken,
+        ignoreCache: ignoreCache,
       );
 
       if (response.success && response.data != null) {

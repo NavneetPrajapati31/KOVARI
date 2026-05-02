@@ -7,6 +7,7 @@ import '../network/api_endpoints.dart';
 import '../config/env.dart';
 import '../utils/app_logger.dart';
 import '../providers/connectivity_provider.dart';
+import '../providers/cache_provider.dart';
 
 class AuthRepository {
   final TokenStorage _storage;
@@ -186,6 +187,7 @@ class AuthRepository {
       }
 
       await _storage.clear();
+      await _ref.read(localCacheProvider).clearAll();
     } finally {
       _sessionManager.setLoggingOut(false);
     }

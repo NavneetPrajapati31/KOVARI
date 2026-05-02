@@ -11,18 +11,29 @@ import '../utils/app_logger.dart';
 class ProfileNotifier extends Notifier<UserProfile?> {
   @override
   UserProfile? build() {
-    ref.watch(authStateProvider);
+    final user = ref.watch(authStateProvider);
+
+    if (user == null) {
+      return null;
+    }
 
     // Auto-refresh when connectivity is restored
     ref.listen(connectivityProvider, (previous, next) {
       if (next.isOnline && previous?.status != ConnectionStatus.online) {
-        if (state == null && ref.read(authProvider).isAuthenticated) {
+        if (state == null) {
           fetchProfile();
         }
       }
     });
 
-    return null;
+    // If we have a user but no profile, or user ID mismatch, trigger fetch
+    if (state == null || state?.userId != user.id) {
+      Future.microtask(() => fetchProfile());
+      // If mismatch, return null to show loading while we fetch
+      if (state?.userId != user.id) return null;
+    }
+
+    return state;
   }
 
   // Allow setting the profile externally (e.g., during login or onboarding)

@@ -9,6 +9,7 @@ import '../widgets/explore_filters_sheet.dart';
 import 'package:shimmer/shimmer.dart';
 import '../widgets/solo_match_card.dart';
 import '../widgets/group_match_card.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -72,6 +73,24 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(exploreProvider);
+
+    // Preload Next Matches
+    ref.listen(exploreProvider, (previous, next) {
+      if (previous?.currentIndex != next.currentIndex) {
+        for (int i = 1; i <= 3; i++) {
+          final index = next.currentIndex + i;
+          if (index < next.matches.length) {
+            final match = next.matches[index];
+            final imageUrl = next.searchData.travelMode == TravelMode.solo
+                ? (match as dynamic).avatar
+                : (match as dynamic).coverImage;
+            if (imageUrl != null && imageUrl.isNotEmpty) {
+              precacheImage(CachedNetworkImageProvider(imageUrl), context);
+            }
+          }
+        }
+      }
+    });
 
     return Material(
       color: AppColors.background,
@@ -241,18 +260,39 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     }
 
     final match = state.matches[state.currentIndex];
+
     return RefreshIndicator(
-      onRefresh: () => ref.read(exploreProvider.notifier).performSearch(),
+      onRefresh: () => ref.read(exploreProvider.notifier).performSearch(isRefresh: true),
       color: AppColors.primary,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Padding(
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // 1. Pending Indicator for Optimistic UI
+          if (state.isPending)
+            const SliverToBoxAdapter(
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+
+          // 2. Main Match Card
+          SliverPadding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: state.searchData.travelMode == TravelMode.solo
-                ? SoloMatchCard(match: match)
-                : GroupMatchCard(group: match),
+            sliver: SliverToBoxAdapter(
+              child: RepaintBoundary(
+                child: state.searchData.travelMode == TravelMode.solo
+                    ? SoloMatchCard(match: match)
+                    : GroupMatchCard(group: match),
+              ),
+            ),
           ),
+
+          // 3. Pagination Loading
+          if (state.isFetchingNextPage)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
         ],
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 import 'dart:ui';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'core/utils/app_logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -26,6 +27,7 @@ import 'features/auth/screens/banned_screen.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
 import 'core/providers/connectivity_provider.dart';
+import 'core/providers/cache_provider.dart';
 import 'core/auth/session_manager.dart';
 
 void main() {
@@ -33,6 +35,14 @@ void main() {
     () async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+      // Initialize Hive
+      try {
+        await Hive.initFlutter();
+        AppLogger.i('Hive initialized successfully');
+      } catch (e) {
+        AppLogger.e('Hive initialization failed: $e');
+      }
 
       // Global Error Handlers
       FlutterError.onError = (FlutterErrorDetails details) {
@@ -136,15 +146,22 @@ void main() {
         AppLogger.e('Google Sign-In initialization failed: $e');
       }
 
+      final container = ProviderContainer();
+      try {
+        await container.read(cacheInitProvider.future);
+      } catch (e) {
+        AppLogger.e('Cache initialization failed: $e');
+      }
+
       final sentryDsn = Env.sentryDsn;
       if (sentryDsn != null && sentryDsn.isNotEmpty) {
         await SentryFlutter.init((options) {
           options.dsn = sentryDsn;
           options.tracesSampleRate = 1.0;
-        }, appRunner: () => runApp(const ProviderScope(child: KovariApp())));
+        }, appRunner: () => runApp(UncontrolledProviderScope(container: container, child: const KovariApp())));
       } else {
         AppLogger.w('Sentry DSN not found. Running without Sentry.');
-        runApp(const ProviderScope(child: KovariApp()));
+        runApp(UncontrolledProviderScope(container: container, child: const KovariApp()));
       }
     },
     (error, stackTrace) {
@@ -480,19 +497,21 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
     try {
       final apiClient = ref.read(apiClientProvider);
       final profileService = ProfileService(apiClient);
-      final profileJson = await profileService.getCurrentProfile();
+      final profileJson = await profileService.getCurrentProfile(ignoreCache: true);
 
       if (mounted) {
-        if (profileJson != null) {
+        if (profileJson != null &&
+            (profileJson['onboardingCompleted'] == true ||
+                (profileJson['username'] as String? ?? '').isNotEmpty)) {
           final userProfile = UserProfile.fromJson(profileJson);
           ref.read(profileProvider.notifier).setProfile(userProfile);
         }
 
         setState(() {
           _isSyncing = false;
-          _needsOnboarding =
-              profileJson == null ||
-              profileJson['onboardingCompleted'] == false;
+          _needsOnboarding = profileJson == null ||
+              (profileJson['onboardingCompleted'] != true &&
+                  (profileJson['username'] as String? ?? '').isEmpty);
         });
       }
     } catch (e) {

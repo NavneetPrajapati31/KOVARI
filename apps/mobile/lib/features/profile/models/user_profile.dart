@@ -68,7 +68,7 @@ class UserProfile {
       age: json['age']?.toString() ?? '',
       gender: json['gender'] ?? '',
       nationality: json['nationality'] ?? '',
-      profession: json['profession'] ?? '', // API key is 'profession'
+      profession: json['profession'] ?? json['job'] ?? '',
       interests: List<String>.from(json['interests'] ?? []),
       languages: List<String>.from(json['languages'] ?? []),
       bio: json['bio'] ?? '',
@@ -76,7 +76,7 @@ class UserProfile {
       following: json['following']?.toString() ?? '0',
       likes: json['likes']?.toString() ?? '0',
       coverImage: json['cover_image'] ?? '',
-      profileImage: json['avatar'] ?? '', // API key is 'avatar'
+      profileImage: json['avatar'] ?? json['profile_photo'] ?? json['profile_image'] ?? '',
       posts: (json['posts'] as List? ?? [])
           .map((p) => UserPost.fromJson(p))
           .toList(),
@@ -89,7 +89,7 @@ class UserProfile {
       drinking: json['drinking'] ?? '',
       personality: json['personality'] ?? '',
       foodPreference:
-          json['foodPreference'] ?? '', // API key is 'foodPreference'
+          json['foodPreference'] ?? json['food_preference'] ?? '',
       birthday: json['birthday'],
       userId: json['id'] ?? json['user_id'] ?? '',
       email: json['email'] ?? '',

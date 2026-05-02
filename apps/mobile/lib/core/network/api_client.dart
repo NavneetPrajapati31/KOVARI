@@ -10,6 +10,9 @@ import '../../core/auth/session_manager.dart';
 import '../../core/auth/auth_repository.dart';
 import '../../core/utils/deep_clone.dart';
 import '../../core/models/api_response.dart';
+import 'package:flutter/foundation.dart' show compute;
+import '../cache/local_cache.dart';
+import '../providers/cache_provider.dart';
 import 'api_endpoints.dart';
 import '../utils/app_logger.dart';
 import 'request_priority.dart';
@@ -24,6 +27,8 @@ abstract class ApiClient {
     Map<String, dynamic>? queryParameters,
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
+    Duration? ttl,
+    bool ignoreCache = false,
   });
 
   Future<ApiResponse<T>> post<T>(
@@ -71,6 +76,7 @@ class DioApiClient implements ApiClient {
   final SessionManager _sessionManager;
   final TokenStorage _tokenStorage = TokenStorage();
   late final AuthRepository _authRepository;
+  late final LocalCache _cache;
   final Ref _ref;
 
   static const _uuid = Uuid();
@@ -92,6 +98,7 @@ class DioApiClient implements ApiClient {
         ),
       ) {
     _authRepository = _ref.read(authRepositoryProvider);
+    _cache = _ref.read(localCacheProvider);
     _initializeInterceptors();
   }
 
@@ -407,7 +414,30 @@ class DioApiClient implements ApiClient {
     Map<String, dynamic>? queryParameters,
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
-  }) {
+    Duration? ttl,
+    bool ignoreCache = false,
+  }) async {
+    // 1. Try Cache First
+    if (!ignoreCache) {
+      final cachedEntry = _cache.get(path, params: queryParameters);
+      if (cachedEntry != null) {
+        AppLogger.d('📦 [CACHE] Hit for $path');
+        
+        // Extract data from envelope if present to match _safeRequest behavior
+        final dynamic rawData = (cachedEntry.data is Map && cachedEntry.data.containsKey('data'))
+            ? cachedEntry.data['data']
+            : cachedEntry.data;
+            
+        // Return cached data immediately
+        return ApiResponse(
+          success: true,
+          data: parser(rawData),
+          raw: cachedEntry.data,
+          meta: const ApiMeta(),
+        );
+      }
+    }
+
     return _safeRequest(
       () => _dio.get(
         path,
@@ -415,6 +445,12 @@ class DioApiClient implements ApiClient {
         cancelToken: cancelToken,
       ),
       parser,
+      onSuccess: (data) => _cache.set(
+        path,
+        data,
+        params: queryParameters,
+        ttl: ttl ?? const Duration(hours: 1),
+      ),
     );
   }
 
@@ -472,8 +508,9 @@ class DioApiClient implements ApiClient {
 
   Future<ApiResponse<T>> _safeRequest<T>(
     Future<Response> Function() request,
-    T Function(dynamic) parser,
-  ) async {
+    T Function(dynamic) parser, {
+    void Function(dynamic data)? onSuccess,
+  }) async {
     try {
       final response = await request();
       final requestId = response.requestOptions.extra['requestId']?.toString();
@@ -485,9 +522,29 @@ class DioApiClient implements ApiClient {
         );
       }
 
+      final rawData = response.data['data'];
+      final responseBody = response.data;
+
+      // 1. Success Callback for Caching
+      if (response.statusCode == 200 && responseBody['success'] == true) {
+        onSuccess?.call(responseBody);
+      }
+
+      // 2. Conditional Parsing with compute()
+      T parsedData;
+      final bool useCompute =
+          response.toString().length > 50 * 1024; // > 50KB approximate
+
+      if (useCompute) {
+        AppLogger.d('🧵 [CPU] Large payload detected. Using compute() for parsing.');
+        parsedData = await compute((data) => parser(data), rawData);
+      } else {
+        parsedData = parser(rawData);
+      }
+
       return ApiResponse.fromJson(
-        response.data as Map<String, dynamic>,
-        parser,
+        responseBody as Map<String, dynamic>,
+        (_) => parsedData, // Parser already executed
         requestId: requestId,
       );
     } on DioException catch (e) {
@@ -539,6 +596,8 @@ class MockApiClient implements ApiClient {
     Map<String, dynamic>? queryParameters,
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
+    Duration? ttl,
+    bool ignoreCache = false,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-get');

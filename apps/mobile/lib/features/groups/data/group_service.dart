@@ -11,12 +11,20 @@ class GroupService {
   Future<List<GroupModel>> getMyGroups() async {
     final response = await _apiClient.get<List<GroupModel>>(
       ApiEndpoints.myGroups,
-      parser: (data) {
-        final List<dynamic> rawList = data is List ? data : [];
-        return safeParseList(rawList, GroupModel.fromJson);
-      },
+      parser: (data) => parseGroups(data),
     );
-    return response.data ?? [];
+
+    if (response.success && response.data != null) {
+      return response.data!;
+    }
+
+    throw Exception(response.error?.message ?? "Failed to load groups");
+  }
+
+  List<GroupModel> parseGroups(dynamic data) {
+    final actualData = (data is Map && data.containsKey('data')) ? data['data'] : data;
+    if (actualData is! List) return [];
+    return actualData.map((e) => GroupModel.fromJson(e)).toList();
   }
 
   Future<GroupModel> createGroup(Map<String, dynamic> data) async {
