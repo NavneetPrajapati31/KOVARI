@@ -17,18 +17,28 @@ class ProfileService {
     try {
       final response = await _apiClient.get<Map<String, dynamic>?>(
         ApiEndpoints.currentProfile,
-        parser: (data) => data is Map<String, dynamic> ? data : null,
+        parser: (data) {
+          if (data is! Map<String, dynamic>) return null;
+          // Robust unwrapping: handle both direct and nested 'profile' field
+          return (data['profile'] as Map<String, dynamic>?) ?? data;
+        },
         cancelToken: cancelToken,
         ignoreCache: ignoreCache,
       );
+
+      if (response.isDegraded) {
+        throw Exception('Network error: ${response.meta.reason}');
+      }
 
       if (response.success && response.data != null) {
         return response.data;
       }
       return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
     } catch (e) {
-      // 404 is a valid case (profile doesn't exist yet), others are handled by ApiClient fallback
-      return null;
+      rethrow;
     }
   }
 

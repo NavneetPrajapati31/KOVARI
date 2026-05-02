@@ -4,11 +4,29 @@ import '../../../shared/models/kovari_user.dart';
 import '../models/explore_state.dart';
 import '../services/explore_service.dart';
 import '../services/match_service.dart';
+import '../../../core/providers/cache_provider.dart';
+import '../../../core/utils/app_logger.dart';
 
 class ExploreNotifier extends Notifier<ExploreState> {
   @override
   ExploreState build() {
+    // Attempt instant boot from cache if we have a destination
+    Future.microtask(() => _loadFromCache());
     return ExploreState.initial();
+  }
+
+  Future<void> _loadFromCache() async {
+    final cache = ref.read(localCacheProvider);
+    final key = 'matches_${state.searchData.destination}';
+    final cachedMatches = cache.getEntities(key);
+    
+    if (cachedMatches != null && state.matches.isEmpty) {
+      state = state.copyWith(
+        matches: cachedMatches,
+        hasSearched: true,
+      );
+      AppLogger.d('🚀 [BOOT] Matches loaded from cache instantly for ${state.searchData.destination}');
+    }
   }
 
   ExploreService get _service => ref.read(exploreServiceProvider);
@@ -110,6 +128,12 @@ class ExploreNotifier extends Notifier<ExploreState> {
         hasMore: newHasMore,
         lastFetchTime: isLoadMore ? state.lastFetchTime : DateTime.now(),
       );
+
+      // Persist to cache
+      if (!isLoadMore) {
+        final cache = ref.read(localCacheProvider);
+        cache.setEntities('matches_${state.searchData.destination}', matches);
+      }
     } catch (e) {
       state = state.copyWith(error: e.toString());
     } finally {

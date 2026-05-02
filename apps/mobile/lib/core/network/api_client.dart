@@ -142,11 +142,13 @@ class DioApiClient implements ApiClient {
           if (connectivity.isOffline) {
             if (isMutation) {
               // Queue mutations for later
-              _ref.read(mutationQueueProvider.notifier).enqueue(
-                path: options.path,
-                method: options.method,
-                data: options.data,
-              );
+              _ref
+                  .read(mutationQueueProvider.notifier)
+                  .enqueue(
+                    path: options.path,
+                    method: options.method,
+                    data: options.data,
+                  );
               return handler.reject(
                 DioException(
                   requestOptions: options,
@@ -156,9 +158,14 @@ class DioApiClient implements ApiClient {
               );
             } else {
               // Try to find any cache, even if expired (stale fallback)
-              final cached = _cache.get(options.path, params: options.queryParameters);
+              final cached = _cache.get(
+                options.path,
+                params: options.queryParameters,
+              );
               if (cached != null) {
-                AppLogger.d('📦 [OFFLINE] Stale cache fallback for ${options.path}');
+                AppLogger.d(
+                  '📦 [OFFLINE] Stale cache fallback for ${options.path}',
+                );
                 return handler.resolve(
                   Response(
                     requestOptions: options,
@@ -333,21 +340,34 @@ class DioApiClient implements ApiClient {
           );
 
           // 3. Safe Request Auto-Retry (Timeout/Network errors)
-          final isSafeMethod = ['GET', 'HEAD', 'OPTIONS'].contains(e.requestOptions.method.toUpperCase());
-          final isNetworkError = e.type == DioExceptionType.connectionTimeout || 
-                                e.type == DioExceptionType.sendTimeout || 
-                                e.type == DioExceptionType.receiveTimeout ||
-                                e.type == DioExceptionType.connectionError;
+          final isSafeMethod = [
+            'GET',
+            'HEAD',
+            'OPTIONS',
+          ].contains(e.requestOptions.method.toUpperCase());
+          final isNetworkError =
+              e.type == DioExceptionType.connectionTimeout ||
+              e.type == DioExceptionType.sendTimeout ||
+              e.type == DioExceptionType.receiveTimeout ||
+              e.type == DioExceptionType.connectionError;
 
-          if (isSafeMethod && isNetworkError && (e.requestOptions.extra['retryCount'] as int? ?? 0) < 3) {
-            final retryCount = (e.requestOptions.extra['retryCount'] as int? ?? 0) + 1;
-            final backoffMs = (pow(2, retryCount) * 1000).toInt() + Random().nextInt(500);
-            
-            AppLogger.w('🔄 [$requestId] Network error. Retrying in ${backoffMs}ms (Attempt #$retryCount)');
+          if (isSafeMethod &&
+              isNetworkError &&
+              (e.requestOptions.extra['retryCount'] as int? ?? 0) < 3) {
+            final retryCount =
+                (e.requestOptions.extra['retryCount'] as int? ?? 0) + 1;
+            final backoffMs =
+                (pow(2, retryCount) * 1000).toInt() + Random().nextInt(500);
+
+            AppLogger.w(
+              '🔄 [$requestId] Network error. Retrying in ${backoffMs}ms (Attempt #$retryCount)',
+            );
             await Future.delayed(Duration(milliseconds: backoffMs));
-            
+
             try {
-              return handler.resolve(await _retryRequest(e.requestOptions, retryCount));
+              return handler.resolve(
+                await _retryRequest(e.requestOptions, retryCount),
+              );
             } catch (_) {
               // Continue to next error handler if retry also fails
             }
@@ -436,7 +456,7 @@ class DioApiClient implements ApiClient {
     }
 
     AppLogger.i('➡️ [REQ] [$requestId] ${options.method} ${options.uri}');
-    
+
     // Detailed debug logs for development
     AppLogger.d('[$requestId] Headers: $sanitizedHeaders');
     if (sanitizedParams != null && sanitizedParams.isNotEmpty) {
@@ -495,21 +515,28 @@ class DioApiClient implements ApiClient {
     // 1. Try Cache First
     if (!ignoreCache) {
       final cachedEntry = _cache.get(path, params: queryParameters);
-      if (cachedEntry != null) {
-        AppLogger.d('📦 [CACHE] Hit for $path');
-        
+      if (cachedEntry != null && cachedEntry.data != null) {
         // Extract data from envelope if present to match _safeRequest behavior
-        final dynamic rawData = (cachedEntry.data is Map && cachedEntry.data.containsKey('data'))
-            ? cachedEntry.data['data']
+        final dynamic rawData =
+            (cachedEntry.data is Map &&
+                (cachedEntry.data as Map).containsKey('data'))
+            ? (cachedEntry.data as Map)['data']
             : cachedEntry.data;
-            
-        // Return cached data immediately
-        return ApiResponse(
-          success: true,
-          data: parser(rawData),
-          raw: cachedEntry.data,
-          meta: const ApiMeta(),
-        );
+
+        if (rawData != null) {
+          AppLogger.d('📦 [CACHE] Hit for $path. Data present.');
+
+          return ApiResponse(
+            success: true,
+            data: parser(rawData),
+            raw: cachedEntry.data,
+            meta: const ApiMeta(),
+          );
+        } else {
+          AppLogger.w(
+            '⚠️ [CACHE] Entry for $path contains null data. Ignoring.',
+          );
+        }
       }
     }
 
@@ -535,9 +562,11 @@ class DioApiClient implements ApiClient {
             AppLogger.d('📦 [STALE] Falling back to stale cache for $path');
             return ApiResponse(
               success: true,
-              data: parser((stale.data is Map && (stale.data as Map).containsKey('data')) 
-                ? (stale.data as Map)['data'] 
-                : stale.data),
+              data: parser(
+                (stale.data is Map && (stale.data as Map).containsKey('data'))
+                    ? (stale.data as Map)['data']
+                    : stale.data,
+              ),
               raw: stale.data,
               meta: const ApiMeta(degraded: true),
             );
@@ -559,8 +588,9 @@ class DioApiClient implements ApiClient {
     }
 
     final future = request();
-    _activeRequests[path] = future as Future<Response<dynamic>>; // Type hack for storage
-    
+    _activeRequests[path] =
+        future as Future<Response<dynamic>>; // Type hack for storage
+
     try {
       final result = await future;
       return result;
@@ -632,13 +662,19 @@ class DioApiClient implements ApiClient {
       final requestId = response.requestOptions.extra['requestId']?.toString();
 
       if (response.data == null || response.data is! Map) {
+        AppLogger.w(
+          '⚠️ [RES] [$requestId] Unexpected response format: ${response.data}',
+        );
         return ApiResponse.fallback(
           reason: 'invalid_format',
           requestId: requestId,
         );
       }
 
-      final rawData = response.data['data'];
+      AppLogger.d('📦 [RES] [$requestId] Raw data: ${response.data}');
+      final rawData = response.data.containsKey('data')
+          ? response.data['data']
+          : response.data;
       final responseBody = response.data;
 
       // 1. Success Callback for Caching
@@ -652,7 +688,9 @@ class DioApiClient implements ApiClient {
           response.toString().length > 50 * 1024; // > 50KB approximate
 
       if (useCompute) {
-        AppLogger.d('🧵 [CPU] Large payload detected. Using compute() for parsing.');
+        AppLogger.d(
+          '🧵 [CPU] Large payload detected. Using compute() for parsing.',
+        );
         parsedData = await compute((data) => parser(data), rawData);
       } else {
         parsedData = parser(rawData);

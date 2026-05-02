@@ -38,17 +38,19 @@ class LocalCache {
   static const int _maxEntries = 100; // LRU limit
 
   static Box<String>? _box;
+  static Box<String>? _profileBox;
+  static Box<String>? _entityBox;
   final Map<String, CacheEntry> _memoryCache = {};
 
   Future<void> init() async {
     try {
       _box = await Hive.openBox<String>(_boxName);
-      AppLogger.i('LocalCache initialized with ${_box?.length} entries');
+      _profileBox = await Hive.openBox<String>('profile_cache');
+      _entityBox = await Hive.openBox<String>('entity_cache');
+      AppLogger.i('LocalCache initialized (API: ${_box?.length}, Profile: ${_profileBox?.length}, Entity: ${_entityBox?.length})');
       _checkVersion();
     } catch (e) {
-      AppLogger.e('Failed to initialize Hive box: $e');
-      await Hive.deleteBoxFromDisk(_boxName);
-      _box = await Hive.openBox<String>(_boxName);
+      AppLogger.e('Failed to initialize Hive boxes: $e');
     }
   }
 
@@ -135,9 +137,54 @@ class LocalCache {
     await _box?.delete(key);
   }
 
+  Future<void> cleanupExpired() async {
+    if (_box == null) return;
+    final keysToDelete = <dynamic>[];
+    for (final key in _box!.keys) {
+      if (key == '__cache_version_key__') continue;
+      try {
+        final stored = _box!.get(key);
+        if (stored != null) {
+          final entry = CacheEntry.fromJson(jsonDecode(stored));
+          if (entry.isExpired) {
+            keysToDelete.add(key);
+          }
+        }
+      } catch (_) {
+        keysToDelete.add(key);
+      }
+    }
+    if (keysToDelete.isNotEmpty) {
+      await _box!.deleteAll(keysToDelete);
+      AppLogger.i('🧹 Cache cleanup: Removed ${keysToDelete.length} expired entries');
+    }
+  }
+
   Future<void> clearAll() async {
     _memoryCache.clear();
     await _box?.clear();
+    await _profileBox?.clear();
+    await _entityBox?.clear();
     await _box?.put('__cache_version_key__', _currentVersion.toString());
+  }
+
+  // --- Collection Specific Helpers ---
+
+  Future<void> setProfile(Map<String, dynamic> data) async {
+    await _profileBox?.put('current', jsonEncode(data));
+  }
+
+  Map<String, dynamic>? getProfile() {
+    final data = _profileBox?.get('current');
+    return data != null ? jsonDecode(data) as Map<String, dynamic> : null;
+  }
+
+  Future<void> setEntities(String key, List<dynamic> data) async {
+    await _entityBox?.put(key, jsonEncode(data));
+  }
+
+  List<dynamic>? getEntities(String key) {
+    final data = _entityBox?.get(key);
+    return data != null ? jsonDecode(data) as List<dynamic> : null;
   }
 }

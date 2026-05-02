@@ -151,6 +151,11 @@ void main() {
       try {
         await container.read(cacheInitProvider.future);
         await container.read(mutationQueueInitProvider.future);
+        
+        // Start background cache maintenance
+        Timer.periodic(const Duration(minutes: 15), (_) {
+          container.read(localCacheProvider).cleanupExpired();
+        });
       } catch (e) {
         AppLogger.e('Initialization failed: $e');
       }
@@ -513,8 +518,10 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
       final apiClient = ref.read(apiClientProvider);
       final profileService = ProfileService(apiClient);
       final profileJson = await profileService.getCurrentProfile(
-        ignoreCache: true,
+        ignoreCache: false,
       );
+
+      AppLogger.d('🔍 [AUTH] Profile fetch result: $profileJson');
 
       if (mounted) {
         if (profileJson != null &&
@@ -524,12 +531,21 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
           ref.read(profileProvider.notifier).setProfile(userProfile);
         }
 
-        setState(() {
-          _isSyncing = false;
-          _needsOnboarding =
-              profileJson == null ||
+        final needsOnboarding = profileJson == null ||
               (profileJson['onboardingCompleted'] != true &&
                   (profileJson['username'] as String? ?? '').isEmpty);
+
+        if (needsOnboarding) {
+          AppLogger.w('🚩 [AUTH] Redirecting to Onboarding. Reason: ' + 
+            (profileJson == null ? 'Profile is NULL' : 
+             'Incomplete: completed=${profileJson['onboardingCompleted']}, username="${profileJson['username']}"'));
+        } else {
+          AppLogger.i('✅ [AUTH] Onboarding verified. Proceeding to AppShell.');
+        }
+
+        setState(() {
+          _isSyncing = false;
+          _needsOnboarding = needsOnboarding;
         });
       }
     } catch (e) {
