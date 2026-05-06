@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -41,62 +42,75 @@ class ItineraryTab extends ConsumerWidget {
             .where((i) => i.status == 'cancelled')
             .toList();
 
-        return RefreshIndicator(
+        return KovariRefreshIndicator(
           onRefresh: () async {
             ref.invalidate(groupItineraryProvider(group.id));
             ref.invalidate(groupMembersProvider(group.id));
           },
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            children: [
-              const Text(
-                "Itinerary Board",
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                "Plan and organize your group's travel activities",
-                style: TextStyle(
-                  color: AppColors.mutedForeground,
-                  fontSize: 13,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
                 ),
-              ),
-              const SizedBox(height: 20),
-              _buildItinerarySection(
-                context,
-                ref,
-                "To do",
-                "pending",
-                todo,
-                const Color(0xFFF59E0B),
-                members,
-              ),
-              _buildItinerarySection(
-                context,
-                ref,
-                "In Progress",
-                "confirmed",
-                inProgress,
-                const Color(0xFF007AFF),
-                members,
-              ),
-              _buildItinerarySection(
-                context,
-                ref,
-                "Done",
-                "completed",
-                done,
-                const Color(0xFF34C759),
-                members,
-              ),
-              _buildItinerarySection(
-                context,
-                ref,
-                "Cancelled",
-                "cancelled",
-                cancelled,
-                const Color(0xFFF31260),
-                members,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const Text(
+                      "Itinerary Board",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "Plan and organize your group's travel activities",
+                      style: TextStyle(
+                        color: AppColors.mutedForeground,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildItinerarySection(
+                      context,
+                      ref,
+                      "To do",
+                      "pending",
+                      todo,
+                      const Color(0xFFF59E0B),
+                      members,
+                    ),
+                    _buildItinerarySection(
+                      context,
+                      ref,
+                      "In Progress",
+                      "confirmed",
+                      inProgress,
+                      const Color(0xFF007AFF),
+                      members,
+                    ),
+                    _buildItinerarySection(
+                      context,
+                      ref,
+                      "Done",
+                      "completed",
+                      done,
+                      const Color(0xFF34C759),
+                      members,
+                    ),
+                    _buildItinerarySection(
+                      context,
+                      ref,
+                      "Cancelled",
+                      "cancelled",
+                      cancelled,
+                      const Color(0xFFF31260),
+                      members,
+                    ),
+                  ]),
+                ),
               ),
             ],
           ),

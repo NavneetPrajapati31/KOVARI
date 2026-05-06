@@ -62,7 +62,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
-      final result = await authService.registerWithEmail(email, password, cancelToken: _cancelToken);
+      final result = await authService.registerWithEmail(
+        email,
+        password,
+        cancelToken: _cancelToken,
+      );
 
       if (mounted) {
         if (result['verificationRequired'] == true) {
@@ -125,7 +129,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               children: [
                 // Logo
                 Image.asset(
-                  'assets/logo.webp',
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'assets/logo_dark.webp'
+                      : 'assets/logo.webp',
                   height: 20,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Text(
@@ -147,8 +153,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Join Kovari', style: AppTextStyles.h3),
-                      const SizedBox(height: 4),
+                      Text(
+                        'Join Kovari',
+                        style: AppTextStyles.h3.copyWith(
+                          color: AppColors.text(context),
+                        ),
+                      ),
+                      // const SizedBox(height: 4),
                       Text(
                         'Create your account to get started',
                         style: AppTextStyles.bodyMedium.copyWith(

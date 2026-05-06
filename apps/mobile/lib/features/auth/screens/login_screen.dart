@@ -137,7 +137,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 // Logo
                 Image.asset(
-                  'assets/logo.webp',
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'assets/logo_dark.webp'
+                      : 'assets/logo.webp',
                   height: 20,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Text(
@@ -159,8 +161,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Welcome back', style: AppTextStyles.h3),
-                      const SizedBox(height: 4),
+                      Text(
+                        'Welcome back',
+                        style: AppTextStyles.h3.copyWith(
+                          color: AppColors.text(context),
+                        ),
+                      ),
+                      // const SizedBox(height: 4),
                       Text(
                         'Log in back to your account',
                         style: AppTextStyles.bodyMedium.copyWith(

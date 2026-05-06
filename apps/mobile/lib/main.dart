@@ -650,10 +650,15 @@ class _BrandedLoadingState extends State<BrandedLoading> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
-        child: Image.asset('assets/logo.png', width: 140, fit: BoxFit.contain),
+        child: Image.asset(
+          isDark ? 'assets/logo_dark.webp' : 'assets/logo.webp',
+          width: 140,
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }

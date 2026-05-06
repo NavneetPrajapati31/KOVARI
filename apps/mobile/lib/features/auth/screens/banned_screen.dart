@@ -40,7 +40,9 @@ class BannedScreen extends ConsumerWidget {
                   children: [
                     // Branding Logo
                     Image.asset(
-                      'assets/logo.webp',
+                      Theme.of(context).brightness == Brightness.dark
+                          ? 'assets/logo_dark.webp'
+                          : 'assets/logo.webp',
                       height: 20,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Text(

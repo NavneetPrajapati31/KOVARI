@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 
@@ -31,17 +30,9 @@ class KovariSwitchTile extends StatelessWidget {
       margin: margin ?? const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: fillColor ?? AppColors.surface(context),
+        color: fillColor ?? AppColors.surface(context, level: 2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderColor(context), width: 1),
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -53,10 +44,12 @@ class KovariSwitchTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: titleStyle ?? AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.text(context),
-                  ),
+                  style:
+                      titleStyle ??
+                      AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.text(context),
+                      ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),

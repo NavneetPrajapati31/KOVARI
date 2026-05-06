@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/core/utils/custom_route_transition.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
@@ -48,9 +49,8 @@ class GroupsScreen extends ConsumerWidget {
 
           // Scrollable Content
           Expanded(
-            child: RefreshIndicator(
+            child: KovariRefreshIndicator(
               onRefresh: () => ref.read(myGroupsProvider.notifier).refresh(),
-              color: AppColors.primary,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [

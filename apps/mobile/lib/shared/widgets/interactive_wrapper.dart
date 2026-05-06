@@ -110,8 +110,6 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return GestureDetector(
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
@@ -134,27 +132,9 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
             );
           }
 
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              Opacity(opacity: widget.isDisabled ? 0.5 : 1.0, child: current),
-
-              // Pressed Highlight Overlay
-              if (_isTapped && !widget.isLoading)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.05)
-                            : Colors.black.withValues(alpha: 0.03),
-                        borderRadius:
-                            widget.borderRadius ?? BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+          return Opacity(
+            opacity: widget.isDisabled ? 0.5 : 1.0,
+            child: current,
           );
         },
         child: RepaintBoundary(child: widget.child),

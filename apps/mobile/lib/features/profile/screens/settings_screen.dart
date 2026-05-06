@@ -9,10 +9,10 @@ import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../../auth/services/auth_service.dart';
-import '../../../core/services/local_storage.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
-// import '../../../shared/widgets/kovari_avatar.dart';
+import '../../../core/providers/theme_provider.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/kovari_confirm_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -21,7 +21,9 @@ class SettingsScreen extends ConsumerStatefulWidget {
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _themeTabController;
   bool _isPasswordLoading = false;
   bool _isEmailLoading = false;
   bool _isDeleteLoading = false;
@@ -41,7 +43,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _verificationCodeController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    final initialMode = ref.read(themeProvider);
+    _themeTabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: _themeModeToIndex(initialMode),
+    );
+
+    _themeTabController.addListener(() {
+      if (!_themeTabController.indexIsChanging) {
+        final newMode = _indexToThemeMode(_themeTabController.index);
+        if (newMode != ref.read(themeProvider)) {
+          ref.read(themeProvider.notifier).setThemeMode(newMode);
+        }
+      }
+    });
+  }
+
+  int _themeModeToIndex(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 0;
+      case ThemeMode.system:
+        return 1;
+      case ThemeMode.dark:
+        return 2;
+    }
+  }
+
+  ThemeMode _indexToThemeMode(int index) {
+    switch (index) {
+      case 0:
+        return ThemeMode.light;
+      case 1:
+        return ThemeMode.system;
+      case 2:
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  @override
   void dispose() {
+    _themeTabController.dispose();
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -85,9 +132,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         // Direct update succeeded (unlikely now)
         final currentProfile = ref.read(profileProvider);
         if (currentProfile != null) {
-          ref.read(profileProvider.notifier).setProfile(currentProfile.copyWith(
-            email: _emailController.text,
-          ));
+          ref
+              .read(profileProvider.notifier)
+              .setProfile(
+                currentProfile.copyWith(email: _emailController.text),
+              );
         }
         setState(() => _showEmailForm = false);
         _showSnackBar('Email updated successfully');
@@ -114,9 +163,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _showSnackBar('Email updated successfully');
       final currentProfile = ref.read(profileProvider);
       if (currentProfile != null) {
-        ref.read(profileProvider.notifier).setProfile(currentProfile.copyWith(
-          email: _pendingNewEmail,
-        ));
+        ref
+            .read(profileProvider.notifier)
+            .setProfile(currentProfile.copyWith(email: _pendingNewEmail));
       }
       setState(() {
         _showEmailForm = false;
@@ -179,141 +228,101 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleDeleteAccount() async {
-    final confirmed = await showDialog<bool>(
+    showKovariConfirmDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Delete your account?',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.foreground,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'This will permanently delete your account and all associated data. This action cannot be undone.',
-                textAlign: TextAlign.start,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: SecondaryButton(
-                      text: 'Cancel',
-                      height: 36,
-                      onPressed: () => Navigator.pop(context, false),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: PrimaryButton(
-                      text: 'Delete',
-                      height: 36,
-                      backgroundColor: AppColors.destructive,
-                      onPressed: () => Navigator.pop(context, true),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+      title: 'Delete your account?',
+      content:
+          'This will permanently delete your account and all associated data. This action cannot be undone.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+      onConfirm: () async {
+        setState(() => _isDeleteLoading = true);
+        try {
+          await ref.read(settingsServiceProvider).deleteAccount();
+          _showSnackBar('Account deleted successfully');
+          await ref.read(authProvider.notifier).logout();
+          if (!mounted) return;
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        } catch (e) {
+          _showSnackBar(
+            e.toString().replaceAll('Exception: ', ''),
+            isError: true,
+          );
+        } finally {
+          if (mounted) setState(() => _isDeleteLoading = false);
+        }
+      },
     );
-
-    if (confirmed == true) {
-      setState(() => _isDeleteLoading = true);
-      try {
-        await ref.read(settingsServiceProvider).deleteAccount();
-        _showSnackBar('Account deleted successfully');
-        await ref.read(authProvider.notifier).logout();
-        if (!mounted) return;
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      } catch (e) {
-        _showSnackBar(
-          e.toString().replaceAll('Exception: ', ''),
-          isError: true,
-        );
-      } finally {
-        if (mounted) setState(() => _isDeleteLoading = false);
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          Container(
-            color: AppColors.card,
-            child: SafeArea(bottom: false, child: _buildHeader(context)),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
-                ),
-                child: Column(
-                  children: [
-                    _buildSectionHeader(
-                      'Manage email',
-                      'Change your account email address.',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildAccountSection(profile?.email ?? ''),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader(
-                      'Manage password',
-                      'Change your account password.',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSecuritySection(),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader(
-                      'Delete account',
-                      'This action is permanent and cannot be undone.',
-                      isDestructive: true,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDangerZoneSection(),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader(
-                      'Legal & Policies',
-                      'Review Kovari\'s policies and your acceptance history.',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildLegalSection(),
-                    // const SizedBox(height: 32),
-                  ],
+    return AnimatedTheme(
+      data: Theme.of(context),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+      child: Scaffold(
+        backgroundColor: AppColors.surface(context),
+        body: Column(
+          children: [
+            Container(
+              color: AppColors.surface(context, level: 1),
+              child: SafeArea(bottom: false, child: _buildHeader(context)),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
+                  ),
+                  child: Column(
+                    children: [
+                      _buildSectionHeader(
+                        'Manage email',
+                        'Change your account email address.',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildAccountSection(profile?.email ?? ''),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
+                        'Manage password',
+                        'Change your account password.',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSecuritySection(),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
+                        'Appearance',
+                        'Customize how Kovari looks on your device.',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildAppearanceSection(),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
+                        'Delete account',
+                        'This action is permanent and cannot be undone.',
+                        isDestructive: true,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDangerZoneSection(),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
+                        'Legal & Policies',
+                        'Review Kovari\'s policies and your acceptance history.',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildLegalSection(),
+                      // const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -321,21 +330,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context, level: 1),
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderColor(context)),
+        ),
       ),
       child: Row(
         children: [
           _buildBackButton(context),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
               'Settings',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+                color: AppColors.text(context),
               ),
             ),
           ),
@@ -349,10 +360,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       onTap: () => Navigator.pop(context),
       child: Container(
         padding: const EdgeInsets.all(8),
-        child: const Icon(
+        child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
@@ -375,13 +386,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               fontWeight: FontWeight.bold,
               color: isDestructive
                   ? AppColors.destructive
-                  : AppColors.foreground,
+                  : AppColors.text(context),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: TextStyle(fontSize: 13, color: AppColors.mutedForeground),
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.text(context, isMuted: true),
+            ),
           ),
         ],
       ),
@@ -392,9 +406,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor ?? AppColors.border),
+        border: Border.all(
+          color: borderColor ?? AppColors.borderColor(context),
+        ),
       ),
       child: child,
     );
@@ -408,20 +424,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Current email',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.foreground,
+                  color: AppColors.text(context),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 currentEmail,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
+                  color: AppColors.text(context),
                 ),
               ),
               const SizedBox(height: 12),
@@ -451,7 +468,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 "We've sent a 6-digit code to $_pendingNewEmail. Enter it below.",
                 style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
               const SizedBox(height: 24),
@@ -542,7 +559,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Set a strong new password to help keep your account secure.',
                 style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
               const SizedBox(height: 12),
@@ -620,26 +637,74 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  Widget _buildAppearanceSection() {
+    final themeMode = ref.watch(themeProvider);
+
+    // Sync tab index if changed externally
+    if (!_themeTabController.indexIsChanging &&
+        _themeTabController.index != _themeModeToIndex(themeMode)) {
+      _themeTabController.animateTo(_themeModeToIndex(themeMode));
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: 45,
+      decoration: BoxDecoration(
+        color: AppColors.surface(context, level: 1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor(context)),
+      ),
+      child: TabBar(
+        controller: _themeTabController,
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
+        splashFactory: NoSplash.splashFactory,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: AppColors.primary.withValues(alpha: 0.1),
+          border: Border.all(color: AppColors.primary, width: 1),
+        ),
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.text(context, isMuted: true),
+        labelStyle: AppTextStyles.bodyMedium.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: AppTextStyles.bodyMedium.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        tabs: const [
+          Tab(text: 'Light'),
+          Tab(text: 'System'),
+          Tab(text: 'Dark'),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDangerZoneSection() {
     return _buildCard(
-      borderColor: AppColors.border,
+      borderColor: AppColors.borderColor(context),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Permanently remove your account',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+                color: AppColors.text(context),
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Deleting your account removes your profile, groups, and activity.',
-              style: TextStyle(fontSize: 13, color: AppColors.mutedForeground),
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.text(context, isMuted: true),
+              ),
             ),
             const SizedBox(height: 12),
             _buildActionButton(
@@ -723,18 +788,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: AppColors.surface(context, level: 1),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
-              border: Border(bottom: BorderSide(color: AppColors.border)),
+              border: Border(
+                bottom: BorderSide(color: AppColors.borderColor(context)),
+              ),
             ),
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
                 letterSpacing: 1.2,
               ),
             ),
@@ -774,14 +841,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     accepted,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
                   Text(
                     version,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
                 ],
@@ -797,7 +864,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
         ),
-        if (!isLast) const Divider(height: 1, color: AppColors.border),
+        if (!isLast) Divider(height: 1, color: AppColors.borderColor(context)),
       ],
     );
   }
@@ -811,26 +878,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Column(
       children: [
         ListTile(
-          leading: Icon(icon, size: 18, color: AppColors.mutedForeground),
+          leading: Icon(
+            icon,
+            size: 18,
+            color: AppColors.text(context, isMuted: true),
+          ),
           title: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
-              color: AppColors.foreground,
+              color: AppColors.text(context),
             ),
           ),
-          trailing: const Icon(
+          trailing: Icon(
             LucideIcons.externalLink,
             size: 14,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
           onTap: () =>
               launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           visualDensity: VisualDensity.compact,
         ),
-        if (!isLast) const Divider(height: 1, color: AppColors.border),
+        if (!isLast) Divider(height: 1, color: AppColors.borderColor(context)),
       ],
     );
   }
@@ -847,10 +918,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: AppColors.foreground,
+            color: AppColors.text(context),
           ),
         ),
         const SizedBox(height: 6),
@@ -865,7 +936,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               isDense: true,
               hintText: hint,
               hintStyle: TextStyle(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
                 fontSize: 13,
               ),
               contentPadding: const EdgeInsets.symmetric(
@@ -874,18 +945,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: AppColors.borderColor(context)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: AppColors.borderColor(context)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.primary),
               ),
               filled: true,
-              fillColor: AppColors.card,
+              fillColor: AppColors.surface(context, level: 2),
             ),
           ),
         ),
@@ -900,8 +971,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppColors.border),
-          backgroundColor: AppColors.background,
+          side: BorderSide(color: AppColors.borderColor(context)),
+          backgroundColor: AppColors.surface(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -909,10 +980,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         child: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: AppColors.foreground,
+            color: AppColors.text(context),
           ),
         ),
       ),

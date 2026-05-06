@@ -293,7 +293,9 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.borderColor(context), width: 1)),
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderColor(context), width: 1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,6 +307,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                 'Search & Filters',
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: AppColors.text(context),
                 ),
               ),
               InkWell(
@@ -323,7 +326,9 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
-        border: Border(top: BorderSide(color: AppColors.borderColor(context), width: 1)),
+        border: Border(
+          top: BorderSide(color: AppColors.borderColor(context), width: 1),
+        ),
       ),
       child: SafeArea(
         child: PrimaryButton(
@@ -339,7 +344,11 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title, {bool isHeader = false}) {
+  Widget _buildSectionTitle(
+    BuildContext context,
+    String title, {
+    bool isHeader = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(

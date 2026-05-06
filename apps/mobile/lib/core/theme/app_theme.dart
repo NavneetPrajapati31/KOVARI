@@ -83,6 +83,10 @@ class AppTheme {
       cardColor: colorScheme.surfaceContainer,
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: Colors.transparent,
+      splashColor: Colors.transparent,
+      hoverColor: Colors.transparent,
 
       textTheme: textTheme,
 

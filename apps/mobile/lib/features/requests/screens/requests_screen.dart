@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/common/skeleton.dart';
-import '../providers/request_provider.dart';
-import '../models/request_model.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
+import '../models/request_model.dart';
+import '../providers/request_provider.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -19,118 +18,52 @@ class RequestsScreen extends ConsumerStatefulWidget {
   ConsumerState<RequestsScreen> createState() => _RequestsScreenState();
 }
 
-class _RequestsScreenState extends ConsumerState<RequestsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+class _RequestsScreenState extends ConsumerState<RequestsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface(context),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            _buildTabs(context),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [_InterestsList(), _InvitationsList()],
-              ),
-            ),
-          ],
-        ),
-      ),
+      appBar: AppBar(title: const Text('Requests')),
+      body: _ReceivedRequestsTab(),
     );
   }
+}
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
-      decoration: const BoxDecoration(),
-      child: Row(
+class _ReceivedRequestsTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
         children: [
-          _buildBackButton(context),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              'Requests',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text(context),
-              ),
+          Container(
+            margin: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
             ),
+            decoration: BoxDecoration(
+              color: AppColors.surface(context, level: 2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              indicator: BoxDecoration(
+                color: AppColors.surface(context, level: 3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              labelColor: AppColors.text(context),
+              unselectedLabelColor: AppColors.text(context, isMuted: true),
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              tabs: const [
+                Tab(text: 'Interests'),
+                Tab(text: 'Invitations'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(children: [_InterestsList(), _InvitationsList()]),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        child: Icon(
-          LucideIcons.arrowLeft,
-          size: 20,
-          color: AppColors.text(context),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabs(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: AppSpacing.md,
-        right: AppSpacing.md,
-        bottom: AppSpacing.sm,
-      ),
-      child: Container(
-        height: 40,
-        decoration: BoxDecoration(
-          color: AppColors.surface(context, level: 1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.borderColor(context)),
-        ),
-        child: TabBar(
-          controller: _tabController,
-          overlayColor: WidgetStateProperty.all(Colors.transparent),
-          splashFactory: NoSplash.splashFactory,
-          indicator: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: AppColors.primary.withValues(alpha: 0.1),
-            border: Border.all(color: AppColors.primary, width: 1),
-          ),
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.text(context, isMuted: true),
-          labelStyle: AppTextStyles.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: AppTextStyles.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-          indicatorSize: TabBarIndicatorSize.tab,
-          dividerColor: Colors.transparent,
-          tabs: const [
-            Tab(text: 'Interests'),
-            Tab(text: 'Invitations'),
-          ],
-        ),
       ),
     );
   }
@@ -144,24 +77,40 @@ class _InterestsList extends ConsumerWidget {
     return state.when(
       data: (interests) {
         if (interests.isEmpty) {
-          return Center(
-            child: Text(
-              'No travel interests yet.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.text(context, isMuted: true),
-              ),
+          return KovariRefreshIndicator(
+            onRefresh: () => ref.read(interestsProvider.notifier).refresh(),
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      'No travel interests yet.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.text(context, isMuted: true),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         }
-        return RefreshIndicator(
-          color: AppColors.primary,
+        return KovariRefreshIndicator(
           onRefresh: () => ref.read(interestsProvider.notifier).refresh(),
-          child: ListView.builder(
+          child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: interests.length,
-            itemBuilder: (context, index) =>
-                _InterestCard(interest: interests[index]),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) =>
+                        _InterestCard(interest: interests[index]),
+                    childCount: interests.length,
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -374,24 +323,40 @@ class _InvitationsList extends ConsumerWidget {
     return state.when(
       data: (invitations) {
         if (invitations.isEmpty) {
-          return Center(
-            child: Text(
-              'No group invitations yet.',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.text(context, isMuted: true),
-              ),
+          return KovariRefreshIndicator(
+            onRefresh: () => ref.read(invitationsProvider.notifier).refresh(),
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      'No group invitations yet.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.text(context, isMuted: true),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         }
-        return RefreshIndicator(
-          color: AppColors.primary,
+        return KovariRefreshIndicator(
           onRefresh: () => ref.read(invitationsProvider.notifier).refresh(),
-          child: ListView.builder(
+          child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: invitations.length,
-            itemBuilder: (context, index) =>
-                _InvitationCard(invitation: invitations[index]),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) =>
+                        _InvitationCard(invitation: invitations[index]),
+                    childCount: invitations.length,
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -425,7 +390,6 @@ class _InvitationCard extends ConsumerStatefulWidget {
 
 class _InvitationCardState extends ConsumerState<_InvitationCard> {
   String? _loadingAction;
-  bool _isAccepted = false;
 
   Future<void> _handleAction(String action) async {
     setState(() => _loadingAction = action);
@@ -435,14 +399,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
           .respond(widget.invitation.id, action);
 
       if (mounted) {
-        if (success) {
-          if (action == 'accept') {
-            setState(() {
-              _isAccepted = true;
-              _loadingAction = null;
-            });
-          }
-        } else {
+        if (!success) {
           setState(() => _loadingAction = null);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -480,7 +437,6 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Group Info & Timestamp
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -520,7 +476,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                       ],
                     ),
                     Text(
-                      'Invited by @${invitation.creatorUsername}',
+                      'Invited by ${invitation.creatorName}',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.text(context, isMuted: true),
                         fontSize: 12,
@@ -532,64 +488,27 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-
-          // Content: Destination
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                "LET'S PLAN A TRIP TOGETHER TO",
-                style: AppTextStyles.label.copyWith(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.text(context, isMuted: true),
-                  letterSpacing: 0.5,
+              Expanded(
+                child: SecondaryButton(
+                  text: 'Decline',
+                  onPressed: () => _handleAction('decline'),
+                  isLoading: _loadingAction == 'decline',
+                  height: 36,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                invitation.destination,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: AppColors.text(context),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: PrimaryButton(
+                  text: 'Join Group',
+                  onPressed: () => _handleAction('accept'),
+                  isLoading: _loadingAction == 'accept',
+                  height: 36,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-
-          // Actions
-          if (_isAccepted)
-            PrimaryButton(
-              text: "Accepted! Joining group...",
-              onPressed: () {
-                // Navigate to group
-              },
-              height: 36,
-            )
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: SecondaryButton(
-                    text: 'Decline',
-                    onPressed: () => _handleAction('decline'),
-                    isLoading: _loadingAction == 'decline',
-                    height: 36,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: PrimaryButton(
-                    text: 'Accept',
-                    onPressed: () => _handleAction('accept'),
-                    isLoading: _loadingAction == 'accept',
-                    height: 36,
-                  ),
-                ),
-              ],
-            ),
         ],
       ),
     );
@@ -603,66 +522,50 @@ class _RequestCardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 185,
-      width: double.infinity,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.borderColor(context)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          children: [
-            // Header: Avatar + Info
-            Row(
-              children: [
-                const Skeleton.circle(size: 40),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Skeleton(width: 100, height: 12),
-                      const SizedBox(height: 8),
-                      const Skeleton(width: 60, height: 12),
-                    ],
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.black12,
+                  shape: BoxShape.circle,
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Content
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Skeleton(width: 100, height: 12),
-                const SizedBox(height: 8),
-                const Skeleton(width: double.infinity, height: 12),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Actions
-            Row(
-              children: [
-                Expanded(
-                  child: Skeleton(
-                    height: 36,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(height: 12, width: 100, color: Colors.black12),
+                    const SizedBox(height: 6),
+                    Container(height: 10, width: 60, color: Colors.black12),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Skeleton(
-                    height: 36,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(height: 12, width: double.infinity, color: Colors.black12),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: Container(height: 36, color: Colors.black12)),
+              const SizedBox(width: 8),
+              Expanded(child: Container(height: 36, color: Colors.black12)),
+            ],
+          ),
+        ],
       ),
     );
   }

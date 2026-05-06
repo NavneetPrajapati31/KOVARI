@@ -77,11 +77,14 @@ dev_dependencies:
 flutter_native_splash:
   color: "#F9FAFB"
   image: assets/logo.png
+  dark_color: "#0B0E14"
+  dark_image: assets/logo_dark.webp
   android: true
   ios: true
   fullscreen: true
   android_12:
     color: "#F9FAFB"
+    dark_color: "#0B0E14"
     # Use a solid background-colored square as the icon to "hide" the native logo.
     # This ensures no circle/distortion or Flutter icon appears.
     image: assets/invisible_icon.png
@@ -92,6 +95,7 @@ flutter:
   assets:
     - .env.development
     - assets/logo.webp
+    - assets/logo_dark.webp
     - assets/logo.png
     - assets/google_logo.png
 

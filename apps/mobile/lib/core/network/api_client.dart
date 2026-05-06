@@ -80,7 +80,7 @@ class DioApiClient implements ApiClient {
   late final AuthRepository _authRepository;
   late final LocalCache _cache;
   final Ref _ref;
-  final Map<String, Future<Response>> _activeRequests = {};
+  final Map<String, Future<dynamic>> _activeRequests = {};
 
   static const _uuid = Uuid();
 
@@ -588,8 +588,7 @@ class DioApiClient implements ApiClient {
     }
 
     final future = request();
-    _activeRequests[path] =
-        future as Future<Response<dynamic>>; // Type hack for storage
+    _activeRequests[path] = future;
 
     try {
       final result = await future;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -13,7 +14,8 @@ class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
@@ -44,19 +46,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: RefreshIndicator(
+        child: KovariRefreshIndicator(
           onRefresh: () => ref
               .read(notificationProvider.notifier)
               .refresh(ignoreCache: true),
-          color: AppColors.primary,
           child: CustomScrollView(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               // 1. Header
-              SliverToBoxAdapter(
-                child: _buildHeader(context, ref),
-              ),
+              SliverToBoxAdapter(child: _buildHeader(context, ref)),
 
               // 2. Main Content
               if (notificationsAsync.isLoading &&
@@ -75,24 +74,22 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 )
               else
                 SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final notification = notificationsAsync.notifications[index];
-                      return RepaintBoundary(
-                        child: NotificationItem(
-                          notification: notification,
-                          onTap: () {
-                            if (!notification.isRead) {
-                              ref
-                                  .read(notificationProvider.notifier)
-                                  .markAsRead(notification.id);
-                            }
-                          },
-                        ),
-                      );
-                    },
-                    childCount: notificationsAsync.notifications.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final notification =
+                        notificationsAsync.notifications[index];
+                    return RepaintBoundary(
+                      child: NotificationItem(
+                        notification: notification,
+                        onTap: () {
+                          if (!notification.isRead) {
+                            ref
+                                .read(notificationProvider.notifier)
+                                .markAsRead(notification.id);
+                          }
+                        },
+                      ),
+                    );
+                  }, childCount: notificationsAsync.notifications.length),
                 ),
 
               // 3. Pagination Loading Indicator
@@ -105,7 +102,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     ),
                   ),
                 ),
-              
+
               const SliverToBoxAdapter(child: SizedBox(height: 40)),
             ],
           ),
@@ -122,7 +119,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderColor(context)),
+        ),
         color: Theme.of(context).colorScheme.surfaceContainer,
       ),
       child: Row(
@@ -225,42 +224,41 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   Widget _buildSliverSkeleton(BuildContext context) {
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          return Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: AppSpacing.md,
+      delegate: SliverChildBuilderDelegate((context, index) {
+        return Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: AppColors.borderColor(context)),
             ),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
-            ),
-            child: Row(
-              children: [
-                const Skeleton.circle(size: 40),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Skeleton(width: 96, height: 12),
-                          Skeleton(width: 40, height: 12),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Skeleton(width: 128, height: 12),
-                    ],
-                  ),
+          ),
+          child: Row(
+            children: [
+              const Skeleton.circle(size: 40),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Skeleton(width: 96, height: 12),
+                        Skeleton(width: 40, height: 12),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Skeleton(width: 128, height: 12),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
-        childCount: 12,
-      ),
+              ),
+            ],
+          ),
+        );
+      }, childCount: 12),
     );
   }
 }

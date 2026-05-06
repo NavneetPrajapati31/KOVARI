@@ -90,7 +90,22 @@ class TextInputField extends StatelessWidget {
             suffixIcon: suffixIcon,
             errorText: errorText,
             isDense: true,
-            fillColor: fillColor, // Allow override, but defaults to theme
+            fillColor: fillColor ?? AppColors.surface(context, level: 2),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.borderColor(context)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.borderColor(context)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
+            ),
           ).applyDefaults(Theme.of(context).inputDecorationTheme),
         ),
       ],
