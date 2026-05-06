@@ -4,7 +4,6 @@ import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cache_provider.dart';
 import '../../../core/network/api_endpoints.dart';
-import '../models/group.dart';
 import '../models/group_state.dart';
 import '../data/group_service.dart';
 

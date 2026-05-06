@@ -9,6 +9,7 @@ import '../../../shared/widgets/secondary_button.dart';
 import '../models/match_user.dart';
 import '../providers/explore_provider.dart';
 import '../../../core/widgets/common/user_avatar_fallback.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class SoloMatchCard extends ConsumerWidget {
   final MatchUser match;
@@ -32,12 +33,9 @@ class SoloMatchCard extends ConsumerWidget {
       tripLength = endDate.difference(startDate).inDays + 1;
     }
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(24),
-      ),
+    return AppCard(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(24),
       child: Column(
         children: [
           Column(
@@ -53,7 +51,7 @@ class SoloMatchCard extends ConsumerWidget {
                       aspectRatio: 1 / 1,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.secondary,
+                          color: AppColors.surface(context, level: 2),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         clipBehavior: Clip.antiAlias,
@@ -72,7 +70,8 @@ class SoloMatchCard extends ConsumerWidget {
                                 errorWidget: (context, url, dynamic error) =>
                                     UserAvatarFallback(
                                       name: match.name,
-                                      backgroundColor: AppColors.primaryLight,
+                                      backgroundColor: AppColors.primary
+                                          .withValues(alpha: 0.1),
                                       iconColor: AppColors.primary,
                                       shape: BoxShape.rectangle,
                                       borderRadius: BorderRadius.circular(16),
@@ -94,7 +93,7 @@ class SoloMatchCard extends ConsumerWidget {
                           ? bio
                           : 'No bio provided.',
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontStyle: (bio != null && bio.isNotEmpty)
                             ? FontStyle.normal
                             : FontStyle.italic,
@@ -104,7 +103,11 @@ class SoloMatchCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Divider(indent: 20, endIndent: 20, color: AppColors.border),
+              Divider(
+                indent: 20,
+                endIndent: 20,
+                color: AppColors.borderColor(context),
+              ),
 
               // Content Sections
               Padding(
@@ -112,8 +115,8 @@ class SoloMatchCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle('Trip Details'),
-                    _buildPillList([
+                    _buildSectionTitle(context, 'Trip Details'),
+                    _buildPillList(context, [
                       if (match.destination.isNotEmpty)
                         _PillData(
                           icon: Icons.location_on_outlined,
@@ -140,8 +143,8 @@ class SoloMatchCard extends ConsumerWidget {
 
                     const SizedBox(height: 24),
 
-                    _buildSectionTitle('About Me'),
-                    _buildPillList([
+                    _buildSectionTitle(context, 'About Me'),
+                    _buildPillList(context, [
                       if (match.gender != null && match.gender!.isNotEmpty)
                         _PillData(
                           icon: Icons.account_circle_outlined,
@@ -196,9 +199,10 @@ class SoloMatchCard extends ConsumerWidget {
                     const SizedBox(height: 24),
 
                     if (match.interests.isNotEmpty) ...[
-                      _buildSectionTitle('My Interests'),
+                      _buildSectionTitle(context, 'My Interests'),
 
                       _buildPillList(
+                        context,
                         match.interests
                             .map((i) => _PillData(label: i))
                             .toList(),
@@ -211,8 +215,8 @@ class SoloMatchCard extends ConsumerWidget {
                         (match.smoking != null && match.smoking!.isNotEmpty) ||
                         (match.drinking != null &&
                             match.drinking!.isNotEmpty)) ...[
-                      _buildSectionTitle('Lifestyle'),
-                      _buildPillList([
+                      _buildSectionTitle(context, 'Lifestyle'),
+                      _buildPillList(context, [
                         if (match.foodPreference != null &&
                             match.foodPreference!.isNotEmpty)
                           _PillData(
@@ -239,7 +243,11 @@ class SoloMatchCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Divider(indent: 20, endIndent: 20, color: AppColors.border),
+              Divider(
+                indent: 20,
+                endIndent: 20,
+                color: AppColors.borderColor(context),
+              ),
               _buildActions(ref, match.id),
             ],
           ),
@@ -248,48 +256,44 @@ class SoloMatchCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title.toUpperCase(),
         style: AppTextStyles.bodySmall.copyWith(
           fontWeight: FontWeight.bold,
-          color: AppColors.mutedForeground,
+          color: AppColors.text(context, isMuted: true),
           letterSpacing: 1.2,
         ),
       ),
     );
   }
 
-  Widget _buildPillList(List<_PillData> pills) {
+  Widget _buildPillList(BuildContext context, List<_PillData> pills) {
     return Wrap(
       spacing: 6,
       runSpacing: 8,
-      children: pills.map((pill) => _buildPill(pill)).toList(),
+      children: pills.map((pill) => _buildPill(context, pill)).toList(),
     );
   }
 
-  Widget _buildPill(_PillData data) {
-    return Container(
+  Widget _buildPill(BuildContext context, _PillData data) {
+    return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
+      borderRadius: BorderRadius.circular(20),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (data.icon != null) ...[
-            Icon(data.icon, size: 16, color: AppColors.foreground),
+            Icon(data.icon, size: 16, color: AppColors.text(context)),
             const SizedBox(width: 8),
           ],
           Text(
             data.label,
             style: AppTextStyles.bodyMedium.copyWith(
               fontWeight: FontWeight.w500,
-              color: AppColors.foreground,
+              color: AppColors.text(context),
             ),
           ),
         ],
@@ -313,7 +317,7 @@ class SoloMatchCard extends ConsumerWidget {
           const SizedBox(width: 8),
           Expanded(
             child: SecondaryButton(
-              onPressed: () => {}, // TODO: Implement report dialog
+              onPressed: () => {},
               icon: Icons.flag_outlined,
               height: 44,
             ),

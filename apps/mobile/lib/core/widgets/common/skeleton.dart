@@ -24,10 +24,19 @@ class Skeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final baseColor = isDark 
+        ? AppColors.mutedDark.withValues(alpha: 0.5)
+        : AppColors.muted.withValues(alpha: 0.5);
+    final highlightColor = isDark
+        ? AppColors.mutedDark.withValues(alpha: 0.2)
+        : AppColors.muted.withValues(alpha: 0.2);
+
     return Shimmer.fromColors(
-      baseColor: AppColors.muted.withValues(alpha: 0.3),
-      highlightColor: AppColors.muted.withValues(alpha: 0.1),
-      period: const Duration(milliseconds: 1500),
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      period: const Duration(milliseconds: 2000),
       child: Container(
         width: width,
         height: height,

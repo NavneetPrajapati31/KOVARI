@@ -13,6 +13,7 @@ import '../widgets/tabs/overview_tab.dart';
 import '../widgets/tabs/chats_tab.dart';
 import '../widgets/tabs/itinerary_tab.dart';
 import '../widgets/tabs/settings_tab.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class GroupDetailsScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -58,11 +59,10 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
             }
 
             return Scaffold(
-              backgroundColor: AppColors.background,
               body: Column(
                 children: [
                   Container(
-                    color: AppColors.background,
+                    color: Theme.of(context).colorScheme.surfaceContainer,
                     child: SafeArea(bottom: false, child: _buildHeader(group)),
                   ),
                   GroupTabBar(
@@ -132,7 +132,6 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
   Widget _buildHeader(GroupModel group) {
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 6),
-      decoration: const BoxDecoration(color: AppColors.background),
       child: Row(
         children: [
           _buildBackButton(context),
@@ -140,10 +139,10 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
           Expanded(
             child: Text(
               group.name,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+                color: AppColors.text(context),
               ),
             ),
           ),
@@ -157,10 +156,10 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
       onTap: () => Navigator.pop(context),
       child: Container(
         padding: const EdgeInsets.all(8),
-        child: const Icon(
+        child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
@@ -293,13 +292,10 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (context) => AppCard(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
         padding: const EdgeInsets.all(24),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -308,7 +304,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.borderColor(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

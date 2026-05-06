@@ -152,6 +152,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
+        backgroundColor: AppColors.surface(context, level: 1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -173,14 +174,17 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
               const SizedBox(height: 20),
               Text(
                 'Report Submitted',
-                style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
+                style: AppTextStyles.h3.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text(context),
+                ),
               ),
               const SizedBox(height: 12),
               Text(
                 'Thank you for reporting. Our team will review this case within 24 hours and take appropriate action.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -195,15 +199,15 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                     Navigator.of(context).pop(); // Exit Search
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.foreground,
+                    backgroundColor: AppColors.text(context),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
+                  child: Text(
                     'Back to Safety',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.surface(context, level: 1)),
                   ),
                 ),
               ),
@@ -220,10 +224,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     final reasons = _reasons[widget.targetType] ?? [];
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         centerTitle: false,
         leadingWidth: 100,
         leading: GestureDetector(
@@ -250,10 +251,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: AppColors.border.withValues(alpha: 0.5),
-            height: 1,
-          ),
+          child: Divider(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
         ),
       ),
       body: SingleChildScrollView(
@@ -262,38 +260,40 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHero(),
+              _buildHero(context),
               const SizedBox(height: 32),
-              _buildSectionTitle('SELECT A REASON'),
-              _buildReasonList(reasons),
+              _buildSectionTitle(context, 'SELECT A REASON'),
+              _buildReasonList(context, reasons),
               const SizedBox(height: 24),
               if (_selectedReason == 'Other') ...[
-                _buildSectionTitle('PLEASE SPECIFY'),
+                _buildSectionTitle(context, 'PLEASE SPECIFY'),
                 TextField(
                   controller: _customReasonController,
                   maxLines: 3,
-                  style: AppTextStyles.bodyMedium,
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.text(context)),
                   decoration: _inputDecoration(
+                    context,
                     'Briefly describe what happened...',
                   ),
                 ),
                 const SizedBox(height: 24),
               ],
-              _buildSectionTitle('ATTACH EVIDENCE (OPTIONAL)'),
-              _buildEvidencePicker(),
+              _buildSectionTitle(context, 'ATTACH EVIDENCE (OPTIONAL)'),
+              _buildEvidencePicker(context),
               const SizedBox(height: 24),
-              _buildSectionTitle('ADDITIONAL CONTEXT (OPTIONAL)'),
+              _buildSectionTitle(context, 'ADDITIONAL CONTEXT (OPTIONAL)'),
               TextField(
                 controller: _notesController,
                 maxLines: 2,
                 maxLength: 300,
-                style: AppTextStyles.bodyMedium,
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.text(context)),
                 decoration: _inputDecoration(
+                  context,
                   'Provide any additional details...',
                 ),
               ),
               const SizedBox(height: 32),
-              _buildSubmitButton(state),
+              _buildSubmitButton(context, state),
               const SizedBox(height: 48),
             ],
           ),
@@ -302,7 +302,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     );
   }
 
-  Widget _buildHero() {
+  Widget _buildHero(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -315,6 +315,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
               style: AppTextStyles.h3.copyWith(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
+                color: AppColors.text(context),
               ),
             ),
           ],
@@ -323,7 +324,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         Text(
           'Help us understand what went wrong with ${widget.targetName}. Your report is confidential.',
           style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             fontSize: 15,
             height: 1.4,
           ),
@@ -332,7 +333,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
       child: Text(
@@ -340,26 +341,27 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         style: AppTextStyles.bodySmall.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.mutedForeground,
+          color: AppColors.text(context, isMuted: true),
           letterSpacing: 1.2,
         ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(BuildContext context, String hint) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: TextStyle(color: AppColors.text(context, isMuted: true)),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: AppColors.surface(context, level: 1),
       contentPadding: const EdgeInsets.all(16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: AppColors.borderColor(context)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: AppColors.borderColor(context)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -368,12 +370,12 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     );
   }
 
-  Widget _buildReasonList(List<String> reasons) {
+  Widget _buildReasonList(BuildContext context, List<String> reasons) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Column(
         children: reasons.map((r) {
@@ -394,8 +396,8 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                         r,
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: isSelected
-                              ? AppColors.foreground
-                              : AppColors.mutedForeground,
+                              ? AppColors.text(context)
+                              : AppColors.text(context, isMuted: true),
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.w400,
@@ -412,9 +414,9 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                 ),
               ),
               if (r != reasons.last)
-                const Divider(
+                Divider(
                   height: 1,
-                  color: AppColors.border,
+                  color: AppColors.borderColor(context),
                   indent: 16,
                   endIndent: 16,
                 ),
@@ -425,7 +427,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     );
   }
 
-  Widget _buildEvidencePicker() {
+  Widget _buildEvidencePicker(BuildContext context) {
     return Column(
       children: [
         if (_evidenceFile != null)
@@ -463,33 +465,33 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
               width: double.infinity,
               height: 120,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface(context, level: 1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.border,
+                  color: AppColors.borderColor(context),
                   style: BorderStyle.solid,
                 ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     LucideIcons.image,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                     size: 32,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Tap to select a photo',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'PNG, JPG, JPEG up to 5MB',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                       fontSize: 10,
                     ),
                   ),
@@ -501,7 +503,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     );
   }
 
-  Widget _buildSubmitButton(SafetyState state) {
+  Widget _buildSubmitButton(BuildContext context, SafetyState state) {
     final canSubmit =
         _selectedReason != null &&
         (_selectedReason != 'Other' ||
@@ -515,7 +517,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          disabledBackgroundColor: AppColors.mutedForeground.withValues(
+          disabledBackgroundColor: AppColors.text(context, isMuted: true).withValues(
             alpha: 0.3,
           ),
           shape: RoundedRectangleBorder(

@@ -36,7 +36,7 @@ class AuthRepository {
 
     // 2. Blacklist Guard
     if (_sessionManager.disableRefresh) {
-      throw AuthFailure(AuthFailure.REFRESH_DISABLED);
+      throw AuthFailure(AuthFailure.refreshDisabled);
     }
 
     // 3. Cooldown & Circuit Breaker Guard
@@ -53,9 +53,9 @@ class AuthRepository {
     // 4. Severe Expiry Override
     if (await _storage.isSeverelyExpired()) {
       AppLogger.w('[$requestId] Session severely expired. Forcing logout.');
-      _sessionManager.clearWaiters(AuthFailure(AuthFailure.SEVERE_EXPIRY));
+      _sessionManager.clearWaiters(AuthFailure(AuthFailure.severeExpiry));
       await logout(reason: 'SEVERE_EXPIRY');
-      throw AuthFailure(AuthFailure.SEVERE_EXPIRY);
+      throw AuthFailure(AuthFailure.severeExpiry);
     }
 
     _sessionManager.startRefreshing();
@@ -64,7 +64,7 @@ class AuthRepository {
 
     try {
       final refreshToken = await _storage.getRefreshToken();
-      if (refreshToken == null) throw AuthFailure(AuthFailure.INVALID_TOKEN);
+      if (refreshToken == null) throw AuthFailure(AuthFailure.invalidToken);
 
       // 4.5 Connectivity Health Check (Fast Ping with Single-Flight Deduplication)
       if (requestId != 'BOOTSTRAP-REFRESH') {
@@ -126,7 +126,7 @@ class AuthRepository {
           '✅ [$requestId] Refresh successful ($duration ms, waiters handled: $waitersAtStart)',
         );
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        throw AuthFailure(AuthFailure.INVALID_TOKEN);
+        throw AuthFailure(AuthFailure.invalidToken);
       } else {
         throw DioException(
           requestOptions: response.requestOptions,

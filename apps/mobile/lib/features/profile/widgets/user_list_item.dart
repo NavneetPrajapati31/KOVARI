@@ -53,9 +53,9 @@ class UserListItem extends StatelessWidget {
           top: 12,
           bottom: 12,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
+        decoration: BoxDecoration(
+          color: AppColors.surface(context),
+          border: Border(bottom: BorderSide(color: AppColors.borderColor(context), width: 1)),
         ),
         child: Row(
           children: [
@@ -72,10 +72,10 @@ class UserListItem extends StatelessWidget {
                 children: [
                   Text(
                     user.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
-                      color: Colors.black,
+                      color: AppColors.text(context),
                       height: 1.2,
                     ),
                     maxLines: 1,

@@ -140,7 +140,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Future<void> _showImageSourceModal() async {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface(context, level: 1),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -153,7 +153,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: AppColors.borderColor(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -163,22 +163,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               style: AppTextStyles.bodyMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
+                color: AppColors.text(context),
               ),
             ),
             const SizedBox(height: 16),
             ListTile(
               visualDensity: VisualDensity.compact,
               dense: true,
-              leading: const Icon(
+              leading: Icon(
                 LucideIcons.camera,
                 size: 22,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
               title: Text(
                 "Take Photo",
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context),
                 ),
               ),
               onTap: () {
@@ -189,16 +190,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ListTile(
               visualDensity: VisualDensity.compact,
               dense: true,
-              leading: const Icon(
+              leading: Icon(
                 LucideIcons.image,
                 size: 22,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
               title: Text(
                 "Choose from Gallery",
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context),
                 ),
               ),
               onTap: () {
@@ -392,9 +393,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leadingWidth: 80,
@@ -403,14 +402,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           child: Text(
             'Cancel',
             style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.foreground,
+              color: AppColors.text(context),
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
         title: Text(
           'Edit Profile',
-          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+          style: AppTextStyles.bodyMedium.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.text(context),
+          ),
         ),
         actions: [
           SizedBox(
@@ -442,7 +444,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ],
         shape: Border(
           bottom: BorderSide(
-            color: AppColors.border.withValues(alpha: 0.5),
+            color: AppColors.borderColor(context),
             width: 0.5,
           ),
         ),
@@ -461,9 +463,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: AppColors.surface(context, level: 2),
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.border, width: 1),
+                        border: Border.all(color: AppColors.borderColor(context), width: 1),
                         image: _profileImageFile != null
                             ? DecorationImage(
                                 image: FileImage(_profileImageFile!),
@@ -515,14 +517,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: 'Name',
                     controller: _nameController,
                     hintText: 'Your full name',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   TextInputField(
                     label: 'Username',
                     controller: _usernameController,
                     hintText: 'your_username',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     onChanged: _debounceUsernameCheck,
                     suffixIcon: Padding(
                       padding: const EdgeInsets.all(12),
@@ -557,7 +559,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: 'Gender',
                     value: _gender,
                     hintText: 'Select gender',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     options: const [
                       'Male',
                       'Female',
@@ -571,14 +573,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   NationalityAutocomplete(
                     label: 'Nationality',
                     initialValue: _nationality,
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     onSelect: (val) => setState(() => _nationality = val),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   LocationAutocomplete(
                     label: 'Location',
                     initialValue: _location,
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     onSelect: (val) => setState(() {
                       _location = val.formatted;
                       _locationDetails = {
@@ -606,7 +608,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: 'Profession',
                     controller: _professionController,
                     hintText: 'What do you do?',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                   ),
                 ],
               ),
@@ -625,14 +627,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     controller: _bioController,
                     hintText: 'Tell us about yourself...',
                     maxLines: 4,
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   SelectField<String>(
                     label: 'Religion',
                     value: _religion,
                     hintText: 'Select Religion',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     options: const [
                       "Christianity",
                       "Islam",
@@ -651,7 +653,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: 'Smoking',
                     value: _smoking,
                     hintText: 'Select Smoking',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     options: const ["Yes", "No", "Occasionally", "Socially"],
                     itemLabelBuilder: (val) => val,
                     onChanged: (val) => setState(() => _smoking = val ?? ''),
@@ -661,7 +663,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: 'Drinking',
                     value: _drinking,
                     hintText: 'Select Drinking',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     options: const ["Yes", "No", "Occasionally", "Socially"],
                     itemLabelBuilder: (val) => val,
                     onChanged: (val) => setState(() => _drinking = val ?? ''),
@@ -672,7 +674,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: 'Personality',
                     value: _personality,
                     hintText: 'Select Personality',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     options: const ["Introvert", "Extrovert", "Ambivert"],
                     itemLabelBuilder: (val) => val,
                     onChanged: (val) =>
@@ -683,7 +685,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: 'Food Preference',
                     value: _foodPreference,
                     hintText: 'Select Food Preference',
-                    fillColor: AppColors.card,
+                    fillColor: AppColors.surface(context, level: 2),
                     options: const [
                       "Vegetarian",
                       "Vegan",
@@ -771,7 +773,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ],
               ),
             ),
-            // const SizedBox(height: AppSpacing.xs),
           ],
         ),
       ),
@@ -787,7 +788,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           child: Text(
             'Birthday',
             style: AppTextStyles.label.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -797,12 +798,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         InkWell(
           onTap: () => _showDatePicker(context),
           child: Container(
-            height: 40,
+            height: 44,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-              border: Border.all(color: AppColors.border, width: 1),
+              color: AppColors.surface(context, level: 2),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+              border: Border.all(color: AppColors.borderColor(context), width: 1),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -813,8 +814,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       : DateFormat('dd MMM yyyy').format(_birthday!),
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: _birthday == null
-                        ? AppColors.mutedForeground
-                        : AppColors.foreground,
+                        ? AppColors.text(context, isMuted: true)
+                        : AppColors.text(context),
                   ),
                 ),
               ],
@@ -828,7 +829,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void _showDatePicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface(context, level: 1),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -851,7 +852,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       child: Text(
                         "Cancel",
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -860,6 +861,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       "Birthday",
                       style: AppTextStyles.h3.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: AppColors.text(context),
                       ),
                     ),
                     TextButton(
@@ -889,7 +891,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ],
                 ),
               ),
-              const Divider(color: AppColors.border, thickness: 0.5),
+              Divider(color: AppColors.borderColor(context), thickness: 0.5),
               Expanded(
                 child: FlatDatePicker(
                   initialDate: tempDate,
@@ -914,9 +916,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -930,7 +932,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               label: opt,
               isSelected: isSelected,
               onTap: () => onToggle(opt),
-              fillColor: AppColors.card,
+              fillColor: AppColors.surface(context, level: 2),
             );
           }).toList(),
         ),

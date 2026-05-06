@@ -1,5 +1,4 @@
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
@@ -21,12 +20,6 @@ class AuthService {
   Future<KovariUser?> loginWithGoogle({CancelToken? cancelToken}) async {
     AppLogger.d('Starting Google Authentication flow...');
     final account = await _googleSignIn.authenticate();
-
-    if (account == null) {
-      AppLogger.w('Google Authentication was cancelled by the user.');
-      return null;
-    }
-
     AppLogger.d(
       'Google Account retrieved: ${account.email}. Fetching tokens...',
     );

@@ -58,7 +58,7 @@ class KovariImageModal extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.1),
+              color: AppColors.surface(context, level: 2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -73,10 +73,10 @@ class KovariImageModal extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorWidget: (context, url, error) => UserAvatarFallback(
                   size: size,
-                  backgroundColor: AppColors.secondary,
+                  backgroundColor: AppColors.surface(context, level: 1),
                 ),
                 placeholder: (context, url) => Container(
-                  color: AppColors.secondary,
+                  color: AppColors.surface(context, level: 1),
                   child: const Center(
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),

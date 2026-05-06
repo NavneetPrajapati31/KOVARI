@@ -8,8 +8,8 @@ import '../../../shared/widgets/auth_divider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../../../core/services/local_storage.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
@@ -72,7 +72,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
-      final user = await authService.loginWithEmail(email, password, cancelToken: _cancelToken);
+      final user = await authService.loginWithEmail(
+        email,
+        password,
+        cancelToken: _cancelToken,
+      );
 
       // Save Remember Me preference
       await _storage.saveRememberMe(_rememberMe);
@@ -124,7 +128,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -148,15 +151,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 32),
 
                 // Auth Card
-                Container(
+                AppCard(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 24,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: AppRadius.extraLarge,
-                    border: Border.all(color: AppColors.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Log in back to your account',
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -215,8 +213,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     () => _rememberMe = val ?? false,
                                   ),
                                   activeColor: AppColors.primary,
-                                  side: const BorderSide(
-                                    color: AppColors.muted,
+                                  side: BorderSide(
+                                    color: AppColors.surface(context, level: 3),
                                     width: 1.5,
                                   ),
                                   shape: RoundedRectangleBorder(
@@ -228,7 +226,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               Text(
                                 'Remember me',
                                 style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.mutedForeground,
+                                  color: AppColors.text(context, isMuted: true),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -247,7 +245,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: Text(
                               'Forgot password',
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.mutedForeground,
+                                color: AppColors.text(context, isMuted: true),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -276,7 +274,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       "Don't have an account? ",
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                       ),
                     ),
                     TextButton(
@@ -289,7 +287,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Text(
                         'Create one for free',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.foreground,
+                          color: AppColors.text(context),
                           fontWeight: FontWeight.w600,
                         ),
                       ),

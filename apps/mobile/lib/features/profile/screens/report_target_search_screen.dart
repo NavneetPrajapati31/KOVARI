@@ -54,15 +54,14 @@ class _ReportTargetSearchScreenState
     final state = ref.watch(safetyProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Column(
         children: [
           Container(
-            color: AppColors.card,
+            color: Theme.of(context).colorScheme.surfaceContainer,
             child: SafeArea(bottom: false, child: _buildHeader(context)),
           ),
-          _buildSearchBar(),
-          Expanded(child: _buildResultsList(state)),
+          _buildSearchBar(context),
+          Expanded(child: _buildResultsList(context, state)),
         ],
       ),
     );
@@ -71,22 +70,18 @@ class _ReportTargetSearchScreenState
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
       ),
       child: Row(
         children: [
           _buildBackButton(context),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
               'Safety',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
-              ),
+              style: AppTextStyles.h3,
             ),
           ),
         ],
@@ -99,16 +94,16 @@ class _ReportTargetSearchScreenState
       onTap: () => Navigator.pop(context),
       child: Container(
         padding: const EdgeInsets.all(8),
-        child: const Icon(
+        child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 6),
       child: Column(
@@ -119,18 +114,21 @@ class _ReportTargetSearchScreenState
             style: AppTextStyles.h2.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.foreground,
+              color: AppColors.text(context),
               letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Select the ${widget.targetType == 'user' ? 'profile' : 'group'} you want to report',
-            style: TextStyle(fontSize: 14, color: AppColors.mutedForeground),
+            style: TextStyle(
+              fontSize: 14, 
+              color: AppColors.text(context, isMuted: true)
+            ),
           ),
           const SizedBox(height: 20),
           TextInputField(
-            fillColor: AppColors.card,
+            fillColor: AppColors.surface(context, level: 1),
             label: "",
             controller: _searchController,
             onChanged: _onSearchChanged,
@@ -139,14 +137,14 @@ class _ReportTargetSearchScreenState
             prefixIcon: Icon(
               LucideIcons.search,
               size: 18,
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       LucideIcons.x,
                       size: 18,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -166,7 +164,7 @@ class _ReportTargetSearchScreenState
     );
   }
 
-  Widget _buildResultsList(SafetyState state) {
+  Widget _buildResultsList(BuildContext context, SafetyState state) {
     if (state.isSearchLoading && state.searchResults.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -190,7 +188,7 @@ class _ReportTargetSearchScreenState
             Text(
               'No ${widget.targetType == 'user' ? 'users' : 'groups'} found',
               style: TextStyle(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
@@ -219,9 +217,9 @@ class _ReportTargetSearchScreenState
                 bottom: 12,
               ),
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: AppColors.surface(context, level: 1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border, width: 1),
+                border: Border.all(color: AppColors.borderColor(context), width: 1),
               ),
               child: Row(
                 children: [
@@ -236,10 +234,10 @@ class _ReportTargetSearchScreenState
                       children: [
                         Text(
                           target.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.foreground,
+                            color: AppColors.text(context),
                           ),
                         ),
                         if (target.username != null)
@@ -247,7 +245,7 @@ class _ReportTargetSearchScreenState
                             '@${target.username}',
                             style: TextStyle(
                               fontSize: 13,
-                              color: AppColors.mutedForeground,
+                              color: AppColors.text(context, isMuted: true),
                             ),
                           ),
                       ],

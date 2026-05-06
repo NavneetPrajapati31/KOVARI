@@ -24,8 +24,8 @@ class RequestsSection extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface(context, level: 1),
+        border: Border.all(color: AppColors.borderColor(context)),
         borderRadius: AppRadius.large,
       ),
       child: ClipRRect(
@@ -74,7 +74,7 @@ class RequestsSection extends ConsumerWidget {
                           style: AppTextStyles.bodyMedium.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.foreground,
+                            color: AppColors.text(context),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -83,7 +83,7 @@ class RequestsSection extends ConsumerWidget {
                             '${interests.length} pending interests',
                             style: AppTextStyles.label.copyWith(
                               fontSize: 12,
-                              color: AppColors.mutedForeground,
+                              color: AppColors.text(context, isMuted: true),
                             ),
                           ),
                           loading: () => const SizedBox(
@@ -103,19 +103,19 @@ class RequestsSection extends ConsumerWidget {
                 ),
               ),
             ),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: AppColors.borderColor(context)),
 
             interestsAsync.when(
               data: (interests) {
-                if (interests.isEmpty) return _buildEmptyState();
+                if (interests.isEmpty) return _buildEmptyState(context);
                 return Column(
                   children: [
                     for (int i = 0; i < interests.length; i++) ...[
                       _RequestCard(interest: interests[i]),
                       if (i < interests.length - 1)
-                        const Divider(
+                        Divider(
                           height: 1,
-                          color: AppColors.border,
+                          color: AppColors.borderColor(context),
                           indent: 0,
                           endIndent: 0,
                         ),
@@ -123,7 +123,7 @@ class RequestsSection extends ConsumerWidget {
                   ],
                 );
               },
-              loading: () => _buildSkeleton(),
+              loading: () => _buildSkeleton(context),
               error: (err, _) => Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text('Error: $err'),
@@ -135,21 +135,22 @@ class RequestsSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return Column(
       children: List.generate(
         7,
         (i) => Column(
           children: [
             _RequestCardSkeleton(),
-            if (i < 6) const Divider(height: 1, color: AppColors.border),
+            if (i < 6)
+              Divider(height: 1, color: AppColors.borderColor(context)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
@@ -159,14 +160,14 @@ class RequestsSection extends ConsumerWidget {
               'No pending interests',
               style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w500,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'New match interests will appear here',
               style: AppTextStyles.label.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           ],
@@ -256,7 +257,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   widget.interest.senderName,
                   style: AppTextStyles.bodySmall.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.foreground,
+                    color: AppColors.text(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -266,7 +267,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                   widget.interest.destination,
                   style: AppTextStyles.label.copyWith(
                     fontSize: 12,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -353,7 +354,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
         height: 28,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.borderColor(context)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: isLoading
@@ -362,12 +363,14 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
                 height: 10,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.mutedForeground,
-                  ),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               )
-            : Icon(icon, size: 14, color: AppColors.mutedForeground),
+            : Icon(
+                icon,
+                size: 14,
+                color: AppColors.text(context, isMuted: true),
+              ),
       ),
     );
   }

@@ -43,7 +43,7 @@ class UserAvatarFallback extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: backgroundColor ?? AppColors.secondary,
+            color: backgroundColor ?? AppColors.surface(context, level: 2),
             shape: shape,
             borderRadius: borderRadius,
           ),
@@ -52,7 +52,7 @@ class UserAvatarFallback extends StatelessWidget {
                 ? Text(
                     name![0].toUpperCase(),
                     style: TextStyle(
-                      color: iconColor ?? AppColors.mutedForeground,
+                      color: iconColor ?? AppColors.text(context, isMuted: true),
                       fontSize: fontSize ?? (effectiveSize * 0.45),
                       fontWeight: FontWeight.bold,
                     ),
@@ -68,7 +68,7 @@ class UserAvatarFallback extends StatelessWidget {
 </svg>
 ''',
                       colorFilter: ColorFilter.mode(
-                        iconColor ?? const Color(0xFF9CA3AF),
+                        iconColor ?? AppColors.text(context, isMuted: true),
                         BlendMode.srcIn,
                       ),
                     ),

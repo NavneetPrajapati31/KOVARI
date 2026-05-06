@@ -30,6 +30,7 @@ import 'core/providers/connectivity_provider.dart';
 import 'core/providers/cache_provider.dart';
 import 'core/auth/session_manager.dart';
 import 'core/network/mutation_queue.dart';
+import 'core/providers/theme_provider.dart';
 
 void main() {
   runZonedGuarded(
@@ -40,6 +41,7 @@ void main() {
       // Initialize Hive
       try {
         await Hive.initFlutter();
+        await Hive.openBox('settings');
         AppLogger.i('Hive initialized successfully');
       } catch (e) {
         AppLogger.e('Hive initialization failed: $e');
@@ -88,7 +90,11 @@ void main() {
                   const SizedBox(height: 16),
                   const Text(
                     'Oops! Something went wrong.',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.foreground,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -98,13 +104,7 @@ void main() {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                    ),
-                    child: const Text(
-                      'Return Home',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    child: const Text('Return Home'),
                   ),
                 ],
               ),
@@ -151,7 +151,7 @@ void main() {
       try {
         await container.read(cacheInitProvider.future);
         await container.read(mutationQueueInitProvider.future);
-        
+
         // Start background cache maintenance
         Timer.periodic(const Duration(minutes: 15), (_) {
           container.read(localCacheProvider).cleanupExpired();
@@ -268,14 +268,21 @@ class _KovariAppState extends ConsumerState<KovariApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'KOVARI',
+      title: 'Kovari',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.light,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ref.watch(themeProvider),
       navigatorKey: navigatorKey,
       routes: AppRoutes.routes,
       builder: (context, child) {
-        return Stack(children: [child!, const GlobalStatusOverlay()]);
+        return GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: ScrollConfiguration(
+            behavior: const BouncingScrollBehavior(),
+            child: Stack(children: [child!, const GlobalStatusOverlay()]),
+          ),
+        );
       },
       home: const AuthWrapper(),
     );
@@ -344,8 +351,8 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
               right: 0,
               child: Material(
                 color: connectivity.isOffline
-                    ? Colors.red.shade600
-                    : Colors.amber.shade900,
+                    ? AppColors.destructive
+                    : Theme.of(context).colorScheme.errorContainer,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     vertical: 8,
@@ -358,8 +365,10 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
                           ? 'No internet connection'
                           : 'Server unreachable',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: connectivity.isOffline
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onErrorContainer,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -389,7 +398,7 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
                     ),
                     decoration: BoxDecoration(
                       color: auth.isDegraded
-                          ? Colors.amber.shade800
+                          ? Theme.of(context).colorScheme.tertiaryContainer
                           : AppColors.primary,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
@@ -409,9 +418,11 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
                           height: 14,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white.withOpacity(
-                              _showRetry ? 0.5 : 1,
-                            ),
+                            color: auth.isDegraded
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.onTertiaryContainer
+                                : AppColors.primaryForeground,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -422,8 +433,12 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
                                 : (auth.isDegraded
                                       ? 'Degraded Mode: Reconnecting...'
                                       : 'Syncing...'),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: auth.isDegraded
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.onTertiaryContainer
+                                  : AppColors.primaryForeground,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -431,9 +446,13 @@ class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
                           ),
                         ),
                         if (_showRetry)
-                          const Icon(
+                          Icon(
                             Icons.refresh,
-                            color: Colors.white,
+                            color: auth.isDegraded
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.onTertiaryContainer
+                                : AppColors.primaryForeground,
                             size: 14,
                           ),
                       ],
@@ -531,14 +550,15 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
           ref.read(profileProvider.notifier).setProfile(userProfile);
         }
 
-        final needsOnboarding = profileJson == null ||
-              (profileJson['onboardingCompleted'] != true &&
-                  (profileJson['username'] as String? ?? '').isEmpty);
+        final needsOnboarding =
+            profileJson == null ||
+            (profileJson['onboardingCompleted'] != true &&
+                (profileJson['username'] as String? ?? '').isEmpty);
 
         if (needsOnboarding) {
-          AppLogger.w('🚩 [AUTH] Redirecting to Onboarding. Reason: ' + 
-            (profileJson == null ? 'Profile is NULL' : 
-             'Incomplete: completed=${profileJson['onboardingCompleted']}, username="${profileJson['username']}"'));
+          AppLogger.w(
+            '🚩 [AUTH] Redirecting to Onboarding. Reason: ${profileJson == null ? 'Profile is NULL' : 'Incomplete: completed=${profileJson['onboardingCompleted']}, username="${profileJson['username']}"'}',
+          );
         } else {
           AppLogger.i('✅ [AUTH] Onboarding verified. Proceeding to AppShell.');
         }
@@ -631,10 +651,19 @@ class _BrandedLoadingState extends State<BrandedLoading> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Image.asset('assets/logo.png', width: 140, fit: BoxFit.contain),
       ),
     );
+  }
+}
+
+class BouncingScrollBehavior extends ScrollBehavior {
+  const BouncingScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
   }
 }

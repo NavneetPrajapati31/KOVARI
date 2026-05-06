@@ -49,9 +49,9 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context, level: 1),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -60,7 +60,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                _buildSectionTitle('Destination'),
+                _buildSectionTitle(context, 'Destination'),
                 LocationAutocomplete(
                   label: '',
                   initialValue: _searchData.destination,
@@ -80,7 +80,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                   },
                 ),
                 const SizedBox(height: 24),
-                _buildSectionTitle('Travel Dates'),
+                _buildSectionTitle(context, 'Travel Dates'),
                 Row(
                   children: [
                     Expanded(
@@ -135,7 +135,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                _buildSectionTitle('Budget Range'),
+                _buildSectionTitle(context, 'Budget Range'),
                 Slider(
                   value: _searchData.budget,
                   min: 5000,
@@ -162,7 +162,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                _buildSectionTitle('Quick Select'),
+                _buildSectionTitle(context, 'Quick Select'),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -188,6 +188,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                 const SizedBox(height: 24),
                 if (_searchData.travelMode == TravelMode.solo) ...[
                   _buildSectionTitle(
+                    context,
                     'Age Range: ${_filters.ageRange[0]} - ${_filters.ageRange[1]}',
                   ),
                   RangeSlider(
@@ -207,7 +208,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  _buildSectionTitle('Gender Preference'),
+                  _buildSectionTitle(context, 'Gender Preference'),
                   SelectField<String>(
                     label: '',
                     value: _filters.gender,
@@ -219,7 +220,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _buildSectionTitle('Personality'),
+                  _buildSectionTitle(context, 'Personality'),
                   SelectField<String>(
                     label: '',
                     value: _filters.personality,
@@ -239,7 +240,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                   ),
                   const SizedBox(height: 24),
                 ],
-                _buildSectionTitle('Languages'),
+                _buildSectionTitle(context, 'Languages'),
                 _buildChips(
                   options: languageOptions,
                   selected: _filters.languages,
@@ -292,7 +293,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
+        border: Border(bottom: BorderSide(color: AppColors.borderColor(context), width: 1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,8 +322,8 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+        color: AppColors.surface(context, level: 1),
+        border: Border(top: BorderSide(color: AppColors.borderColor(context), width: 1)),
       ),
       child: SafeArea(
         child: PrimaryButton(
@@ -338,7 +339,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
     );
   }
 
-  Widget _buildSectionTitle(String title, {bool isHeader = false}) {
+  Widget _buildSectionTitle(BuildContext context, String title, {bool isHeader = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
@@ -347,8 +348,8 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
             .copyWith(
               fontWeight: FontWeight.bold,
               color: isHeader
-                  ? AppColors.foreground
-                  : AppColors.mutedForeground,
+                  ? AppColors.text(context)
+                  : AppColors.text(context, isMuted: true),
             ),
       ),
     );

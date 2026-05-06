@@ -385,7 +385,9 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
   }
 
   Future<void> _handleInvite() async {
-    if (!_canInvite) return;
+    if (!_canInvite) {
+      return;
+    }
     setState(() => _isSending = true);
     try {
       await ref
@@ -398,28 +400,34 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
         _inviteController.clear();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
   }
 
   Future<void> _copyLink() async {
-    if (_inviteLink.isEmpty) return;
+    if (_inviteLink.isEmpty) {
+      return;
+    }
 
     try {
       // 1. Copy to clipboard
       await Clipboard.setData(ClipboardData(text: _inviteLink));
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       // 2. Tactile feedback
       Feedback.forTap(context);
 
       // 3. Native Share (Raw URL only for maximum directness)
+      // ignore: deprecated_member_use
       await Share.share(_inviteLink, subject: "Trip Invitation");
 
       if (mounted) {

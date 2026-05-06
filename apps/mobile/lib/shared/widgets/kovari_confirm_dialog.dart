@@ -78,7 +78,7 @@ class KovariConfirmDialog extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Material(
-            color: AppColors.card,
+            color: AppColors.surface(context, level: 1),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -92,6 +92,7 @@ class KovariConfirmDialog extends StatelessWidget {
                         style: AppTextStyles.bodyLarge.copyWith(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
+                          color: AppColors.text(context),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -99,7 +100,7 @@ class KovariConfirmDialog extends StatelessWidget {
                         content,
                         textAlign: TextAlign.center,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                           fontSize: 13,
                           height: 1.4,
                         ),
@@ -107,7 +108,7 @@ class KovariConfirmDialog extends StatelessWidget {
                     ],
                   ),
                 ),
-                Divider(height: 1, color: AppColors.border),
+                Divider(height: 1, color: AppColors.borderColor(context)),
                 Row(
                   children: [
                     Expanded(
@@ -117,7 +118,7 @@ class KovariConfirmDialog extends StatelessWidget {
                         isDefault: true,
                       ),
                     ),
-                    Container(width: 1, height: 48, color: AppColors.border),
+                    Container(width: 1, height: 48, color: AppColors.borderColor(context)),
                     Expanded(
                       child: _DialogAction(
                         label: confirmLabel,

@@ -12,8 +12,6 @@ class HomeData {
   final List<ConnectionRequest> connectionRequests;
   final TravelPreferences? travelPreferences;
 
-  // TODO: migrate to Riverpod for reactive updates
-
   HomeData({
     required this.profile,
     required this.stats,

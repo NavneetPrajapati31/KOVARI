@@ -232,9 +232,9 @@ class AuthFailure implements Exception {
   final String reason;
   AuthFailure(this.reason);
 
-  static const SEVERE_EXPIRY = "SEVERE_EXPIRY";
-  static const REFRESH_DISABLED = "REFRESH_DISABLED";
-  static const INVALID_TOKEN = "INVALID_TOKEN";
+  static const severeExpiry = "severeExpiry";
+  static const refreshDisabled = "refreshDisabled";
+  static const invalidToken = "invalidToken";
 }
 
 final sessionManagerProvider = Provider((ref) => SessionManager());

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -55,13 +54,15 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
   @override
   List<QueuedMutation> build() {
     final boxAsync = ref.watch(mutationQueueInitProvider);
-    
+
     return boxAsync.when(
       data: (box) {
         _box = box;
-        final items = _box.values.map((v) => QueuedMutation.fromJson(jsonDecode(v))).toList();
+        final items = _box.values
+            .map((v) => QueuedMutation.fromJson(jsonDecode(v)))
+            .toList();
         items.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-        
+
         // Background process on build if online
         Future.microtask(() {
           if (ref.read(connectivityProvider).isOnline) {
@@ -79,14 +80,8 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
         return items;
       },
       loading: () => [],
-      error: (_, __) => [],
+      error: (_, _) => [],
     );
-  }
-
-  void _loadQueue() {
-    final items = _box.values.map((v) => QueuedMutation.fromJson(jsonDecode(v))).toList();
-    items.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    state = items;
   }
 
   Future<void> enqueue({
@@ -124,19 +119,34 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
       if (ref.read(connectivityProvider).isOffline) break;
 
       try {
-        Response response;
         switch (mutation.method.toUpperCase()) {
           case 'POST':
-            await apiClient.post(mutation.path, data: mutation.data, parser: (d) => d);
+            await apiClient.post(
+              mutation.path,
+              data: mutation.data,
+              parser: (d) => d,
+            );
             break;
           case 'PUT':
-            await apiClient.put(mutation.path, data: mutation.data, parser: (d) => d);
+            await apiClient.put(
+              mutation.path,
+              data: mutation.data,
+              parser: (d) => d,
+            );
             break;
           case 'PATCH':
-            await apiClient.patch(mutation.path, data: mutation.data, parser: (d) => d);
+            await apiClient.patch(
+              mutation.path,
+              data: mutation.data,
+              parser: (d) => d,
+            );
             break;
           case 'DELETE':
-            await apiClient.delete(mutation.path, data: mutation.data, parser: (d) => d);
+            await apiClient.delete(
+              mutation.path,
+              data: mutation.data,
+              parser: (d) => d,
+            );
             break;
         }
 
@@ -145,11 +155,16 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
         state = state.where((m) => m.id != mutation.id).toList();
         AppLogger.i('✅ Queued mutation processed: ${mutation.id}');
       } catch (e) {
-        AppLogger.e('❌ Failed to process queued mutation: ${mutation.id}', error: e);
+        AppLogger.e(
+          '❌ Failed to process queued mutation: ${mutation.id}',
+          error: e,
+        );
         mutation.retryCount++;
         if (mutation.retryCount > 5) {
           // Drop if failed too many times? Or keep?
-          AppLogger.w('⚠️ Mutation ${mutation.id} exceeded retry limit. Keeping in queue for manual resolution.');
+          AppLogger.w(
+            '⚠️ Mutation ${mutation.id} exceeded retry limit. Keeping in queue for manual resolution.',
+          );
           break; // Stop processing this for now
         }
         await _box.put(mutation.id, jsonEncode(mutation.toJson()));
@@ -161,6 +176,7 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
   }
 }
 
-final mutationQueueProvider = NotifierProvider<MutationQueueNotifier, List<QueuedMutation>>(() {
-  return MutationQueueNotifier();
-});
+final mutationQueueProvider =
+    NotifierProvider<MutationQueueNotifier, List<QueuedMutation>>(() {
+      return MutationQueueNotifier();
+    });

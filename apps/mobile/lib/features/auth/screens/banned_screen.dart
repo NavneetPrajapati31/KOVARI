@@ -5,11 +5,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/models/kovari_user.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class BannedScreen extends ConsumerWidget {
   final KovariUser user;
@@ -25,7 +25,6 @@ class BannedScreen extends ConsumerWidget {
         : "Your account is permanently banned due to a violation of our terms of service.";
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           // Background Glow for premium feel (matching web destructive/5 blur)
@@ -55,13 +54,8 @@ class BannedScreen extends ConsumerWidget {
                     const SizedBox(height: 30),
 
                     // The Card
-                    Container(
+                    AppCard(
                       width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: AppRadius.extraLarge,
-                        border: Border.all(color: AppColors.border),
-                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -76,7 +70,7 @@ class BannedScreen extends ConsumerWidget {
                                 Text(
                                   title,
                                   style: AppTextStyles.h1.copyWith(
-                                    color: AppColors.foreground,
+                                    color: AppColors.text(context),
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -90,7 +84,10 @@ class BannedScreen extends ConsumerWidget {
                                   child: Text(
                                     message,
                                     style: AppTextStyles.bodyMedium.copyWith(
-                                      color: AppColors.mutedForeground,
+                                      color: AppColors.text(
+                                        context,
+                                        isMuted: true,
+                                      ),
                                       height: 1.5,
                                       fontSize: 14.5,
                                     ),
@@ -109,10 +106,10 @@ class BannedScreen extends ConsumerWidget {
                                       vertical: 14,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.background,
+                                      color: AppColors.surface(context),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: AppColors.border,
+                                        color: AppColors.borderColor(context),
                                       ),
                                     ),
                                     child: Column(
@@ -124,7 +121,7 @@ class BannedScreen extends ConsumerWidget {
                                           style: AppTextStyles.bodyMedium
                                               .copyWith(
                                                 fontWeight: FontWeight.w600,
-                                                color: AppColors.foreground,
+                                                color: AppColors.text(context),
                                               ),
                                         ),
                                         const SizedBox(height: 4),
@@ -139,8 +136,10 @@ class BannedScreen extends ConsumerWidget {
                                           style: AppTextStyles.bodyMedium
                                               .copyWith(
                                                 fontSize: 14,
-                                                color:
-                                                    AppColors.mutedForeground,
+                                                color: AppColors.text(
+                                                  context,
+                                                  isMuted: true,
+                                                ),
                                                 letterSpacing: -0.5,
                                               ),
                                         ),
@@ -162,9 +161,8 @@ class BannedScreen extends ConsumerWidget {
                                 PrimaryButton(
                                   text: "Sign Out",
                                   height: 44,
-                                  onPressed: () => ref
-                                      .read(authProvider.notifier)
-                                      .logout(),
+                                  onPressed: () =>
+                                      ref.read(authProvider.notifier).logout(),
                                 ),
                               ],
                             ),
@@ -176,7 +174,9 @@ class BannedScreen extends ConsumerWidget {
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             decoration: BoxDecoration(
                               border: Border(
-                                top: BorderSide(color: AppColors.border),
+                                top: BorderSide(
+                                  color: AppColors.borderColor(context),
+                                ),
                               ),
                             ),
                             child: Center(
@@ -184,7 +184,10 @@ class BannedScreen extends ConsumerWidget {
                                 TextSpan(
                                   text: "Review our ",
                                   style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.mutedForeground,
+                                    color: AppColors.text(
+                                      context,
+                                      isMuted: true,
+                                    ),
                                   ),
                                   children: [
                                     WidgetSpan(
@@ -212,8 +215,10 @@ class BannedScreen extends ConsumerWidget {
                                             "Community Guidelines",
                                             style: AppTextStyles.bodySmall
                                                 .copyWith(
-                                                  color:
-                                                      AppColors.mutedForeground,
+                                                  color: AppColors.text(
+                                                    context,
+                                                    isMuted: true,
+                                                  ),
                                                 ),
                                           ),
                                         ),

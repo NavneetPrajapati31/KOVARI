@@ -43,7 +43,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final notificationsAsync = ref.watch(notificationProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => ref
@@ -62,17 +61,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               // 2. Main Content
               if (notificationsAsync.isLoading &&
                   notificationsAsync.notifications.isEmpty)
-                _buildSliverSkeleton()
+                _buildSliverSkeleton(context)
               else if (notificationsAsync.error != null &&
                   notificationsAsync.notifications.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: _buildErrorState(ref),
+                  child: _buildErrorState(context, ref),
                 )
               else if (notificationsAsync.notifications.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: _buildEmptyState(),
+                  child: _buildEmptyState(context),
                 )
               else
                 SliverList(
@@ -122,21 +121,21 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-        color: Colors.white,
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
+        color: Theme.of(context).colorScheme.surfaceContainer,
       ),
       child: Row(
         children: [
           _buildBackButton(context),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
               'Notifications',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+                color: AppColors.text(context),
               ),
             ),
           ),
@@ -166,30 +165,30 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       onTap: () => Navigator.pop(context),
       child: Container(
         padding: const EdgeInsets.all(8),
-        child: const Icon(
+        child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             LucideIcons.bell,
             size: 24,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
           const SizedBox(height: 12),
           Text(
             'No notifications',
             style: AppTextStyles.label.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
         ],
@@ -197,7 +196,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Widget _buildErrorState(WidgetRef ref) {
+  Widget _buildErrorState(BuildContext context, WidgetRef ref) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -211,7 +210,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           Text(
             'Failed to load notifications',
             style: AppTextStyles.label.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
           const SizedBox(height: 16),
@@ -224,7 +223,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Widget _buildSliverSkeleton() {
+  Widget _buildSliverSkeleton(BuildContext context) {
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {
@@ -233,8 +232,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               horizontal: 16,
               vertical: AppSpacing.md,
             ),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.border)),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
             ),
             child: Row(
               children: [

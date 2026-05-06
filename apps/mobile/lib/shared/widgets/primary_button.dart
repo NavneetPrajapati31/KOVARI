@@ -1,11 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import 'interactive_wrapper.dart';
+import '../../core/config/interaction_config.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String? text;
-  final VoidCallback? onPressed;
+  final FutureOr<void> Function()? onPressed;
   final bool isLoading;
+  final bool isSuccess;
+  final bool isError;
   final IconData? icon;
   final double? height;
   final double width;
@@ -19,8 +24,10 @@ class PrimaryButton extends StatelessWidget {
     this.text,
     this.onPressed,
     this.isLoading = false,
+    this.isSuccess = false,
+    this.isError = false,
     this.icon,
-    this.height = 40.0,
+    this.height = 44.0, // Increased to 44pt elite standard
     this.width = double.infinity,
     this.backgroundColor,
     this.foregroundColor,
@@ -30,52 +37,71 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor:
-            backgroundColor ??
-            (isDestructive ? AppColors.destructive : AppColors.primary),
-        foregroundColor: foregroundColor ?? AppColors.primaryForeground,
-        minimumSize: Size(width, height!),
-        disabledBackgroundColor:
-            (isDestructive ? AppColors.destructive : AppColors.primary)
-                .withValues(alpha: 0.6),
-        shape: RoundedRectangleBorder(
+    final bg = backgroundColor ??
+        (isDestructive ? AppColors.destructive : AppColors.primary);
+    final fg = foregroundColor ?? AppColors.primaryForeground;
+
+    return InteractiveWrapper(
+      onPressed: onPressed,
+      isDisabled: onPressed == null,
+      isLoading: isLoading,
+      isSuccess: isSuccess,
+      isError: isError,
+      borderRadius: BorderRadius.circular(borderRadius),
+      hapticType: isDestructive ? HapticType.heavy : HapticType.medium,
+      child: Container(
+        height: height,
+        width: width,
+        decoration: BoxDecoration(
+          color: bg,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
-        elevation: 0,
-        shadowColor: Colors.transparent,
+        child: Center(
+          child: AnimatedSwitcher(
+            duration: InteractionConfig.fast,
+            child: _buildContent(context, fg),
+          ),
+        ),
       ),
-      child: isLoading
-          ? const SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null)
-                  Icon(
-                    icon,
-                    size: 18,
-                    color: foregroundColor ?? AppColors.primaryForeground,
-                  ),
-                if (text != null && text!.isNotEmpty) ...[
-                  if (icon != null) const SizedBox(width: 8),
-                  Text(
-                    text!,
-                    style: AppTextStyles.button.copyWith(
-                      color: foregroundColor ?? AppColors.primaryForeground,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, Color fg) {
+    if (isLoading) {
+      return SizedBox(
+        key: const ValueKey('loading'),
+        height: 16,
+        width: 16,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(fg),
+        ),
+      );
+    }
+
+    if (isSuccess) {
+      return Icon(Icons.check_rounded, key: const ValueKey('success'), color: fg, size: 20);
+    }
+
+    if (isError) {
+      return Icon(Icons.close_rounded, key: const ValueKey('error'), color: fg, size: 20);
+    }
+
+    return Row(
+      key: const ValueKey('idle'),
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 18, color: fg),
+          if (text != null && text!.isNotEmpty) const SizedBox(width: 8),
+        ],
+        if (text != null && text!.isNotEmpty)
+          Text(
+            text!,
+            style: AppTextStyles.button.copyWith(color: fg, fontWeight: FontWeight.bold),
+          ),
+      ],
     );
   }
 }

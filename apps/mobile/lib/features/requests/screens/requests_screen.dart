@@ -38,12 +38,12 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface(context),
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(context),
-            _buildTabs(),
+            _buildTabs(context),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -64,13 +64,13 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         children: [
           _buildBackButton(context),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
               'Requests',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+                color: AppColors.text(context),
               ),
             ),
           ),
@@ -87,13 +87,13 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
   }
 
-  Widget _buildTabs() {
+  Widget _buildTabs(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
         left: AppSpacing.md,
@@ -103,9 +103,9 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       child: Container(
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface(context, level: 1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
         child: TabBar(
           controller: _tabController,
@@ -113,11 +113,11 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           splashFactory: NoSplash.splashFactory,
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: AppColors.primaryLight,
+            color: AppColors.primary.withValues(alpha: 0.1),
             border: Border.all(color: AppColors.primary, width: 1),
           ),
           labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.foreground,
+          unselectedLabelColor: AppColors.text(context, isMuted: true),
           labelStyle: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -148,7 +148,7 @@ class _InterestsList extends ConsumerWidget {
             child: Text(
               'No travel interests yet.',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           );
@@ -165,16 +165,21 @@ class _InterestsList extends ConsumerWidget {
           ),
         );
       },
-      loading: () => _buildSkeleton(),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+      loading: () => _buildSkeleton(context),
+      error: (err, stack) => Center(
+        child: Text(
+          'Error: $err',
+          style: TextStyle(color: AppColors.text(context)),
+        ),
+      ),
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: 5,
-      itemBuilder: (context, index) => const _RequestCardSkeleton(),
+      itemBuilder: (context, index) => _RequestCardSkeleton(context),
     );
   }
 }
@@ -238,9 +243,9 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,6 +273,7 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
                             style: AppTextStyles.bodyMedium.copyWith(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
+                              color: AppColors.text(context),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -277,7 +283,7 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
                           dateFormatted,
                           style: AppTextStyles.label.copyWith(
                             fontSize: 11,
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -286,7 +292,7 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
                     Text(
                       '@${interest.senderUsername}',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 12,
                       ),
                     ),
@@ -306,7 +312,7 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
                 style: AppTextStyles.label.copyWith(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -316,6 +322,7 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
+                  color: AppColors.text(context),
                 ),
               ),
             ],
@@ -371,7 +378,7 @@ class _InvitationsList extends ConsumerWidget {
             child: Text(
               'No group invitations yet.',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           );
@@ -388,16 +395,21 @@ class _InvitationsList extends ConsumerWidget {
           ),
         );
       },
-      loading: () => _buildSkeleton(),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+      loading: () => _buildSkeleton(context),
+      error: (err, stack) => Center(
+        child: Text(
+          'Error: $err',
+          style: TextStyle(color: AppColors.text(context)),
+        ),
+      ),
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: 5,
-      itemBuilder: (context, index) => const _RequestCardSkeleton(),
+      itemBuilder: (context, index) => _RequestCardSkeleton(context),
     );
   }
 }
@@ -461,9 +473,9 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -491,6 +503,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                             style: AppTextStyles.bodyMedium.copyWith(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
+                              color: AppColors.text(context),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -500,7 +513,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                           dateFormatted,
                           style: AppTextStyles.label.copyWith(
                             fontSize: 11,
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -509,7 +522,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                     Text(
                       'Invited by @${invitation.creatorUsername}',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 12,
                       ),
                     ),
@@ -529,7 +542,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                 style: AppTextStyles.label.copyWith(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -539,6 +552,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
+                  color: AppColors.text(context),
                 ),
               ),
             ],
@@ -583,7 +597,8 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
 }
 
 class _RequestCardSkeleton extends StatelessWidget {
-  const _RequestCardSkeleton();
+  final BuildContext context;
+  const _RequestCardSkeleton(this.context);
 
   @override
   Widget build(BuildContext context) {
@@ -592,9 +607,9 @@ class _RequestCardSkeleton extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -622,9 +637,9 @@ class _RequestCardSkeleton extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Skeleton(width: 100, height: 12),
-                SizedBox(height: 8),
-                Skeleton(width: double.infinity, height: 12),
+                const Skeleton(width: 100, height: 12),
+                const SizedBox(height: 8),
+                const Skeleton(width: double.infinity, height: 12),
               ],
             ),
             const SizedBox(height: 20),

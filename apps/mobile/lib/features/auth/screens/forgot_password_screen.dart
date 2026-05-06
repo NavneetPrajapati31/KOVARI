@@ -4,12 +4,10 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../core/services/local_storage.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -70,12 +68,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.foreground),
+          icon: Icon(Icons.arrow_back, color: AppColors.text(context)),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -100,17 +95,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 //   ),
                 // ),
                 // const SizedBox(height: 32),
-
-                // Auth Card
-                Container(
+                AppCard(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 24,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: AppRadius.extraLarge,
-                    border: Border.all(color: AppColors.border),
                   ),
                   child: _isSubmitted
                       ? _buildSuccessState()
@@ -133,7 +121,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         Text(
           'Enter your email address and we will send you a link to reset your password.',
           style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
         ),
         const SizedBox(height: 24),
@@ -174,7 +162,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           'We have sent a password reset link to ${_emailController.text.trim()}. You can return to the login screen.',
           textAlign: TextAlign.center,
           style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
         ),
         const SizedBox(height: 24),

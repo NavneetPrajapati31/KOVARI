@@ -4,9 +4,7 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../core/services/local_storage.dart';
-import '../../../core/network/api_client.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
@@ -65,7 +63,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
-      await authService.resetPassword(widget.token, newPassword, cancelToken: _cancelToken);
+      await authService.resetPassword(
+        widget.token,
+        newPassword,
+        cancelToken: _cancelToken,
+      );
 
       if (mounted) {
         setState(() {
@@ -89,12 +91,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.foreground),
+          icon: Icon(Icons.arrow_back, color: AppColors.text(context)),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -119,17 +118,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 //   ),
                 // ),
                 // const SizedBox(height: 32),
-
-                // Auth Card
-                Container(
+                AppCard(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 24,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: AppRadius.extraLarge,
-                    border: Border.all(color: AppColors.border),
                   ),
                   child: _isSuccess ? _buildSuccessState() : _buildFormState(),
                 ),
@@ -150,7 +142,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         Text(
           'Your new password must be securely strong.',
           style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
         ),
         const SizedBox(height: 24),
@@ -192,7 +184,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           'Your password has been successfully reset. Click below to log in.',
           textAlign: TextAlign.center,
           style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
         ),
         const SizedBox(height: 16),

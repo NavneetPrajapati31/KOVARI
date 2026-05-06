@@ -44,8 +44,8 @@ class ItinerarySection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface(context, level: 1),
+        border: Border.all(color: AppColors.borderColor(context)),
         borderRadius: AppRadius.large,
       ),
       child: ClipRRect(
@@ -65,7 +65,7 @@ class ItinerarySection extends StatelessWidget {
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.foreground,
+                      color: AppColors.text(context),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -73,18 +73,18 @@ class ItinerarySection extends StatelessWidget {
                     'Your upcoming events and activities',
                     style: AppTextStyles.label.copyWith(
                       fontSize: 12,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: AppColors.borderColor(context)),
 
             if (isLoading)
-              _buildSkeleton()
+              _buildSkeleton(context)
             else if (events.isEmpty)
-              _buildEmptyState()
+              _buildEmptyState(context)
             else
               Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -125,7 +125,7 @@ class ItinerarySection extends StatelessWidget {
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -140,8 +140,8 @@ class ItinerarySection extends StatelessWidget {
                   children: [
                     const Skeleton(width: 64, height: 14),
                     const SizedBox(width: AppSpacing.sm),
-                    const Expanded(
-                      child: Divider(height: 1, color: AppColors.border),
+                    Expanded(
+                      child: Divider(height: 1, color: AppColors.borderColor(context)),
                     ),
                   ],
                 ),
@@ -159,7 +159,7 @@ class ItinerarySection extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
@@ -169,7 +169,7 @@ class ItinerarySection extends StatelessWidget {
               'No events found',
               style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w500,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
             const SizedBox(height: 4),
@@ -177,7 +177,7 @@ class ItinerarySection extends StatelessWidget {
               'There are no events scheduled.',
               textAlign: TextAlign.center,
               style: AppTextStyles.label.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           ],
@@ -211,12 +211,12 @@ class _DayGroup extends StatelessWidget {
                   fontSize: 10,
                   fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
                   letterSpacing: 0.5,
-                  color: AppColors.foreground,
+                  color: AppColors.text(context),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              const Expanded(
-                child: Divider(color: AppColors.border, thickness: 0.7),
+              Expanded(
+                child: Divider(color: AppColors.borderColor(context), thickness: 0.7),
               ),
             ],
           ),
@@ -237,7 +237,7 @@ class _EventItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorPair = _getEventColors(event.color);
+    final colorPair = _getEventColors(context, event.color);
     final startTime = event.allDay
         ? 'All day'
         : DateFormat('h a').format(event.start);
@@ -257,7 +257,7 @@ class _EventItem extends StatelessWidget {
             event.title,
             style: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.w500,
-              color: AppColors.foreground,
+              color: AppColors.text(context),
             ),
           ),
           if (event.description != null && event.description!.isNotEmpty) ...[
@@ -266,7 +266,7 @@ class _EventItem extends StatelessWidget {
               event.description!,
               style: AppTextStyles.label.copyWith(
                 fontSize: 12,
-                color: AppColors.foreground.withValues(alpha: 0.9),
+                color: AppColors.text(context).withValues(alpha: 0.9),
               ),
             ),
           ],
@@ -277,7 +277,7 @@ class _EventItem extends StatelessWidget {
                 startTime,
                 style: AppTextStyles.label.copyWith(
                   fontSize: 12,
-                  color: AppColors.foreground.withValues(alpha: 0.7),
+                  color: AppColors.text(context).withValues(alpha: 0.7),
                 ),
               ),
               if (event.location != null && event.location!.isNotEmpty) ...[
@@ -285,14 +285,17 @@ class _EventItem extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     '|',
-                    style: AppTextStyles.label.copyWith(fontSize: 10),
+                    style: AppTextStyles.label.copyWith(
+                      fontSize: 10,
+                      color: AppColors.text(context, isMuted: true),
+                    ),
                   ),
                 ),
                 Text(
                   event.location!,
                   style: AppTextStyles.label.copyWith(
                     fontSize: 12,
-                    color: AppColors.foreground.withValues(alpha: 0.7),
+                    color: AppColors.text(context).withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -303,36 +306,39 @@ class _EventItem extends StatelessWidget {
     );
   }
 
-  ({Color background, Color border}) _getEventColors(EventColor color) {
+  ({Color background, Color border}) _getEventColors(BuildContext context, EventColor color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final alpha = isDark ? 0.2 : 0.5;
+
     switch (color) {
       case EventColor.sky:
         return (
-          background: const Color(0xFFE0F2FE).withValues(alpha: 0.5),
+          background: const Color(0xFFE0F2FE).withValues(alpha: alpha),
           border: const Color(0xFF7DD3FC),
         );
       case EventColor.amber:
         return (
-          background: const Color(0xFFFEF3C7).withValues(alpha: 0.5),
+          background: const Color(0xFFFEF3C7).withValues(alpha: alpha),
           border: const Color(0xFFFCD34D),
         );
       case EventColor.violet:
         return (
-          background: const Color(0xFFEDE9FE).withValues(alpha: 0.5),
+          background: const Color(0xFFEDE9FE).withValues(alpha: alpha),
           border: const Color(0xFFC4B5FD),
         );
       case EventColor.rose:
         return (
-          background: const Color(0xFFFFE4E6).withValues(alpha: 0.5),
+          background: const Color(0xFFFFE4E6).withValues(alpha: alpha),
           border: const Color(0xFFFDA4AF),
         );
       case EventColor.emerald:
         return (
-          background: const Color(0xFFD1FAE5).withValues(alpha: 0.5),
+          background: const Color(0xFFD1FAE5).withValues(alpha: alpha),
           border: const Color(0xFF6EE7B7),
         );
       case EventColor.orange:
         return (
-          background: const Color(0xFFFFEDD5).withValues(alpha: 0.5),
+          background: const Color(0xFFFFEDD5).withValues(alpha: alpha),
           border: const Color(0xFFFDBA74),
         );
     }

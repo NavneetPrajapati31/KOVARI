@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import 'app_card.dart';
 
 class ProfileSectionCard extends StatelessWidget {
   final String title;
@@ -32,34 +32,29 @@ class ProfileSectionCard extends StatelessWidget {
             children: [
               Text(
                 title.toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 2),
                 Text(
                   subtitle!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                   ),
                 ),
               ],
             ],
           ),
         ),
-        Container(
+        AppCard(
           width: double.infinity,
           padding: padding ?? const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: AppRadius.large,
-            border: Border.all(color: AppColors.border, width: 1),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: children,

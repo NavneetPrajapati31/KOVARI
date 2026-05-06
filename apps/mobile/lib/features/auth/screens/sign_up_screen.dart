@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../shared/widgets/auth_social_button.dart';
 import '../../../shared/widgets/auth_divider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/config/routes.dart';
-import '../../../core/services/local_storage.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'verify_email_screen.dart';
@@ -118,7 +116,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -142,15 +139,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 const SizedBox(height: 32),
 
                 // Auth Card
-                Container(
+                AppCard(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 24,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: AppRadius.extraLarge,
-                    border: Border.all(color: AppColors.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +152,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       Text(
                         'Create your account to get started',
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -223,7 +215,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     Text(
                       "Already have an account? ",
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                       ),
                     ),
                     TextButton(
@@ -239,7 +231,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       child: Text(
                         'Log in',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.foreground,
+                          color: AppColors.text(context),
                           fontWeight: FontWeight.w600,
                         ),
                       ),

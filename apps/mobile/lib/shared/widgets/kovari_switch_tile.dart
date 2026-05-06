@@ -31,9 +31,9 @@ class KovariSwitchTile extends StatelessWidget {
       margin: margin ?? const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: fillColor ?? AppColors.background,
+        color: fillColor ?? AppColors.surface(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(color: AppColors.borderColor(context), width: 1),
         boxShadow: [
           BoxShadow(
             // ignore: deprecated_member_use
@@ -55,7 +55,7 @@ class KovariSwitchTile extends StatelessWidget {
                   label,
                   style: titleStyle ?? AppTextStyles.bodyMedium.copyWith(
                     fontWeight: FontWeight.w500,
-                    color: AppColors.foreground,
+                    color: AppColors.text(context),
                   ),
                 ),
                 if (subtitle != null) ...[
@@ -66,7 +66,7 @@ class KovariSwitchTile extends StatelessWidget {
                         subtitleStyle ??
                         AppTextStyles.bodySmall.copyWith(
                           fontSize: 12,
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                   ),
                 ],
@@ -84,7 +84,7 @@ class KovariSwitchTile extends StatelessWidget {
                 value: value,
                 onChanged: onChanged,
                 activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.secondary,
+                inactiveTrackColor: AppColors.surface(context, level: 3),
               ),
             ),
           ),

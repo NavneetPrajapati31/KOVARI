@@ -59,7 +59,7 @@ class TextInputField extends StatelessWidget {
             child: Text(
               label,
               style: AppTextStyles.label.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -79,44 +79,19 @@ class TextInputField extends StatelessWidget {
           onTap: onTap,
           maxLines: maxLines,
           maxLength: maxLength,
-          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+          style: AppTextStyles.bodyMedium.copyWith(
+            fontWeight: FontWeight.w500,
+            color: AppColors.text(context),
+          ),
           decoration: InputDecoration(
-            counterText: "", // Hide character counter for cleaner aesthetic
+            counterText: "",
             hintText: hintText,
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
-            prefixIconConstraints:
-                prefixIconConstraints ??
-                BoxConstraints(
-                  minWidth: 40,
-                  minHeight: height ?? 40,
-                  maxHeight: height ?? 40,
-                ),
-            suffixIconConstraints: BoxConstraints(
-              minWidth: 40,
-              minHeight: height ?? 40,
-              maxHeight: height ?? 40,
-            ),
             errorText: errorText,
             isDense: true,
-            contentPadding:
-                contentPadding ??
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            filled: true,
-            fillColor: fillColor ?? AppColors.background,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            hintStyle: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.mutedForeground,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+            fillColor: fillColor, // Allow override, but defaults to theme
+          ).applyDefaults(Theme.of(context).inputDecorationTheme),
         ),
       ],
     );

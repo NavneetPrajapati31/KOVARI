@@ -26,18 +26,18 @@ class SelectChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryLight
-              : (fillColor ?? AppColors.background),
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : (fillColor ?? AppColors.surface(context, level: 2)),
           borderRadius: AppRadius.extraLarge,
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
+            color: isSelected ? AppColors.primary : AppColors.borderColor(context),
             width: 1,
           ),
         ),
         child: Text(
           label,
           style: AppTextStyles.bodySmall.copyWith(
-            color: isSelected ? AppColors.primary : AppColors.foreground,
+            color: isSelected ? AppColors.primary : AppColors.text(context),
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),
         ),

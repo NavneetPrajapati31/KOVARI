@@ -35,11 +35,10 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     final profile = ref.watch(profileProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Column(
         children: [
           Container(
-            color: AppColors.card,
+            color: Theme.of(context).colorScheme.surfaceContainer,
             child: SafeArea(bottom: false, child: _buildHeader(context)),
           ),
           Expanded(
@@ -59,7 +58,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                   const SizedBox(height: AppSpacing.xl),
                   _buildEmergencyHelp(context, profile?.userId ?? ''),
                   const SizedBox(height: AppSpacing.lg),
-                  _buildSafetyFooter(),
+                  _buildSafetyFooter(context),
                   const SizedBox(height: AppSpacing.lg),
                 ],
               ),
@@ -73,21 +72,21 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context, level: 1),
+        border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
       ),
       child: Row(
         children: [
           _buildBackButton(context),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
               'Safety & Trust',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+                color: AppColors.text(context),
               ),
             ),
           ),
@@ -101,10 +100,10 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
       onTap: () => Navigator.pop(context),
       child: Container(
         padding: const EdgeInsets.all(8),
-        child: const Icon(
+        child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
@@ -132,6 +131,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
               fontSize: 26,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.5,
+              color: AppColors.text(context),
             ),
           ),
           const SizedBox(height: 12),
@@ -139,7 +139,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             'Reports are manually reviewed to ensure a respectful and secure environment.',
             textAlign: TextAlign.center,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 14,
               height: 1.5,
             ),
@@ -149,7 +149,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 30, right: 20, bottom: 10, top: 8),
       child: Align(
@@ -159,7 +159,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
           style: AppTextStyles.bodySmall.copyWith(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             letterSpacing: 1.2,
           ),
         ),
@@ -167,13 +167,13 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildGroupedList(List<Widget> children) {
+  Widget _buildGroupedList(BuildContext context, List<Widget> children) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -183,7 +183,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               children[index],
-              const Divider(height: 1, color: AppColors.border),
+              Divider(height: 1, color: AppColors.borderColor(context)),
             ],
           );
         }),
@@ -194,19 +194,22 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
   Widget _buildActions(BuildContext context) {
     return Column(
       children: [
-        _buildSectionTitle('Actions'),
-        _buildGroupedList([
+        _buildSectionTitle(context, 'Actions'),
+        _buildGroupedList(context, [
           _buildActionRow(
+            context,
             icon: LucideIcons.triangleAlert,
             label: 'Report a User',
             onTap: () => _navigateToSearch(context, 'user'),
           ),
           _buildActionRow(
+            context,
             icon: LucideIcons.triangleAlert,
             label: 'Report a Group',
             onTap: () => _navigateToSearch(context, 'group'),
           ),
           _buildActionRow(
+            context,
             icon: LucideIcons.fileText,
             label: 'View My Reports',
             onTap: () {
@@ -219,6 +222,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             },
           ),
           _buildActionRow(
+            context,
             icon: LucideIcons.phoneCall,
             label: 'Emergency Help',
             isDestructive: true,
@@ -237,7 +241,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildActionRow({
+  Widget _buildActionRow(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -260,7 +265,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                   size: 18,
                   color: isDestructive
                       ? AppColors.destructive
-                      : AppColors.foreground,
+                      : AppColors.text(context),
                 ),
               ),
               const SizedBox(width: 14),
@@ -272,14 +277,14 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     fontSize: 15,
                     color: isDestructive
                         ? AppColors.destructive
-                        : AppColors.foreground,
+                        : AppColors.text(context),
                   ),
                 ),
               ),
               Icon(
                 LucideIcons.chevronRight,
                 size: 18,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ],
           ),
@@ -291,9 +296,10 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
   Widget _buildStatus(BuildContext context, dynamic profile) {
     return Column(
       children: [
-        _buildSectionTitle('Your Status'),
-        _buildGroupedList([
+        _buildSectionTitle(context, 'Your Status'),
+        _buildGroupedList(context, [
           _buildStatusRow(
+            context,
             icon: LucideIcons.shieldCheck,
             label: 'Identity Level',
             trailing: profile.isVerified
@@ -302,20 +308,21 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     'Unverified',
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontSize: 15,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
           ),
           _buildStatusRow(
+            context,
             icon: LucideIcons.clock,
             label: 'Member Since',
             trailing: Text(
               profile.createdAt.isNotEmpty
                   ? _formatDate(profile.createdAt)
                   : 'Recently',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           ),
@@ -324,7 +331,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildStatusRow({
+  Widget _buildStatusRow(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required Widget trailing,
@@ -335,7 +343,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            child: Icon(icon, size: 18, color: AppColors.foreground),
+            child: Icon(icon, size: 18, color: AppColors.text(context)),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -344,6 +352,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
               style: AppTextStyles.bodyMedium.copyWith(
                 fontWeight: FontWeight.w400,
                 fontSize: 15,
+                color: AppColors.text(context),
               ),
             ),
           ),
@@ -399,8 +408,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
 
     return Column(
       children: [
-        _buildSectionTitle('How Reporting Works'),
-        _buildGroupedList([
+        _buildSectionTitle(context, 'How Reporting Works'),
+        _buildGroupedList(context, [
           ...steps.map((step) {
             return Padding(
               padding: const EdgeInsets.symmetric(
@@ -415,13 +424,14 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w500,
                       fontSize: 15,
+                      color: AppColors.text(context),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     step['desc']!,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                       fontSize: 14,
                       height: 1.4,
                     ),
@@ -438,7 +448,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             child: RichText(
               text: TextSpan(
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -468,19 +478,19 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
   Widget _buildGuidelines(BuildContext context) {
     return Column(
       children: [
-        _buildGuidelineSection('Solo Travel Guidelines', [
+        _buildGuidelineSection(context, 'Solo Travel Guidelines', [
           'Share full itinerary with a trusted friend',
           'Research local emergency numbers',
           'Leave quietly if you feel uncomfortable',
         ]),
         const SizedBox(height: AppSpacing.xl),
-        _buildGuidelineSection('Group Travel Guidelines', [
+        _buildGuidelineSection(context, 'Group Travel Guidelines', [
           'Meet in a public space before departing',
           'Discuss budgets and styles clearly upfront',
           'Avoid sharing sensitive financial info',
         ]),
         const SizedBox(height: AppSpacing.xl),
-        _buildGuidelineSection('Real-Life Meetings', [
+        _buildGuidelineSection(context, 'Real-Life Meetings', [
           'First meeting must be in a well-lit cafe',
           'Arrange your own independent transport',
           'Text a friend when arriving and leaving',
@@ -489,18 +499,18 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildGuidelineSection(String title, List<String> tips) {
+  Widget _buildGuidelineSection(BuildContext context, String title, List<String> tips) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle(title),
+        _buildSectionTitle(context, title),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface(context, level: 1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.borderColor(context)),
           ),
           child: Column(
             children: tips.map((tip) {
@@ -513,8 +523,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                       margin: const EdgeInsets.only(top: 8, left: 4),
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
-                        color: AppColors.border,
+                      decoration: BoxDecoration(
+                        color: AppColors.borderColor(context),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -523,7 +533,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                       child: Text(
                         tip,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.foreground,
+                          color: AppColors.text(context),
                           fontSize: 15,
                         ),
                       ),
@@ -542,19 +552,22 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     return Column(
       key: _emergencyKey,
       children: [
-        _buildSectionTitle('Emergency Contact'),
-        _buildGroupedList([
+        _buildSectionTitle(context, 'Emergency Contact'),
+        _buildGroupedList(context, [
           _buildEmergencyRow(
+            context,
             title: 'National Emergency',
             number: '112',
             onTap: () => _makePhoneCall('112'),
           ),
           _buildEmergencyRow(
+            context,
             title: 'Women Helpline',
             number: '1091',
             onTap: () => _makePhoneCall('1091'),
           ),
           _buildEmergencyRow(
+            context,
             title: 'Copy Profile Link',
             subtitle: 'For providing to authorities',
             isCall: false,
@@ -568,7 +581,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             child: RichText(
               text: TextSpan(
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -586,7 +599,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildEmergencyRow({
+  Widget _buildEmergencyRow(
+    BuildContext context, {
     required String title,
     String? number,
     String? subtitle,
@@ -608,7 +622,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w400,
                       fontSize: 15,
-                      color: isCall ? AppColors.foreground : AppColors.primary,
+                      color: isCall ? AppColors.text(context) : AppColors.primary,
                     ),
                   ),
                   if (isCall && number != null) ...[
@@ -627,7 +641,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     Text(
                       subtitle,
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 14,
                       ),
                     ),
@@ -646,19 +660,19 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildSafetyFooter() {
+  Widget _buildSafetyFooter(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(LucideIcons.eye, size: 14, color: AppColors.mutedForeground),
+          Icon(LucideIcons.eye, size: 14, color: AppColors.text(context, isMuted: true)),
           const SizedBox(width: 6),
           Text(
             'REVIEWED',
             style: TextStyle(
               fontSize: 11,
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               letterSpacing: 1.5,
               fontWeight: FontWeight.w500,
             ),
@@ -668,18 +682,18 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             width: 4,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.border,
+              color: AppColors.borderColor(context),
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 16),
-          Icon(LucideIcons.lock, size: 14, color: AppColors.mutedForeground),
+          Icon(LucideIcons.lock, size: 14, color: AppColors.text(context, isMuted: true)),
           const SizedBox(width: 6),
           Text(
             'ENCRYPTED',
             style: TextStyle(
               fontSize: 11,
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               letterSpacing: 1.5,
               fontWeight: FontWeight.w500,
             ),

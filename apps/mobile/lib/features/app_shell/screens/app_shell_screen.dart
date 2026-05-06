@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 import '../../home/screens/home_screen.dart';
 import '../../explore/screens/explore_screen.dart';
 import '../../chat/screens/chat_inbox_screen.dart';
@@ -15,8 +16,12 @@ class AppShellScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(appShellIndexProvider);
-    final isOffline = ref.watch(connectivityProvider.select((s) => s.isOffline));
-    final isDegraded = ref.watch(connectivityProvider.select((s) => s.isDegraded));
+    final isOffline = ref.watch(
+      connectivityProvider.select((s) => s.isOffline),
+    );
+    final isDegraded = ref.watch(
+      connectivityProvider.select((s) => s.isDegraded),
+    );
 
     return Scaffold(
       body: Column(
@@ -25,22 +30,30 @@ class AppShellScreen extends ConsumerWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 4),
-              color: Colors.red,
+              color: AppColors.destructive,
               child: const Text(
                 'No Internet Connection',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             )
           else if (isDegraded)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 4),
-              color: Colors.orange,
+              color: Colors.amber.shade900,
               child: const Text(
                 'Connecting...',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           Expanded(

@@ -14,6 +14,7 @@ import '../data/connections_service.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../shared/widgets/kovari_confirm_dialog.dart';
 import 'connections_screen.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -129,7 +130,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Colors.white,
         body: Center(
           child: SizedBox(
             height: 24,
@@ -142,15 +142,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
     if (_error != null || _profile == null) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.background,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(
-              LucideIcons.arrowLeft,
-              color: AppColors.foreground,
-            ),
+            icon: Icon(LucideIcons.arrowLeft, color: AppColors.text(context)),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -173,14 +170,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
         titleSpacing: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             LucideIcons.arrowLeft,
-            color: AppColors.foreground,
+            color: AppColors.text(context),
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -223,13 +219,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     UserProfile profile,
     bool isMe,
   ) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-      ),
+      borderRadius: BorderRadius.circular(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -346,9 +338,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 Expanded(
                   child: _buildActionButton(
                     'Message',
-                    onPressed: () {
-                      // TODO: Implement message navigation
-                    },
+                    onPressed: () {},
                     backgroundColor: AppColors.secondary,
                     textColor: AppColors.secondaryForeground,
                   ),
@@ -369,17 +359,17 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         children: [
           Text(
             count,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 12,
-              color: Colors.black,
+              color: AppColors.text(context),
             ),
           ),
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: AppColors.text(context),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -419,17 +409,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   }
 
   Widget _buildContentCard(UserProfile profile) {
-    return Container(
+    return AppCard(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.lg,
       ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-      ),
+      borderRadius: BorderRadius.circular(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -550,10 +536,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Colors.black,
+            color: AppColors.text(context),
           ),
         ),
       ],
@@ -596,10 +582,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
               child: Text(
                 item,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black,
+                  color: AppColors.text(context),
                 ),
               ),
             );

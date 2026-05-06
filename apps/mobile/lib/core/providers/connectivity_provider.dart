@@ -130,8 +130,8 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> with WidgetsBindi
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState appState) {
-    if (appState == AppLifecycleState.resumed) {
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
       // 500ms delay to allow network hardware to wake up
       Future.delayed(const Duration(milliseconds: 500), () {
         triggerHealthCheck();

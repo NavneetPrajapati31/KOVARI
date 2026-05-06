@@ -79,11 +79,12 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   void _onScroll(String type) {
-    final controller = type == 'followers' 
-        ? _followersScrollController 
+    final controller = type == 'followers'
+        ? _followersScrollController
         : _followingScrollController;
-    
-    if (controller.position.pixels >= controller.position.maxScrollExtent - 200) {
+
+    if (controller.position.pixels >=
+        controller.position.maxScrollExtent - 200) {
       if (type == 'followers') {
         _fetchMoreFollowers();
       } else {
@@ -93,7 +94,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   Future<void> _loadData() async {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _isLoading = true;
       _error = null;
@@ -127,14 +130,18 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   Future<void> _fetchMoreFollowers() async {
-    if (_isFetchingMoreFollowers || !_hasMoreFollowers || _searchQuery.isNotEmpty) return;
+    if (_isFetchingMoreFollowers ||
+        !_hasMoreFollowers ||
+        _searchQuery.isNotEmpty) {
+      return;
+    }
 
     setState(() => _isFetchingMoreFollowers = true);
 
     try {
       final nextPage = _followersPage + 1;
       final newFollowers = await _service.getFollowers(
-        widget.userId, 
+        widget.userId,
         offset: (_followersPage * 20),
       );
 
@@ -152,14 +159,18 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   Future<void> _fetchMoreFollowing() async {
-    if (_isFetchingMoreFollowing || !_hasMoreFollowing || _searchQuery.isNotEmpty) return;
+    if (_isFetchingMoreFollowing ||
+        !_hasMoreFollowing ||
+        _searchQuery.isNotEmpty) {
+      return;
+    }
 
     setState(() => _isFetchingMoreFollowing = true);
 
     try {
       final nextPage = _followingPage + 1;
       final newFollowing = await _service.getFollowing(
-        widget.userId, 
+        widget.userId,
         offset: (_followingPage * 20),
       );
 
@@ -306,7 +317,6 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -317,11 +327,11 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 pinned: true,
                 floating: false,
                 elevation: 0,
-                backgroundColor: AppColors.card,
+                backgroundColor: AppColors.surface(context, level: 1),
                 leading: IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     LucideIcons.arrowLeft,
-                    color: AppColors.foreground,
+                    color: AppColors.text(context),
                     size: 20,
                   ),
                   onPressed: () => Navigator.pop(context),
@@ -343,8 +353,8 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                       )
                     : Text(
                         widget.username,
-                        style: const TextStyle(
-                          color: AppColors.foreground,
+                        style: TextStyle(
+                          color: AppColors.text(context),
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -352,7 +362,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(48),
                   child: Container(
-                    decoration: const BoxDecoration(color: Colors.white),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface(context),
+                    ),
                     child: TabBar(
                       controller: _tabController,
                       indicatorColor: AppColors.primary,
@@ -424,7 +436,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       builder: (context) {
         return CustomScrollView(
           key: PageStorageKey<String>(type),
-          controller: type == 'followers' ? _followersScrollController : _followingScrollController,
+          controller: type == 'followers'
+              ? _followersScrollController
+              : _followingScrollController,
           slivers: [
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
@@ -433,10 +447,13 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
             SliverToBoxAdapter(
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: AppColors.surface(context),
                   border: Border(
-                    bottom: BorderSide(color: AppColors.border, width: 1),
+                    bottom: BorderSide(
+                      color: AppColors.borderColor(context),
+                      width: 1,
+                    ),
                   ),
                 ),
                 child: SizedBox(
@@ -444,9 +461,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                   child: TextField(
                     controller: _searchController,
                     enabled: !_isLoading, // Disable while loading
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Colors.black,
+                      color: AppColors.text(context),
                       fontWeight: FontWeight.w400,
                     ),
                     onChanged: (value) {
@@ -555,14 +572,12 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                         if (type == 'followers' && !user.isFollowing) {
                           _handleFollowToggle(user);
                         } else {
-                          // TODO: Navigate to chat
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Chat coming soon!')),
                           );
                         }
                       } else {
                         if (user.isFollowing) {
-                          // TODO: Navigate to chat
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Chat coming soon!')),
                           );

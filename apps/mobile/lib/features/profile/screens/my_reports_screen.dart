@@ -29,14 +29,13 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
     final state = ref.watch(safetyProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Column(
         children: [
           Container(
-            color: AppColors.card,
+            color: Theme.of(context).colorScheme.surfaceContainer,
             child: SafeArea(bottom: false, child: _buildHeader(context, state)),
           ),
-          Expanded(child: _buildBody(state)),
+          Expanded(child: _buildBody(context, state)),
         ],
       ),
     );
@@ -45,29 +44,25 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
   Widget _buildHeader(BuildContext context, SafetyState state) {
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
       ),
       child: Row(
         children: [
           _buildBackButton(context),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
               'My Reports',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
-              ),
+              style: AppTextStyles.h3,
             ),
           ),
           if (state.reports.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                color: AppColors.surface(context, level: 2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -75,7 +70,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                 style: AppTextStyles.bodySmall.copyWith(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
             ),
@@ -89,16 +84,16 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
       onTap: () => Navigator.pop(context),
       child: Container(
         padding: const EdgeInsets.all(8),
-        child: const Icon(
+        child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
   }
 
-  Widget _buildBody(SafetyState state) {
+  Widget _buildBody(BuildContext context, SafetyState state) {
     if (state.isLoadingReports && state.reports.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -123,7 +118,11 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
             ElevatedButton(
               onPressed: () =>
                   ref.read(safetyProvider.notifier).fetchMyReports(),
-              child: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Try Again', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -141,15 +140,19 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
               color: AppColors.primary.withValues(alpha: 0.1),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No active reports',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.w600,
+                color: AppColors.text(context),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               "We're glad things are safe. You can report concerns here anytime.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.mutedForeground),
+              style: TextStyle(color: AppColors.text(context, isMuted: true)),
             ),
           ],
         ),
@@ -179,26 +182,26 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                 dateKey,
                 style: AppTextStyles.bodySmall.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
             ),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: AppColors.surface(context, level: 1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.borderColor(context)),
               ),
               child: Column(
                 children: List.generate(reports.length, (i) {
                   final report = reports[i];
                   return Column(
                     children: [
-                      _buildReportCard(report),
+                      _buildReportCard(context, report),
                       if (i != reports.length - 1)
-                        const Divider(
+                        Divider(
                           height: 1,
-                          color: AppColors.border,
+                          color: AppColors.borderColor(context),
                           indent: 16,
                           endIndent: 16,
                         ),
@@ -214,7 +217,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
     );
   }
 
-  Widget _buildReportCard(SafetyReport report) {
+  Widget _buildReportCard(BuildContext context, SafetyReport report) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -242,18 +245,19 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                             overflow: TextOverflow.ellipsis,
                             style: AppTextStyles.bodyMedium.copyWith(
                               fontWeight: FontWeight.w600,
+                              color: AppColors.text(context),
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _buildStatusBadge(report.status),
+                        _buildStatusBadge(context, report.status),
                       ],
                     ),
                     if (report.targetUsername != null)
                       Text(
                         '@${report.targetUsername}',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ),
                   ],
@@ -265,15 +269,15 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
           RichText(
             text: TextSpan(
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.foreground,
+                color: AppColors.text(context),
                 height: 1.4,
               ),
               children: [
-                const TextSpan(
+                TextSpan(
                   text: 'Reason: ',
                   style: TextStyle(
                     fontWeight: FontWeight.w500,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                   ),
                 ),
                 TextSpan(
@@ -288,15 +292,15 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
             RichText(
               text: TextSpan(
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.foreground,
+                  color: AppColors.text(context),
                   height: 1.4,
                 ),
                 children: [
-                  const TextSpan(
+                  TextSpan(
                     text: 'Additional Context: ',
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
                   TextSpan(
@@ -319,7 +323,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
+                  color: AppColors.surface(context, level: 2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -349,7 +353,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(BuildContext context, String status) {
     Color color;
 
     switch (status.toLowerCase()) {
@@ -365,7 +369,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
         color = AppColors.primary;
         break;
       case 'dismissed':
-        color = AppColors.mutedForeground;
+        color = AppColors.text(context, isMuted: true);
         break;
       default:
         color = const Color(0xFFD97706);

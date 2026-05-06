@@ -4,13 +4,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/core/utils/custom_route_transition.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_radius.dart';
 import '../providers/group_provider.dart';
 import '../widgets/group_card.dart';
 import '../widgets/group_card_skeleton.dart';
 import 'create_group_screen.dart';
 import 'group_details_screen.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class GroupsScreen extends ConsumerWidget {
   const GroupsScreen({super.key});
@@ -19,56 +19,54 @@ class GroupsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final groupState = ref.watch(myGroupsProvider);
 
-    return Material(
-      color: AppColors.background,
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Sticky Header
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  _buildTabButton("My Groups", true),
-                  const SizedBox(width: 8),
-                  _buildTabButton(
-                    "New group",
-                    false,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreateGroupScreen(),
-                        ),
-                      );
-                    },
-                  ),
+    return SafeArea(
+      child: Column(
+        children: [
+          // Sticky Header
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                _buildTabButton(context, "My Groups", true),
+                const SizedBox(width: 8),
+                _buildTabButton(
+                  context,
+                  "New group",
+                  false,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateGroupScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Scrollable Content
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => ref.read(myGroupsProvider.notifier).refresh(),
+              color: AppColors.primary,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  // 1. Stale Indicator
+                  if (groupState.isStale)
+                    const SliverToBoxAdapter(
+                      child: LinearProgressIndicator(minHeight: 2),
+                    ),
+
+                  // 2. Body
+                  _buildSliverContent(context, ref, groupState),
                 ],
               ),
             ),
-
-            // Scrollable Content
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () => ref.read(myGroupsProvider.notifier).refresh(),
-                color: AppColors.primary,
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    // 1. Stale Indicator
-                    if (groupState.isStale)
-                      const SliverToBoxAdapter(
-                        child: LinearProgressIndicator(minHeight: 2),
-                      ),
-
-                    // 2. Body
-                    _buildSliverContent(context, ref, groupState),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -82,12 +80,8 @@ class GroupsScreen extends ConsumerWidget {
       return SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         sliver: SliverToBoxAdapter(
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              border: Border.all(color: AppColors.border),
-              borderRadius: AppRadius.large,
-            ),
+          child: AppCard(
+            padding: EdgeInsets.zero,
             child: ClipRRect(
               borderRadius: AppRadius.large,
               child: Column(
@@ -97,7 +91,10 @@ class GroupsScreen extends ConsumerWidget {
                     children: [
                       const GroupCardSkeleton(),
                       if (i < 4)
-                        const Divider(height: 1, color: AppColors.border),
+                        Divider(
+                          height: 1,
+                          color: AppColors.borderColor(context),
+                        ),
                     ],
                   ),
                 ),
@@ -109,7 +106,14 @@ class GroupsScreen extends ConsumerWidget {
     }
 
     if (state.error != null && state.groups.isEmpty) {
-      return SliverFillRemaining(child: Center(child: Text(state.error!)));
+      return SliverFillRemaining(
+        child: Center(
+          child: Text(
+            state.error!,
+            style: TextStyle(color: AppColors.text(context)),
+          ),
+        ),
+      );
     }
 
     if (state.groups.isEmpty) {
@@ -121,22 +125,27 @@ class GroupsScreen extends ConsumerWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: AppColors.secondary,
+                decoration: BoxDecoration(
+                  color: AppColors.surface(context, level: 2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   LucideIcons.users,
                   size: 32,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
               const SizedBox(height: 24),
-              Text("No groups yet", style: AppTextStyles.h3),
+              Text(
+                "No groups yet",
+                style: AppTextStyles.h3.copyWith(
+                  color: AppColors.text(context),
+                ),
+              ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 "Create or join a group to start planning.",
-                style: TextStyle(color: AppColors.mutedForeground),
+                style: TextStyle(color: AppColors.text(context, isMuted: true)),
               ),
             ],
           ),
@@ -147,12 +156,8 @@ class GroupsScreen extends ConsumerWidget {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       sliver: SliverToBoxAdapter(
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            border: Border.all(color: AppColors.border),
-            borderRadius: AppRadius.large,
-          ),
+        child: AppCard(
+          padding: EdgeInsets.zero,
           child: ClipRRect(
             borderRadius: AppRadius.large,
             clipBehavior: Clip.antiAliasWithSaveLayer,
@@ -178,7 +183,10 @@ class GroupsScreen extends ConsumerWidget {
                         ),
                       ),
                       if (i < state.groups.length - 1)
-                        const Divider(height: 1, color: AppColors.border),
+                        Divider(
+                          height: 1,
+                          color: AppColors.borderColor(context),
+                        ),
                     ],
                   ],
                 ),
@@ -190,17 +198,26 @@ class GroupsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTabButton(String label, bool isSelected, {VoidCallback? onTap}) {
+  Widget _buildTabButton(
+    BuildContext context,
+    String label,
+    bool isSelected, {
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : AppColors.card,
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.surface(context, level: 1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.borderColor(context),
             width: 1,
           ),
         ),
@@ -209,7 +226,7 @@ class GroupsScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: AppTextStyles.bodySmall.fontSize,
             fontWeight: FontWeight.w600,
-            color: isSelected ? AppColors.primary : AppColors.foreground,
+            color: isSelected ? AppColors.primary : AppColors.text(context),
           ),
         ),
       ),

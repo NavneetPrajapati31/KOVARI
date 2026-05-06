@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:mobile/features/home/models/home_state.dart';
 import '../data/home_service.dart';
-import '../models/home_data.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cache_provider.dart';
@@ -30,21 +29,23 @@ class HomeDataNotifier extends StateNotifier<HomeState> {
     await refresh(isInitial: true);
   }
 
-  Future<void> refresh({bool isInitial = false}) async {
+  Future<void> refresh({bool isInitial = false, bool isSilent = false}) async {
     final cache = _ref.read(localCacheProvider);
     final service = _ref.read(homeServiceProvider);
 
-    // 1. Try Cache First
-    final cached = cache.get(ApiEndpoints.home);
-    if (cached != null) {
-      state = state.copyWith(
-        data: service.parseHomeData(cached.data),
-        isStale: true,
-        isLoading:
-            isInitial, // Only show main loading if we don't have cached data yet
-      );
-    } else {
-      state = state.copyWith(isLoading: true);
+    if (!isSilent) {
+      // 1. Try Cache First
+      final cached = cache.get(ApiEndpoints.home);
+      if (cached != null) {
+        state = state.copyWith(
+          data: service.parseHomeData(cached.data),
+          isStale: true,
+          isLoading:
+              isInitial, // Only show main loading if we don't have cached data yet
+        );
+      } else {
+        state = state.copyWith(isLoading: true);
+      }
     }
 
     // 2. Fetch Fresh Data

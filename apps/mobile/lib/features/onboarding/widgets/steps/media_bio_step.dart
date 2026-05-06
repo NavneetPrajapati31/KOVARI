@@ -35,7 +35,6 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
   Future<void> _showImageSourceModal() async {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -48,7 +47,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: AppColors.borderColor(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -226,9 +225,12 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.background,
+                    color: AppColors.surface(context),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border, width: 1),
+                    border: Border.all(
+                      color: AppColors.borderColor(context),
+                      width: 1,
+                    ),
                     image: state.localProfilePicPath != null
                         ? DecorationImage(
                             image: FileImage(File(state.localProfilePicPath!)),

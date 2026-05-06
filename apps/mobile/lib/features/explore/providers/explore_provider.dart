@@ -55,12 +55,13 @@ class ExploreNotifier extends Notifier<ExploreState> {
   Future<void> performSearch({
     bool isRefresh = false,
     bool isLoadMore = false,
+    bool isSilent = false,
   }) async {
     final userId = _userId ?? 'dummy-user-id';
 
     if (isLoadMore && state.isFetchingNextPage) return;
 
-    if (!isRefresh && !isLoadMore) {
+    if (!isRefresh && !isLoadMore && !isSilent) {
       if (state.lastFetchTime != null &&
           state.searchData.travelMode == TravelMode.solo) {
         if (DateTime.now().difference(state.lastFetchTime!).inSeconds < 30) {
@@ -74,7 +75,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
         return;
       }
       state = state.copyWith(isFetchingNextPage: true);
-    } else {
+    } else if (!isSilent) {
       state = state.copyWith(
         isLoading: true,
         error: null,
