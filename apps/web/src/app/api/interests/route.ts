@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 
 export async function GET(request: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     const authUser = await getAuthenticatedUser(request);
 
     if (!authUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
     const userId = authUser.id;
@@ -29,14 +32,11 @@ export async function GET(request: NextRequest) {
 
     if (interestsError) {
       console.error("Error fetching interests:", interestsError);
-      return NextResponse.json(
-        { error: "Failed to fetch interests" },
-        { status: 500 }
-      );
+      return formatErrorResponse("Failed to fetch interests", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
     if (!interests || interests.length === 0) {
-      return NextResponse.json([]);
+      return formatStandardResponse([], {}, { requestId, latencyMs: Date.now() - start });
     }
 
     // Collect sender IDs
@@ -130,13 +130,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json(formattedInterests);
+    return formatStandardResponse(formattedInterests, {}, { requestId, latencyMs: Date.now() - start });
   } catch (error: any) {
     console.error("API Error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return formatErrorResponse("Internal server error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }
 

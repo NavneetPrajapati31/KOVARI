@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/common/skeleton.dart';
 import '../../../../core/widgets/common/kovari_image.dart';
+import '../../../../shared/widgets/app_card.dart';
 
 class UpcomingTripCard extends StatelessWidget {
   final String name;
@@ -26,114 +27,99 @@ class UpcomingTripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return _buildSkeleton();
-    }
+    if (isLoading) return _buildSkeleton();
+    if (name.isEmpty || groupId == null) return _buildEmptyState(context);
 
-    if (name.isEmpty || groupId == null) {
-      return _buildEmptyState();
-    }
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
 
-    return Container(
+    return AppCard(
       height: 180,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.muted,
-        borderRadius: AppRadius.large,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ClipRRect(
-        borderRadius: AppRadius.large,
-        clipBehavior: Clip.antiAliasWithSaveLayer,
-        child: Stack(
-          children: [
-            // Background Image or Fallback
-            Positioned.fill(
-              child: hasImage
-                  ? KovariImage(
-                      imageUrl: imageUrl!,
-                      borderRadius: AppRadius.large,
-                    )
-                  : Container(
-                      color: AppColors.secondary,
-                      child: Center(
-                        child: Icon(
-                          LucideIcons.calendarClock,
-                          size: 40,
-                          color: AppColors.mutedForeground.withValues(
-                            alpha: 0.5,
-                          ),
-                        ),
+      padding: EdgeInsets.zero,
+      onTap: onExplore,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: hasImage
+                ? KovariImage(
+                    imageUrl: imageUrl!,
+                    borderRadius: AppRadius.large,
+                  )
+                : Container(
+                    color: isDark ? AppColors.mutedDark : AppColors.secondary,
+                    child: Center(
+                      child: Icon(
+                        LucideIcons.calendarClock,
+                        size: 40,
+                        color:
+                            (isDark
+                                    ? AppColors.mutedForegroundDark
+                                    : AppColors.mutedForeground)
+                                .withValues(alpha: 0.5),
                       ),
                     ),
-            ),
-
-            // Bottom Controls (Glassmorphism)
-            Positioned(
-              bottom: AppSpacing.sm,
-              left: AppSpacing.sm,
-              right: AppSpacing.sm,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Location Name Label
-                  Flexible(
-                    child: _buildGlassContainer(
-                      child: Text(
-                        name,
+                  ),
+          ),
+          Positioned(
+            bottom: AppSpacing.sm,
+            left: AppSpacing.sm,
+            right: AppSpacing.sm,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: _buildGlassContainer(
+                    context,
+                    child: Text(
+                      name,
+                      style: AppTextStyles.label.copyWith(
+                        color: hasImage
+                            ? Colors.white
+                            : AppColors.text(context),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                _buildGlassContainer(
+                  context,
+                  borderRadius: BorderRadius.circular(100),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Upcoming',
                         style: AppTextStyles.label.copyWith(
                           color: hasImage
                               ? Colors.white
-                              : AppColors.mutedForeground,
+                              : AppColors.text(context),
                           fontWeight: FontWeight.w500,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  // Action Button
-                  GestureDetector(
-                    onTap: onExplore,
-                    child: _buildGlassContainer(
-                      borderRadius: BorderRadius.circular(100),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Upcoming',
-                            style: AppTextStyles.label.copyWith(
-                              color: hasImage
-                                  ? Colors.white
-                                  : AppColors.mutedForeground,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            LucideIcons.calendarClock,
-                            size: 14,
-                            color: hasImage
-                                ? Colors.white
-                                : AppColors.mutedForeground,
-                          ),
-                        ],
+                      const SizedBox(width: 4),
+                      Icon(
+                        LucideIcons.calendarClock,
+                        size: 14,
+                        color: hasImage
+                            ? Colors.white
+                            : AppColors.text(context),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildGlassContainer({
+  Widget _buildGlassContainer(
+    BuildContext context, {
     required Widget child,
     BorderRadius? borderRadius,
   }) {
@@ -149,9 +135,17 @@ class UpcomingTripCard extends StatelessWidget {
           ),
           height: 32,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color:
+                (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black)
+                    .withValues(alpha: 0.05),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2),
+              color:
+                  (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black)
+                      .withValues(alpha: 0.1),
               width: 0.5,
             ),
             borderRadius: effectiveRadius,
@@ -170,30 +164,24 @@ class UpcomingTripCard extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Container(
+  Widget _buildEmptyState(BuildContext context) {
+    return AppCard(
       height: 180,
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border.all(color: AppColors.border),
-        borderRadius: AppRadius.large,
-      ),
+      interactive: false,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             LucideIcons.calendar,
             size: 20,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
           const SizedBox(height: 8),
           Text(
             'No upcoming trip',
             style: AppTextStyles.label.copyWith(
               fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
           const SizedBox(height: 4),
@@ -201,7 +189,7 @@ class UpcomingTripCard extends StatelessWidget {
             'Join or create a group to see your next trip',
             textAlign: TextAlign.center,
             style: AppTextStyles.label.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
         ],

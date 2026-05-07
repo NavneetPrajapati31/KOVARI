@@ -4,17 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/network/cloudinary_service.dart';
-import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/location_autocomplete.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/kovari_switch_tile.dart';
 import '../providers/group_provider.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class CreateGroupScreen extends ConsumerStatefulWidget {
   const CreateGroupScreen({super.key});
@@ -67,17 +68,15 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       });
 
       try {
-        final cloudinaryService = CloudinaryService(
-          ref.read(apiClientProvider),
-        );
+        final cloudinaryService = ref.read(cloudinaryServiceProvider);
 
-        final url = await cloudinaryService.uploadImage(
+        final result = await cloudinaryService.uploadImage(
           _imageFile!,
           folder: 'kovari-groups',
         );
 
         setState(() {
-          _coverImageUrl = url;
+          _coverImageUrl = result['secure_url'];
           _isUploadingImage = false;
         });
       } catch (e) {
@@ -100,10 +99,13 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppColors.primary,
               primary: AppColors.primary,
-              onPrimary: Colors.white,
-              onSurface: AppColors.foreground,
+              onPrimary: AppColors.primaryForeground,
+              surface: AppColors.surface(context, level: 1),
+              onSurface: AppColors.text(context),
+              brightness: Theme.of(context).brightness,
             ),
           ),
           child: child!,
@@ -178,22 +180,16 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.card,
       appBar: AppBar(
-        backgroundColor: AppColors.card,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            LucideIcons.x,
-            color: AppColors.foreground,
-            size: 20,
-          ),
+          icon: Icon(LucideIcons.x, color: AppColors.text(context), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Create a new group",
           style: TextStyle(
-            color: AppColors.foreground,
+            color: AppColors.text(context),
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -246,19 +242,21 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
               const SizedBox(height: AppSpacing.md),
 
               _buildDatePicker(
+                context,
                 "Start date",
                 _startDate,
                 () => _selectDate(context, true),
               ),
               const SizedBox(height: AppSpacing.md),
               _buildDatePicker(
+                context,
                 "End date",
                 _endDate,
                 () => _selectDate(context, false),
               ),
               const SizedBox(height: AppSpacing.md),
 
-              _buildImagePicker(),
+              _buildImagePicker(context),
               const SizedBox(height: AppSpacing.md),
 
               TextInputField(
@@ -301,7 +299,12 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     );
   }
 
-  Widget _buildDatePicker(String label, DateTime date, VoidCallback onTap) {
+  Widget _buildDatePicker(
+    BuildContext context,
+    String label,
+    DateTime date,
+    VoidCallback onTap,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -310,7 +313,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
           child: Text(
             label,
             style: AppTextStyles.label.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -319,25 +322,22 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         const SizedBox(height: 6),
         InkWell(
           onTap: onTap,
-          child: Container(
+          child: AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
+            borderRadius: BorderRadius.circular(12),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   LucideIcons.calendar,
                   size: 16,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   DateFormat('MMM d, yyyy').format(date),
                   style: AppTextStyles.bodyMedium.copyWith(
                     fontWeight: FontWeight.w500,
+                    color: AppColors.text(context),
                   ),
                 ),
               ],
@@ -348,7 +348,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     );
   }
 
-  Widget _buildImagePicker() {
+  Widget _buildImagePicker(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -357,7 +357,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
           child: Text(
             "Upload Group Cover Image",
             style: AppTextStyles.label.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -366,18 +366,20 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         const SizedBox(height: 6),
         InkWell(
           onTap: _isUploadingImage ? null : _pickImage,
-          child: Container(
+          child: AppCard(
             height: 120,
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
+            borderRadius: BorderRadius.circular(12),
             child: _coverImageUrl != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(_coverImageUrl!, fit: BoxFit.cover),
+                    child: CachedNetworkImage(
+                      imageUrl: _coverImageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
                   )
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -389,15 +391,15 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       else ...[
-                        const Icon(
+                        Icon(
                           LucideIcons.image,
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           "Tap to select image",
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                           ),
                         ),
                       ],

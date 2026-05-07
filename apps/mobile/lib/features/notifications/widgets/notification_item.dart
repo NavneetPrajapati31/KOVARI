@@ -24,13 +24,13 @@ class NotificationItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: notification.isRead
               ? Colors.transparent
-              : AppColors.primaryLight,
-          border: const Border(bottom: BorderSide(color: AppColors.border)),
+              : AppColors.primary.withValues(alpha: 0.1),
+          border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildAvatar(),
+            _buildAvatar(context),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -40,7 +40,7 @@ class NotificationItem extends StatelessWidget {
                     notification.title,
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.foreground,
+                      color: AppColors.text(context),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -50,20 +50,20 @@ class NotificationItem extends StatelessWidget {
                         TextSpan(
                           text: notification.message,
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                           ),
                         ),
                         TextSpan(
                           text: ' · ',
                           style: AppTextStyles.label.copyWith(
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                           ),
                         ),
                         TextSpan(
                           text: _formatTime(notification.createdAt),
                           style: AppTextStyles.label.copyWith(
                             fontSize: 11,
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                           ),
                         ),
                       ],
@@ -78,7 +78,7 @@ class NotificationItem extends StatelessWidget {
             Icon(
               LucideIcons.chevronRight,
               size: 16,
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ],
         ),
@@ -86,19 +86,19 @@ class NotificationItem extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(BuildContext context) {
     if (notification.type == NotificationType.reportSubmitted) {
       return Container(
         width: 40,
         height: 40,
-        decoration: const BoxDecoration(
-          color: AppColors.secondary,
+        decoration: BoxDecoration(
+          color: AppColors.surface(context, level: 2),
           shape: BoxShape.circle,
         ),
-        child: const Icon(
+        child: Icon(
           LucideIcons.check,
           size: 18,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       );
     }
@@ -106,7 +106,7 @@ class NotificationItem extends StatelessWidget {
     if (notification.imageUrl != null) {
       return CircleAvatar(
         radius: 20,
-        backgroundColor: AppColors.secondary,
+        backgroundColor: AppColors.surface(context, level: 2),
         backgroundImage: NetworkImage(notification.imageUrl!),
       );
     }

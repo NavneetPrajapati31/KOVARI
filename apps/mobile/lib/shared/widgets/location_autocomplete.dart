@@ -10,15 +10,19 @@ import 'text_input_field.dart';
 class LocationAutocomplete extends ConsumerStatefulWidget {
   final String label;
   final String? initialValue;
+  final String? hintText;
   final Function(GeoapifyResult) onSelect;
   final Color? fillColor;
+  final EdgeInsetsGeometry? contentPadding;
 
   const LocationAutocomplete({
     super.key,
     required this.label,
     this.initialValue,
+    this.hintText,
     required this.onSelect,
     this.fillColor,
+    this.contentPadding,
   });
 
   @override
@@ -108,15 +112,15 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
               child: Material(
                 elevation: 8,
                 borderRadius: AppRadius.large,
-                color: Colors.white,
+                color: AppColors.surface(context, level: 2),
                 shadowColor: Colors.black.withValues(alpha: 0.1),
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 240),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: AppColors.borderColor(context)),
                     borderRadius: AppRadius.large,
                   ),
-                  child: _buildOverlayContent(),
+                  child: _buildOverlayContent(context),
                 ),
               ),
             ),
@@ -128,11 +132,11 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
     overlay.insert(_overlayEntry!);
   }
 
-  Widget _buildOverlayContent() {
+  Widget _buildOverlayContent(BuildContext context) {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(10),
-        child: Center(
+      return Padding(
+        padding: widget.contentPadding ?? const EdgeInsets.all(10),
+        child: const Center(
           child: SizedBox(
             width: 16,
             height: 16,
@@ -144,74 +148,79 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
 
     if (_suggestions.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.all(10),
+        padding: widget.contentPadding ?? const EdgeInsets.all(10),
         child: Center(
           child: Text(
             'No results found',
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      shrinkWrap: true,
-      itemCount: _suggestions.length,
-      itemBuilder: (context, index) {
-        final suggestion = _suggestions[index];
-        return InkWell(
-          onTap: () async {
-            // 1. Update UI immediately (match web)
-            _controller.text = suggestion.formatted;
-            _hideOverlay();
-            _focusNode.unfocus();
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final suggestion in _suggestions)
+            InkWell(
+              onTap: () async {
+                // 1. Update UI immediately (match web)
+                _controller.text = suggestion.formatted;
+                _hideOverlay();
+                _focusNode.unfocus();
 
-            // 2. Fetch full details if needed (match web handleSelect)
-            setState(() => _isLoading = true);
-            final service = LocationService();
-            final details = await service.getLocationDetails(
-              suggestion.placeId,
-            );
-            setState(() => _isLoading = false);
+                if (!mounted) return;
+                setState(() => _isLoading = true);
+                final service = LocationService();
+                final details = await service.getLocationDetails(
+                  suggestion.placeId,
+                );
 
-            if (details != null) {
-              widget.onSelect(details);
-            } else {
-              widget.onSelect(suggestion);
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  suggestion.city.isNotEmpty
-                      ? suggestion.city
-                      : suggestion.formatted.split(',')[0],
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w500,
-                    height: 1.1,
-                  ),
+                if (!mounted) return;
+                setState(() => _isLoading = false);
+
+                if (details != null) {
+                  widget.onSelect(details);
+                } else {
+                  widget.onSelect(suggestion);
+                }
+              },
+              child: Padding(
+                padding: widget.contentPadding ??
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      suggestion.city.isNotEmpty
+                          ? suggestion.city
+                          : suggestion.formatted.split(',')[0],
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        height: 1.1,
+                        color: AppColors.text(context),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      suggestion.formatted,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.text(context, isMuted: true),
+                        height: 1.1,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  suggestion.formatted,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.mutedForeground,
-                    height: 1.1,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -236,9 +245,10 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
           label: widget.label,
           controller: _controller,
           focusNode: _focusNode,
-          hintText: 'Search city...',
+          hintText: widget.hintText ?? 'Search city...',
           onChanged: _onChanged,
           fillColor: widget.fillColor,
+          contentPadding: widget.contentPadding,
         ),
       ),
     );

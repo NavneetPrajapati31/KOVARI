@@ -91,16 +91,16 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
               groupId: 'nationality_autocomplete',
               child: Material(
                 elevation: 8,
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                color: Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                color: AppColors.surface(context, level: 2),
                 shadowColor: Colors.black.withValues(alpha: 0.1),
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 200),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    border: Border.all(color: AppColors.borderColor(context)),
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
                   ),
-                  child: _buildOverlayContent(),
+                  child: _buildOverlayContent(context),
                 ),
               ),
             ),
@@ -112,44 +112,46 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
     overlay.insert(_overlayEntry!);
   }
 
-  Widget _buildOverlayContent() {
+  Widget _buildOverlayContent(BuildContext context) {
     if (_filteredCountries.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(20),
         child: Text(
           'No nationality found',
           style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      shrinkWrap: true,
-      itemCount: _filteredCountries.length,
-      itemBuilder: (context, index) {
-        final country = _filteredCountries[index];
-        return InkWell(
-          onTap: () {
-            _controller.text = country;
-            widget.onSelect(country);
-            _hideOverlay();
-            _focusNode.unfocus();
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Text(
-              country,
-              style: AppTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w500,
-                height: 1,
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final country in _filteredCountries)
+            InkWell(
+              onTap: () {
+                _controller.text = country;
+                widget.onSelect(country);
+                _hideOverlay();
+                _focusNode.unfocus();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Text(
+                  country,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                    height: 1,
+                    color: AppColors.text(context),
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      },
+        ],
+      ),
     );
   }
 

@@ -8,11 +8,13 @@ import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
+import '../../../shared/widgets/app_card.dart';
 import '../models/user_profile.dart';
 import '../../app_shell/providers/app_shell_provider.dart';
 import 'connections_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
+import 'safety_screen.dart';
 
 import '../../../shared/widgets/kovari_image_modal.dart';
 import '../../../shared/widgets/kovari_popover.dart';
@@ -29,7 +31,6 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
@@ -44,7 +45,7 @@ class ProfileScreen extends ConsumerWidget {
                   children: [
                     _buildHeaderCard(context, ref, profile),
                     const SizedBox(height: 12),
-                    _buildContentCard(profile),
+                    _buildContentCard(context, profile),
                   ],
                 ),
               ),
@@ -60,13 +61,8 @@ class ProfileScreen extends ConsumerWidget {
     WidgetRef ref,
     UserProfile profile,
   ) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -101,6 +97,7 @@ class ProfileScreen extends ConsumerWidget {
                             style: AppTextStyles.bodyMedium.copyWith(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
+                              color: AppColors.text(context),
                             ),
                           ),
                         ),
@@ -123,9 +120,10 @@ class ProfileScreen extends ConsumerWidget {
                               icon: LucideIcons.shieldCheck,
                               label: 'Safety',
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Safety coming soon'),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SafetyScreen(),
                                   ),
                                 );
                               },
@@ -135,13 +133,13 @@ class ProfileScreen extends ConsumerWidget {
                               label: 'Log out',
                               isDestructive: true,
                               onTap: () =>
-                                  ref.read(authStateProvider.notifier).logout(),
+                                  ref.read(authProvider.notifier).logout(),
                             ),
                           ],
-                          child: const Icon(
+                          child: Icon(
                             LucideIcons.menu,
                             size: 18,
-                            color: AppColors.foreground,
+                            color: AppColors.text(context),
                           ),
                         ),
                       ],
@@ -149,7 +147,7 @@ class ProfileScreen extends ConsumerWidget {
                     Text(
                       '@${profile.username}',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 12,
                       ),
                     ),
@@ -157,6 +155,7 @@ class ProfileScreen extends ConsumerWidget {
                     Row(
                       children: [
                         _buildStatItem(
+                          context,
                           profile.followers,
                           'Followers',
                           onTap: () {
@@ -174,6 +173,7 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 16),
                         _buildStatItem(
+                          context,
                           profile.following,
                           'Following',
                           onTap: () {
@@ -200,7 +200,7 @@ class ProfileScreen extends ConsumerWidget {
           Text(
             profile.bio.isEmpty ? 'No bio added.' : profile.bio,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
             ),
           ),
@@ -235,7 +235,7 @@ class ProfileScreen extends ConsumerWidget {
                     );
                   },
                   backgroundColor: AppColors.primary,
-                  textColor: AppColors.primaryForeground,
+                  textColor: Colors.white,
                 ),
               ),
               const SizedBox(width: 8),
@@ -246,8 +246,8 @@ class ProfileScreen extends ConsumerWidget {
                     // Navigate to the Explore tab (index 1)
                     ref.read(appShellIndexProvider.notifier).setIndex(1);
                   },
-                  backgroundColor: AppColors.secondary,
-                  textColor: AppColors.secondaryForeground,
+                  backgroundColor: AppColors.surface(context, level: 2),
+                  textColor: AppColors.text(context),
                 ),
               ),
             ],
@@ -264,7 +264,12 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatItem(String count, String label, {VoidCallback? onTap}) {
+  Widget _buildStatItem(
+    BuildContext context,
+    String count,
+    String label, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -272,17 +277,17 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           Text(
             count,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 12,
-              color: Colors.black,
+              color: AppColors.text(context),
             ),
           ),
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -321,17 +326,12 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContentCard(UserProfile profile) {
-    return Container(
+  Widget _buildContentCard(BuildContext context, UserProfile profile) {
+    return AppCard(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.lg,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,10 +361,12 @@ class ProfileScreen extends ConsumerWidget {
           // First section: 3 rows
           _buildInfoRow(
             _buildInfoItem(
+              context,
               'AGE',
               profile.age.isEmpty ? 'Not specified' : profile.age,
             ),
             _buildInfoItem(
+              context,
               'GENDER',
               profile.gender.isEmpty ? 'Not specified' : profile.gender,
             ),
@@ -372,12 +374,14 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildInfoRow(
             _buildInfoItem(
+              context,
               'NATIONALITY',
               profile.nationality.isEmpty
                   ? 'Not specified'
                   : profile.nationality,
             ),
             _buildInfoItem(
+              context,
               'LOCATION',
               profile.location.isEmpty ? 'Not specified' : profile.location,
             ),
@@ -385,26 +389,30 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildInfoRow(
             _buildInfoItem(
+              context,
               'PROFESSION',
               profile.profession.isEmpty ? 'Not specified' : profile.profession,
             ),
             _buildInfoItem(
+              context,
               'RELIGION',
               profile.religion.isEmpty ? 'Not specified' : profile.religion,
             ),
           ),
           const SizedBox(height: 20),
-          const Divider(height: 1, color: AppColors.border),
+          Divider(height: 1, color: AppColors.borderColor(context)),
           const SizedBox(height: 20),
           // Second section: 2 rows
           _buildInfoRow(
             _buildInfoItem(
+              context,
               'PERSONALITY',
               profile.personality.isEmpty
                   ? 'Not specified'
                   : profile.personality,
             ),
             _buildInfoItem(
+              context,
               'FOOD PREFERENCE',
               profile.foodPreference.isEmpty
                   ? 'Not specified'
@@ -414,24 +422,26 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildInfoRow(
             _buildInfoItem(
+              context,
               'SMOKING',
               profile.smoking.isEmpty ? 'Not specified' : profile.smoking,
             ),
             _buildInfoItem(
+              context,
               'DRINKING',
               profile.drinking.isEmpty ? 'Not specified' : profile.drinking,
             ),
           ),
           if (profile.interests.isNotEmpty || profile.languages.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: AppColors.borderColor(context)),
             const SizedBox(height: 20),
             if (profile.interests.isNotEmpty) ...[
-              _buildChipsSection('INTERESTS', profile.interests),
+              _buildChipsSection(context, 'INTERESTS', profile.interests),
               if (profile.languages.isNotEmpty) const SizedBox(height: 20),
             ],
             if (profile.languages.isNotEmpty) ...[
-              _buildChipsSection('LANGUAGES', profile.languages),
+              _buildChipsSection(context, 'LANGUAGES', profile.languages),
             ],
           ],
         ],
@@ -439,15 +449,15 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoItem(String label, String value) {
+  Widget _buildInfoItem(BuildContext context, String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -455,10 +465,10 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Colors.black,
+            color: AppColors.text(context),
           ),
         ),
       ],
@@ -475,15 +485,19 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildChipsSection(String label, List<String> items) {
+  Widget _buildChipsSection(
+    BuildContext context,
+    String label,
+    List<String> items,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -496,15 +510,15 @@ class ProfileScreen extends ConsumerWidget {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                color: AppColors.surface(context, level: 2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 item,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black,
+                  color: AppColors.text(context),
                 ),
               ),
             );

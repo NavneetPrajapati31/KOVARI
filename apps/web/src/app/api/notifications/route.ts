@@ -1,6 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { createAdminSupabaseClient } from "@kovari/api";
+import {
+  formatStandardResponse,
+  formatErrorResponse,
+} from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 /**
  * GET /api/notifications
@@ -11,11 +16,18 @@ import { createAdminSupabaseClient } from "@kovari/api";
  * - unreadOnly: boolean (default: false)
  */
 export async function GET(request: NextRequest) {
+  const start = Date.now();
+  const requestId = "fetch-notifs";
   try {
     const authUser = await getAuthenticatedUser(request);
 
     if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return formatErrorResponse(
+        "Unauthorized",
+        ApiErrorCode.UNAUTHORIZED,
+        requestId,
+        401
+      );
     }
 
     const userId = authUser.id;
@@ -41,9 +53,11 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Error fetching notifications:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch notifications" },
-        { status: 500 }
+      return formatErrorResponse(
+        "Failed to fetch notifications",
+        ApiErrorCode.INTERNAL_SERVER_ERROR,
+        requestId,
+        500
       );
     }
 
@@ -112,12 +126,18 @@ export async function GET(request: NextRequest) {
       return { ...n, image_url };
     });
 
-    return NextResponse.json({ notifications: enrichedNotifications });
+    return formatStandardResponse(
+      { notifications: enrichedNotifications },
+      {},
+      { requestId, latencyMs: Date.now() - start }
+    );
   } catch (error: any) {
     console.error("Exception in GET /api/notifications:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return formatErrorResponse(
+      "Internal server error",
+      ApiErrorCode.INTERNAL_SERVER_ERROR,
+      "fetch-notifs",
+      500
     );
   }
 }

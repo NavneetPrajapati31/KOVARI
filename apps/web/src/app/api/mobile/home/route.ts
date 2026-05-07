@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { isAfter, isBefore, parseISO } from "date-fns";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 /**
  * GET /api/mobile/home
@@ -9,9 +12,12 @@ import { isAfter, isBefore, parseISO } from "date-fns";
  * Replicates the logic from apps/web dashboard while remaining lightweight.
  */
 export async function GET(req: NextRequest) {
+    const start = Date.now();
+    const requestId = generateRequestId();
+
     const authUser = await getAuthenticatedUser(req);
     if (!authUser) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
     const userId = authUser.id; // internal Supabase UUID
@@ -26,11 +32,11 @@ export async function GET(req: NextRequest) {
             .single();
 
         if (statusError || !userStatus) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+            return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
         }
 
         if (userStatus.isDeleted || userStatus.banned) {
-            return NextResponse.json({ error: "Account inactive" }, { status: 403 });
+            return formatErrorResponse("Account inactive", ApiErrorCode.FORBIDDEN, requestId, 403);
         }
 
         // 2. Parallel Data Fetching
@@ -279,25 +285,29 @@ export async function GET(req: NextRequest) {
         });
 
         // 6. Final Response
-        return NextResponse.json({
-            profile: {
-                name: profile?.name || "",
-                username: profile?.username || "",
-                avatar: profile?.profile_photo || "",
+        return formatStandardResponse(
+            {
+                profile: {
+                    name: profile?.name || "",
+                    username: profile?.username || "",
+                    avatar: profile?.profile_photo || "",
+                },
+                stats,
+                topDestination,
+                featuredTrip,
+                recentNotifications: enrichedNotifications,
+                unreadNotificationCount,
+                activeGroups,
+                pendingInvitesCount,
+                connectionRequests,
+                travelPreferences
             },
-            stats,
-            topDestination,
-            featuredTrip,
-            recentNotifications: enrichedNotifications,
-            unreadNotificationCount,
-            activeGroups,
-            pendingInvitesCount,
-            connectionRequests,
-            travelPreferences
-        });
+            { contractState: 'clean', degraded: false },
+            { requestId, latencyMs: Date.now() - start }
+        );
 
     } catch (error: any) {
         console.error("Critical error in GET /api/mobile/home:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        return formatErrorResponse("Internal server error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 }

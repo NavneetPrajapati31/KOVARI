@@ -1,185 +1,158 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { getAuthenticatedUser } from "@/lib/auth/get-user";
 
 /**
  * GET /api/reports/targets
  * Fetches users or groups for reporting.
  * If ?q= is provided, it searches by name.
- * If empty, it could return recent users/groups (currently just returns top 10).
+ * Handles both Web (Clerk) and Mobile (JWT) authentication.
  */
 export async function GET(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
+    const authUser = await getAuthenticatedUser(req);
 
-    if (!clerkUserId) {
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const internalUserId = authUser.id;
     const searchParams = req.nextUrl.searchParams;
-    const type = searchParams.get("type"); // "user" | "group"
+    const type = searchParams.get("type") || "user";
     const query = searchParams.get("q") || "";
 
-    if (type !== "user" && type !== "group") {
-      return NextResponse.json(
-        { error: "Invalid target type" },
-        { status: 400 }
-      );
-    }
-
     const supabase = createAdminSupabaseClient();
-
-    // Fetch internal user ID
-    const { data: currentUserRow } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", clerkUserId)
-      .single();
-      
-    const internalUserId = currentUserRow?.id;
-    console.log(`[Search Targets] Request for type "${type}". internalUserId: ${internalUserId}, clerkUserId: ${clerkUserId}`);
-
     let data: any[] = [];
 
     if (type === "user") {
-      if (!internalUserId) {
-        return NextResponse.json({ targets: [] });
-      }
+      // 1. Fetch connected user IDs
+      let connectedIds: string[] = [];
+      try {
+        const [follows, matches] = await Promise.all([
+          supabase
+            .from("user_follows")
+            .select("follower_id, following_id")
+            .or(`follower_id.eq.${internalUserId},following_id.eq.${internalUserId}`)
+            .limit(200),
+          supabase
+            .from("match_interests")
+            .select("from_user_id, to_user_id")
+            .or(`from_user_id.eq.${internalUserId},to_user_id.eq.${internalUserId}`)
+            .eq("status", "accepted")
+            .limit(100)
+        ]);
 
-      // 1. Fetch connections first (following or followers)
-      const { data: followsData, error: followsError } = await supabase
-        .from("user_follows")
-        .select("follower_id, following_id")
-        .or(`follower_id.eq.${internalUserId},following_id.eq.${internalUserId}`)
-        .limit(100);
-        
-      // 2. Fetch matches (explore matching feature)
-      const { data: matchesData, error: matchesError } = await supabase
-        .from("match_interests")
-        .select("from_user_id, to_user_id")
-        .or(`from_user_id.eq.${internalUserId},to_user_id.eq.${internalUserId}`)
-        .eq("status", "accepted")
-        .limit(100);
-
-      const connectedUserIds = new Set<string>();
-      if (!followsError && followsData) {
-        followsData.forEach(f => {
-          if (f.follower_id !== internalUserId) connectedUserIds.add(f.follower_id);
-          if (f.following_id !== internalUserId) connectedUserIds.add(f.following_id);
+        const idSet = new Set<string>();
+        (follows.data || []).forEach(f => {
+          if (f.follower_id && f.follower_id !== internalUserId) idSet.add(f.follower_id);
+          if (f.following_id && f.following_id !== internalUserId) idSet.add(f.following_id);
         });
-      }
-      
-      if (!matchesError && matchesData) {
-        matchesData.forEach(m => {
-          if (m.from_user_id !== internalUserId) connectedUserIds.add(m.from_user_id);
-          if (m.to_user_id !== internalUserId) connectedUserIds.add(m.to_user_id);
+        (matches.data || []).forEach(m => {
+          if (m.from_user_id && m.from_user_id !== internalUserId) idSet.add(m.from_user_id);
+          if (m.to_user_id && m.to_user_id !== internalUserId) idSet.add(m.to_user_id);
         });
+        connectedIds = Array.from(idSet);
+      } catch (err) {
+        console.error("[REPORT_TARGETS] Error fetching connections:", err);
       }
 
-      const connectionArray = Array.from(connectedUserIds);
+      const searchTerm = query.trim();
 
-      if (connectionArray.length === 0) {
-        // No connections to search among, return empty early
-        return NextResponse.json({ targets: [] });
-      }
+      if (!searchTerm) {
+        // CASE A: Empty search - show all connections (up to 20)
+        if (connectedIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, name, username, profile_photo")
+            .in("user_id", connectedIds)
+            .limit(20);
 
-      if (query) {
-        // 2a. Search query provided: filter profiles IN connections AND matching the query
-        const { data: profilesData, error } = await supabase
-          .from("profiles")
-          .select("user_id, name, username, profile_photo")
-          .in("user_id", connectionArray)
-          .or(`name.ilike.%${query}%,username.ilike.%${query}%`)
-          .limit(20);
-
-        if (error) throw error;
-        data = profilesData.map((p: any) => ({
-          id: p.user_id,
-          name: p.name || p.username || "Unknown User",
-          username: p.username,
-          imageUrl: p.profile_photo,
-        }));
+          if (profiles) {
+            data = profiles.map(p => ({
+              id: p.user_id,
+              name: p.name || p.username || "User",
+              username: p.username,
+              imageUrl: p.profile_photo
+            }));
+          }
+        }
       } else {
-        // 2b. No query provided: just return all connections (or max 20)
-        console.log("[Search Targets] Fetching default user connections...");
-        const { data: connectionsData, error } = await supabase
-          .from("profiles")
-          .select("user_id, name, username, profile_photo")
-          .in("user_id", connectionArray)
-          .limit(20);
+        // CASE B: Search query provided - prioritize connections, then fallback global
+        // 1. Try connections first
+        if (connectedIds.length > 0) {
+          const { data: connectionResults } = await supabase
+            .from("profiles")
+            .select("user_id, name, username, profile_photo")
+            .in("user_id", connectedIds)
+            .or(`name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
+            .limit(20);
 
-        if (error) {
-          console.error("[Search Targets] Connections Profiles error:", error);
+          if (connectionResults && connectionResults.length > 0) {
+            data = connectionResults.map(p => ({
+              id: p.user_id,
+              name: p.name || p.username || "User",
+              username: p.username,
+              imageUrl: p.profile_photo
+            }));
+          }
         }
 
-        if (!error && connectionsData) {
-          console.log(`[Search Targets] Successfully resolved ${connectionsData.length} profiles from connections`);
-          data = connectionsData.map((p: any) => ({
-            id: p.user_id,
-            name: p.name || p.username || "Unknown User",
-            username: p.username,
-            imageUrl: p.profile_photo,
-          }));
+        // 2. Global fallback if no results from connections
+        if (data.length === 0) {
+          const { data: globalResults } = await supabase
+            .from("profiles")
+            .select("user_id, name, username, profile_photo")
+            .neq("user_id", internalUserId)
+            .or(`name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
+            .limit(20);
+
+          if (globalResults) {
+            data = globalResults.map(p => ({
+              id: p.user_id,
+              name: p.name || p.username || "User",
+              username: p.username,
+              imageUrl: p.profile_photo
+            }));
+          }
         }
       }
-    } else if (internalUserId) {
-      // 1. Fetch group IDs where user is the creator
-      const { data: createdGroups, error: createdError } = await supabase
+    } else {
+      // Group search: creator or member
+      const { data: creatorGroups } = await supabase
         .from("groups")
         .select("id, name, cover_image")
         .eq("creator_id", internalUserId)
         .eq("status", "active");
 
-      if (createdError) console.error("[Search Targets] Created Groups error:", createdError);
-
-      // 2. Fetch group IDs where user has an accepted membership
-      const { data: membershipsData, error: membershipsError } = await supabase
+      const { data: memberGroups } = await supabase
         .from("group_memberships")
         .select("group_id, groups!inner(id, name, cover_image, status)")
         .eq("user_id", internalUserId)
-        .eq("status", "accepted")
-        .limit(100);
+        .eq("status", "accepted");
 
-      if (membershipsError) console.error("[Search Targets] Group Memberships error:", membershipsError);
-
-      // 3. Combine and filter by query if provided
       const uniqueGroups = new Map<string, any>();
+      (creatorGroups || []).forEach(g => uniqueGroups.set(g.id, g));
+      (memberGroups || []).forEach(m => {
+        const group = Array.isArray(m.groups) ? m.groups[0] : m.groups;
+        if (group && group.status === "active") {
+          uniqueGroups.set(group.id, group);
+        }
+      });
 
-      if (createdGroups) {
-        createdGroups.forEach((g: any) => {
-          if (!query || g.name?.toLowerCase().includes(query.toLowerCase())) {
-            uniqueGroups.set(g.id, {
-              id: g.id,
-              name: g.name || "Unknown Group",
-              imageUrl: g.cover_image,
-            });
-          }
-        });
-      }
-
-      if (membershipsData) {
-        membershipsData
-          .filter((m: any) => m.groups && m.groups.status === "active")
-          .forEach((m: any) => {
-            const g = m.groups;
-            if (!query || g.name?.toLowerCase().includes(query.toLowerCase())) {
-              uniqueGroups.set(g.id, {
-                id: g.id,
-                name: g.name || "Unknown Group",
-                imageUrl: g.cover_image,
-              });
-            }
-          });
-      }
-
-      data = Array.from(uniqueGroups.values()).slice(0, 20);
+      data = Array.from(uniqueGroups.values())
+        .filter(g => !query || g.name?.toLowerCase().includes(query.toLowerCase()))
+        .map(g => ({
+          id: g.id,
+          name: g.name,
+          imageUrl: g.cover_image
+        }));
     }
 
     return NextResponse.json({ targets: data });
-  } catch (error) {
-    console.error("Error in GET /api/reports/targets:", error);
+  } catch (error: any) {
+    console.error("[REPORT_TARGETS] Critical failure:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal server error", message: error.message },
       { status: 500 }
     );
   }

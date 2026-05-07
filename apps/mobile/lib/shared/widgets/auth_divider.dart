@@ -11,17 +11,17 @@ class AuthDivider extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       child: Row(
         children: [
-          const Expanded(child: Divider(color: AppColors.border)),
+          Expanded(child: Divider(color: AppColors.borderColor(context))),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'OR',
               style: AppTextStyles.labelUppercase.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           ),
-          const Expanded(child: Divider(color: AppColors.border)),
+          Expanded(child: Divider(color: AppColors.borderColor(context))),
         ],
       ),
     );

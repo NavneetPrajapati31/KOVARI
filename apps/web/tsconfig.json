@@ -14,7 +14,7 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "preserve",
-    "incremental": true,
+    "incremental": false,
     "plugins": [
       {
         "name": "next"
@@ -25,5 +25,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "apps/admin"]
+  "exclude": ["node_modules", "apps/admin", "apps/mobile", "apps/matching-service"]
 }

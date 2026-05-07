@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     if (lookupError || !storedToken) {
       // Re-use detection: if token is valid but not in DB, it might have been stolen or used.
-      console.warn(`[AUTH] Potential refresh token reuse attack for user: ${payload.userId}`);
+      console.warn(`[AUTH] Potential refresh token reuse attack for user: ${payload.sub}`);
       return NextResponse.json(
         { error: "Invalid refresh token session" }, 
         { status: 401 }
@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
       .eq("id", storedToken.id);
 
     // 4. Generate & Store new pair
-    const newRefreshToken = generateRefreshToken(payload.userId);
+    const newRefreshToken = generateRefreshToken(payload.sub, payload.email);
     const newTokenHash = hashToken(newRefreshToken);
-    const newAccessToken = generateAccessToken(payload.userId, newTokenHash);
+    const newAccessToken = generateAccessToken(payload.sub, payload.email, newTokenHash);
     
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     const { error: storeError } = await supabase
       .from("refresh_tokens")
       .insert({
-        user_id: payload.userId,
+        user_id: payload.sub,
         token_hash: newTokenHash,
         expires_at: expiresAt.toISOString(),
       });
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to rotate session" }, { status: 500 });
     }
 
-    console.log(`[AUTH] Session rotated for user: ${payload.userId}`);
+    console.log(`[AUTH] Session rotated for user: ${payload.sub}`);
 
     return NextResponse.json({
       accessToken: newAccessToken,

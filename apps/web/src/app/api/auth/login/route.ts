@@ -2,82 +2,147 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { generateAccessToken, generateRefreshToken, hashToken } from "@/lib/auth/jwt";
 import { createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { detectClient } from "@/lib/api/clientDetection";
+import { 
+  formatStandardResponse, 
+  formatErrorResponse, 
+  safeTransform 
+} from "@/lib/api/responseHelpers";
+import { userTransformer } from "@/lib/transformers/userTransformer";
+import { ApiErrorCode, KovariClient } from "@/types/api";
 
 /**
- * Handle custom Email/Password login
- * POST /api/auth/login
+ * 🏛️ HARDENED LOGIN API (Phase 3 True Isolation)
  */
 export async function POST(request: NextRequest) {
-  try {
-    const { email, password } = await request.json();
+  const { client, error: clientError } = detectClient(request);
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
-    }
+  // ⚡ TRUE LEGACY ISOLATION
+  if (client === "web") {
+    try {
+      const { email, password } = await request.json();
+      if (!email || !password) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
-    // 1. Initialize Supabase
-    const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+      const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+      const { data: user } = await supabase
+        .from("users")
+        .select("id, email, name, password_hash, banned, ban_reason, ban_expires_at")
+        .ilike("email", email)
+        .maybeSingle();
 
-    // 2. Lookup user by email (Unified SOT)
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("id, email, name, password_hash")
-      .ilike("email", email) 
-      .maybeSingle();
+      if (!user || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) {
+        return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      }
 
-    if (userError || !user) {
-      console.warn(`[AUTH] Failed login attempt for ${email} (User not found)`);
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    }
+      const refreshToken = generateRefreshToken(user.id, user.email);
+      const tokenHash = hashToken(refreshToken);
+      const accessToken = generateAccessToken(user.id, user.email, tokenHash);
 
-    // 3. Verify Password
-    if (!user.password_hash) {
-      console.warn(`[AUTH] Failed login attempt for ${email} (No password set - potentially SSO user)`);
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    }
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) {
-      console.warn(`[AUTH] Failed login attempt for ${email} (Invalid password)`);
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    }
-
-    // 4. Generate Tokens
-    const userId = user.id;
-    const refreshToken = generateRefreshToken(userId);
-    const tokenHash = hashToken(refreshToken);
-    const accessToken = generateAccessToken(userId, tokenHash);
-
-    // 5. Store Hashed Refresh Token in DB for rotation/revocation
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7d
-
-    const { error: tokenError } = await supabase
-      .from("refresh_tokens")
-      .insert({
-        user_id: userId,
+      await supabase.from("refresh_tokens").insert({
+        user_id: user.id,
         token_hash: tokenHash,
         expires_at: expiresAt.toISOString(),
       });
 
-    if (tokenError) {
-      console.error("Failed to store refresh token:", tokenError);
-      return NextResponse.json({ error: "Auth session setup failed" }, { status: 500 });
+      return NextResponse.json({
+        accessToken,
+        refreshToken,
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          name: user.name,
+          banned: user.banned ?? false,
+          banReason: user.ban_reason || null,
+          banExpiresAt: user.ban_expires_at || null,
+        }
+      });
+    } catch (err: any) {
+      return NextResponse.json({ error: "Auth failure" }, { status: 500 });
+    }
+  }
+
+  // 🛡️ Standard Hardened Path
+  const start = Date.now();
+  const requestId = generateRequestId();
+
+  if (clientError) {
+    return formatErrorResponse(clientError, ApiErrorCode.BAD_REQUEST, requestId, 400);
+  }
+
+  return handleStandardLogin(request, requestId, start, client);
+}
+
+/**
+ * Handle Standard Login (Mobile/v1)
+ */
+async function handleStandardLogin(
+  request: NextRequest, 
+  requestId: string, 
+  start: number, 
+  client: KovariClient
+): Promise<NextResponse> {
+  try {
+    const { email, password } = await request.json();
+    const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+    const { data: user } = await supabase
+      .from("users")
+      .select("id, email, name, password_hash, banned, ban_reason, ban_expires_at")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (!user || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) {
+      return formatErrorResponse("Invalid credentials", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
-    // 6. Return success
-    return NextResponse.json({
+    const refreshToken = generateRefreshToken(user.id, user.email);
+    const tokenHash = hashToken(refreshToken);
+    const accessToken = generateAccessToken(user.id, user.email, tokenHash);
+
+    let isActuallyBanned = user.banned ?? false;
+    if (isActuallyBanned && user.ban_expires_at) {
+      if (new Date(user.ban_expires_at) < new Date()) {
+        isActuallyBanned = false;
+        
+        // Auto-lift ban in background (best effort)
+        supabase.from("users").update({ banned: false }).eq("id", user.id).then(({ error }) => {
+          if (error) console.error("Failed to auto-lift expired ban for user:", user.id, error);
+        });
+      }
+    }
+
+    const authData = {
       accessToken,
       refreshToken,
-      user: {
-        id: userId,
-        email: user.email,
+      user: { 
+        id: user.id, 
+        email: user.email, 
         name: user.name,
-      },
-    });
+        banned: isActuallyBanned,
+        banReason: user.ban_reason || null,
+        banExpiresAt: user.ban_expires_at || null,
+      }
+    };
 
-  } catch (error) {
-    console.error("Critical error in /api/auth/login:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    // Gate 2: Post-Transform Validation
+    const result = safeTransform(userTransformer, authData.user);
+    if (!result.ok || !result.data.email) {
+      return formatErrorResponse("Contract failure", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
+
+    const latencyMs = Date.now() - start;
+
+    // Rule #6: Consistency data: { user }
+    return formatStandardResponse(
+      { ...authData, user: result.data },
+      {},
+      { requestId, latencyMs }
+    );
+
+  } catch (err: any) {
+    return formatErrorResponse("Login failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }

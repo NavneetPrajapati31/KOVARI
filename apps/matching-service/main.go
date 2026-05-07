@@ -4,11 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+<<<<<<< HEAD
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
+=======
+	"io"
+	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"sort"
+	"syscall"
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -16,7 +26,13 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/kovari/matching-service/internal/ai"
+<<<<<<< HEAD
 	"github.com/kovari/matching-service/internal/config"
+=======
+	"github.com/kovari/matching-service/internal/auth"
+	"github.com/kovari/matching-service/internal/config"
+	"github.com/kovari/matching-service/internal/logger"
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 	"github.com/kovari/matching-service/internal/matching"
 	"github.com/kovari/matching-service/internal/models"
 	"github.com/kovari/matching-service/internal/repository"
@@ -25,6 +41,7 @@ import (
 var (
 	mlClient *ai.MLClient
 	sbRepo   *repository.SupabaseRepository
+<<<<<<< HEAD
 )
 
 func main() {
@@ -42,12 +59,46 @@ func main() {
 	if _, err := os.Stat(webEnv); err == nil {
 		godotenv.Load(webEnv)
 		log.Printf("Searching environment in %s", webEnv)
+=======
+	repo     *repository.RedisRepository
+)
+
+func main() {
+	// Root and app-level env loading
+	rootEnv, _ := filepath.Abs("../../.env.local")
+	webEnv, _ := filepath.Abs("../web/.env.local")
+	if _, err := os.Stat(rootEnv); err == nil {
+		godotenv.Load(rootEnv)
+	}
+	if _, err := os.Stat(webEnv); err == nil {
+		godotenv.Load(webEnv)
+	}
+
+	// 1. FAIL-FAST STARTUP CHECKS
+	requiredEnv := []string{
+		"REDIS_URL",
+		"NEXT_PUBLIC_SUPABASE_URL",
+		"SUPABASE_SERVICE_ROLE_KEY",
+		"ML_SERVER_URL",
+		"INTERNAL_API_SECRET_CURRENT",
+		"GLOBAL_RATE_LIMIT",
+	}
+	for _, env := range requiredEnv {
+		if os.Getenv(env) == "" {
+			logger.Fatal(fmt.Sprintf("Missing required environment variable: %s", env), os.ErrNotExist)
+		}
+	}
+
+	if err := auth.InitRateLimiter(); err != nil {
+		logger.Fatal("Failed to initialize rate limiter", err)
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 	}
 
 	redisURL := os.Getenv("REDIS_URL")
 	sbURL := os.Getenv("NEXT_PUBLIC_SUPABASE_URL")
 	sbKey := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 	geoKey := os.Getenv("GEOAPIFY_API_KEY")
+<<<<<<< HEAD
 	mlServerURL := os.Getenv("ML_SERVER_URL")
 
 	if redisURL == "" || sbURL == "" || sbKey == "" || mlServerURL == "" {
@@ -58,6 +109,33 @@ func main() {
 	matchConfig, configHash, err := config.LoadMatchingConfig(configPath)
 	if err != nil {
 		log.Printf("Warning: Could not load matching config from %s: %v. Using defaults.", configPath, err)
+=======
+
+	var err error
+	repo, err = repository.NewRedisRepository(redisURL)
+	if err != nil {
+		logger.Fatal("Failed to connect to Redis", err)
+	}
+
+	// Fail-fast on Redis connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	if err := repo.Ping(ctx); err != nil {
+		cancel()
+		logger.Fatal("Redis ping failed during startup", err)
+	}
+	cancel()
+
+	sbRepo, err = repository.NewSupabaseRepository(sbURL, sbKey, geoKey, repo)
+	if err != nil {
+		logger.Fatal("Failed to connect to Supabase", err)
+	}
+
+	mlClient = ai.NewMLClient()
+
+	configPath := "../../packages/config/matching.json"
+	matchConfig, _, err := config.LoadMatchingConfig(configPath)
+	if err != nil {
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 		matchConfig = &models.MatchingConfig{
 			Version:       "v1",
 			ConfigVersion: "DEFAULT",
@@ -67,6 +145,7 @@ func main() {
 			},
 			MLBlend: map[string]float64{"solo": 0.6, "group": 0.3},
 		}
+<<<<<<< HEAD
 		configHash = "DEFAULT"
 	}
 
@@ -105,10 +184,58 @@ func main() {
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
+=======
+	}
+
+	// --- HANDLERS ---
+
+	healthHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}
+
+	readyHandler := func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		if err := repo.Ping(ctx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"ready": false,
+				"error": "Redis unreachable",
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ready":   true,
+			"metrics": logger.GetMetrics(),
+		})
+	}
+
+	soloHandler := func(w http.ResponseWriter, r *http.Request) {
+		requestId := r.Context().Value(auth.ContextRequestID).(string)
+		userId := r.Context().Value(auth.ContextUserID).(string)
+		startTime := r.Context().Value(auth.ContextStartTime).(time.Time)
+
+		if r.Method != http.MethodPost {
+			auth.SendError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is allowed", r)
+			return
+		}
+
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
+		var req struct{}
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&req); err != nil && err != io.EOF {
+			auth.SendError(w, http.StatusBadRequest, "INVALID_INPUT", "Malformed request or unknown fields", r)
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 			return
 		}
 
 		ctx := r.Context()
+<<<<<<< HEAD
 		startTime := time.Now()
 
 		// STEP 1: Parallel Fetch sessions from Redis
@@ -133,10 +260,27 @@ func main() {
 			var err error
 			candidates, err = repo.FetchAllSessions(gCtx, req.UserId)
 			log.Printf("TIMER: Redis FetchAllSessions took: %v", time.Since(t1))
+=======
+		var userSession *models.SoloSession
+		var candidates []models.SoloSession
+		redisCtx, redisCancel := context.WithTimeout(ctx, 3*time.Second)
+		defer redisCancel()
+
+		g, gCtx := errgroup.WithContext(redisCtx)
+		g.Go(func() error {
+			var err error
+			userSession, err = repo.GetSession(gCtx, userId)
+			return err
+		})
+		g.Go(func() error {
+			var err error
+			candidates, err = repo.FetchAllSessions(gCtx, userId)
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 			return err
 		})
 
 		if err := g.Wait(); err != nil {
+<<<<<<< HEAD
 			log.Printf("Error: Redis fetch failed: %v", err)
 			http.Error(w, fmt.Sprintf("Redis Error: %v", err), 500)
 			return
@@ -157,6 +301,21 @@ func main() {
 		seenIds := make(map[string]bool)
 		seenIds[req.UserId] = true
 
+=======
+			auth.SendError(w, 503, "STORAGE_ERROR", "Redis connection failed", r)
+			return
+		}
+
+		if userSession == nil {
+			auth.SendError(w, 404, "NOT_FOUND", "User session not found", r)
+			return
+		}
+
+		allUserIds := []string{userId}
+		candidateMap := make(map[string]models.SoloSession)
+		seenIds := make(map[string]bool)
+		seenIds[userId] = true
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 		for _, c := range candidates {
 			if c.UserId != "" && !seenIds[c.UserId] {
 				allUserIds = append(allUserIds, c.UserId)
@@ -165,6 +324,7 @@ func main() {
 			}
 		}
 
+<<<<<<< HEAD
 		// Collect pre-resolved coordinates from Redis sessions (Architecture Fix)
 		preResolved := make(map[string]models.Coordinates)
 		if userSession.Location.Lat != 0 || userSession.Location.Lon != 0 {
@@ -192,19 +352,34 @@ func main() {
 			userSession.StaticAttributes = p
 		}
 
+=======
+		profiles, err := sbRepo.FetchProfilesBatch(ctx, allUserIds, nil)
+		if err != nil {
+			auth.SendError(w, 500, "DATABASE_ERROR", "Failed to fetch profiles", r)
+			return
+		}
+
+		if p, ok := profiles[userId]; ok {
+			userSession.StaticAttributes = p
+		}
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 		var validCandidates []models.SoloSession
 		for id, session := range candidateMap {
 			if p, ok := profiles[id]; ok {
 				session.StaticAttributes = p
+<<<<<<< HEAD
 				// NEW: Preserve coordinates from profile if session was missing them
 				if session.Location.Lat == 0 && session.Location.Lon == 0 && (p.Location.Lat != 0 || p.Location.Lon != 0) {
 					session.Location = p.Location
 					session.GeoSource = "healed"
 				}
+=======
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 				validCandidates = append(validCandidates, session)
 			}
 		}
 
+<<<<<<< HEAD
 		// NEW: Self-Healing Redis Loop (Async)
 		go func(reqId string, sess *models.SoloSession, candidates []models.SoloSession) {
 			// Small buffer to prevent write storms
@@ -242,12 +417,15 @@ func main() {
 		}
 
 		// STEP 3: Parallel Logic (ML vs Rule-Based Feature Extraction)
+=======
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 		featuresList := make([]models.MLFeatures, 0, len(validCandidates))
 		for _, match := range validCandidates {
 			featuresList = append(featuresList, ai.ExtractSoloFeatures(*userSession, match))
 		}
 
 		var mlResults []models.MLPredictionResult
+<<<<<<< HEAD
 		var mlErr error
 		mlUsed := false
 		mlStartTime := time.Now()
@@ -273,14 +451,32 @@ func main() {
 		mlLatency := time.Since(mlStartTime)
 
 		// STEP 4: Final Scoring & Blending
+=======
+		if len(featuresList) > 0 {
+			mlCtx, mlCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+			mlResults, _ = mlClient.ScoreBatch(mlCtx, featuresList)
+			mlCancel()
+		}
+
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 		type ScoredMatch struct {
 			UserId           string             `json:"userId"`
 			User             models.UserPreview `json:"user"`
 			Score            float64            `json:"score"`
 			Breakdown        matching.Breakdown `json:"breakdown"`
 			BudgetDifference string             `json:"budgetDifference"`
+<<<<<<< HEAD
 		}
 
+=======
+			StartDate        string             `json:"startDate"`
+			EndDate          string             `json:"endDate"`
+			Budget           float64            `json:"budget"`
+			Destination      string             `json:"destination"`
+		}
+
+
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 		finalMatches := make([]ScoredMatch, 0, len(validCandidates))
 		for i, match := range validCandidates {
 			var mlScore *float64
@@ -288,24 +484,46 @@ func main() {
 				s := mlResults[i].Score
 				mlScore = &s
 			}
+<<<<<<< HEAD
 
 			result := matching.CalculateFinalSoloScore(*userSession, match, mlScore, matchConfig)
 
+=======
+			result := matching.CalculateFinalSoloScore(*userSession, match, mlScore, matchConfig)
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 			finalMatches = append(finalMatches, ScoredMatch{
 				UserId: match.UserId,
 				User: models.UserPreview{
 					UserId:      match.UserId,
 					Name:        match.StaticAttributes.Name,
 					Age:         match.StaticAttributes.Age,
+<<<<<<< HEAD
 					Gender:      match.StaticAttributes.Gender,
+=======
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 					Personality: match.StaticAttributes.Personality,
 					Bio:         match.StaticAttributes.Bio,
 					Avatar:      match.StaticAttributes.Avatar,
 					Budget:      match.Budget,
+<<<<<<< HEAD
+=======
+					Interests:   match.StaticAttributes.Interests,
+					Languages:      match.StaticAttributes.Languages,
+					Gender:         match.StaticAttributes.Gender,
+					Smoking:        match.StaticAttributes.Smoking,
+					Drinking:       match.StaticAttributes.Drinking,
+					Nationality:    match.StaticAttributes.Nationality,
+					Religion:       match.StaticAttributes.Religion,
+					Profession:     match.StaticAttributes.Profession,
+					FoodPreference: match.StaticAttributes.FoodPreference,
+					Location:       match.StaticAttributes.RawLocation,
+					LocationDisplay: match.StaticAttributes.RawLocation,
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 				},
 				Score:            result.Score,
 				Breakdown:        result.Breakdown,
 				BudgetDifference: result.BudgetDifference,
+<<<<<<< HEAD
 			})
 		}
 
@@ -354,6 +572,71 @@ func main() {
 		}
 
 		// Phase 3: Blending & Final results
+=======
+				StartDate:        match.StartDate,
+				EndDate:          match.EndDate,
+				Budget:           match.Budget,
+				Destination: func() string {
+					if match.Destination.Name != "" {
+						return match.Destination.Name
+					}
+					return userSession.Destination.Name
+				}(),
+			})
+
+		}
+
+		sort.Slice(finalMatches, func(i, j int) bool { return finalMatches[i].Score > finalMatches[j].Score })
+
+		latency := time.Since(startTime)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Response-Time", fmt.Sprintf("%dms", latency.Milliseconds()))
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{"matches": finalMatches},
+			"meta":    map[string]interface{}{"source": "go", "requestId": requestId, "latencyMs": latency.Milliseconds()},
+		})
+		logger.Info(requestId, userId, "Solo matches generated", http.StatusOK, latency, nil)
+	}
+
+	groupHandler := func(w http.ResponseWriter, r *http.Request) {
+		requestId := r.Context().Value(auth.ContextRequestID).(string)
+		userId := r.Context().Value(auth.ContextUserID).(string)
+		startTime := r.Context().Value(auth.ContextStartTime).(time.Time)
+
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		var req struct {
+			Candidates []models.GroupProfile `json:"candidates"`
+		}
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&req); err != nil {
+			auth.SendError(w, http.StatusBadRequest, "INVALID_INPUT", "Malformed request", r)
+			return
+		}
+
+		if len(req.Candidates) > 50 {
+			auth.SendError(w, http.StatusBadRequest, "INVALID_INPUT", "Too many candidates", r)
+			return
+		}
+
+		ctx := r.Context()
+		userSession, err := repo.GetSession(ctx, userId)
+		if err != nil || userSession == nil {
+			auth.SendError(w, 404, "NOT_FOUND", "User session not found", r)
+			return
+		}
+
+		featuresList := make([]models.MLFeatures, 0, len(req.Candidates))
+		for _, group := range req.Candidates {
+			featuresList = append(featuresList, ai.ExtractGroupFeatures(*userSession, group))
+		}
+
+		mlCtx, mlCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		mlResults, _ := mlClient.ScoreBatch(mlCtx, featuresList)
+		mlCancel()
+
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 		results := make([]models.GroupMatchResult, 0, len(req.Candidates))
 		for i, group := range req.Candidates {
 			var mlScore *float64
@@ -361,6 +644,7 @@ func main() {
 				s := mlResults[i].Score
 				mlScore = &s
 			}
+<<<<<<< HEAD
 			score := matching.CalculateFinalGroupScore(req.User, group, mlScore, matchConfig)
 			results = append(results, score)
 		}
@@ -372,11 +656,69 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(results)
 	})
+=======
+			score := matching.CalculateFinalGroupScore(*userSession, group, mlScore, matchConfig)
+			results = append(results, score)
+		}
+
+		sort.Slice(results, func(i, j int) bool { return results[i].Score > results[j].Score })
+
+		latency := time.Since(startTime)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Response-Time", fmt.Sprintf("%dms", latency.Milliseconds()))
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{"groups": results},
+			"meta":    map[string]interface{}{"source": "go", "requestId": requestId, "latencyMs": latency.Milliseconds()},
+		})
+		logger.Info(requestId, userId, "Group matches generated", http.StatusOK, latency, nil)
+	}
+
+	// Route definitions
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/ready", readyHandler)
+	mux.HandleFunc("/v1/match/solo", auth.SecurityMiddleware(repo, soloHandler))
+	mux.HandleFunc("/v1/match/group", auth.SecurityMiddleware(repo, groupHandler))
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
+<<<<<<< HEAD
 	log.Printf("Matching service starting on port %s...", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+=======
+
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// 2. GRACEFUL SHUTDOWN
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		logger.Info("", "", "Matching service starting on port "+port, 0, 0, nil)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Server failed to start", err)
+		}
+	}()
+
+	<-stop
+	logger.Info("", "", "Shutting down matching service...", 0, 0, nil)
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Fatal("Graceful shutdown failed", err)
+	}
+	logger.Info("", "", "Service stopped clean.", 0, 0, nil)
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 }

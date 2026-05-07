@@ -1,40 +1,111 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../models/notification_model.dart';
+
 import '../widgets/notification_item.dart';
 import '../../../core/widgets/common/skeleton.dart';
 import '../providers/notification_provider.dart';
 
-class NotificationsScreen extends ConsumerWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(notificationProvider.notifier).fetchNextPage();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final notificationsAsync = ref.watch(notificationProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.card,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context, ref),
-            Expanded(
-              child: notificationsAsync.when(
-                data: (notifications) => RefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(notificationProvider.notifier).refresh(),
-                  color: AppColors.primary,
-                  child: _buildList(notifications, ref),
+        child: KovariRefreshIndicator(
+          onRefresh: () => ref
+              .read(notificationProvider.notifier)
+              .refresh(ignoreCache: true),
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // 1. Header
+              SliverToBoxAdapter(child: _buildHeader(context, ref)),
+
+              // 2. Main Content
+              if (notificationsAsync.isLoading &&
+                  notificationsAsync.notifications.isEmpty)
+                _buildSliverSkeleton(context)
+              else if (notificationsAsync.error != null &&
+                  notificationsAsync.notifications.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _buildErrorState(context, ref),
+                )
+              else if (notificationsAsync.notifications.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _buildEmptyState(context),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final notification =
+                        notificationsAsync.notifications[index];
+                    return RepaintBoundary(
+                      child: NotificationItem(
+                        notification: notification,
+                        onTap: () {
+                          if (!notification.isRead) {
+                            ref
+                                .read(notificationProvider.notifier)
+                                .markAsRead(notification.id);
+                          }
+                        },
+                      ),
+                    );
+                  }, childCount: notificationsAsync.notifications.length),
                 ),
-                loading: () => _buildSkeleton(),
-                error: (error, stack) => _buildErrorState(ref),
-              ),
-            ),
-          ],
+
+              // 3. Pagination Loading Indicator
+              if (notificationsAsync.isFetchingNextPage)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ],
+          ),
         ),
       ),
     );
@@ -47,20 +118,23 @@ class NotificationsScreen extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderColor(context)),
+        ),
+        color: Theme.of(context).colorScheme.surfaceContainer,
       ),
       child: Row(
         children: [
           _buildBackButton(context),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
               'Notifications',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+                color: AppColors.text(context),
               ),
             ),
           ),
@@ -73,7 +147,7 @@ class NotificationsScreen extends ConsumerWidget {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               foregroundColor: AppColors.primary,
-              disabledForegroundColor: AppColors.primary.withOpacity(0.5),
+              disabledForegroundColor: AppColors.primary.withValues(alpha: 0.5),
             ),
             child: const Text(
               'Mark all as read',
@@ -90,62 +164,38 @@ class NotificationsScreen extends ConsumerWidget {
       onTap: () => Navigator.pop(context),
       child: Container(
         padding: const EdgeInsets.all(8),
-        child: const Icon(
+        child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
   }
 
-  Widget _buildList(List<NotificationModel> notifications, WidgetRef ref) {
-    if (notifications.isEmpty) {
-      return Center(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                LucideIcons.bell,
-                size: 24,
-                color: AppColors.mutedForeground,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'No notifications',
-                style: AppTextStyles.label.copyWith(
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-            ],
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            LucideIcons.bell,
+            size: 24,
+            color: AppColors.text(context, isMuted: true),
           ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: notifications.length,
-      itemBuilder: (context, index) {
-        final notification = notifications[index];
-        return NotificationItem(
-          notification: notification,
-          onTap: () {
-            if (!notification.isRead) {
-              ref
-                  .read(notificationProvider.notifier)
-                  .markAsRead(notification.id);
-            }
-            // Add navigation logic based on notification type/entityId if needed
-          },
-        );
-      },
+          const SizedBox(height: 12),
+          Text(
+            'No notifications',
+            style: AppTextStyles.label.copyWith(
+              color: AppColors.text(context, isMuted: true),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildErrorState(WidgetRef ref) {
+  Widget _buildErrorState(BuildContext context, WidgetRef ref) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -159,7 +209,7 @@ class NotificationsScreen extends ConsumerWidget {
           Text(
             'Failed to load notifications',
             style: AppTextStyles.label.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
           const SizedBox(height: 16),
@@ -172,17 +222,18 @@ class NotificationsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSkeleton() {
-    return ListView.builder(
-      itemCount: 12,
-      itemBuilder: (context, index) {
+  Widget _buildSliverSkeleton(BuildContext context) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
         return Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: AppSpacing.md,
           ),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColors.border)),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: AppColors.borderColor(context)),
+            ),
           ),
           child: Row(
             children: [
@@ -194,9 +245,9 @@ class NotificationsScreen extends ConsumerWidget {
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Skeleton(width: 96, height: 12),
-                        const Skeleton(width: 40, height: 12),
+                      children: const [
+                        Skeleton(width: 96, height: 12),
+                        Skeleton(width: 40, height: 12),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -207,7 +258,7 @@ class NotificationsScreen extends ConsumerWidget {
             ],
           ),
         );
-      },
+      }, childCount: 12),
     );
   }
 }

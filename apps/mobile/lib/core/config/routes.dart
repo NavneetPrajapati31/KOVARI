@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
-import '../../features/home/screens/home_screen.dart';
+import '../../features/app_shell/screens/app_shell_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/sign_up_screen.dart';
 import '../../features/auth/screens/forgot_password_screen.dart' as auth_forgot;
@@ -19,7 +19,7 @@ class AppRoutes {
       login: (context) => const LoginScreen(),
       signUp: (context) => const SignUpScreen(),
       onboarding: (context) => const OnboardingScreen(),
-      home: (context) => const HomeScreen(),
+      home: (context) => const AppShellScreen(),
       notifications: (context) => const NotificationsScreen(),
       forgotPassword: (context) => const auth_forgot.ForgotPasswordScreen(),
     };

@@ -113,7 +113,7 @@ export const ResultsDisplay = ({
               await onPass(userId);
             }
           }}
-          onSkip={() => onPass(soloMatch.user.userId)}
+          onSkip={(skippedUserId) => onPass(skippedUserId)}
           onReportClick={() =>
             setReportDialogState({
               open: true,

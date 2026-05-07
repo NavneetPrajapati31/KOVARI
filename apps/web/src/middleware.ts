@@ -49,18 +49,41 @@ const isWaitlistPublicPath = createRouteMatcher([
 async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !supabaseServiceKey) return false;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn("[Waitlist] Missing Supabase config in middleware:", { 
+      hasUrl: !!supabaseUrl, 
+      hasKey: !!supabaseServiceKey 
+    });
+    return false;
+  }
+
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
+
     const { data, error } = await supabase
       .from("launch_bypass_users")
       .select("clerk_user_id")
       .eq("clerk_user_id", clerkUserId)
       .maybeSingle();
-    return !error && !!data?.clerk_user_id;
-  } catch {
+
+    if (error) {
+      console.error("[Waitlist] DB error checking bypass user:", error);
+      return false;
+    }
+
+    const isMatch = !!data?.clerk_user_id;
+    if (!isMatch) {
+      console.log("[Waitlist] User not in bypass table:", clerkUserId);
+    } else {
+      console.log("[Waitlist] Bypass granted for user:", clerkUserId);
+    }
+
+    return isMatch;
+  } catch (err) {
+    console.error("[Waitlist] Unexpected error in bypass check:", err);
     return false;
   }
 }
@@ -244,11 +267,23 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
 });
 
 export default async function middleware(req: NextRequest, evt: any) {
-  // 1. Intercept Mobile JWTs (Avoid Clerk middleware crash on tampered headers)
+  const pathname = req.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith("/api/auth/");
   const authHeader = req.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ") && !authHeader.includes("__clerk_session")) {
-    // This is a mobile-specific JWT, let the route handlers manage it.
-    // Bypassing clerkMiddleware prevents it from crashing on the malformed token.
+  const isMobileToken =
+    authHeader?.startsWith("Bearer ") &&
+    !authHeader.includes("__clerk_session");
+
+  // 1. Bypass Clerk for Mobile Auth Routes (Prevents SyntaxError: Unexpected end of JSON input)
+  // These routes manage their own identity and don't need Clerk. Bypassing ensures
+  // the request body is preserved and not consumed/lost by middleware cloning.
+  if (isAuthRoute) {
+    return NextResponse.next();
+  }
+
+  // 2. Intercept Other Mobile JWTs (Avoid Clerk middleware crash on non-Clerk tokens)
+  if (isMobileToken) {
+    // Directly proceed to the route handler, skipping Clerk and preserving all headers
     return NextResponse.next();
   }
 

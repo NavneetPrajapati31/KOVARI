@@ -15,6 +15,7 @@ class UserProfile {
   final String profileImage;
   final List<UserPost> posts;
   final bool isFollowing;
+  final bool isFollowingMe;
   final bool isOwnProfile;
   final String location;
   final String religion;
@@ -25,6 +26,8 @@ class UserProfile {
   final String? birthday;
   final String userId;
   final String email;
+  final bool isVerified;
+  final String createdAt;
 
   UserProfile({
     required this.name,
@@ -43,6 +46,7 @@ class UserProfile {
     required this.profileImage,
     required this.posts,
     this.isFollowing = false,
+    this.isFollowingMe = false,
     this.isOwnProfile = false,
     required this.location,
     required this.religion,
@@ -53,6 +57,8 @@ class UserProfile {
     this.birthday,
     required this.userId,
     required this.email,
+    this.isVerified = false,
+    this.createdAt = '',
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -62,7 +68,7 @@ class UserProfile {
       age: json['age']?.toString() ?? '',
       gender: json['gender'] ?? '',
       nationality: json['nationality'] ?? '',
-      profession: json['profession'] ?? '', // API key is 'profession'
+      profession: json['profession'] ?? json['job'] ?? '',
       interests: List<String>.from(json['interests'] ?? []),
       languages: List<String>.from(json['languages'] ?? []),
       bio: json['bio'] ?? '',
@@ -70,11 +76,12 @@ class UserProfile {
       following: json['following']?.toString() ?? '0',
       likes: json['likes']?.toString() ?? '0',
       coverImage: json['cover_image'] ?? '',
-      profileImage: json['avatar'] ?? '', // API key is 'avatar'
+      profileImage: json['avatar'] ?? json['profile_photo'] ?? json['profile_image'] ?? '',
       posts: (json['posts'] as List? ?? [])
           .map((p) => UserPost.fromJson(p))
           .toList(),
       isFollowing: json['isFollowing'] ?? false,
+      isFollowingMe: json['isFollowingMe'] ?? false,
       isOwnProfile: json['isOwnProfile'] ?? false,
       location: json['location'] ?? '',
       religion: json['religion'] ?? '',
@@ -82,10 +89,12 @@ class UserProfile {
       drinking: json['drinking'] ?? '',
       personality: json['personality'] ?? '',
       foodPreference:
-          json['foodPreference'] ?? '', // API key is 'foodPreference'
+          json['foodPreference'] ?? json['food_preference'] ?? '',
       birthday: json['birthday'],
       userId: json['id'] ?? json['user_id'] ?? '',
       email: json['email'] ?? '',
+      isVerified: json['verified'] ?? json['is_verified'] ?? false,
+      createdAt: json['created_at'] ?? '',
     );
   }
 
@@ -106,6 +115,7 @@ class UserProfile {
       'cover_image': coverImage,
       'avatar': profileImage,
       'isFollowing': isFollowing,
+      'isFollowingMe': isFollowingMe,
       'isOwnProfile': isOwnProfile,
       'location': location,
       'religion': religion,
@@ -136,6 +146,7 @@ class UserProfile {
     String? profileImage,
     List<UserPost>? posts,
     bool? isFollowing,
+    bool? isFollowingMe,
     bool? isOwnProfile,
     String? location,
     String? religion,
@@ -146,6 +157,8 @@ class UserProfile {
     String? birthday,
     String? userId,
     String? email,
+    bool? isVerified,
+    String? createdAt,
   }) {
     return UserProfile(
       name: name ?? this.name,
@@ -164,6 +177,7 @@ class UserProfile {
       profileImage: profileImage ?? this.profileImage,
       posts: posts ?? this.posts,
       isFollowing: isFollowing ?? this.isFollowing,
+      isFollowingMe: isFollowingMe ?? this.isFollowingMe,
       isOwnProfile: isOwnProfile ?? this.isOwnProfile,
       location: location ?? this.location,
       religion: religion ?? this.religion,
@@ -174,6 +188,8 @@ class UserProfile {
       birthday: birthday ?? this.birthday,
       userId: userId ?? this.userId,
       email: email ?? this.email,
+      isVerified: isVerified ?? this.isVerified,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

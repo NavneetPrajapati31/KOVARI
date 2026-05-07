@@ -7,6 +7,9 @@ import '../../../core/network/api_client.dart';
 import '../models/user_connection.dart';
 import '../data/connections_service.dart';
 import '../widgets/user_list_item.dart';
+import '../../../core/providers/profile_provider.dart';
+import 'public_profile_screen.dart';
+import '../../../shared/widgets/kovari_confirm_dialog.dart';
 
 class ConnectionsScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -35,7 +38,16 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   List<UserConnection> _followers = [];
   List<UserConnection> _following = [];
   bool _isLoading = true;
+  bool _isFetchingMoreFollowers = false;
+  bool _isFetchingMoreFollowing = false;
+  bool _hasMoreFollowers = true;
+  bool _hasMoreFollowing = true;
+  int _followersPage = 1;
+  int _followingPage = 1;
   String? _error;
+
+  final ScrollController _followersScrollController = ScrollController();
+  final ScrollController _followingScrollController = ScrollController();
 
   @override
   void initState() {
@@ -50,7 +62,10 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
         setState(() {});
       }
     });
-    _service = ConnectionsService(ApiClientFactory.create());
+    _followersScrollController.addListener(() => _onScroll('followers'));
+    _followingScrollController.addListener(() => _onScroll('following'));
+
+    _service = ConnectionsService(ref.read(apiClientProvider));
     _loadData();
   }
 
@@ -58,23 +73,49 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _followersScrollController.dispose();
+    _followingScrollController.dispose();
     super.dispose();
   }
 
+  void _onScroll(String type) {
+    final controller = type == 'followers'
+        ? _followersScrollController
+        : _followingScrollController;
+
+    if (controller.position.pixels >=
+        controller.position.maxScrollExtent - 200) {
+      if (type == 'followers') {
+        _fetchMoreFollowers();
+      } else {
+        _fetchMoreFollowing();
+      }
+    }
+  }
+
   Future<void> _loadData() async {
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _isLoading = true;
       _error = null;
+      _followersPage = 1;
+      _followingPage = 1;
+      _hasMoreFollowers = true;
+      _hasMoreFollowing = true;
     });
 
     try {
-      final followers = await _service.getFollowers(widget.userId);
-      final following = await _service.getFollowing(widget.userId);
+      final followers = await _service.getFollowers(widget.userId, offset: 0);
+      final following = await _service.getFollowing(widget.userId, offset: 0);
 
       if (mounted) {
         setState(() {
           _followers = followers;
           _following = following;
+          _hasMoreFollowers = followers.length >= 20;
+          _hasMoreFollowing = following.length >= 20;
           _isLoading = false;
         });
       }
@@ -86,6 +127,182 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
         });
       }
     }
+  }
+
+  Future<void> _fetchMoreFollowers() async {
+    if (_isFetchingMoreFollowers ||
+        !_hasMoreFollowers ||
+        _searchQuery.isNotEmpty) {
+      return;
+    }
+
+    setState(() => _isFetchingMoreFollowers = true);
+
+    try {
+      final nextPage = _followersPage + 1;
+      final newFollowers = await _service.getFollowers(
+        widget.userId,
+        offset: (_followersPage * 20),
+      );
+
+      if (mounted) {
+        setState(() {
+          _followers.addAll(newFollowers);
+          _followersPage = nextPage;
+          _hasMoreFollowers = newFollowers.length >= 20;
+          _isFetchingMoreFollowers = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isFetchingMoreFollowers = false);
+    }
+  }
+
+  Future<void> _fetchMoreFollowing() async {
+    if (_isFetchingMoreFollowing ||
+        !_hasMoreFollowing ||
+        _searchQuery.isNotEmpty) {
+      return;
+    }
+
+    setState(() => _isFetchingMoreFollowing = true);
+
+    try {
+      final nextPage = _followingPage + 1;
+      final newFollowing = await _service.getFollowing(
+        widget.userId,
+        offset: (_followingPage * 20),
+      );
+
+      if (mounted) {
+        setState(() {
+          _following.addAll(newFollowing);
+          _followingPage = nextPage;
+          _hasMoreFollowing = newFollowing.length >= 20;
+          _isFetchingMoreFollowing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isFetchingMoreFollowing = false);
+    }
+  }
+
+  Future<void> _handleFollowToggle(UserConnection user) async {
+    final originalState = user.isFollowing;
+    final userId = user.id;
+
+    // Optimistic UI Update
+    setState(() {
+      _followers = _followers.map((u) {
+        if (u.id == userId) return u.copyWith(isFollowing: !originalState);
+        return u;
+      }).toList();
+      _following = _following.map((u) {
+        if (u.id == userId) return u.copyWith(isFollowing: !originalState);
+        return u;
+      }).toList();
+    });
+
+    try {
+      if (originalState) {
+        await _service.unfollowUser(userId);
+      } else {
+        await _service.followUser(userId);
+      }
+      // Re-fetch connections to ensure counts are synced
+      final following = await _service.getFollowing(widget.userId);
+      if (mounted) {
+        setState(() {
+          _following = following;
+        });
+      }
+    } catch (e) {
+      // Revert on error
+      if (mounted) {
+        setState(() {
+          _followers = _followers.map((u) {
+            if (u.id == userId) return u.copyWith(isFollowing: originalState);
+            return u;
+          }).toList();
+          _following = _following.map((u) {
+            if (u.id == userId) return u.copyWith(isFollowing: originalState);
+            return u;
+          }).toList();
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    }
+  }
+
+  Future<void> _handleRemoveFollower(UserConnection user) async {
+    final userId = user.id;
+
+    // Show confirmation dialog
+    showKovariConfirmDialog(
+      context: context,
+      title: 'Remove Follower?',
+      content:
+          'Kovari won\'t tell @${user.username} they were removed from your followers.',
+      confirmLabel: 'Remove',
+      isDestructive: true,
+      onConfirm: () async {
+        // Optimistic UI Update
+        final originalFollowers = List<UserConnection>.from(_followers);
+        setState(() {
+          _followers = _followers.where((u) => u.id != userId).toList();
+        });
+
+        try {
+          await _service.removeFollower(userId);
+        } catch (e) {
+          // Revert on error
+          if (mounted) {
+            setState(() {
+              _followers = originalFollowers;
+            });
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+          }
+        }
+      },
+    );
+  }
+
+  Future<void> _handleUnfollow(UserConnection user) async {
+    final userId = user.id;
+
+    // Show confirmation dialog
+    showKovariConfirmDialog(
+      context: context,
+      title: 'Unfollow?',
+      content: 'Kovari won\'t tell ${user.name} they were unfollowed.',
+      confirmLabel: 'Unfollow',
+      isDestructive: true,
+      onConfirm: () async {
+        // Optimistic UI Update
+        final originalFollowing = List<UserConnection>.from(_following);
+        setState(() {
+          _following = _following.where((u) => u.id != userId).toList();
+        });
+
+        try {
+          await _service.unfollowUser(userId);
+        } catch (e) {
+          // Revert on error
+          if (mounted) {
+            setState(() {
+              _following = originalFollowing;
+            });
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+          }
+        }
+      },
+    );
   }
 
   List<UserConnection> _getFilteredList(List<UserConnection> list) {
@@ -100,7 +317,6 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -111,11 +327,11 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 pinned: true,
                 floating: false,
                 elevation: 0,
-                backgroundColor: AppColors.card,
+                backgroundColor: AppColors.surface(context, level: 1),
                 leading: IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     LucideIcons.arrowLeft,
-                    color: AppColors.foreground,
+                    color: AppColors.text(context),
                     size: 20,
                   ),
                   onPressed: () => Navigator.pop(context),
@@ -137,8 +353,8 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                       )
                     : Text(
                         widget.username,
-                        style: const TextStyle(
-                          color: AppColors.foreground,
+                        style: TextStyle(
+                          color: AppColors.text(context),
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -146,7 +362,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(48),
                   child: Container(
-                    decoration: const BoxDecoration(color: Colors.white),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface(context),
+                    ),
                     child: TabBar(
                       controller: _tabController,
                       indicatorColor: AppColors.primary,
@@ -218,6 +436,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       builder: (context) {
         return CustomScrollView(
           key: PageStorageKey<String>(type),
+          controller: type == 'followers'
+              ? _followersScrollController
+              : _followingScrollController,
           slivers: [
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
@@ -226,10 +447,13 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
             SliverToBoxAdapter(
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: AppColors.surface(context),
                   border: Border(
-                    bottom: BorderSide(color: AppColors.border, width: 1),
+                    bottom: BorderSide(
+                      color: AppColors.borderColor(context),
+                      width: 1,
+                    ),
                   ),
                 ),
                 child: SizedBox(
@@ -237,9 +461,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                   child: TextField(
                     controller: _searchController,
                     enabled: !_isLoading, // Disable while loading
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Colors.black,
+                      color: AppColors.text(context),
                       fontWeight: FontWeight.w400,
                     ),
                     onChanged: (value) {
@@ -318,26 +542,70 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 hasScrollBody: false,
                 child: _buildEmptyState(type),
               )
-            else
+            else ...[
               SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final filteredUsers = _getFilteredList(users);
                   final user = filteredUsers[index];
+                  final currentUserId = ref.watch(profileProvider)?.userId;
+                  final isMe = user.id == currentUserId;
+                  final isViewingOwnConnections =
+                      widget.userId == currentUserId;
+
                   return UserListItem(
                     user: user,
                     type: type,
-                    isOwnProfile: true,
+                    isOwnProfile: isViewingOwnConnections,
+                    onTap: isMe
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PublicProfileScreen(userId: user.id),
+                              ),
+                            );
+                          },
                     onActionPressed: () {
-                      // TODO: Implement follow/message transition
+                      if (isViewingOwnConnections) {
+                        if (type == 'followers' && !user.isFollowing) {
+                          _handleFollowToggle(user);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Chat coming soon!')),
+                          );
+                        }
+                      } else {
+                        if (user.isFollowing) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Chat coming soon!')),
+                          );
+                        } else {
+                          _handleFollowToggle(user);
+                        }
+                      }
                     },
-                    onRemovePressed: type == 'followers'
-                        ? () {
-                            // TODO: Implement remove follower
-                          }
+                    onRemovePressed: isViewingOwnConnections
+                        ? (type == 'followers'
+                              ? () => _handleRemoveFollower(user)
+                              : () => _handleUnfollow(user))
                         : null,
                   );
                 }, childCount: _getFilteredList(users).length),
               ),
+              if ((type == 'followers' && _isFetchingMoreFollowers) ||
+                  (type == 'following' && _isFetchingMoreFollowing))
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ],
           ],
         );
       },
@@ -348,64 +616,64 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
     return shim.Shimmer.fromColors(
       baseColor: AppColors.secondary, // Match image (Lighter)
       highlightColor: AppColors.secondary,
-      child: ListView.separated(
-        shrinkWrap: true, // Crucial for inside SliverToBoxAdapter
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 8,
-        padding: EdgeInsets.zero,
-        separatorBuilder: (context, index) =>
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
-        itemBuilder: (context, index) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            children: [
-              // Avatar Skeleton (Match image: 44px)
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // User Info Skeleton
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+      child: Column(
+        children: [
+          for (int i = 0; i < 8; i++) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(
                 children: [
+                  // Avatar Skeleton (Match image: 44px)
                   Container(
-                    width: 100,
-                    height: 12,
-                    decoration: BoxDecoration(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
+                      shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(width: 12),
+                  // User Info Skeleton
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 60,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  // Action Button Skeleton
                   Container(
-                    width: 60,
-                    height: 12,
+                    width: 80,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ],
               ),
-              const Spacer(),
-              // Action Button Skeleton
-              Container(
-                width: 80,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+            if (i < 7)
+              const Divider(height: 1, thickness: 1, color: AppColors.border),
+          ],
+        ],
       ),
     );
   }

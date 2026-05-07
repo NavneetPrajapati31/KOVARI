@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 const ISO_DATE_REGEX = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
@@ -8,27 +11,38 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
-  const { userId } = await auth();
+  const start = Date.now();
+  const requestId = generateRequestId();
+
+  const userId = await getAuthUserId(req);
   if (!userId) {
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+    }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabase = createAdminSupabaseClient();
   const { groupId } = await params;
 
-  // Map Clerk user id -> internal uuid
-  const { data: userRow, error: userError } = await supabase
-    .from("users")
-    .select("id")
-    .eq("clerk_user_id", userId)
-    .eq("isDeleted", false)
-    .single();
+  // Get user's internal ID based on Clerk ID or direct UUID
+  const userQuery = supabase.from("users").select("id").eq("isDeleted", false);
+  if (userId.startsWith("user_")) {
+    userQuery.eq("clerk_user_id", userId);
+  } else {
+    userQuery.eq("id", userId);
+  }
+
+  const { data: userRow, error: userError } = await userQuery.single();
 
   if (userError || !userRow) {
     console.error("[GET /api/groups/:id] user lookup failed", {
       code: userError?.code,
       message: userError?.message,
     });
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("User not found", ApiErrorCode.NOT_FOUND, requestId, 404);
+    }
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
@@ -41,9 +55,15 @@ export async function GET(
     .single();
 
   if (error) {
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse(error.message, ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   if (!data) {
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Group not found", ApiErrorCode.NOT_FOUND, requestId, 404);
+    }
     return NextResponse.json({ error: "Group not found" }, { status: 404 });
   }
 
@@ -77,6 +97,9 @@ export async function GET(
     }
   }
 
+  if (req.headers.get("x-kovari-client") === "mobile") {
+    return formatStandardResponse(data, {}, { requestId, latencyMs: Date.now() - start });
+  }
   return NextResponse.json(data);
 }
 
@@ -84,8 +107,14 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
-  const { userId } = await auth();
+  const start = Date.now();
+  const requestId = generateRequestId();
+
+  const userId = await getAuthUserId(req);
   if (!userId) {
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+    }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -108,12 +137,15 @@ export async function PATCH(
     is_public,
   } = body;
 
-  // Validate user and membership
-  const { data: userRow, error: userError } = await supabase
-    .from("users")
-    .select("id")
-    .eq("clerk_user_id", userId)
-    .single();
+  // Validate user and membership based on Clerk ID or direct UUID
+  const userQuery = supabase.from("users").select("id").eq("isDeleted", false);
+  if (userId.startsWith("user_")) {
+    userQuery.eq("clerk_user_id", userId);
+  } else {
+    userQuery.eq("id", userId);
+  }
+
+  const { data: userRow, error: userError } = await userQuery.single();
 
   if (userError || !userRow) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -137,6 +169,9 @@ export async function PATCH(
 
   // Block updates to pending groups (even for creators)
   if (groupCheck.status === "pending") {
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Cannot update group while it's under review", ApiErrorCode.FORBIDDEN, requestId, 403);
+    }
     return NextResponse.json(
       { error: "Cannot update group while it's under review" },
       { status: 403 },
@@ -328,7 +363,14 @@ export async function PATCH(
     .single();
 
   if (error) {
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse(error.message, ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (req.headers.get("x-kovari-client") === "mobile") {
+    return formatStandardResponse(data, {}, { requestId, latencyMs: Date.now() - start });
   }
   return NextResponse.json(data);
 }

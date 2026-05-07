@@ -36,7 +36,7 @@ class NotificationModel {
   final String? entityType;
   final String? entityId;
 
-  NotificationModel({
+  const NotificationModel({
     required this.id,
     required this.title,
     required this.message,
@@ -64,6 +64,30 @@ class NotificationModel {
       type: NotificationType.fromString(rawType, entityType),
       entityType: entityType,
       entityId: json['entity_id'] as String?,
+    );
+  }
+
+  NotificationModel copyWith({
+    String? id,
+    String? title,
+    String? message,
+    DateTime? createdAt,
+    bool? isRead,
+    String? imageUrl,
+    NotificationType? type,
+    String? entityType,
+    String? entityId,
+  }) {
+    return NotificationModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      createdAt: createdAt ?? this.createdAt,
+      isRead: isRead ?? this.isRead,
+      imageUrl: imageUrl ?? this.imageUrl,
+      type: type ?? this.type,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
     );
   }
 

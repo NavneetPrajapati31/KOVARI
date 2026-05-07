@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import {
+  formatStandardResponse,
+  formatErrorResponse,
+} from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 export async function GET(request: NextRequest) {
+  const start = Date.now();
   try {
     const authUser = await getAuthenticatedUser(request);
 
     if (!authUser) {
-      return new Response("Unauthorized", { status: 401 });
+      return formatErrorResponse(
+        "Unauthorized",
+        ApiErrorCode.UNAUTHORIZED,
+        "pending-inv",
+        401
+      );
     }
 
     const internalUserId = authUser.id;
@@ -27,19 +39,25 @@ export async function GET(request: NextRequest) {
 
     if (membershipError) {
       console.error("Error fetching pending memberships:", membershipError);
-      return new Response("Database error", { status: 500 });
+      return formatErrorResponse(
+        "Database error",
+        ApiErrorCode.INTERNAL_SERVER_ERROR,
+        "pending-inv",
+        500
+      );
     }
 
     if (!pendingMemberships || pendingMemberships.length === 0) {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return formatStandardResponse(
+        [],
+        {},
+        { requestId: "pending-inv", latencyMs: Date.now() - start }
+      );
     }
 
     const groupIds = pendingMemberships.map((m) => m.group_id);
 
-    // Fetch the groups with creator information (only active groups)
+    // Fetch the groups with creator information (only those not removed)
     const { data: groupsData, error: groupsError } = await supabase
       .from("groups")
       .select(
@@ -56,19 +74,25 @@ export async function GET(request: NextRequest) {
       `,
       )
       .in("id", groupIds)
-      .eq("status", "active") // Only show invitations for approved groups
+      .neq("status", "removed")
       .order("created_at", { ascending: false });
 
     if (groupsError) {
       console.error("Error fetching groups:", groupsError);
-      return new Response("Database error", { status: 500 });
+      return formatErrorResponse(
+        "Database error",
+        ApiErrorCode.INTERNAL_SERVER_ERROR,
+        "pending-inv",
+        500
+      );
     }
 
     if (!groupsData) {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return formatStandardResponse(
+        [],
+        {},
+        { requestId: "pending-inv", latencyMs: Date.now() - start }
+      );
     }
 
     // Get creator profiles
@@ -230,13 +254,19 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return new Response(JSON.stringify(invitations), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return formatStandardResponse(
+      invitations,
+      {},
+      { requestId: "pending-inv", latencyMs: Date.now() - start }
+    );
   } catch (error) {
     console.error("Error in pending invitations API:", error);
-    return new Response("Internal server error", { status: 500 });
+    return formatErrorResponse(
+      "Internal server error",
+      ApiErrorCode.INTERNAL_SERVER_ERROR,
+      "pending-inv",
+      500
+    );
   }
 }
 

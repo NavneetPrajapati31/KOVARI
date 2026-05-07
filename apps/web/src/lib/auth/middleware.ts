@@ -18,7 +18,7 @@ export async function getUserFromRequest(req: NextRequest): Promise<UserContext 
     const token = authHeader.split(" ")[1];
     const payload = verifyAccessToken(token);
 
-    if (!payload || !payload.userId) {
+    if (!payload || !payload.sub) {
       return null;
     }
 
@@ -35,13 +35,13 @@ export async function getUserFromRequest(req: NextRequest): Promise<UserContext 
         .maybeSingle();
 
       if (error || !session) {
-        console.warn(`[AUTH] Rejected access token for user ${payload.userId} (Session invalid/logged out)`);
+        console.warn(`[AUTH] Rejected access token for user ${payload.sub} (Session invalid/logged out)`);
         return null;
       }
     }
 
     return {
-      id: payload.userId,
+      id: payload.sub,
     };
   } catch (error) {
     console.error("Auth middleware error:", error);

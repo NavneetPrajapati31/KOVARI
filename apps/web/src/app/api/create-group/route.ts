@@ -126,11 +126,9 @@ export async function POST(req: Request) {
         parsed.data.non_drinkers === undefined
           ? null
           : parsed.data.non_drinkers,
-      status: "pending", // New groups are pending admin approval
+      status: "active", // New groups are active immediately in development
       dominant_languages: creatorLanguages,
     };
-
-    console.log("Attempting to insert payload:", payload);
 
     const { data: groupData, error: insertError } = await supabase
       .from("groups")
@@ -185,8 +183,6 @@ export async function POST(req: Request) {
       role: "admin",
     };
 
-    console.log("Attempting to insert membership payload:", membershipPayload);
-
     // First attempt: Standard insertion
     let { error: membershipError } = await supabase
       .from("group_memberships")
@@ -203,11 +199,6 @@ export async function POST(req: Request) {
         role: "admin",
       };
 
-      console.log(
-        "Trying fallback approach without joined_at:",
-        fallbackPayload
-      );
-
       const { error: fallbackError } = await supabase
         .from("group_memberships")
         .insert(fallbackPayload);
@@ -220,8 +211,6 @@ export async function POST(req: Request) {
           group_id: groupData.id,
           user_id: userRow.id,
         };
-
-        console.log("Trying minimal payload:", minimalPayload);
 
         const { error: minimalError } = await supabase
           .from("group_memberships")
@@ -267,17 +256,10 @@ export async function POST(req: Request) {
               headers: { "Content-Type": "application/json" },
             }
           );
-        } else {
-          console.log("Minimal payload succeeded");
         }
-      } else {
-        console.log("Fallback approach succeeded");
       }
-    } else {
-      console.log("Standard membership creation succeeded");
     }
 
-    console.log("Group and membership created successfully:", groupData);
     return new Response(JSON.stringify(groupData), {
       status: 201,
       headers: { "Content-Type": "application/json" },

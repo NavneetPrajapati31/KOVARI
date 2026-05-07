@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createRouteHandlerSupabaseClientWithServiceRole, sendRegistrationVerificationEmail } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 import crypto from "crypto";
 
 /**
@@ -8,22 +11,24 @@ import crypto from "crypto";
  * POST /api/auth/register
  */
 export async function POST(request: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     const { email, password, name } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+      return formatErrorResponse("Email and password are required", ApiErrorCode.BAD_REQUEST, requestId, 400);
     }
 
     if (password.length < 8) {
-      return NextResponse.json({ error: "Password must be at least 8 characters long" }, { status: 400 });
+      return formatErrorResponse("Password must be at least 8 characters long", ApiErrorCode.BAD_REQUEST, requestId, 400);
     }
 
     // 1. Initialize Supabase
     const supabase = createRouteHandlerSupabaseClientWithServiceRole();
 
     // 2. Check for Cooldown and Active Lock
-    // Using a refined select to check both existing user and pending verification
     const { data: existingUser } = await supabase
       .from("users")
       .select("id")
@@ -31,7 +36,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existingUser) {
-      return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+      return formatErrorResponse("Email already in use", ApiErrorCode.CONFLICT, requestId, 409);
     }
 
     const { data: existingVerification } = await supabase
@@ -40,21 +45,21 @@ export async function POST(request: NextRequest) {
       .eq("email", email)
       .maybeSingle();
 
-    // Industry Standard: 60s Cooldown
     if (existingVerification) {
       const lastSent = new Date(existingVerification.last_sent_at).getTime();
       const secondsSinceLast = (Date.now() - lastSent) / 1000;
       
       if (secondsSinceLast < 60) {
-        return NextResponse.json(
-          { error: `Please wait ${Math.ceil(60 - secondsSinceLast)}s before requesting a new code.` },
-          { status: 429 }
+        return formatErrorResponse(
+          `Please wait ${Math.ceil(60 - secondsSinceLast)}s before requesting a new code.`,
+          ApiErrorCode.RATE_LIMIT_EXCEEDED,
+          requestId,
+          429
         );
       }
 
-      // Race Condition Guard: If another process is currently sending, block this one
       if (existingVerification.is_sending) {
-        return NextResponse.json({ error: "A verification email is already being sent." }, { status: 429 });
+        return formatErrorResponse("A verification email is already being sent.", ApiErrorCode.RATE_LIMIT_EXCEEDED, requestId, 429);
       }
     }
 
@@ -64,9 +69,9 @@ export async function POST(request: NextRequest) {
 
     // 4. Generate 6-digit OTP
     const otp = crypto.randomInt(100000, 999999).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-    // 5. Atomic Reservation: Mark as "is_sending" before dispatch (Single Dispatch Guarantee)
+    // 5. Atomic Reservation
     const { error: lockError } = await supabase
       .from("verification_codes")
       .upsert({
@@ -81,31 +86,34 @@ export async function POST(request: NextRequest) {
 
     if (lockError) {
       console.error("Failed to lock verification session:", lockError);
-      return NextResponse.json({ error: "Failed to initialize verification" }, { status: 500 });
+      return formatErrorResponse("Failed to initialize verification", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
-    // 6. Dispatch Email via Brevo (Enhanced with internal retries)
+    // 6. Dispatch Email
     try {
       await sendRegistrationVerificationEmail({ to: email, code: otp });
     } catch (emailError) {
       console.error("Email dispatch failed during registration:", emailError);
-      // Ensure we unlock the record so the user can try again after cooldown
       await supabase.from("verification_codes").update({ is_sending: false }).eq("email", email);
-      return NextResponse.json({ error: "Verification email service unavailable" }, { status: 503 });
+      return formatErrorResponse("Verification email service unavailable", ApiErrorCode.SERVICE_UNAVAILABLE, requestId, 503);
     }
 
-    // 7. Cleanup: Unlock after successful dispatch
+    // 7. Cleanup & Return
     await supabase.from("verification_codes").update({ is_sending: false }).eq("email", email);
+    const latencyMs = Date.now() - start;
 
-    // 7. Return Verification Required
-    return NextResponse.json({
-      verificationRequired: true,
-      email,
-      message: "Verification code sent. Please check your email."
-    });
+    return formatStandardResponse(
+      {
+        verificationRequired: true,
+        email,
+        message: "Verification code sent. Please check your email."
+      },
+      {},
+      { requestId, latencyMs }
+    );
 
   } catch (error) {
     console.error("Critical error in /api/auth/register (OTP Flow):", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return formatErrorResponse("Internal server error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }

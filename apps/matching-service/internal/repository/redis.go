@@ -53,10 +53,17 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 
 	// Phase 1.5 Optimization: Try sessions:index set first
 	keys, err = r.client.SMembers(ctx, "sessions:index").Result()
+<<<<<<< HEAD
 
 	if err != nil || len(keys) == 0 {
 		log.Printf("Repository: Index missing or empty (Total candidates: 0)")
 
+=======
+	
+	if err != nil || len(keys) == 0 {
+		log.Printf("Repository: Index missing or empty (Total candidates: 0)")
+		
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 		// 1. Shallow SCAN (Fast Fallback - 1 batch only)
 		// This provides a few results instantly without waiting for a full DB sweep
 		var batch []string
@@ -72,13 +79,18 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 				defer r.indexInFlight.Delete("rebuild")
 				bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
+<<<<<<< HEAD
 
+=======
+				
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 				log.Printf("BACKGROUND INDEX REBUILD START")
 				var cursor uint64
 				var allKeys []string
 				for {
 					var b []string
 					b, cursor, err = r.client.Scan(bgCtx, cursor, "session:*", 250).Result()
+<<<<<<< HEAD
 					if err != nil {
 						break
 					}
@@ -86,6 +98,11 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 					if cursor == 0 || len(allKeys) >= MaxCandidates*4 {
 						break
 					}
+=======
+					if err != nil { break }
+					allKeys = append(allKeys, b...)
+					if cursor == 0 || len(allKeys) >= MaxCandidates*4 { break }
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 				}
 
 				if len(allKeys) > 0 {
@@ -196,3 +213,12 @@ func (r *RedisRepository) GetCache(ctx context.Context, key string) (string, err
 func (r *RedisRepository) SetCache(ctx context.Context, key string, value string, expiration time.Duration) error {
 	return r.client.Set(ctx, key, value, expiration).Err()
 }
+<<<<<<< HEAD
+=======
+
+// SetNX performs an atomic SET if Not eXists operation.
+// Returns true if the key was set, false if it already exists.
+func (r *RedisRepository) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) (bool, error) {
+	return r.client.SetNX(ctx, key, value, expiration).Result()
+}
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f

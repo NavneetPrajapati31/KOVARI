@@ -49,12 +49,13 @@ class HomeHeader extends ConsumerWidget {
                   style: AppTextStyles.h3.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
+                    color: AppColors.text(context),
                   ),
                 ),
                 Text(
                   'Welcome back to Kovari 👋🏻',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -66,6 +67,7 @@ class HomeHeader extends ConsumerWidget {
             Row(
               children: [
                 _buildIconButton(
+                  context,
                   icon: LucideIcons.bell,
                   showBadge: unreadCount > 0,
                   onTap: () {
@@ -76,19 +78,19 @@ class HomeHeader extends ConsumerWidget {
                             const NotificationsScreen(),
                         transitionsBuilder:
                             (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(1.0, 0.0);
-                          const end = Offset.zero;
-                          const curve = Curves.easeOutQuart;
-                          var tween = Tween(
-                            begin: begin,
-                            end: end,
-                          ).chain(CurveTween(curve: curve));
-                          var offsetAnimation = animation.drive(tween);
-                          return SlideTransition(
-                            position: offsetAnimation,
-                            child: child,
-                          );
-                        },
+                              const begin = Offset(1.0, 0.0);
+                              const end = Offset.zero;
+                              const curve = Curves.easeOutQuart;
+                              var tween = Tween(
+                                begin: begin,
+                                end: end,
+                              ).chain(CurveTween(curve: curve));
+                              var offsetAnimation = animation.drive(tween);
+                              return SlideTransition(
+                                position: offsetAnimation,
+                                child: child,
+                              );
+                            },
                         transitionDuration: const Duration(milliseconds: 350),
                       ),
                     );
@@ -96,6 +98,7 @@ class HomeHeader extends ConsumerWidget {
                 ),
                 const SizedBox(width: AppSpacing.md),
                 _buildIconButton(
+                  context,
                   icon: LucideIcons.heart,
                   onTap: () {
                     Navigator.push(
@@ -105,19 +108,19 @@ class HomeHeader extends ConsumerWidget {
                             const RequestsScreen(),
                         transitionsBuilder:
                             (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(1.0, 0.0);
-                          const end = Offset.zero;
-                          const curve = Curves.easeOutQuart;
-                          var tween = Tween(
-                            begin: begin,
-                            end: end,
-                          ).chain(CurveTween(curve: curve));
-                          var offsetAnimation = animation.drive(tween);
-                          return SlideTransition(
-                            position: offsetAnimation,
-                            child: child,
-                          );
-                        },
+                              const begin = Offset(1.0, 0.0);
+                              const end = Offset.zero;
+                              const curve = Curves.easeOutQuart;
+                              var tween = Tween(
+                                begin: begin,
+                                end: end,
+                              ).chain(CurveTween(curve: curve));
+                              var offsetAnimation = animation.drive(tween);
+                              return SlideTransition(
+                                position: offsetAnimation,
+                                child: child,
+                              );
+                            },
                         transitionDuration: const Duration(milliseconds: 350),
                       ),
                     );
@@ -130,7 +133,8 @@ class HomeHeader extends ConsumerWidget {
     );
   }
 
-  Widget _buildIconButton({
+  Widget _buildIconButton(
+    BuildContext context, {
     required IconData icon,
     bool showBadge = false,
     VoidCallback? onTap,
@@ -141,7 +145,7 @@ class HomeHeader extends ConsumerWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Icon(icon, size: 20, color: AppColors.foreground),
+          Icon(icon, size: 20, color: AppColors.text(context)),
           if (showBadge)
             Positioned(
               top: -1,
@@ -152,7 +156,10 @@ class HomeHeader extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.background, width: 2),
+                  border: Border.all(
+                    color: AppColors.surface(context),
+                    width: 2,
+                  ),
                 ),
               ),
             ),

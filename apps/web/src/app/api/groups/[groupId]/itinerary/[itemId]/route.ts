@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
 
 async function getGroupAccessContext(
+  req: NextRequest,
   supabase: any,
   groupId: string,
 ): Promise<
@@ -15,17 +16,23 @@ async function getGroupAccessContext(
     }
   | { ok: false; status: number; error: string }
 > {
-  const { userId: clerkUserId } = await auth();
+  const clerkUserId = await getAuthUserId(req);
   if (!clerkUserId) {
     return { ok: false, status: 401, error: "Unauthorized" };
   }
 
-  const { data: userRow, error: userError } = await supabase
+  const userQuery = supabase
     .from("users")
     .select("id")
-    .eq("clerk_user_id", clerkUserId)
-    .eq("isDeleted", false)
-    .single();
+    .eq("isDeleted", false);
+
+  if (clerkUserId.startsWith("user_")) {
+    userQuery.eq("clerk_user_id", clerkUserId);
+  } else {
+    userQuery.eq("id", clerkUserId);
+  }
+
+  const { data: userRow, error: userError } = await userQuery.single();
 
   if (userError || !userRow) {
     return { ok: false, status: 404, error: "User not found" };
@@ -84,7 +91,7 @@ export async function GET(
   const supabase = createAdminSupabaseClient();
   const { groupId, itemId } = await params;
 
-  const ctx = await getGroupAccessContext(supabase, groupId);
+  const ctx = await getGroupAccessContext(req, supabase, groupId);
   if (!ctx.ok) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
@@ -109,7 +116,7 @@ export async function PUT(
   const supabase = createAdminSupabaseClient();
   const { groupId, itemId } = await params;
 
-  const ctx = await getGroupAccessContext(supabase, groupId);
+  const ctx = await getGroupAccessContext(req, supabase, groupId);
   if (!ctx.ok) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
@@ -187,7 +194,7 @@ export async function DELETE(
   const supabase = createAdminSupabaseClient();
   const { groupId, itemId } = await params;
 
-  const ctx = await getGroupAccessContext(supabase, groupId);
+  const ctx = await getGroupAccessContext(req, supabase, groupId);
   if (!ctx.ok) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }

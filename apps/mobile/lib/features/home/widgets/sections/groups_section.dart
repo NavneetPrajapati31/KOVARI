@@ -36,8 +36,8 @@ class GroupsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface(context, level: 1),
+        border: Border.all(color: AppColors.borderColor(context)),
         borderRadius: AppRadius.large,
       ),
       child: ClipRRect(
@@ -57,7 +57,7 @@ class GroupsSection extends StatelessWidget {
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.foreground,
+                      color: AppColors.text(context),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -65,32 +65,32 @@ class GroupsSection extends StatelessWidget {
                     'Manage your collaborative travel experiences',
                     style: AppTextStyles.label.copyWith(
                       fontSize: 12,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: AppColors.borderColor(context)),
 
             if (isLoading)
-              _buildSkeleton()
+              _buildSkeleton(context)
             else if (groups.isEmpty)
-              _buildEmptyState()
+              _buildEmptyState(context)
             else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: groups.length,
-                separatorBuilder: (context, index) => const Divider(
-                  height: 1,
-                  color: AppColors.border,
-                  indent: 0,
-                  endIndent: 0,
-                ),
-                itemBuilder: (context, index) {
-                  return _GroupCard(group: groups[index]);
-                },
+              Column(
+                children: [
+                  for (int i = 0; i < groups.length; i++) ...[
+                    _GroupCard(group: groups[i]),
+                    if (i < groups.length - 1)
+                      Divider(
+                        height: 1,
+                        color: AppColors.borderColor(context),
+                        indent: 0,
+                        endIndent: 0,
+                      ),
+                  ],
+                ],
               ),
           ],
         ),
@@ -98,21 +98,22 @@ class GroupsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildSkeleton() {
+  Widget _buildSkeleton(BuildContext context) {
     return Column(
       children: List.generate(
         7,
         (i) => Column(
           children: [
             _GroupCardSkeleton(),
-            if (i < 6) const Divider(height: 1, color: AppColors.border),
+            if (i < 6)
+              Divider(height: 1, color: AppColors.borderColor(context)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
@@ -122,14 +123,14 @@ class GroupsSection extends StatelessWidget {
               'No joined groups',
               style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w500,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'Create or join a group to get started',
               style: AppTextStyles.label.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           ],
@@ -174,7 +175,7 @@ class _GroupCard extends StatelessWidget {
                           group.name,
                           style: AppTextStyles.bodySmall.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.foreground,
+                            color: AppColors.text(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -185,7 +186,7 @@ class _GroupCard extends StatelessWidget {
                         _getCityOnly(group.destination),
                         style: AppTextStyles.bodySmall.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: AppColors.foreground,
+                          color: AppColors.text(context),
                         ),
                       ),
                     ],
@@ -200,7 +201,7 @@ class _GroupCard extends StatelessWidget {
                             : '${group.members} members',
                         style: AppTextStyles.label.copyWith(
                           fontSize: 12,
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ),
                     ],

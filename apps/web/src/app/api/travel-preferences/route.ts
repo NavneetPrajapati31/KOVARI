@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { logger } from "@/lib/api/logger";
 
 const PreferencesSchema = z.object({
   destinations: z.array(z.string()).default([]),
@@ -90,6 +91,14 @@ export async function POST(req: Request) {
       return new Response("Failed to update preferences", { status: 500 });
     }
 
+    // Invalidate matching cache
+    try {
+      const { invalidateMatchingCache } = await import("@/lib/api/matching/cache");
+      await invalidateMatchingCache(userIdInSupabase);
+    } catch (err: any) {
+      logger.error("CACHE-INVALIDATE", "Failed to invalidate matching cache", err);
+    }
+
     return new Response("Preferences updated", { status: 200 });
   }
 
@@ -100,6 +109,14 @@ export async function POST(req: Request) {
   if (insertError) {
     console.error("Supabase insert error:", insertError);
     return new Response("Failed to save preferences", { status: 500 });
+  }
+
+  // Invalidate matching cache
+  try {
+    const { invalidateMatchingCache } = await import("@/lib/api/matching/cache");
+    await invalidateMatchingCache(userIdInSupabase);
+  } catch (err) {
+    console.error("Failed to invalidate matching cache:", err);
   }
 
   return new Response("Preferences saved", { status: 201 });

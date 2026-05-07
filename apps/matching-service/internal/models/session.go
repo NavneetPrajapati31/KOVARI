@@ -16,6 +16,10 @@ func (d Destination) ToCoords() Coordinates {
 }
 
 type StaticAttributes struct {
+<<<<<<< HEAD
+=======
+	UserID      string      `json:"userId,omitempty"`
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 	Name        string      `json:"name,omitempty"`
 	ClerkUserId string      `json:"clerkUserId,omitempty"`
 	Age         int         `json:"age"`
@@ -34,6 +38,10 @@ type StaticAttributes struct {
 	Bio         string      `json:"bio,omitempty"`
 	RawLocation string      `json:"raw_location,omitempty"`
 	GeoSource   string      `json:"geoSource,omitempty"`
+<<<<<<< HEAD
+=======
+	FoodPreference string   `json:"foodPreference,omitempty"`
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 }
 
 type SoloSession struct {
@@ -86,6 +94,7 @@ type GroupMatchResult struct {
 }
 
 type UserPreview struct {
+<<<<<<< HEAD
 	UserId      string  `json:"userId"`
 	Name        string  `json:"name"`
 	Age         int     `json:"age"`
@@ -94,4 +103,24 @@ type UserPreview struct {
 	Bio         string  `json:"bio"`
 	Avatar      string  `json:"avatar"`
 	Budget      float64 `json:"budget"`
+=======
+	UserId      string   `json:"userId"`
+	Name        string   `json:"name"`
+	Age         int      `json:"age"`
+	Gender      string   `json:"gender"`
+	Personality string   `json:"personality"`
+	Bio         string   `json:"bio"`
+	Avatar      string   `json:"avatar"`
+	Budget      float64  `json:"budget"`
+	Location    string   `json:"location"`
+	LocationDisplay string `json:"locationDisplay"`
+	Smoking     string   `json:"smoking"`
+	Drinking    string   `json:"drinking"`
+	Interests   []string `json:"interests"`
+	Languages   []string `json:"languages"`
+	Nationality string   `json:"nationality"`
+	Religion    string   `json:"religion"`
+	Profession  string   `json:"profession"`
+	FoodPreference string `json:"foodPreference"`
+>>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 }

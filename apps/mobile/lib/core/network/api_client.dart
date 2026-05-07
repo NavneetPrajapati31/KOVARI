@@ -1,195 +1,375 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/config/env.dart';
-import '../../core/services/token_service.dart';
+import '../../core/auth/token_storage.dart';
+import '../../core/auth/session_manager.dart';
+import '../../core/auth/auth_repository.dart';
+import '../../core/utils/deep_clone.dart';
+import '../../core/models/api_response.dart';
+import 'package:flutter/foundation.dart' show compute;
+import '../cache/local_cache.dart';
+import '../providers/cache_provider.dart';
+import '../providers/connectivity_provider.dart';
 import 'api_endpoints.dart';
+import 'mutation_queue.dart';
+import '../utils/app_logger.dart';
+import 'request_priority.dart';
 
-/// Base API client interface
+// ─────────────────────────────────────────────
+// Abstract Interface
+// ─────────────────────────────────────────────
+
 abstract class ApiClient {
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters});
-  Future<Response> post(String path, {dynamic data});
-  Future<Response> patch(String path, {dynamic data});
-  Future<Response> delete(String path, {dynamic data});
+  Future<ApiResponse<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+    Duration? ttl,
+    bool ignoreCache = false,
+  });
 
-  /// Dynamically update the authentication token
+  Future<ApiResponse<T>> post<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  });
+
+  Future<ApiResponse<T>> put<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  });
+
+  Future<ApiResponse<T>> patch<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  });
+
+  Future<ApiResponse<T>> delete<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  });
+
   void setToken(String token);
-
-  /// Clear the current authentication token (Logout)
   void clearToken();
-
-  /// Register a callback for global logout events
   void setOnLogout(VoidCallback onLogout);
-
-  /// Access the current token state
+  void setOnNetworkError(VoidCallback onNetworkError);
   String? get token;
 }
 
-/// Production implementation using Dio
+// ─────────────────────────────────────────────
+// Production Dio Implementation
+// ─────────────────────────────────────────────
+
 class DioApiClient implements ApiClient {
   final Dio _dio;
-  final Dio _retryDio; // Dedicated instance for retries to avoid deadlocks
-  final TokenService _tokenService = TokenService();
-  String? _token;
-  VoidCallback? _onLogout;
+  final Dio _retryDio;
+  final SessionManager _sessionManager;
+  final TokenStorage _tokenStorage = TokenStorage();
+  late final AuthRepository _authRepository;
+  late final LocalCache _cache;
+  final Ref _ref;
+  final Map<String, Future<dynamic>> _activeRequests = {};
 
-  DioApiClient([this._token])
-    : _dio = Dio(
+  static const _uuid = Uuid();
+
+  DioApiClient(this._ref)
+    : _sessionManager = _ref.read(sessionManagerProvider),
+      _dio = Dio(
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 20),
+          sendTimeout: const Duration(seconds: 15),
         ),
       ),
       _retryDio = Dio(
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
+          connectTimeout: const Duration(seconds: 15),
         ),
       ) {
-    // We use QueuedInterceptorsWrapper to handle concurrent 401s properly
+    _authRepository = _ref.read(authRepositoryProvider);
+    _cache = _ref.read(localCacheProvider);
+    _initializeInterceptors();
+  }
+
+  void _initializeInterceptors() {
     _dio.interceptors.add(
-      QueuedInterceptorsWrapper(
+      InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = _token ?? await _tokenService.getToken();
+          // 1. Traceability: Preserve or generate X-Request-Id
+          final requestId = options.headers['X-Request-Id'] ?? _uuid.v4();
+          options.headers['X-Request-Id'] = requestId;
+          options.extra['requestId'] = requestId;
 
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+          // 2. Classification
+          final isPublic =
+              options.extra['isPublic'] ??
+              TokenStorage.isPublicEndpoint(options.path);
+          final authRequired = options.extra['authRequired'] ?? !isPublic;
+          final isMutation =
+              options.extra['isMutation'] ??
+              [
+                'POST',
+                'PUT',
+                'PATCH',
+                'DELETE',
+              ].contains(options.method.toUpperCase());
+
+          options.extra['authRequired'] = authRequired;
+          options.extra['isMutation'] = isMutation;
+
+          // 3. Priority Classification
+          final priority =
+              options.extra[TokenStorage.priorityKey] ??
+              (isMutation ? RequestPriority.high : RequestPriority.medium);
+          options.extra[TokenStorage.priorityKey] = priority;
+
+          // 3a. Connectivity Guard
+          final connectivity = _ref.read(connectivityProvider);
+          if (connectivity.isOffline) {
+            if (isMutation) {
+              // Queue mutations for later
+              _ref
+                  .read(mutationQueueProvider.notifier)
+                  .enqueue(
+                    path: options.path,
+                    method: options.method,
+                    data: options.data,
+                  );
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: 'mutation_queued',
+                  type: DioExceptionType.cancel,
+                ),
+              );
+            } else {
+              // Try to find any cache, even if expired (stale fallback)
+              final cached = _cache.get(
+                options.path,
+                params: options.queryParameters,
+              );
+              if (cached != null) {
+                AppLogger.d(
+                  '📦 [OFFLINE] Stale cache fallback for ${options.path}',
+                );
+                return handler.resolve(
+                  Response(
+                    requestOptions: options,
+                    data: cached.data,
+                    statusCode: 200,
+                    extra: {TokenStorage.fromCacheKey: true, 'isStale': true},
+                  ),
+                );
+              }
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: 'offline',
+                  type: DioExceptionType.connectionError,
+                ),
+              );
+            }
           }
 
-          options.headers['Content-Type'] = 'application/json';
-
-          if (kDebugMode) {
-            print('🚀 [API REQUEST] ${options.method} ${options.uri}');
+          // 3. Mutation Guard for Degraded Mode
+          if (authRequired && isMutation && _sessionManager.isDegraded) {
+            AppLogger.w(
+              '[$requestId] Mutation blocked: App is in Degraded Mode',
+            );
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                error: DegradedModeException(),
+                type: DioExceptionType.cancel,
+              ),
+            );
           }
 
+          // 4. Selective Blocking: Only Auth-required requests wait for refresh
+          if (authRequired && _sessionManager.isRefreshing) {
+            AppLogger.d('[$requestId] Queuing request behind active refresh');
+            try {
+              await _sessionManager.waitForRefresh(
+                priority: priority as RequestPriority,
+              );
+            } catch (e) {
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: e,
+                  type: DioExceptionType.cancel,
+                ),
+              );
+            }
+          }
+
+          // 5. Attach Authorization
+          if (authRequired) {
+            final token = await _tokenStorage.getAccessToken();
+            if (token != null) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          }
+
+          // 6. Memory-Safe Cancellation Registration
+          final cancelToken = options.cancelToken ?? CancelToken();
+          options.cancelToken = cancelToken;
+          _sessionManager.registerToken(cancelToken);
+
+          options.extra['startTime'] = DateTime.now().millisecondsSinceEpoch;
+          _logRequest(options);
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          if (kDebugMode) {
-            print(
-              '✅ [API RESPONSE] ${response.statusCode} ${response.requestOptions.path}',
+          final requestId = response.requestOptions.extra['requestId'] ?? 'N/A';
+          final authRequired =
+              response.requestOptions.extra['authRequired'] == true;
+
+          // Latency Tracking
+          final startTime = response.requestOptions.extra['startTime'] as int?;
+          if (startTime != null) {
+            _sessionManager.recordLatency(
+              DateTime.now().millisecondsSinceEpoch - startTime,
             );
           }
+
+          if (response.requestOptions.cancelToken != null) {
+            _sessionManager.unregisterToken(
+              response.requestOptions.cancelToken!,
+            );
+          }
+
+          // 1. Success-based Recovery Reset
+          if (authRequired &&
+              response.statusCode == 200 &&
+              response.requestOptions.extra[TokenStorage.fromCacheKey] !=
+                  true) {
+            _authRepository.resetRecoveryBudget();
+          }
+
+          // 2. Meta Merge for Degraded Mode
+          if (_sessionManager.isDegraded &&
+              response.data is Map<String, dynamic> &&
+              (response.data as Map).containsKey('meta')) {
+            final data = response.data as Map<String, dynamic>;
+            final existingMeta = data['meta'] as Map<String, dynamic>? ?? {};
+            data['meta'] = {...existingMeta, 'degraded': true};
+          }
+
+          AppLogger.i(
+            '✅ [RES] [$requestId] ${response.requestOptions.method} ${response.requestOptions.path} [${response.statusCode}]',
+          );
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
-          if (kDebugMode) {
-            print(
-              '❌ [API ERROR] ${e.response?.statusCode} ${e.requestOptions.path}',
-            );
+          final requestId = e.requestOptions.extra['requestId'] ?? 'N/A';
+          if (e.requestOptions.cancelToken != null) {
+            _sessionManager.unregisterToken(e.requestOptions.cancelToken!);
           }
 
-          // Handle 401 Unauthorized (Expired Tokens)
-          if (e.response?.statusCode == 401 &&
+          // 1. 3-Tier 401 Detection
+          final is401 = e.response?.statusCode == 401;
+          final hasAuthHeader = e.requestOptions.headers.containsKey(
+            'Authorization',
+          );
+          final isTokenExpired = _isTokenExpiredError(e);
+          final heuristicExpired = await _tokenStorage.isExpired();
+
+          final shouldRefresh =
+              (isTokenExpired) ||
+              (is401 && hasAuthHeader) ||
+              (heuristicExpired && hasAuthHeader);
+
+          if (shouldRefresh &&
               !e.requestOptions.path.contains(ApiEndpoints.refresh)) {
-            // 1. Check if the token has already been refreshed by a parallel request
-            final currentToken = await _tokenService.getToken();
-            final requestToken = e.requestOptions.headers['Authorization']
-                ?.toString()
-                .replaceFirst('Bearer ', '');
-
-            // Use the newer token if it exists and was recently updated
-            if (currentToken != null && currentToken != requestToken) {
-              if (kDebugMode) {
-                print(
-                  '🔄 [AUTH] Parallel refresh detected. Retrying with new token...',
-                );
-              }
-
-              final options = e.requestOptions;
-              options.headers['Authorization'] = 'Bearer $currentToken';
-              setToken(currentToken);
-
-              final retryResponse = await _retryDio.request(
-                options.path,
-                data: options.data,
-                queryParameters: options.queryParameters,
-                options: Options(
-                  method: options.method,
-                  headers: options.headers,
-                ),
+            // Guard against infinite retry loops
+            if (e.requestOptions.extra['retry'] == true ||
+                (e.requestOptions.extra['retryCount'] as int? ?? 0) >= 1) {
+              AppLogger.e(
+                '❌ [$requestId] Retry limit exceeded for 401. Forcing logout.',
               );
-
-              return handler.resolve(retryResponse);
+              await _authRepository.logout(reason: 'RETRY_LIMIT_EXCEEDED');
+              return handler.next(e);
             }
 
-            // 2. If no new token exists, perform the refresh (Sequentially)
-            final refreshToken = await _tokenService.getRefreshToken();
-            if (refreshToken != null) {
-              try {
-                if (kDebugMode) {
-                  print('🔄 [AUTH] Attempting silent token refresh...');
-                }
+            AppLogger.w(
+              '⚠️ [$requestId] 401 Detected (Code: $isTokenExpired, Status: $is401, Heuristic: $heuristicExpired). Attempting refresh.',
+            );
 
-                // Use the dedicated retryDio for refresh to avoid recursion
-                final refreshResponse = await _retryDio.post(
-                  ApiEndpoints.refresh,
-                  data: {'refreshToken': refreshToken},
-                );
+            try {
+              await _authRepository.refreshToken(requestId: requestId);
 
-                if (refreshResponse.statusCode == 200 ||
-                    refreshResponse.statusCode == 201) {
-                  final newAccessToken = refreshResponse.data['accessToken'];
-                  final newRefreshToken = refreshResponse.data['refreshToken'];
+              // 2. Post-Refresh Retry with Jittered Exponential Backoff
+              final retryCount =
+                  (e.requestOptions.extra['retryCount'] as int? ?? 0) + 1;
+              final backoffMs =
+                  (pow(2, retryCount) * 100).toInt() + Random().nextInt(100);
+              await Future.delayed(Duration(milliseconds: backoffMs));
 
-                  // Update storage and local state
-                  await _tokenService.saveToken(newAccessToken);
-                  await _tokenService.saveRefreshToken(newRefreshToken);
-                  setToken(newAccessToken);
+              return handler.resolve(
+                await _retryRequest(e.requestOptions, retryCount),
+              );
+            } catch (refreshError) {
+              return handler.reject(
+                DioException(
+                  requestOptions: e.requestOptions,
+                  error: refreshError,
+                  type: DioExceptionType.cancel,
+                ),
+              );
+            }
+          }
 
-                  if (kDebugMode) {
-                    print(
-                      '✨ [AUTH] Token refreshed successfully. Retrying request...',
-                    );
-                  }
+          AppLogger.e(
+            '❌ [ERR] [$requestId] ${e.requestOptions.method} ${e.requestOptions.path} [${e.response?.statusCode}]',
+            error: e,
+          );
 
-                  // Retry original request with new token using retryDio to avoid deadlock
-                  final options = e.requestOptions;
-                  options.headers['Authorization'] = 'Bearer $newAccessToken';
+          // 3. Safe Request Auto-Retry (Timeout/Network errors)
+          final isSafeMethod = [
+            'GET',
+            'HEAD',
+            'OPTIONS',
+          ].contains(e.requestOptions.method.toUpperCase());
+          final isNetworkError =
+              e.type == DioExceptionType.connectionTimeout ||
+              e.type == DioExceptionType.sendTimeout ||
+              e.type == DioExceptionType.receiveTimeout ||
+              e.type == DioExceptionType.connectionError;
 
-                  final retryResponse = await _retryDio.request(
-                    options.path,
-                    data: options.data,
-                    queryParameters: options.queryParameters,
-                    options: Options(
-                      method: options.method,
-                      headers: options.headers,
-                    ),
-                  );
+          if (isSafeMethod &&
+              isNetworkError &&
+              (e.requestOptions.extra['retryCount'] as int? ?? 0) < 3) {
+            final retryCount =
+                (e.requestOptions.extra['retryCount'] as int? ?? 0) + 1;
+            final backoffMs =
+                (pow(2, retryCount) * 1000).toInt() + Random().nextInt(500);
 
-                  return handler.resolve(retryResponse);
-                }
-              } catch (refreshError) {
-                if (kDebugMode) {
-                  print('🚨 [AUTH] Refresh failed: $refreshError');
-                }
+            AppLogger.w(
+              '🔄 [$requestId] Network error. Retrying in ${backoffMs}ms (Attempt #$retryCount)',
+            );
+            await Future.delayed(Duration(milliseconds: backoffMs));
 
-                if (refreshError is DioException) {
-                  final statusCode = refreshError.response?.statusCode;
-                  // If it's a structural auth error (401, 403, 400) -> Session is dead.
-                  if (statusCode != null &&
-                      (statusCode == 401 ||
-                          statusCode == 403 ||
-                          statusCode == 400)) {
-                    if (kDebugMode) {
-                      print('🚨 [AUTH] Refresh token invalid. Forcing logout.');
-                    }
-                    await _tokenService.clearToken();
-                    clearToken();
-                    _onLogout?.call();
-                  } else {
-                    // For network errors (timeout, no internet), we do NOT logout.
-                    // We let the original request fail, but keep the tokens for later.
-                    if (kDebugMode) {
-                      print(
-                        'ℹ️ [AUTH] Network error during refresh. Retaining session.',
-                      );
-                    }
-                  }
-                }
-              }
+            try {
+              return handler.resolve(
+                await _retryRequest(e.requestOptions, retryCount),
+              );
+            } catch (_) {
+              // Continue to next error handler if retry also fails
             }
           }
 
@@ -199,155 +379,439 @@ class DioApiClient implements ApiClient {
     );
   }
 
-  @override
-  String? get token => _token;
+  bool _isTokenExpiredError(DioException e) {
+    if (e.response?.data is Map) {
+      final data = e.response!.data as Map;
+      final errorField = data['error'];
+      final code =
+          (errorField is Map ? errorField['code'] : errorField) ?? data['code'];
+      return code == 'TOKEN_EXPIRED';
+    }
+    return false;
+  }
 
-  @override
-  void setToken(String token) {
-    _token = token;
+  Future<Response> _retryRequest(
+    RequestOptions originalOptions,
+    int retryCount,
+  ) async {
+    // Industrial-Grade Deep Clone
+    final options = Options(
+      method: originalOptions.method,
+      headers: Map<String, dynamic>.from(originalOptions.headers),
+      extra: Map<String, dynamic>.from(originalOptions.extra),
+      contentType: originalOptions.contentType,
+      responseType: originalOptions.responseType,
+      validateStatus: originalOptions.validateStatus,
+    );
+
+    options.extra!['retryCount'] = retryCount;
+    options.extra!['retry'] = true;
+
+    // Attach new token
+    final newToken = await _tokenStorage.getAccessToken();
+    if (newToken != null) {
+      options.headers!['Authorization'] = 'Bearer $newToken';
+    }
+
+    // Preserve X-Request-Id
+    final requestId = originalOptions.extra['requestId'];
+
+    AppLogger.i('🔄 [$requestId] Retrying request (Attempt #$retryCount)');
+
+    return _retryDio.request(
+      originalOptions.path,
+      data: originalOptions.data,
+      queryParameters: originalOptions.queryParameters,
+      options: options,
+      cancelToken: originalOptions.cancelToken,
+    );
+  }
+
+  void _logRequest(RequestOptions options) {
+    final requestId = options.extra['requestId'] ?? 'N/A';
+
+    // Immutable Deep Sanitization
+    dynamic sanitizedData;
+    Map<String, dynamic>? sanitizedHeaders;
+    Map<String, dynamic>? sanitizedParams;
+
+    if (options.data is FormData) {
+      sanitizedData = '[FORMDATA_SKIPPED]';
+    } else if (!_sessionManager.isBinaryPayload(options.data)) {
+      sanitizedData = _redactSensitiveData(deepClone(options.data));
+    } else {
+      sanitizedData = '[BINARY_DATA_SKIPPED]';
+    }
+
+    final redactedHeaders = _redactSensitiveData(deepClone(options.headers));
+    if (redactedHeaders is Map) {
+      sanitizedHeaders = Map<String, dynamic>.from(redactedHeaders);
+    }
+
+    final redactedParams = _redactSensitiveData(
+      deepClone(options.queryParameters),
+    );
+    if (redactedParams is Map) {
+      sanitizedParams = Map<String, dynamic>.from(redactedParams);
+    }
+
+    AppLogger.i('➡️ [REQ] [$requestId] ${options.method} ${options.uri}');
+
+    // Detailed debug logs for development
+    AppLogger.d('[$requestId] Headers: $sanitizedHeaders');
+    if (sanitizedParams != null && sanitizedParams.isNotEmpty) {
+      AppLogger.d('[$requestId] Params: $sanitizedParams');
+    }
+    if (sanitizedData != null) {
+      AppLogger.d('[$requestId] Payload: $sanitizedData');
+    }
+  }
+
+  dynamic _redactSensitiveData(dynamic data) {
+    if (data == null) return null;
+    if (data is Map) {
+      final keysToRedact = {
+        'authorization',
+        'accessToken',
+        'refreshToken',
+        'email',
+        'phone',
+        'latitude',
+        'longitude',
+        'password',
+      };
+      return data.map((key, value) {
+        if (keysToRedact.contains(key.toString().toLowerCase())) {
+          return MapEntry(key, '[REDACTED]');
+        }
+        return MapEntry(key, _redactSensitiveData(value));
+      });
+    } else if (data is List) {
+      return data.map((e) => _redactSensitiveData(e)).toList();
+    }
+    return data;
   }
 
   @override
-  void clearToken() {
-    _token = null;
-  }
-
+  String? get token => null; // Use TokenStorage directly
   @override
-  void setOnLogout(VoidCallback onLogout) {
-    _onLogout = onLogout;
-  }
-
+  void setToken(String token) {}
   @override
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) {
-    return _dio.get(path, queryParameters: queryParameters);
-  }
-
-  @override
-  Future<Response> post(String path, {dynamic data}) {
-    return _dio.post(path, data: data);
-  }
-
-  @override
-  Future<Response> patch(String path, {dynamic data}) {
-    return _dio.patch(path, data: data);
-  }
-
-  @override
-  Future<Response> delete(String path, {dynamic data}) {
-    return _dio.delete(path, data: data);
-  }
-}
-
-/// Mock implementation for local development without backend
-class MockApiClient implements ApiClient {
-  final Duration delay;
-  String? _token;
-
-  MockApiClient({this.delay = const Duration(milliseconds: 500)});
-
-  @override
-  String? get token => _token;
-
-  @override
-  void setToken(String token) {
-    _token = token;
-  }
-
-  @override
-  void clearToken() {
-    _token = null;
-  }
-
+  void clearToken() {}
   @override
   void setOnLogout(VoidCallback onLogout) {}
+  @override
+  void setOnNetworkError(VoidCallback onNetworkError) {}
 
   @override
-  Future<Response> get(
+  Future<ApiResponse<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+    Duration? ttl,
+    bool ignoreCache = false,
   }) async {
-    await Future.delayed(delay);
+    // 1. Try Cache First
+    if (!ignoreCache) {
+      final cachedEntry = _cache.get(path, params: queryParameters);
+      if (cachedEntry != null && cachedEntry.data != null) {
+        // Extract data from envelope if present to match _safeRequest behavior
+        final dynamic rawData =
+            (cachedEntry.data is Map &&
+                (cachedEntry.data as Map).containsKey('data'))
+            ? (cachedEntry.data as Map)['data']
+            : cachedEntry.data;
 
-    if (path == 'users/me') {
-      return Response(
-        requestOptions: RequestOptions(path: path),
-        data: {
-          'id': 'mock_user_123',
-          'email': 'mock@example.com',
-          'name': 'Mock User',
-        },
-        statusCode: 200,
-      );
+        if (rawData != null) {
+          AppLogger.d('📦 [CACHE] Hit for $path. Data present.');
+
+          return ApiResponse(
+            success: true,
+            data: parser(rawData),
+            raw: cachedEntry.data,
+            meta: const ApiMeta(),
+          );
+        } else {
+          AppLogger.w(
+            '⚠️ [CACHE] Entry for $path contains null data. Ignoring.',
+          );
+        }
+      }
     }
 
-    return Response(
-      requestOptions: RequestOptions(path: path),
-      data: {
-        'message': 'Mock data for $path',
-        'token_received': _token != null,
-      },
-      statusCode: 200,
+    return _deduplicatedRequest(
+      path,
+      () => _safeRequest(
+        () => _dio.get(
+          path,
+          queryParameters: queryParameters,
+          cancelToken: cancelToken,
+        ),
+        parser,
+        onSuccess: (data) => _cache.set(
+          path,
+          data,
+          params: queryParameters,
+          ttl: ttl ?? const Duration(hours: 1),
+        ),
+        onFailure: () async {
+          // Stale fallback on network failure
+          final stale = _cache.get(path, params: queryParameters);
+          if (stale != null) {
+            AppLogger.d('📦 [STALE] Falling back to stale cache for $path');
+            return ApiResponse(
+              success: true,
+              data: parser(
+                (stale.data is Map && (stale.data as Map).containsKey('data'))
+                    ? (stale.data as Map)['data']
+                    : stale.data,
+              ),
+              raw: stale.data,
+              meta: const ApiMeta(degraded: true),
+            );
+          }
+          return null;
+        },
+      ),
     );
   }
 
-  @override
-  Future<Response> post(String path, {dynamic data}) async {
-    await Future.delayed(delay);
-
-    if (path.contains('auth')) {
-      return Response(
-        requestOptions: RequestOptions(path: path),
-        data: {
-          'accessToken': 'mock_access_token',
-          'refreshToken': 'mock_refresh_token',
-          'user': {
-            'id': 'mock_user_123',
-            'email': data['email'] ?? 'mock@example.com',
-            'name': data['name'] ?? 'Mock User',
-          },
-        },
-        statusCode: 201,
-      );
+  Future<ApiResponse<T>> _deduplicatedRequest<T>(
+    String path,
+    Future<ApiResponse<T>> Function() request,
+  ) async {
+    if (_activeRequests.containsKey(path)) {
+      AppLogger.d('💎 [DEDUPE] Joining active request for $path');
+      final result = await _activeRequests[path];
+      return result as ApiResponse<T>;
     }
 
-    return Response(
-      requestOptions: RequestOptions(path: path),
-      data: {'success': true},
-      statusCode: 201,
+    final future = request();
+    _activeRequests[path] = future;
+
+    try {
+      final result = await future;
+      return result;
+    } finally {
+      _activeRequests.remove(path);
+    }
+  }
+
+  @override
+  Future<ApiResponse<T>> post<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  }) {
+    return _safeRequest(
+      () => _dio.post(path, data: data, cancelToken: cancelToken),
+      parser,
     );
   }
 
   @override
-  Future<Response> patch(String path, {dynamic data}) async {
-    await Future.delayed(delay);
-    return Response(
-      requestOptions: RequestOptions(path: path),
-      data: {'success': true},
-      statusCode: 200,
+  Future<ApiResponse<T>> put<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  }) {
+    return _safeRequest(
+      () => _dio.put(path, data: data, cancelToken: cancelToken),
+      parser,
     );
   }
 
   @override
-  Future<Response> delete(String path, {dynamic data}) async {
-    await Future.delayed(delay);
-    return Response(
-      requestOptions: RequestOptions(path: path),
-      data: {'success': true},
-      statusCode: 200,
+  Future<ApiResponse<T>> patch<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  }) {
+    return _safeRequest(
+      () => _dio.patch(path, data: data, cancelToken: cancelToken),
+      parser,
     );
+  }
+
+  @override
+  Future<ApiResponse<T>> delete<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  }) {
+    return _safeRequest(
+      () => _dio.delete(path, data: data, cancelToken: cancelToken),
+      parser,
+    );
+  }
+
+  Future<ApiResponse<T>> _safeRequest<T>(
+    Future<Response> Function() request,
+    T Function(dynamic) parser, {
+    void Function(dynamic data)? onSuccess,
+    Future<ApiResponse<T>?> Function()? onFailure,
+  }) async {
+    try {
+      final response = await request();
+      final requestId = response.requestOptions.extra['requestId']?.toString();
+
+      if (response.data == null || response.data is! Map) {
+        AppLogger.w(
+          '⚠️ [RES] [$requestId] Unexpected response format: ${response.data}',
+        );
+        return ApiResponse.fallback(
+          reason: 'invalid_format',
+          requestId: requestId,
+        );
+      }
+
+      AppLogger.d('📦 [RES] [$requestId] Raw data: ${response.data}');
+      final rawData = response.data.containsKey('data')
+          ? response.data['data']
+          : response.data;
+      final responseBody = response.data;
+
+      // 1. Success Callback for Caching
+      if (response.statusCode == 200 && responseBody['success'] == true) {
+        onSuccess?.call(responseBody);
+      }
+
+      // 2. Conditional Parsing with compute()
+      T parsedData;
+      final bool useCompute =
+          response.toString().length > 50 * 1024; // > 50KB approximate
+
+      if (useCompute) {
+        AppLogger.d(
+          '🧵 [CPU] Large payload detected. Using compute() for parsing.',
+        );
+        parsedData = await compute((data) => parser(data), rawData);
+      } else {
+        parsedData = parser(rawData);
+      }
+
+      return ApiResponse.fromJson(
+        responseBody as Map<String, dynamic>,
+        (_) => parsedData, // Parser already executed
+        requestId: requestId,
+      );
+    } on DioException catch (e) {
+      final requestId = e.requestOptions.extra['requestId']?.toString();
+
+      // Check for stale fallback
+      if (onFailure != null) {
+        final fallback = await onFailure();
+        if (fallback != null) return fallback;
+      }
+
+      if (e.error is DegradedModeException ||
+          e.error is RefreshTimeoutException ||
+          e.error is TooManyRequestsException ||
+          e.error is AuthFailure) {
+        return ApiResponse.fallback(
+          reason: e.error.toString(),
+          requestId: requestId,
+        );
+      }
+
+      String reason = 'network';
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        reason = 'timeout';
+      }
+
+      return ApiResponse.fallback(reason: reason, requestId: requestId);
+    } catch (e) {
+      if (onFailure != null) {
+        final fallback = await onFailure();
+        if (fallback != null) return fallback;
+      }
+      return ApiResponse.fallback(reason: 'malformed');
+    }
   }
 }
 
-/// Factory to get the appropriate API client
-class ApiClientFactory {
-  static ApiClient create({String? token, bool forceReal = false}) {
-    if (Env.useMockApi && !forceReal) {
-      return MockApiClient();
-    }
-    return DioApiClient(token);
+// ─────────────────────────────────────────────
+// Mock Client (development only)
+// ─────────────────────────────────────────────
+
+class MockApiClient implements ApiClient {
+  @override
+  String? get token => null;
+  @override
+  void setToken(String t) {}
+  @override
+  void clearToken() {}
+  @override
+  void setOnLogout(VoidCallback onLogout) {}
+  @override
+  void setOnNetworkError(VoidCallback onNetworkError) {}
+
+  @override
+  Future<ApiResponse<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+    Duration? ttl,
+    bool ignoreCache = false,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return ApiResponse.fallback(reason: 'mock', requestId: 'mock-get');
+  }
+
+  @override
+  Future<ApiResponse<T>> post<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return ApiResponse.fallback(reason: 'mock', requestId: 'mock-post');
+  }
+
+  @override
+  Future<ApiResponse<T>> put<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return ApiResponse.fallback(reason: 'mock', requestId: 'mock-put');
+  }
+
+  @override
+  Future<ApiResponse<T>> patch<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return ApiResponse.fallback(reason: 'mock', requestId: 'mock-patch');
+  }
+
+  @override
+  Future<ApiResponse<T>> delete<T>(
+    String path, {
+    dynamic data,
+    required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return ApiResponse.fallback(reason: 'mock', requestId: 'mock-delete');
   }
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClientFactory.create();
+  if (Env.useMockApi) return MockApiClient();
+  return DioApiClient(ref);
 });

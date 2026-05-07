@@ -68,7 +68,7 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
             height: itemHeight,
             margin: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: AppColors.surface(context, level: 2),
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -88,7 +88,7 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
                 },
                 childDelegate: ListWheelChildBuilderDelegate(
                   childCount: _months.length,
-                  builder: (context, i) => _buildItem(_months[i]),
+                  builder: (context, i) => _buildItem(context, _months[i]),
                 ),
               ),
             ),
@@ -105,7 +105,7 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
                 },
                 childDelegate: ListWheelChildBuilderDelegate(
                   childCount: DateTime(_selectedYear, _selectedMonth + 1, 0).day,
-                  builder: (context, i) => _buildItem("${i + 1}"),
+                  builder: (context, i) => _buildItem(context, "${i + 1}"),
                 ),
               ),
             ),
@@ -122,7 +122,7 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
                 },
                 childDelegate: ListWheelChildBuilderDelegate(
                   childCount: _years.length,
-                  builder: (context, i) => _buildItem("${_years[i]}"),
+                  builder: (context, i) => _buildItem(context, "${_years[i]}"),
                 ),
               ),
             ),
@@ -132,14 +132,14 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
     );
   }
 
-  Widget _buildItem(String text) {
+  Widget _buildItem(BuildContext context, String text) {
     return Center(
       child: Text(
         text,
         style: AppTextStyles.bodyMedium.copyWith(
           fontSize: 18,
           fontWeight: FontWeight.w500,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );

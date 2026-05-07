@@ -40,17 +40,25 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.label,
-              style: AppTextStyles.label.copyWith(
-                color: AppColors.mutedForeground,
+            if (widget.label.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Text(
+                  widget.label,
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.text(context, isMuted: true),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
+              const SizedBox(height: 6),
+            ] else
+              const SizedBox(height: 0),
             MenuAnchor(
               controller: _controller,
               style: MenuStyle(
-                backgroundColor: WidgetStateProperty.all(Colors.white),
+                backgroundColor: WidgetStateProperty.all(AppColors.surface(context, level: 2)),
                 elevation: WidgetStateProperty.all(8),
                 shadowColor: WidgetStateProperty.all(
                   Colors.black.withValues(alpha: 0.1),
@@ -58,7 +66,7 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                 shape: WidgetStateProperty.all(
                   RoundedRectangleBorder(
                     borderRadius: AppRadius.large,
-                    side: const BorderSide(color: AppColors.border, width: 0.5),
+                    side: BorderSide(color: AppColors.borderColor(context), width: 1),
                   ),
                 ),
                 padding: WidgetStateProperty.all(const EdgeInsets.all(8)),
@@ -77,9 +85,9 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                   onPressed: () => widget.onChanged?.call(option),
                   style: MenuItemButton.styleFrom(
                     backgroundColor: isSelected
-                        ? AppColors.primaryLight
+                        ? AppColors.primary.withValues(alpha: 0.1)
                         : Colors.transparent,
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
                     padding: const EdgeInsets.symmetric(
@@ -101,7 +109,7 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                           : FontWeight.w400,
                       color: isSelected
                           ? AppColors.primary
-                          : AppColors.mutedForeground,
+                          : AppColors.text(context, isMuted: true),
                     ),
                   ),
                 );
@@ -123,12 +131,12 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: widget.fillColor ?? AppColors.background,
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      color: widget.fillColor ?? AppColors.surface(context, level: 2),
+                      borderRadius: const BorderRadius.all(Radius.circular(12)),
                       border: Border.all(
                         color: widget.errorText != null
                             ? AppColors.destructive
-                            : AppColors.border,
+                            : AppColors.borderColor(context),
                         width: 1,
                       ),
                     ),
@@ -141,8 +149,8 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                                 : widget.hintText,
                             style: AppTextStyles.bodyMedium.copyWith(
                               color: widget.value != null
-                                  ? AppColors.foreground
-                                  : AppColors.mutedForeground,
+                                  ? AppColors.text(context)
+                                  : AppColors.text(context, isMuted: true),
                               fontWeight: FontWeight.w500,
                             ),
                             maxLines: 1,
@@ -154,7 +162,7 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                               ? LucideIcons.chevronUp
                               : LucideIcons.chevronDown,
                           size: 16,
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ],
                     ),

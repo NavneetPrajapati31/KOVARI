@@ -3,6 +3,9 @@ import { z } from "zod";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { getCoordinatesForLocation, createAdminSupabaseClient } from "@kovari/api";
 import { getGeminiPlaceOverview } from "@/lib/gemini";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 // --- Schema validation matching web's create-group ---
 const GroupSchema = z.object({
@@ -24,9 +27,12 @@ const GroupSchema = z.object({
  * Fetch groups joined by the current mobile user with high-fidelity parity to web.
  */
 export async function GET(req: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   const authUser = await getAuthenticatedUser(req);
   if (!authUser) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
   }
 
   const userId = authUser.id; // internal Supabase UUID
@@ -42,13 +48,13 @@ export async function GET(req: NextRequest) {
 
     if (membershipError) {
       console.error("Error fetching group memberships:", membershipError);
-      return NextResponse.json({ error: "Database error" }, { status: 500 });
+      return formatErrorResponse("Database error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
     const groupIds = memberships.map((m) => m.group_id);
 
     if (groupIds.length === 0) {
-      return NextResponse.json({ data: [] });
+      return formatStandardResponse([], {}, { requestId, latencyMs: Date.now() - start });
     }
 
     // 2. Fetch the groups with those IDs
@@ -74,11 +80,11 @@ export async function GET(req: NextRequest) {
 
     if (groupsError) {
       console.error("Error fetching groups:", groupsError);
-      return NextResponse.json({ error: "Database error" }, { status: 500 });
+      return formatErrorResponse("Database error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
     if (!groupsData || groupsData.length === 0) {
-      return NextResponse.json({ data: [] });
+      return formatStandardResponse([], {}, { requestId, latencyMs: Date.now() - start });
     }
 
     // 3. Fetch additional data for mapping (Creator profiles)
@@ -124,10 +130,10 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ data: mappedGroups });
+    return formatStandardResponse(mappedGroups, {}, { requestId, latencyMs: Date.now() - start });
   } catch (error: any) {
     console.error("Unexpected error in GET /api/mobile/groups:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return formatErrorResponse("Internal server error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }
 
@@ -137,10 +143,13 @@ export async function GET(req: NextRequest) {
  * Unified authentication via Mobile JWT or Clerk.
  */
 export async function POST(req: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     const authUser = await getAuthenticatedUser(req);
     if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
     const userId = authUser.id; // internal Supabase UUID
@@ -148,10 +157,7 @@ export async function POST(req: NextRequest) {
     const parsed = GroupSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
-        { status: 400 }
-      );
+      return formatErrorResponse("Validation failed", ApiErrorCode.BAD_REQUEST, requestId, 400, parsed.error.flatten());
     }
 
     const supabase = createAdminSupabaseClient();
@@ -198,10 +204,7 @@ export async function POST(req: NextRequest) {
 
     if (insertError) {
       console.error("Mobile group insert failure:", insertError);
-      return NextResponse.json(
-        { error: "Failed to create group", details: insertError.message },
-        { status: 500 }
-      );
+      return formatErrorResponse("Failed to create group", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500, insertError.message);
     }
 
     // 4. Background Enrichment: Gemini AI Overview
@@ -229,10 +232,7 @@ export async function POST(req: NextRequest) {
     if (membershipError) {
       // Rollback group if membership fails
       await supabase.from("groups").delete().eq("id", groupData.id);
-      return NextResponse.json(
-        { error: "Failed to establish group membership", details: membershipError.message },
-        { status: 500 }
-      );
+      return formatErrorResponse("Failed to establish group membership", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500, membershipError.message);
     }
 
     // 6. Fetch creator's profile for the enriched response
@@ -266,10 +266,10 @@ export async function POST(req: NextRequest) {
       status: groupData.status,
     };
 
-    return NextResponse.json(mappedGroup, { status: 201 });
+    return formatStandardResponse(mappedGroup, {}, { requestId, latencyMs: Date.now() - start }, 201);
 
   } catch (error: any) {
     console.error("Critical error in POST /api/mobile/groups:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return formatErrorResponse("Internal server error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }

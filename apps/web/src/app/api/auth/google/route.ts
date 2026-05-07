@@ -2,23 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyGoogleToken } from "@/lib/auth/google";
 import { generateAccessToken, generateRefreshToken, hashToken } from "@/lib/auth/jwt";
 import { createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 /**
  * Exchange Google ID Token for custom JWT
  * POST /api/auth/google
  */
 export async function POST(request: NextRequest) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+  
+  console.log(`[AUTH] Google ID Token exchange started. RequestId: ${requestId}`);
+
   try {
     const { idToken } = await request.json();
 
     if (!idToken) {
-      return NextResponse.json({ error: "Missing idToken" }, { status: 400 });
+      return formatErrorResponse("Missing idToken", ApiErrorCode.BAD_REQUEST, requestId, 400);
     }
 
     // 1. Verify Google Token
     const googlePayload = await verifyGoogleToken(idToken);
     if (!googlePayload) {
-      return NextResponse.json({ error: "Invalid Google token" }, { status: 401 });
+      return formatErrorResponse("Invalid Google token", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
     const { email, name, googleId } = googlePayload;
@@ -26,7 +34,7 @@ export async function POST(request: NextRequest) {
     // 2. Initialize Supabase
     const supabase = createRouteHandlerSupabaseClientWithServiceRole();
 
-    // 3. Consolidated Atomic Identity Sync (Case 18: No partial user creation)
+    // 3. Consolidated Atomic Identity Sync
     const { data: userId, error: syncError } = await supabase
       .rpc("sync_user_identity", {
         p_email: email,
@@ -38,17 +46,29 @@ export async function POST(request: NextRequest) {
 
     if (syncError || !userId) {
       console.error("Atomic identity sync failed:", syncError);
-      return NextResponse.json({ error: "Authentication failed" }, { status: 500 });
+      return formatErrorResponse("Authentication failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
+
+    // 3.5 Fetch full user data including ban status
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("id, email, name, banned, ban_reason, ban_expires_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (userError || !user) {
+      console.error("Failed to fetch user after sync:", userError);
+      return formatErrorResponse("User fetch failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
     // 4. Generate Tokens
-    const refreshToken = generateRefreshToken(userId);
+    const refreshToken = generateRefreshToken(userId, email);
     const tokenHash = hashToken(refreshToken);
-    const accessToken = generateAccessToken(userId, tokenHash);
+    const accessToken = generateAccessToken(userId, email, tokenHash);
 
     // 5. Store Hashed Refresh Token in DB for rotation/revocation
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Matches REFRESH_TOKEN_EXPIRY (7d)
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
     const { error: tokenError } = await supabase
       .from("refresh_tokens")
@@ -60,22 +80,43 @@ export async function POST(request: NextRequest) {
 
     if (tokenError) {
       console.error("Failed to store refresh token:", tokenError);
-      return NextResponse.json({ error: "Auth session failed" }, { status: 500 });
+      return formatErrorResponse("Auth session failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
     }
 
-    // 6. Return success
-    return NextResponse.json({
-      accessToken,
-      refreshToken,
-      user: {
-        id: userId,
-        email,
-        name: name,
+    const latencyMs = Date.now() - start;
+
+    let isActuallyBanned = user.banned ?? false;
+    if (isActuallyBanned && user.ban_expires_at) {
+      if (new Date(user.ban_expires_at) < new Date()) {
+        isActuallyBanned = false;
+        
+        // Auto-lift ban in background (best effort)
+        supabase.from("users").update({ banned: false }).eq("id", user.id).then(({ error }) => {
+          if (error) console.error("Failed to auto-lift expired ban for user:", user.id, error);
+        });
+      }
+    }
+
+    // 6. Return standard success envelope
+    return formatStandardResponse(
+      {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          banned: isActuallyBanned,
+          banReason: user.ban_reason || null,
+          banExpiresAt: user.ban_expires_at || null,
+        },
       },
-    });
+      {},
+      { requestId, latencyMs }
+    );
 
   } catch (error) {
     console.error("Critical error in /api/auth/google:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return formatErrorResponse("Internal server error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
   }
 }

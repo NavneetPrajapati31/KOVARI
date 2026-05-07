@@ -1,16 +1,25 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { generateRequestId } from "@/lib/api/requestId";
+import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { ApiErrorCode } from "@/types/api";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
-    const { userId: clerkUserId } = await auth();
+    const userId = await getAuthUserId(req);
     const { groupId } = await params;
 
-    if (!clerkUserId) {
+    if (!userId) {
+      if (req.headers.get("x-kovari-client") === "mobile") {
+        return formatErrorResponse("Unauthorized", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+      }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -21,12 +30,18 @@ export async function POST(
     const supabase = createAdminSupabaseClient();
 
     // Resolve acting user (internal uuid)
-    const { data: actingUser, error: actingUserError } = await supabase
+    const actingUserQuery = supabase
       .from("users")
       .select("id")
-      .eq("clerk_user_id", clerkUserId)
-      .eq("isDeleted", false)
-      .single();
+      .eq("isDeleted", false);
+
+    if (userId.startsWith("user_")) {
+      actingUserQuery.eq("clerk_user_id", userId);
+    } else {
+      actingUserQuery.eq("id", userId);
+    }
+
+    const { data: actingUser, error: actingUserError } = await actingUserQuery.single();
 
     if (actingUserError || !actingUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -42,9 +57,12 @@ export async function POST(
     const targetClerkUserId: string =
       typeof body?.userId === "string" && body.userId.length > 0
         ? body.userId
-        : clerkUserId;
+        : userId;
+        
+    console.log(`[GROUP_JOIN] Request Body: ${JSON.stringify(body)}`);
+    console.log(`[GROUP_JOIN] actingUserId: ${userId}, targetClerkUserId: ${targetClerkUserId}`);
     const viaInvite = body?.viaInvite === true;
-    const approvingOther = targetClerkUserId !== clerkUserId;
+    const approvingOther = targetClerkUserId !== userId;
 
     // Validate group exists and access rules
     const { data: groupRow, error: groupErr } = await supabase
@@ -91,12 +109,18 @@ export async function POST(
     }
 
     // Get target user (internal uuid)
-    const { data: user, error: userError } = await supabase
+    const targetUserQuery = supabase
       .from("users")
       .select("id")
-      .eq("clerk_user_id", targetClerkUserId)
-      .eq("isDeleted", false)
-      .single();
+      .eq("isDeleted", false);
+
+    if (targetClerkUserId.startsWith("user_")) {
+      targetUserQuery.eq("clerk_user_id", targetClerkUserId);
+    } else {
+      targetUserQuery.eq("id", targetClerkUserId);
+    }
+
+    const { data: user, error: userError } = await targetUserQuery.single();
 
     if (userError || !user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -133,21 +157,48 @@ export async function POST(
       );
     }
 
-    const { error: upsertError } = await supabase
+    // Determine the existing record ID to ensure a guaranteed update if it exists
+    let existingRecordId: string | null = null;
+    
+    console.log(`[GROUP_JOIN] Attempting to resolve existing membership for group ${groupId}, user ${user.id}`);
+    
+    const { data: existing, error: existingErr } = await supabase
       .from("group_memberships")
-      .upsert(
-        {
-          group_id: groupId,
-          user_id: user.id,
-          status: "accepted",
-          role: "member",
-          joined_at: new Date().toISOString(),
-        },
-        { onConflict: "group_id, user_id" },
-      );
+      .select("id, status")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+      
+    if (!existingErr && existing) {
+      existingRecordId = existing.id;
+      console.log(`[GROUP_JOIN] Found existing membership: ${existingRecordId} with status ${existing.status}`);
+    } else {
+      console.log(`[GROUP_JOIN] No existing membership found. Error: ${existingErr?.message}`);
+    }
 
-    if (upsertError) {
-      console.error("Error joining group:", upsertError);
+    const { error: dbError } = existingRecordId 
+      ? await supabase
+          .from("group_memberships")
+          .update({
+            status: "accepted",
+            role: "member",
+            joined_at: new Date().toISOString(),
+          })
+          .eq("id", existingRecordId)
+      : await supabase
+          .from("group_memberships")
+          .insert({
+            group_id: groupId,
+            user_id: user.id,
+            status: "accepted",
+            role: "member",
+            joined_at: new Date().toISOString(),
+          });
+          
+    console.log(`[GROUP_JOIN] DB Operation completed. Error: ${dbError?.message ?? 'None'}`);
+
+    if (dbError) {
+      console.error("Error joining group:", dbError);
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
@@ -234,9 +285,15 @@ export async function POST(
       // Don't fail the request on calculation error
     }
 
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatStandardResponse({ success: true }, {}, { requestId, latencyMs: Date.now() - start });
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[GROUP_JOIN_POST]", error);
+    if (req.headers.get("x-kovari-client") === "mobile") {
+      return formatErrorResponse("Internal Server Error", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },

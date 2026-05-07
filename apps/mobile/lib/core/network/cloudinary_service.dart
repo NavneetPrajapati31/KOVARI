@@ -1,36 +1,47 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'api_client.dart';
-import 'api_endpoints.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/network/api_endpoints.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CloudinaryService {
   final ApiClient _apiClient;
   final Dio _cloudinaryDio;
 
-  CloudinaryService(this._apiClient) : _cloudinaryDio = Dio();
+  CloudinaryService(this._apiClient) : _cloudinaryDio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 8),
+      sendTimeout: const Duration(seconds: 45),
+      receiveTimeout: const Duration(seconds: 45),
+    ),
+  );
 
   /// Gets a signed upload signature from the backend
-  Future<Map<String, dynamic>> _getSignature(String folder) async {
-    try {
-      final response = await _apiClient.post(
-        ApiEndpoints.cloudinarySign,
-        data: {'folder': folder},
-      );
+  Future<Map<String, dynamic>> _getSignature(String folder, {CancelToken? cancelToken}) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiEndpoints.cloudinarySign,
+      data: {'folder': folder},
+      parser: (data) => data as Map<String, dynamic>,
+      cancelToken: cancelToken,
+    );
 
-      if (response.statusCode == 200) {
-        return response.data as Map<String, dynamic>;
-      }
-      throw Exception('Failed to get Cloudinary signature');
-    } catch (e) {
-      rethrow;
+    if (response.success && response.data != null) {
+      return response.data!;
     }
+
+    final reason = response.meta.reason;
+    final message = response.error?.message;
+    
+    throw Exception(
+      message ?? 'Signature Error: $reason',
+    );
   }
 
   /// Uploads an image file to Cloudinary using a signed request
-  Future<String> uploadImage(File file, {String folder = 'kovari-profiles'}) async {
+  Future<Map<String, dynamic>> uploadImage(File file, {String folder = 'kovari-profiles', CancelToken? cancelToken}) async {
     try {
       // 1. Get signature from our backend
-      final signData = await _getSignature(folder);
+      final signData = await _getSignature(folder, cancelToken: cancelToken);
       
       final String signature = signData['signature'];
       final int timestamp = signData['timestamp'];
@@ -53,14 +64,14 @@ class CloudinaryService {
       final response = await _cloudinaryDio.post(
         uploadUrl,
         data: formData,
+        cancelToken: cancelToken,
         onSendProgress: (sent, total) {
           // Optional: Add progress tracking if needed
         },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
-        return data['secure_url'] as String;
+        return response.data as Map<String, dynamic>;
       }
       
       throw Exception('Cloudinary upload failed with status ${response.statusCode}');
@@ -73,3 +84,8 @@ class CloudinaryService {
     }
   }
 }
+
+final cloudinaryServiceProvider = Provider<CloudinaryService>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return CloudinaryService(apiClient);
+});

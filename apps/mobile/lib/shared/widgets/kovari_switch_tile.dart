@@ -1,20 +1,27 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 
 class KovariSwitchTile extends StatelessWidget {
   final String label;
+  final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
   final EdgeInsetsGeometry? margin;
+  final Color? fillColor;
+  final TextStyle? subtitleStyle;
+  final TextStyle? titleStyle;
 
   const KovariSwitchTile({
     super.key,
     required this.label,
+    this.subtitle,
     required this.value,
     required this.onChanged,
     this.margin,
+    this.fillColor,
+    this.subtitleStyle,
+    this.titleStyle,
   });
 
   @override
@@ -23,28 +30,40 @@ class KovariSwitchTile extends StatelessWidget {
       margin: margin ?? const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: fillColor ?? AppColors.surface(context, level: 2),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border, width: 1),
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        border: Border.all(color: AppColors.borderColor(context), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(
-              label,
-              style: AppTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w500,
-                color: AppColors.foreground,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style:
+                      titleStyle ??
+                      AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.text(context),
+                      ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style:
+                        subtitleStyle ??
+                        AppTextStyles.bodySmall.copyWith(
+                          fontSize: 12,
+                          color: AppColors.text(context, isMuted: true),
+                        ),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(width: 12),
@@ -58,7 +77,7 @@ class KovariSwitchTile extends StatelessWidget {
                 value: value,
                 onChanged: onChanged,
                 activeTrackColor: AppColors.primary,
-                trackColor: AppColors.secondary,
+                inactiveTrackColor: AppColors.surface(context, level: 3),
               ),
             ),
           ),

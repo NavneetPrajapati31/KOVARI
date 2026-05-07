@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'skeleton.dart';
+import '../../../core/theme/motion_tokens.dart';
+import '../../../core/theme/app_colors.dart';
 
 class KovariImage extends StatelessWidget {
   final String imageUrl;
@@ -8,6 +10,9 @@ class KovariImage extends StatelessWidget {
   final double? height;
   final BoxFit fit;
   final BorderRadius? borderRadius;
+  final Widget? placeholder;
+  final Duration? fadeInDuration;
+  final Duration fadeOutDuration;
 
   const KovariImage({
     super.key,
@@ -16,51 +21,49 @@ class KovariImage extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius,
+    this.placeholder,
+    this.fadeInDuration,
+    this.fadeOutDuration = Duration.zero,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fadeIn = fadeInDuration ?? MotionTokens.fast;
+
     if (imageUrl.isEmpty) {
       return Skeleton(width: width, height: height, borderRadius: borderRadius);
     }
 
-    return CachedNetworkImage(
-      key: key,
-      imageUrl: imageUrl,
-      cacheKey: imageUrl, // Absolute Identity
-      fit: fit,
-      width: width,
-      height: height,
-      // Memory cache optimization: limiting resolution to 600px ensures
-      // instantaneous decoding on return, preventing the "flicker" of high-res files.
-      memCacheWidth: 600,
-
-      // The imageBuilder pattern pins the ready image to the UI,
-      // preventing any fallback to placeholder during the rebuild phase.
-      imageBuilder: (context, imageProvider) => Container(
-        decoration: BoxDecoration(
-          borderRadius: borderRadius,
-          image: DecorationImage(image: imageProvider, fit: fit),
-        ),
-      ),
-
-      placeholder: (context, url) =>
-          Skeleton(width: width, height: height, borderRadius: borderRadius),
-      errorWidget: (context, url, error) => Container(
+    return ClipRRect(
+      borderRadius: borderRadius ?? BorderRadius.zero,
+      child: CachedNetworkImage(
+        key: key,
+        imageUrl: imageUrl,
+        cacheKey: imageUrl,
+        fit: fit,
         width: width,
         height: height,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: borderRadius,
+        memCacheWidth: 800, // Optimized for high-res
+        placeholder: (context, url) =>
+            placeholder ??
+            Skeleton(width: width, height: height, borderRadius: borderRadius),
+        errorWidget: (context, url, error) => Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.mutedDark : AppColors.muted,
+          ),
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: isDark ? AppColors.mutedForegroundDark : AppColors.mutedForeground,
+            size: 20,
+          ),
         ),
-        child: const Icon(Icons.error_outline, color: Colors.grey),
+        useOldImageOnUrlChange: true,
+        fadeOutDuration: fadeOutDuration,
+        fadeInDuration: fadeIn,
       ),
-
-      // Instant-Swap Configuration
-      useOldImageOnUrlChange: true,
-      filterQuality: FilterQuality.low,
-      fadeOutDuration: Duration.zero,
-      fadeInDuration: Duration.zero,
     );
   }
 }

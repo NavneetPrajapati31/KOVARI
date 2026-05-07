@@ -5,6 +5,7 @@ import '../data/profile_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/location_service.dart';
 import '../../../core/network/cloudinary_service.dart';
+import 'package:dio/dio.dart';
 
 const Object _sentinel = Object();
 
@@ -128,15 +129,17 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
   late final ProfileService _profileService;
   late final CloudinaryService _cloudinaryService;
   Timer? _debounceTimer;
+  final _cancelToken = CancelToken();
 
   @override
   OnboardingState build() {
-    final apiClient = ApiClientFactory.create();
+    final apiClient = ref.read(apiClientProvider);
     _profileService = ProfileService(apiClient);
     _cloudinaryService = CloudinaryService(apiClient);
 
     ref.onDispose(() {
       _debounceTimer?.cancel();
+      _cancelToken.cancel('OnboardingProvider disposed');
     });
 
     return OnboardingState();
@@ -161,7 +164,10 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     _debounceTimer?.cancel();
     state = state.copyWith(isUsernameChecking: true);
     _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
-      final available = await _profileService.checkUsernameAvailable(username);
+      final available = await _profileService.checkUsernameAvailable(
+        username,
+        cancelToken: _cancelToken,
+      );
       state = state.copyWith(
         isUsernameAvailable: available,
         isUsernameChecking: false,
@@ -250,10 +256,12 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       String? finalProfilePicUrl = state.profilePicUrl;
       if (state.localProfilePicPath != null) {
         try {
-          finalProfilePicUrl = await _cloudinaryService.uploadImage(
+          final result = await _cloudinaryService.uploadImage(
             File(state.localProfilePicPath!),
             folder: 'kovari-profiles',
+            cancelToken: _cancelToken,
           );
+          finalProfilePicUrl = result['secure_url'];
           // Update state with the new URL for future attempts
           state = state.copyWith(profilePicUrl: finalProfilePicUrl);
         } catch (uploadError) {
@@ -313,13 +321,17 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       profilePayload.removeWhere((key, value) => value == null);
 
       // 3. Update Profile
-      await _profileService.updateProfile(profilePayload);
+      await _profileService.updateProfile(
+        profilePayload,
+        cancelToken: _cancelToken,
+      );
 
       // 4. Accept Policies
       await _profileService.acceptPolicies(
         termsVersion: '1.0',
         privacyVersion: '1.0',
         guidelinesVersion: '1.0',
+        cancelToken: _cancelToken,
       );
 
       setStep(8);
