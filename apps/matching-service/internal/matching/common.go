@@ -106,14 +106,6 @@ func CalculateJaccardSimilarity(a, b []string) float64 {
 		}
 	}
 
-<<<<<<< HEAD
-	union := len(setA) + len(setB) - intersection
-	if union <= 0 {
-		return 0.5
-	}
-
-	return float64(intersection) / float64(union)
-=======
 	if intersection == 0 {
 		return 0.1
 	}
@@ -132,5 +124,4 @@ func CalculateJaccardSimilarity(a, b []string) float64 {
 	// Hybrid approach: (Overlap + Jaccard) / 2
 	// This rewards subsets (good for users with 1-2 interests) while still rewarding large common sets
 	return (jaccard + overlap) / 2
->>>>>>> c76ec5b5bd754b408ae9ab3b5322443553eb772f
 }
