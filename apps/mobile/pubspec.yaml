@@ -54,6 +54,11 @@ dependencies:
   share_plus: ^12.0.2
   flutter_native_splash: ^2.4.7
   uuid: ^4.5.3
+  sentry_flutter: ^8.14.2
+  connectivity_plus: ^7.1.1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -72,11 +77,14 @@ dev_dependencies:
 flutter_native_splash:
   color: "#F9FAFB"
   image: assets/logo.png
+  dark_color: "#0B0E14"
+  dark_image: assets/logo_dark.webp
   android: true
   ios: true
   fullscreen: true
   android_12:
     color: "#F9FAFB"
+    dark_color: "#0B0E14"
     # Use a solid background-colored square as the icon to "hide" the native logo.
     # This ensures no circle/distortion or Flutter icon appears.
     image: assets/invisible_icon.png
@@ -85,11 +93,11 @@ flutter_native_splash:
 flutter:
   uses-material-design: true
   assets:
+    - .env.development
     - assets/logo.webp
+    - assets/logo_dark.webp
     - assets/logo.png
     - assets/google_logo.png
-    - .env.development
-    - .env.production
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

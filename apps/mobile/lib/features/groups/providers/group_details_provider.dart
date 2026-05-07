@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/group_service.dart';
 import '../models/group.dart';
@@ -8,6 +9,7 @@ final groupDetailsProvider = FutureProvider.family<GroupModel, String>((
   ref,
   groupId,
 ) async {
+  debugPrint('📡 [groupDetailsProvider] Fetching details for: $groupId');
   final service = ref.watch(groupServiceProvider);
   return service.getGroupDetails(groupId);
 });
@@ -20,13 +22,11 @@ final groupMembersProvider = FutureProvider.family<List<GroupMember>, String>((
   return service.getGroupMembers(groupId);
 });
 
-final joinRequestsProvider = FutureProvider.family<List<JoinRequestModel>, String>((
-  ref,
-  groupId,
-) async {
-  final service = ref.watch(groupServiceProvider);
-  return service.getJoinRequests(groupId);
-});
+final joinRequestsProvider =
+    FutureProvider.family<List<JoinRequestModel>, String>((ref, groupId) async {
+      final service = ref.watch(groupServiceProvider);
+      return service.getJoinRequests(groupId);
+    });
 
 // The base source of truth itinerary
 final groupItineraryProvider =
@@ -61,6 +61,7 @@ final groupMembershipProvider = FutureProvider.family<MembershipInfo, String>((
   ref,
   groupId,
 ) async {
+  debugPrint('📡 [groupMembershipProvider] Fetching membership for: $groupId');
   final service = ref.watch(groupServiceProvider);
   return service.getGroupMembership(groupId);
 });
@@ -189,13 +190,19 @@ class GroupActionsNotifier {
     _ref.invalidate(groupItineraryProvider(_groupId));
   }
 
-  Future<void> updateItineraryItem(String itemId, Map<String, dynamic> data) async {
+  Future<void> updateItineraryItem(
+    String itemId,
+    Map<String, dynamic> data,
+  ) async {
     await _service.updateItineraryItem(_groupId, itemId, data);
     _ref.invalidate(groupItineraryProvider(_groupId));
   }
 }
 
-final groupActionsProvider = Provider.family<GroupActionsNotifier, String>((ref, groupId) {
+final groupActionsProvider = Provider.family<GroupActionsNotifier, String>((
+  ref,
+  groupId,
+) {
   final service = ref.watch(groupServiceProvider);
   return GroupActionsNotifier(service, ref, groupId);
 });

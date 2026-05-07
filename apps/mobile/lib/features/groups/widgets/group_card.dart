@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -12,28 +11,6 @@ class GroupCard extends StatelessWidget {
   final VoidCallback? onAction;
 
   const GroupCard({super.key, required this.group, this.onAction});
-
-  String _formatDateRange() {
-    if (group.dateRange.isOngoing) return "Ongoing";
-    if (group.dateRange.start == null) return "Dates not available";
-
-    final startDate = DateTime.parse(group.dateRange.start!);
-    final startStr = DateFormat('MMM d, yyyy').format(startDate);
-
-    if (group.dateRange.end == null) return startStr;
-
-    final endDate = DateTime.parse(group.dateRange.end!);
-    final endStr = DateFormat('MMM d, yyyy').format(endDate);
-
-    return "$startStr - $endStr";
-  }
-
-  String _formatMemberCount() {
-    if (group.memberCount == 0) return "No members yet";
-    if (group.memberCount == 1) return "1 member";
-    if (group.memberCount > 99) return "99+ members";
-    return "${group.memberCount} members";
-  }
 
   String _formatDestinationCity(String destination) {
     final trimmed = destination.trim();
@@ -49,16 +26,13 @@ class GroupCard extends StatelessWidget {
     return InkWell(
       onTap: onAction,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: 10,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
             // Avatar
             KovariAvatar(
               imageUrl: coverImageUrl,
-              size: 40,
+              size: 42,
               fullName: group.name,
             ),
             const SizedBox(width: AppSpacing.sm * 1.5),
@@ -74,7 +48,7 @@ class GroupCard extends StatelessWidget {
                           group.name,
                           style: AppTextStyles.bodySmall.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.foreground,
+                            color: AppColors.text(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -85,12 +59,12 @@ class GroupCard extends StatelessWidget {
                         _formatDestinationCity(group.destination),
                         style: AppTextStyles.bodySmall.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: AppColors.foreground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -100,7 +74,7 @@ class GroupCard extends StatelessWidget {
                             : '${group.memberCount} members',
                         style: AppTextStyles.label.copyWith(
                           fontSize: 12,
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ),
                     ],

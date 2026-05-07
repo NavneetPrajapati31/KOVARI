@@ -1,12 +1,23 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/config/env.dart';
-import '../../core/services/token_service.dart';
+import '../../core/auth/token_storage.dart';
+import '../../core/auth/session_manager.dart';
+import '../../core/auth/auth_repository.dart';
+import '../../core/utils/deep_clone.dart';
 import '../../core/models/api_response.dart';
+import 'package:flutter/foundation.dart' show compute;
+import '../cache/local_cache.dart';
+import '../providers/cache_provider.dart';
+import '../providers/connectivity_provider.dart';
 import 'api_endpoints.dart';
+import 'mutation_queue.dart';
+import '../utils/app_logger.dart';
+import 'request_priority.dart';
 
 // ─────────────────────────────────────────────
 // Abstract Interface
@@ -17,35 +28,43 @@ abstract class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+    Duration? ttl,
+    bool ignoreCache = false,
   });
 
   Future<ApiResponse<T>> post<T>(
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   });
 
   Future<ApiResponse<T>> put<T>(
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   });
 
   Future<ApiResponse<T>> patch<T>(
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   });
 
   Future<ApiResponse<T>> delete<T>(
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   });
 
   void setToken(String token);
   void clearToken();
   void setOnLogout(VoidCallback onLogout);
+  void setOnNetworkError(VoidCallback onNetworkError);
   String? get token;
 }
 
@@ -56,146 +75,301 @@ abstract class ApiClient {
 class DioApiClient implements ApiClient {
   final Dio _dio;
   final Dio _retryDio;
-  final TokenService _tokenService = TokenService();
+  final SessionManager _sessionManager;
+  final TokenStorage _tokenStorage = TokenStorage();
+  late final AuthRepository _authRepository;
+  late final LocalCache _cache;
+  final Ref _ref;
+  final Map<String, Future<dynamic>> _activeRequests = {};
+
   static const _uuid = Uuid();
 
-  String? _token;
-  VoidCallback? _onLogout;
-  Completer<String?>? _refreshCompleter;
-
-  // 15-second global timeout (for mobile network stability)
-  static const _timeout = Duration(seconds: 15);
-
-  DioApiClient([this._token])
-    : _dio = Dio(
+  DioApiClient(this._ref)
+    : _sessionManager = _ref.read(sessionManagerProvider),
+      _dio = Dio(
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
-          connectTimeout: _timeout,
-          receiveTimeout: _timeout,
-          sendTimeout: _timeout,
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 20),
+          sendTimeout: const Duration(seconds: 15),
         ),
       ),
       _retryDio = Dio(
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
-          connectTimeout: _timeout,
-          receiveTimeout: _timeout,
-          sendTimeout: _timeout,
+          connectTimeout: const Duration(seconds: 15),
         ),
       ) {
-    // Interceptor order: onRequest → onResponse → onError
+    _authRepository = _ref.read(authRepositoryProvider);
+    _cache = _ref.read(localCacheProvider);
+    _initializeInterceptors();
+  }
+
+  void _initializeInterceptors() {
     _dio.interceptors.add(
-      QueuedInterceptorsWrapper(
-        // 1. REQUEST: inject auth, tracing, client headers
+      InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final requestId = _uuid.v4();
+          // 1. Traceability: Preserve or generate X-Request-Id
+          final requestId = options.headers['X-Request-Id'] ?? _uuid.v4();
+          options.headers['X-Request-Id'] = requestId;
           options.extra['requestId'] = requestId;
 
-          final t = _token ?? await _tokenService.getToken();
-          if (t != null) options.headers['Authorization'] = 'Bearer $t';
+          // 2. Classification
+          final isPublic =
+              options.extra['isPublic'] ??
+              TokenStorage.isPublicEndpoint(options.path);
+          final authRequired = options.extra['authRequired'] ?? !isPublic;
+          final isMutation =
+              options.extra['isMutation'] ??
+              [
+                'POST',
+                'PUT',
+                'PATCH',
+                'DELETE',
+              ].contains(options.method.toUpperCase());
 
-          options.headers['Content-Type'] = 'application/json';
-          options.headers['X-Request-Id'] = requestId;
-          options.headers['X-Kovari-Client'] = 'mobile';
+          options.extra['authRequired'] = authRequired;
+          options.extra['isMutation'] = isMutation;
 
-          return handler.next(options);
-        },
+          // 3. Priority Classification
+          final priority =
+              options.extra[TokenStorage.priorityKey] ??
+              (isMutation ? RequestPriority.high : RequestPriority.medium);
+          options.extra[TokenStorage.priorityKey] = priority;
 
-        // 2. RESPONSE: log success
-        onResponse: (response, handler) {
-          return handler.next(response);
-        },
-
-        // 3. ERROR: handle 401 refresh, log failures
-        onError: (DioException e, handler) async {
-          // --- 401 token refresh flow ---
-          if (e.response?.statusCode == 401 &&
-              !e.requestOptions.path.contains(ApiEndpoints.refresh)) {
-            final currentToken = await _tokenService.getToken();
-            final requestToken = e.requestOptions.headers['Authorization']
-                ?.toString()
-                .replaceFirst('Bearer ', '');
-
-            if (currentToken != null && currentToken != requestToken) {
-              final options = e.requestOptions;
-              options.headers['Authorization'] = 'Bearer $currentToken';
-              setToken(currentToken);
-              final retryResponse = await _retryDio.request(
-                options.path,
-                data: options.data,
-                queryParameters: options.queryParameters,
-                options: Options(
-                  method: options.method,
-                  headers: options.headers,
+          // 3a. Connectivity Guard
+          final connectivity = _ref.read(connectivityProvider);
+          if (connectivity.isOffline) {
+            if (isMutation) {
+              // Queue mutations for later
+              _ref
+                  .read(mutationQueueProvider.notifier)
+                  .enqueue(
+                    path: options.path,
+                    method: options.method,
+                    data: options.data,
+                  );
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: 'mutation_queued',
+                  type: DioExceptionType.cancel,
                 ),
               );
-              return handler.resolve(retryResponse);
-            }
-
-            if (_refreshCompleter != null) {
-              final newToken = await _refreshCompleter!.future;
-              if (newToken != null) {
-                final options = e.requestOptions;
-                options.headers['Authorization'] = 'Bearer $newToken';
-                setToken(newToken);
-                final retryResponse = await _retryDio.request(
-                  options.path,
-                  data: options.data,
-                  queryParameters: options.queryParameters,
-                  options: Options(
-                    method: options.method,
-                    headers: options.headers,
+            } else {
+              // Try to find any cache, even if expired (stale fallback)
+              final cached = _cache.get(
+                options.path,
+                params: options.queryParameters,
+              );
+              if (cached != null) {
+                AppLogger.d(
+                  '📦 [OFFLINE] Stale cache fallback for ${options.path}',
+                );
+                return handler.resolve(
+                  Response(
+                    requestOptions: options,
+                    data: cached.data,
+                    statusCode: 200,
+                    extra: {TokenStorage.fromCacheKey: true, 'isStale': true},
                   ),
                 );
-                return handler.resolve(retryResponse);
               }
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: 'offline',
+                  type: DioExceptionType.connectionError,
+                ),
+              );
+            }
+          }
+
+          // 3. Mutation Guard for Degraded Mode
+          if (authRequired && isMutation && _sessionManager.isDegraded) {
+            AppLogger.w(
+              '[$requestId] Mutation blocked: App is in Degraded Mode',
+            );
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                error: DegradedModeException(),
+                type: DioExceptionType.cancel,
+              ),
+            );
+          }
+
+          // 4. Selective Blocking: Only Auth-required requests wait for refresh
+          if (authRequired && _sessionManager.isRefreshing) {
+            AppLogger.d('[$requestId] Queuing request behind active refresh');
+            try {
+              await _sessionManager.waitForRefresh(
+                priority: priority as RequestPriority,
+              );
+            } catch (e) {
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: e,
+                  type: DioExceptionType.cancel,
+                ),
+              );
+            }
+          }
+
+          // 5. Attach Authorization
+          if (authRequired) {
+            final token = await _tokenStorage.getAccessToken();
+            if (token != null) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          }
+
+          // 6. Memory-Safe Cancellation Registration
+          final cancelToken = options.cancelToken ?? CancelToken();
+          options.cancelToken = cancelToken;
+          _sessionManager.registerToken(cancelToken);
+
+          options.extra['startTime'] = DateTime.now().millisecondsSinceEpoch;
+          _logRequest(options);
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          final requestId = response.requestOptions.extra['requestId'] ?? 'N/A';
+          final authRequired =
+              response.requestOptions.extra['authRequired'] == true;
+
+          // Latency Tracking
+          final startTime = response.requestOptions.extra['startTime'] as int?;
+          if (startTime != null) {
+            _sessionManager.recordLatency(
+              DateTime.now().millisecondsSinceEpoch - startTime,
+            );
+          }
+
+          if (response.requestOptions.cancelToken != null) {
+            _sessionManager.unregisterToken(
+              response.requestOptions.cancelToken!,
+            );
+          }
+
+          // 1. Success-based Recovery Reset
+          if (authRequired &&
+              response.statusCode == 200 &&
+              response.requestOptions.extra[TokenStorage.fromCacheKey] !=
+                  true) {
+            _authRepository.resetRecoveryBudget();
+          }
+
+          // 2. Meta Merge for Degraded Mode
+          if (_sessionManager.isDegraded &&
+              response.data is Map<String, dynamic> &&
+              (response.data as Map).containsKey('meta')) {
+            final data = response.data as Map<String, dynamic>;
+            final existingMeta = data['meta'] as Map<String, dynamic>? ?? {};
+            data['meta'] = {...existingMeta, 'degraded': true};
+          }
+
+          AppLogger.i(
+            '✅ [RES] [$requestId] ${response.requestOptions.method} ${response.requestOptions.path} [${response.statusCode}]',
+          );
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) async {
+          final requestId = e.requestOptions.extra['requestId'] ?? 'N/A';
+          if (e.requestOptions.cancelToken != null) {
+            _sessionManager.unregisterToken(e.requestOptions.cancelToken!);
+          }
+
+          // 1. 3-Tier 401 Detection
+          final is401 = e.response?.statusCode == 401;
+          final hasAuthHeader = e.requestOptions.headers.containsKey(
+            'Authorization',
+          );
+          final isTokenExpired = _isTokenExpiredError(e);
+          final heuristicExpired = await _tokenStorage.isExpired();
+
+          final shouldRefresh =
+              (isTokenExpired) ||
+              (is401 && hasAuthHeader) ||
+              (heuristicExpired && hasAuthHeader);
+
+          if (shouldRefresh &&
+              !e.requestOptions.path.contains(ApiEndpoints.refresh)) {
+            // Guard against infinite retry loops
+            if (e.requestOptions.extra['retry'] == true ||
+                (e.requestOptions.extra['retryCount'] as int? ?? 0) >= 1) {
+              AppLogger.e(
+                '❌ [$requestId] Retry limit exceeded for 401. Forcing logout.',
+              );
+              await _authRepository.logout(reason: 'RETRY_LIMIT_EXCEEDED');
+              return handler.next(e);
             }
 
-            _refreshCompleter = Completer<String?>();
-            final refreshToken = await _tokenService.getRefreshToken();
-            if (refreshToken != null) {
-              try {
-                final refreshResponse = await _retryDio.post(
-                  ApiEndpoints.refresh,
-                  data: {'refreshToken': refreshToken},
-                );
-                if (refreshResponse.statusCode == 200 ||
-                    refreshResponse.statusCode == 201) {
-                  final newAccessToken = refreshResponse.data['accessToken'];
-                  final newRefreshToken = refreshResponse.data['refreshToken'];
-                  await _tokenService.saveToken(newAccessToken);
-                  await _tokenService.saveRefreshToken(newRefreshToken);
-                  setToken(newAccessToken);
-                  _refreshCompleter?.complete(newAccessToken);
-                  _refreshCompleter = null;
-                  final options = e.requestOptions;
-                  options.headers['Authorization'] = 'Bearer $newAccessToken';
-                  final retryResponse = await _retryDio.request(
-                    options.path,
-                    data: options.data,
-                    queryParameters: options.queryParameters,
-                    options: Options(
-                      method: options.method,
-                      headers: options.headers,
-                    ),
-                  );
-                  return handler.resolve(retryResponse);
-                }
-              } catch (refreshError) {
-                _refreshCompleter?.complete(null);
-                _refreshCompleter = null;
-                if (refreshError is DioException) {
-                  final s = refreshError.response?.statusCode;
-                  if (s == 401 || s == 403 || s == 400) {
-                    await _tokenService.clearToken();
-                    clearToken();
-                    _onLogout?.call();
-                  }
-                }
-              }
-            } else {
-              _refreshCompleter?.complete(null);
-              _refreshCompleter = null;
+            AppLogger.w(
+              '⚠️ [$requestId] 401 Detected (Code: $isTokenExpired, Status: $is401, Heuristic: $heuristicExpired). Attempting refresh.',
+            );
+
+            try {
+              await _authRepository.refreshToken(requestId: requestId);
+
+              // 2. Post-Refresh Retry with Jittered Exponential Backoff
+              final retryCount =
+                  (e.requestOptions.extra['retryCount'] as int? ?? 0) + 1;
+              final backoffMs =
+                  (pow(2, retryCount) * 100).toInt() + Random().nextInt(100);
+              await Future.delayed(Duration(milliseconds: backoffMs));
+
+              return handler.resolve(
+                await _retryRequest(e.requestOptions, retryCount),
+              );
+            } catch (refreshError) {
+              return handler.reject(
+                DioException(
+                  requestOptions: e.requestOptions,
+                  error: refreshError,
+                  type: DioExceptionType.cancel,
+                ),
+              );
+            }
+          }
+
+          AppLogger.e(
+            '❌ [ERR] [$requestId] ${e.requestOptions.method} ${e.requestOptions.path} [${e.response?.statusCode}]',
+            error: e,
+          );
+
+          // 3. Safe Request Auto-Retry (Timeout/Network errors)
+          final isSafeMethod = [
+            'GET',
+            'HEAD',
+            'OPTIONS',
+          ].contains(e.requestOptions.method.toUpperCase());
+          final isNetworkError =
+              e.type == DioExceptionType.connectionTimeout ||
+              e.type == DioExceptionType.sendTimeout ||
+              e.type == DioExceptionType.receiveTimeout ||
+              e.type == DioExceptionType.connectionError;
+
+          if (isSafeMethod &&
+              isNetworkError &&
+              (e.requestOptions.extra['retryCount'] as int? ?? 0) < 3) {
+            final retryCount =
+                (e.requestOptions.extra['retryCount'] as int? ?? 0) + 1;
+            final backoffMs =
+                (pow(2, retryCount) * 1000).toInt() + Random().nextInt(500);
+
+            AppLogger.w(
+              '🔄 [$requestId] Network error. Retrying in ${backoffMs}ms (Attempt #$retryCount)',
+            );
+            await Future.delayed(Duration(milliseconds: backoffMs));
+
+            try {
+              return handler.resolve(
+                await _retryRequest(e.requestOptions, retryCount),
+              );
+            } catch (_) {
+              // Continue to next error handler if retry also fails
             }
           }
 
@@ -205,130 +379,223 @@ class DioApiClient implements ApiClient {
     );
   }
 
-  @override
-  String? get token => _token;
-  @override
-  void setToken(String token) => _token = token;
-  @override
-  void clearToken() => _token = null;
-  @override
-  void setOnLogout(VoidCallback onLogout) => _onLogout = onLogout;
+  bool _isTokenExpiredError(DioException e) {
+    if (e.response?.data is Map) {
+      final data = e.response!.data as Map;
+      final errorField = data['error'];
+      final code =
+          (errorField is Map ? errorField['code'] : errorField) ?? data['code'];
+      return code == 'TOKEN_EXPIRED';
+    }
+    return false;
+  }
 
-  // ─────────────────────────────────────────────
-  // _safeRequest: centralizes all error handling
-  // Converts every response into ApiResponse<T>
-  // ─────────────────────────────────────────────
-  Future<ApiResponse<T>> _safeRequest<T>(
-    Future<Response> Function() request,
-    T Function(dynamic) parser,
+  Future<Response> _retryRequest(
+    RequestOptions originalOptions,
+    int retryCount,
   ) async {
-    String? requestId;
-    bool hasRetried = false;
+    // Industrial-Grade Deep Clone
+    final options = Options(
+      method: originalOptions.method,
+      headers: Map<String, dynamic>.from(originalOptions.headers),
+      extra: Map<String, dynamic>.from(originalOptions.extra),
+      contentType: originalOptions.contentType,
+      responseType: originalOptions.responseType,
+      validateStatus: originalOptions.validateStatus,
+    );
 
-    Future<ApiResponse<T>> execute() async {
-      try {
-        final response = await request();
-        requestId = response.requestOptions.extra['requestId']?.toString();
+    options.extra!['retryCount'] = retryCount;
+    options.extra!['retry'] = true;
 
-        // Handle Non-Map JSON responses
-        if (response.data != null && response.data is! Map<String, dynamic>) {
-          return ApiResponse.fallback(
-            reason: 'invalid_format',
-            requestId: requestId,
-          );
-        }
-
-        // 204 / empty body → fallback
-        if (response.statusCode == 204 || response.data == null) {
-          return ApiResponse.fallback(
-            reason: 'empty_body',
-            requestId: requestId,
-          );
-        }
-
-        final rawData = response.data as Map<String, dynamic>;
-
-        // Validate top-level shape (missing 'success' or 'data')
-        if (!rawData.containsKey('success') || !rawData.containsKey('data')) {
-          return ApiResponse.fallback(
-            reason: 'invalid_shape',
-            requestId: requestId,
-          );
-        }
-
-        // Non-2xx → fallback (handled by catch normally, but good to be explicit)
-        final status = response.statusCode ?? 0;
-        if (status < 200 || status >= 300) {
-          return ApiResponse.fallback(
-            reason: 'server_error',
-            requestId: requestId,
-          );
-        }
-
-        final parsed = ApiResponse.fromJson(
-          rawData,
-          parser,
-          requestId: requestId,
-        );
-
-        return parsed;
-      } on DioException catch (e) {
-        requestId ??= e.requestOptions.extra['requestId']?.toString();
-
-        final statusCode = e.response?.statusCode ?? 0;
-        final isServer5xx = statusCode >= 500 && statusCode < 600;
-        final isTransient =
-            e.type == DioExceptionType.connectionTimeout ||
-            e.type == DioExceptionType.receiveTimeout ||
-            e.type == DioExceptionType.sendTimeout ||
-            e.type == DioExceptionType.connectionError ||
-            isServer5xx;
-
-        // Strict Single Retry Policy
-        if (isTransient && !hasRetried) {
-          hasRetried = true;
-          await Future.delayed(const Duration(milliseconds: 500));
-          return execute();
-        }
-
-        String reason =
-            e.type == DioExceptionType.connectionTimeout ||
-                e.type == DioExceptionType.receiveTimeout ||
-                e.type == DioExceptionType.sendTimeout
-            ? 'timeout'
-            : isServer5xx
-            ? 'server_error'
-            : 'network';
-
-        // Try to extract backend error message
-        String? backendMessage;
-        if (e.response?.data is Map) {
-          final data = e.response!.data as Map;
-          backendMessage = data['error']?.toString() ?? data['message']?.toString();
-        }
-
-        return ApiResponse.fallback(
-          reason: backendMessage ?? reason, 
-          requestId: requestId,
-        );
-      } catch (e) {
-        return ApiResponse.fallback(reason: 'malformed', requestId: requestId);
-      }
+    // Attach new token
+    final newToken = await _tokenStorage.getAccessToken();
+    if (newToken != null) {
+      options.headers!['Authorization'] = 'Bearer $newToken';
     }
 
-    return execute();
+    // Preserve X-Request-Id
+    final requestId = originalOptions.extra['requestId'];
+
+    AppLogger.i('🔄 [$requestId] Retrying request (Attempt #$retryCount)');
+
+    return _retryDio.request(
+      originalOptions.path,
+      data: originalOptions.data,
+      queryParameters: originalOptions.queryParameters,
+      options: options,
+      cancelToken: originalOptions.cancelToken,
+    );
   }
+
+  void _logRequest(RequestOptions options) {
+    final requestId = options.extra['requestId'] ?? 'N/A';
+
+    // Immutable Deep Sanitization
+    dynamic sanitizedData;
+    Map<String, dynamic>? sanitizedHeaders;
+    Map<String, dynamic>? sanitizedParams;
+
+    if (options.data is FormData) {
+      sanitizedData = '[FORMDATA_SKIPPED]';
+    } else if (!_sessionManager.isBinaryPayload(options.data)) {
+      sanitizedData = _redactSensitiveData(deepClone(options.data));
+    } else {
+      sanitizedData = '[BINARY_DATA_SKIPPED]';
+    }
+
+    final redactedHeaders = _redactSensitiveData(deepClone(options.headers));
+    if (redactedHeaders is Map) {
+      sanitizedHeaders = Map<String, dynamic>.from(redactedHeaders);
+    }
+
+    final redactedParams = _redactSensitiveData(
+      deepClone(options.queryParameters),
+    );
+    if (redactedParams is Map) {
+      sanitizedParams = Map<String, dynamic>.from(redactedParams);
+    }
+
+    AppLogger.i('➡️ [REQ] [$requestId] ${options.method} ${options.uri}');
+
+    // Detailed debug logs for development
+    AppLogger.d('[$requestId] Headers: $sanitizedHeaders');
+    if (sanitizedParams != null && sanitizedParams.isNotEmpty) {
+      AppLogger.d('[$requestId] Params: $sanitizedParams');
+    }
+    if (sanitizedData != null) {
+      AppLogger.d('[$requestId] Payload: $sanitizedData');
+    }
+  }
+
+  dynamic _redactSensitiveData(dynamic data) {
+    if (data == null) return null;
+    if (data is Map) {
+      final keysToRedact = {
+        'authorization',
+        'accessToken',
+        'refreshToken',
+        'email',
+        'phone',
+        'latitude',
+        'longitude',
+        'password',
+      };
+      return data.map((key, value) {
+        if (keysToRedact.contains(key.toString().toLowerCase())) {
+          return MapEntry(key, '[REDACTED]');
+        }
+        return MapEntry(key, _redactSensitiveData(value));
+      });
+    } else if (data is List) {
+      return data.map((e) => _redactSensitiveData(e)).toList();
+    }
+    return data;
+  }
+
+  @override
+  String? get token => null; // Use TokenStorage directly
+  @override
+  void setToken(String token) {}
+  @override
+  void clearToken() {}
+  @override
+  void setOnLogout(VoidCallback onLogout) {}
+  @override
+  void setOnNetworkError(VoidCallback onNetworkError) {}
 
   @override
   Future<ApiResponse<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
     required T Function(dynamic) parser,
-  }) {
-    return _safeRequest(
-      () => _dio.get(path, queryParameters: queryParameters),
-      parser,
+    CancelToken? cancelToken,
+    Duration? ttl,
+    bool ignoreCache = false,
+  }) async {
+    // 1. Try Cache First
+    if (!ignoreCache) {
+      final cachedEntry = _cache.get(path, params: queryParameters);
+      if (cachedEntry != null && cachedEntry.data != null) {
+        // Extract data from envelope if present to match _safeRequest behavior
+        final dynamic rawData =
+            (cachedEntry.data is Map &&
+                (cachedEntry.data as Map).containsKey('data'))
+            ? (cachedEntry.data as Map)['data']
+            : cachedEntry.data;
+
+        if (rawData != null) {
+          AppLogger.d('📦 [CACHE] Hit for $path. Data present.');
+
+          return ApiResponse(
+            success: true,
+            data: parser(rawData),
+            raw: cachedEntry.data,
+            meta: const ApiMeta(),
+          );
+        } else {
+          AppLogger.w(
+            '⚠️ [CACHE] Entry for $path contains null data. Ignoring.',
+          );
+        }
+      }
+    }
+
+    return _deduplicatedRequest(
+      path,
+      () => _safeRequest(
+        () => _dio.get(
+          path,
+          queryParameters: queryParameters,
+          cancelToken: cancelToken,
+        ),
+        parser,
+        onSuccess: (data) => _cache.set(
+          path,
+          data,
+          params: queryParameters,
+          ttl: ttl ?? const Duration(hours: 1),
+        ),
+        onFailure: () async {
+          // Stale fallback on network failure
+          final stale = _cache.get(path, params: queryParameters);
+          if (stale != null) {
+            AppLogger.d('📦 [STALE] Falling back to stale cache for $path');
+            return ApiResponse(
+              success: true,
+              data: parser(
+                (stale.data is Map && (stale.data as Map).containsKey('data'))
+                    ? (stale.data as Map)['data']
+                    : stale.data,
+              ),
+              raw: stale.data,
+              meta: const ApiMeta(degraded: true),
+            );
+          }
+          return null;
+        },
+      ),
     );
+  }
+
+  Future<ApiResponse<T>> _deduplicatedRequest<T>(
+    String path,
+    Future<ApiResponse<T>> Function() request,
+  ) async {
+    if (_activeRequests.containsKey(path)) {
+      AppLogger.d('💎 [DEDUPE] Joining active request for $path');
+      final result = await _activeRequests[path];
+      return result as ApiResponse<T>;
+    }
+
+    final future = request();
+    _activeRequests[path] = future;
+
+    try {
+      final result = await future;
+      return result;
+    } finally {
+      _activeRequests.remove(path);
+    }
   }
 
   @override
@@ -336,8 +603,12 @@ class DioApiClient implements ApiClient {
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   }) {
-    return _safeRequest(() => _dio.post(path, data: data), parser);
+    return _safeRequest(
+      () => _dio.post(path, data: data, cancelToken: cancelToken),
+      parser,
+    );
   }
 
   @override
@@ -345,8 +616,12 @@ class DioApiClient implements ApiClient {
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   }) {
-    return _safeRequest(() => _dio.put(path, data: data), parser);
+    return _safeRequest(
+      () => _dio.put(path, data: data, cancelToken: cancelToken),
+      parser,
+    );
   }
 
   @override
@@ -354,8 +629,12 @@ class DioApiClient implements ApiClient {
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   }) {
-    return _safeRequest(() => _dio.patch(path, data: data), parser);
+    return _safeRequest(
+      () => _dio.patch(path, data: data, cancelToken: cancelToken),
+      parser,
+    );
   }
 
   @override
@@ -363,8 +642,100 @@ class DioApiClient implements ApiClient {
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   }) {
-    return _safeRequest(() => _dio.delete(path, data: data), parser);
+    return _safeRequest(
+      () => _dio.delete(path, data: data, cancelToken: cancelToken),
+      parser,
+    );
+  }
+
+  Future<ApiResponse<T>> _safeRequest<T>(
+    Future<Response> Function() request,
+    T Function(dynamic) parser, {
+    void Function(dynamic data)? onSuccess,
+    Future<ApiResponse<T>?> Function()? onFailure,
+  }) async {
+    try {
+      final response = await request();
+      final requestId = response.requestOptions.extra['requestId']?.toString();
+
+      if (response.data == null || response.data is! Map) {
+        AppLogger.w(
+          '⚠️ [RES] [$requestId] Unexpected response format: ${response.data}',
+        );
+        return ApiResponse.fallback(
+          reason: 'invalid_format',
+          requestId: requestId,
+        );
+      }
+
+      AppLogger.d('📦 [RES] [$requestId] Raw data: ${response.data}');
+      final rawData = response.data.containsKey('data')
+          ? response.data['data']
+          : response.data;
+      final responseBody = response.data;
+
+      // 1. Success Callback for Caching
+      // Cache if 200 OK and (success is true OR success field is missing entirely)
+      if (response.statusCode == 200 && 
+          (responseBody['success'] == true || !responseBody.containsKey('success'))) {
+        onSuccess?.call(responseBody);
+      }
+
+      // 2. Conditional Parsing with compute()
+      T parsedData;
+      final bool useCompute =
+          response.toString().length > 50 * 1024; // > 50KB approximate
+
+      if (useCompute) {
+        AppLogger.d(
+          '🧵 [CPU] Large payload detected. Using compute() for parsing.',
+        );
+        parsedData = await compute((data) => parser(data), rawData);
+      } else {
+        parsedData = parser(rawData);
+      }
+
+      return ApiResponse.fromJson(
+        responseBody as Map<String, dynamic>,
+        (_) => parsedData, // Parser already executed
+        requestId: requestId,
+      );
+    } on DioException catch (e) {
+      final requestId = e.requestOptions.extra['requestId']?.toString();
+
+      // Check for stale fallback
+      if (onFailure != null) {
+        final fallback = await onFailure();
+        if (fallback != null) return fallback;
+      }
+
+      if (e.error is DegradedModeException ||
+          e.error is RefreshTimeoutException ||
+          e.error is TooManyRequestsException ||
+          e.error is AuthFailure) {
+        return ApiResponse.fallback(
+          reason: e.error.toString(),
+          requestId: requestId,
+        );
+      }
+
+      String reason = 'network';
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        reason = 'timeout';
+      }
+
+      return ApiResponse.fallback(reason: reason, requestId: requestId);
+    } catch (e) {
+      if (onFailure != null) {
+        final fallback = await onFailure();
+        if (fallback != null) return fallback;
+      }
+      return ApiResponse.fallback(reason: 'malformed');
+    }
   }
 }
 
@@ -373,22 +744,25 @@ class DioApiClient implements ApiClient {
 // ─────────────────────────────────────────────
 
 class MockApiClient implements ApiClient {
-  String? _token;
-
   @override
-  String? get token => _token;
+  String? get token => null;
   @override
-  void setToken(String t) => _token = t;
+  void setToken(String t) {}
   @override
-  void clearToken() => _token = null;
+  void clearToken() {}
   @override
   void setOnLogout(VoidCallback onLogout) {}
+  @override
+  void setOnNetworkError(VoidCallback onNetworkError) {}
 
   @override
   Future<ApiResponse<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
+    Duration? ttl,
+    bool ignoreCache = false,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-get');
@@ -399,6 +773,7 @@ class MockApiClient implements ApiClient {
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-post');
@@ -409,6 +784,7 @@ class MockApiClient implements ApiClient {
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-put');
@@ -419,6 +795,7 @@ class MockApiClient implements ApiClient {
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-patch');
@@ -429,23 +806,14 @@ class MockApiClient implements ApiClient {
     String path, {
     dynamic data,
     required T Function(dynamic) parser,
+    CancelToken? cancelToken,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-delete');
   }
 }
 
-// ─────────────────────────────────────────────
-// Factory + Provider
-// ─────────────────────────────────────────────
-
-class ApiClientFactory {
-  static ApiClient create({String? token}) {
-    if (Env.useMockApi) return MockApiClient();
-    return DioApiClient(token);
-  }
-}
-
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClientFactory.create();
+  if (Env.useMockApi) return MockApiClient();
+  return DioApiClient(ref);
 });

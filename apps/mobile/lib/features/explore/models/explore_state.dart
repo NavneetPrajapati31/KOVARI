@@ -114,6 +114,8 @@ class ExploreState {
   final DateTime? lastFetchTime;
   final int page;
   final bool hasMore;
+  final bool isPending;
+  final bool isFetchingNextPage;
 
   ExploreState({
     required this.searchData,
@@ -126,6 +128,8 @@ class ExploreState {
     this.lastFetchTime,
     required this.page,
     required this.hasMore,
+    this.isPending = false,
+    this.isFetchingNextPage = false,
   });
 
   factory ExploreState.initial() {
@@ -145,6 +149,8 @@ class ExploreState {
       lastFetchTime: null,
       page: 1,
       hasMore: true,
+      isPending: false,
+      isFetchingNextPage: false,
     );
   }
 
@@ -159,6 +165,8 @@ class ExploreState {
     DateTime? lastFetchTime,
     int? page,
     bool? hasMore,
+    bool? isPending,
+    bool? isFetchingNextPage,
   }) {
     return ExploreState(
       searchData: searchData ?? this.searchData,
@@ -171,6 +179,8 @@ class ExploreState {
       lastFetchTime: lastFetchTime ?? this.lastFetchTime,
       page: page ?? this.page,
       hasMore: hasMore ?? this.hasMore,
+      isPending: isPending ?? this.isPending,
+      isFetchingNextPage: isFetchingNextPage ?? this.isFetchingNextPage,
     );
   }
 }

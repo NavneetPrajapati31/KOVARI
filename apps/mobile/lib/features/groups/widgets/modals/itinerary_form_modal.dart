@@ -197,7 +197,7 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
     final membersAsync = ref.watch(groupMembersProvider(widget.groupId));
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface(context, level: 1),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 54),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
@@ -234,7 +234,7 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                             height: 1.3,
                             fontSize: 13,
                           ),
@@ -246,7 +246,7 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
               ),
             ),
             const SizedBox(height: 20),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: AppColors.borderColor(context)),
 
             // Scrollable Form Content
             Flexible(
@@ -302,16 +302,21 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
                                     vertical: 10,
                                   ),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: AppColors.border),
+                                    border: Border.all(
+                                      color: AppColors.borderColor(context),
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: AppColors.background,
+                                    color: AppColors.surface(context, level: 2),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         LucideIcons.calendar,
                                         size: 16,
-                                        color: AppColors.mutedForeground,
+                                        color: AppColors.text(
+                                          context,
+                                          isMuted: true,
+                                        ),
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
@@ -461,9 +466,12 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.background,
+                                      color: AppColors.surface(
+                                        context,
+                                        level: 2,
+                                      ),
                                       border: Border.all(
-                                        color: AppColors.border,
+                                        color: AppColors.borderColor(context),
                                       ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),

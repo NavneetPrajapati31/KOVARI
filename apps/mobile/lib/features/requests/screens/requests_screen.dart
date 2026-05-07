@@ -38,7 +38,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.backgroundColor(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -64,13 +64,13 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         children: [
           _buildBackButton(context),
           const SizedBox(width: 4),
-          const Expanded(
+          Expanded(
             child: Text(
               'Requests',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+                color: AppColors.text(context),
               ),
             ),
           ),
@@ -87,7 +87,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         child: Icon(
           LucideIcons.arrowLeft,
           size: 20,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );
@@ -101,11 +101,11 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         bottom: AppSpacing.sm,
       ),
       child: Container(
-        height: 40,
+        height: 44,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
+          color: AppColors.surface(context, level: 1),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
         child: TabBar(
           controller: _tabController,
@@ -113,11 +113,10 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           splashFactory: NoSplash.splashFactory,
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: AppColors.primaryLight,
             border: Border.all(color: AppColors.primary, width: 1),
           ),
           labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.foreground,
+          unselectedLabelColor: AppColors.text(context, isMuted: true),
           labelStyle: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -148,7 +147,7 @@ class _InterestsList extends ConsumerWidget {
             child: Text(
               'No travel interests yet.',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           );
@@ -238,9 +237,9 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,7 +276,7 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
                           dateFormatted,
                           style: AppTextStyles.label.copyWith(
                             fontSize: 11,
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -286,7 +285,7 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
                     Text(
                       '@${interest.senderUsername}',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 12,
                       ),
                     ),
@@ -306,7 +305,7 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
                 style: AppTextStyles.label.copyWith(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -371,7 +370,7 @@ class _InvitationsList extends ConsumerWidget {
             child: Text(
               'No group invitations yet.',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
           );
@@ -461,9 +460,9 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -500,7 +499,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                           dateFormatted,
                           style: AppTextStyles.label.copyWith(
                             fontSize: 11,
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -509,7 +508,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                     Text(
                       'Invited by @${invitation.creatorUsername}',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 12,
                       ),
                     ),
@@ -529,7 +528,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
                 style: AppTextStyles.label.copyWith(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -592,9 +591,9 @@ class _RequestCardSkeleton extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),

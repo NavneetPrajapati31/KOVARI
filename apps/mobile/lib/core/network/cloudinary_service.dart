@@ -8,14 +8,21 @@ class CloudinaryService {
   final ApiClient _apiClient;
   final Dio _cloudinaryDio;
 
-  CloudinaryService(this._apiClient) : _cloudinaryDio = Dio();
+  CloudinaryService(this._apiClient) : _cloudinaryDio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 8),
+      sendTimeout: const Duration(seconds: 45),
+      receiveTimeout: const Duration(seconds: 45),
+    ),
+  );
 
   /// Gets a signed upload signature from the backend
-  Future<Map<String, dynamic>> _getSignature(String folder) async {
+  Future<Map<String, dynamic>> _getSignature(String folder, {CancelToken? cancelToken}) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiEndpoints.cloudinarySign,
       data: {'folder': folder},
       parser: (data) => data as Map<String, dynamic>,
+      cancelToken: cancelToken,
     );
 
     if (response.success && response.data != null) {
@@ -31,10 +38,10 @@ class CloudinaryService {
   }
 
   /// Uploads an image file to Cloudinary using a signed request
-  Future<Map<String, dynamic>> uploadImage(File file, {String folder = 'kovari-profiles'}) async {
+  Future<Map<String, dynamic>> uploadImage(File file, {String folder = 'kovari-profiles', CancelToken? cancelToken}) async {
     try {
       // 1. Get signature from our backend
-      final signData = await _getSignature(folder);
+      final signData = await _getSignature(folder, cancelToken: cancelToken);
       
       final String signature = signData['signature'];
       final int timestamp = signData['timestamp'];
@@ -57,6 +64,7 @@ class CloudinaryService {
       final response = await _cloudinaryDio.post(
         uploadUrl,
         data: formData,
+        cancelToken: cancelToken,
         onSendProgress: (sent, total) {
           // Optional: Add progress tracking if needed
         },

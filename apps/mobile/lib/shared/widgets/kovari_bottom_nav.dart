@@ -19,13 +19,12 @@ class KovariBottomNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(profileProvider);
-    final profilePhoto = UrlUtils.getFullImageUrl(profile?.profileImage);
+    final profilePhoto = ref.watch(profileProvider.select((p) => UrlUtils.getFullImageUrl(p?.profileImage)));
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+        color: AppColors.surface(context, level: 1),
+        border: Border(top: BorderSide(color: AppColors.borderColor(context), width: 1)),
       ),
       child: SafeArea(
         child: Container(
@@ -34,11 +33,11 @@ class KovariBottomNav extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, 'home'),
-              _buildNavItem(1, 'search'),
-              _buildNavItem(2, 'send'),
-              _buildNavItem(3, 'users'),
-              _buildAvatarNavItem(4, profilePhoto),
+              _buildNavItem(context, 0, 'home'),
+              _buildNavItem(context, 1, 'search'),
+              _buildNavItem(context, 2, 'send'),
+              _buildNavItem(context, 3, 'users'),
+              _buildAvatarNavItem(context, 4, profilePhoto),
             ],
           ),
         ),
@@ -46,9 +45,9 @@ class KovariBottomNav extends ConsumerWidget {
     );
   }
 
-  Widget _buildNavItem(int index, String iconType) {
+  Widget _buildNavItem(BuildContext context, int index, String iconType) {
     final isSelected = currentIndex == index;
-    final color = isSelected ? AppColors.primary : Colors.black;
+    final color = isSelected ? AppColors.primary : AppColors.text(context);
 
     String svgString = '';
     switch (iconType) {
@@ -90,7 +89,7 @@ class KovariBottomNav extends ConsumerWidget {
     );
   }
 
-  Widget _buildAvatarNavItem(int index, String? profilePhoto) {
+  Widget _buildAvatarNavItem(BuildContext context, int index, String? profilePhoto) {
     final isSelected = currentIndex == index;
 
     return Expanded(

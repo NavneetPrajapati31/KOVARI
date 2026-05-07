@@ -7,6 +7,7 @@ import '../../../core/widgets/common/kovari_image.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/utils/url_utils.dart';
+import '../../../core/utils/app_logger.dart';
 import '../providers/group_details_provider.dart';
 import '../providers/group_provider.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -85,17 +86,17 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   }
 
   Future<void> _handleJoin() async {
-    print("Join Group initiated...");
+    AppLogger.d("Join Group initiated...");
     if (_groupInfo == null) {
-      print("Error: _groupInfo is null");
+      AppLogger.d("Error: _groupInfo is null");
       return;
     }
     setState(() => _isJoining = true);
     try {
       final groupId = _groupInfo!['id'] as String;
-      print("Joining Group ID: $groupId");
+      AppLogger.d("Joining Group ID: $groupId");
       await ref.read(groupActionsProvider(groupId)).joinViaInvite();
-      print("Join Successful!");
+      AppLogger.d("Join Successful!");
 
       if (mounted) {
         ScaffoldMessenger.of(
@@ -110,7 +111,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
         );
       }
     } catch (e) {
-      print("Join Error: $e");
+      AppLogger.e("Join Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -138,7 +139,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   fit: BoxFit.cover,
                   fadeInDuration: const Duration(milliseconds: 500),
                   fadeOutDuration: const Duration(milliseconds: 500),
-                  placeholder: Container(color: Colors.white.withOpacity(0.05)),
+                  placeholder: Container(color: Colors.white.withValues(alpha: 0.05)),
                 ),
               ),
             ),
@@ -149,8 +150,8 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.8),
+                    Colors.black.withValues(alpha: 0.1),
+                    Colors.black.withValues(alpha: 0.8),
                     Colors.black,
                   ],
                 ),
@@ -220,7 +221,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
         ),
       ),
       child: PrimaryButton(
@@ -246,9 +247,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(28, 48, 28, 40),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -256,10 +257,10 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
+                        color: Colors.white.withValues(alpha: 0.05),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                         ),
                       ),
                       child: const Icon(
@@ -284,7 +285,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                       "This group is private. You need to log in to view and join this journey.",
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                         height: 1.5,
                         fontSize: 15,
                       ),
@@ -307,7 +308,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -331,7 +332,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                       child: Text(
                         "Go Back",
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -350,9 +351,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
         margin: const EdgeInsets.all(32),
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -372,7 +373,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
               "This invitation has expired or been revoked.",
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 32),
@@ -453,7 +454,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     spreadRadius: 2,
                     blurRadius: 30,
                   ),
@@ -469,7 +470,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                         fadeInDuration: const Duration(milliseconds: 500),
                         fadeOutDuration: const Duration(milliseconds: 500),
                         placeholder: Container(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       )
                     : KovariAvatar(imageUrl: null, size: 85, fullName: name),
@@ -492,9 +493,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -502,13 +503,13 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   Icon(
                     LucideIcons.mapPin,
                     size: 13,
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white.withValues(alpha: 0.85),
                   ),
                   const SizedBox(width: 5),
                   Text(
                     destination,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -525,9 +526,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,7 +538,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                       Text(
                         "ABOUT",
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.4),
+                          color: Colors.white.withValues(alpha: 0.4),
                           fontWeight: FontWeight.w800,
                           fontSize: 11,
                           letterSpacing: 1.0,
@@ -549,7 +550,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   Text(
                     description,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       height: 1.4,
                       fontSize: 14,
                     ),
@@ -563,9 +564,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,7 +574,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   Text(
                     "GROUP FEATURES",
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.4),
+                      color: Colors.white.withValues(alpha: 0.4),
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                       letterSpacing: 1.0,
@@ -614,9 +615,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -624,7 +625,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
           Text(
             "INVITED BY",
             style: TextStyle(
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               fontWeight: FontWeight.w800,
               fontSize: 11,
               letterSpacing: 1.0,
@@ -654,7 +655,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     Text(
                       "@$username",
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -675,10 +676,10 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 15, color: Colors.white.withOpacity(0.7)),
+          child: Icon(icon, size: 15, color: Colors.white.withValues(alpha: 0.7)),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -696,7 +697,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 12,
                 ),
               ),

@@ -1,6 +1,7 @@
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/utils/api_error_handler.dart';
+import 'package:dio/dio.dart';
 
 class ProfileService {
   final ApiClient _apiClient;
@@ -9,20 +10,35 @@ class ProfileService {
 
   /// GET /api/profile/current
   /// Fetches the profile of the currently authenticated user.
-  Future<Map<String, dynamic>?> getCurrentProfile() async {
+  Future<Map<String, dynamic>?> getCurrentProfile({
+    CancelToken? cancelToken,
+    bool ignoreCache = false,
+  }) async {
     try {
-      final response = await _apiClient.get<Map<String, dynamic>>(
+      final response = await _apiClient.get<Map<String, dynamic>?>(
         ApiEndpoints.currentProfile,
-        parser: (data) => data is Map<String, dynamic> ? data : {},
+        parser: (data) {
+          if (data is! Map<String, dynamic>) return null;
+          // Robust unwrapping: handle both direct and nested 'profile' field
+          return (data['profile'] as Map<String, dynamic>?) ?? data;
+        },
+        cancelToken: cancelToken,
+        ignoreCache: ignoreCache,
       );
+
+      if (response.isDegraded) {
+        throw Exception('Network error: ${response.meta.reason}');
+      }
 
       if (response.success && response.data != null) {
         return response.data;
       }
       return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
     } catch (e) {
-      // 404 is a valid case (profile doesn't exist yet), others are handled by ApiClient fallback
-      return null;
+      rethrow;
     }
   }
 
@@ -46,12 +62,16 @@ class ProfileService {
 
   /// POST /api/profile
   /// Creates or updates the user's profile.
-  Future<void> updateProfile(Map<String, dynamic> profileData) async {
+  Future<void> updateProfile(
+    Map<String, dynamic> profileData, {
+    CancelToken? cancelToken,
+  }) async {
     try {
       final response = await _apiClient.post<void>(
         ApiEndpoints.createProfile,
         data: profileData,
         parser: (_) {},
+        cancelToken: cancelToken,
       );
       if (!response.success) {
         throw Exception('Failed to update profile');
@@ -61,12 +81,11 @@ class ProfileService {
     }
   }
 
-  /// POST /api/settings/accept-policies
-  /// Records that the user has accepted specific versions of policies.
   Future<void> acceptPolicies({
     required String termsVersion,
     required String privacyVersion,
     required String guidelinesVersion,
+    CancelToken? cancelToken,
   }) async {
     try {
       final response = await _apiClient.post<void>(
@@ -77,6 +96,7 @@ class ProfileService {
           'guidelinesVersion': guidelinesVersion,
         },
         parser: (_) {},
+        cancelToken: cancelToken,
       );
       if (!response.success) {
         throw Exception('Failed to accept policies');
@@ -88,12 +108,16 @@ class ProfileService {
 
   /// POST /api/check-username
   /// Checks if a username is available.
-  Future<bool> checkUsernameAvailable(String username) async {
+  Future<bool> checkUsernameAvailable(
+    String username, {
+    CancelToken? cancelToken,
+  }) async {
     if (username.trim().length < 3) return false;
     try {
       final response = await _apiClient.post<bool>(
         'check-username',
         data: {'username': username},
+        cancelToken: cancelToken,
         parser: (data) {
           if (data is Map<String, dynamic>) {
             return data['available'] == true;

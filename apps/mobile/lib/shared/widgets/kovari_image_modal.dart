@@ -1,5 +1,6 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/common/user_avatar_fallback.dart';
 
@@ -57,7 +58,7 @@ class KovariImageModal extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.1),
+              color: AppColors.surface(context, level: 2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -67,14 +68,19 @@ class KovariImageModal extends StatelessWidget {
               ],
             ),
             child: ClipOval(
-              child: Image.network(
-                imageUrl,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    UserAvatarFallback(
-                      size: size,
-                      backgroundColor: AppColors.secondary,
-                    ),
+                errorWidget: (context, url, error) => UserAvatarFallback(
+                  size: size,
+                  backgroundColor: AppColors.surface(context, level: 1),
+                ),
+                placeholder: (context, url) => Container(
+                  color: AppColors.surface(context, level: 1),
+                  child: const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
               ),
             ),
           ),

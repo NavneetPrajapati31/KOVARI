@@ -10,6 +10,7 @@ import '../providers/explore_provider.dart';
 import '../../../core/widgets/common/user_avatar_fallback.dart';
 
 import '../../../features/groups/models/group.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class GroupMatchCard extends ConsumerWidget {
   final GroupModel group;
@@ -37,12 +38,9 @@ class GroupMatchCard extends ConsumerWidget {
         ? endDate.difference(startDate).inDays + 1
         : null;
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(24),
-      ),
+    return AppCard(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(24),
       child: Column(
         children: [
           Column(
@@ -58,7 +56,7 @@ class GroupMatchCard extends ConsumerWidget {
                       aspectRatio: 1 / 1,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.secondary,
+                          color: AppColors.surface(context, level: 2),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         clipBehavior: Clip.antiAlias,
@@ -94,7 +92,7 @@ class GroupMatchCard extends ConsumerWidget {
                           ? description
                           : 'No description provided.',
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontStyle:
                             (description != null && description.isNotEmpty)
                             ? FontStyle.normal
@@ -105,7 +103,11 @@ class GroupMatchCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Divider(indent: 20, endIndent: 20, color: AppColors.border),
+              Divider(
+                indent: 20,
+                endIndent: 20,
+                color: AppColors.borderColor(context),
+              ),
 
               // Content Sections
               Padding(
@@ -113,8 +115,8 @@ class GroupMatchCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle('Trip Details'),
-                    _buildPillList([
+                    _buildSectionTitle(context, 'Trip Details'),
+                    _buildPillList(context, [
                       _PillData(
                         icon: Icons.location_on_outlined,
                         label: group.destination.split(',')[0],
@@ -138,8 +140,8 @@ class GroupMatchCard extends ConsumerWidget {
                     ]),
                     const SizedBox(height: 24),
 
-                    _buildSectionTitle('About'),
-                    _buildPillList([
+                    _buildSectionTitle(context, 'About'),
+                    _buildPillList(context, [
                       _PillData(
                         icon: Icons.person_pin_outlined,
                         label: "By ${creator.name}",
@@ -152,8 +154,9 @@ class GroupMatchCard extends ConsumerWidget {
 
                     if (group.tags != null && group.tags!.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      _buildSectionTitle('Group Interests'),
+                      _buildSectionTitle(context, 'Group Interests'),
                       _buildPillList(
+                        context,
                         group.tags!
                             .map((i) => _PillData(label: i.toString()))
                             .toList(),
@@ -163,8 +166,9 @@ class GroupMatchCard extends ConsumerWidget {
 
                     if (group.languages != null &&
                         group.languages!.isNotEmpty) ...[
-                      _buildSectionTitle('Languages'),
+                      _buildSectionTitle(context, 'Languages'),
                       _buildPillList(
+                        context,
                         group.languages!
                             .map(
                               (i) => _PillData(
@@ -181,8 +185,8 @@ class GroupMatchCard extends ConsumerWidget {
                             group.smokingPolicy!.isNotEmpty) ||
                         (group.drinkingPolicy != null &&
                             group.drinkingPolicy!.isNotEmpty)) ...[
-                      _buildSectionTitle('Lifestyle'),
-                      _buildPillList([
+                      _buildSectionTitle(context, 'Lifestyle'),
+                      _buildPillList(context, [
                         if (group.smokingPolicy != null &&
                             group.smokingPolicy!.isNotEmpty)
                           _PillData(
@@ -200,7 +204,11 @@ class GroupMatchCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Divider(indent: 20, endIndent: 20, color: AppColors.border),
+              Divider(
+                indent: 20,
+                endIndent: 20,
+                color: AppColors.borderColor(context),
+              ),
               _buildActions(ref, group.id),
             ],
           ),
@@ -209,48 +217,44 @@ class GroupMatchCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title.toUpperCase(),
         style: AppTextStyles.bodySmall.copyWith(
           fontWeight: FontWeight.bold,
-          color: AppColors.mutedForeground,
+          color: AppColors.text(context, isMuted: true),
           letterSpacing: 1.2,
         ),
       ),
     );
   }
 
-  Widget _buildPillList(List<_PillData> pills) {
+  Widget _buildPillList(BuildContext context, List<_PillData> pills) {
     return Wrap(
       spacing: 6,
       runSpacing: 8,
-      children: pills.map((pill) => _buildPill(pill)).toList(),
+      children: pills.map((pill) => _buildPill(context, pill)).toList(),
     );
   }
 
-  Widget _buildPill(_PillData data) {
-    return Container(
+  Widget _buildPill(BuildContext context, _PillData data) {
+    return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
+      borderRadius: BorderRadius.circular(20),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (data.icon != null) ...[
-            Icon(data.icon, size: 16, color: AppColors.foreground),
+            Icon(data.icon, size: 16, color: AppColors.text(context)),
             const SizedBox(width: 8),
           ],
           Text(
             data.label,
             style: AppTextStyles.bodyMedium.copyWith(
               fontWeight: FontWeight.w500,
-              color: AppColors.foreground,
+              color: AppColors.text(context),
             ),
           ),
         ],

@@ -24,23 +24,23 @@ class AuthSocialButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.borderColor(context)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.surface(context, level: 2),
           elevation: 0,
           shadowColor: Colors.transparent,
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.foreground,
+                    AppColors.text(context),
                   ),
                 ),
               )
@@ -54,7 +54,7 @@ class AuthSocialButton extends StatelessWidget {
                       text,
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: AppColors.foreground,
+                        color: AppColors.text(context),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),

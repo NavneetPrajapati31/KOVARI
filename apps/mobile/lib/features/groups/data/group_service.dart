@@ -1,6 +1,7 @@
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/utils/safe_parser.dart';
+import '../../../core/utils/app_logger.dart';
 import '../models/group.dart';
 
 class GroupService {
@@ -11,12 +12,20 @@ class GroupService {
   Future<List<GroupModel>> getMyGroups() async {
     final response = await _apiClient.get<List<GroupModel>>(
       ApiEndpoints.myGroups,
-      parser: (data) {
-        final List<dynamic> rawList = data is List ? data : [];
-        return safeParseList(rawList, GroupModel.fromJson);
-      },
+      parser: (data) => parseGroups(data),
     );
-    return response.data ?? [];
+
+    if (response.success && response.data != null) {
+      return response.data!;
+    }
+
+    throw Exception(response.error?.message ?? "Failed to load groups");
+  }
+
+  List<GroupModel> parseGroups(dynamic data) {
+    final actualData = (data is Map && data.containsKey('data')) ? data['data'] : data;
+    if (actualData is! List) return [];
+    return actualData.map((e) => GroupModel.fromJson(e)).toList();
   }
 
   Future<GroupModel> createGroup(Map<String, dynamic> data) async {
@@ -76,14 +85,15 @@ class GroupService {
   }
 
   Future<void> approveJoinRequest(String groupId, String userId) async {
-    print("[GroupService] Approving join request for userId: '$userId'");
+    AppLogger.d("[GroupService] Approving join request for userId: '$userId'");
     final response = await _apiClient.post<dynamic>(
       ApiEndpoints.groupJoin(groupId),
       data: {'userId': userId},
       parser: (json) => json,
     );
-    if (!response.success)
+    if (!response.success) {
       throw Exception(response.error?.message ?? 'Failed to approve');
+    }
   }
 
   Future<void> rejectJoinRequest(String groupId, String requestId) async {
@@ -92,8 +102,9 @@ class GroupService {
       data: {'requestId': requestId},
       parser: (json) => json,
     );
-    if (!response.success)
+    if (!response.success) {
       throw Exception(response.error?.message ?? 'Failed to reject');
+    }
   }
 
   Future<void> removeMember(
@@ -106,8 +117,9 @@ class GroupService {
       data: {'memberId': memberId, 'memberClerkId': memberClerkId},
       parser: (json) => json,
     );
-    if (!response.success)
+    if (!response.success) {
       throw Exception(response.error?.message ?? 'Failed to remove member');
+    }
   }
 
   Future<String> getInviteLink(String groupId) async {
@@ -199,11 +211,12 @@ class GroupService {
       data: viaInvite ? {'viaInvite': true} : {},
       parser: (_) {},
     );
-    print(
+    AppLogger.d(
       "Join API Response - Success: ${response.success}, Error: ${response.error?.message}",
     );
-    if (!response.success)
+    if (!response.success) {
       throw Exception(response.error?.message ?? 'Failed to join group');
+    }
   }
 
   Future<void> generateAiOverview(String groupId) async {

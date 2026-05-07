@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class MockConversation {
   final String id;
@@ -99,22 +101,16 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
       return c.name.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
-    return Material(
-      color: AppColors.card, // bg-card
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Search Bar (Sticky Top)
-            Container(
+    return SafeArea(
+      child: CustomScrollView(
+        slivers: [
+          // Search Bar (SliverToBoxAdapter)
+          SliverToBoxAdapter(
+            child: Container(
               padding: const EdgeInsets.all(16.0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: AppColors.border, width: 1),
-                ),
-              ),
+              decoration: BoxDecoration(color: AppColors.surface(context)),
               child: SizedBox(
-                height: 38,
+                height: 44,
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) {
@@ -122,43 +118,56 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
                       _searchQuery = val;
                     });
                   },
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Colors.black,
+                    color: AppColors.text(context),
                     fontWeight: FontWeight.w400,
                   ),
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: AppColors.secondary,
+                    fillColor: AppColors.surface(context, level: 2),
                     hintText: 'Search',
-                    hintStyle: const TextStyle(
-                      color: AppColors.mutedForeground,
+                    hintStyle: TextStyle(
+                      color: AppColors.text(context, isMuted: true),
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(LucideIcons.x, size: 16),
+                            icon: Icon(
+                              LucideIcons.x,
+                              size: 16,
+                              color: AppColors.text(context, isMuted: true),
+                            ),
                             onPressed: _clearSearch,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           )
-                        : const Icon(
+                        : Icon(
                             LucideIcons.search,
                             size: 18,
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                           ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(
+                        color: AppColors.borderColor(context),
+                        width: 1,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: AppColors.borderColor(context),
+                        width: 1,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: AppColors.borderColor(context),
+                        width: 1,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -168,38 +177,65 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
                 ),
               ),
             ),
+          ),
 
-            // Messages List
-            Expanded(
-              child: filteredConversations.isEmpty
-                  ? Center(
-                      child: Text(
-                        _searchQuery.isEmpty
-                            ? 'No conversations yet.'
-                            : 'No conversations found.',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.mutedForeground,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: filteredConversations.length,
-                      itemBuilder: (context, index) {
-                        final conv = filteredConversations[index];
-                        final isLast =
-                            index == filteredConversations.length - 1;
-                        return _ChatInboxItem(
-                          conversation: conv,
-                          isLast: isLast,
-                          onTap: () {
-                            // handle tap
-                          },
-                        );
-                      },
+          // Messages List
+          if (filteredConversations.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Text(
+                  _searchQuery.isEmpty
+                      ? 'No conversations yet.'
+                      : 'No conversations found.',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.text(context, isMuted: true),
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                bottom: 16.0,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: AppCard(
+                  padding: EdgeInsets.zero,
+                  child: ClipRRect(
+                    borderRadius: AppRadius.large,
+                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (
+                          int i = 0;
+                          i < filteredConversations.length;
+                          i++
+                        ) ...[
+                          RepaintBoundary(
+                            child: _ChatInboxItem(
+                              conversation: filteredConversations[i],
+                              onTap: () {
+                                // handle tap
+                              },
+                            ),
+                          ),
+                          if (i < filteredConversations.length - 1)
+                            Divider(
+                              height: 1,
+                              color: AppColors.borderColor(context),
+                            ),
+                        ],
+                      ],
                     ),
+                  ),
+                ),
+              ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -207,28 +243,16 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
 
 class _ChatInboxItem extends StatelessWidget {
   final MockConversation conversation;
-  final bool isLast;
   final VoidCallback onTap;
 
-  const _ChatInboxItem({
-    required this.conversation,
-    required this.isLast,
-    required this.onTap,
-  });
+  const _ChatInboxItem({required this.conversation, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : const Border(
-                  bottom: BorderSide(color: AppColors.border, width: 1),
-                ),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
             // Avatar
@@ -246,7 +270,7 @@ class _ChatInboxItem extends StatelessWidget {
                       : null,
                   child: KovariAvatar(
                     imageUrl: conversation.profilePhoto,
-                    size: 44,
+                    size: 42,
                     fullName: conversation.name,
                   ),
                 ),
@@ -260,7 +284,10 @@ class _ChatInboxItem extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.card, width: 2),
+                        border: Border.all(
+                          color: AppColors.surface(context, level: 1),
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -281,10 +308,9 @@ class _ChatInboxItem extends StatelessWidget {
                       Expanded(
                         child: Text(
                           conversation.name,
-                          style: AppTextStyles.bodyMedium.copyWith(
+                          style: AppTextStyles.bodySmall.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.foreground,
-                            fontSize: 14,
+                            color: AppColors.text(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -294,19 +320,20 @@ class _ChatInboxItem extends StatelessWidget {
                       Text(
                         conversation.lastMessageAt,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.mutedForeground,
-                          fontSize: 12,
+                          color: AppColors.text(context, isMuted: true),
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
-                  // const SizedBox(height: 1),
+
+                  SizedBox(height: 1),
 
                   // Bottom Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: _buildSubtitle()),
+                      Expanded(child: _buildSubtitle(context)),
                       if (conversation.unreadCount > 0)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
@@ -343,7 +370,7 @@ class _ChatInboxItem extends StatelessWidget {
     );
   }
 
-  Widget _buildSubtitle() {
+  Widget _buildSubtitle(BuildContext context) {
     if (conversation.isTyping) {
       return Text(
         'typing...',
@@ -356,16 +383,16 @@ class _ChatInboxItem extends StatelessWidget {
     if (conversation.lastMediaType == 'image') {
       return Row(
         children: [
-          const Icon(
+          Icon(
             LucideIcons.image,
             size: 14,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
           const SizedBox(width: 4),
           Text(
             'Photo',
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
             ),
           ),
@@ -375,16 +402,16 @@ class _ChatInboxItem extends StatelessWidget {
     if (conversation.lastMediaType == 'video') {
       return Row(
         children: [
-          const Icon(
+          Icon(
             LucideIcons.video,
             size: 14,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
           ),
           const SizedBox(width: 4),
           Text(
             'Video',
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
             ),
           ),
@@ -404,7 +431,7 @@ class _ChatInboxItem extends StatelessWidget {
     return Text(
       conversation.lastMessage,
       style: AppTextStyles.bodySmall.copyWith(
-        color: AppColors.mutedForeground,
+        color: AppColors.text(context, isMuted: true),
         fontSize: 12,
       ),
       maxLines: 1,

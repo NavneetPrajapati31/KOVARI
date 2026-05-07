@@ -1,0 +1,144 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import '../../core/config/interaction_config.dart';
+import '../../core/services/haptic_service.dart';
+
+enum InteractionState { idle, loading, success, error }
+
+class InteractiveWrapper extends StatefulWidget {
+  final Widget child;
+  final FutureOr<void> Function()? onPressed;
+  final bool enableScale;
+  final bool enableOpacity;
+  final HapticType hapticType;
+  final bool isDisabled;
+  final bool isLoading;
+  final bool isSuccess;
+  final bool isError;
+  final BorderRadius? borderRadius;
+
+  const InteractiveWrapper({
+    super.key,
+    required this.child,
+    this.onPressed,
+    this.enableScale = true,
+    this.enableOpacity = false,
+    this.hapticType = HapticType.light,
+    this.isDisabled = false,
+    this.isLoading = false,
+    this.isSuccess = false,
+    this.isError = false,
+    this.borderRadius,
+  });
+
+  @override
+  State<InteractiveWrapper> createState() => _InteractiveWrapperState();
+}
+
+class _InteractiveWrapperState extends State<InteractiveWrapper>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isTapped = false;
+  bool _isDebouncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: InteractionConfig.pressDuration,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: InteractionConfig.pressScale,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleTapDown(TapDownDetails details) async {
+    if (widget.isDisabled ||
+        widget.isLoading ||
+        widget.onPressed == null ||
+        _isDebouncing) {
+      return;
+    }
+
+    _controller.forward();
+    setState(() => _isTapped = true);
+    HapticService.trigger(widget.hapticType);
+  }
+
+  Future<void> _handleTapUp(TapUpDetails details) async {
+    if (widget.isDisabled ||
+        widget.isLoading ||
+        widget.onPressed == null ||
+        _isDebouncing) {
+      return;
+    }
+
+    _controller.reverse();
+    setState(() {
+      _isTapped = false;
+      _isDebouncing = true;
+    });
+
+    try {
+      await widget.onPressed?.call();
+    } finally {
+      if (mounted) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) setState(() => _isDebouncing = false);
+        });
+      }
+    }
+  }
+
+  void _handleTapCancel() {
+    if (widget.isDisabled || widget.isLoading || widget.onPressed == null) {
+      return;
+    }
+    _controller.reverse();
+    setState(() => _isTapped = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          Widget current = child!;
+
+          if (widget.enableScale && !widget.isLoading) {
+            current = ScaleTransition(scale: _scaleAnimation, child: current);
+          }
+
+          if (widget.enableOpacity) {
+            current = AnimatedOpacity(
+              duration: InteractionConfig.fast,
+              opacity: (_isTapped || widget.isLoading) ? 0.8 : 1.0,
+              child: current,
+            );
+          }
+
+          return Opacity(
+            opacity: widget.isDisabled ? 0.5 : 1.0,
+            child: current,
+          );
+        },
+        child: RepaintBoundary(child: widget.child),
+      ),
+    );
+  }
+}

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../shared/widgets/auth_social_button.dart';
 import '../../../shared/widgets/auth_divider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/config/routes.dart';
-import '../../../core/services/local_storage.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'verify_email_screen.dart';
+import 'package:dio/dio.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -26,9 +26,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  final _cancelToken = CancelToken();
 
   @override
   void dispose() {
+    _cancelToken.cancel('SignUpScreen disposed');
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -59,11 +61,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
+      final authService = ref.read(authServiceProvider);
+      final result = await authService.registerWithEmail(
+        email,
+        password,
+        cancelToken: _cancelToken,
       );
-      final result = await authService.registerWithEmail(email, password);
 
       if (mounted) {
         if (result['verificationRequired'] == true) {
@@ -74,9 +77,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             ),
           );
         } else {
-          Navigator.of(
-            context,
-          ).pushReplacementNamed('/'); // Trigger AuthWrapper/_checkAuth
+          final user = authService.parseAuthResponse(result);
+          ref.read(authProvider.notifier).setUser(user);
         }
       }
     } catch (e) {
@@ -96,14 +98,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
-      );
-      await authService.loginWithGoogle();
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.loginWithGoogle(cancelToken: _cancelToken);
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/');
+        ref.read(authProvider.notifier).setUser(user);
       }
     } catch (e) {
       if (mounted) {
@@ -121,7 +120,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -131,7 +129,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               children: [
                 // Logo
                 Image.asset(
-                  'assets/logo.webp',
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'assets/logo_dark.webp'
+                      : 'assets/logo.webp',
                   height: 20,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Text(
@@ -145,25 +145,25 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 const SizedBox(height: 32),
 
                 // Auth Card
-                Container(
+                AppCard(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 24,
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: AppRadius.extraLarge,
-                    border: Border.all(color: AppColors.border),
-                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Join Kovari', style: AppTextStyles.h3),
-                      const SizedBox(height: 4),
+                      Text(
+                        'Join Kovari',
+                        style: AppTextStyles.h3.copyWith(
+                          color: AppColors.text(context),
+                        ),
+                      ),
+                      // const SizedBox(height: 4),
                       Text(
                         'Create your account to get started',
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.mutedForeground,
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -187,6 +187,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         controller: _emailController,
                         hintText: 'example@example.com',
                         keyboardType: TextInputType.emailAddress,
+                        height: 40,
                       ),
                       const SizedBox(height: 16),
                       TextInputField(
@@ -194,6 +195,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         controller: _passwordController,
                         hintText: 'Enter password',
                         obscureText: true,
+                        height: 40,
                       ),
                       const SizedBox(height: 16),
                       TextInputField(
@@ -201,6 +203,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         controller: _confirmPasswordController,
                         hintText: 'Confirm password',
                         obscureText: true,
+                        height: 40,
                       ),
 
                       const SizedBox(height: 20),
@@ -212,6 +215,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                             : 'Create account',
                         onPressed: _isLoading ? null : _handleSignUp,
                         isLoading: _isLoading,
+                        height: 40,
                       ),
                     ],
                   ),
@@ -226,7 +230,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     Text(
                       "Already have an account? ",
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                       ),
                     ),
                     TextButton(
@@ -242,7 +246,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       child: Text(
                         'Log in',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.foreground,
+                          color: AppColors.text(context),
                           fontWeight: FontWeight.w600,
                         ),
                       ),

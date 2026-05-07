@@ -112,15 +112,15 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
               child: Material(
                 elevation: 8,
                 borderRadius: AppRadius.large,
-                color: Colors.white,
+                color: AppColors.surface(context, level: 2),
                 shadowColor: Colors.black.withValues(alpha: 0.1),
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 240),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: AppColors.borderColor(context)),
                     borderRadius: AppRadius.large,
                   ),
-                  child: _buildOverlayContent(),
+                  child: _buildOverlayContent(context),
                 ),
               ),
             ),
@@ -132,11 +132,11 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
     overlay.insert(_overlayEntry!);
   }
 
-  Widget _buildOverlayContent() {
+  Widget _buildOverlayContent(BuildContext context) {
     if (_isLoading) {
       return Padding(
         padding: widget.contentPadding ?? const EdgeInsets.all(10),
-        child: Center(
+        child: const Center(
           child: SizedBox(
             width: 16,
             height: 16,
@@ -153,73 +153,74 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
           child: Text(
             'No results found',
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: widget.contentPadding ?? const EdgeInsets.symmetric(vertical: 4),
-      shrinkWrap: true,
-      itemCount: _suggestions.length,
-      itemBuilder: (context, index) {
-        final suggestion = _suggestions[index];
-        return InkWell(
-          onTap: () async {
-            // 1. Update UI immediately (match web)
-            _controller.text = suggestion.formatted;
-            _hideOverlay();
-            _focusNode.unfocus();
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final suggestion in _suggestions)
+            InkWell(
+              onTap: () async {
+                // 1. Update UI immediately (match web)
+                _controller.text = suggestion.formatted;
+                _hideOverlay();
+                _focusNode.unfocus();
 
-            if (!mounted) return;
-            setState(() => _isLoading = true);
-            final service = LocationService();
-            final details = await service.getLocationDetails(
-              suggestion.placeId,
-            );
+                if (!mounted) return;
+                setState(() => _isLoading = true);
+                final service = LocationService();
+                final details = await service.getLocationDetails(
+                  suggestion.placeId,
+                );
 
-            if (!mounted) return;
-            setState(() => _isLoading = false);
+                if (!mounted) return;
+                setState(() => _isLoading = false);
 
-            if (details != null) {
-              widget.onSelect(details);
-            } else {
-              widget.onSelect(suggestion);
-            }
-          },
-          child: Padding(
-            padding:
-                widget.contentPadding ??
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  suggestion.city.isNotEmpty
-                      ? suggestion.city
-                      : suggestion.formatted.split(',')[0],
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w500,
-                    height: 1.1,
-                  ),
+                if (details != null) {
+                  widget.onSelect(details);
+                } else {
+                  widget.onSelect(suggestion);
+                }
+              },
+              child: Padding(
+                padding: widget.contentPadding ??
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      suggestion.city.isNotEmpty
+                          ? suggestion.city
+                          : suggestion.formatted.split(',')[0],
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        height: 1.1,
+                        color: AppColors.text(context),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      suggestion.formatted,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.text(context, isMuted: true),
+                        height: 1.1,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  suggestion.formatted,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.mutedForeground,
-                    height: 1.1,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+        ],
+      ),
     );
   }
 

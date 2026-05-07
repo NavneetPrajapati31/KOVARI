@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -41,62 +42,75 @@ class ItineraryTab extends ConsumerWidget {
             .where((i) => i.status == 'cancelled')
             .toList();
 
-        return RefreshIndicator(
+        return KovariRefreshIndicator(
           onRefresh: () async {
             ref.invalidate(groupItineraryProvider(group.id));
             ref.invalidate(groupMembersProvider(group.id));
           },
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            children: [
-              const Text(
-                "Itinerary Board",
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                "Plan and organize your group's travel activities",
-                style: TextStyle(
-                  color: AppColors.mutedForeground,
-                  fontSize: 13,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
                 ),
-              ),
-              const SizedBox(height: 20),
-              _buildItinerarySection(
-                context,
-                ref,
-                "To do",
-                "pending",
-                todo,
-                const Color(0xFFF59E0B),
-                members,
-              ),
-              _buildItinerarySection(
-                context,
-                ref,
-                "In Progress",
-                "confirmed",
-                inProgress,
-                const Color(0xFF007AFF),
-                members,
-              ),
-              _buildItinerarySection(
-                context,
-                ref,
-                "Done",
-                "completed",
-                done,
-                const Color(0xFF34C759),
-                members,
-              ),
-              _buildItinerarySection(
-                context,
-                ref,
-                "Cancelled",
-                "cancelled",
-                cancelled,
-                const Color(0xFFF31260),
-                members,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const Text(
+                      "Itinerary Board",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Plan and organize your group's travel activities",
+                      style: TextStyle(
+                        color: AppColors.text(context, isMuted: true),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildItinerarySection(
+                      context,
+                      ref,
+                      "To do",
+                      "pending",
+                      todo,
+                      const Color(0xFFF59E0B),
+                      members,
+                    ),
+                    _buildItinerarySection(
+                      context,
+                      ref,
+                      "In Progress",
+                      "confirmed",
+                      inProgress,
+                      const Color(0xFF007AFF),
+                      members,
+                    ),
+                    _buildItinerarySection(
+                      context,
+                      ref,
+                      "Done",
+                      "completed",
+                      done,
+                      const Color(0xFF34C759),
+                      members,
+                    ),
+                    _buildItinerarySection(
+                      context,
+                      ref,
+                      "Cancelled",
+                      "cancelled",
+                      cancelled,
+                      const Color(0xFFF31260),
+                      members,
+                    ),
+                  ]),
+                ),
               ),
             ],
           ),
@@ -149,10 +163,12 @@ class ItineraryTab extends ConsumerWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: AppColors.surface(context, level: 1),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isOver ? AppColors.primary : AppColors.border,
+              color: isOver
+                  ? AppColors.primary
+                  : AppColors.borderColor(context),
               width: isOver ? 2 : 1,
             ),
           ),
@@ -168,8 +184,10 @@ class ItineraryTab extends ConsumerWidget {
                   bottom: 0,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.card,
-                  border: Border(bottom: BorderSide(color: AppColors.border)),
+                  color: AppColors.surface(context, level: 1),
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.borderColor(context)),
+                  ),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
@@ -205,8 +223,8 @@ class ItineraryTab extends ConsumerWidget {
                       ),
                       child: Text(
                         "${items.length}",
-                        style: const TextStyle(
-                          color: AppColors.mutedForeground,
+                        style: TextStyle(
+                          color: AppColors.text(context, isMuted: true),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -215,7 +233,7 @@ class ItineraryTab extends ConsumerWidget {
                     const Spacer(),
                     IconButton(
                       icon: const Icon(LucideIcons.plus, size: 18),
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
@@ -300,9 +318,9 @@ class ItineraryTab extends ConsumerWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border, width: 1),
+        side: BorderSide(color: AppColors.borderColor(context), width: 1),
       ),
-      color: AppColors.card,
+      color: AppColors.surface(context, level: 1),
       child: Padding(
         padding: const EdgeInsets.only(
           left: 14,
@@ -318,9 +336,9 @@ class ItineraryTab extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    _buildStatusBadge(item.status),
+                    _buildStatusBadge(context, item.status),
                     const SizedBox(width: 8),
-                    _buildPriorityBadge(item.priority),
+                    _buildPriorityBadge(context, item.priority),
                   ],
                 ),
                 KovariPopover(
@@ -383,7 +401,10 @@ class ItineraryTab extends ConsumerWidget {
                                   Text(
                                     'Are you sure you want to delete "${item.title}"? This action cannot be undone.',
                                     style: AppTextStyles.bodyMedium.copyWith(
-                                      color: AppColors.mutedForeground,
+                                      color: AppColors.text(
+                                        context,
+                                        isMuted: true,
+                                      ),
                                       height: 1.4,
                                       fontSize: 13,
                                     ),
@@ -432,10 +453,10 @@ class ItineraryTab extends ConsumerWidget {
                       },
                     ),
                   ],
-                  child: const Icon(
+                  child: Icon(
                     LucideIcons.ellipsis,
                     size: 18,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                   ),
                 ),
               ],
@@ -451,9 +472,9 @@ class ItineraryTab extends ConsumerWidget {
                 item.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   height: 1.4,
                 ),
               ),
@@ -461,32 +482,32 @@ class ItineraryTab extends ConsumerWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(
+                Icon(
                   LucideIcons.calendar,
                   size: 14,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   formattedDate,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Icon(
+                Icon(
                   LucideIcons.clock,
                   size: 14,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   DateFormat('hh:mm a').format(dt).toLowerCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -495,10 +516,10 @@ class ItineraryTab extends ConsumerWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                const Icon(
+                Icon(
                   LucideIcons.mapPin,
                   size: 14,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -506,9 +527,9 @@ class ItineraryTab extends ConsumerWidget {
                     item.location,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -520,10 +541,10 @@ class ItineraryTab extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     LucideIcons.fileText,
                     size: 14,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -531,9 +552,9 @@ class ItineraryTab extends ConsumerWidget {
                       item.notes!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         height: 1.4,
                       ),
                     ),
@@ -544,23 +565,23 @@ class ItineraryTab extends ConsumerWidget {
             ],
             Row(
               children: [
-                const Text(
+                Text(
                   "Assignees :",
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(width: 10),
                 if (item.assignedTo != null && item.assignedTo!.isNotEmpty)
-                  _buildAvatarStack(item.assignedTo, groupMembers)
+                  _buildAvatarStack(context, item.assignedTo, groupMembers)
                 else
-                  const Text(
+                  Text(
                     "No assignees",
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
               ],
@@ -588,6 +609,7 @@ class ItineraryTab extends ConsumerWidget {
   }
 
   Widget _buildAvatarStack(
+    BuildContext context,
     List<String>? assignedIds,
     List<GroupMember> allMembers,
   ) {
@@ -608,7 +630,10 @@ class ItineraryTab extends ConsumerWidget {
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.card, width: 2),
+              border: Border.all(
+                color: AppColors.surface(context, level: 1),
+                width: 2,
+              ),
             ),
             child: KovariAvatar(imageUrl: member?.avatar, size: 28),
           ),
@@ -623,9 +648,12 @@ class ItineraryTab extends ConsumerWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: AppColors.muted,
+              color: AppColors.mutedColor(context),
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.card, width: 2),
+              border: Border.all(
+                color: AppColors.surface(context, level: 1),
+                width: 2,
+              ),
             ),
             child: Center(
               child: Text(
@@ -648,24 +676,31 @@ class ItineraryTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildPriorityBadge(String priority) {
+  Widget _buildPriorityBadge(BuildContext context, String priority) {
     Color bgColor = const Color(0xFFF4F4F5);
     Color textColor = const Color(0xFF71717A);
     String label = priority.toUpperCase();
+    final isDark = AppColors.isDark(context);
     switch (priority.toLowerCase()) {
       case 'medium':
-        bgColor = const Color.fromARGB(255, 255, 247, 216);
-        textColor = const Color.fromARGB(255, 193, 148, 0);
+        bgColor = isDark
+            ? const Color(0xFF422006).withValues(alpha: 0.3)
+            : const Color.fromARGB(255, 255, 247, 216);
+        textColor = isDark
+            ? const Color(0xFFFACC15)
+            : const Color.fromARGB(255, 193, 148, 0);
         label = "Medium";
         break;
       case 'high':
-        bgColor = const Color(0xFFDCFCE7);
-        textColor = const Color(0xFF15803D);
+        bgColor = isDark
+            ? const Color(0xFF064E3B).withValues(alpha: 0.3)
+            : const Color(0xFFDCFCE7);
+        textColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
         label = "High";
         break;
       case 'low':
-        bgColor = const Color(0xFFF4F4F5);
-        textColor = const Color(0xFF71717A);
+        bgColor = isDark ? const Color(0xFF27272A) : const Color(0xFFF4F4F5);
+        textColor = isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A);
         label = "Low";
         break;
     }
@@ -686,29 +721,40 @@ class ItineraryTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(BuildContext context, String status) {
     Color color = Colors.grey;
     Color bgColor = Colors.grey.withValues(alpha: 0.1);
     String label = status.toUpperCase();
+    final isDark = AppColors.isDark(context);
     switch (status.toLowerCase()) {
       case 'confirmed':
-        color = const Color(0xFF1D4ED8);
-        bgColor = const Color(0xFFEFF6FF);
+        color = isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8);
+        bgColor = isDark
+            ? const Color(0xFF1E3A8A).withValues(alpha: 0.3)
+            : const Color(0xFFEFF6FF);
         label = "In Progress";
         break;
       case 'completed':
-        color = const Color(0xFF15803D);
-        bgColor = const Color(0xFFF0FDF4);
+        color = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
+        bgColor = isDark
+            ? const Color(0xFF064E3B).withValues(alpha: 0.3)
+            : const Color(0xFFF0FDF4);
         label = "Completed";
         break;
       case 'pending':
-        color = const Color.fromARGB(255, 193, 148, 0);
-        bgColor = const Color.fromARGB(255, 255, 247, 216);
+        color = isDark
+            ? const Color(0xFFFACC15)
+            : const Color.fromARGB(255, 193, 148, 0);
+        bgColor = isDark
+            ? const Color(0xFF422006).withValues(alpha: 0.3)
+            : const Color.fromARGB(255, 255, 247, 216);
         label = "Not Started";
         break;
       case 'cancelled':
-        color = const Color(0xFFB91C1C);
-        bgColor = const Color(0xFFFEF2F2);
+        color = isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C);
+        bgColor = isDark
+            ? const Color(0xFF7F1D1D).withValues(alpha: 0.3)
+            : const Color(0xFFFEF2F2);
         label = "Cancelled";
         break;
     }

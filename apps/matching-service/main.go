@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -36,11 +37,14 @@ func main() {
 	// Root and app-level env loading
 	rootEnv, _ := filepath.Abs("../../.env.local")
 	webEnv, _ := filepath.Abs("../web/.env.local")
+	
 	if _, err := os.Stat(rootEnv); err == nil {
 		godotenv.Load(rootEnv)
+		log.Printf("Loaded environment from %s", rootEnv)
 	}
 	if _, err := os.Stat(webEnv); err == nil {
 		godotenv.Load(webEnv)
+		log.Printf("Loaded environment from %s", webEnv)
 	}
 
 	// 1. FAIL-FAST STARTUP CHECKS
@@ -80,17 +84,20 @@ func main() {
 		logger.Fatal("Redis ping failed during startup", err)
 	}
 	cancel()
+	log.Printf("SUCCESS: Connected to Redis successfully.")
 
 	sbRepo, err = repository.NewSupabaseRepository(sbURL, sbKey, geoKey, repo)
 	if err != nil {
 		logger.Fatal("Failed to connect to Supabase", err)
 	}
+	log.Printf("SUCCESS: Connected to Supabase (%s) successfully (Geoapify: %v, Cache: ENABLED).", sbURL, geoKey != "")
 
 	mlClient = ai.NewMLClient()
 
 	configPath := "../../packages/config/matching.json"
-	matchConfig, _, err := config.LoadMatchingConfig(configPath)
+	matchConfig, configHash, err := config.LoadMatchingConfig(configPath)
 	if err != nil {
+		log.Printf("Warning: Could not load matching config from %s: %v. Using defaults.", configPath, err)
 		matchConfig = &models.MatchingConfig{
 			Version:       "v1",
 			ConfigVersion: "DEFAULT",
@@ -100,7 +107,11 @@ func main() {
 			},
 			MLBlend: map[string]float64{"solo": 0.6, "group": 0.3},
 		}
+		configHash = "DEFAULT"
 	}
+	log.Printf("Loaded Config: %+v", matchConfig)
+	log.Printf("Config Hash: %s", configHash)
+
 
 	// --- HANDLERS ---
 
@@ -149,37 +160,53 @@ func main() {
 		}
 
 		ctx := r.Context()
+		
+		// STEP 1: Parallel Fetch sessions from Redis
 		var userSession *models.SoloSession
 		var candidates []models.SoloSession
-		redisCtx, redisCancel := context.WithTimeout(ctx, 3*time.Second)
+		
+		// Relaxed timeout for reliability
+		redisCtx, redisCancel := context.WithTimeout(ctx, 60*time.Second)
 		defer redisCancel()
-
+		
 		g, gCtx := errgroup.WithContext(redisCtx)
+		tRedisStart := time.Now()
+		
 		g.Go(func() error {
+			t1 := time.Now()
 			var err error
 			userSession, err = repo.GetSession(gCtx, userId)
+			log.Printf("TIMER: Redis GetSession (%s) took: %v", userId, time.Since(t1))
 			return err
 		})
+		
 		g.Go(func() error {
+			t1 := time.Now()
 			var err error
 			candidates, err = repo.FetchAllSessions(gCtx, userId)
+			log.Printf("TIMER: Redis FetchAllSessions took: %v", time.Since(t1))
 			return err
 		})
 
 		if err := g.Wait(); err != nil {
+			log.Printf("Error: Redis fetch failed: %v", err)
 			auth.SendError(w, 503, "STORAGE_ERROR", "Redis connection failed", r)
 			return
 		}
+		log.Printf("TIMER: Step 1 (Total Redis Parallel) took: %v", time.Since(tRedisStart))
 
 		if userSession == nil {
+			log.Printf("Error: Session for %s not found in Redis", userId)
 			auth.SendError(w, 404, "NOT_FOUND", "User session not found", r)
 			return
 		}
 
+		// STEP 2: Hydrate ALL profiles in a single batch call (Deduplicated)
 		allUserIds := []string{userId}
 		candidateMap := make(map[string]models.SoloSession)
 		seenIds := make(map[string]bool)
 		seenIds[userId] = true
+		
 		for _, c := range candidates {
 			if c.UserId != "" && !seenIds[c.UserId] {
 				allUserIds = append(allUserIds, c.UserId)
@@ -188,35 +215,101 @@ func main() {
 			}
 		}
 
-		profiles, err := sbRepo.FetchProfilesBatch(ctx, allUserIds, nil)
+		// Collect pre-resolved coordinates from Redis sessions (Architecture Fix)
+		preResolved := make(map[string]models.Coordinates)
+		if userSession.Location.Lat != 0 || userSession.Location.Lon != 0 {
+			preResolved[userSession.UserId] = userSession.Location
+		}
+		for _, c := range candidates {
+			if c.Location.Lat != 0 || c.Location.Lon != 0 {
+				preResolved[c.UserId] = c.Location
+			}
+		}
+
+		log.Printf("STEP 2: Hydrating profiles for %d users", len(allUserIds))
+		tHydrateStart := time.Now()
+
+		profiles, err := sbRepo.FetchProfilesBatch(ctx, allUserIds, preResolved)
 		if err != nil {
+			log.Printf("Error: Profile hydration failed: %v", err)
 			auth.SendError(w, 500, "DATABASE_ERROR", "Failed to fetch profiles", r)
 			return
 		}
+		log.Printf("TIMER: Step 2 (Total Profile Hydration) took: %v", time.Since(tHydrateStart))
 
+		// Apply profiles to sessions
 		if p, ok := profiles[userId]; ok {
 			userSession.StaticAttributes = p
 		}
+
 		var validCandidates []models.SoloSession
 		for id, session := range candidateMap {
 			if p, ok := profiles[id]; ok {
 				session.StaticAttributes = p
+				// NEW: Preserve coordinates from profile if session was missing them
+				if session.Location.Lat == 0 && session.Location.Lon == 0 && (p.Location.Lat != 0 || p.Location.Lon != 0) {
+					session.Location = p.Location
+					session.GeoSource = "healed"
+				}
 				validCandidates = append(validCandidates, session)
 			}
 		}
 
+		// NEW: Self-Healing Redis Loop (Async)
+		go func(reqId string, sess *models.SoloSession, candidates []models.SoloSession) {
+			// Small buffer to prevent write storms
+			time.Sleep(50 * time.Millisecond)
+
+			bgCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+
+			// Check requester
+			if sess.Location.Lat != 0 || sess.Location.Lon != 0 {
+				log.Printf("Self-Healing: Checking session %s for coordinate update", reqId)
+				data, _ := json.Marshal(sess)
+				// Use 7 days TTL (parity with Web API default)
+				repo.SetCache(bgCtx, fmt.Sprintf("session:%s", reqId), string(data), 168*time.Hour)
+			}
+		}(userId, userSession, validCandidates)
+
+		if userSession.StaticAttributes == nil {
+			log.Printf("Error: Requester %s has no profile in Supabase", userId)
+			auth.SendError(w, 400, "BAD_REQUEST", "Requester profile missing", r)
+			return
+		}
+
+		// STEP 3: Parallel Logic (ML vs Rule-Based Feature Extraction)
 		featuresList := make([]models.MLFeatures, 0, len(validCandidates))
 		for _, match := range validCandidates {
 			featuresList = append(featuresList, ai.ExtractSoloFeatures(*userSession, match))
 		}
 
 		var mlResults []models.MLPredictionResult
-		if len(featuresList) > 0 {
-			mlCtx, mlCancel := context.WithTimeout(ctx, 500*time.Millisecond)
-			mlResults, _ = mlClient.ScoreBatch(mlCtx, featuresList)
-			mlCancel()
-		}
+		var mlErr error
+		mlUsed := false
+		mlStartTime := time.Now()
 
+		// Strict ML Timeout (150ms)
+		mlCtx, mlCancel := context.WithTimeout(ctx, 150*time.Millisecond)
+		defer mlCancel()
+
+		mlGroup, _ := errgroup.WithContext(mlCtx)
+		mlGroup.Go(func() error {
+			if len(featuresList) > 0 {
+				mlResults, mlErr = mlClient.ScoreBatch(mlCtx, featuresList)
+				if mlErr == nil {
+					mlUsed = true
+				} else {
+					log.Printf("ML Warning: ML fallback active: %v", mlErr)
+				}
+			}
+			return nil
+		})
+
+		mlGroup.Wait()
+		mlLatency := time.Since(mlStartTime)
+
+		// STEP 4: Final Scoring & Blending
 		type ScoredMatch struct {
 			UserId           string             `json:"userId"`
 			User             models.UserPreview `json:"user"`
@@ -229,7 +322,6 @@ func main() {
 			Destination      string             `json:"destination"`
 		}
 
-
 		finalMatches := make([]ScoredMatch, 0, len(validCandidates))
 		for i, match := range validCandidates {
 			var mlScore *float64
@@ -237,20 +329,22 @@ func main() {
 				s := mlResults[i].Score
 				mlScore = &s
 			}
+
 			result := matching.CalculateFinalSoloScore(*userSession, match, mlScore, matchConfig)
+			
 			finalMatches = append(finalMatches, ScoredMatch{
 				UserId: match.UserId,
 				User: models.UserPreview{
-					UserId:      match.UserId,
-					Name:        match.StaticAttributes.Name,
-					Age:         match.StaticAttributes.Age,
-					Personality: match.StaticAttributes.Personality,
-					Bio:         match.StaticAttributes.Bio,
-					Avatar:      match.StaticAttributes.Avatar,
-					Budget:      match.Budget,
-					Interests:   match.StaticAttributes.Interests,
-					Languages:      match.StaticAttributes.Languages,
+					UserId:         match.UserId,
+					Name:           match.StaticAttributes.Name,
+					Age:            match.StaticAttributes.Age,
 					Gender:         match.StaticAttributes.Gender,
+					Personality:    match.StaticAttributes.Personality,
+					Bio:            match.StaticAttributes.Bio,
+					Avatar:         match.StaticAttributes.Avatar,
+					Budget:         match.Budget,
+					Interests:      match.StaticAttributes.Interests,
+					Languages:      match.StaticAttributes.Languages,
 					Smoking:        match.StaticAttributes.Smoking,
 					Drinking:       match.StaticAttributes.Drinking,
 					Nationality:    match.StaticAttributes.Nationality,
@@ -273,12 +367,14 @@ func main() {
 					return userSession.Destination.Name
 				}(),
 			})
-
 		}
 
 		sort.Slice(finalMatches, func(i, j int) bool { return finalMatches[i].Score > finalMatches[j].Score })
 
 		latency := time.Since(startTime)
+		log.Printf("[MatchRequest] Requester:%s | Mode:%s | Candidates:%d | ML_USED:%v | ML_LATENCY:%v | Latency:%v",
+			userId, matchConfig.Mode, len(finalMatches), mlUsed, mlLatency, latency)
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Response-Time", fmt.Sprintf("%dms", latency.Milliseconds()))
 		json.NewEncoder(w).Encode(map[string]interface{}{

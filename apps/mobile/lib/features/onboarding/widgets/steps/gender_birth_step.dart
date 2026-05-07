@@ -68,9 +68,9 @@ class GenderBirthStep extends ConsumerWidget {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Theme.of(context).colorScheme.surfaceContainer,
                 borderRadius: AppRadius.large,
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.borderColor(context)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -81,8 +81,8 @@ class GenderBirthStep extends ConsumerWidget {
                         : DateFormat('dd MMM yyyy').format(state.birthday!),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: state.birthday == null
-                          ? AppColors.mutedForeground
-                          : AppColors.foreground,
+                          ? AppColors.text(context, isMuted: true)
+                          : AppColors.text(context),
                     ),
                   ),
                   const Icon(
@@ -147,7 +147,7 @@ class GenderBirthStep extends ConsumerWidget {
   void _showDatePicker(BuildContext context, WidgetRef ref, DateTime? current) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -202,11 +202,11 @@ class GenderBirthStep extends ConsumerWidget {
               Expanded(
                 child: Theme(
                   data: ThemeData.light().copyWith(
-                    cupertinoOverrideTheme: const CupertinoThemeData(
+                    cupertinoOverrideTheme: CupertinoThemeData(
                       textTheme: CupertinoTextThemeData(
                         dateTimePickerTextStyle: TextStyle(
                           fontSize: 20,
-                          color: AppColors.foreground,
+                          color: AppColors.text(context),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -303,7 +303,7 @@ class _FlatDatePickerState extends State<_FlatDatePicker> {
             height: itemHeight,
             margin: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -381,7 +381,7 @@ class _FlatDatePickerState extends State<_FlatDatePicker> {
         style: AppTextStyles.bodyMedium.copyWith(
           fontSize: 18,
           fontWeight: FontWeight.w500,
-          color: AppColors.foreground,
+          color: AppColors.text(context),
         ),
       ),
     );

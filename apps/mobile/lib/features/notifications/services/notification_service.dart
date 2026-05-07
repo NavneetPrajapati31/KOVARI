@@ -1,6 +1,6 @@
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
-import '../../../core/utils/safe_parser.dart';
+import '../../../core/utils/app_logger.dart';
 import '../models/notification_model.dart';
 
 class NotificationService {
@@ -9,10 +9,12 @@ class NotificationService {
   NotificationService(this._apiClient);
 
   Future<List<NotificationModel>> fetchNotifications({
-    int limit = 50,
-    int offset = 0,
+    int page = 1,
+    int limit = 20,
     bool unreadOnly = false,
+    bool ignoreCache = false,
   }) async {
+    final offset = (page - 1) * limit;
     final response = await _apiClient.get<List<NotificationModel>>(
       ApiEndpoints.notifications,
       queryParameters: {
@@ -20,14 +22,36 @@ class NotificationService {
         'offset': offset,
         if (unreadOnly) 'unreadOnly': true,
       },
-      parser: (data) {
-        final List<dynamic> rawList =
-            data is Map<String, dynamic> ? (data['notifications'] ?? []) : [];
-        return safeParseList(rawList, NotificationModel.fromJson);
-      },
+      parser: (data) => parseNotifications(data),
+      ignoreCache: ignoreCache,
     );
 
     return response.data ?? [];
+  }
+
+  List<NotificationModel> parseNotifications(dynamic data) {
+    AppLogger.d('🔔 [NOTIFICATIONS] Raw data received: $data');
+
+    dynamic actualData = data;
+
+    if (actualData is Map) {
+      if (actualData.containsKey('notifications')) {
+        actualData = actualData['notifications'];
+      } else if (actualData.containsKey('data')) {
+        actualData = actualData['data'];
+        if (actualData is Map && actualData.containsKey('notifications')) {
+          actualData = actualData['notifications'];
+        }
+      }
+    }
+
+    if (actualData is! List) {
+      AppLogger.w(
+        '🔔 [NOTIFICATIONS] Expected list but got: ${actualData?.runtimeType}',
+      );
+      return [];
+    }
+    return actualData.map((e) => NotificationModel.fromJson(e)).toList();
   }
 
   Future<int> fetchUnreadCount() async {

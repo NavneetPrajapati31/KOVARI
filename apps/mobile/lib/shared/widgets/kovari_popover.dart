@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/motion_tokens.dart';
 
 class KovariMenuAction {
   final IconData icon;
@@ -53,13 +54,13 @@ class _KovariPopoverState extends State<KovariPopover> {
     if (_overlayEntry != null) {
       _overlayEntry!.remove();
       _overlayEntry = null;
-      setState(() {});
+      if (mounted) setState(() {});
       return;
     }
 
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   OverlayEntry _createOverlayEntry() {
@@ -83,13 +84,13 @@ class _KovariPopoverState extends State<KovariPopover> {
                 color: Colors.transparent,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutBack,
+                  duration: MotionTokens.slow,
+                  curve: MotionTokens.spring,
                   builder: (context, value, child) {
                     return Opacity(
                       opacity: value.clamp(0.0, 1.0),
                       child: Transform.scale(
-                        scale: value,
+                        scale: 0.8 + (0.2 * value),
                         alignment: Alignment.topRight,
                         child: child,
                       ),
@@ -97,19 +98,17 @@ class _KovariPopoverState extends State<KovariPopover> {
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: AppColors.surface(context, level: 1).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border, width: 1),
+                      border: Border.all(
+                        color: AppColors.borderColor(context), 
+                        width: 1
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 30,
+                          offset: const Offset(0, 15),
                         ),
                       ],
                     ),
@@ -129,9 +128,9 @@ class _KovariPopoverState extends State<KovariPopover> {
                               children: [
                                 _buildMenuItem(action),
                                 if (!isLast)
-                                  const Divider(
+                                  Divider(
                                     height: 1,
-                                    color: AppColors.border,
+                                    color: AppColors.borderColor(context),
                                   ),
                               ],
                             );
@@ -152,7 +151,7 @@ class _KovariPopoverState extends State<KovariPopover> {
   Widget _buildMenuItem(KovariMenuAction action) {
     final color = action.isDestructive
         ? AppColors.destructive
-        : AppColors.foreground;
+        : AppColors.text(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(

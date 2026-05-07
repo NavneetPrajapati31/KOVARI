@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/text_input_field.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
-import '../../../core/services/local_storage.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
+import 'package:dio/dio.dart';
 
 class VerifyEmailScreen extends ConsumerStatefulWidget {
   final String email;
@@ -26,6 +26,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   String? _successMessage;
   int _resendCooldown = 60;
   Timer? _cooldownTimer;
+  final _cancelToken = CancelToken();
 
   @override
   void initState() {
@@ -47,6 +48,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
   @override
   void dispose() {
+    _cancelToken.cancel('VerifyEmailScreen disposed');
     _codeController.dispose();
     _cooldownTimer?.cancel();
     super.dispose();
@@ -68,15 +70,16 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     });
 
     try {
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
+      final authService = ref.read(authServiceProvider);
+      final user = await authService.verifyOtp(
+        widget.email,
+        code,
+        cancelToken: _cancelToken,
       );
-      await authService.verifyOtp(widget.email, code);
 
       if (mounted) {
-        // Registration complete!
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        ref.read(authProvider.notifier).setUser(user);
+        // Navigator logic is handled by authProvider listener in main.dart or AuthWrapper
       }
     } catch (e) {
       if (mounted) {
@@ -98,11 +101,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     });
 
     try {
-      final authService = AuthService(
-        ApiClientFactory.create(),
-        LocalStorage(),
-      );
-      await authService.resendOtp(widget.email);
+      final authService = ref.read(authServiceProvider);
+      await authService.resendOtp(widget.email, cancelToken: _cancelToken);
 
       if (mounted) {
         setState(() {

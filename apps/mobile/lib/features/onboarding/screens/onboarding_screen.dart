@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -14,10 +15,7 @@ import '../widgets/steps/lifestyle_step.dart';
 import '../widgets/steps/policy_step.dart';
 import '../widgets/steps/success_step.dart';
 import 'package:flutter/foundation.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/services/local_storage.dart';
 import '../../../core/config/routes.dart';
-import '../../auth/services/auth_service.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -30,11 +28,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
 
   Future<void> _handleDevReset() async {
-    final storage = LocalStorage();
-    final apiClient = ApiClientFactory.create();
-    final authService = AuthService(apiClient, storage);
-
-    await authService.logout();
+    await ref.read(authProvider.notifier).logout();
 
     if (mounted) {
       Navigator.of(
@@ -74,7 +68,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface(context),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -84,9 +78,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 vertical: AppSpacing.xl,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface(context, level: 1),
                 borderRadius: AppRadius.extraLarge,
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.borderColor(context)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -138,7 +132,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               'Step ${state.currentStep} of $totalSteps',
                               style: AppTextStyles.label.copyWith(
                                 fontWeight: FontWeight.w500,
-                                color: AppColors.mutedForeground,
+                                color: AppColors.text(context, isMuted: true),
                               ),
                             ),
                           ),
@@ -155,7 +149,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   decoration: BoxDecoration(
                                     color: (index + 1) <= state.currentStep
                                         ? AppColors.primary
-                                        : AppColors.border,
+                                        : AppColors.borderColor(context),
                                     borderRadius: BorderRadius.circular(3),
                                   ),
                                 ),
