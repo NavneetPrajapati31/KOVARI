@@ -24,7 +24,6 @@ func NewRedisRepository(url string) (*RedisRepository, error) {
 		return nil, err
 	}
 
-	// RELAXED TIMEOUTS FOR RELIABILITY
 	opts.DialTimeout = 30 * time.Second
 	opts.ReadTimeout = 30 * time.Second
 	opts.WriteTimeout = 30 * time.Second
@@ -32,9 +31,6 @@ func NewRedisRepository(url string) (*RedisRepository, error) {
 	opts.PoolTimeout = 30 * time.Second
 	opts.MinIdleConns = 10
 	opts.MaxRetries = 5
-
-	opts.MinIdleConns = 5
-	opts.MaxRetries = 2
 
 	client := redis.NewClient(opts)
 	return &RedisRepository{client: client}, nil
@@ -51,14 +47,11 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 	var keys []string
 	var err error
 
-	// Phase 1.5 Optimization: Try sessions:index set first
 	keys, err = r.client.SMembers(ctx, "sessions:index").Result()
-	
+
 	if err != nil || len(keys) == 0 {
 		log.Printf("Repository: Index missing or empty (Total candidates: 0)")
-		
-		// 1. Shallow SCAN (Fast Fallback - 1 batch only)
-		// This provides a few results instantly without waiting for a full DB sweep
+
 		var batch []string
 		batch, _, _ = r.client.Scan(ctx, 0, "session:*", 20).Result()
 		if len(batch) > 0 {
@@ -66,22 +59,25 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 			keys = batch
 		}
 
-		// 2. Trigger Background Full Rebuild
 		if _, loaded := r.indexInFlight.LoadOrStore("rebuild", true); !loaded {
 			go func() {
 				defer r.indexInFlight.Delete("rebuild")
 				bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
-				
+
 				log.Printf("BACKGROUND INDEX REBUILD START")
 				var cursor uint64
 				var allKeys []string
 				for {
 					var b []string
 					b, cursor, err = r.client.Scan(bgCtx, cursor, "session:*", 250).Result()
-					if err != nil { break }
+					if err != nil {
+						break
+					}
 					allKeys = append(allKeys, b...)
-					if cursor == 0 || len(allKeys) >= MaxCandidates*4 { break }
+					if cursor == 0 || len(allKeys) >= MaxCandidates*4 {
+						break
+					}
 				}
 
 				if len(allKeys) > 0 {
@@ -90,7 +86,6 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 						id := strings.TrimPrefix(k, "session:")
 						ids = append(ids, id)
 					}
-					// Ensure index is set type
 					r.client.Del(bgCtx, "sessions:index")
 					r.client.SAdd(bgCtx, "sessions:index", ids...)
 					r.client.Expire(bgCtx, "sessions:index", 1*time.Hour)
@@ -102,11 +97,9 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 
 	log.Printf("Repository: Processing %d candidate keys", len(keys))
 
-	// Collect and parse all session JSONs using MGet
 	if len(keys) > 0 {
 		var subKeys []string
 		for _, key := range keys {
-			// Key might be "session:<id>" or just "<id>" depending on index contents
 			if !strings.HasPrefix(key, "session:") {
 				key = "session:" + key
 			}
@@ -143,7 +136,6 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 }
 
 func (r *RedisRepository) GetSession(ctx context.Context, userId string) (*models.SoloSession, error) {
-	// Phase 1.5 Strict Parity: Try exact key match first
 	key := "session:" + userId
 	log.Printf("Repository: Looking up exact session key: %s", key)
 
@@ -165,8 +157,6 @@ func (r *RedisRepository) unmarshalSession(data string) (*models.SoloSession, er
 		return nil, err
 	}
 
-	// Phase 1.5 Robustness: Normalize UserId/ClerkUserId
-	// We prefer root userId, but check clerkUserId and nested structures for parity with Admin logic
 	if s.UserId == "" {
 		if s.ClerkUserId != "" {
 			s.UserId = s.ClerkUserId
@@ -177,7 +167,6 @@ func (r *RedisRepository) unmarshalSession(data string) (*models.SoloSession, er
 		}
 	}
 
-	// Normalize StaticAttributes if only Static exists
 	if s.StaticAttributes == nil && s.Static != nil {
 		s.StaticAttributes = s.Static
 	}
@@ -193,8 +182,6 @@ func (r *RedisRepository) SetCache(ctx context.Context, key string, value string
 	return r.client.Set(ctx, key, value, expiration).Err()
 }
 
-// SetNX performs an atomic SET if Not eXists operation.
-// Returns true if the key was set, false if it already exists.
 func (r *RedisRepository) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) (bool, error) {
 	return r.client.SetNX(ctx, key, value, expiration).Result()
 }

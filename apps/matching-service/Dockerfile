@@ -1,30 +1,27 @@
 # Stage 1: Build
-FROM golang:1.25.0-alpine AS builder
-
+FROM golang:1.22-alpine AS builder
 WORKDIR /app
 
-# Install dependencies
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy source
+# Copy the entire monorepo so we have access to packages/config
 COPY . .
 
-# Build static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o matching-service .
+# Move into the matching-service directory and build the binary
+WORKDIR /app/apps/matching-service
+RUN go mod download
+RUN go build -o /app/bin/matching-service main.go
 
-# Stage 2: Runtime
-FROM gcr.io/distroless/static-debian12:latest-amd64
+# Stage 2: Run (Lightweight Alpine container)
+FROM alpine:latest
+WORKDIR /app
 
-WORKDIR /
+# Copy the built binary back to the correct relative path
+COPY --from=builder /app/bin/matching-service ./apps/matching-service/
+# Copy the config file so the relative path "../../packages/config/matching.json" works perfectly
+COPY --from=builder /app/packages/config/matching.json ./packages/config/
 
-# Copy binary from builder
-COPY --from=builder /app/matching-service /matching-service
+# Set working directory to where the binary expects to run from
+WORKDIR /app/apps/matching-service
 
-# Expose port
+# Expose port and start
 EXPOSE 8080
-
-# Run as non-root user (distroless provides 'nonroot')
-USER nonroot:nonroot
-
-ENTRYPOINT ["/matching-service"]
+CMD ["./matching-service"]

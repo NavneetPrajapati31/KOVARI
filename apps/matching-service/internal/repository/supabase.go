@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
-
 	"github.com/kovari/matching-service/internal/models"
 )
 
@@ -36,18 +35,22 @@ func NewSupabaseRepository(url, anonKey, geoKey string, redis *RedisRepository) 
 		geoapifyKey: geoKey,
 		redis:       redis,
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 10 * time.Second,
 		},
 	}, nil
 }
 
 func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (float64, float64, bool) {
-	if raw == "" || r.geoapifyKey == "" { return 0, 0, false }
-	
+	if raw == "" || r.geoapifyKey == "" {
+		return 0, 0, false
+	}
+
 	// Normalize: Extract city, lowercase and trim for better cache hits
 	cityPart := strings.Split(raw, ",")[0]
 	city := strings.ToLower(strings.TrimSpace(cityPart))
-	if city == "" { return 0, 0, false }
+	if city == "" {
+		return 0, 0, false
+	}
 
 	cacheKey := fmt.Sprintf("geo:%s", city)
 
@@ -57,34 +60,40 @@ func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (f
 		"surat":  {21.1702, 72.8311},
 	}
 	if coords, ok := fallback[city]; ok {
+		log.Printf("GEO STATIC FALLBACK: %s", city)
 		return coords[0], coords[1], true
 	}
 
 	// Step 2: Non-blocking Background resolution (Redis + API)
 	if _, loaded := r.geoInFlight.LoadOrStore(cacheKey, true); loaded {
+		log.Printf("GEO RESOLUTION IN-FLIGHT: %s (Skipping trigger)", cacheKey)
 		return 0, 0, false
 	}
 
 	go func() {
 		defer r.geoInFlight.Delete(cacheKey)
-		
+
 		bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
+
+		log.Printf("BACKGROUND GEO START: %s (Checking Redis first)", cacheKey)
 
 		// 2.1 Check Redis Cache (now in background)
 		if r.redis != nil {
 			if val, err := r.redis.GetCache(bgCtx, cacheKey); err == nil {
 				var coords []float64
 				if err := json.Unmarshal([]byte(val), &coords); err == nil && len(coords) == 2 {
+					log.Printf("BACKGROUND GEO CACHE HIT: %s -> %v", cacheKey, coords)
 					return
 				}
 			}
 		}
 
 		// 2.2 Live API call (if Redis miss)
-		apiURL := fmt.Sprintf("https://api.geoapify.com/v1/geocode/autocomplete?text=%s&type=city&limit=1&lang=en&apiKey=%s", 
+		log.Printf("BACKGROUND GEO API CALL: %s", cacheKey)
+		apiURL := fmt.Sprintf("https://api.geoapify.com/v1/geocode/autocomplete?text=%s&type=city&limit=1&lang=en&apiKey=%s",
 			strings.ReplaceAll(city, " ", "%20"), r.geoapifyKey)
-		
+
 		req, _ := http.NewRequestWithContext(bgCtx, "GET", apiURL, nil)
 		resp, err := r.client.Do(req)
 		if err != nil || resp.StatusCode != http.StatusOK {
@@ -101,19 +110,20 @@ func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (f
 				} `json:"properties"`
 			} `json:"features"`
 		}
-		
+
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil || len(result.Features) == 0 {
 			log.Printf("BACKGROUND GEO FAILED: %s (No results)", cacheKey)
 			return
 		}
 
 		lat, lon := result.Features[0].Properties.Lat, result.Features[0].Properties.Lon
-		
+
 		// 2.3 Store in Redis for future requests
 		if r.redis != nil {
 			coordsJson, _ := json.Marshal([]float64{lat, lon})
 			r.redis.SetCache(context.Background(), cacheKey, string(coordsJson), 30*24*time.Hour)
 		}
+		log.Printf("BACKGROUND GEO RESOLVED & CACHED: %s -> %v,%v", cacheKey, lat, lon)
 	}()
 
 	return 0, 0, false
@@ -145,23 +155,22 @@ func parseCoord(v interface{}) float64 {
 }
 
 type profileResponse struct {
-	UserID       string      `json:"user_id"`
-	Name         *string     `json:"name"`
-	Age          *int        `json:"age"`
-	Gender       *string     `json:"gender"`
-	Personality  *string     `json:"personality"`
-	Location     interface{} `json:"location"`
-	Smoking      *string     `json:"smoking"`
-	Drinking     *string     `json:"drinking"`
-	Religion     *string     `json:"religion"`
-	Interests    []string    `json:"interests"`
-	Languages    []string    `json:"languages"`
-	Nationality  *string     `json:"nationality"`
-	Profession   *string     `json:"job"`
-	Avatar       *string     `json:"profile_photo"`
+	UserID         string      `json:"user_id"`
+	Name           *string     `json:"name"`
+	Age            *int        `json:"age"`
+	Gender         *string     `json:"gender"`
+	Personality    *string     `json:"personality"`
+	Location       interface{} `json:"location"`
+	Smoking        *string     `json:"smoking"`
+	Drinking       *string     `json:"drinking"`
+	Religion       *string     `json:"religion"`
+	Interests      []string    `json:"interests"`
+	Languages      []string    `json:"languages"`
+	Nationality    *string     `json:"nationality"`
+	Profession     *string     `json:"job"`
+	Avatar         *string     `json:"profile_photo"`
 	Bio            *string     `json:"bio"`
 	FoodPreference *string     `json:"food_preference"`
-	// Alternate coordinate columns in case 'location' is just a string
 	Latitude       *float64    `json:"latitude"`
 	Longitude      *float64    `json:"longitude"`
 }
@@ -170,6 +179,8 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 	if len(clerkUserIds) == 0 {
 		return make(map[string]*models.StaticAttributes), nil
 	}
+
+	t1 := time.Now()
 
 	var uuidList []string
 	var clerkIdList []string
@@ -204,7 +215,7 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 			resp, err := r.client.Do(req)
 			if err != nil {
 				log.Printf("Supabase ClerkID Fetch Failed: %v", err)
-				return nil // Continue with other results
+				return nil
 			}
 			defer resp.Body.Close()
 
@@ -260,6 +271,7 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 	}
 
 	g.Wait()
+
 	results := make(map[string]*models.StaticAttributes)
 	for _, raw := range rawProfiles {
 		p := raw.profileResponse
@@ -274,8 +286,10 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 		// Inject pre-resolved coordinates from session if available (High Priority)
 		if coords, ok := preResolved[uuid]; ok && (coords.Lat != 0 || coords.Lon != 0) {
 			attr.Location = coords
+			log.Printf("Supabase: Using pre-resolved coordinates for %s: %+v", uuid, coords)
 		} else if coords, ok := preResolved[clerkID]; ok && (coords.Lat != 0 || coords.Lon != 0) {
 			attr.Location = coords
+			log.Printf("Supabase: Using pre-resolved coordinates for %s: %+v", clerkID, coords)
 		}
 
 		if p.Name != nil { attr.Name = *p.Name }
@@ -297,29 +311,21 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 
 		if p.Location != nil {
 			if m, ok := p.Location.(map[string]interface{}); ok {
-				// Handle multiple key variations and types
 				lat := parseCoord(m["lat"])
-				if lat == 0 {
-					lat = parseCoord(m["latitude"])
-				}
+				if lat == 0 { lat = parseCoord(m["latitude"]) }
 				lon := parseCoord(m["lon"])
-				if lon == 0 {
-					lon = parseCoord(m["longitude"])
-				}
+				if lon == 0 { lon = parseCoord(m["longitude"]) }
 
 				attr.Location.Lat = lat
 				attr.Location.Lon = lon
 				
-				// Fallback to separate columns if map-based lat/lon failed
-				if attr.Location.Lat == 0 && p.Latitude != nil {
-					attr.Location.Lat = *p.Latitude
-				}
-				if attr.Location.Lon == 0 && p.Longitude != nil {
-					attr.Location.Lon = *p.Longitude
-				}
+				if attr.Location.Lat == 0 && p.Latitude != nil { attr.Location.Lat = *p.Latitude }
+				if attr.Location.Lon == 0 && p.Longitude != nil { attr.Location.Lon = *p.Longitude }
 
-				if attr.Location.Lat == 0 && attr.Location.Lon == 0 {
-					log.Printf("Supabase WARNING: Location found for %s but keys (lat/lon/latitude/longitude) are zero or invalid. Raw: %+v", uuid, m)
+				if attr.Location.Lat != 0 || attr.Location.Lon != 0 {
+					log.Printf("Supabase: Successfully mapped location for %s: %+v", uuid, attr.Location)
+				} else {
+					log.Printf("Supabase WARNING: Location found for %s but keys are zero or invalid. Raw: %+v", uuid, m)
 				}
 			} else if s, ok := p.Location.(string); ok {
 				attr.RawLocation = strings.TrimSpace(s)
@@ -331,23 +337,19 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 			attr.GeoSource = "resolved"
 		}
 		
-		// Map under both UUID and ClerkID (if exists) so any backend module can resolve it seamlessly
-		if uuid != "" {
-			results[uuid] = attr
-		}
-		if clerkID != "" {
-			results[clerkID] = attr
-		}
+		if uuid != "" { results[uuid] = attr }
+		if clerkID != "" { results[clerkID] = attr }
 	}
 
 	// STEP 4: Trigger Parallel Geocode for RawLocations (Non-blocking)
 	for _, attr := range results {
 		if attr.RawLocation != "" && attr.Location.Lat == 0 && attr.Location.Lon == 0 {
-			// Trigger geocoding but DON'T wait
 			r.GeocodeGeoapify(ctx, attr.RawLocation)
 			attr.GeoSource = "background_pending"
 		}
 	}
+
+	log.Printf("TIMER: FetchProfilesBatch TOTAL took: %v", time.Since(t1))
 
 	return results, nil
 }

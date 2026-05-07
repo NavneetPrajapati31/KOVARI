@@ -76,7 +76,7 @@ func SendError(w http.ResponseWriter, status int, code, message string, r *http.
 
 	json.NewEncoder(w).Encode(resp)
 
-	logger.Error(reqID, userID, code, status, latency, fmt.Errorf(message), nil)
+	logger.Error(reqID, userID, code, status, latency, fmt.Errorf("%s", message), nil)
 }
 
 func SecurityMiddleware(repo *repository.RedisRepository, next http.HandlerFunc) http.HandlerFunc {
