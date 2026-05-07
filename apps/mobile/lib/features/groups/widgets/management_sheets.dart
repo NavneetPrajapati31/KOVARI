@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
 import 'package:mobile/shared/widgets/text_input_field.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_text_styles.dart';
@@ -33,7 +34,7 @@ class GroupMembersManagementSheet extends ConsumerWidget {
       children: [
         membersAsync.when(
           data: (members) => KovariGroupContainer(
-            backgroundColor: AppColors.card,
+            backgroundColor: AppColors.surface(context, level: 1),
             children: members.map((member) {
               final isOtherAdmin = member.role == 'admin';
 
@@ -55,6 +56,7 @@ class GroupMembersManagementSheet extends ConsumerWidget {
                             style: AppTextStyles.bodyMedium.copyWith(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
+                              color: AppColors.text(context),
                             ),
                           ),
                           // const SizedBox(height: 1),
@@ -62,7 +64,7 @@ class GroupMembersManagementSheet extends ConsumerWidget {
                             "@${member.username}",
                             style: AppTextStyles.bodySmall.copyWith(
                               fontSize: 13,
-                              color: AppColors.mutedForeground,
+                              color: AppColors.text(context, isMuted: true),
                             ),
                           ),
                         ],
@@ -172,25 +174,19 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
             .read(groupActionsProvider(widget.group.id))
             .approveRequest(userId);
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Member approved!")));
+          KovariSnackbar.success(context, "Member approved!");
         }
       } else if (requestId != null) {
         await ref
             .read(groupActionsProvider(widget.group.id))
             .rejectRequest(requestId);
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Request rejected.")));
+          KovariSnackbar.info(context, "Request rejected.");
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Action failed: $e")));
+        KovariSnackbar.error(context, "Action failed: $e");
       }
     } finally {
       if (mounted) setState(() => _processingIds.remove(userId));
@@ -213,14 +209,14 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
                   child: Text(
                     "No pending requests.",
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   ),
                 ),
               );
             }
             return KovariGroupContainer(
-              backgroundColor: AppColors.card,
+              backgroundColor: AppColors.surface(context, level: 1),
               children: requests.map((request) {
                 final isProcessing = _processingIds.contains(request.userId);
 
@@ -248,7 +244,7 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
                               "@${request.username}",
                               style: AppTextStyles.bodySmall.copyWith(
                                 fontSize: 12,
-                                color: AppColors.mutedForeground,
+                                color: AppColors.text(context, isMuted: true),
                               ),
                             ),
                           ],
@@ -306,9 +302,9 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
                                     ),
                                   ),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   LucideIcons.x,
-                                  color: AppColors.mutedForeground,
+                                  color: AppColors.text(context, isMuted: true),
                                   size: 15,
                                 ),
                               ),
@@ -394,16 +390,12 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
           .read(groupActionsProvider(widget.group.id))
           .inviteMember(_inviteController.text.trim());
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Invitation sent!")));
+        KovariSnackbar.success(context, "Invitation sent!");
         _inviteController.clear();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        KovariSnackbar.error(context, "Error: $e");
       }
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -431,37 +423,11 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
       await Share.share(_inviteLink, subject: "Trip Invitation");
 
       if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  LucideIcons.circleCheck,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "Link copied & sharing opened!",
-                  style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        KovariSnackbar.success(context, "Link copied & sharing opened!");
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error sharing link: $e")));
+        KovariSnackbar.error(context, "Error sharing link: $e");
       }
     }
   }
@@ -479,7 +445,7 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
           child: Text(
             "Invite people to plan and coordinate your trip together.",
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 13,
             ),
           ),
@@ -493,7 +459,7 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
             horizontal: 14,
             vertical: 12,
           ),
-          fillColor: AppColors.card,
+          fillColor: AppColors.surface(context, level: 1),
         ),
         const SizedBox(height: 20),
         TextInputField(
@@ -506,7 +472,7 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
             horizontal: 14,
             vertical: 12,
           ),
-          fillColor: AppColors.card,
+          fillColor: AppColors.surface(context, level: 1),
           suffixIcon: IconButton(
             onPressed: _copyLink,
             icon: const Icon(

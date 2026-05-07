@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/explore/models/match_user.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/models/kovari_user.dart';
 import '../models/explore_state.dart';
@@ -6,6 +7,8 @@ import '../services/explore_service.dart';
 import '../services/match_service.dart';
 import '../../../core/providers/cache_provider.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/safe_parser.dart';
+import '../../groups/models/group.dart';
 
 class ExploreNotifier extends Notifier<ExploreState> {
   @override
@@ -19,13 +22,25 @@ class ExploreNotifier extends Notifier<ExploreState> {
     final cache = ref.read(localCacheProvider);
     final key = 'matches_${state.searchData.destination}';
     final cachedMatches = cache.getEntities(key);
-    
+
     if (cachedMatches != null && state.matches.isEmpty) {
-      state = state.copyWith(
-        matches: cachedMatches,
-        hasSearched: true,
+      final List<dynamic> parsedMatches;
+      if (state.searchData.travelMode == TravelMode.solo) {
+        parsedMatches = safeParseList<MatchUser>(
+          cachedMatches,
+          MatchUser.fromJson,
+        );
+      } else {
+        parsedMatches = safeParseList<GroupModel>(
+          cachedMatches,
+          GroupModel.fromJson,
+        );
+      }
+
+      state = state.copyWith(matches: parsedMatches, hasSearched: true);
+      AppLogger.d(
+        '🚀 [BOOT] Matches loaded from cache instantly for ${state.searchData.destination}',
       );
-      AppLogger.d('🚀 [BOOT] Matches loaded from cache instantly for ${state.searchData.destination}');
     }
   }
 
@@ -170,8 +185,12 @@ class ExploreNotifier extends Notifier<ExploreState> {
     try {
       await _service.skipMatch(
         skipperId: _userId!,
-        skippedUserId: state.searchData.travelMode == TravelMode.solo ? matchId : null,
-        skippedGroupId: state.searchData.travelMode == TravelMode.group ? matchId : null,
+        skippedUserId: state.searchData.travelMode == TravelMode.solo
+            ? matchId
+            : null,
+        skippedGroupId: state.searchData.travelMode == TravelMode.group
+            ? matchId
+            : null,
         destinationId: state.searchData.destination,
         isSolo: state.searchData.travelMode == TravelMode.solo,
       );
@@ -189,15 +208,22 @@ class ExploreNotifier extends Notifier<ExploreState> {
     try {
       await _service.sendInterest(
         fromUserId: _userId!,
-        toUserId: state.searchData.travelMode == TravelMode.solo ? matchId : null,
-        toGroupId: state.searchData.travelMode == TravelMode.group ? matchId : null,
+        toUserId: state.searchData.travelMode == TravelMode.solo
+            ? matchId
+            : null,
+        toGroupId: state.searchData.travelMode == TravelMode.group
+            ? matchId
+            : null,
         destinationId: state.searchData.destination,
         isSolo: state.searchData.travelMode == TravelMode.solo,
       );
       state = state.copyWith(isPending: false);
       nextMatch();
     } catch (e) {
-      state = prevState.copyWith(error: 'Failed to express interest: $e', isPending: false);
+      state = prevState.copyWith(
+        error: 'Failed to express interest: $e',
+        isPending: false,
+      );
     }
   }
 }

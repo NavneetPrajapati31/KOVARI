@@ -243,6 +243,11 @@ class AppTheme {
         color: colorScheme.primary,
         linearTrackColor: colorScheme.primary.withValues(alpha: 0.1),
       ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+      ),
     );
   }
 }

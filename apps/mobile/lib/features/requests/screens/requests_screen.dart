@@ -11,6 +11,7 @@ import '../models/request_model.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
+import '../../../shared/widgets/kovari_snackbar.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -208,20 +209,13 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
           }
         } else {
           setState(() => _loadingAction = null);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to perform action. Please try again.'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          KovariSnackbar.error(context, 'Failed to perform action. Please try again.');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loadingAction = null);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        KovariSnackbar.error(context, 'Error: $e');
       }
     }
   }
@@ -431,20 +425,13 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
           }
         } else {
           setState(() => _loadingAction = null);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to perform action. Please try again.'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          KovariSnackbar.error(context, 'Failed to perform action. Please try again.');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loadingAction = null);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        KovariSnackbar.error(context, 'Error: $e');
       }
     }
   }

@@ -15,6 +15,7 @@ class AppCard extends StatelessWidget {
   final BorderRadius? borderRadius;
   final EdgeInsetsGeometry? margin;
   final BoxBorder? border;
+  final List<BoxShadow>? boxShadow;
 
   const AppCard({
     super.key,
@@ -28,6 +29,7 @@ class AppCard extends StatelessWidget {
     this.borderRadius,
     this.margin,
     this.border,
+    this.boxShadow,
   });
 
   @override
@@ -42,17 +44,18 @@ class AppCard extends StatelessWidget {
         color: backgroundColor ?? AppColors.surface(context, level: 1),
         borderRadius: borderRadius ?? AppRadius.large,
         border: border ?? Border.all(color: AppColors.borderColor(context)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: Theme.of(context).brightness == Brightness.dark
-                  ? 0.2
-                  : 0.03,
-            ),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: boxShadow ??
+            [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.2
+                      : 0.03,
+                ),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
       ),
       child: child,
     );

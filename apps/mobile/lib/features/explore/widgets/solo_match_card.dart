@@ -36,6 +36,8 @@ class SoloMatchCard extends ConsumerWidget {
     return AppCard(
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(24),
+      border: const Border(top: BorderSide.none, bottom: BorderSide.none),
+      boxShadow: const [],
       child: Column(
         children: [
           Column(
@@ -282,6 +284,7 @@ class SoloMatchCard extends ConsumerWidget {
     return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       borderRadius: BorderRadius.circular(20),
+      boxShadow: const [],
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -127,6 +127,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   right: BorderSide(color: AppColors.borderColor(context)),
                   bottom: BorderSide.none,
                 ),
+                boxShadow: const [],
                 child: _buildBody(state),
               ),
             ),
@@ -146,6 +147,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               height: 44,
               padding: EdgeInsets.zero,
               borderRadius: BorderRadius.circular(22),
+              boxShadow: const [],
               child: TabBar(
                 controller: _tabController,
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
@@ -179,6 +181,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               height: 44,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               borderRadius: BorderRadius.circular(22),
+              boxShadow: const [],
               child: Center(
                 child: Text(
                   'Filters',

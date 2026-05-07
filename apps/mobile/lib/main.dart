@@ -23,12 +23,12 @@ import 'features/auth/screens/reset_password_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
 import 'features/auth/screens/banned_screen.dart';
+import 'shared/widgets/dynamic_status_overlay.dart';
 
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/providers/cache_provider.dart';
-import 'core/auth/session_manager.dart';
 import 'core/network/mutation_queue.dart';
 import 'core/providers/theme_provider.dart';
 
@@ -188,12 +188,8 @@ void main() {
       AppLogger.e(
         'Uncaught Zone Error: $error',
         stackTrace: stackTrace,
-        reportToSentry: false,
+        reportToSentry: true,
       );
-      // Ensure app runs even on zone errors during startup
-      try {
-        runApp(const ProviderScope(child: KovariApp()));
-      } catch (_) {}
 
       if (kReleaseMode) {
         Sentry.captureException(error, stackTrace: stackTrace);
@@ -280,189 +276,11 @@ class _KovariAppState extends ConsumerState<KovariApp> {
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: ScrollConfiguration(
             behavior: const BouncingScrollBehavior(),
-            child: Stack(children: [child!, const GlobalStatusOverlay()]),
+            child: Stack(children: [child!, const DynamicStatusOverlay()]),
           ),
         );
       },
       home: const AuthWrapper(),
-    );
-  }
-}
-
-class GlobalStatusOverlay extends ConsumerStatefulWidget {
-  const GlobalStatusOverlay({super.key});
-
-  @override
-  ConsumerState<GlobalStatusOverlay> createState() =>
-      _GlobalStatusOverlayState();
-}
-
-class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
-  Timer? _syncTimer;
-  bool _showRetry = false;
-
-  @override
-  void dispose() {
-    _syncTimer?.cancel();
-    super.dispose();
-  }
-
-  void _resetTimer() {
-    _syncTimer?.cancel();
-    _showRetry = false;
-    final sessionManager = ref.read(sessionManagerProvider);
-    _syncTimer = Timer(sessionManager.adaptiveTimeout, () {
-      if (mounted) setState(() => _showRetry = true);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final connectivity = ref.watch(connectivityProvider);
-    final auth = ref.watch(authProvider);
-
-    debugPrint(
-      '🎨 [UI] Overlay Rebuild - Connectivity: ${connectivity.status.name}, Auth: (degraded: ${auth.isDegraded}, refreshing: ${auth.isRefreshing})',
-    );
-
-    // Manage timer based on refreshing state
-    if (auth.isRefreshing) {
-      if (_syncTimer == null) _resetTimer();
-    } else {
-      _syncTimer?.cancel();
-      _syncTimer = null;
-      _showRetry = false;
-    }
-
-    if (!auth.isDegraded && !auth.isRefreshing && connectivity.isOnline) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned.fill(
-      key: ValueKey(
-        'overlay_${connectivity.status.name}_${auth.isDegraded}_${auth.isRefreshing}',
-      ),
-      child: Stack(
-        children: [
-          if (!connectivity.isOnline)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Material(
-                color: connectivity.isOffline
-                    ? AppColors.destructive
-                    : Theme.of(context).colorScheme.errorContainer,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 16,
-                  ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Text(
-                      connectivity.isOffline
-                          ? 'No internet connection'
-                          : 'Server unreachable',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: connectivity.isOffline
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.onErrorContainer,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (auth.isDegraded || auth.isRefreshing)
-            Positioned(
-              top:
-                  MediaQuery.of(context).padding.top +
-                  (!connectivity.isOnline ? 45 : 10),
-              left: 20,
-              right: 20,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _showRetry
-                      ? () => ref.read(authProvider.notifier).init()
-                      : null,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: auth.isDegraded
-                          ? Theme.of(context).colorScheme.tertiaryContainer
-                          : AppColors.primary,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: auth.isDegraded
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.onTertiaryContainer
-                                : AppColors.primaryForeground,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _showRetry
-                                ? 'Connection slow. Tap to retry.'
-                                : (auth.isDegraded
-                                      ? 'Degraded Mode: Reconnecting...'
-                                      : 'Syncing...'),
-                            style: TextStyle(
-                              color: auth.isDegraded
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.onTertiaryContainer
-                                  : AppColors.primaryForeground,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_showRetry)
-                          Icon(
-                            Icons.refresh,
-                            color: auth.isDegraded
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.onTertiaryContainer
-                                : AppColors.primaryForeground,
-                            size: 14,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }
@@ -569,10 +387,13 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
         });
       }
     } catch (e) {
+      AppLogger.e('⚠️ [AUTH] Initialization error: $e');
       if (mounted) {
+        // If it's a network error, don't show the fatal error screen.
+        // Instead, proceed to the app shell and let individual screens handle offline state.
         setState(() {
           _isSyncing = false;
-          _error = e.toString();
+          _needsOnboarding = false; // Default to false if we can't check
         });
       }
     }
@@ -580,57 +401,12 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(connectivityProvider, (previous, next) {
-      if (next.isOnline && _error != null) {
-        AppLogger.i('🌐 Connectivity restored. Retrying initialization...');
-        if (mounted) {
-          setState(() {
-            _isSyncing = true;
-            _error = null;
-          });
-          _initializeApp();
-        }
-      }
-    });
-
     if (_isSyncing) return const BrandedLoading();
 
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                const SizedBox(height: 16),
-                const Text(
-                  'Initialization Failed',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(_error!, textAlign: TextAlign.center),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isSyncing = true;
-                      _error = null;
-                    });
-                    _initializeApp();
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+    if (_needsOnboarding) {
+      return const OnboardingScreen();
     }
-
-    FlutterNativeSplash.remove();
-    return _needsOnboarding ? const OnboardingScreen() : const AppShellScreen();
+    return const AppShellScreen();
   }
 }
 

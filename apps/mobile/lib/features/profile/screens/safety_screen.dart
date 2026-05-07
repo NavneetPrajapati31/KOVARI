@@ -10,6 +10,7 @@ import '../providers/safety_provider.dart';
 import 'report_target_search_screen.dart';
 import 'my_reports_screen.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../shared/widgets/kovari_snackbar.dart';
 
 class SafetyScreen extends ConsumerStatefulWidget {
   const SafetyScreen({super.key});
@@ -746,8 +747,6 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     final link = 'https://kovari.in/profile/$userId';
     // ignore: deprecated_member_use
     Share.share(link, subject: 'My Kovari Profile Link');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile link copied to clipboard')),
-    );
+    KovariSnackbar.success(context, 'Profile link copied to clipboard');
   }
 }

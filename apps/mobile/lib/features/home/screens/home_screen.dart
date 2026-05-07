@@ -133,6 +133,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           const SizedBox(height: AppSpacing.md),
           const SkeletonListTile(),
           const SkeletonListTile(),
+          const SkeletonListTile(),
+          const SkeletonListTile(),
         ]),
       );
     }

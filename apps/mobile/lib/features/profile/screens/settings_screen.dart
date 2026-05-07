@@ -13,6 +13,7 @@ import '../../../core/utils/api_error_handler.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/kovari_confirm_dialog.dart';
+import '../../../shared/widgets/kovari_snackbar.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -99,13 +100,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontSize: 14)),
-        backgroundColor: isError ? AppColors.destructive : Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (isError) {
+      KovariSnackbar.error(context, message);
+    } else {
+      KovariSnackbar.success(context, message);
+    }
   }
 
   Future<void> _handleRequestVerification() async {

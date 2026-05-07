@@ -46,7 +46,9 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outline),
+        ),
       ),
       child: Row(
         children: [
@@ -55,7 +57,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
           Expanded(
             child: Text(
               'My Reports',
-              style: AppTextStyles.h3,
+              style: AppTextStyles.h3.copyWith(color: AppColors.text(context)),
             ),
           ),
           if (state.reports.isNotEmpty)
@@ -120,9 +122,14 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                   ref.read(safetyProvider.notifier).fetchMyReports(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('Try Again', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Try Again',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -143,7 +150,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
             Text(
               'No active reports',
               style: TextStyle(
-                fontSize: 18, 
+                fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: AppColors.text(context),
               ),

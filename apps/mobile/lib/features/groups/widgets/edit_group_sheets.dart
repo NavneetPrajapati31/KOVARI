@@ -8,6 +8,7 @@ import 'package:mobile/core/network/cloudinary_service.dart';
 import 'package:mobile/shared/utils/url_utils.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/shared/widgets/text_input_field.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
 import 'package:mobile/shared/widgets/primary_button.dart';
 import 'package:mobile/shared/widgets/location_autocomplete.dart';
 import 'package:mobile/core/theme/app_colors.dart';
@@ -44,9 +45,11 @@ class SettingsBottomSheet extends StatelessWidget {
         top: 12,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppColors.isDark(context)
+            ? AppColors.cardDark
+            : AppColors.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -57,7 +60,7 @@ class SettingsBottomSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: AppColors.borderColor(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -125,9 +128,7 @@ class _EditBasicInfoSheetState extends ConsumerState<EditBasicInfoSheet> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        KovariSnackbar.error(context, "Error: $e");
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -145,7 +146,7 @@ class _EditBasicInfoSheetState extends ConsumerState<EditBasicInfoSheet> {
           label: "Group Name",
           controller: _nameController,
           hintText: "Enter group name",
-          fillColor: AppColors.card,
+          fillColor: AppColors.surface(context, level: 1),
           contentPadding: const EdgeInsets.only(
             left: 12,
             right: 12,
@@ -169,7 +170,7 @@ class _EditBasicInfoSheetState extends ConsumerState<EditBasicInfoSheet> {
               };
             });
           },
-          fillColor: AppColors.card,
+          fillColor: AppColors.surface(context, level: 1),
           contentPadding: const EdgeInsets.only(
             left: 12,
             right: 12,
@@ -183,7 +184,7 @@ class _EditBasicInfoSheetState extends ConsumerState<EditBasicInfoSheet> {
           controller: _descController,
           hintText: "What's this trip about?",
           maxLines: 3,
-          fillColor: AppColors.card,
+          fillColor: AppColors.surface(context, level: 1),
           contentPadding: const EdgeInsets.only(
             left: 12,
             right: 12,
@@ -221,9 +222,9 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
   Future<void> _showImageSourceModal() async {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.backgroundColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => SafeArea(
         child: Column(
@@ -234,7 +235,7 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: AppColors.borderColor(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -244,22 +245,23 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
               style: AppTextStyles.bodyMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
+                color: AppColors.text(context),
               ),
             ),
             const SizedBox(height: 16),
             ListTile(
               visualDensity: VisualDensity.compact,
               dense: true,
-              leading: const Icon(
+              leading: Icon(
                 LucideIcons.camera,
                 size: 22,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
               title: Text(
                 "Take Photo",
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
               onTap: () {
@@ -270,16 +272,16 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
             ListTile(
               visualDensity: VisualDensity.compact,
               dense: true,
-              leading: const Icon(
+              leading: Icon(
                 LucideIcons.image,
                 size: 22,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
               title: Text(
                 "Choose from Gallery",
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
               onTap: () {
@@ -416,9 +418,9 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
             width: double.infinity,
             height: 200,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface(context, level: 1),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.borderColor(context)),
               image: _coverImageFile != null
                   ? DecorationImage(
                       image: FileImage(_coverImageFile!),
@@ -434,11 +436,11 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
                         : null),
             ),
             child: _coverImageFile == null && _currentCoverUrl == null
-                ? const Center(
+                ? Center(
                     child: Icon(
                       LucideIcons.imagePlus,
                       size: 48,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                   )
                 : Align(
@@ -464,7 +466,7 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
           child: Text(
             "Tap the image to change",
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
         ),
@@ -575,7 +577,7 @@ class _EditTravelDetailsSheetState
           child: Text(
             label,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -587,22 +589,23 @@ class _EditTravelDetailsSheetState
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface(context, level: 1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.borderColor(context)),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   LucideIcons.calendar,
                   size: 16,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   DateFormat('MMM d, yyyy').format(date),
                   style: AppTextStyles.bodyMedium.copyWith(
                     fontWeight: FontWeight.w500,
+                    color: AppColors.text(context),
                   ),
                 ),
               ],
@@ -637,7 +640,7 @@ class _EditTravelDetailsSheetState
           controller: _budgetController,
           keyboardType: TextInputType.number,
           hintText: "Enter budget amount",
-          fillColor: Colors.white,
+          fillColor: AppColors.surface(context, level: 1),
           prefixIconConstraints: const BoxConstraints(
             minWidth: 0,
             minHeight: 0,
@@ -648,12 +651,12 @@ class _EditTravelDetailsSheetState
             top: 10,
             bottom: 10,
           ),
-          prefixIcon: const Padding(
+          prefixIcon: Padding(
             padding: EdgeInsets.only(left: 12, right: 4),
             child: Icon(
               LucideIcons.indianRupee,
               size: 16,
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
         ),
@@ -747,14 +750,14 @@ class _EditPoliciesSheetState extends ConsumerState<EditPoliciesSheet> {
       label: title,
       subtitle: subtitle,
       titleStyle: AppTextStyles.bodySmall.copyWith(
-        color: AppColors.foreground,
+        color: AppColors.text(context),
         fontSize: 12,
         fontWeight: FontWeight.w500,
       ),
       value: value,
       onChanged: onChanged,
       margin: const EdgeInsets.only(bottom: 12),
-      fillColor: AppColors.card,
+      fillColor: AppColors.surface(context, level: 1),
     );
   }
 }

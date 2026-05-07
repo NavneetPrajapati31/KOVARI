@@ -103,6 +103,33 @@ class GroupModel {
       budget: (json['budget'] ?? json['estimated_budget']) as int?,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'privacy': privacy,
+      'destination': destination,
+      'description': description,
+      'notes': notes,
+      'ai_overview': aiOverview,
+      'dateRange': dateRange.toJson(),
+      'memberCount': memberCount,
+      'userStatus': userStatus,
+      'creator': creator.toJson(),
+      'creatorId': creatorId,
+      'created_at': createdAt,
+      'cover_image': coverImage,
+      'destination_image': destinationImage,
+      'status': status,
+      'score': score,
+      'tags': tags,
+      'languages': languages,
+      'smokingPolicy': smokingPolicy,
+      'drinkingPolicy': drinkingPolicy,
+      'budget': budget,
+    };
+  }
 }
 
 class GroupDateRange {
@@ -119,6 +146,12 @@ class GroupDateRange {
       isOngoing: json['isOngoing'] as bool,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'start': start,
+        'end': end,
+        'isOngoing': isOngoing,
+      };
 }
 
 class GroupCreator {
@@ -135,6 +168,12 @@ class GroupCreator {
       avatar: (json['avatar'] as String?) ?? (json['profile_photo'] as String?),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'username': username,
+        'avatar': avatar,
+      };
 }
 
 class GroupMember {

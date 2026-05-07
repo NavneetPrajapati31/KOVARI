@@ -9,6 +9,8 @@ import '../widgets/profile_tab.dart';
 import '../../../shared/widgets/kovari_bottom_nav.dart';
 import '../providers/app_shell_provider.dart';
 import '../../../core/providers/connectivity_provider.dart';
+import '../../../core/utils/app_logger.dart';
+import '../../home/providers/home_provider.dart';
 
 class AppShellScreen extends ConsumerWidget {
   const AppShellScreen({super.key});
@@ -16,46 +18,19 @@ class AppShellScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(appShellIndexProvider);
-    final isOffline = ref.watch(
-      connectivityProvider.select((s) => s.isOffline),
-    );
-    final isDegraded = ref.watch(
-      connectivityProvider.select((s) => s.isDegraded),
-    );
+
+    // Global connectivity listener to refresh data when connection is restored
+    ref.listen(connectivityProvider, (previous, next) {
+      if (next.isOnline && previous?.isOnline == false) {
+        AppLogger.i('🌐 Connectivity restored in AppShell. Refreshing current data...');
+        // Refresh home data automatically
+        ref.read(homeDataProvider.notifier).refresh(isSilent: true);
+      }
+    });
 
     return Scaffold(
       body: Column(
         children: [
-          if (isOffline)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              color: AppColors.destructive,
-              child: const Text(
-                'No Internet Connection',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          else if (isDegraded)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              color: Colors.amber.shade900,
-              child: const Text(
-                'Connecting...',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
           Expanded(
             child: IndexedStack(
               index: currentIndex,

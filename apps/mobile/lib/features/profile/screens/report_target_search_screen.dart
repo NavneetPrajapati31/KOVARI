@@ -72,7 +72,9 @@ class _ReportTargetSearchScreenState
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outline),
+        ),
       ),
       child: Row(
         children: [
@@ -81,7 +83,7 @@ class _ReportTargetSearchScreenState
           Expanded(
             child: Text(
               'Safety',
-              style: AppTextStyles.h3,
+              style: AppTextStyles.h3.copyWith(color: AppColors.text(context)),
             ),
           ),
         ],
@@ -122,8 +124,8 @@ class _ReportTargetSearchScreenState
           Text(
             'Select the ${widget.targetType == 'user' ? 'profile' : 'group'} you want to report',
             style: TextStyle(
-              fontSize: 14, 
-              color: AppColors.text(context, isMuted: true)
+              fontSize: 14,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
           const SizedBox(height: 20),
@@ -219,7 +221,10 @@ class _ReportTargetSearchScreenState
               decoration: BoxDecoration(
                 color: AppColors.surface(context, level: 1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderColor(context), width: 1),
+                border: Border.all(
+                  color: AppColors.borderColor(context),
+                  width: 1,
+                ),
               ),
               child: Row(
                 children: [

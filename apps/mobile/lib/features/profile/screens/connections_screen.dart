@@ -10,6 +10,7 @@ import '../widgets/user_list_item.dart';
 import '../../../core/providers/profile_provider.dart';
 import 'public_profile_screen.dart';
 import '../../../shared/widgets/kovari_confirm_dialog.dart';
+import '../../../shared/widgets/kovari_snackbar.dart';
 
 class ConnectionsScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -229,9 +230,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
             return u;
           }).toList();
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        KovariSnackbar.error(context, 'Error: ${e.toString()}');
       }
     }
   }
@@ -572,15 +571,11 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                         if (type == 'followers' && !user.isFollowing) {
                           _handleFollowToggle(user);
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Chat coming soon!')),
-                          );
+                          KovariSnackbar.info(context, 'Chat coming soon!');
                         }
                       } else {
                         if (user.isFollowing) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Chat coming soon!')),
-                          );
+                            KovariSnackbar.info(context, 'Chat coming soon!');
                         } else {
                           _handleFollowToggle(user);
                         }

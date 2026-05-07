@@ -24,6 +24,7 @@ import '../../../core/network/cloudinary_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/widgets/common/user_avatar_fallback.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../shared/widgets/kovari_snackbar.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   final UserProfile profile;
@@ -306,9 +307,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Future<void> _handleSave() async {
     setState(() => _isLoading = true);
     if (_isUsernameAvailable == false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username is already taken')),
-      );
+      KovariSnackbar.error(context, 'Username is already taken');
       setState(() => _isLoading = false);
       return;
     }
@@ -375,15 +374,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
-        );
+        KovariSnackbar.success(context, 'Profile updated successfully');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to update profile: $e')));
+        KovariSnackbar.error(context, 'Failed to update profile: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

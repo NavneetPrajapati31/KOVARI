@@ -26,10 +26,7 @@ class ProfileService {
         ignoreCache: ignoreCache,
       );
 
-      if (response.isDegraded) {
-        throw Exception('Network error: ${response.meta.reason}');
-      }
-
+      // Allow degraded (cached) responses to proceed if we have data
       if (response.success && response.data != null) {
         return response.data;
       }
