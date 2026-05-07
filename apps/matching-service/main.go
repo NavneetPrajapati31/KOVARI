@@ -31,13 +31,13 @@ func main() {
 	// Try to load from root .env.local or apps/web/.env.local
 	rootEnv, _ := filepath.Abs("../../.env.local")
 	webEnv, _ := filepath.Abs("../web/.env.local")
-	
+
 	// Load root first if exists
 	if _, err := os.Stat(rootEnv); err == nil {
 		godotenv.Load(rootEnv)
 		log.Printf("Loaded environment from %s", rootEnv)
 	}
-	
+
 	// Ensure we search web folder as well
 	if _, err := os.Stat(webEnv); err == nil {
 		godotenv.Load(webEnv)
@@ -119,8 +119,6 @@ func main() {
 		defer redisCancel()
 		g, gCtx := errgroup.WithContext(redisCtx)
 
-
-
 		tRedisStart := time.Now()
 		g.Go(func() error {
 			t1 := time.Now()
@@ -145,7 +143,6 @@ func main() {
 		}
 		log.Printf("TIMER: Step 1 (Total Redis Parallel) took: %v", time.Since(tRedisStart))
 
-
 		if userSession == nil {
 			log.Printf("Error: Session for %s not found in Redis", req.UserId)
 			http.Error(w, "Requester session not found", 404)
@@ -155,11 +152,11 @@ func main() {
 		// STEP 2: Hydrate ALL profiles in a single batch call (Deduplicated)
 		allUserIds := []string{req.UserId}
 		candidateMap := make(map[string]models.SoloSession)
-		
+
 		// Deduplicate and filter out requester from candidates
 		seenIds := make(map[string]bool)
 		seenIds[req.UserId] = true
-		
+
 		for _, c := range candidates {
 			if c.UserId != "" && !seenIds[c.UserId] {
 				allUserIds = append(allUserIds, c.UserId)
@@ -190,12 +187,11 @@ func main() {
 		}
 		log.Printf("TIMER: Step 2 (Total Profile Hydration) took: %v", time.Since(tHydrateStart))
 
-
 		// Apply profiles to sessions
 		if p, ok := profiles[req.UserId]; ok {
 			userSession.StaticAttributes = p
 		}
-		
+
 		var validCandidates []models.SoloSession
 		for id, session := range candidateMap {
 			if p, ok := profiles[id]; ok {
@@ -213,7 +209,7 @@ func main() {
 		go func(reqId string, sess *models.SoloSession, candidates []models.SoloSession) {
 			// Small buffer to prevent write storms
 			time.Sleep(50 * time.Millisecond)
-			
+
 			bgCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 
@@ -223,22 +219,21 @@ func main() {
 				// For simplicity, we just check if it was missing before profiles lookup
 				// In FetchProfilesBatch, we set it. So we check if sess.GeoSource is "healed" or "resolved"
 				// but userSession was loaded from Redis at the start.
-				
+
 				// Re-verify if it needs update (already done in main flow by checking Lat != 0)
 				// We'll just re-save sessions that have coordinates now but might not have had them in Redis
 				log.Printf("Self-Healing: Checking session %s for coordinate update", reqId)
-				
+
 				// Read-Update-Write pattern (simplified since we have the latest session)
 				data, _ := json.Marshal(sess)
 				// Use 7 days TTL (parity with Web API default)
 				repo.SetCache(bgCtx, fmt.Sprintf("session:%s", reqId), string(data), 168*time.Hour)
 			}
-			
+
 			// Optional: Heal candidates too? Only if they were "healed" during this request
 			// To keep it simple and safe (avoid write storms), let's just heal the requester for now.
 			// Requesters are the ones actively waiting and will benefit most.
 		}(req.UserId, userSession, validCandidates)
-
 
 		if userSession.StaticAttributes == nil {
 			log.Printf("Error: Requester %s has no profile in Supabase", req.UserId)
@@ -256,7 +251,7 @@ func main() {
 		var mlErr error
 		mlUsed := false
 		mlStartTime := time.Now()
-		
+
 		// Strict ML Timeout (150ms)
 		mlCtx, mlCancel := context.WithTimeout(ctx, 150*time.Millisecond)
 		defer mlCancel()
@@ -273,7 +268,7 @@ func main() {
 			}
 			return nil
 		})
-		
+
 		mlGroup.Wait()
 		mlLatency := time.Since(mlStartTime)
 
@@ -295,7 +290,7 @@ func main() {
 			}
 
 			result := matching.CalculateFinalSoloScore(*userSession, match, mlScore, matchConfig)
-			
+
 			finalMatches = append(finalMatches, ScoredMatch{
 				UserId: match.UserId,
 				User: models.UserPreview{
@@ -319,7 +314,7 @@ func main() {
 		})
 
 		latency := time.Since(startTime)
-		log.Printf("[MatchRequest] Requester:%s | Mode:%s | Candidates:%d | ML_USED:%v | ML_LATENCY:%v | Latency:%v", 
+		log.Printf("[MatchRequest] Requester:%s | Mode:%s | Candidates:%d | ML_USED:%v | ML_LATENCY:%v | Latency:%v",
 			req.UserId, matchConfig.Mode, len(finalMatches), mlUsed, mlLatency, latency)
 
 		w.Header().Set("Content-Type", "application/json")

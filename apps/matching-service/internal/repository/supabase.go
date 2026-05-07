@@ -40,12 +40,16 @@ func NewSupabaseRepository(url, anonKey, geoKey string, redis *RedisRepository) 
 }
 
 func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (float64, float64, bool) {
-	if raw == "" || r.geoapifyKey == "" { return 0, 0, false }
-	
+	if raw == "" || r.geoapifyKey == "" {
+		return 0, 0, false
+	}
+
 	// Normalize: Extract city, lowercase and trim for better cache hits
 	cityPart := strings.Split(raw, ",")[0]
 	city := strings.ToLower(strings.TrimSpace(cityPart))
-	if city == "" { return 0, 0, false }
+	if city == "" {
+		return 0, 0, false
+	}
 
 	cacheKey := fmt.Sprintf("geo:%s", city)
 
@@ -67,7 +71,7 @@ func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (f
 
 	go func() {
 		defer r.geoInFlight.Delete(cacheKey)
-		
+
 		bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 
@@ -86,9 +90,9 @@ func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (f
 
 		// 2.2 Live API call (if Redis miss)
 		log.Printf("BACKGROUND GEO API CALL: %s", cacheKey)
-		apiURL := fmt.Sprintf("https://api.geoapify.com/v1/geocode/autocomplete?text=%s&type=city&limit=1&lang=en&apiKey=%s", 
+		apiURL := fmt.Sprintf("https://api.geoapify.com/v1/geocode/autocomplete?text=%s&type=city&limit=1&lang=en&apiKey=%s",
 			strings.ReplaceAll(city, " ", "%20"), r.geoapifyKey)
-		
+
 		req, _ := http.NewRequestWithContext(bgCtx, "GET", apiURL, nil)
 		resp, err := r.client.Do(req)
 		if err != nil || resp.StatusCode != http.StatusOK {
@@ -105,14 +109,14 @@ func (r *SupabaseRepository) GeocodeGeoapify(ctx context.Context, raw string) (f
 				} `json:"properties"`
 			} `json:"features"`
 		}
-		
+
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil || len(result.Features) == 0 {
 			log.Printf("BACKGROUND GEO FAILED: %s (No results)", cacheKey)
 			return
 		}
 
 		lat, lon := result.Features[0].Properties.Lat, result.Features[0].Properties.Lon
-		
+
 		// 2.3 Store in Redis for future requests
 		if r.redis != nil {
 			coordsJson, _ := json.Marshal([]float64{lat, lon})
@@ -150,24 +154,24 @@ func parseCoord(v interface{}) float64 {
 }
 
 type profileResponse struct {
-	UserID       string      `json:"user_id"`
-	Name         *string     `json:"name"`
-	Age          *int        `json:"age"`
-	Gender       *string     `json:"gender"`
-	Personality  *string     `json:"personality"`
-	Location     interface{} `json:"location"`
-	Smoking      *string     `json:"smoking"`
-	Drinking     *string     `json:"drinking"`
-	Religion     *string     `json:"religion"`
-	Interests    []string    `json:"interests"`
-	Languages    []string    `json:"languages"`
-	Nationality  *string     `json:"nationality"`
-	Profession   *string     `json:"job"`
-	Avatar       *string     `json:"profile_photo"`
-	Bio          *string     `json:"bio"`
+	UserID      string      `json:"user_id"`
+	Name        *string     `json:"name"`
+	Age         *int        `json:"age"`
+	Gender      *string     `json:"gender"`
+	Personality *string     `json:"personality"`
+	Location    interface{} `json:"location"`
+	Smoking     *string     `json:"smoking"`
+	Drinking    *string     `json:"drinking"`
+	Religion    *string     `json:"religion"`
+	Interests   []string    `json:"interests"`
+	Languages   []string    `json:"languages"`
+	Nationality *string     `json:"nationality"`
+	Profession  *string     `json:"job"`
+	Avatar      *string     `json:"profile_photo"`
+	Bio         *string     `json:"bio"`
 	// Alternate coordinate columns in case 'location' is just a string
-	Latitude     *float64    `json:"latitude"`
-	Longitude    *float64    `json:"longitude"`
+	Latitude  *float64 `json:"latitude"`
+	Longitude *float64 `json:"longitude"`
 }
 
 func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserIds []string, preResolved map[string]models.Coordinates) (map[string]*models.StaticAttributes, error) {
@@ -177,13 +181,13 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 
 	// OPTIMIZED: Single query with inner join and minimal fields
 	t1 := time.Now()
-	idsParam := fmt.Sprintf("(\"%s\")", strings.Join(clerkUserIds, "\",\"")) 
+	idsParam := fmt.Sprintf("(\"%s\")", strings.Join(clerkUserIds, "\",\""))
 	profilesURL := fmt.Sprintf("%s/rest/v1/profiles?select=user_id,name,age,gender,personality,location,smoking,drinking,religion,interests,languages,nationality,job,profile_photo,bio,users!inner(clerk_user_id)&users.clerk_user_id=in.%s", r.url, idsParam)
-	
+
 	req, _ := http.NewRequestWithContext(ctx, "GET", profilesURL, nil)
 	req.Header.Set("apikey", r.anonKey)
 	req.Header.Set("Authorization", "Bearer "+r.anonKey)
-	
+
 	resp, err := r.client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		log.Printf("Supabase Optimization Failed: %v", err)
@@ -200,13 +204,10 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 	resp.Body.Close()
 	// Removed redundant timer here - captured at bottom of function
 
-
-
 	results := make(map[string]*models.StaticAttributes)
 	for _, raw := range rawProfiles {
 		p := raw.profileResponse
 		clerkID := raw.Users.ClerkUserId
-
 
 		attr := &models.StaticAttributes{
 			ClerkUserId: clerkID,
@@ -218,19 +219,41 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 			log.Printf("Supabase: Using pre-resolved coordinates for %s: %+v", clerkID, coords)
 		}
 
-		if p.Name != nil { attr.Name = *p.Name }
-		if p.Age != nil { attr.Age = *p.Age }
-		if p.Gender != nil { attr.Gender = *p.Gender }
-		if p.Personality != nil { attr.Personality = *p.Personality }
-		if p.Smoking != nil { attr.Smoking = *p.Smoking }
-		if p.Drinking != nil { attr.Drinking = *p.Drinking }
-		if p.Religion != nil { attr.Religion = *p.Religion }
-		if p.Nationality != nil { attr.Nationality = *p.Nationality }
-		if p.Profession != nil { attr.Profession = *p.Profession }
+		if p.Name != nil {
+			attr.Name = *p.Name
+		}
+		if p.Age != nil {
+			attr.Age = *p.Age
+		}
+		if p.Gender != nil {
+			attr.Gender = *p.Gender
+		}
+		if p.Personality != nil {
+			attr.Personality = *p.Personality
+		}
+		if p.Smoking != nil {
+			attr.Smoking = *p.Smoking
+		}
+		if p.Drinking != nil {
+			attr.Drinking = *p.Drinking
+		}
+		if p.Religion != nil {
+			attr.Religion = *p.Religion
+		}
+		if p.Nationality != nil {
+			attr.Nationality = *p.Nationality
+		}
+		if p.Profession != nil {
+			attr.Profession = *p.Profession
+		}
 		attr.GeoSource = "static" // Default to static/db
 
-		if p.Avatar != nil { attr.Avatar = *p.Avatar }
-		if p.Bio != nil { attr.Bio = *p.Bio }
+		if p.Avatar != nil {
+			attr.Avatar = *p.Avatar
+		}
+		if p.Bio != nil {
+			attr.Bio = *p.Bio
+		}
 		attr.Interests = p.Interests
 		attr.Languages = p.Languages
 
@@ -248,7 +271,7 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 
 				attr.Location.Lat = lat
 				attr.Location.Lon = lon
-				
+
 				// Fallback to separate columns if map-based lat/lon failed
 				if attr.Location.Lat == 0 && p.Latitude != nil {
 					attr.Location.Lat = *p.Latitude

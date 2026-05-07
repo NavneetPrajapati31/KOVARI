@@ -53,10 +53,10 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 
 	// Phase 1.5 Optimization: Try sessions:index set first
 	keys, err = r.client.SMembers(ctx, "sessions:index").Result()
-	
+
 	if err != nil || len(keys) == 0 {
 		log.Printf("Repository: Index missing or empty (Total candidates: 0)")
-		
+
 		// 1. Shallow SCAN (Fast Fallback - 1 batch only)
 		// This provides a few results instantly without waiting for a full DB sweep
 		var batch []string
@@ -72,16 +72,20 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 				defer r.indexInFlight.Delete("rebuild")
 				bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
-				
+
 				log.Printf("BACKGROUND INDEX REBUILD START")
 				var cursor uint64
 				var allKeys []string
 				for {
 					var b []string
 					b, cursor, err = r.client.Scan(bgCtx, cursor, "session:*", 250).Result()
-					if err != nil { break }
+					if err != nil {
+						break
+					}
 					allKeys = append(allKeys, b...)
-					if cursor == 0 || len(allKeys) >= MaxCandidates*4 { break }
+					if cursor == 0 || len(allKeys) >= MaxCandidates*4 {
+						break
+					}
 				}
 
 				if len(allKeys) > 0 {
