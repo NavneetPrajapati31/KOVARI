@@ -18,7 +18,9 @@ import '../../../shared/widgets/app_card.dart';
 class GroupDetailsScreen extends ConsumerStatefulWidget {
   final String groupId;
 
-  const GroupDetailsScreen({super.key, required this.groupId});
+  GroupDetailsScreen({super.key, required this.groupId}) {
+    debugPrint('🚀 [GroupDetailsScreen] Constructor called for ID: $groupId');
+  }
 
   @override
   ConsumerState<GroupDetailsScreen> createState() => _GroupDetailsScreenState();
@@ -37,13 +39,20 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+      '🏗️ [GroupDetailsScreen] Building screen for ID: ${widget.groupId}',
+    );
     final groupAsync = ref.watch(groupDetailsProvider(widget.groupId));
     final membershipAsync = ref.watch(groupMembershipProvider(widget.groupId));
 
     return groupAsync.when(
       data: (group) {
+        debugPrint('✅ [GroupDetailsScreen] Group data loaded');
         return membershipAsync.when(
           data: (membership) {
+            debugPrint(
+              '✅ [GroupDetailsScreen] Membership data loaded: isMember=${membership.isMember}, isCreator=${membership.isCreator}',
+            );
             if (group.status == 'pending') {
               return _buildPendingState();
             }
@@ -55,14 +64,24 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
             if (!_isEditingNotes &&
                 group.notes != null &&
                 _notesController.text != group.notes) {
-              _notesController.text = group.notes!;
+              // Wrap in post-frame to avoid updating controller during build
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted &&
+                    !_isEditingNotes &&
+                    _notesController.text != group.notes) {
+                  debugPrint(
+                    '📝 [GroupDetailsScreen] Updating notes controller from group data',
+                  );
+                  _notesController.text = group.notes!;
+                }
+              });
             }
 
             return Scaffold(
               body: Column(
                 children: [
                   Container(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    color: AppColors.backgroundColor(context),
                     child: SafeArea(bottom: false, child: _buildHeader(group)),
                   ),
                   GroupTabBar(
@@ -105,27 +124,39 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               ),
             );
           },
-          loading: () => const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
-          ),
-          error: (e, s) => _buildErrorState(e),
+          loading: () {
+            debugPrint('⏳ [GroupDetailsScreen] Loading membership...');
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            );
+          },
+          error: (e, s) {
+            debugPrint('❌ [GroupDetailsScreen] Membership error: $e');
+            return _buildErrorState(e);
+          },
         );
       },
-      loading: () => const Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              color: AppColors.primary,
-              strokeWidth: 3,
+      loading: () {
+        debugPrint('⏳ [GroupDetailsScreen] Loading group details...');
+        return const Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+                strokeWidth: 3,
+              ),
             ),
           ),
-        ),
-      ),
-      error: (e, s) => _buildErrorState(e),
+        );
+      },
+      error: (e, s) {
+        debugPrint('❌ [GroupDetailsScreen] Group error: $e');
+        return _buildErrorState(e);
+      },
     );
   }
 

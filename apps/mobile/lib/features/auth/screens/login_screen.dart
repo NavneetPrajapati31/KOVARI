@@ -194,6 +194,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         controller: _emailController,
                         hintText: 'example@example.com',
                         keyboardType: TextInputType.emailAddress,
+                        height: 40,
                       ),
                       const SizedBox(height: 16),
                       TextInputField(
@@ -201,6 +202,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         controller: _passwordController,
                         hintText: 'Enter password',
                         obscureText: true,
+                        height: 40,
                       ),
 
                       const SizedBox(height: 16),
@@ -267,6 +269,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         text: _isLoading ? 'Signing in...' : 'Log in',
                         onPressed: _isLoading ? null : _handleLogin,
                         isLoading: _isLoading,
+                        height: 40,
                       ),
                     ],
                   ),

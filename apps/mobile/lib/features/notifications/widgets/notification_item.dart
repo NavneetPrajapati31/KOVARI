@@ -23,9 +23,11 @@ class NotificationItem extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: notification.isRead
-              ? Colors.transparent
-              : AppColors.primary.withValues(alpha: 0.1),
-          border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
+              ? AppColors.surface(context, level: 1)
+              : AppColors.primaryLight,
+          border: Border(
+            bottom: BorderSide(color: AppColors.borderColor(context)),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,6 +96,7 @@ class NotificationItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface(context, level: 2),
           shape: BoxShape.circle,
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
         child: Icon(
           LucideIcons.check,

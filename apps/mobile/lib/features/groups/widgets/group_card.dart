@@ -12,7 +12,6 @@ class GroupCard extends StatelessWidget {
 
   const GroupCard({super.key, required this.group, this.onAction});
 
-
   String _formatDestinationCity(String destination) {
     final trimmed = destination.trim();
     if (trimmed.isEmpty) return trimmed;
@@ -27,16 +26,13 @@ class GroupCard extends StatelessWidget {
     return InkWell(
       onTap: onAction,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: 10,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
             // Avatar
             KovariAvatar(
               imageUrl: coverImageUrl,
-              size: 40,
+              size: 42,
               fullName: group.name,
             ),
             const SizedBox(width: AppSpacing.sm * 1.5),
@@ -63,12 +59,12 @@ class GroupCard extends StatelessWidget {
                         _formatDestinationCity(group.destination),
                         style: AppTextStyles.bodySmall.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: AppColors.text(context),
+                          color: AppColors.text(context, isMuted: true),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

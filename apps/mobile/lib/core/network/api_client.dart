@@ -677,7 +677,9 @@ class DioApiClient implements ApiClient {
       final responseBody = response.data;
 
       // 1. Success Callback for Caching
-      if (response.statusCode == 200 && responseBody['success'] == true) {
+      // Cache if 200 OK and (success is true OR success field is missing entirely)
+      if (response.statusCode == 200 && 
+          (responseBody['success'] == true || !responseBody.containsKey('success'))) {
         onSuccess?.call(responseBody);
       }
 

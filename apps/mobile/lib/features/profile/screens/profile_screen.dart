@@ -61,6 +61,7 @@ class ProfileScreen extends ConsumerWidget {
     WidgetRef ref,
     UserProfile profile,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -138,7 +139,7 @@ class ProfileScreen extends ConsumerWidget {
                           ],
                           child: Icon(
                             LucideIcons.menu,
-                            size: 18,
+                            size: 22,
                             color: AppColors.text(context),
                           ),
                         ),
@@ -209,6 +210,7 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               Expanded(
                 child: _buildActionButton(
+                  context,
                   'Edit Profile',
                   onPressed: () {
                     Navigator.push(
@@ -236,17 +238,21 @@ class ProfileScreen extends ConsumerWidget {
                   },
                   backgroundColor: AppColors.primary,
                   textColor: Colors.white,
+                  border: false,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildActionButton(
+                  context,
                   'Explore',
                   onPressed: () {
                     // Navigate to the Explore tab (index 1)
                     ref.read(appShellIndexProvider.notifier).setIndex(1);
                   },
-                  backgroundColor: AppColors.surface(context, level: 2),
+                  backgroundColor: isDark
+                      ? AppColors.mutedDark
+                      : AppColors.muted,
                   textColor: AppColors.text(context),
                 ),
               ),
@@ -287,7 +293,7 @@ class ProfileScreen extends ConsumerWidget {
           Text(
             label,
             style: TextStyle(
-              color: AppColors.text(context, isMuted: true),
+              color: AppColors.text(context),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -298,10 +304,12 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildActionButton(
+    BuildContext context,
     String label, {
     required VoidCallback onPressed,
     required Color backgroundColor,
     required Color textColor,
+    bool border = false,
   }) {
     return SizedBox(
       height: 32, // Controlled height for "sm" button
@@ -311,6 +319,9 @@ class ProfileScreen extends ConsumerWidget {
           backgroundColor: backgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            side: border
+                ? BorderSide(color: AppColors.borderColor(context), width: 1)
+                : BorderSide.none,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
@@ -490,6 +501,7 @@ class ProfileScreen extends ConsumerWidget {
     String label,
     List<String> items,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -505,12 +517,12 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
-          runSpacing: 4,
+          runSpacing: 8,
           children: items.map((item) {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.surface(context, level: 2),
+                color: isDark ? AppColors.mutedDark : AppColors.muted,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(

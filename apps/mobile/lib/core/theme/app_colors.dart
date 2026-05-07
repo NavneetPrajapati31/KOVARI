@@ -24,24 +24,26 @@ class AppColors {
   static const Color input = Color(0xFFF1F5F9);
 
   // --- Theme Specific (Dark) ---
-  static const Color backgroundDark = Color(0xFF0B0E14);
-  static const Color cardDark = Color(0xFF151921);
-  static const Color elevatedDark = Color(0xFF1C222D);
+  static const Color backgroundDark = Color(0xFF000000);
+  static const Color cardDark = Color.fromARGB(255, 10, 10, 13);
+  static const Color elevatedDark = Color.fromARGB(255, 10, 10, 13);
   static const Color foregroundDark = Color(0xFFF8FAFC);
-  static const Color mutedDark = Color(0xFF1E293B);
-  static const Color mutedForegroundDark = Color(0xFF94A3B8);
-  static const Color borderDark = Color(0xFF1E293B);
+  static const Color mutedDark = Color.fromARGB(255, 17, 21, 28);
+  static const Color mutedForegroundDark = Color.fromARGB(255, 158, 170, 188);
+  static const Color borderDark = Color.fromARGB(255, 17, 21, 28);
   static const Color inputDark = Color(0xFF0F172A);
 
   // --- Dynamic Resolution (Context-Aware) ---
-  
+
   static bool isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
 
+  /// Returns the appropriate background color based on the context theme.
+  static Color backgroundColor(BuildContext context) {
+    return isDark(context) ? backgroundDark : background;
+  }
+
   /// Returns the appropriate surface color based on the context theme.
-  /// level 0: Background
-  /// level 1: Cards/Containers
-  /// level 2: Elevated elements
   static Color surface(BuildContext context, {int level = 0}) {
     final scheme = Theme.of(context).colorScheme;
     if (level == 0) return scheme.surface;

@@ -28,7 +28,7 @@ class SettingsTab extends ConsumerWidget {
         : "Not set";
 
     return Container(
-      color: AppColors.background,
+      color: AppColors.backgroundColor(context),
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
         children: [

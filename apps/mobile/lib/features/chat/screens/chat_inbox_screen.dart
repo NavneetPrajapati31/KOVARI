@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
+import '../../../shared/widgets/app_card.dart';
 
 class MockConversation {
   final String id;
@@ -106,17 +108,9 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
           SliverToBoxAdapter(
             child: Container(
               padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: AppColors.surface(context),
-                border: Border(
-                  bottom: BorderSide(
-                    color: AppColors.borderColor(context),
-                    width: 1,
-                  ),
-                ),
-              ),
+              decoration: BoxDecoration(color: AppColors.surface(context)),
               child: SizedBox(
-                height: 38,
+                height: 44,
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) {
@@ -155,16 +149,25 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
                             color: AppColors.text(context, isMuted: true),
                           ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(
+                        color: AppColors.borderColor(context),
+                        width: 1,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: AppColors.borderColor(context),
+                        width: 1,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: AppColors.borderColor(context),
+                        width: 1,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -192,20 +195,45 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
               ),
             )
           else
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final conv = filteredConversations[index];
-                final isLast = index == filteredConversations.length - 1;
-                return RepaintBoundary(
-                  child: _ChatInboxItem(
-                    conversation: conv,
-                    isLast: isLast,
-                    onTap: () {
-                      // handle tap
-                    },
+            SliverPadding(
+              padding: const EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                bottom: 16.0,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: AppCard(
+                  padding: EdgeInsets.zero,
+                  child: ClipRRect(
+                    borderRadius: AppRadius.large,
+                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (
+                          int i = 0;
+                          i < filteredConversations.length;
+                          i++
+                        ) ...[
+                          RepaintBoundary(
+                            child: _ChatInboxItem(
+                              conversation: filteredConversations[i],
+                              onTap: () {
+                                // handle tap
+                              },
+                            ),
+                          ),
+                          if (i < filteredConversations.length - 1)
+                            Divider(
+                              height: 1,
+                              color: AppColors.borderColor(context),
+                            ),
+                        ],
+                      ],
+                    ),
                   ),
-                );
-              }, childCount: filteredConversations.length),
+                ),
+              ),
             ),
         ],
       ),
@@ -215,31 +243,16 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
 
 class _ChatInboxItem extends StatelessWidget {
   final MockConversation conversation;
-  final bool isLast;
   final VoidCallback onTap;
 
-  const _ChatInboxItem({
-    required this.conversation,
-    required this.isLast,
-    required this.onTap,
-  });
+  const _ChatInboxItem({required this.conversation, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(
-                  bottom: BorderSide(
-                    color: AppColors.borderColor(context),
-                    width: 1,
-                  ),
-                ),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
             // Avatar
@@ -257,7 +270,7 @@ class _ChatInboxItem extends StatelessWidget {
                       : null,
                   child: KovariAvatar(
                     imageUrl: conversation.profilePhoto,
-                    size: 44,
+                    size: 42,
                     fullName: conversation.name,
                   ),
                 ),
@@ -295,10 +308,9 @@ class _ChatInboxItem extends StatelessWidget {
                       Expanded(
                         child: Text(
                           conversation.name,
-                          style: AppTextStyles.bodyMedium.copyWith(
+                          style: AppTextStyles.bodySmall.copyWith(
                             fontWeight: FontWeight.w600,
                             color: AppColors.text(context),
-                            fontSize: 14,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -309,11 +321,13 @@ class _ChatInboxItem extends StatelessWidget {
                         conversation.lastMessageAt,
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.text(context, isMuted: true),
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
+
+                  SizedBox(height: 1),
 
                   // Bottom Row
                   Row(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import '../../../core/theme/app_colors.dart';
 
 class GroupTabBar extends StatelessWidget {
@@ -24,7 +25,7 @@ class GroupTabBar extends StatelessWidget {
             final isSelected = activeIndex == index;
             return Padding(
               padding: const EdgeInsets.only(right: 6),
-              child: _buildTabButton(tabs[index], isSelected, index),
+              child: _buildTabButton(context, tabs[index], isSelected, index),
             );
           }),
         ),
@@ -32,17 +33,23 @@ class GroupTabBar extends StatelessWidget {
     );
   }
 
-  Widget _buildTabButton(String label, bool isSelected, int index) {
+  Widget _buildTabButton(BuildContext context, String label, bool isSelected, int index) {
     return InkWell(
       onTap: () => onTabChanged(index),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : AppColors.card,
+          color: isSelected
+              ? (AppColors.isDark(context)
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.primary.withValues(alpha: 0.1))
+              : AppColors.surface(context, level: 1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.borderColor(context),
             width: 1,
           ),
         ),
@@ -51,7 +58,9 @@ class GroupTabBar extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w600,
-            color: isSelected ? AppColors.primary : AppColors.mutedForeground,
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.text(context, isMuted: true),
           ),
         ),
       ),

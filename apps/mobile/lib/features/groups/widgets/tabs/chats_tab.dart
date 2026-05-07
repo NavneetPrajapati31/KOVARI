@@ -18,7 +18,7 @@ class ChatsTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: AppColors.isDark(context) ? AppColors.primary.withValues(alpha: 0.15) : AppColors.primaryLight,
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -33,9 +33,9 @@ class ChatsTab extends StatelessWidget {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             "Connect with your travel buddies here.",
-            style: TextStyle(color: AppColors.mutedForeground, fontSize: 14),
+            style: TextStyle(color: AppColors.text(context, isMuted: true), fontSize: 14),
           ),
           const SizedBox(height: 32),
           PrimaryButton(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -45,11 +44,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final notificationsAsync = ref.watch(notificationProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.backgroundColor(context),
       body: SafeArea(
-        child: KovariRefreshIndicator(
+        child: RefreshIndicator(
           onRefresh: () => ref
               .read(notificationProvider.notifier)
               .refresh(ignoreCache: true),
+          color: AppColors.primary,
           child: CustomScrollView(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),

@@ -14,6 +14,7 @@ class AppCard extends StatelessWidget {
   final bool interactive;
   final BorderRadius? borderRadius;
   final EdgeInsetsGeometry? margin;
+  final BoxBorder? border;
 
   const AppCard({
     super.key,
@@ -26,6 +27,7 @@ class AppCard extends StatelessWidget {
     this.interactive = true,
     this.borderRadius,
     this.margin,
+    this.border,
   });
 
   @override
@@ -39,9 +41,7 @@ class AppCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surface(context, level: 1),
         borderRadius: borderRadius ?? AppRadius.large,
-        border: Border.all(
-          color: AppColors.borderColor(context).withValues(alpha: 0.5),
-        ),
+        border: border ?? Border.all(color: AppColors.borderColor(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(

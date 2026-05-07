@@ -187,6 +187,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         controller: _emailController,
                         hintText: 'example@example.com',
                         keyboardType: TextInputType.emailAddress,
+                        height: 40,
                       ),
                       const SizedBox(height: 16),
                       TextInputField(
@@ -194,6 +195,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         controller: _passwordController,
                         hintText: 'Enter password',
                         obscureText: true,
+                        height: 40,
                       ),
                       const SizedBox(height: 16),
                       TextInputField(
@@ -201,6 +203,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         controller: _confirmPasswordController,
                         hintText: 'Confirm password',
                         obscureText: true,
+                        height: 40,
                       ),
 
                       const SizedBox(height: 20),
@@ -212,6 +215,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                             : 'Create account',
                         onPressed: _isLoading ? null : _handleSignUp,
                         isLoading: _isLoading,
+                        height: 40,
                       ),
                     ],
                   ),

@@ -44,15 +44,15 @@ class OverviewTab extends ConsumerWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
-              side: const BorderSide(color: AppColors.border, width: 1),
+              side: BorderSide(color: AppColors.borderColor(context), width: 1),
             ),
-            color: AppColors.card,
+            color: AppColors.surface(context, level: 1),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildCoverImage(group),
+                  _buildCoverImage(context, group),
                   const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -61,19 +61,20 @@ class OverviewTab extends ConsumerWidget {
                       children: [
                         Text(
                           group.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
+                            color: AppColors.text(context),
                             height: 1.2,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           group.description ?? "No description provided.",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.mutedForeground,
+                            color: AppColors.text(context, isMuted: true),
                             height: 1.4,
                           ),
                         ),
@@ -81,33 +82,47 @@ class OverviewTab extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Divider(color: AppColors.border, thickness: 1),
+                  Divider(color: AppColors.borderColor(context), thickness: 1),
                   const SizedBox(height: 10),
-                  _buildDatesSection(group),
+                  _buildDatesSection(context, group),
                   const SizedBox(height: 10),
-                  const Divider(color: AppColors.border, thickness: 1),
+                  Divider(color: AppColors.borderColor(context), thickness: 1),
                   const SizedBox(height: 10),
                   membersAsync.when(
-                    data: (members) => _buildMembersVerticalList(members),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, s) => Text("Error: $e"),
+                    data: (members) =>
+                        _buildMembersVerticalList(context, members),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    error: (e, s) => Text(
+                      "Error: $e",
+                      style: TextStyle(color: AppColors.text(context)),
+                    ),
                   ),
-                  const Divider(color: AppColors.border, thickness: 1),
+                  Divider(color: AppColors.borderColor(context), thickness: 1),
                   const SizedBox(height: 10),
                   itineraryAsync.when(
-                    data: (itinerary) => _buildUpcomingItineraryCard(itinerary),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, s) => Text("Error: $e"),
+                    data: (itinerary) =>
+                        _buildUpcomingItineraryCard(context, itinerary),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    error: (e, s) => Text(
+                      "Error: $e",
+                      style: TextStyle(color: AppColors.text(context)),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   if (group.destinationImage != null)
                     _buildDestinationImageCard(group),
                   const SizedBox(height: 16),
-                  _buildAiOverviewCard(group),
+                  _buildAiOverviewCard(context, group),
                   const SizedBox(height: 16),
-                  _buildStickyNotesSection(ref),
+                  _buildStickyNotesSection(context, ref),
                 ],
               ),
             ),
@@ -118,7 +133,7 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildCoverImage(GroupModel group) {
+  Widget _buildCoverImage(BuildContext context, GroupModel group) {
     final coverImageUrl = UrlUtils.getFullImageUrl(group.coverImage);
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -131,26 +146,31 @@ class OverviewTab extends ConsumerWidget {
                     imageUrl: coverImageUrl,
                     fit: BoxFit.cover,
                     placeholder: (context, url) =>
-                        Container(color: AppColors.secondary),
-                    errorWidget: (context, url, error) => _buildPlaceholder(),
+                        Container(color: AppColors.mutedColor(context)),
+                    errorWidget: (context, url, error) =>
+                        _buildPlaceholder(context),
                   )
-                : _buildPlaceholder(),
+                : _buildPlaceholder(context),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(BuildContext context) {
     return Container(
-      color: AppColors.secondary,
-      child: const Center(
-        child: Icon(LucideIcons.image, size: 48, color: AppColors.muted),
+      color: AppColors.mutedColor(context),
+      child: Center(
+        child: Icon(
+          LucideIcons.image,
+          size: 48,
+          color: AppColors.text(context, isMuted: true),
+        ),
       ),
     );
   }
 
-  Widget _buildDatesSection(GroupModel group) {
+  Widget _buildDatesSection(BuildContext context, GroupModel group) {
     final start = group.dateRange.start != null
         ? DateFormat('MMMM d').format(DateTime.parse(group.dateRange.start!))
         : "";
@@ -170,10 +190,10 @@ class OverviewTab extends ConsumerWidget {
           const SizedBox(height: 6),
           Text(
             "$start - $end",
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
         ],
@@ -181,7 +201,10 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildMembersVerticalList(List<GroupMember> members) {
+  Widget _buildMembersVerticalList(
+    BuildContext context,
+    List<GroupMember> members,
+  ) {
     final sortedMembers = [...members]
       ..sort((a, b) {
         if (a.role == 'admin' && b.role != 'admin') return -1;
@@ -209,7 +232,11 @@ class OverviewTab extends ConsumerWidget {
           const SizedBox(height: 12),
           Column(
             children: [
-              for (int i = 0; i < (sortedMembers.length > 5 ? 5 : sortedMembers.length); i++)
+              for (
+                int i = 0;
+                i < (sortedMembers.length > 5 ? 5 : sortedMembers.length);
+                i++
+              )
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Row(
@@ -229,9 +256,9 @@ class OverviewTab extends ConsumerWidget {
                             ),
                             Text(
                               "@${sortedMembers[i].username}",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.mutedForeground,
+                                color: AppColors.text(context, isMuted: true),
                               ),
                             ),
                           ],
@@ -283,7 +310,10 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildUpcomingItineraryCard(List<ItineraryItem> itinerary) {
+  Widget _buildUpcomingItineraryCard(
+    BuildContext context,
+    List<ItineraryItem> itinerary,
+  ) {
     if (itinerary.isEmpty) return const SizedBox.shrink();
     final nextItem = itinerary.first;
 
@@ -315,9 +345,9 @@ class OverviewTab extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       "${itinerary.length} item${itinerary.length == 1 ? '' : 's'} scheduled",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                       ),
                     ),
                   ],
@@ -345,9 +375,9 @@ class OverviewTab extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: AppColors.surface(context, level: 1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.borderColor(context)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +395,7 @@ class OverviewTab extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    _buildStatusBadge(nextItem.status),
+                    _buildStatusBadge(context, nextItem.status),
                   ],
                 ),
                 nextItem.description.isNotEmpty
@@ -374,9 +404,9 @@ class OverviewTab extends ConsumerWidget {
                           const SizedBox(height: 4),
                           Text(
                             nextItem.description,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.mutedForeground,
+                              color: AppColors.text(context, isMuted: true),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -385,36 +415,36 @@ class OverviewTab extends ConsumerWidget {
                     : const SizedBox.shrink(),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       LucideIcons.calendar,
                       size: 14,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       DateFormat(
                         'EEE, MMM d',
                       ).format(DateTime.parse(nextItem.datetime)),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(
+                    Icon(
                       LucideIcons.clock,
                       size: 14,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       DateFormat(
                         'hh:mm a',
                       ).format(DateTime.parse(nextItem.datetime)),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -423,17 +453,17 @@ class OverviewTab extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       LucideIcons.mapPin,
                       size: 14,
-                      color: AppColors.mutedForeground,
+                      color: AppColors.text(context, isMuted: true),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       nextItem.location,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -447,30 +477,41 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(BuildContext context, String status) {
     Color color = Colors.grey;
     Color bgColor = Colors.grey.withValues(alpha: 0.1);
     String label = status.toUpperCase();
 
+    final isDark = AppColors.isDark(context);
     switch (status.toLowerCase()) {
       case 'confirmed':
-        color = const Color(0xFF1D4ED8);
-        bgColor = const Color(0xFFEFF6FF);
+        color = isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8);
+        bgColor = isDark
+            ? const Color(0xFF1E3A8A).withValues(alpha: 0.3)
+            : const Color(0xFFEFF6FF);
         label = "In Progress";
         break;
       case 'completed':
-        color = const Color(0xFF15803D);
-        bgColor = const Color(0xFFF0FDF4);
+        color = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
+        bgColor = isDark
+            ? const Color(0xFF064E3B).withValues(alpha: 0.3)
+            : const Color(0xFFF0FDF4);
         label = "Completed";
         break;
       case 'pending':
-        color = const Color.fromARGB(255, 193, 148, 0);
-        bgColor = const Color.fromARGB(255, 255, 247, 216);
+        color = isDark
+            ? const Color(0xFFFACC15)
+            : const Color.fromARGB(255, 193, 148, 0);
+        bgColor = isDark
+            ? const Color(0xFF422006).withValues(alpha: 0.3)
+            : const Color.fromARGB(255, 255, 247, 216);
         label = "Not Started";
         break;
       case 'cancelled':
-        color = const Color(0xFFB91C1C);
-        bgColor = const Color(0xFFFEF2F2);
+        color = isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C);
+        bgColor = isDark
+            ? const Color(0xFF7F1D1D).withValues(alpha: 0.3)
+            : const Color(0xFFFEF2F2);
         label = "Cancelled";
         break;
     }
@@ -508,7 +549,7 @@ class OverviewTab extends ConsumerWidget {
               imageUrl: destinationImageUrl,
               fit: BoxFit.cover,
               placeholder: (context, url) =>
-                  Container(color: AppColors.secondary),
+                  Container(color: AppColors.mutedColor(context)),
               errorWidget: (context, url, error) => const SizedBox.shrink(),
             ),
           ),
@@ -586,13 +627,15 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildAiOverviewCard(GroupModel group) {
+  Widget _buildAiOverviewCard(BuildContext context, GroupModel group) {
     if (group.aiOverview == null) return const SizedBox.shrink();
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        color: AppColors.primaryLight,
+        color: AppColors.isDark(context)
+            ? AppColors.primary.withValues(alpha: 0.15)
+            : AppColors.primaryLight,
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,8 +661,8 @@ class OverviewTab extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               group.aiOverview!,
-              style: const TextStyle(
-                color: AppColors.foreground,
+              style: TextStyle(
+                color: AppColors.text(context),
                 fontSize: 12,
                 height: 1.6,
                 fontWeight: FontWeight.w500,
@@ -631,12 +674,14 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildStickyNotesSection(WidgetRef ref) {
+  Widget _buildStickyNotesSection(BuildContext context, WidgetRef ref) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF2C0),
+        color: AppColors.isDark(context)
+            ? AppColors.mutedDark
+            : const Color(0xFFFFF2C0),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -646,11 +691,11 @@ class OverviewTab extends ConsumerWidget {
               ? TextField(
                   controller: notesController,
                   maxLines: null,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     height: 1.6,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.mutedForeground,
+                    color: AppColors.text(context, isMuted: true),
                   ),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
@@ -661,8 +706,8 @@ class OverviewTab extends ConsumerWidget {
                   notesController.text.isEmpty
                       ? "Enter your travel note..."
                       : notesController.text,
-                  style: const TextStyle(
-                    color: AppColors.mutedForeground,
+                  style: TextStyle(
+                    color: AppColors.text(context, isMuted: true),
                     height: 1.6,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -674,17 +719,17 @@ class OverviewTab extends ConsumerWidget {
             children: [
               Text(
                 DateFormat('MMM d, yyyy').format(DateTime.now()),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
               IconButton(
                 icon: Icon(
                   isEditingNotes ? LucideIcons.check : LucideIcons.pencil,
                   size: 16,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

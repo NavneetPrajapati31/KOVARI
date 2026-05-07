@@ -208,12 +208,12 @@ class GroupsScreen extends ConsumerWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.1)
               : AppColors.surface(context, level: 1),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
@@ -226,7 +226,9 @@ class GroupsScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: AppTextStyles.bodySmall.fontSize,
             fontWeight: FontWeight.w600,
-            color: isSelected ? AppColors.primary : AppColors.text(context),
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.text(context, isMuted: true),
           ),
         ),
       ),

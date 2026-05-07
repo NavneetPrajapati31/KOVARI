@@ -21,9 +21,11 @@ class KovariGroupContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.card,
+        color: backgroundColor ?? AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(16),
-        border: isBorder ? Border.all(color: AppColors.border) : null,
+        border: isBorder
+            ? Border.all(color: AppColors.borderColor(context))
+            : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -34,7 +36,7 @@ class KovariGroupContainer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               children[index],
-              const Divider(height: 1, color: AppColors.border),
+              Divider(height: 1, color: AppColors.borderColor(context)),
             ],
           );
         }),
@@ -75,7 +77,7 @@ class KovariSection extends StatelessWidget {
                 style: AppTextStyles.bodySmall.copyWith(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.mutedForeground,
+                  color: AppColors.text(context, isMuted: true),
                   letterSpacing: 1,
                 ),
               ),
@@ -120,8 +122,12 @@ class KovariListRow extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            highlightColor: Colors.black.withValues(alpha: 0.05),
-            splashColor: Colors.black.withValues(alpha: 0.03),
+            highlightColor: AppColors.isDark(context)
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
+            splashColor: AppColors.isDark(context)
+                ? Colors.white.withValues(alpha: 0.03)
+                : Colors.black.withValues(alpha: 0.03),
             child: Padding(
               padding:
                   contentPadding ??
@@ -149,17 +155,17 @@ class KovariListRow extends StatelessWidget {
                           style: AppTextStyles.bodyMedium.copyWith(
                             fontWeight: FontWeight.w500,
                             fontSize: labelSize ?? 15,
-                            color: labelColor ?? AppColors.foreground,
+                            color: labelColor ?? AppColors.text(context),
                           ),
                         ),
                       ],
                     ),
                   ),
                   trailing ??
-                      const Icon(
+                      Icon(
                         LucideIcons.chevronRight,
                         size: 18,
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                       ),
                 ],
               ),

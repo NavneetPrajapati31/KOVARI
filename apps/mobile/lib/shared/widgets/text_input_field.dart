@@ -90,6 +90,16 @@ class TextInputField extends StatelessWidget {
             suffixIcon: suffixIcon,
             errorText: errorText,
             isDense: true,
+            contentPadding:
+                contentPadding ??
+                (height != null
+                    ? EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: (height! - 20) / 2 > 0
+                            ? (height! - 20) / 2
+                            : 10,
+                      )
+                    : const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
             fillColor: fillColor ?? AppColors.surface(context, level: 2),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -101,10 +111,7 @@ class TextInputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: AppColors.borderColor(context)),
             ),
           ).applyDefaults(Theme.of(context).inputDecorationTheme),
         ),

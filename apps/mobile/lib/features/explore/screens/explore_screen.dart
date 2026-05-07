@@ -121,6 +121,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(20),
                 ),
+                border: Border(
+                  top: BorderSide(color: AppColors.borderColor(context)),
+                  left: BorderSide(color: AppColors.borderColor(context)),
+                  right: BorderSide(color: AppColors.borderColor(context)),
+                  bottom: BorderSide.none,
+                ),
                 child: _buildBody(state),
               ),
             ),
@@ -147,7 +153,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 indicator: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: AppColors.primary, width: 1.5),
+                  border: Border.all(color: AppColors.primary, width: 1),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: AppColors.primary,
@@ -178,7 +184,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   'Filters',
                   style: AppTextStyles.bodySmall.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.text(context),
+                    color: AppColors.text(context, isMuted: true),
                   ),
                 ),
               ),

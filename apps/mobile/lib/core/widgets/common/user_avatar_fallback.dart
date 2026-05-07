@@ -45,6 +45,7 @@ class UserAvatarFallback extends StatelessWidget {
           decoration: BoxDecoration(
             color: backgroundColor ?? AppColors.surface(context, level: 2),
             shape: shape,
+            border: Border.all(color: AppColors.borderColor(context)),
             borderRadius: borderRadius,
           ),
           child: Center(
@@ -52,7 +53,8 @@ class UserAvatarFallback extends StatelessWidget {
                 ? Text(
                     name![0].toUpperCase(),
                     style: TextStyle(
-                      color: iconColor ?? AppColors.text(context, isMuted: true),
+                      color:
+                          iconColor ?? AppColors.text(context, isMuted: true),
                       fontSize: fontSize ?? (effectiveSize * 0.45),
                       fontWeight: FontWeight.bold,
                     ),
