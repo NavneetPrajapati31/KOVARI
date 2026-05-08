@@ -77,7 +77,9 @@ class KovariSwitchTile extends StatelessWidget {
                 value: value,
                 onChanged: onChanged,
                 activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.surface(context, level: 3),
+                inactiveTrackColor: AppColors.isDark(context)
+                    ? AppColors.mutedForegroundDark
+                    : AppColors.muted,
               ),
             ),
           ),
