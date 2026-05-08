@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
 import '../../../core/theme/app_colors.dart';
 
 class GroupTabBar extends StatelessWidget {
@@ -33,7 +32,12 @@ class GroupTabBar extends StatelessWidget {
     );
   }
 
-  Widget _buildTabButton(BuildContext context, String label, bool isSelected, int index) {
+  Widget _buildTabButton(
+    BuildContext context,
+    String label,
+    bool isSelected,
+    int index,
+  ) {
     return InkWell(
       onTap: () => onTabChanged(index),
       borderRadius: BorderRadius.circular(20),
@@ -42,8 +46,8 @@ class GroupTabBar extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? (AppColors.isDark(context)
-                  ? AppColors.primary.withValues(alpha: 0.15)
-                  : AppColors.primary.withValues(alpha: 0.1))
+                    ? AppColors.primary.withValues(alpha: 0.15)
+                    : AppColors.primary.withValues(alpha: 0.1))
               : AppColors.surface(context, level: 1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(

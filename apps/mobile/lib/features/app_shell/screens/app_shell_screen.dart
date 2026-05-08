@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/theme/app_colors.dart';
 import '../../home/screens/home_screen.dart';
 import '../../explore/screens/explore_screen.dart';
 import '../../chat/screens/chat_inbox_screen.dart';
@@ -22,7 +21,9 @@ class AppShellScreen extends ConsumerWidget {
     // Global connectivity listener to refresh data when connection is restored
     ref.listen(connectivityProvider, (previous, next) {
       if (next.isOnline && previous?.isOnline == false) {
-        AppLogger.i('🌐 Connectivity restored in AppShell. Refreshing current data...');
+        AppLogger.i(
+          '🌐 Connectivity restored in AppShell. Refreshing current data...',
+        );
         // Refresh home data automatically
         ref.read(homeDataProvider.notifier).refresh(isSilent: true);
       }

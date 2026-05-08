@@ -33,7 +33,6 @@ class KovariSnackbar {
         icon = LucideIcons.circleAlert;
         break;
       case SnackbarType.info:
-      default:
         backgroundColor = AppColors.isDark(context)
             ? AppColors.cardDark.withValues(alpha: 0.95)
             : AppColors.secondaryForeground.withValues(alpha: 0.95);

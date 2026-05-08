@@ -27,7 +27,6 @@ import 'shared/widgets/dynamic_status_overlay.dart';
 
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
-import 'core/providers/connectivity_provider.dart';
 import 'core/providers/cache_provider.dart';
 import 'core/network/mutation_queue.dart';
 import 'core/providers/theme_provider.dart';
@@ -342,7 +341,6 @@ class AuthHandler extends ConsumerStatefulWidget {
 class _AuthHandlerState extends ConsumerState<AuthHandler> {
   bool _isSyncing = true;
   bool _needsOnboarding = false;
-  String? _error;
 
   @override
   void initState() {
