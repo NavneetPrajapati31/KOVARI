@@ -118,38 +118,51 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
             onTabChanged: (index) => setState(() => _activeTabIndex = index),
           ),
           Expanded(
-            child: IndexedStack(
-              index: _activeTabIndex,
-              children: [
-                OverviewTab(
-                  group: group,
-                  isEditingNotes: _isEditingNotes,
-                  notesController: _notesController,
-                  onEditNotesToggle: () =>
-                      setState(() => _isEditingNotes = !_isEditingNotes),
-                  onTabChange: (index) =>
-                      setState(() => _activeTabIndex = index),
-                  onViewAllMembers: (members) => _showMembersModal(members),
-                ),
-                ChatsTab(group: group),
-                ItineraryTab(group: group),
-                SettingsTab(
-                  group: group,
-                  onViewMembers: () {
-                    final members = ref
-                        .read(memberStoreProvider)[widget.groupId]
-                        ?.data;
-                    if (members != null) {
-                      _showMembersModal(members);
-                    }
-                  },
-                ),
-              ],
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: AppColors.primary,
+              child: IndexedStack(
+                index: _activeTabIndex,
+                children: [
+                  OverviewTab(
+                    group: group,
+                    isEditingNotes: _isEditingNotes,
+                    notesController: _notesController,
+                    onEditNotesToggle: () =>
+                        setState(() => _isEditingNotes = !_isEditingNotes),
+                    onTabChange: (index) =>
+                        setState(() => _activeTabIndex = index),
+                    onViewAllMembers: (members) => _showMembersModal(members),
+                  ),
+                  ChatsTab(group: group),
+                  ItineraryTab(group: group),
+                  SettingsTab(
+                    group: group,
+                    onViewMembers: () {
+                      final members = ref
+                          .read(memberStoreProvider)[widget.groupId]
+                          ?.data;
+                      if (members != null) {
+                        _showMembersModal(members);
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _onRefresh() async {
+    // 🚀 Force refresh all entity stores for this group
+    await Future.wait([
+      ref.read(groupStoreProvider.notifier).subscribe(widget.groupId, force: true),
+      ref.read(membershipStoreProvider.notifier).subscribe(widget.groupId, force: true),
+      ref.read(memberStoreProvider.notifier).subscribe(widget.groupId, force: true),
+    ]);
   }
 
   Widget _buildSkeletonState() {

@@ -1,3 +1,5 @@
+import 'package:flutter/rendering.dart';
+
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/utils/safe_parser.dart';
@@ -11,19 +13,28 @@ class GroupService {
 
   Future<List<GroupModel>> getMyGroups() async {
     final response = await _apiClient.get<List<GroupModel>>(
-      ApiEndpoints.myGroups,
+      '${ApiEndpoints.myGroups}?_t=${DateTime.now().millisecondsSinceEpoch}',
       parser: (data) => parseGroups(data),
     );
 
     if (response.success && response.data != null) {
-      return response.data!;
+      final groups = response.data!;
+      final groupsWithImg = groups
+          .where((g) => g.destinationImage != null)
+          .length;
+      debugPrint(
+        '📡 [GroupService] getMyGroups success: ${groups.length} groups found ($groupsWithImg with images)',
+      );
+      return groups;
     }
 
     throw Exception(response.error?.message ?? "Failed to load groups");
   }
 
   List<GroupModel> parseGroups(dynamic data) {
-    final actualData = (data is Map && data.containsKey('data')) ? data['data'] : data;
+    final actualData = (data is Map && data.containsKey('data'))
+        ? data['data']
+        : data;
     if (actualData is! List) return [];
     return actualData.map((e) => GroupModel.fromJson(e)).toList();
   }
@@ -43,7 +54,12 @@ class GroupService {
   Future<GroupModel> getGroupDetails(String groupId) async {
     final response = await _apiClient.get<GroupModel>(
       ApiEndpoints.groupDetails(groupId),
-      parser: (json) => GroupModel.fromJson(json as Map<String, dynamic>),
+      parser: (json) {
+        debugPrint(
+          '📡 [GroupService] getGroupDetails Raw JSON for $groupId: $json',
+        );
+        return GroupModel.fromJson(json as Map<String, dynamic>);
+      },
     );
     if (response.success && response.data != null) {
       return response.data!;
@@ -71,9 +87,7 @@ class GroupService {
       return response.data!;
     }
 
-    throw Exception(
-      response.error?.message ?? 'Failed to fetch group members',
-    );
+    throw Exception(response.error?.message ?? 'Failed to fetch group members');
   }
 
   Future<List<JoinRequestModel>> getJoinRequests(String groupId) async {

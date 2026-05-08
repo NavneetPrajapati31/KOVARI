@@ -54,6 +54,15 @@ export async function GET(
     .eq("id", groupId)
     .single();
 
+  if (data) {
+    console.log(`📡 [API] Group Detail Fetch for ${data.name}:`, {
+      id: data.id,
+      has_dest_img: !!data.destination_image,
+      dest_img: data.destination_image,
+      has_dest_details: !!data.destination_details
+    });
+  }
+
   if (error) {
     if (req.headers.get("x-kovari-client") === "mobile") {
       return formatErrorResponse(error.message, ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);

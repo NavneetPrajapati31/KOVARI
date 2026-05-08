@@ -129,26 +129,42 @@ class GroupModel {
       );
     }
 
-    final destinationImgUrl = (json['destination_image'] ??
-            json['destinationImage'] ??
-            (json['destination'] is Map ? json['destination']['image'] : null) ??
-            (json['destination'] is Map ? json['destination']['imageUrl'] : null) ??
-            (json['destination'] is Map ? json['destination']['image_url'] : null) ??
-            json['destination_img'] ??
-            json['destinationImg'] ??
-            json['imageUrl'] ??
-            json['image_url'] ??
-            json['img'] ??
-            json['destination_image_url'] ??
-            json['destinationImageUrl'] ??
-            json['location_image'] ??
-            json['locationImage'] ??
-            json['image'])
-        as String?;
+    // 🛡️ Destination Image Extraction (Matches DB Schema + API Transformation)
+    String? destinationImgUrl =
+        (json['destination_image'] ?? json['destinationImage']) as String?;
 
-    if (destinationImgUrl == null && kDebugMode) {
-      debugPrint('⚠️ [GroupModel.fromJson] Destination Image Missing for: ${json['name']}');
-      debugPrint('📜 [GroupModel.fromJson] Raw JSON: $json');
+    // 1. Fallback to nested destination_details (jsonb in DB)
+    if (destinationImgUrl == null && json['destination_details'] != null) {
+      try {
+        final raw = json['destination_details'];
+        final Map? details = (raw is String)
+            ? jsonDecode(raw)
+            : (raw is Map ? raw : null);
+        if (details != null) {
+          destinationImgUrl =
+              (details['image'] ??
+                      details['imageUrl'] ??
+                      details['image_url'] ??
+                      details['destination_image'])
+                  as String?;
+        }
+      } catch (_) {}
+    }
+
+    // 2. Fallback to flat imageUrl keys (Common in list APIs)
+    destinationImgUrl ??=
+        (json['imageUrl'] ??
+                json['image_url'] ??
+                json['img'] ??
+                json['location_image'])
+            as String?;
+
+    if (destinationImgUrl == null &&
+        kDebugMode &&
+        json['name']?.toString().contains('Singapore') == true) {
+      debugPrint(
+        '⚠️ [GroupModel.fromJson] Destination Image STILL missing for Singapore. Keys: ${json.keys.toList()}',
+      );
     }
 
     return GroupModel(
@@ -162,7 +178,7 @@ class GroupModel {
           : (json['destination'] as String?) ?? 'Unknown',
       description: json['description'] as String?,
       notes: json['notes'] as String?,
-      aiOverview: json['ai_overview'] as String?,
+      aiOverview: (json['ai_overview'] ?? json['aiOverview']) as String?,
       dateRange: dateRange,
       memberCount:
           (json['memberCount'] as int?) ?? (json['members_count'] as int?) ?? 0,
@@ -190,17 +206,15 @@ class GroupModel {
       languages: json['languages'] != null
           ? List<String>.from(json['languages'] as List)
           : null,
-      smokingPolicy:
-          (json['smokingPolicy'] ??
-                  json['smoking_policy'] ??
-                  json['non_smokers']?.toString())
-              as String?,
-      drinkingPolicy:
-          (json['drinkingPolicy'] ??
-                  json['drinking_policy'] ??
-                  json['non_drinkers']?.toString())
-              as String?,
-      budget: (json['budget'] ?? json['estimated_budget']) as int?,
+      smokingPolicy: (json['non_smokers'] == true)
+          ? 'Non-smokers preferred'
+          : (json['smokingPolicy'] ?? json['smoking_policy']) as String?,
+      drinkingPolicy: (json['non_drinkers'] == true)
+          ? 'Non-drinkers preferred'
+          : (json['drinkingPolicy'] ?? json['drinking_policy']) as String?,
+      budget:
+          (json['budget'] as num?)?.toInt() ??
+          (json['estimated_budget'] as num?)?.toInt(),
     );
   }
 

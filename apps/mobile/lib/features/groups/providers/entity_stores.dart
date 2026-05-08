@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../models/group.dart';
@@ -87,48 +88,55 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
       return;
     }
 
-    // 3. Mutation Integrity
-    // If there are pending mutations, preserve the optimistic fields
+    // 3. Progressive Merge & Mutation Integrity
     var finalData = hydratedState.data;
-    if (finalData != null) {
+
+    if (finalData != null && current?.data != null) {
+      final existingData = current!.data!;
+
+      // 🛡️ Progressive Merge: Preserve high-fidelity fields if incoming is null/empty
+      finalData = finalData.copyWith(
+        destinationImage: (finalData.destinationImage?.isEmpty ?? true)
+            ? existingData.destinationImage
+            : finalData.destinationImage,
+        description: (finalData.description?.isEmpty ?? true)
+            ? existingData.description
+            : finalData.description,
+        notes: (finalData.notes?.isEmpty ?? true)
+            ? existingData.notes
+            : finalData.notes,
+        coverImage: (finalData.coverImage?.isEmpty ?? true)
+            ? existingData.coverImage
+            : finalData.coverImage,
+      );
+
+      // 🛡️ Mutation Protection: Preserve fields with pending local edits
       final journal = ref.read(mutationJournalProvider);
       final pendingMutations = journal.getPendingFor(groupId);
-
-      if (pendingMutations.isNotEmpty && current?.data != null) {
-        // Merge strategy: preserve fields that have pending mutations
-        // This is a simplified merge - in a real app, you'd use a deep copy
-        // and apply only non-mutated fields from hydratedState.data.
-        // For now, we protect the entire model if any mutation is pending,
-        // or we could implement field-level protection if needed.
-
-        // Let's implement basic field-level protection for 'name' and 'notes'
+      if (pendingMutations.isNotEmpty) {
         final mutatedFields = pendingMutations
             .expand((m) => m.affectedFields ?? <String>{})
             .toSet();
-
         if (mutatedFields.isNotEmpty) {
           finalData = finalData.copyWith(
             name: mutatedFields.contains('name')
-                ? current!.data!.name
+                ? existingData.name
                 : finalData.name,
-            notes: mutatedFields.contains('notes')
-                ? current!.data!.notes
-                : finalData.notes,
-            description: mutatedFields.contains('description')
-                ? current!.data!.description
-                : finalData.description,
-            privacy: mutatedFields.contains('privacy')
-                ? current!.data!.privacy
-                : finalData.privacy,
             destination: mutatedFields.contains('destination')
-                ? current!.data!.destination
+                ? existingData.destination
                 : finalData.destination,
-            coverImage: mutatedFields.contains('coverImage')
-                ? current!.data!.coverImage
-                : finalData.coverImage,
+            notes: mutatedFields.contains('notes')
+                ? existingData.notes
+                : finalData.notes,
           );
         }
       }
+    }
+
+    if (kDebugMode && finalData?.destinationImage != null) {
+      debugPrint(
+        '🛰️ [GroupStore._patch] Applying state with image: ${finalData?.destinationImage}',
+      );
     }
 
     final newState = Map<String, HydratedState<GroupModel>>.from(state);
@@ -161,7 +169,7 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
     });
   }
 
-  void subscribe(String groupId) {
+  Future<void> subscribe(String groupId, {bool force = false}) async {
     _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
     _metadata[groupId]!.lastAccessedAt = DateTime.now();
 
@@ -170,14 +178,15 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
     if (current == null ||
         !current.hasData ||
         current.source == HydrationSource.initial ||
-        current.source == HydrationSource.memory) {
-      ref
-          .read(runtimeCoordinatorProvider)
-          .requestHydration(
+        current.source == HydrationSource.memory ||
+        force) {
+      final stream = ref.read(runtimeCoordinatorProvider).requestHydration(
             _createHydratable(groupId),
             priority: TaskPriority.visible,
             initialData: current?.data,
+            force: force,
           );
+      await stream.firstWhere((s) => !s.isHydrating);
     }
   }
 
@@ -190,23 +199,47 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
 
   // Update a single group from list fetch or other source
   void updateFromList(List<GroupModel> groups) {
-    final newState = Map<String, HydratedState<GroupModel>>.from(state);
     for (final group in groups) {
-      final existing = newState[group.id];
-      // Only update if fresh or if we don't have it
-      if (existing == null || existing.source == HydrationSource.initial) {
-        newState[group.id] = HydratedState(
-          data: group,
+      final current = state[group.id];
+
+      // 🛡️ High-Fidelity Protection: Never let a thin list update wipe out a rich detail image
+      final existingImg = current?.data?.destinationImage;
+      final incomingImg = group.destinationImage;
+      final preservedImg =
+          (incomingImg == null || incomingImg.isEmpty) &&
+              (existingImg != null && existingImg.isNotEmpty)
+          ? existingImg
+          : incomingImg;
+
+      final mergedData = group.copyWith(
+        destinationImage: preservedImg,
+        // Preserve other rich fields if missing in list
+        description: group.description ?? current?.data?.description,
+        notes: group.notes ?? current?.data?.notes,
+        coverImage: (group.coverImage == null || group.coverImage!.isEmpty)
+            ? current?.data?.coverImage
+            : group.coverImage,
+      );
+
+      if (kDebugMode &&
+          (existingImg != null &&
+              existingImg.isNotEmpty &&
+              (incomingImg == null || incomingImg.isEmpty))) {
+        debugPrint(
+          '   🛡️ [MERGE] Preserved existing image URL ($existingImg)',
+        );
+      }
+
+      _patch(
+        group.id,
+        HydratedState(
+          data: mergedData,
           source: HydrationSource.memory,
           lastUpdatedAt: DateTime.now(),
-        );
-      } else {
-        // Progressive patch: preserve existing metadata, just update data
-        newState[group.id] = existing.copyWith(data: group);
-      }
-      _metadata.putIfAbsent(group.id, () => EntityMetadata());
+          lastModifiedAt: DateTime.now(),
+        ),
+      );
     }
-    state = newState;
   }
 }
 
@@ -262,15 +295,15 @@ class MemberStore
   @override
   Map<String, HydratedState<List<GroupMember>>> build() => {};
 
-  void subscribe(String groupId) {
+  Future<void> subscribe(String groupId, {bool force = false}) async {
     _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
-    if (state[groupId] == null) {
-      ref
-          .read(runtimeCoordinatorProvider)
-          .requestHydration(
+    if (state[groupId] == null || force) {
+      final stream = ref.read(runtimeCoordinatorProvider).requestHydration(
             _MemberHydratable(groupId, ref, (s) => _patch(groupId, s)),
             priority: TaskPriority.activeTab,
+            force: force,
           );
+      await stream.firstWhere((s) => !s.isHydrating);
     }
   }
 
@@ -334,15 +367,15 @@ class ItineraryStore
   @override
   Map<String, HydratedState<List<ItineraryItem>>> build() => {};
 
-  void subscribe(String groupId) {
+  Future<void> subscribe(String groupId, {bool force = false}) async {
     _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
-    if (state[groupId] == null) {
-      ref
-          .read(runtimeCoordinatorProvider)
-          .requestHydration(
+    if (state[groupId] == null || force) {
+      final stream = ref.read(runtimeCoordinatorProvider).requestHydration(
             _ItineraryHydratable(groupId, ref, (s) => _patch(groupId, s)),
             priority: TaskPriority.activeTab,
+            force: force,
           );
+      await stream.firstWhere((s) => !s.isHydrating);
     }
   }
 
@@ -413,15 +446,15 @@ class MembershipStore
   @override
   Map<String, HydratedState<MembershipInfo>> build() => {};
 
-  void subscribe(String groupId) {
+  Future<void> subscribe(String groupId, {bool force = false}) async {
     _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
-    if (state[groupId] == null) {
-      ref
-          .read(runtimeCoordinatorProvider)
-          .requestHydration(
+    if (state[groupId] == null || force) {
+      final stream = ref.read(runtimeCoordinatorProvider).requestHydration(
             _MembershipHydratable(groupId, ref, (s) => _patch(groupId, s)),
             priority: TaskPriority.visible,
+            force: force,
           );
+      await stream.firstWhere((s) => !s.isHydrating);
     }
   }
 
@@ -492,7 +525,14 @@ class MyGroupsStore extends Hydratable<List<GroupModel>> {
 
   @override
   Future<List<GroupModel>> fetchFromNetwork() async {
+    debugPrint('📡 [MyGroupsStore] Initiating network fetch from: ${ApiEndpoints.myGroups}');
     return ref.read(groupServiceProvider).getMyGroups();
+  }
+
+  Future<void> refresh() async {
+    // 🚀 FORCE: bypass disk cache to fetch the new destination_image keys from backend
+    // We call hydrate with force: true which triggers a fresh network sequence
+    ref.read(hydrationEngineProvider).hydrate(this, force: true);
   }
 
   @override
@@ -527,9 +567,13 @@ class HydrationEngineWrapper<T> extends StateNotifier<HydratedState<T>> {
   HydrationEngineWrapper(this._engine, this._target) : super(HydratedState());
 
   Future<void> refresh() async {
+    // 🛡️ RACE CONDITION FIX: Subscribe to the stream BEFORE triggering the force-load
+    // This ensures we catch the '!isHydrating' event even if it happens instantly.
+    final future = _engine.hydrate(_target, force: true).firstWhere((s) => !s.isHydrating);
+    
     hydrate(force: true);
-    // Wait for the next network hit or error (isHydrating becomes false)
-    await _engine.hydrate(_target).firstWhere((s) => !s.isHydrating);
+    
+    await future;
   }
 
   void hydrate({bool force = false}) {

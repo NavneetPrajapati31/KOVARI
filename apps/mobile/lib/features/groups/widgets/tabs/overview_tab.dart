@@ -141,6 +141,8 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                   // Members Layer
                   if (membersState != null && membersState.hasData)
                     _buildMembersVerticalList(context, membersState.data!)
+                  else if (membersState != null && membersState.isHydrating)
+                    _buildMembersLoading(context)
                   else
                     SizedBox.shrink(),
 
@@ -770,6 +772,43 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                   widget.onEditNotesToggle();
                 },
               ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMembersLoading(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 100,
+            height: 14,
+            decoration: BoxDecoration(
+              color: AppColors.mutedColor(context).withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              for (int i = 0; i < 3; i++)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color:
+                          AppColors.mutedColor(context).withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
