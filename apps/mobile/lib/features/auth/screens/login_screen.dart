@@ -223,7 +223,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   activeColor: AppColors.primary,
                                   side: BorderSide(
-                                    color: AppColors.surface(context, level: 3),
+                                    color: AppColors.borderColor(context),
                                     width: 1.5,
                                   ),
                                   shape: RoundedRectangleBorder(

@@ -66,7 +66,14 @@ class GroupService {
         return [];
       },
     );
-    return response.data ?? [];
+
+    if (response.success && response.data != null) {
+      return response.data!;
+    }
+
+    throw Exception(
+      response.error?.message ?? 'Failed to fetch group members',
+    );
   }
 
   Future<List<JoinRequestModel>> getJoinRequests(String groupId) async {

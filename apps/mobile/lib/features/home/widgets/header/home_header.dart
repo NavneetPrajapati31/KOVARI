@@ -4,7 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/common/skeleton.dart';
+import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 
 import '../../../notifications/screens/notifications_screen.dart';
 import '../../../notifications/providers/notification_provider.dart';

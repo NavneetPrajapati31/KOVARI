@@ -80,13 +80,19 @@ class SoloMatchCard extends ConsumerWidget {
                                       fontSize: 64,
                                     ),
                               )
-                            : UserAvatarFallback(size: 100),
+                            : UserAvatarFallback(
+                                shape: BoxShape.rectangle,
+                                borderRadius: BorderRadius.circular(16),
+                                size: 100,
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       age != null ? "$name, $age" : name,
-                      style: AppTextStyles.h3,
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.text(context),
+                      ),
                     ),
 
                     const SizedBox(height: 4),
@@ -282,8 +288,9 @@ class SoloMatchCard extends ConsumerWidget {
 
   Widget _buildPill(BuildContext context, _PillData data) {
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       borderRadius: BorderRadius.circular(20),
+      backgroundColor: AppColors.mutedColor(context),
       boxShadow: const [],
       child: Row(
         mainAxisSize: MainAxisSize.min,

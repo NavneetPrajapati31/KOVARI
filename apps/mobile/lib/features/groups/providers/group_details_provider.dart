@@ -18,6 +18,7 @@ final groupMembersProvider = FutureProvider.family<List<GroupMember>, String>((
   ref,
   groupId,
 ) async {
+  debugPrint('📡 [groupMembersProvider] Fetching members for: $groupId');
   final service = ref.watch(groupServiceProvider);
   return service.getGroupMembers(groupId);
 });

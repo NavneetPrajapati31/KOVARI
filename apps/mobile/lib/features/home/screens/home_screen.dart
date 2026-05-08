@@ -127,14 +127,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (state.isLoading && state.data == null) {
       return SliverList(
         delegate: SliverChildListDelegate([
-          const SkeletonCard(height: 200),
+          const KovariSkeletonCard(height: 200),
           const SizedBox(height: AppSpacing.md),
-          const SkeletonCard(height: 180),
+          const KovariSkeletonCard(height: 180),
           const SizedBox(height: AppSpacing.md),
-          const SkeletonListTile(),
-          const SkeletonListTile(),
-          const SkeletonListTile(),
-          const SkeletonListTile(),
+          const KovariSkeletonListTile(),
+          const KovariSkeletonListTile(),
+          const KovariSkeletonListTile(),
+          const KovariSkeletonListTile(),
         ]),
       );
     }

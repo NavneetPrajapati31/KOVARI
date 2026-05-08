@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class GroupModel {
   final String id;
@@ -48,11 +49,64 @@ class GroupModel {
     this.drinkingPolicy,
     this.budget,
   });
+  GroupModel copyWith({
+    String? id,
+    String? name,
+    String? privacy,
+    String? destination,
+    String? description,
+    String? notes,
+    String? aiOverview,
+    GroupDateRange? dateRange,
+    int? memberCount,
+    String? userStatus,
+    GroupCreator? creator,
+    String? creatorId,
+    String? createdAt,
+    String? coverImage,
+    String? destinationImage,
+    String? status,
+    double? score,
+    List<String>? tags,
+    List<String>? languages,
+    String? smokingPolicy,
+    String? drinkingPolicy,
+    int? budget,
+  }) {
+    return GroupModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      privacy: privacy ?? this.privacy,
+      destination: destination ?? this.destination,
+      description: description ?? this.description,
+      notes: notes ?? this.notes,
+      aiOverview: aiOverview ?? this.aiOverview,
+      dateRange: dateRange ?? this.dateRange,
+      memberCount: memberCount ?? this.memberCount,
+      userStatus: userStatus ?? this.userStatus,
+      creator: creator ?? this.creator,
+      creatorId: creatorId ?? this.creatorId,
+      createdAt: createdAt ?? this.createdAt,
+      coverImage: coverImage ?? this.coverImage,
+      destinationImage: destinationImage ?? this.destinationImage,
+      status: status ?? this.status,
+      score: score ?? this.score,
+      tags: tags ?? this.tags,
+      languages: languages ?? this.languages,
+      smokingPolicy: smokingPolicy ?? this.smokingPolicy,
+      drinkingPolicy: drinkingPolicy ?? this.drinkingPolicy,
+      budget: budget ?? this.budget,
+    );
+  }
 
   factory GroupModel.fromJson(Map<String, dynamic> json) {
     // 🛡️ Fallback ID (UUID-like placeholder if missing)
-    final id = (json['id'] ?? json['groupId'] ?? 'unk-${DateTime.now().millisecondsSinceEpoch}').toString();
-    
+    final id =
+        (json['id'] ??
+                json['groupId'] ??
+                'unk-${DateTime.now().millisecondsSinceEpoch}')
+            .toString();
+
     // Handle both mobile-specific mapping (dateRange object) and generic API (start_date/end_date)
     GroupDateRange dateRange;
     if (json['dateRange'] != null) {
@@ -67,13 +121,45 @@ class GroupModel {
       );
     }
 
+    // 🛡️ Debug Logic: Identifying mapping failures
+    if (json['destination'] is Map) {
+      final destMap = json['destination'] as Map<String, dynamic>;
+      debugPrint(
+        '📦 [GroupModel.fromJson] Nested Destination Map: ${destMap.keys.toList()}',
+      );
+    }
+
+    final destinationImgUrl = (json['destination_image'] ??
+            json['destinationImage'] ??
+            (json['destination'] is Map ? json['destination']['image'] : null) ??
+            (json['destination'] is Map ? json['destination']['imageUrl'] : null) ??
+            (json['destination'] is Map ? json['destination']['image_url'] : null) ??
+            json['destination_img'] ??
+            json['destinationImg'] ??
+            json['imageUrl'] ??
+            json['image_url'] ??
+            json['img'] ??
+            json['destination_image_url'] ??
+            json['destinationImageUrl'] ??
+            json['location_image'] ??
+            json['locationImage'] ??
+            json['image'])
+        as String?;
+
+    if (destinationImgUrl == null && kDebugMode) {
+      debugPrint('⚠️ [GroupModel.fromJson] Destination Image Missing for: ${json['name']}');
+      debugPrint('📜 [GroupModel.fromJson] Raw JSON: $json');
+    }
+
     return GroupModel(
       id: id,
       name: (json['name'] ?? 'Unnamed Group').toString(),
       privacy:
           (json['privacy'] as String?) ??
           (json['is_public'] == true ? 'public' : 'private'),
-      destination: (json['destination'] as String?) ?? 'Unknown',
+      destination: json['destination'] is Map
+          ? (json['destination']['name'] ?? 'Unknown').toString()
+          : (json['destination'] as String?) ?? 'Unknown',
       description: json['description'] as String?,
       notes: json['notes'] as String?,
       aiOverview: json['ai_overview'] as String?,
@@ -92,14 +178,28 @@ class GroupModel {
           (json['created_at'] as String?) ??
           (json['createdAt'] as String?) ??
           '',
-      coverImage: (json['cover_image'] ?? json['image'] ?? json['coverImage']) as String?,
-      destinationImage: json['destination_image'] as String?,
+      coverImage:
+          (json['cover_image'] ?? json['image'] ?? json['coverImage'])
+              as String?,
+      destinationImage: destinationImgUrl,
       status: json['status'] as String?,
       score: (json['score'] as num?)?.toDouble(),
-      tags: json['tags'] != null ? List<String>.from(json['tags'] as List) : null,
-      languages: json['languages'] != null ? List<String>.from(json['languages'] as List) : null,
-      smokingPolicy: (json['smokingPolicy'] ?? json['smoking_policy'] ?? json['non_smokers']?.toString()) as String?,
-      drinkingPolicy: (json['drinkingPolicy'] ?? json['drinking_policy'] ?? json['non_drinkers']?.toString()) as String?,
+      tags: json['tags'] != null
+          ? List<String>.from(json['tags'] as List)
+          : null,
+      languages: json['languages'] != null
+          ? List<String>.from(json['languages'] as List)
+          : null,
+      smokingPolicy:
+          (json['smokingPolicy'] ??
+                  json['smoking_policy'] ??
+                  json['non_smokers']?.toString())
+              as String?,
+      drinkingPolicy:
+          (json['drinkingPolicy'] ??
+                  json['drinking_policy'] ??
+                  json['non_drinkers']?.toString())
+              as String?,
       budget: (json['budget'] ?? json['estimated_budget']) as int?,
     );
   }
@@ -148,10 +248,10 @@ class GroupDateRange {
   }
 
   Map<String, dynamic> toJson() => {
-        'start': start,
-        'end': end,
-        'isOngoing': isOngoing,
-      };
+    'start': start,
+    'end': end,
+    'isOngoing': isOngoing,
+  };
 }
 
 class GroupCreator {
@@ -170,10 +270,10 @@ class GroupCreator {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'username': username,
-        'avatar': avatar,
-      };
+    'name': name,
+    'username': username,
+    'avatar': avatar,
+  };
 }
 
 class GroupMember {
@@ -228,14 +328,15 @@ class JoinRequestModel {
   factory JoinRequestModel.fromJson(Map<String, dynamic> json) {
     // Priority: 'userId' (backend mapped), then 'user_id' (raw DB column)
     final resolvedUserId = (json['userId'] ?? json['user_id'] ?? '').toString();
-    
+
     return JoinRequestModel(
       id: (json['id'] ?? '').toString(),
       userId: resolvedUserId,
       name: (json['name'] ?? '').toString(),
       username: (json['username'] ?? '').toString(),
       avatar: json['avatar'] as String?,
-      requestedAt: (json['requestedAt'] ?? json['requested_at'] ?? '').toString(),
+      requestedAt: (json['requestedAt'] ?? json['requested_at'] ?? '')
+          .toString(),
     );
   }
 }

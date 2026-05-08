@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/explore/models/match_user.dart';
+import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/shared/widgets/app_card.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -9,7 +11,6 @@ import '../widgets/explore_filters_sheet.dart';
 import '../widgets/solo_match_card.dart';
 import '../widgets/group_match_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../shared/widgets/kovari_refresh_indicator.dart';
 import '../../../shared/widgets/kovari_empty_state.dart';
 import '../../../shared/widgets/interactive_wrapper.dart';
 import '../../../shared/utils/scroll_preloader.dart';
@@ -64,7 +65,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      ref.read(exploreProvider.notifier).performSearch(isRefresh: true);
+      ref.read(exploreProvider.notifier).performSearch(isSilent: true);
     }
   }
 
@@ -200,7 +201,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
   Widget _buildBody(ExploreState state) {
     if (state.isLoading && state.matches.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
     }
 
     if (state.error != null) {
@@ -237,36 +240,41 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
     final match = state.matches[state.currentIndex];
 
-    return KovariRefreshIndicator(
-      onRefresh: () =>
-          ref.read(exploreProvider.notifier).performSearch(isRefresh: true),
-      child: CustomScrollView(
-        key: const PageStorageKey('explore_scroll'),
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          if (state.isPending)
-            const SliverToBoxAdapter(
-              child: LinearProgressIndicator(minHeight: 2),
+    // Defensive check for type mismatch during transitions
+    final isTypeMismatch = (state.searchData.travelMode == TravelMode.solo &&
+            match is! MatchUser) ||
+        (state.searchData.travelMode == TravelMode.group &&
+            match is! GroupModel);
+
+    if (isTypeMismatch) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    return CustomScrollView(
+      key: const PageStorageKey('explore_scroll'),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          sliver: SliverToBoxAdapter(
+            child: RepaintBoundary(
+              child: state.searchData.travelMode == TravelMode.solo
+                  ? SoloMatchCard(match: match as MatchUser)
+                  : GroupMatchCard(group: match as GroupModel),
             ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            sliver: SliverToBoxAdapter(
-              child: RepaintBoundary(
-                child: state.searchData.travelMode == TravelMode.solo
-                    ? SoloMatchCard(match: match)
-                    : GroupMatchCard(group: match),
+          ),
+        ),
+        if (state.isFetchingNextPage)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
               ),
             ),
           ),
-          if (state.isFetchingNextPage)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ),
-        ],
-      ),
+      ],
     );
   }
 }

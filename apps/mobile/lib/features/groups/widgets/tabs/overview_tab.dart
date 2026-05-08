@@ -2,17 +2,18 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/utils/url_utils.dart';
 import '../../../../shared/widgets/kovari_avatar.dart';
+import '../../../../core/widgets/common/kovari_image.dart';
 import '../../models/group.dart';
 import '../../providers/group_details_provider.dart';
+import '../../providers/entity_stores.dart';
 
-class OverviewTab extends ConsumerWidget {
+class OverviewTab extends ConsumerStatefulWidget {
   final GroupModel group;
   final bool isEditingNotes;
   final TextEditingController notesController;
@@ -31,11 +32,59 @@ class OverviewTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final membersAsync = ref.watch(groupMembersProvider(group.id));
-    final itineraryAsync = ref.watch(groupItineraryProvider(group.id));
+  ConsumerState<OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends ConsumerState<OverviewTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(memberStoreProvider.notifier).subscribe(widget.group.id);
+      ref.read(itineraryStoreProvider.notifier).subscribe(widget.group.id);
+    });
+  }
+
+  @override
+  void dispose() {
+    ref.read(memberStoreProvider.notifier).unsubscribe(widget.group.id);
+    ref.read(itineraryStoreProvider.notifier).unsubscribe(widget.group.id);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    // 🛡️ Debug Logic: Why is the destination image missing?
+    debugPrint(
+      '🔍 [OverviewTab] Group: ${widget.group.id} | Destination: ${widget.group.destination}',
+    );
+    debugPrint(
+      '🖼️ [OverviewTab] Cover: ${widget.group.coverImage} | DestinationImg: ${widget.group.destinationImage}',
+    );
+
+    // Selective subscriptions to avoid parent rebuilds
+    final membersState = ref.watch(
+      memberStoreProvider.select((s) => s[widget.group.id]),
+    );
+    final itineraryState = ref.watch(
+      itineraryStoreProvider.select((s) => s[widget.group.id]),
+    );
+    final group = ref.watch(
+      groupStoreProvider.select(
+        (s) => s[widget.group.id]?.data ?? widget.group,
+      ),
+    );
 
     return SingleChildScrollView(
+      key: PageStorageKey(
+        'overview_${widget.group.id}',
+      ), // 🛡️ [Replay Engine] Scroll restoration
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,41 +137,28 @@ class OverviewTab extends ConsumerWidget {
                   const SizedBox(height: 10),
                   Divider(color: AppColors.borderColor(context), thickness: 1),
                   const SizedBox(height: 10),
-                  membersAsync.when(
-                    data: (members) =>
-                        _buildMembersVerticalList(context, members),
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    error: (e, s) => Text(
-                      "Error: $e",
-                      style: TextStyle(color: AppColors.text(context)),
-                    ),
-                  ),
+
+                  // Members Layer
+                  if (membersState != null && membersState.hasData)
+                    _buildMembersVerticalList(context, membersState.data!)
+                  else
+                    SizedBox.shrink(),
+
                   Divider(color: AppColors.borderColor(context), thickness: 1),
                   const SizedBox(height: 10),
-                  itineraryAsync.when(
-                    data: (itinerary) =>
-                        _buildUpcomingItineraryCard(context, itinerary),
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    error: (e, s) => Text(
-                      "Error: $e",
-                      style: TextStyle(color: AppColors.text(context)),
-                    ),
-                  ),
+
+                  // Itinerary Layer
+                  if (itineraryState != null && itineraryState.hasData)
+                    _buildUpcomingItineraryCard(context, itineraryState.data!)
+                  else
+                    SizedBox.shrink(),
+
                   const SizedBox(height: 16),
-                  if (group.destinationImage != null)
-                    _buildDestinationImageCard(group),
+                  _buildDestinationImageCard(group),
                   const SizedBox(height: 16),
                   _buildAiOverviewCard(context, group),
                   const SizedBox(height: 16),
-                  _buildStickyNotesSection(context, ref),
+                  _buildStickyNotesSection(context, ref, group),
                 ],
               ),
             ),
@@ -135,25 +171,15 @@ class OverviewTab extends ConsumerWidget {
 
   Widget _buildCoverImage(BuildContext context, GroupModel group) {
     final coverImageUrl = UrlUtils.getFullImageUrl(group.coverImage);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Stack(
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 10,
-            child: coverImageUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: coverImageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) =>
-                        Container(color: AppColors.mutedColor(context)),
-                    errorWidget: (context, url, error) =>
-                        _buildPlaceholder(context),
-                  )
-                : _buildPlaceholder(context),
-          ),
-        ],
-      ),
+    return AspectRatio(
+      aspectRatio: 16 / 10,
+      child: coverImageUrl != null
+          ? KovariImage(
+              imageUrl: coverImageUrl,
+              fit: BoxFit.cover,
+              borderRadius: BorderRadius.circular(20),
+            )
+          : _buildPlaceholder(context),
     );
   }
 
@@ -221,7 +247,7 @@ class OverviewTab extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "${members.length} members",
+                "${members.length} member${members.length == 1 ? '' : 's'}",
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -290,7 +316,7 @@ class OverviewTab extends ConsumerWidget {
           ),
           if (members.length > 5)
             TextButton(
-              onPressed: () => onViewAllMembers(members),
+              onPressed: () => widget.onViewAllMembers(members),
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(0, 0),
@@ -353,7 +379,7 @@ class OverviewTab extends ConsumerWidget {
                   ],
                 ),
                 TextButton(
-                  onPressed: () => onTabChange(2),
+                  onPressed: () => widget.onTabChange(2),
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: const Size(0, 0),
@@ -534,10 +560,8 @@ class OverviewTab extends ConsumerWidget {
   }
 
   Widget _buildDestinationImageCard(GroupModel group) {
-    final destinationImageUrl = UrlUtils.getFullImageUrl(
-      group.destinationImage,
-    );
-    if (destinationImageUrl == null) return const SizedBox.shrink();
+    final imageUrl = UrlUtils.getFullImageUrl(group.destinationImage);
+    if (imageUrl == null) return const SizedBox.shrink();
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -545,12 +569,10 @@ class OverviewTab extends ConsumerWidget {
         children: [
           AspectRatio(
             aspectRatio: 16 / 10,
-            child: CachedNetworkImage(
-              imageUrl: destinationImageUrl,
+            child: KovariImage(
+              imageUrl: imageUrl,
               fit: BoxFit.cover,
-              placeholder: (context, url) =>
-                  Container(color: AppColors.mutedColor(context)),
-              errorWidget: (context, url, error) => const SizedBox.shrink(),
+              borderRadius: BorderRadius.circular(20),
             ),
           ),
           Positioned(
@@ -674,7 +696,11 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildStickyNotesSection(BuildContext context, WidgetRef ref) {
+  Widget _buildStickyNotesSection(
+    BuildContext context,
+    WidgetRef ref,
+    GroupModel group,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -687,9 +713,9 @@ class OverviewTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          isEditingNotes
+          widget.isEditingNotes
               ? TextField(
-                  controller: notesController,
+                  controller: widget.notesController,
                   maxLines: null,
                   style: TextStyle(
                     fontSize: 12,
@@ -703,9 +729,9 @@ class OverviewTab extends ConsumerWidget {
                   ),
                 )
               : Text(
-                  notesController.text.isEmpty
+                  widget.notesController.text.isEmpty
                       ? "Enter your travel note..."
-                      : notesController.text,
+                      : widget.notesController.text,
                   style: TextStyle(
                     color: AppColors.text(context, isMuted: true),
                     height: 1.6,
@@ -727,19 +753,21 @@ class OverviewTab extends ConsumerWidget {
               ),
               IconButton(
                 icon: Icon(
-                  isEditingNotes ? LucideIcons.check : LucideIcons.pencil,
+                  widget.isEditingNotes
+                      ? LucideIcons.check
+                      : LucideIcons.pencil,
                   size: 16,
                   color: AppColors.text(context, isMuted: true),
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 onPressed: () {
-                  if (isEditingNotes) {
+                  if (widget.isEditingNotes) {
                     ref
                         .read(groupActionsProvider(group.id))
-                        .updateNotes(notesController.text);
+                        .updateNotes(widget.notesController.text);
                   }
-                  onEditNotesToggle();
+                  widget.onEditNotesToggle();
                 },
               ),
             ],

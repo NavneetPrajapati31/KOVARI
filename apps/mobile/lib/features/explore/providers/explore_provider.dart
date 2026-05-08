@@ -20,7 +20,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
 
   Future<void> _loadFromCache() async {
     final cache = ref.read(localCacheProvider);
-    final key = 'matches_${state.searchData.destination}';
+    final key = 'matches_${state.searchData.travelMode.name}_${state.searchData.destination}';
     final cachedMatches = cache.getEntities(key);
 
     if (cachedMatches != null && state.matches.isEmpty) {
@@ -65,6 +65,9 @@ class ExploreNotifier extends Notifier<ExploreState> {
       matches: [],
       currentIndex: 0,
     );
+    performSearch(
+      isRefresh: true,
+    ); // Trigger fresh search automatically when switching tabs
   }
 
   Future<void> performSearch({
@@ -76,11 +79,11 @@ class ExploreNotifier extends Notifier<ExploreState> {
 
     if (isLoadMore && state.isFetchingNextPage) return;
 
-    if (!isRefresh && !isLoadMore && !isSilent) {
+    if (!isRefresh && !isLoadMore && !isSilent && state.matches.isNotEmpty) {
       if (state.lastFetchTime != null &&
           state.searchData.travelMode == TravelMode.solo) {
         if (DateTime.now().difference(state.lastFetchTime!).inSeconds < 30) {
-          return; // Cache valid
+          return; // Cache valid and we already have matches
         }
       }
     }
@@ -148,7 +151,10 @@ class ExploreNotifier extends Notifier<ExploreState> {
       // Persist to cache
       if (!isLoadMore) {
         final cache = ref.read(localCacheProvider);
-        cache.setEntities('matches_${state.searchData.destination}', matches);
+        cache.setEntities(
+          'matches_${state.searchData.travelMode.name}_${state.searchData.destination}',
+          matches,
+        );
       }
     } catch (e) {
       state = state.copyWith(error: e.toString());

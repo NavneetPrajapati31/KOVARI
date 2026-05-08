@@ -6,7 +6,6 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
-import '../providers/group_details_provider.dart';
 import '../models/group.dart';
 import '../widgets/group_tab_bar.dart';
 import '../widgets/tabs/overview_tab.dart';
@@ -14,6 +13,8 @@ import '../widgets/tabs/chats_tab.dart';
 import '../widgets/tabs/itinerary_tab.dart';
 import '../widgets/tabs/settings_tab.dart';
 import '../../../shared/widgets/app_card.dart';
+import '../providers/entity_stores.dart';
+import '../providers/group_details_provider.dart'; // Still needed for membership info model for now or just the store
 
 class GroupDetailsScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -32,7 +33,20 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
   int _activeTabIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // 🛡️ [Hard Architectural Law] Subscribe to runtime state on mount
+    Future.microtask(() {
+      ref.read(groupStoreProvider.notifier).subscribe(widget.groupId);
+      ref.read(membershipStoreProvider.notifier).subscribe(widget.groupId);
+    });
+  }
+
+  @override
   void dispose() {
+    // GC: Cleanup subscriptions
+    ref.read(groupStoreProvider.notifier).unsubscribe(widget.groupId);
+    ref.read(membershipStoreProvider.notifier).unsubscribe(widget.groupId);
     _notesController.dispose();
     super.dispose();
   }
@@ -42,121 +56,127 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     debugPrint(
       '🏗️ [GroupDetailsScreen] Building screen for ID: ${widget.groupId}',
     );
-    final groupAsync = ref.watch(groupDetailsProvider(widget.groupId));
-    final membershipAsync = ref.watch(groupMembershipProvider(widget.groupId));
 
-    return groupAsync.when(
-      data: (group) {
-        debugPrint('✅ [GroupDetailsScreen] Group data loaded');
-        return membershipAsync.when(
-          data: (membership) {
-            debugPrint(
-              '✅ [GroupDetailsScreen] Membership data loaded: isMember=${membership.isMember}, isCreator=${membership.isCreator}',
-            );
-            if (group.status == 'pending') {
-              return _buildPendingState();
-            }
+    // Subscribe reactively to store slices
+    final groupState = ref.watch(
+      groupStoreProvider.select((s) => s[widget.groupId]),
+    );
+    final membershipState = ref.watch(
+      membershipStoreProvider.select((s) => s[widget.groupId]),
+    );
 
-            if (!membership.isMember && !membership.isCreator) {
-              return _buildJoinState(membership);
-            }
+    // 1. Check if we have ANY data to show (Memory or Disk snapshot)
+    if (groupState == null || !groupState.hasData) {
+      return _buildSkeletonState();
+    }
 
-            if (!_isEditingNotes &&
-                group.notes != null &&
-                _notesController.text != group.notes) {
-              // Wrap in post-frame to avoid updating controller during build
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted &&
-                    !_isEditingNotes &&
-                    _notesController.text != group.notes) {
-                  debugPrint(
-                    '📝 [GroupDetailsScreen] Updating notes controller from group data',
-                  );
-                  _notesController.text = group.notes!;
-                }
-              });
-            }
+    final group = groupState.data!;
 
-            return Scaffold(
-              body: Column(
-                children: [
-                  Container(
-                    color: AppColors.backgroundColor(context),
-                    child: SafeArea(bottom: false, child: _buildHeader(group)),
-                  ),
-                  GroupTabBar(
-                    activeIndex: _activeTabIndex,
-                    onTabChanged: (index) =>
-                        setState(() => _activeTabIndex = index),
-                  ),
-                  Expanded(
-                    child: IndexedStack(
-                      index: _activeTabIndex,
-                      children: [
-                        OverviewTab(
-                          group: group,
-                          isEditingNotes: _isEditingNotes,
-                          notesController: _notesController,
-                          onEditNotesToggle: () => setState(
-                            () => _isEditingNotes = !_isEditingNotes,
-                          ),
-                          onTabChange: (index) =>
-                              setState(() => _activeTabIndex = index),
-                          onViewAllMembers: (members) =>
-                              _showMembersModal(members),
-                        ),
-                        ChatsTab(group: group),
-                        ItineraryTab(group: group),
-                        SettingsTab(
-                          group: group,
-                          onViewMembers: () {
-                            ref
-                                .read(groupMembersProvider(widget.groupId))
-                                .whenData(
-                                  (members) => _showMembersModal(members),
-                                );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-          loading: () {
-            debugPrint('⏳ [GroupDetailsScreen] Loading membership...');
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-            );
-          },
-          error: (e, s) {
-            debugPrint('❌ [GroupDetailsScreen] Membership error: $e');
-            return _buildErrorState(e);
-          },
-        );
-      },
-      loading: () {
-        debugPrint('⏳ [GroupDetailsScreen] Loading group details...');
-        return const Scaffold(
-          body: Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-                strokeWidth: 3,
-              ),
+    // 2. Handle Membership Layer
+    if (membershipState == null || !membershipState.hasData) {
+      return _buildPartialState(group); // Show header at least
+    }
+
+    final membership = membershipState.data;
+
+    // Logic for Pending/Join states
+    if (group.status == 'pending') {
+      return _buildPendingState();
+    }
+
+    if (!membership!.isMember && !membership.isCreator) {
+      return _buildJoinState(membership);
+    }
+
+    // Sync notes controller silently
+    if (!_isEditingNotes &&
+        group.notes != null &&
+        _notesController.text != group.notes) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            !_isEditingNotes &&
+            _notesController.text != group.notes) {
+          _notesController.text = group.notes!;
+        }
+      });
+    }
+
+    return Scaffold(
+      body: Column(
+        children: [
+          Container(
+            color: AppColors.backgroundColor(context),
+            child: SafeArea(bottom: false, child: _buildHeader(group)),
+          ),
+
+          // Hydration Indicator (Subtle)
+          if (groupState.isHydrating || membershipState.isHydrating)
+            const LinearProgressIndicator(minHeight: 1),
+
+          GroupTabBar(
+            activeIndex: _activeTabIndex,
+            onTabChanged: (index) => setState(() => _activeTabIndex = index),
+          ),
+          Expanded(
+            child: IndexedStack(
+              index: _activeTabIndex,
+              children: [
+                OverviewTab(
+                  group: group,
+                  isEditingNotes: _isEditingNotes,
+                  notesController: _notesController,
+                  onEditNotesToggle: () =>
+                      setState(() => _isEditingNotes = !_isEditingNotes),
+                  onTabChange: (index) =>
+                      setState(() => _activeTabIndex = index),
+                  onViewAllMembers: (members) => _showMembersModal(members),
+                ),
+                ChatsTab(group: group),
+                ItineraryTab(group: group),
+                SettingsTab(
+                  group: group,
+                  onViewMembers: () {
+                    final members = ref
+                        .read(memberStoreProvider)[widget.groupId]
+                        ?.data;
+                    if (members != null) {
+                      _showMembersModal(members);
+                    }
+                  },
+                ),
+              ],
             ),
           ),
-        );
-      },
-      error: (e, s) {
-        debugPrint('❌ [GroupDetailsScreen] Group error: $e');
-        return _buildErrorState(e);
-      },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonState() {
+    return const Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+            strokeWidth: 3,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPartialState(GroupModel group) {
+    return Scaffold(
+      body: Column(
+        children: [
+          SafeArea(child: _buildHeader(group)),
+          const Spacer(),
+          const CircularProgressIndicator(color: AppColors.primary),
+          const Spacer(),
+        ],
+      ),
     );
   }
 
@@ -191,39 +211,6 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
           LucideIcons.arrowLeft,
           size: 20,
           color: AppColors.text(context),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(Object e) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              LucideIcons.circleAlert,
-              size: 48,
-              color: AppColors.destructive,
-            ),
-            const SizedBox(height: 16),
-            Text("Something went wrong", style: AppTextStyles.h3),
-            const SizedBox(height: 8),
-            Text(
-              e.toString(),
-              style: AppTextStyles.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            SecondaryButton(
-              text: "Retry",
-              onPressed: () {
-                ref.invalidate(groupDetailsProvider(widget.groupId));
-                ref.invalidate(groupMembershipProvider(widget.groupId));
-              },
-            ),
-          ],
         ),
       ),
     );

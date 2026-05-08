@@ -6,6 +6,7 @@ import '../../../core/providers/cache_provider.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../models/group_state.dart';
 import '../data/group_service.dart';
+import 'entity_stores.dart';
 
 final groupServiceProvider = Provider<GroupService>((ref) {
   final apiClient = ref.read(apiClientProvider);
@@ -36,8 +37,10 @@ class MyGroupsNotifier extends StateNotifier<GroupState> {
     // 1. Try Cache First
     final cached = cache.get(ApiEndpoints.myGroups);
     if (cached != null) {
+      final groups = service.parseGroups(cached.data);
+      _ref.read(groupStoreProvider.notifier).updateFromList(groups);
       state = state.copyWith(
-        groups: service.parseGroups(cached.data),
+        groups: groups,
         isStale: true,
         isLoading: isInitial,
       );
@@ -48,6 +51,7 @@ class MyGroupsNotifier extends StateNotifier<GroupState> {
     // 2. Fetch Fresh Data
     try {
       final freshGroups = await service.getMyGroups();
+      _ref.read(groupStoreProvider.notifier).updateFromList(freshGroups);
       state = state.copyWith(
         groups: freshGroups,
         isStale: false,

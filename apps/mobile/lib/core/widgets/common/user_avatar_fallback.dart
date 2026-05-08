@@ -43,7 +43,7 @@ class UserAvatarFallback extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: backgroundColor ?? AppColors.surface(context, level: 2),
+            color: backgroundColor ?? AppColors.mutedColor(context),
             shape: shape,
             border: Border.all(color: AppColors.borderColor(context)),
             borderRadius: borderRadius,

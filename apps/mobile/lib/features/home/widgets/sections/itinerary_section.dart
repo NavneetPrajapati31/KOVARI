@@ -4,7 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/common/skeleton.dart';
+import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 
 enum EventColor { sky, amber, violet, rose, emerald, orange }
 

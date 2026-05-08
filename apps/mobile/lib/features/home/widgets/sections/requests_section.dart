@@ -4,7 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/common/skeleton.dart';
+import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../../../features/requests/screens/requests_screen.dart';
 import '../../../../features/requests/providers/request_provider.dart';
@@ -141,7 +141,7 @@ class RequestsSection extends ConsumerWidget {
         7,
         (i) => Column(
           children: [
-            _RequestCardSkeleton(),
+            const KovariSkeletonRequestListItem(),
             if (i < 6)
               Divider(height: 1, color: AppColors.borderColor(context)),
           ],
@@ -376,32 +376,3 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   }
 }
 
-class _RequestCardSkeleton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: 10,
-      ),
-      child: Row(
-        children: [
-          const Skeleton.circle(size: 40),
-          const SizedBox(width: AppSpacing.sm * 1.5),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Skeleton(width: 96, height: 12, borderRadius: AppRadius.small),
-                const SizedBox(height: 4),
-                Skeleton(width: 64, height: 12, borderRadius: AppRadius.small),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Skeleton(width: 64, height: 28, borderRadius: AppRadius.medium),
-        ],
-      ),
-    );
-  }
-}

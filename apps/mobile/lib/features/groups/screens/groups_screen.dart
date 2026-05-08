@@ -6,9 +6,11 @@ import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
-import '../providers/group_provider.dart';
+import '../providers/entity_stores.dart';
+import '../models/hydrated_state.dart';
+import '../models/group.dart';
 import '../widgets/group_card.dart';
-import '../widgets/group_card_skeleton.dart';
+import '../../../core/widgets/skeletons/kovari_skeletons.dart';
 import 'create_group_screen.dart';
 import 'group_details_screen.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -18,7 +20,7 @@ class GroupsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final groupState = ref.watch(myGroupsProvider);
+    final groupState = ref.watch(myGroupsStoreProvider);
 
     return SafeArea(
       child: Column(
@@ -50,7 +52,8 @@ class GroupsScreen extends ConsumerWidget {
           // Scrollable Content
           Expanded(
             child: KovariRefreshIndicator(
-              onRefresh: () => ref.read(myGroupsProvider.notifier).refresh(),
+              onRefresh: () =>
+                  ref.read(myGroupsStoreProvider.notifier).refresh(),
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
@@ -74,9 +77,10 @@ class GroupsScreen extends ConsumerWidget {
   Widget _buildSliverContent(
     BuildContext context,
     WidgetRef ref,
-    dynamic state,
+    HydratedState<List<GroupModel>> state,
   ) {
-    if (state.isLoading && state.groups.isEmpty) {
+    final groups = state.data ?? [];
+    if (state.isHydrating && groups.isEmpty) {
       return SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         sliver: SliverToBoxAdapter(
@@ -89,7 +93,7 @@ class GroupsScreen extends ConsumerWidget {
                   5,
                   (i) => Column(
                     children: [
-                      const GroupCardSkeleton(),
+                      const KovariSkeletonGroupListItem(),
                       if (i < 4)
                         Divider(
                           height: 1,
@@ -105,7 +109,7 @@ class GroupsScreen extends ConsumerWidget {
       );
     }
 
-    if (state.error != null && state.groups.isEmpty) {
+    if (state.error != null && groups.isEmpty) {
       return SliverFillRemaining(
         child: Center(
           child: Text(
@@ -116,7 +120,7 @@ class GroupsScreen extends ConsumerWidget {
       );
     }
 
-    if (state.groups.isEmpty) {
+    if (groups.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
         child: Center(
@@ -166,23 +170,22 @@ class GroupsScreen extends ConsumerWidget {
               children: [
                 Column(
                   children: [
-                    for (int i = 0; i < state.groups.length; i++) ...[
+                    for (int i = 0; i < groups.length; i++) ...[
                       RepaintBoundary(
                         child: GroupCard(
-                          group: state.groups[i],
+                          group: groups[i],
                           onAction: () {
                             Navigator.push(
                               context,
                               PremiumPageRoute(
-                                builder: (context) => GroupDetailsScreen(
-                                  groupId: state.groups[i].id,
-                                ),
+                                builder: (context) =>
+                                    GroupDetailsScreen(groupId: groups[i].id),
                               ),
                             );
                           },
                         ),
                       ),
-                      if (i < state.groups.length - 1)
+                      if (i < groups.length - 1)
                         Divider(
                           height: 1,
                           color: AppColors.borderColor(context),

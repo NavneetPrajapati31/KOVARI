@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile/features/groups/providers/group_details_provider.dart';
 import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -11,113 +12,138 @@ import '../../../../shared/widgets/secondary_button.dart';
 import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../../../shared/widgets/kovari_popover.dart';
 import '../../models/group.dart';
-import '../../providers/group_details_provider.dart';
 import '../modals/itinerary_form_modal.dart';
+import '../../providers/entity_stores.dart';
 
-class ItineraryTab extends ConsumerWidget {
+class ItineraryTab extends ConsumerStatefulWidget {
   final GroupModel group;
 
   const ItineraryTab({super.key, required this.group});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final itineraryAsync = ref.watch(groupItineraryProvider(group.id));
-    final membersAsync = ref.watch(groupMembersProvider(group.id));
+  ConsumerState<ItineraryTab> createState() => _ItineraryTabState();
+}
+
+class _ItineraryTabState extends ConsumerState<ItineraryTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(itineraryStoreProvider.notifier).subscribe(widget.group.id);
+      ref.read(memberStoreProvider.notifier).subscribe(widget.group.id);
+    });
+  }
+
+  @override
+  void dispose() {
+    ref.read(itineraryStoreProvider.notifier).unsubscribe(widget.group.id);
+    ref.read(memberStoreProvider.notifier).unsubscribe(widget.group.id);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final itineraryState = ref.watch(
+      itineraryStoreProvider.select((s) => s[widget.group.id]),
+    );
+    final membersState = ref.watch(
+      memberStoreProvider.select((s) => s[widget.group.id]),
+    );
     final optimisticStore = ref.watch(optimisticStoreProvider);
-    final optimisticItinerary = optimisticStore[group.id];
+    final optimisticItinerary = optimisticStore[widget.group.id];
 
-    return itineraryAsync.when(
-      data: (baseItinerary) {
-        // Use optimistic state if it exists, otherwise use base server data
-        final itinerary = optimisticItinerary ?? baseItinerary;
+    if (itineraryState == null || !itineraryState.hasData) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        final members = membersAsync.value ?? [];
-        // Group by status
-        final todo = itinerary.where((i) => i.status == 'pending').toList();
-        final inProgress = itinerary
-            .where((i) => i.status == 'confirmed')
-            .toList();
-        final done = itinerary.where((i) => i.status == 'completed').toList();
-        final cancelled = itinerary
-            .where((i) => i.status == 'cancelled')
-            .toList();
+    final baseItinerary = itineraryState.data!;
+    final itinerary = optimisticItinerary ?? baseItinerary;
+    final members = membersState?.data ?? [];
 
-        return KovariRefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(groupItineraryProvider(group.id));
-            ref.invalidate(groupMembersProvider(group.id));
-          },
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    const Text(
-                      "Itinerary Board",
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Plan and organize your group's travel activities",
-                      style: TextStyle(
-                        color: AppColors.text(context, isMuted: true),
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildItinerarySection(
-                      context,
-                      ref,
-                      "To do",
-                      "pending",
-                      todo,
-                      const Color(0xFFF59E0B),
-                      members,
-                    ),
-                    _buildItinerarySection(
-                      context,
-                      ref,
-                      "In Progress",
-                      "confirmed",
-                      inProgress,
-                      const Color(0xFF007AFF),
-                      members,
-                    ),
-                    _buildItinerarySection(
-                      context,
-                      ref,
-                      "Done",
-                      "completed",
-                      done,
-                      const Color(0xFF34C759),
-                      members,
-                    ),
-                    _buildItinerarySection(
-                      context,
-                      ref,
-                      "Cancelled",
-                      "cancelled",
-                      cancelled,
-                      const Color(0xFFF31260),
-                      members,
-                    ),
-                  ]),
-                ),
-              ),
-            ],
-          ),
-        );
+    // Group by status
+    final todo = itinerary.where((i) => i.status == 'pending').toList();
+    final inProgress = itinerary.where((i) => i.status == 'confirmed').toList();
+    final done = itinerary.where((i) => i.status == 'completed').toList();
+    final cancelled = itinerary.where((i) => i.status == 'cancelled').toList();
+
+    return KovariRefreshIndicator(
+      onRefresh: () async {
+        // Hydration logic is handled by the scheduler; just request intent
+        ref.read(itineraryStoreProvider.notifier).subscribe(widget.group.id);
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Center(child: Text("Error: $e")),
+      child: CustomScrollView(
+        key: PageStorageKey(
+          'itinerary_${widget.group.id}',
+        ), // 🛡️ [Replay Engine] Scroll restoration
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (itineraryState.isHydrating)
+            const SliverToBoxAdapter(
+              child: LinearProgressIndicator(minHeight: 1),
+            ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                const Text(
+                  "Itinerary Board",
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Plan and organize your group's travel activities",
+                  style: TextStyle(
+                    color: AppColors.text(context, isMuted: true),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildItinerarySection(
+                  context,
+                  ref,
+                  "To do",
+                  "pending",
+                  todo,
+                  const Color(0xFFF59E0B),
+                  members,
+                ),
+                _buildItinerarySection(
+                  context,
+                  ref,
+                  "In Progress",
+                  "confirmed",
+                  inProgress,
+                  const Color(0xFF007AFF),
+                  members,
+                ),
+                _buildItinerarySection(
+                  context,
+                  ref,
+                  "Done",
+                  "completed",
+                  done,
+                  const Color(0xFF34C759),
+                  members,
+                ),
+                _buildItinerarySection(
+                  context,
+                  ref,
+                  "Cancelled",
+                  "cancelled",
+                  cancelled,
+                  const Color(0xFFF31260),
+                  members,
+                ),
+              ]),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -137,7 +163,7 @@ class ItineraryTab extends ConsumerWidget {
         final messenger = ScaffoldMessenger.of(context);
         try {
           await ref
-              .read(groupActionsProvider(group.id))
+              .read(groupActionsProvider(widget.group.id))
               .updateItineraryStatus(item, targetStatus);
         } catch (e) {
           String errorMessage = "Failed to update item";
@@ -240,7 +266,7 @@ class ItineraryTab extends ConsumerWidget {
                         showDialog(
                           context: context,
                           builder: (context) => ItineraryFormModal(
-                            groupId: group.id,
+                            groupId: widget.group.id,
                             initialStatus: targetStatus,
                           ),
                         );
@@ -353,7 +379,7 @@ class ItineraryTab extends ConsumerWidget {
                         showDialog(
                           context: context,
                           builder: (context) => ItineraryFormModal(
-                            groupId: group.id,
+                            groupId: widget.group.id,
                             initialItem: item,
                           ),
                         );
@@ -441,7 +467,7 @@ class ItineraryTab extends ConsumerWidget {
                         if (confirmed == true) {
                           try {
                             await ref
-                                .read(groupActionsProvider(group.id))
+                                .read(groupActionsProvider(widget.group.id))
                                 .deleteItineraryItem(item.id);
                           } catch (e) {
                             if (!context.mounted) return;

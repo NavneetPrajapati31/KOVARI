@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:shimmer/shimmer.dart' as shim;
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/network/api_client.dart';
 import '../models/user_connection.dart';
 import '../data/connections_service.dart';
@@ -11,6 +11,7 @@ import '../../../core/providers/profile_provider.dart';
 import 'public_profile_screen.dart';
 import '../../../shared/widgets/kovari_confirm_dialog.dart';
 import '../../../shared/widgets/kovari_snackbar.dart';
+import '../../../core/widgets/skeletons/kovari_skeletons.dart';
 
 class ConnectionsScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -326,7 +327,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 pinned: true,
                 floating: false,
                 elevation: 0,
-                backgroundColor: AppColors.surface(context, level: 1),
+                backgroundColor: AppColors.surface(context),
                 leading: IconButton(
                   icon: Icon(
                     LucideIcons.arrowLeft,
@@ -338,24 +339,12 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 centerTitle: false,
                 titleSpacing: 0, // Tighten gap between back icon and title
                 title: _isLoading && widget.username.isEmpty
-                    ? shim.Shimmer.fromColors(
-                        baseColor: AppColors.secondary,
-                        highlightColor: AppColors.secondary,
-                        child: Container(
-                          width: 80,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                        ),
-                      )
+                    ? const KovariSkeletonCard(width: 80, height: 14)
                     : Text(
                         widget.username,
-                        style: TextStyle(
+                        style: AppTextStyles.h3.copyWith(
                           color: AppColors.text(context),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14, // Maintaining exact size as requested
                         ),
                       ),
                 bottom: PreferredSize(
@@ -369,7 +358,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                       indicatorColor: AppColors.primary,
                       indicatorWeight: 2,
                       indicatorSize: TabBarIndicatorSize.tab,
-                      dividerColor: AppColors.border,
+                      dividerColor: AppColors.borderColor(context),
                       dividerHeight: 1,
                       onTap: (index) {
                         // Clear search when switching tabs
@@ -379,12 +368,12 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                         }
                       },
                       labelColor: AppColors.primary,
-                      unselectedLabelColor: AppColors.mutedForeground,
-                      labelStyle: const TextStyle(
+                      unselectedLabelColor: AppColors.text(context),
+                      labelStyle: AppTextStyles.button.copyWith(
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
-                      unselectedLabelStyle: const TextStyle(
+                      unselectedLabelStyle: AppTextStyles.button.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -392,22 +381,28 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                         Tab(
                           child: Text(
                             '${_followers.length} followers',
-                            style: TextStyle(
+                            style: AppTextStyles.button.copyWith(
                               fontSize: 13,
                               fontWeight: _tabController.index == 0
                                   ? FontWeight.w600
                                   : FontWeight.w500,
+                              color: _tabController.index == 0
+                                  ? AppColors.primary
+                                  : AppColors.text(context),
                             ),
                           ),
                         ),
                         Tab(
                           child: Text(
                             '${_following.length} following',
-                            style: TextStyle(
+                            style: AppTextStyles.button.copyWith(
                               fontSize: 13,
                               fontWeight: _tabController.index == 1
                                   ? FontWeight.w600
                                   : FontWeight.w500,
+                              color: _tabController.index == 1
+                                  ? AppColors.primary
+                                  : AppColors.text(context),
                             ),
                           ),
                         ),
@@ -460,10 +455,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                   child: TextField(
                     controller: _searchController,
                     enabled: !_isLoading, // Disable while loading
-                    style: TextStyle(
+                    style: AppTextStyles.bodyMedium.copyWith(
                       fontSize: 13,
                       color: AppColors.text(context),
-                      fontWeight: FontWeight.w400,
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -472,12 +466,11 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                     },
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: AppColors.secondary,
+                      fillColor: AppColors.mutedColor(context),
                       hintText: 'Search',
-                      hintStyle: const TextStyle(
-                        color: AppColors.mutedForeground,
+                      hintStyle: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 13,
-                        fontWeight: FontWeight.w400,
                       ),
                       prefixIcon: null,
                       suffixIcon: _searchQuery.isNotEmpty
@@ -490,10 +483,10 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                                 });
                               },
                             )
-                          : const Icon(
+                          : Icon(
                               LucideIcons.search,
                               size: 18,
-                              color: AppColors.mutedForeground,
+                              color: AppColors.text(context, isMuted: true),
                             ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -525,9 +518,17 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(LucideIcons.info, color: Colors.red, size: 40),
+                      const Icon(
+                        LucideIcons.info,
+                        color: AppColors.destructive,
+                        size: 40,
+                      ),
                       const SizedBox(height: 12),
-                      Text(_error!, textAlign: TextAlign.center),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.bodyMedium,
+                      ),
                       TextButton(
                         onPressed: _loadData,
                         child: const Text('Retry'),
@@ -575,7 +576,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                         }
                       } else {
                         if (user.isFollowing) {
-                            KovariSnackbar.info(context, 'Chat coming soon!');
+                          KovariSnackbar.info(context, 'Chat coming soon!');
                         } else {
                           _handleFollowToggle(user);
                         }
@@ -595,7 +596,10 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
                     child: Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -608,68 +612,8 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   Widget _buildSkeletonList() {
-    return shim.Shimmer.fromColors(
-      baseColor: AppColors.secondary, // Match image (Lighter)
-      highlightColor: AppColors.secondary,
-      child: Column(
-        children: [
-          for (int i = 0; i < 8; i++) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              child: Row(
-                children: [
-                  // Avatar Skeleton (Match image: 44px)
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // User Info Skeleton
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: 60,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  // Action Button Skeleton
-                  Container(
-                    width: 80,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (i < 7)
-              const Divider(height: 1, thickness: 1, color: AppColors.border),
-          ],
-        ],
-      ),
+    return Column(
+      children: List.generate(8, (index) => const KovariSkeletonUserListItem()),
     );
   }
 
@@ -686,10 +630,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: AppTextStyles.h3.copyWith(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
             if (_searchQuery.isEmpty) ...[
@@ -698,9 +641,8 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 type == 'followers'
                     ? "When people follow you, you'll see them here."
                     : "When you follow people, you'll see them here.",
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.mutedForeground,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.text(context, isMuted: true),
                 ),
                 textAlign: TextAlign.center,
               ),

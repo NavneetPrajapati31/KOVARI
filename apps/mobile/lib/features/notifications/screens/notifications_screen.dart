@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 
 import '../widgets/notification_item.dart';
-import '../../../core/widgets/common/skeleton.dart';
+import '../../../core/widgets/skeletons/kovari_skeletons.dart';
 import '../providers/notification_provider.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -226,39 +225,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget _buildSliverSkeleton(BuildContext context) {
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        return Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: AppColors.borderColor(context)),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Skeleton.circle(size: 40),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Skeleton(width: 96, height: 12),
-                        Skeleton(width: 40, height: 12),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Skeleton(width: 128, height: 12),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
+        return const KovariSkeletonNotificationItem();
       }, childCount: 12),
     );
   }

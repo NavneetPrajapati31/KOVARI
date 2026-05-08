@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/common/skeleton.dart';
+import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 import '../../../../core/widgets/common/kovari_image.dart';
 import '../../../../shared/widgets/app_card.dart';
 
@@ -157,9 +157,8 @@ class UpcomingTripCard extends StatelessWidget {
   }
 
   Widget _buildSkeleton() {
-    return Skeleton(
+    return const KovariSkeletonCard(
       height: 180,
-      width: double.infinity,
       borderRadius: AppRadius.large,
     );
   }

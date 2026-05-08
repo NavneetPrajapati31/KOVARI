@@ -30,6 +30,7 @@ import 'core/providers/profile_provider.dart';
 import 'core/providers/cache_provider.dart';
 import 'core/network/mutation_queue.dart';
 import 'core/providers/theme_provider.dart';
+import 'core/runtime/runtime_init.dart';
 
 void main() {
   runZonedGuarded(
@@ -150,6 +151,9 @@ void main() {
       try {
         await container.read(cacheInitProvider.future);
         await container.read(mutationQueueInitProvider.future);
+        
+        // 🚀 [Critical Runtime Path] Initialize Persistent Runtime
+        await container.read(runtimeInitProvider.future);
 
         // Start background cache maintenance
         Timer.periodic(const Duration(minutes: 15), (_) {

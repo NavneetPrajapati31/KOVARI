@@ -3,7 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/common/skeleton.dart';
+import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 import '../../../../shared/widgets/kovari_avatar.dart';
 
 class MockGroup {
@@ -104,7 +104,7 @@ class GroupsSection extends StatelessWidget {
         7,
         (i) => Column(
           children: [
-            _GroupCardSkeleton(),
+            const KovariSkeletonGroupListItem(),
             if (i < 6)
               Divider(height: 1, color: AppColors.borderColor(context)),
           ],
@@ -221,44 +221,3 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-class _GroupCardSkeleton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: 12,
-      ),
-      child: Row(
-        children: [
-          const Skeleton.circle(size: 40),
-          const SizedBox(width: AppSpacing.sm * 1.5),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Skeleton(
-                      width: 96,
-                      height: 12,
-                      borderRadius: AppRadius.small,
-                    ),
-                    Skeleton(
-                      width: 48,
-                      height: 12,
-                      borderRadius: AppRadius.small,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Skeleton(width: 64, height: 12, borderRadius: AppRadius.small),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

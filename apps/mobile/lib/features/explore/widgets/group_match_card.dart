@@ -41,6 +41,7 @@ class GroupMatchCard extends ConsumerWidget {
     return AppCard(
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(24),
+      border: const Border(top: BorderSide.none, bottom: BorderSide.none),
       boxShadow: const [],
       child: Column(
         children: [
@@ -82,11 +83,20 @@ class GroupMatchCard extends ConsumerWidget {
                                       size: 100,
                                     ),
                               )
-                            : UserAvatarFallback(size: 100),
+                            : UserAvatarFallback(
+                                shape: BoxShape.rectangle,
+                                borderRadius: BorderRadius.circular(16),
+                                size: 100,
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(name, style: AppTextStyles.h3),
+                    Text(
+                      name,
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.text(context),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       (description != null && description.isNotEmpty)
@@ -242,8 +252,9 @@ class GroupMatchCard extends ConsumerWidget {
 
   Widget _buildPill(BuildContext context, _PillData data) {
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       borderRadius: BorderRadius.circular(20),
+      backgroundColor: AppColors.mutedColor(context),
       boxShadow: const [],
       child: Row(
         mainAxisSize: MainAxisSize.min,
