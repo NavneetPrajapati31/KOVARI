@@ -35,7 +35,18 @@ class GroupMembersManagementSheet extends ConsumerWidget {
         membersAsync.when(
           data: (members) => KovariGroupContainer(
             backgroundColor: AppColors.surface(context, level: 1),
-            children: members.map((member) {
+            children: () {
+              final sortedMembers = [...members]
+                ..sort((a, b) {
+                  // 1. Role priority (Admin first)
+                  if (a.role == 'admin' && b.role != 'admin') return -1;
+                  if (a.role != 'admin' && b.role == 'admin') return 1;
+
+                  // 2. Alphabetical priority
+                  return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                });
+
+              return sortedMembers.map((member) {
               final isOtherAdmin = member.role == 'admin';
 
               return Padding(
@@ -114,7 +125,8 @@ class GroupMembersManagementSheet extends ConsumerWidget {
                   ],
                 ),
               );
-            }).toList(),
+              }).toList();
+            }(),
           ),
           loading: () => const Center(
             child: Padding(

@@ -159,9 +159,15 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
   Future<void> _onRefresh() async {
     // 🚀 Force refresh all entity stores for this group
     await Future.wait([
-      ref.read(groupStoreProvider.notifier).subscribe(widget.groupId, force: true),
-      ref.read(membershipStoreProvider.notifier).subscribe(widget.groupId, force: true),
-      ref.read(memberStoreProvider.notifier).subscribe(widget.groupId, force: true),
+      ref
+          .read(groupStoreProvider.notifier)
+          .subscribe(widget.groupId, force: true),
+      ref
+          .read(membershipStoreProvider.notifier)
+          .subscribe(widget.groupId, force: true),
+      ref
+          .read(memberStoreProvider.notifier)
+          .subscribe(widget.groupId, force: true),
     ]);
   }
 
@@ -335,7 +341,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.borderColor(context),
+                  color: AppColors.text(context, isMuted: true).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -344,59 +350,68 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
             Text("Group Members (${members.length})", style: AppTextStyles.h3),
             const SizedBox(height: 24),
             Expanded(
-              child: ListView.builder(
-                itemCount: members.length,
-                itemBuilder: (context, index) {
-                  final member = members[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Row(
-                      children: [
-                        KovariAvatar(imageUrl: member.avatar, size: 48),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                member.name,
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  fontWeight: FontWeight.w600,
+              child: () {
+                final sortedMembers = [...members]
+                  ..sort((a, b) {
+                    if (a.role == 'admin' && b.role != 'admin') return -1;
+                    if (a.role != 'admin' && b.role == 'admin') return 1;
+                    return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                  });
+
+                return ListView.builder(
+                  itemCount: sortedMembers.length,
+                  itemBuilder: (context, index) {
+                    final member = sortedMembers[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Row(
+                        children: [
+                          KovariAvatar(imageUrl: member.avatar, size: 48),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  member.name,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                "@${member.username}",
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.mutedForeground,
+                                Text(
+                                  "@${member.username}",
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.mutedForeground,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (member.role == 'admin')
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              "Admin",
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                          if (member.role == 'admin')
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                "Admin",
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              }(),
             ),
           ],
         ),

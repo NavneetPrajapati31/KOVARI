@@ -235,9 +235,12 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
   ) {
     final sortedMembers = [...members]
       ..sort((a, b) {
+        // 1. Role priority (Admin first)
         if (a.role == 'admin' && b.role != 'admin') return -1;
         if (a.role != 'admin' && b.role == 'admin') return 1;
-        return 0;
+
+        // 2. Alphabetical priority
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
 
     return Padding(

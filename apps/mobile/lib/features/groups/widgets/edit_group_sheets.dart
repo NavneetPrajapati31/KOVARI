@@ -60,7 +60,10 @@ class SettingsBottomSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.borderColor(context),
+                color: AppColors.text(
+                  context,
+                  isMuted: true,
+                ).withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -235,7 +238,10 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.borderColor(context),
+                color: AppColors.text(
+                  context,
+                  isMuted: true,
+                ).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

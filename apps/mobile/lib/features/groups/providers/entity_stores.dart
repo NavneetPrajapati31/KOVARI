@@ -180,13 +180,23 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
         current.source == HydrationSource.initial ||
         current.source == HydrationSource.memory ||
         force) {
-      final stream = ref.read(runtimeCoordinatorProvider).requestHydration(
+      final stream = ref
+          .read(runtimeCoordinatorProvider)
+          .requestHydration(
             _createHydratable(groupId),
             priority: TaskPriority.visible,
             initialData: current?.data,
             force: force,
           );
-      await stream.firstWhere((s) => !s.isHydrating);
+      try {
+        await stream
+            .firstWhere((s) => !s.isHydrating)
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        debugPrint(
+          '⚠️ [GroupStore] Hydration wait timed out or finished early',
+        );
+      }
     }
   }
 
@@ -298,12 +308,22 @@ class MemberStore
   Future<void> subscribe(String groupId, {bool force = false}) async {
     _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
     if (state[groupId] == null || force) {
-      final stream = ref.read(runtimeCoordinatorProvider).requestHydration(
+      final stream = ref
+          .read(runtimeCoordinatorProvider)
+          .requestHydration(
             _MemberHydratable(groupId, ref, (s) => _patch(groupId, s)),
             priority: TaskPriority.activeTab,
             force: force,
           );
-      await stream.firstWhere((s) => !s.isHydrating);
+      try {
+        await stream
+            .firstWhere((s) => !s.isHydrating)
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        debugPrint(
+          '⚠️ [MemberStore] Hydration wait timed out or finished early',
+        );
+      }
     }
   }
 
@@ -370,12 +390,22 @@ class ItineraryStore
   Future<void> subscribe(String groupId, {bool force = false}) async {
     _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
     if (state[groupId] == null || force) {
-      final stream = ref.read(runtimeCoordinatorProvider).requestHydration(
+      final stream = ref
+          .read(runtimeCoordinatorProvider)
+          .requestHydration(
             _ItineraryHydratable(groupId, ref, (s) => _patch(groupId, s)),
             priority: TaskPriority.activeTab,
             force: force,
           );
-      await stream.firstWhere((s) => !s.isHydrating);
+      try {
+        await stream
+            .firstWhere((s) => !s.isHydrating)
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        debugPrint(
+          '⚠️ [ItineraryStore] Hydration wait timed out or finished early',
+        );
+      }
     }
   }
 
@@ -449,12 +479,22 @@ class MembershipStore
   Future<void> subscribe(String groupId, {bool force = false}) async {
     _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
     if (state[groupId] == null || force) {
-      final stream = ref.read(runtimeCoordinatorProvider).requestHydration(
+      final stream = ref
+          .read(runtimeCoordinatorProvider)
+          .requestHydration(
             _MembershipHydratable(groupId, ref, (s) => _patch(groupId, s)),
             priority: TaskPriority.visible,
             force: force,
           );
-      await stream.firstWhere((s) => !s.isHydrating);
+      try {
+        await stream
+            .firstWhere((s) => !s.isHydrating)
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        debugPrint(
+          '⚠️ [MembershipStore] Hydration wait timed out or finished early',
+        );
+      }
     }
   }
 
@@ -525,7 +565,9 @@ class MyGroupsStore extends Hydratable<List<GroupModel>> {
 
   @override
   Future<List<GroupModel>> fetchFromNetwork() async {
-    debugPrint('📡 [MyGroupsStore] Initiating network fetch from: ${ApiEndpoints.myGroups}');
+    debugPrint(
+      '📡 [MyGroupsStore] Initiating network fetch from: ${ApiEndpoints.myGroups}',
+    );
     return ref.read(groupServiceProvider).getMyGroups();
   }
 
@@ -569,10 +611,12 @@ class HydrationEngineWrapper<T> extends StateNotifier<HydratedState<T>> {
   Future<void> refresh() async {
     // 🛡️ RACE CONDITION FIX: Subscribe to the stream BEFORE triggering the force-load
     // This ensures we catch the '!isHydrating' event even if it happens instantly.
-    final future = _engine.hydrate(_target, force: true).firstWhere((s) => !s.isHydrating);
-    
+    final future = _engine
+        .hydrate(_target, force: true)
+        .firstWhere((s) => !s.isHydrating);
+
     hydrate(force: true);
-    
+
     await future;
   }
 

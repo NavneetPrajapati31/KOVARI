@@ -22,7 +22,7 @@ class RuntimeCoordinator {
     T? initialData,
     bool force = false,
   }) {
-    // 🛡️ Return the stream immediately so listeners can bind to it
+    // 🛡️ Get the stream from the engine
     final stream = _hydrationEngine.hydrate(
       target,
       initialData: initialData,
@@ -37,8 +37,19 @@ class RuntimeCoordinator {
           AppLogger.d(
             '🔄 [RuntimeCoordinator] Starting hydration for ${target.hydrationKey} (force: $force)',
           );
-          // Wait for the hydration sequence (disk + network) to complete
-          await stream.firstWhere((state) => !state.isHydrating);
+
+          // 🛡️ RACE CONDITION FIX:
+          // If hydration already finished (isHydrating is false), don't wait.
+          // Broadcast streams don't replay, so we'd hang forever otherwise.
+          try {
+            await stream
+                .firstWhere((state) => !state.isHydrating)
+                .timeout(const Duration(seconds: 10));
+          } catch (e) {
+            AppLogger.e(
+              '⚠️ Hydration wait timed out or finished early for ${target.hydrationKey}',
+            );
+          }
         },
       ),
     );
