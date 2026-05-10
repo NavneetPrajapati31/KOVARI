@@ -76,6 +76,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const ExploreFiltersSheet(),
     );
@@ -253,6 +254,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
     return CustomScrollView(
       key: const PageStorageKey('explore_scroll'),
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.symmetric(vertical: 8),

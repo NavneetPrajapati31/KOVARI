@@ -72,7 +72,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onRefresh: _handleRefresh,
             child: CustomScrollView(
               key: const PageStorageKey('home_scroll'),
-              physics: const AlwaysScrollableScrollPhysics(),
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 // 1. Stale Indicator (Subtle)
                 if (homeState.isStale)
@@ -113,9 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   sliver: _buildSliverBody(homeState),
                 ),
 
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 110),
-                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 110)),
               ],
             ),
           ),

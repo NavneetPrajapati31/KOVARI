@@ -38,8 +38,7 @@ class GroupsScreen extends ConsumerWidget {
                   "New group",
                   false,
                   onTap: () {
-                    Navigator.push(
-                      context,
+                    Navigator.of(context, rootNavigator: true).push(
                       MaterialPageRoute(
                         builder: (context) => const CreateGroupScreen(),
                       ),
@@ -56,7 +55,11 @@ class GroupsScreen extends ConsumerWidget {
               onRefresh: () =>
                   ref.read(myGroupsStoreProvider.notifier).refresh(),
               child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 slivers: [
                   // 1. Stale Indicator
                   if (groupState.isStale)
@@ -181,8 +184,7 @@ class GroupsScreen extends ConsumerWidget {
                         child: GroupCard(
                           group: groups[i],
                           onAction: () {
-                            Navigator.push(
-                              context,
+                            Navigator.of(context, rootNavigator: true).push(
                               PremiumPageRoute(
                                 builder: (context) =>
                                     GroupDetailsScreen(groupId: groups[i].id),

@@ -104,6 +104,10 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
     return SafeArea(
       bottom: false,
       child: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
           // Search Bar (SliverToBoxAdapter)
           SliverToBoxAdapter(

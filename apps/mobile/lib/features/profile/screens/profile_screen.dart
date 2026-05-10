@@ -35,6 +35,10 @@ class ProfileScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -51,9 +55,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 110),
-            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 110)),
           ],
         ),
       ),
@@ -112,8 +114,7 @@ class ProfileScreen extends ConsumerWidget {
                               icon: LucideIcons.settings,
                               label: 'Settings',
                               onTap: () {
-                                Navigator.push(
-                                  context,
+                                Navigator.of(context, rootNavigator: true).push(
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         const SettingsScreen(),
@@ -125,8 +126,7 @@ class ProfileScreen extends ConsumerWidget {
                               icon: LucideIcons.shieldCheck,
                               label: 'Safety',
                               onTap: () {
-                                Navigator.push(
-                                  context,
+                                Navigator.of(context, rootNavigator: true).push(
                                   MaterialPageRoute(
                                     builder: (context) => const SafetyScreen(),
                                   ),
@@ -164,8 +164,7 @@ class ProfileScreen extends ConsumerWidget {
                           profile.followers,
                           'Followers',
                           onTap: () {
-                            Navigator.push(
-                              context,
+                            Navigator.of(context, rootNavigator: true).push(
                               MaterialPageRoute(
                                 builder: (context) => ConnectionsScreen(
                                   userId: profile.userId,
@@ -182,8 +181,7 @@ class ProfileScreen extends ConsumerWidget {
                           profile.following,
                           'Following',
                           onTap: () {
-                            Navigator.push(
-                              context,
+                            Navigator.of(context, rootNavigator: true).push(
                               MaterialPageRoute(
                                 builder: (context) => ConnectionsScreen(
                                   userId: profile.userId,
@@ -217,8 +215,7 @@ class ProfileScreen extends ConsumerWidget {
                   context,
                   'Edit Profile',
                   onPressed: () {
-                    Navigator.push(
-                      context,
+                    Navigator.of(context, rootNavigator: true).push(
                       PageRouteBuilder(
                         pageBuilder: (context, animation, secondaryAnimation) =>
                             EditProfileScreen(profile: profile),

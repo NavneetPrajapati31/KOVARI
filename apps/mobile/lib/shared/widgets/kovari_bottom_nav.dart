@@ -28,75 +28,110 @@ class KovariBottomNav extends ConsumerWidget {
     );
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return SafeArea(
-      bottom: true,
-      child: Container(
-        height: 100,
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          6,
-        ), // Tighter screen margin
-        alignment: Alignment.bottomCenter,
-        color: Colors.transparent,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(40), // More rounded ends
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        // 🌌 iOS 26 Content Mask Gradient
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 120, // Slightly taller for a longer, smoother fade
+          child: IgnorePointer(
             child: Container(
-              height: 62,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 6,
-              ), // Added for corner breathing room
               decoration: BoxDecoration(
-                color: (isDark ? AppColors.cardDark : AppColors.card)
-                    .withValues(
-                      alpha: 0.90, // Darker, richer glass
-                    ),
-                borderRadius: BorderRadius.circular(40),
-                border: Border.all(color: AppColors.borderColor(context)),
-              ),
-              child: Stack(
-                children: [
-                  // Active Indicator (Large Wide Pill)
-                  AnimatedAlign(
-                    duration: InteractionConfig.medium,
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment(
-                      -1.0 + (currentIndex * (2.0 / 4.0)),
-                      0.0,
-                    ),
-                    child: FractionallySizedBox(
-                      widthFactor: 1 / 5,
-                      child: Center(
-                        child: Container(
-                          width: 70, // Wider like iOS 26
-                          height: 50, // Taller pill
-                          decoration: BoxDecoration(
-                            color: AppColors.borderColor(context),
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Items
-                  Row(
-                    children: [
-                      _buildNavItem(context, 0, 'home', 'Home'),
-                      _buildNavItem(context, 1, 'search', 'Explore'),
-                      _buildNavItem(context, 2, 'send', 'Chats'),
-                      _buildNavItem(context, 3, 'users', 'Groups'),
-                      _buildAvatarNavItem(context, 4, profilePhoto, 'Profile'),
-                    ],
-                  ),
-                ],
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.2, 0.5, 0.8, 1.0], // Cubic-style stops
+                  colors: [
+                    Colors.transparent,
+                    (isDark ? AppColors.backgroundDark : AppColors.background)
+                        .withValues(alpha: isDark ? 0.1 : 0.05),
+                    (isDark ? AppColors.backgroundDark : AppColors.background)
+                        .withValues(alpha: isDark ? 0.4 : 0.3),
+                    (isDark ? AppColors.backgroundDark : AppColors.background)
+                        .withValues(alpha: isDark ? 0.8 : 0.8),
+                    (isDark ? AppColors.backgroundDark : AppColors.background)
+                        .withValues(alpha: isDark ? 0.9 : 1.0),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
+        // 📳 The Floating Nav Bar
+        SafeArea(
+          bottom: true,
+          child: Container(
+            height: 100,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            alignment: Alignment.bottomCenter,
+            color: Colors.transparent,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(40), // More rounded ends
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                child: Container(
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                  ), // Added for corner breathing room
+                  decoration: BoxDecoration(
+                    color: (isDark ? AppColors.cardDark : AppColors.card)
+                        .withValues(
+                          alpha: 0.10, // Darker, richer glass
+                        ),
+                    borderRadius: BorderRadius.circular(40),
+                    border: Border.all(color: AppColors.borderColor(context)),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Active Indicator (Large Wide Pill)
+                      AnimatedAlign(
+                        duration: InteractionConfig.medium,
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment(
+                          -1.0 + (currentIndex * (2.0 / 4.0)),
+                          0.0,
+                        ),
+                        child: FractionallySizedBox(
+                          widthFactor: 1 / 5,
+                          child: Center(
+                            child: Container(
+                              width: 70, // Wider like iOS 26
+                              height: 50, // Taller pill
+                              decoration: BoxDecoration(
+                                color: AppColors.borderColor(context),
+                                borderRadius: BorderRadius.circular(28),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Items
+                      Row(
+                        children: [
+                          _buildNavItem(context, 0, 'home', 'Home'),
+                          _buildNavItem(context, 1, 'search', 'Explore'),
+                          _buildNavItem(context, 2, 'send', 'Chats'),
+                          _buildNavItem(context, 3, 'users', 'Groups'),
+                          _buildAvatarNavItem(
+                            context,
+                            4,
+                            profilePhoto,
+                            'Profile',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
