@@ -13,6 +13,7 @@ import '../../../core/services/local_storage.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
+import '../../../core/services/haptic_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -218,9 +219,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 height: 20,
                                 child: Checkbox(
                                   value: _rememberMe,
-                                  onChanged: (val) => setState(
-                                    () => _rememberMe = val ?? false,
-                                  ),
+                                  onChanged: (val) {
+                                    HapticService.selection();
+                                    setState(() => _rememberMe = val ?? false);
+                                  },
                                   activeColor: AppColors.primary,
                                   side: BorderSide(
                                     color: AppColors.borderColor(context),
@@ -242,10 +244,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ],
                           ),
                           TextButton(
-                            onPressed: () => Navigator.pushNamed(
-                              context,
-                              '/forgot-password',
-                            ),
+                            onPressed: () {
+                              HapticService.selection();
+                              Navigator.pushNamed(context, '/forgot-password');
+                            },
                             style: TextButton.styleFrom(
                               padding: EdgeInsets.zero,
                               minimumSize: Size.zero,
@@ -288,7 +290,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/sign-up'),
+                      onPressed: () {
+                        HapticService.selection();
+                        Navigator.pushNamed(context, '/sign-up');
+                      },
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: Size.zero,

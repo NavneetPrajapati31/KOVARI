@@ -14,6 +14,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../shared/widgets/kovari_empty_state.dart';
 import '../../../shared/widgets/interactive_wrapper.dart';
 import '../../../shared/utils/scroll_preloader.dart';
+import '../../../core/widgets/skeletons/kovari_skeletons.dart';
+import '../../../core/services/haptic_service.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -151,6 +153,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               boxShadow: const [],
               child: TabBar(
                 controller: _tabController,
+                onTap: (index) => HapticService.selection(),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 splashFactory: NoSplash.splashFactory,
                 indicator: BoxDecoration(
@@ -201,9 +204,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
   Widget _buildBody(ExploreState state) {
     if (state.isLoading && state.matches.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const KovariSkeletonExplore();
     }
 
     if (state.error != null) {
@@ -247,9 +248,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             match is! GroupModel);
 
     if (isTypeMismatch) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const KovariSkeletonExplore();
     }
 
     return CustomScrollView(
@@ -274,6 +273,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               ),
             ),
           ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 110),
+        ),
       ],
     );
   }

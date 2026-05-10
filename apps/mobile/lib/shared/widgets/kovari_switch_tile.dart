@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import '../../core/services/haptic_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 
@@ -75,7 +76,10 @@ class KovariSwitchTile extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: CupertinoSwitch(
                 value: value,
-                onChanged: onChanged,
+                onChanged: (val) {
+                  HapticService.selection();
+                  onChanged(val);
+                },
                 activeTrackColor: AppColors.primary,
                 inactiveTrackColor: AppColors.text(
                   context,

@@ -15,6 +15,7 @@ import '../../../core/providers/profile_provider.dart';
 import '../../../shared/widgets/kovari_confirm_dialog.dart';
 import 'connections_screen.dart';
 import '../../../shared/widgets/app_card.dart';
+import '../../../core/widgets/skeletons/kovari_skeletons.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -130,13 +131,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
     if (_isLoading) {
       return const Scaffold(
-        body: Center(
-          child: SizedBox(
-            height: 24,
-            width: 24,
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-        ),
+        body: KovariSkeletonProfile(),
       );
     }
 

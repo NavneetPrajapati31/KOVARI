@@ -41,32 +41,8 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
   bool get wantKeepAlive => true;
 
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      ref.read(memberStoreProvider.notifier).subscribe(widget.group.id);
-      ref.read(itineraryStoreProvider.notifier).subscribe(widget.group.id);
-    });
-  }
-
-  @override
-  void dispose() {
-    ref.read(memberStoreProvider.notifier).unsubscribe(widget.group.id);
-    ref.read(itineraryStoreProvider.notifier).unsubscribe(widget.group.id);
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     super.build(context);
-
-    // 🛡️ Debug Logic: Why is the destination image missing?
-    debugPrint(
-      '🔍 [OverviewTab] Group: ${widget.group.id} | Destination: ${widget.group.destination}',
-    );
-    debugPrint(
-      '🖼️ [OverviewTab] Cover: ${widget.group.coverImage} | DestinationImg: ${widget.group.destinationImage}',
-    );
 
     // Selective subscriptions to avoid parent rebuilds
     final membersState = ref.watch(
@@ -139,15 +115,17 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                   const SizedBox(height: 10),
 
                   // Members Layer
-                  if (membersState != null && membersState.hasData)
-                    _buildMembersVerticalList(context, membersState.data!)
-                  else if (membersState != null && membersState.isHydrating)
-                    _buildMembersLoading(context)
-                  else
-                    SizedBox.shrink(),
-
-                  Divider(color: AppColors.borderColor(context), thickness: 1),
-                  const SizedBox(height: 10),
+                  if (membersState != null && membersState.hasData) ...[
+                    _buildMembersVerticalList(context, membersState.data!),
+                    const SizedBox(height: 10),
+                    Divider(color: AppColors.borderColor(context), thickness: 1),
+                    const SizedBox(height: 10),
+                  ] else if (membersState != null && membersState.isHydrating) ...[
+                    _buildMembersLoading(context),
+                    const SizedBox(height: 10),
+                    Divider(color: AppColors.borderColor(context), thickness: 1),
+                    const SizedBox(height: 10),
+                  ],
 
                   // Itinerary Layer
                   if (itineraryState != null && itineraryState.hasData)

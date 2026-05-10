@@ -57,6 +57,17 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
   }
 
   @override
+  void didUpdateWidget(InteractiveWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSuccess && !oldWidget.isSuccess) {
+      HapticService.success();
+    }
+    if (widget.isError && !oldWidget.isError) {
+      HapticService.error();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();

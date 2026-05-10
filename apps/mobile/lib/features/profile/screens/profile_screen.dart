@@ -18,6 +18,7 @@ import 'safety_screen.dart';
 
 import '../../../shared/widgets/kovari_image_modal.dart';
 import '../../../shared/widgets/kovari_popover.dart';
+import '../../../core/widgets/skeletons/kovari_skeletons.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -27,7 +28,7 @@ class ProfileScreen extends ConsumerWidget {
     final profile = ref.watch(profileProvider);
 
     if (profile == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: KovariSkeletonProfile());
     }
 
     return Scaffold(
@@ -49,6 +50,9 @@ class ProfileScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 110),
             ),
           ],
         ),

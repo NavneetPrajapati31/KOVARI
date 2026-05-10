@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/skeletons/kovari_skeletons.dart';
+import '../../../core/services/haptic_service.dart';
 import '../providers/request_provider.dart';
 import '../models/request_model.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
@@ -110,6 +111,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
         child: TabBar(
           controller: _tabController,
+          onTap: (index) => HapticService.selection(),
           overlayColor: WidgetStateProperty.all(Colors.transparent),
           splashFactory: NoSplash.splashFactory,
           indicator: BoxDecoration(

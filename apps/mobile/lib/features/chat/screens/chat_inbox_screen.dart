@@ -102,6 +102,7 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
     }).toList();
 
     return SafeArea(
+      bottom: false,
       child: CustomScrollView(
         slivers: [
           // Search Bar (SliverToBoxAdapter)
@@ -235,6 +236,9 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
                 ),
               ),
             ),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 110),
+          ),
         ],
       ),
     );

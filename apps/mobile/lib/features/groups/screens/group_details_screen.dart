@@ -14,7 +14,10 @@ import '../widgets/tabs/itinerary_tab.dart';
 import '../widgets/tabs/settings_tab.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../providers/entity_stores.dart';
-import '../providers/group_details_provider.dart'; // Still needed for membership info model for now or just the store
+import '../providers/group_details_provider.dart';
+import '../../../shared/widgets/kovari_skeleton.dart';
+import '../../../shared/utils/url_utils.dart';
+import '../../../shared/widgets/kovari_refresh_indicator.dart';
 
 class GroupDetailsScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -39,6 +42,8 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     Future.microtask(() {
       ref.read(groupStoreProvider.notifier).subscribe(widget.groupId);
       ref.read(membershipStoreProvider.notifier).subscribe(widget.groupId);
+      ref.read(memberStoreProvider.notifier).subscribe(widget.groupId);
+      ref.read(itineraryStoreProvider.notifier).subscribe(widget.groupId);
     });
   }
 
@@ -47,6 +52,8 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     // GC: Cleanup subscriptions
     ref.read(groupStoreProvider.notifier).unsubscribe(widget.groupId);
     ref.read(membershipStoreProvider.notifier).unsubscribe(widget.groupId);
+    ref.read(memberStoreProvider.notifier).unsubscribe(widget.groupId);
+    ref.read(itineraryStoreProvider.notifier).unsubscribe(widget.groupId);
     _notesController.dispose();
     super.dispose();
   }
@@ -118,9 +125,8 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
             onTabChanged: (index) => setState(() => _activeTabIndex = index),
           ),
           Expanded(
-            child: RefreshIndicator(
+            child: KovariRefreshIndicator(
               onRefresh: _onRefresh,
-              color: AppColors.primary,
               child: IndexedStack(
                 index: _activeTabIndex,
                 children: [
@@ -172,15 +178,41 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
   }
 
   Widget _buildSkeletonState() {
-    return const Scaffold(
-      body: Center(
-        child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(
-            color: AppColors.primary,
-            strokeWidth: 3,
-          ),
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  const KovariSkeleton(width: 32, height: 32, borderRadius: 8),
+                  const SizedBox(width: 12),
+                  const KovariSkeleton(width: 150, height: 20),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const KovariSkeleton(height: 200, width: double.infinity),
+                    const SizedBox(height: 24),
+                    const KovariSkeleton(width: 120, height: 24),
+                    const SizedBox(height: 12),
+                    const KovariSkeleton(height: 16, width: double.infinity),
+                    const SizedBox(height: 8),
+                    const KovariSkeleton(height: 16, width: double.infinity),
+                    const SizedBox(height: 8),
+                    const KovariSkeleton(height: 16, width: 200),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -188,50 +220,68 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
 
   Widget _buildPartialState(GroupModel group) {
     return Scaffold(
-      body: Column(
-        children: [
-          SafeArea(child: _buildHeader(group)),
-          const Spacer(),
-          const CircularProgressIndicator(color: AppColors.primary),
-          const Spacer(),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(group),
+            const Divider(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const KovariSkeleton(height: 200, width: double.infinity),
+                    const SizedBox(height: 24),
+                    const KovariSkeleton(width: 120, height: 24),
+                    const SizedBox(height: 12),
+                    const KovariSkeleton(height: 16, width: double.infinity),
+                    const SizedBox(height: 8),
+                    const KovariSkeleton(height: 16, width: double.infinity),
+                    const SizedBox(height: 8),
+                    const KovariSkeleton(height: 16, width: 200),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader(GroupModel group) {
-    return Container(
-      padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 6),
-      child: Row(
-        children: [
-          _buildBackButton(context),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              group.name,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text(context),
+    final coverImageUrl = UrlUtils.getFullImageUrl(group.coverImage);
+    return RepaintBoundary(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Row(
+          children: [
+            _buildBackButton(context),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                group.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text(context),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        child: Icon(
-          LucideIcons.arrowLeft,
-          size: 20,
-          color: AppColors.text(context),
-        ),
-      ),
+    return IconButton(
+      icon: const Icon(LucideIcons.arrowLeft, size: 20),
+      onPressed: () => Navigator.maybePop(context),
+      color: AppColors.text(context),
+      splashRadius: 24,
+      tooltip: 'Back',
     );
   }
 
@@ -341,7 +391,10 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.text(context, isMuted: true).withValues(alpha: 0.2),
+                  color: AppColors.text(
+                    context,
+                    isMuted: true,
+                  ).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

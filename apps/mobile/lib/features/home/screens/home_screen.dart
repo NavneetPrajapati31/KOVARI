@@ -61,6 +61,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Material(
       color: AppColors.surface(context),
       child: SafeArea(
+        bottom: false,
         child: ScrollPreloader(
           onIdle: () {
             if (homeState.data != null) {
@@ -113,7 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
 
                 const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.xl),
+                  child: SizedBox(height: 110),
                 ),
               ],
             ),

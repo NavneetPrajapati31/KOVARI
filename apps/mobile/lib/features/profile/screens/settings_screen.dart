@@ -14,6 +14,7 @@ import '../../../core/providers/theme_provider.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/kovari_confirm_dialog.dart';
 import '../../../shared/widgets/kovari_snackbar.dart';
+import '../../../core/services/haptic_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -356,7 +357,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
 
   Widget _buildBackButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.pop(context),
+      onTap: () {
+        HapticService.selection();
+        Navigator.pop(context);
+      },
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -443,7 +447,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               const SizedBox(height: 12),
               _buildOutlineButton(
                 'Change Email',
-                onPressed: () => setState(() => _showEmailForm = true),
+                onPressed: () {
+                  HapticService.light();
+                  setState(() => _showEmailForm = true);
+                },
               ),
             ],
           ),
@@ -564,7 +571,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               const SizedBox(height: 12),
               _buildOutlineButton(
                 'Change Password',
-                onPressed: () => setState(() => _showPasswordForm = true),
+                onPressed: () {
+                  HapticService.light();
+                  setState(() => _showPasswordForm = true);
+                },
               ),
             ],
           ),
@@ -672,6 +682,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
+        onTap: (index) => HapticService.selection(),
         tabs: const [
           Tab(text: 'Light'),
           Tab(text: 'System'),
@@ -895,8 +906,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             size: 14,
             color: AppColors.text(context, isMuted: true),
           ),
-          onTap: () =>
-              launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+          onTap: () {
+            HapticService.selection();
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+          },
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           visualDensity: VisualDensity.compact,
         ),

@@ -6,6 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/network/api_client.dart';
 import '../models/user_connection.dart';
 import '../data/connections_service.dart';
+import '../../../core/services/haptic_service.dart';
 import '../widgets/user_list_item.dart';
 import '../../../core/providers/profile_provider.dart';
 import 'public_profile_screen.dart';
@@ -355,12 +356,14 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                     ),
                     child: TabBar(
                       controller: _tabController,
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
                       indicatorColor: AppColors.primary,
                       indicatorWeight: 2,
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: AppColors.borderColor(context),
                       dividerHeight: 1,
                       onTap: (index) {
+                        HapticService.selection();
                         // Clear search when switching tabs
                         if (_searchQuery.isNotEmpty) {
                           _searchController.clear();

@@ -312,7 +312,7 @@ class MemberStore
           .read(runtimeCoordinatorProvider)
           .requestHydration(
             _MemberHydratable(groupId, ref, (s) => _patch(groupId, s)),
-            priority: TaskPriority.activeTab,
+            priority: TaskPriority.visible,
             force: force,
           );
       try {

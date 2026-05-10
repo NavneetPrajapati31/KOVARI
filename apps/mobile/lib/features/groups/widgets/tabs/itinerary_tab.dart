@@ -14,6 +14,7 @@ import '../../../../shared/widgets/kovari_popover.dart';
 import '../../models/group.dart';
 import '../modals/itinerary_form_modal.dart';
 import '../../providers/entity_stores.dart';
+import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 
 class ItineraryTab extends ConsumerStatefulWidget {
   final GroupModel group;
@@ -30,22 +31,6 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
   bool get wantKeepAlive => true;
 
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      ref.read(itineraryStoreProvider.notifier).subscribe(widget.group.id);
-      ref.read(memberStoreProvider.notifier).subscribe(widget.group.id);
-    });
-  }
-
-  @override
-  void dispose() {
-    ref.read(itineraryStoreProvider.notifier).unsubscribe(widget.group.id);
-    ref.read(memberStoreProvider.notifier).unsubscribe(widget.group.id);
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     super.build(context);
     final itineraryState = ref.watch(
@@ -58,7 +43,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
     final optimisticItinerary = optimisticStore[widget.group.id];
 
     if (itineraryState == null || !itineraryState.hasData) {
-      return const Center(child: CircularProgressIndicator());
+      return const KovariSkeletonItineraryBoard();
     }
 
     final baseItinerary = itineraryState.data!;

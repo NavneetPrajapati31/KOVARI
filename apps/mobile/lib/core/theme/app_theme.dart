@@ -89,6 +89,12 @@ class AppTheme {
       hoverColor: Colors.transparent,
 
       textTheme: textTheme,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
 
       appBarTheme: AppBarThemeData(
         backgroundColor: colorScheme.surface,

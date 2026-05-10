@@ -11,29 +11,44 @@ abstract class Hydratable<T> {
 
 class HydrationEngine {
   final Map<String, StreamController<HydratedState<dynamic>>> _controllers = {};
+  final Map<String, HydratedState<dynamic>> _lastStates = {};
 
   Stream<HydratedState<T>> hydrate<T>(
     Hydratable<T> target, {
     T? initialData,
     bool force = false,
-  }) {
+  }) async* {
     final key = target.hydrationKey;
 
     if (force) {
       _controllers.remove(key);
+      _lastStates.remove(key);
     }
 
-    // If already hydrating, return existing stream
+    StreamController<HydratedState<T>>? controller;
+
     if (_controllers.containsKey(key)) {
-      return _controllers[key]!.stream as Stream<HydratedState<T>>;
+      controller = _controllers[key]! as StreamController<HydratedState<T>>;
+    } else {
+      controller = StreamController<HydratedState<T>>.broadcast();
+      _controllers[key] = controller;
+      // Start sequence but don't await here
+      _runHydrationSequence(target, controller, initialData);
     }
 
-    final controller = StreamController<HydratedState<T>>.broadcast();
-    _controllers[key] = controller;
+    // 🛡️ REPLAY FIX: Always yield the last known state first if it exists
+    if (_lastStates.containsKey(key)) {
+      yield _lastStates[key]! as HydratedState<T>;
+    } else if (initialData != null) {
+      yield HydratedState(
+        data: initialData,
+        source: HydrationSource.initial,
+        isHydrating: true,
+      );
+    }
 
-    _runHydrationSequence(target, controller, initialData);
-
-    return controller.stream;
+    // Then pipe all future events
+    yield* controller.stream;
   }
 
   Future<void> _runHydrationSequence<T>(
@@ -49,6 +64,7 @@ class HydrationEngine {
 
     void emit(HydratedState<T> next) {
       currentState = next;
+      _lastStates[target.hydrationKey] = next;
       controller.add(next);
       target.onUpdate(next);
     }

@@ -23,6 +23,7 @@ class GroupsScreen extends ConsumerWidget {
     final groupState = ref.watch(myGroupsStoreProvider);
 
     return SafeArea(
+      bottom: false,
       child: Column(
         children: [
           // Sticky Header
@@ -65,6 +66,11 @@ class GroupsScreen extends ConsumerWidget {
 
                   // 2. Body
                   _buildSliverContent(context, ref, groupState),
+
+                  // 3. Bottom Padding for floating nav
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 110),
+                  ),
                 ],
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/haptic_service.dart';
 
 class GroupTabBar extends StatelessWidget {
   final int activeIndex;
@@ -39,7 +40,10 @@ class GroupTabBar extends StatelessWidget {
     int index,
   ) {
     return InkWell(
-      onTap: () => onTabChanged(index),
+      onTap: () {
+        HapticService.selection();
+        onTabChanged(index);
+      },
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/config/interaction_config.dart';
+import 'package:mobile/shared/widgets/interactive_wrapper.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -23,8 +25,9 @@ class GroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final coverImageUrl = UrlUtils.getFullImageUrl(group.coverImage);
 
-    return InkWell(
-      onTap: onAction,
+    return InteractiveWrapper(
+      onPressed: onAction,
+      hapticType: HapticType.selection,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(

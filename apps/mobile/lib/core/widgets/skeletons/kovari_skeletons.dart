@@ -355,3 +355,168 @@ class KovariSkeletonGroupListItem extends StatelessWidget {
     );
   }
 }
+
+class KovariSkeletonExplore extends StatelessWidget {
+  const KovariSkeletonExplore({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 1 / 1,
+            child: Skeleton(
+              borderRadius: BorderRadius.circular(16),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Skeleton(width: 180, height: 24),
+          const SizedBox(height: 8),
+          const Skeleton(width: double.infinity, height: 16),
+          const SizedBox(height: 4),
+          const Skeleton(width: 240, height: 16),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Skeleton(width: 100, height: 12),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(
+              4,
+              (index) => Skeleton(
+                width: 80 + (index * 10.0),
+                height: 32,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class KovariSkeletonProfile extends StatelessWidget {
+  const KovariSkeletonProfile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          const SizedBox(height: 40),
+          const Skeleton.circle(size: 100),
+          const SizedBox(height: 16),
+          const Skeleton(width: 140, height: 24),
+          const SizedBox(height: 8),
+          const Skeleton(width: 100, height: 16),
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: List.generate(
+                4,
+                (index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    children: [
+                      const Skeleton.circle(size: 24),
+                      const SizedBox(width: 16),
+                      const Skeleton(width: 120, height: 16),
+                      const Spacer(),
+                      const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class KovariSkeletonItineraryBoard extends StatelessWidget {
+  const KovariSkeletonItineraryBoard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Skeleton(width: 140, height: 20),
+          const SizedBox(height: 8),
+          const Skeleton(width: 240, height: 14),
+          const SizedBox(height: 24),
+          ...List.generate(3, (index) => _buildSectionSkeleton()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionSkeleton() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Skeleton.circle(size: 8),
+                SizedBox(width: 8),
+                Skeleton(width: 80, height: 14),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: List.generate(
+                2,
+                (index) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Skeleton(width: 60, height: 12),
+                          Skeleton(width: 40, height: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Skeleton(width: 120, height: 14),
+                      const SizedBox(height: 8),
+                      const Skeleton(width: double.infinity, height: 12),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

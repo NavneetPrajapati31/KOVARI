@@ -30,9 +30,9 @@ class AppShellScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
             child: IndexedStack(
               index: currentIndex,
               children: const [
@@ -44,13 +44,18 @@ class AppShellScreen extends ConsumerWidget {
               ],
             ),
           ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: KovariBottomNav(
+              currentIndex: currentIndex,
+              onTap: (index) {
+                ref.read(appShellIndexProvider.notifier).setIndex(index);
+              },
+            ),
+          ),
         ],
-      ),
-      bottomNavigationBar: KovariBottomNav(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          ref.read(appShellIndexProvider.notifier).setIndex(index);
-        },
       ),
     );
   }

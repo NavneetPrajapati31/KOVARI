@@ -277,9 +277,18 @@ class _KovariAppState extends ConsumerState<KovariApp> {
       builder: (context, child) {
         return GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-          child: ScrollConfiguration(
-            behavior: const BouncingScrollBehavior(),
-            child: Stack(children: [child!, const DynamicStatusOverlay()]),
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollUpdateNotification &&
+                  notification.dragDetails != null) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              }
+              return false;
+            },
+            child: ScrollConfiguration(
+              behavior: const BouncingScrollBehavior(),
+              child: Stack(children: [child!, const DynamicStatusOverlay()]),
+            ),
           ),
         );
       },
