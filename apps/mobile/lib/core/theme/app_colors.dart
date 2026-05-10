@@ -75,4 +75,12 @@ class AppColors {
     final dark = isDark(context);
     return dark ? inputDark : AppColors.input;
   }
+
+  static Color cardColor(BuildContext context) {
+    return isDark(context) ? cardDark : card;
+  }
+
+  static Color elevatedColor(BuildContext context) {
+    return isDark(context) ? elevatedDark : elevated;
+  }
 }

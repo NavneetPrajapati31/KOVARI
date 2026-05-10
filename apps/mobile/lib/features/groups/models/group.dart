@@ -315,7 +315,7 @@ class GroupMember {
       name: (json['name'] ?? '').toString(),
       avatar: json['avatar'] as String?,
       username: (json['username'] ?? '').toString(),
-      role: (json['role'] ?? 'member') as String,
+      role: (json['role'] ?? 'member').toString(),
       clerkId: (json['clerkId'] ?? json['clerk_id']) as String?,
       userIdFromUserTable: json['userIdFromUserTable'] as String?,
     );

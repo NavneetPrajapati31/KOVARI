@@ -25,11 +25,13 @@ class MockGroup {
 class GroupsSection extends StatelessWidget {
   final List<MockGroup> groups;
   final bool isLoading;
+  final Function(String)? onGroupTap;
 
   const GroupsSection({
     super.key,
     required this.groups,
     this.isLoading = false,
+    this.onGroupTap,
   });
 
   @override
@@ -81,7 +83,10 @@ class GroupsSection extends StatelessWidget {
               Column(
                 children: [
                   for (int i = 0; i < groups.length; i++) ...[
-                    _GroupCard(group: groups[i]),
+                    _GroupCard(
+                      group: groups[i],
+                      onTap: () => onGroupTap?.call(groups[i].id),
+                    ),
                     if (i < groups.length - 1)
                       Divider(
                         height: 1,
@@ -142,13 +147,14 @@ class GroupsSection extends StatelessWidget {
 
 class _GroupCard extends StatelessWidget {
   final MockGroup group;
+  final VoidCallback? onTap;
 
-  const _GroupCard({required this.group});
+  const _GroupCard({required this.group, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
@@ -220,4 +226,3 @@ class _GroupCard extends StatelessWidget {
     return destination.split(',')[0].trim();
   }
 }
-

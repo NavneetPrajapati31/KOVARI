@@ -10,6 +10,7 @@ import '../../../../shared/widgets/text_input_field.dart';
 import '../../../../shared/widgets/select_field.dart';
 import '../../models/group.dart';
 import '../../providers/group_details_provider.dart';
+import '../../../../shared/widgets/kovari_avatar.dart';
 
 class ItineraryFormModal extends ConsumerStatefulWidget {
   final String groupId;
@@ -97,6 +98,7 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
   }
 
   Future<void> _pickDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -105,11 +107,18 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              onSurface: AppColors.foreground,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                    surface: AppColors.surface(context, level: 2),
+                    onSurface: AppColors.foregroundDark,
+                  )
+                : ColorScheme.light(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                    onSurface: AppColors.foreground,
+                  ),
           ),
           child: child!,
         );
@@ -123,17 +132,25 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
   }
 
   Future<void> _pickTime() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              onSurface: AppColors.foreground,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                    surface: AppColors.surface(context, level: 2),
+                    onSurface: AppColors.foregroundDark,
+                  )
+                : ColorScheme.light(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                    onSurface: AppColors.foreground,
+                  ),
           ),
           child: child!,
         );
@@ -196,366 +213,399 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(groupMembersProvider(widget.groupId));
 
-    return Dialog(
-      backgroundColor: AppColors.surface(context, level: 1),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 54),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        constraints: const BoxConstraints(maxWidth: 450),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final maxHeight = MediaQuery.of(context).size.height * 0.65;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface(context, level: 1),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(bottom: bottomInset),
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag Handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.borderColor(context),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.initialItem == null
-                              ? 'Add Itinerary Item'
-                              : 'Edit Itinerary Item',
-                          style: AppTextStyles.h2.copyWith(
-                            fontSize: 14,
-                            color: AppColors.foreground,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.initialItem == null
-                              ? 'Create a new activity or event for your group.'
-                              : 'Update the details of this itinerary item.',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.text(context, isMuted: true),
-                            height: 1.3,
-                            fontSize: 13,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.initialItem == null
+                                    ? 'Add Itinerary Item'
+                                    : 'Edit Itinerary Item',
+                                style: AppTextStyles.h2.copyWith(
+                                  fontSize: 14,
+                                  color: AppColors.text(context),
+                                  letterSpacing: 0,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.initialItem == null
+                                    ? 'Create a new activity or event for your group.'
+                                    : 'Update the details of this itinerary item.',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.text(context, isMuted: true),
+                                  height: 1.3,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Divider(height: 1, color: AppColors.borderColor(context)),
-
-            // Scrollable Form Content
-            Flexible(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 20,
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextInputField(
-                          label: 'Title',
-                          controller: _titleController,
-                          hintText: 'Activity title',
-                          validator: (v) =>
-                              v?.isEmpty == true ? 'Title is required' : null,
-                        ),
-                        const SizedBox(height: 20),
-
-                        TextInputField(
-                          label: 'Description',
-                          controller: _descriptionController,
-                          hintText: 'Activity description',
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 20),
-
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: Text(
-                            'Date & Time',
-                            style: AppTextStyles.label.copyWith(
-                              color: AppColors.mutedForeground,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                  const SizedBox(height: 20),
+                  Divider(height: 1, color: AppColors.borderColor(context)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 20,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextInputField(
+                            label: 'Title',
+                            controller: _titleController,
+                            hintText: 'Activity title',
+                            validator: (v) =>
+                                v?.isEmpty == true ? 'Title is required' : null,
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: GestureDetector(
-                                onTap: _pickDate,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: AppColors.borderColor(context),
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    color: AppColors.surface(context, level: 2),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        LucideIcons.calendar,
-                                        size: 16,
-                                        color: AppColors.text(
-                                          context,
-                                          isMuted: true,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _formatDate(_selectedDate),
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTextStyles.bodyMedium
-                                              .copyWith(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Icon(
-                                        LucideIcons.chevronDown,
-                                        size: 14,
-                                        color: AppColors.mutedForeground,
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                          const SizedBox(height: 20),
+                          TextInputField(
+                            label: 'Description',
+                            controller: _descriptionController,
+                            hintText: 'Activity description',
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 20),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Text(
+                              'Date & Time',
+                              style: AppTextStyles.label.copyWith(
+                                color: AppColors.text(context, isMuted: true),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              flex: 2,
-                              child: GestureDetector(
-                                onTap: _pickTime,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: AppColors.border),
-                                    borderRadius: BorderRadius.circular(12),
-                                    color: AppColors.background,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        LucideIcons.clock,
-                                        size: 16,
-                                        color: AppColors.mutedForeground,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        _formatTime(_selectedTime),
-                                        style: AppTextStyles.bodyMedium
-                                            .copyWith(
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                      ),
-                                      const Spacer(),
-                                      const Icon(
-                                        LucideIcons.chevronDown,
-                                        size: 14,
-                                        color: AppColors.mutedForeground,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-
-                        TextInputField(
-                          label: 'Location',
-                          controller: _locationController,
-                          hintText: 'Where is this happening?',
-                          prefixIcon: const Icon(
-                            LucideIcons.mapPin,
-                            size: 16,
-                            color: AppColors.mutedForeground,
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        SelectField<String>(
-                          label: 'Priority',
-                          value: _selectedPriority,
-                          hintText: 'Select priority',
-                          options: _priorities,
-                          itemLabelBuilder: (p) =>
-                              p[0].toUpperCase() + p.substring(1),
-                          onChanged: (v) =>
-                              setState(() => _selectedPriority = v!),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        SelectField<String>(
-                          label: 'Status',
-                          value: _selectedStatus,
-                          hintText: 'Select status',
-                          options: _statuses,
-                          itemLabelBuilder: (s) =>
-                              s[0].toUpperCase() + s.substring(1),
-                          onChanged: (v) =>
-                              setState(() => _selectedStatus = v!),
-                        ),
-                        const SizedBox(height: 20),
-
-                        TextInputField(
-                          label: 'Notes',
-                          controller: _notesController,
-                          hintText: 'Additional notes',
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 20),
-
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: Text(
-                            'Assigned To',
-                            style: AppTextStyles.label.copyWith(
-                              color: AppColors.mutedForeground,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        membersAsync.when(
-                          data: (members) => Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: members.map((member) {
-                              final isSelected = _selectedAssignedTo.contains(
-                                member.id,
-                              );
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
                                 child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      if (isSelected) {
-                                        _selectedAssignedTo.remove(member.id);
-                                      } else {
-                                        _selectedAssignedTo.add(member.id);
-                                      }
-                                    });
-                                  },
+                                  onTap: _pickDate,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 6,
+                                      horizontal: 12,
+                                      vertical: 10,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.surface(
-                                        context,
-                                        level: 2,
-                                      ),
                                       border: Border.all(
                                         color: AppColors.borderColor(context),
                                       ),
                                       borderRadius: BorderRadius.circular(12),
+                                      color: AppColors.surface(
+                                        context,
+                                        level: 2,
+                                      ),
                                     ),
                                     child: Row(
                                       children: [
-                                        if (member.avatar != null) ...[
-                                          CircleAvatar(
-                                            radius: 15,
-                                            backgroundImage: NetworkImage(
-                                              member.avatar!,
-                                            ),
+                                        Icon(
+                                          LucideIcons.calendar,
+                                          size: 16,
+                                          color: AppColors.text(
+                                            context,
+                                            isMuted: true,
                                           ),
-                                          const SizedBox(width: 12),
-                                        ],
+                                        ),
+                                        const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            member.name,
-                                            maxLines: 1,
+                                            _formatDate(_selectedDate),
                                             overflow: TextOverflow.ellipsis,
-                                            style: AppTextStyles.bodySmall
+                                            style: AppTextStyles.bodyMedium
                                                 .copyWith(
-                                                  color: AppColors.foreground,
+                                                  color: AppColors.text(
+                                                    context,
+                                                  ),
                                                   fontWeight: FontWeight.w500,
-                                                  fontSize: 13,
                                                 ),
                                           ),
                                         ),
-                                        if (isSelected)
-                                          const Icon(
-                                            LucideIcons.check,
-                                            size: 18,
-                                            color: AppColors.primary,
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          LucideIcons.chevronDown,
+                                          size: 14,
+                                          color: AppColors.text(
+                                            context,
+                                            isMuted: true,
                                           ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
-                              );
-                            }).toList(),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: GestureDetector(
+                                  onTap: _pickTime,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: AppColors.borderColor(context),
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      color: AppColors.surface(
+                                        context,
+                                        level: 2,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          LucideIcons.clock,
+                                          size: 16,
+                                          color: AppColors.text(
+                                            context,
+                                            isMuted: true,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _formatTime(_selectedTime),
+                                          style: AppTextStyles.bodyMedium
+                                              .copyWith(
+                                                color: AppColors.text(context),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                        const Spacer(),
+                                        Icon(
+                                          LucideIcons.chevronDown,
+                                          size: 14,
+                                          color: AppColors.text(
+                                            context,
+                                            isMuted: true,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          loading: () => const Center(
-                            child: SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                          const SizedBox(height: 20),
+                          TextInputField(
+                            label: 'Location',
+                            controller: _locationController,
+                            hintText: 'Where is this happening?',
+                            prefixIcon: Icon(
+                              LucideIcons.mapPin,
+                              size: 16,
+                              color: AppColors.text(context, isMuted: true),
                             ),
                           ),
-                          error: (e, s) => const Text('Error loading members'),
-                        ), // Buffer for the bottom
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Sticky Action Buttons
-            const Divider(height: 1, color: AppColors.border),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SecondaryButton(
-                      text: 'Cancel',
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: PrimaryButton(
-                      text: widget.initialItem == null
-                          ? 'Add Item'
-                          : 'Update Item',
-                      onPressed: _submit,
-                      isLoading: _isSubmitting,
+                          const SizedBox(height: 20),
+                          SelectField<String>(
+                            label: 'Priority',
+                            value: _selectedPriority,
+                            hintText: 'Select priority',
+                            options: _priorities,
+                            itemLabelBuilder: (p) =>
+                                p[0].toUpperCase() + p.substring(1),
+                            onChanged: (v) =>
+                                setState(() => _selectedPriority = v!),
+                          ),
+                          const SizedBox(height: 20),
+                          SelectField<String>(
+                            label: 'Status',
+                            value: _selectedStatus,
+                            hintText: 'Select status',
+                            options: _statuses,
+                            itemLabelBuilder: (s) =>
+                                s[0].toUpperCase() + s.substring(1),
+                            onChanged: (v) =>
+                                setState(() => _selectedStatus = v!),
+                          ),
+                          const SizedBox(height: 20),
+                          TextInputField(
+                            label: 'Notes',
+                            controller: _notesController,
+                            hintText: 'Additional notes',
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 20),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Text(
+                              'Assigned To',
+                              style: AppTextStyles.label.copyWith(
+                                color: AppColors.text(context, isMuted: true),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          membersAsync.when(
+                            data: (members) => Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: members.map((member) {
+                                final isSelected = _selectedAssignedTo.contains(
+                                  member.id,
+                                );
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        if (isSelected) {
+                                          _selectedAssignedTo.remove(member.id);
+                                        } else {
+                                          _selectedAssignedTo.add(member.id);
+                                        }
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surface(
+                                          context,
+                                          level: 2,
+                                        ),
+                                        border: Border.all(
+                                          color: AppColors.borderColor(context),
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          KovariAvatar(
+                                            imageUrl: member.avatar,
+                                            fullName: member.name,
+                                            size: 30,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              member.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTextStyles.bodySmall
+                                                  .copyWith(
+                                                    color: AppColors.text(
+                                                      context,
+                                                    ),
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 13,
+                                                  ),
+                                            ),
+                                          ),
+                                          if (isSelected)
+                                            const Icon(
+                                              LucideIcons.check,
+                                              size: 18,
+                                              color: AppColors.primary,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            loading: () => const Center(
+                              child: SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                            error: (e, s) =>
+                                const Text('Error loading members'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          // const SizedBox(height: 20),
+          Divider(height: 1, color: AppColors.borderColor(context)),
+          // const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SecondaryButton(
+                    text: 'Cancel',
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: PrimaryButton(
+                    text: widget.initialItem == null
+                        ? 'Add Item'
+                        : 'Update Item',
+                    onPressed: _submit,
+                    isLoading: _isSubmitting,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: MediaQuery.of(context).padding.bottom),
+        ],
       ),
     );
   }

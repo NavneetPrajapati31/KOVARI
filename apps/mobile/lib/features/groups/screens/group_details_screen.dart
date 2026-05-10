@@ -116,10 +116,6 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
             child: SafeArea(bottom: false, child: _buildHeader(group)),
           ),
 
-          // Hydration Indicator (Subtle)
-          if (groupState.isHydrating || membershipState.isHydrating)
-            const LinearProgressIndicator(minHeight: 1),
-
           GroupTabBar(
             activeIndex: _activeTabIndex,
             onTabChanged: (index) => setState(() => _activeTabIndex = index),

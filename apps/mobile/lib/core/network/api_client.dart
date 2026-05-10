@@ -660,9 +660,13 @@ class DioApiClient implements ApiClient {
       final response = await request();
       final requestId = response.requestOptions.extra['requestId']?.toString();
 
-      if (response.data == null || response.data is! Map) {
+      // Robust check for response shape
+      final isMap = response.data is Map;
+      final isList = response.data is List;
+
+      if (response.data == null || (!isMap && !isList)) {
         AppLogger.w(
-          '⚠️ [RES] [$requestId] Unexpected response format: ${response.data}',
+          '⚠️ [RES] [$requestId] Unexpected response format (not map/list): ${response.data}',
         );
         return ApiResponse.fallback(
           reason: 'invalid_format',
@@ -671,15 +675,50 @@ class DioApiClient implements ApiClient {
       }
 
       AppLogger.d('📦 [RES] [$requestId] Raw data: ${response.data}');
-      final rawData = response.data.containsKey('data')
-          ? response.data['data']
-          : response.data;
-      final responseBody = response.data;
+
+      // Determine rawData and responseBody based on shape
+      dynamic rawData;
+      Map<String, dynamic> responseBody;
+
+      if (isMap) {
+        final Map<String, dynamic> body = Map<String, dynamic>.from(
+          response.data as Map,
+        );
+        final bool hasSuccess = body.containsKey('success');
+        final bool hasData = body.containsKey('data');
+
+        if (hasSuccess && hasData) {
+          responseBody = body;
+          rawData = body['data'];
+        } else {
+          // 🛡️ Envelope Normalization: Synthesize standard shape for raw responses
+          rawData = hasData ? body['data'] : body;
+          responseBody = {
+            'success': body['success'] ?? true,
+            'data': rawData,
+            'meta': body['meta'] ?? {'contractState': 'normalized'},
+            if (body.containsKey('error')) 'error': body['error'],
+          };
+          AppLogger.d(
+            '🛡️ [ApiClient] Normalized raw Map into standard envelope',
+          );
+        }
+      } else {
+        // If it's a raw list, we synthesize a success envelope
+        rawData = response.data;
+        responseBody = {
+          'success': true,
+          'data': rawData,
+          'meta': {'contractState': 'synthesized'},
+        };
+        AppLogger.d('🛡️ [ApiClient] Wrapped raw List into standard envelope');
+      }
 
       // 1. Success Callback for Caching
       // Cache if 200 OK and (success is true OR success field is missing entirely)
-      if (response.statusCode == 200 && 
-          (responseBody['success'] == true || !responseBody.containsKey('success'))) {
+      if (response.statusCode == 200 &&
+          (responseBody['success'] == true ||
+              !responseBody.containsKey('success'))) {
         onSuccess?.call(responseBody);
       }
 

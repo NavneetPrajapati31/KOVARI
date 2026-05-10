@@ -51,9 +51,13 @@ class GroupService {
     throw Exception(response.error?.message ?? 'Failed to create group');
   }
 
-  Future<GroupModel> getGroupDetails(String groupId) async {
+  Future<GroupModel> getGroupDetails(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<GroupModel>(
       ApiEndpoints.groupDetails(groupId),
+      ignoreCache: ignoreCache,
       parser: (json) {
         debugPrint(
           '📡 [GroupService] getGroupDetails Raw JSON for $groupId: $json',
@@ -67,9 +71,13 @@ class GroupService {
     throw Exception(response.error?.message ?? 'Failed to fetch group details');
   }
 
-  Future<List<GroupMember>> getGroupMembers(String groupId) async {
+  Future<List<GroupMember>> getGroupMembers(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<List<GroupMember>>(
       ApiEndpoints.groupMembers(groupId),
+      ignoreCache: ignoreCache,
       parser: (json) {
         if (json is List) {
           return json.map((m) => GroupMember.fromJson(m)).toList();
@@ -196,9 +204,13 @@ class GroupService {
     }
   }
 
-  Future<List<ItineraryItem>> getGroupItinerary(String groupId) async {
+  Future<List<ItineraryItem>> getGroupItinerary(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<List<ItineraryItem>>(
       ApiEndpoints.groupItinerary(groupId),
+      ignoreCache: ignoreCache,
       parser: (data) {
         final List<dynamic> rawList = data is List ? data : [];
         return safeParseList(rawList, ItineraryItem.fromJson);
@@ -207,9 +219,13 @@ class GroupService {
     return response.data ?? [];
   }
 
-  Future<MembershipInfo> getGroupMembership(String groupId) async {
+  Future<MembershipInfo> getGroupMembership(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<MembershipInfo>(
       ApiEndpoints.groupMembership(groupId),
+      ignoreCache: ignoreCache,
       parser: (json) => MembershipInfo.fromJson(json as Map<String, dynamic>),
     );
     if (response.success && response.data != null) {

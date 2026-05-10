@@ -71,17 +71,14 @@ class KovariBottomNav extends ConsumerWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(40), // More rounded ends
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
                   height: 56,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 2,
                   ), // Added for corner breathing room
                   decoration: BoxDecoration(
-                    color: (isDark ? AppColors.cardDark : AppColors.card)
-                        .withValues(
-                          alpha: 0.10, // Darker, richer glass
-                        ),
+                    color: Colors.transparent,
                     borderRadius: BorderRadius.circular(40),
                     border: Border.all(color: AppColors.borderColor(context)),
                   ),

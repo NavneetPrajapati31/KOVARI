@@ -39,7 +39,7 @@ class HydrationEngine {
     // 🛡️ REPLAY FIX: Always yield the last known state first if it exists
     if (_lastStates.containsKey(key)) {
       yield _lastStates[key]! as HydratedState<T>;
-    } else if (initialData != null) {
+    } else {
       yield HydratedState(
         data: initialData,
         source: HydrationSource.initial,
@@ -69,44 +69,53 @@ class HydrationEngine {
       target.onUpdate(next);
     }
 
-    // 1. Emit Initial/Memory
-    if (initialData != null) {
-      emit(currentState.copyWith(source: HydrationSource.memory));
-    }
+    // 1. Emit Initial State IMMEDIATELY to notify subscribers that hydration started
+    emit(currentState);
 
     // 2. Try Disk (Hive)
     try {
       final diskData = await target.loadFromDisk();
       if (diskData != null) {
         AppLogger.d('📦 [HydrationEngine] Disk hit for ${target.hydrationKey}');
-        emit(currentState.copyWith(
-          data: diskData,
-          source: HydrationSource.disk,
-        ));
+        emit(
+          currentState.copyWith(data: diskData, source: HydrationSource.disk),
+        );
       }
     } catch (e) {
-      AppLogger.e('⚠️ [HydrationEngine] Disk load failed for ${target.hydrationKey}: $e');
+      AppLogger.e(
+        '⚠️ [HydrationEngine] Disk load failed for ${target.hydrationKey}: $e',
+      );
     }
 
     // 3. Network Fetch
     try {
       final networkData = await target.fetchFromNetwork();
-      AppLogger.d('📡 [HydrationEngine] Network success for ${target.hydrationKey}');
-      emit(currentState.copyWith(
-        data: networkData,
-        source: HydrationSource.network,
-        isHydrating: false,
-        lastUpdatedAt: DateTime.now(),
-      ));
+      AppLogger.d(
+        '📡 [HydrationEngine] Network success for ${target.hydrationKey}',
+      );
+      emit(
+        currentState.copyWith(
+          data: networkData,
+          source: HydrationSource.network,
+          isHydrating: false,
+          lastUpdatedAt: DateTime.now(),
+        ),
+      );
     } catch (e) {
-      AppLogger.e('❌ [HydrationEngine] Network failed for ${target.hydrationKey}: $e');
-      emit(currentState.copyWith(
-        source: currentState.hasData ? HydrationSource.stale : HydrationSource.error,
-        isHydrating: false,
-        error: e.toString(),
-        // Preserve data if we have it
-        data: currentState.data,
-      ));
+      AppLogger.e(
+        '❌ [HydrationEngine] Network failed for ${target.hydrationKey}: $e',
+      );
+      emit(
+        currentState.copyWith(
+          source: currentState.hasData
+              ? HydrationSource.stale
+              : HydrationSource.error,
+          isHydrating: false,
+          error: e.toString(),
+          // Preserve data if we have it
+          data: currentState.data,
+        ),
+      );
     } finally {
       // Keep controller alive for a while to allow other subscribers to join
       // but clean up if no listeners after some time

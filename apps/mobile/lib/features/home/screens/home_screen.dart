@@ -13,10 +13,14 @@ import '../widgets/sections/itinerary_section.dart';
 import '../providers/home_provider.dart';
 import '../../app_shell/providers/app_shell_provider.dart';
 import '../../../core/widgets/skeletons/kovari_skeletons.dart';
+import '../screens/home_screen.dart';
+import '../../groups/screens/group_details_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../shared/widgets/kovari_refresh_indicator.dart';
 import '../../../shared/widgets/kovari_empty_state.dart';
 import '../../../shared/utils/scroll_preloader.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -35,7 +39,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _handleExploreUpcomingTrip(String? groupId) {
-    ref.read(appShellIndexProvider.notifier).setIndex(3);
+    if (groupId != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GroupDetailsScreen(groupId: groupId),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleOpenMap(String destination) async {
+    if (destination.isEmpty) return;
+
+    final String url = Platform.isIOS
+        ? 'https://maps.apple.com/?q=${Uri.encodeComponent(destination)}'
+        : 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(destination)}';
+
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
@@ -77,20 +101,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
-                // 1. Stale Indicator (Subtle)
-                if (homeState.isStale)
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 2,
-                      child: LinearProgressIndicator(
-                        backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primary.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ),
-                  ),
-
                 // 2. Header
                 SliverPadding(
                   padding: const EdgeInsets.only(
@@ -189,6 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         TopDestinationCard(
           name: data.topDestination?.name ?? '',
           imageUrl: data.topDestination?.imageUrl,
+          onExplore: () => _handleOpenMap(data.topDestination?.name ?? ''),
           isLoading: false,
         ),
         const SizedBox(height: AppSpacing.mds),
@@ -217,7 +228,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         // Sections
         RepaintBoundary(
-          child: GroupsSection(groups: mockGroups, isLoading: false),
+          child: GroupsSection(
+            groups: mockGroups,
+            isLoading: false,
+            onGroupTap: _handleExploreUpcomingTrip,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         const RepaintBoundary(child: RequestsSection(isLoading: false)),

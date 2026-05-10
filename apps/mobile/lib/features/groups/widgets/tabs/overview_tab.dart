@@ -11,6 +11,12 @@ import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../../../core/widgets/common/kovari_image.dart';
 import '../../models/group.dart';
 import '../../providers/group_details_provider.dart';
+import 'dart:io';
+import '../../../../core/network/cloudinary_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
+import '../../../../shared/widgets/kovari_confirm_dialog.dart';
+import '../../providers/group_provider.dart';
 import '../../providers/entity_stores.dart';
 
 class OverviewTab extends ConsumerStatefulWidget {
@@ -37,8 +43,81 @@ class OverviewTab extends ConsumerStatefulWidget {
 
 class _OverviewTabState extends ConsumerState<OverviewTab>
     with AutomaticKeepAliveClientMixin {
+  bool _isUploadingDestinationImage = false;
+
   @override
   bool get wantKeepAlive => true;
+
+  Future<void> _pickDestinationImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (pickedFile != null) {
+      setState(() => _isUploadingDestinationImage = true);
+      HapticFeedback.mediumImpact();
+
+      try {
+        final cloudinaryService = ref.read(cloudinaryServiceProvider);
+        final result = await cloudinaryService.uploadImage(
+          File(pickedFile.path),
+          folder: 'kovari-groups',
+        );
+
+        final imageUrl = result['secure_url'];
+        await ref.read(groupActionsProvider(widget.group.id)).updateGroup({
+          'destination_image': imageUrl,
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Destination image updated!')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+        }
+      } finally {
+        if (mounted) setState(() => _isUploadingDestinationImage = false);
+      }
+    }
+  }
+
+  Future<void> _deleteDestinationImage() async {
+    HapticFeedback.heavyImpact();
+
+    showKovariConfirmDialog(
+      context: context,
+      title: "Remove Image",
+      content: "Are you sure you want to remove the destination image?",
+      confirmLabel: "Remove",
+      isDestructive: true,
+      onConfirm: () async {
+        try {
+          await ref.read(groupActionsProvider(widget.group.id)).updateGroup({
+            'destination_image': null,
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Destination image removed')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to remove image: $e')),
+            );
+          }
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,12 +197,42 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                   if (membersState != null && membersState.hasData) ...[
                     _buildMembersVerticalList(context, membersState.data!),
                     const SizedBox(height: 10),
-                    Divider(color: AppColors.borderColor(context), thickness: 1),
+                    Divider(
+                      color: AppColors.borderColor(context),
+                      thickness: 1,
+                    ),
                     const SizedBox(height: 10),
-                  ] else if (membersState != null && membersState.isHydrating) ...[
+                  ] else if (membersState != null &&
+                      membersState.isHydrating) ...[
                     _buildMembersLoading(context),
                     const SizedBox(height: 10),
-                    Divider(color: AppColors.borderColor(context), thickness: 1),
+                    Divider(
+                      color: AppColors.borderColor(context),
+                      thickness: 1,
+                    ),
+                    const SizedBox(height: 10),
+                  ] else if (membersState != null &&
+                      !membersState.hasData &&
+                      !membersState.isHydrating) ...[
+                    // 🛡️ Error/Empty Fallback
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        "Couldn't load members",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.text(context, isMuted: true),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Divider(
+                      color: AppColors.borderColor(context),
+                      thickness: 1,
+                    ),
                     const SizedBox(height: 10),
                   ],
 
@@ -544,10 +653,73 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
 
   Widget _buildDestinationImageCard(GroupModel group) {
     final imageUrl = UrlUtils.getFullImageUrl(group.destinationImage);
-    if (imageUrl == null) return const SizedBox.shrink();
+
+    if (imageUrl == null) {
+      return GestureDetector(
+        onTap: _isUploadingDestinationImage ? null : _pickDestinationImage,
+        child: Container(
+          width: double.infinity,
+          height: 180,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: Colors.transparent,
+            border: Border.all(color: AppColors.borderColor(context), width: 1),
+          ),
+          child: Stack(
+            children: [
+              if (_isUploadingDestinationImage)
+                const Center(
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          LucideIcons.imagePlus,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Add Destination Image",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.text(context),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Personalize your trip overview",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.text(context, isMuted: true),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: Stack(
         children: [
           AspectRatio(
@@ -555,13 +727,30 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
             child: KovariImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+          // Gradient overlay for better text contrast
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.1),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.4),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
+              ),
             ),
           ),
           Positioned(
-            bottom: AppSpacing.sm,
-            left: AppSpacing.sm,
-            right: AppSpacing.sm,
+            bottom: 12,
+            left: 12,
+            right: 12,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -571,33 +760,57 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                       group.destination,
                       style: AppTextStyles.label.copyWith(
                         color: Colors.white,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                GestureDetector(
-                  onTap: () {},
-                  child: _buildGlassContainer(
-                    borderRadius: BorderRadius.circular(100),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
+                const SizedBox(width: 8),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        // Search functionality placeholder
+                      },
+                      child: _buildGlassContainer(
+                        borderRadius: BorderRadius.circular(100),
+                        child: const Icon(
                           LucideIcons.search,
                           size: 16,
                           color: Colors.white,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _deleteDestinationImage,
+                      child: _buildGlassContainer(
+                        borderRadius: BorderRadius.circular(100),
+                        child: const Icon(
+                          LucideIcons.trash2,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          if (_isUploadingDestinationImage)
+            Positioned.fill(
+              child: const Center(
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -684,78 +897,137 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
     WidgetRef ref,
     GroupModel group,
   ) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.isDark(context)
-            ? AppColors.mutedDark
-            : const Color(0xFFFFF2C0),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          widget.isEditingNotes
-              ? TextField(
-                  controller: widget.notesController,
-                  maxLines: null,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.6,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.text(context, isMuted: true),
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: "Enter your travel note...",
-                  ),
-                )
-              : Text(
-                  widget.notesController.text.isEmpty
-                      ? "Enter your travel note..."
-                      : widget.notesController.text,
-                  style: TextStyle(
-                    color: AppColors.text(context, isMuted: true),
-                    height: 1.6,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final isDark = AppColors.isDark(context);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.cardColor(context),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.borderColor(context)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                DateFormat('MMM d, yyyy').format(DateTime.now()),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.text(context, isMuted: true),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        LucideIcons.stickyNote,
+                        size: 16,
+                        color: AppColors.primary.withValues(
+                          alpha: isDark ? 0.9 : 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Travel Note",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppColors.text(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      if (widget.isEditingNotes) {
+                        HapticFeedback.mediumImpact();
+                        ref
+                            .read(groupActionsProvider(group.id))
+                            .updateNotes(widget.notesController.text);
+                      } else {
+                        HapticFeedback.lightImpact();
+                      }
+                      widget.onEditNotesToggle();
+                    },
+                    child: Text(
+                      widget.isEditingNotes ? "Done" : "Edit",
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: Icon(
-                  widget.isEditingNotes
-                      ? LucideIcons.check
-                      : LucideIcons.pencil,
-                  size: 16,
-                  color: AppColors.text(context, isMuted: true),
+              const SizedBox(height: 8),
+              Theme(
+                data: Theme.of(context).copyWith(
+                  textSelectionTheme: TextSelectionThemeData(
+                    cursorColor: AppColors.primary,
+                    selectionColor: AppColors.primary.withValues(alpha: 0.2),
+                    selectionHandleColor: AppColors.primary,
+                  ),
                 ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () {
-                  if (widget.isEditingNotes) {
-                    ref
-                        .read(groupActionsProvider(group.id))
-                        .updateNotes(widget.notesController.text);
-                  }
-                  widget.onEditNotesToggle();
-                },
+                child: widget.isEditingNotes
+                    ? TextField(
+                        controller: widget.notesController,
+                        maxLines: null,
+                        autofocus: true,
+                        style: TextStyle(
+                          color: AppColors.text(context),
+                          fontSize: 12,
+                          height: 1.6,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          hintText: "Start typing your plans...",
+                          hintStyle: TextStyle(
+                            color: AppColors.text(
+                              context,
+                              isMuted: true,
+                            ).withValues(alpha: 0.4),
+                            fontSize: 15,
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      )
+                    : Text(
+                        widget.notesController.text.isEmpty
+                            ? "No notes added yet."
+                            : widget.notesController.text,
+                        style: TextStyle(
+                          color: AppColors.text(context),
+                          fontSize: 12,
+                          height: 1.6,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
               ),
+              if (widget.notesController.text.isNotEmpty ||
+                  widget.isEditingNotes) ...[
+                const SizedBox(height: 12),
+                Text(
+                  DateFormat('MMMM d, h:mm a').format(DateTime.now()),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.text(
+                      context,
+                      isMuted: true,
+                    ).withValues(alpha: 0.4),
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -784,8 +1056,9 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color:
-                          AppColors.mutedColor(context).withValues(alpha: 0.3),
+                      color: AppColors.mutedColor(
+                        context,
+                      ).withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
                   ),

@@ -48,9 +48,9 @@ class HomeDataNotifier extends StateNotifier<HomeState> {
       }
     }
 
-    // 2. Fetch Fresh Data
+    // 2. Fetch Fresh Data (Always ignore cache for the background refresh)
     try {
-      final freshData = await service.getHomeData();
+      final freshData = await service.getHomeData(ignoreCache: true);
       state = state.copyWith(
         data: freshData,
         isStale: false,

@@ -25,6 +25,7 @@ class AppTheme {
             onSecondary: AppColors.secondaryForeground,
             outline: AppColors.borderDark,
             outlineVariant: AppColors.borderDark.withValues(alpha: 0.5),
+            onSurfaceVariant: AppColors.foregroundDark,
           )
         : ColorScheme.light(
             primary: AppColors.primary,
@@ -38,6 +39,7 @@ class AppTheme {
             onSecondary: AppColors.secondaryForeground,
             outline: AppColors.border,
             outlineVariant: AppColors.border.withValues(alpha: 0.5),
+            onSurfaceVariant: AppColors.foreground,
           );
 
     final textTheme =
@@ -88,7 +90,21 @@ class AppTheme {
       splashColor: Colors.transparent,
       hoverColor: Colors.transparent,
 
-      textTheme: textTheme,
+      iconTheme: IconThemeData(color: colorScheme.onSurface),
+      primaryIconTheme: IconThemeData(color: colorScheme.onPrimary),
+      textTheme: textTheme.copyWith(
+        titleMedium: AppTextStyles.bodyLarge.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        titleSmall: AppTextStyles.bodySmall.copyWith(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+        bodyMedium: AppTextStyles.bodyMedium.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        labelMedium: AppTextStyles.label.copyWith(color: colorScheme.onSurface),
+      ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: CupertinoPageTransitionsBuilder(),
@@ -248,6 +264,52 @@ class AppTheme {
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: colorScheme.primary,
         linearTrackColor: colorScheme.primary.withValues(alpha: 0.1),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        headerBackgroundColor: colorScheme.surfaceContainerHigh,
+        headerForegroundColor: colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+        todayForegroundColor: WidgetStateProperty.all(colorScheme.primary),
+        dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.onPrimary;
+          }
+          return colorScheme.onSurface;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary;
+          }
+          return null;
+        }),
+        yearForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.onPrimary;
+          }
+          return colorScheme.onSurface;
+        }),
+        yearStyle: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+        dayStyle: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+        weekdayStyle: textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        headerHeadlineStyle: textTheme.headlineMedium?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        headerHelpStyle: textTheme.labelLarge?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        dayPeriodColor: colorScheme.primary.withValues(alpha: 0.1),
+        dayPeriodTextColor: colorScheme.primary,
+        dialBackgroundColor: colorScheme.surfaceContainer,
+        dialHandColor: colorScheme.primary,
+        dialTextColor: colorScheme.onSurface,
+        entryModeIconColor: colorScheme.primary,
+        helpTextStyle: textTheme.labelLarge,
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.transparent,

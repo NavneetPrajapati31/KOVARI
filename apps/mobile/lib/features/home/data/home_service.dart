@@ -7,10 +7,11 @@ class HomeService {
 
   HomeService(this._apiClient);
 
-  Future<HomeData> getHomeData() async {
+  Future<HomeData> getHomeData({bool ignoreCache = false}) async {
     final response = await _apiClient.get<HomeData>(
       ApiEndpoints.home,
       parser: (data) => parseHomeData(data),
+      ignoreCache: ignoreCache,
     );
 
     if (response.success && response.data != null) {

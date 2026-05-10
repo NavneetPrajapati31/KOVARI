@@ -361,43 +361,45 @@ class KovariSkeletonExplore extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 1 / 1,
-            child: Skeleton(
-              borderRadius: BorderRadius.circular(16),
-              width: double.infinity,
-              height: double.infinity,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Skeleton(width: 180, height: 24),
-          const SizedBox(height: 8),
-          const Skeleton(width: double.infinity, height: 16),
-          const SizedBox(height: 4),
-          const Skeleton(width: 240, height: 16),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-          const Skeleton(width: 100, height: 12),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(
-              4,
-              (index) => Skeleton(
-                width: 80 + (index * 10.0),
-                height: 32,
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 1 / 1,
+              child: Skeleton(
                 borderRadius: BorderRadius.circular(16),
+                width: double.infinity,
+                height: double.infinity,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            const Skeleton(width: 180, height: 24),
+            const SizedBox(height: 8),
+            const Skeleton(width: double.infinity, height: 16),
+            const SizedBox(height: 4),
+            const Skeleton(width: 240, height: 16),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 16),
+            const Skeleton(width: 100, height: 12),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: List.generate(
+                4,
+                (index) => Skeleton(
+                  width: 80 + (index * 10.0),
+                  height: 32,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -431,7 +433,11 @@ class KovariSkeletonProfile extends StatelessWidget {
                       const SizedBox(width: 16),
                       const Skeleton(width: 120, height: 16),
                       const Spacer(),
-                      const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 20,
+                        color: Colors.grey,
+                      ),
                     ],
                   ),
                 ),
@@ -449,17 +455,19 @@ class KovariSkeletonItineraryBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Skeleton(width: 140, height: 20),
-          const SizedBox(height: 8),
-          const Skeleton(width: 240, height: 14),
-          const SizedBox(height: 24),
-          ...List.generate(3, (index) => _buildSectionSkeleton()),
-        ],
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Skeleton(width: 140, height: 20),
+            const SizedBox(height: 8),
+            const Skeleton(width: 240, height: 14),
+            const SizedBox(height: 24),
+            ...List.generate(3, (index) => _buildSectionSkeleton()),
+          ],
+        ),
       ),
     );
   }
@@ -493,7 +501,9 @@ class KovariSkeletonItineraryBoard extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

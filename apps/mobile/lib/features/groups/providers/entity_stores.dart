@@ -91,21 +91,31 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
     // 3. Progressive Merge & Mutation Integrity
     var finalData = hydratedState.data;
 
+    // 🛡️ Data Preservation: If incoming is null during hydration, keep existing data
+    if (finalData == null && current?.data != null) {
+      finalData = current!.data;
+    }
+
     if (finalData != null && current?.data != null) {
       final existingData = current!.data!;
 
       // 🛡️ Progressive Merge: Preserve high-fidelity fields if incoming is null/empty
+      // BUT: Allow explicit removal from network if it's not a partial update
+      final bool isExplicitNetworkRemoval =
+          hydratedState.source == HydrationSource.network &&
+          finalData.destinationImage == null;
+
       finalData = finalData.copyWith(
-        destinationImage: (finalData.destinationImage?.isEmpty ?? true)
+        destinationImage:
+            (finalData.destinationImage?.isEmpty ?? true) &&
+                !isExplicitNetworkRemoval
             ? existingData.destinationImage
             : finalData.destinationImage,
-        description: (finalData.description?.isEmpty ?? true)
+        description: (finalData.description == null)
             ? existingData.description
             : finalData.description,
-        notes: (finalData.notes?.isEmpty ?? true)
-            ? existingData.notes
-            : finalData.notes,
-        coverImage: (finalData.coverImage?.isEmpty ?? true)
+        notes: (finalData.notes == null) ? existingData.notes : finalData.notes,
+        coverImage: (finalData.coverImage == null)
             ? existingData.coverImage
             : finalData.coverImage,
       );
@@ -244,12 +254,28 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
         group.id,
         HydratedState(
           data: mergedData,
-          source: HydrationSource.memory,
-          lastUpdatedAt: DateTime.now(),
+          source: HydrationSource.memory, // List data is memory-source fidelity
           lastModifiedAt: DateTime.now(),
         ),
       );
     }
+  }
+
+  /// 🚀 Optimistic update for immediate UI feedback
+  void optimisticPatch(String groupId, GroupModel Function(GroupModel) update) {
+    final current = state[groupId];
+    if (current == null || current.data == null) return;
+
+    final updatedData = update(current.data!);
+    final newState = Map<String, HydratedState<GroupModel>>.from(state);
+
+    // Bump timestamp so this doesn't get instantly overwritten by a pending stale network response
+    newState[groupId] = current.copyWith(
+      data: updatedData,
+      lastModifiedAt: DateTime.now().add(const Duration(milliseconds: 100)),
+    );
+
+    state = newState;
   }
 }
 
@@ -280,7 +306,7 @@ class _GroupHydratable implements Hydratable<GroupModel> {
   @override
   Future<GroupModel> fetchFromNetwork() async {
     final service = ref.read(groupServiceProvider);
-    return service.getGroupDetails(groupId);
+    return service.getGroupDetails(groupId, ignoreCache: true);
   }
 
   @override
@@ -334,8 +360,16 @@ class MemberStore
   }
 
   void _patch(String groupId, HydratedState<List<GroupMember>> hydratedState) {
+    final current = state[groupId];
     final newState = Map<String, HydratedState<List<GroupMember>>>.from(state);
-    newState[groupId] = hydratedState;
+
+    // 🛡️ Progressive Merge: Preserve data during hydration
+    if (hydratedState.data == null && current?.data != null) {
+      newState[groupId] = hydratedState.copyWith(data: current!.data);
+    } else {
+      newState[groupId] = hydratedState;
+    }
+
     state = newState;
   }
 }
@@ -362,7 +396,9 @@ class _MemberHydratable implements Hydratable<List<GroupMember>> {
 
   @override
   Future<List<GroupMember>> fetchFromNetwork() async {
-    return ref.read(groupServiceProvider).getGroupMembers(groupId);
+    return ref
+        .read(groupServiceProvider)
+        .getGroupMembers(groupId, ignoreCache: true);
   }
 
   @override
@@ -419,10 +455,18 @@ class ItineraryStore
     String groupId,
     HydratedState<List<ItineraryItem>> hydratedState,
   ) {
+    final current = state[groupId];
     final newState = Map<String, HydratedState<List<ItineraryItem>>>.from(
       state,
     );
-    newState[groupId] = hydratedState;
+
+    // Progressive Merge: If incoming data is null but we have existing data, preserve it
+    if (hydratedState.data == null && current?.data != null) {
+      newState[groupId] = hydratedState.copyWith(data: current!.data);
+    } else {
+      newState[groupId] = hydratedState;
+    }
+
     state = newState;
   }
 }
@@ -451,7 +495,9 @@ class _ItineraryHydratable implements Hydratable<List<ItineraryItem>> {
 
   @override
   Future<List<ItineraryItem>> fetchFromNetwork() async {
-    return ref.read(groupServiceProvider).getGroupItinerary(groupId);
+    return ref
+        .read(groupServiceProvider)
+        .getGroupItinerary(groupId, ignoreCache: true);
   }
 
   @override
@@ -505,8 +551,16 @@ class MembershipStore
   }
 
   void _patch(String groupId, HydratedState<MembershipInfo> hydratedState) {
+    final current = state[groupId];
     final newState = Map<String, HydratedState<MembershipInfo>>.from(state);
-    newState[groupId] = hydratedState;
+
+    // 🛡️ Progressive Merge: Preserve data during hydration
+    if (hydratedState.data == null && current?.data != null) {
+      newState[groupId] = hydratedState.copyWith(data: current!.data);
+    } else {
+      newState[groupId] = hydratedState;
+    }
+
     state = newState;
   }
 }
@@ -533,7 +587,9 @@ class _MembershipHydratable implements Hydratable<MembershipInfo> {
 
   @override
   Future<MembershipInfo> fetchFromNetwork() async {
-    return ref.read(groupServiceProvider).getGroupMembership(groupId);
+    return ref
+        .read(groupServiceProvider)
+        .getGroupMembership(groupId, ignoreCache: true);
   }
 
   @override

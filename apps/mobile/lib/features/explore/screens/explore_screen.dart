@@ -66,9 +66,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.read(exploreProvider.notifier).performSearch(isSilent: true);
-    }
+    // Manual search only
   }
 
   void _showFilters() {
@@ -112,11 +110,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           Expanded(
             child: ScrollPreloader(
               onIdle: () {
-                if (state.matches.isNotEmpty) {
-                  ref
-                      .read(exploreProvider.notifier)
-                      .performSearch(isSilent: true);
-                }
+                // Manual search only
               },
               child: AppCard(
                 width: double.infinity,
@@ -243,7 +237,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     final match = state.matches[state.currentIndex];
 
     // Defensive check for type mismatch during transitions
-    final isTypeMismatch = (state.searchData.travelMode == TravelMode.solo &&
+    final isTypeMismatch =
+        (state.searchData.travelMode == TravelMode.solo &&
             match is! MatchUser) ||
         (state.searchData.travelMode == TravelMode.group &&
             match is! GroupModel);
@@ -278,9 +273,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               ),
             ),
           ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 110),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 110)),
       ],
     );
   }

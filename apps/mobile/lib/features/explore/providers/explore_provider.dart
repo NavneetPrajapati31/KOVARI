@@ -13,8 +13,6 @@ import '../../groups/models/group.dart';
 class ExploreNotifier extends Notifier<ExploreState> {
   @override
   ExploreState build() {
-    // Attempt instant boot from cache if we have a destination
-    Future.microtask(() => _loadFromCache());
     return ExploreState.initial();
   }
 
@@ -65,9 +63,6 @@ class ExploreNotifier extends Notifier<ExploreState> {
       matches: [],
       currentIndex: 0,
     );
-    performSearch(
-      isRefresh: true,
-    ); // Trigger fresh search automatically when switching tabs
   }
 
   Future<void> performSearch({

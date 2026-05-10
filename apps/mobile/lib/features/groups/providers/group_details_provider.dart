@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
 import '../data/group_service.dart';
 import '../models/group.dart';
 import 'group_provider.dart';
@@ -75,14 +76,44 @@ class GroupActionsNotifier {
   GroupActionsNotifier(this._service, this._ref, this._groupId);
 
   Future<void> updateNotes(String notes) async {
-    await _service.updateGroupNotes(_groupId, notes);
-    _ref.invalidate(groupDetailsProvider(_groupId));
+    // 1. Apply optimistic update
+    _ref.read(groupStoreProvider.notifier).optimisticPatch(_groupId, (group) {
+      return group.copyWith(notes: notes);
+    });
+
+    try {
+      // 2. Perform network call
+      await _service.updateGroupNotes(_groupId, notes);
+
+      // 3. Invalidate to ensure sync with server
+      _ref.invalidate(groupDetailsProvider(_groupId));
+    } catch (e) {
+      // 4. On error, rollback by invalidating
+      _ref.invalidate(groupDetailsProvider(_groupId));
+      rethrow;
+    }
   }
 
   Future<void> updateGroup(Map<String, dynamic> data) async {
-    await _service.updateGroup(_groupId, data);
-    _ref.invalidate(groupDetailsProvider(_groupId));
-    _ref.invalidate(myGroupsProvider);
+    // 1. Apply optimistic update
+    _ref.read(groupStoreProvider.notifier).optimisticPatch(_groupId, (group) {
+      final json = group.toJson();
+      json.addAll(data);
+      return GroupModel.fromJson(json);
+    });
+
+    try {
+      // 2. Perform network call
+      await _service.updateGroup(_groupId, data);
+
+      // 3. Invalidate to ensure sync with server
+      _ref.invalidate(groupDetailsProvider(_groupId));
+      _ref.invalidate(myGroupsProvider);
+    } catch (e) {
+      // 4. On error, invalidate to rollback optimistic state
+      _ref.invalidate(groupDetailsProvider(_groupId));
+      rethrow;
+    }
   }
 
   Future<void> approveRequest(String userId) async {
@@ -165,18 +196,18 @@ class GroupActionsNotifier {
       data['group_id'] = _groupId;
       await _service.updateItineraryItem(_groupId, item.id, data);
 
-      // 4. Invalidate base provider to trigger backend-sync
+      // 4. Invalidate base provider
       _ref.invalidate(groupItineraryProvider(_groupId));
 
-      // 5. WAIT for the server data to actually update before clearing the optimistic state
-      // This prevents the "blink" where the UI reverts to old server data while waiting.
-      await _ref.read(groupItineraryProvider(_groupId).future);
+      // 5. Refresh the hydrated store and WAIT for it to complete
+      await _ref
+          .read(itineraryStoreProvider.notifier)
+          .subscribe(_groupId, force: true);
     } catch (e) {
-      // Re-throw to show error feedback in UI if needed
       rethrow;
     } finally {
-      // Small safety delay to ensure UI rebuilds with the new server data
-      await Future.delayed(const Duration(milliseconds: 100));
+      // 6. Final safety buffer to allow UI to settle with the new server data
+      await Future.delayed(const Duration(milliseconds: 200));
       _ref.read(optimisticStoreProvider.notifier).set(_groupId, null);
     }
   }
@@ -184,19 +215,78 @@ class GroupActionsNotifier {
   Future<void> createItineraryItem(Map<String, dynamic> data) async {
     await _service.createItineraryItem(_groupId, data);
     _ref.invalidate(groupItineraryProvider(_groupId));
+    // Also refresh the hydrated store used by ItineraryTab
+    _ref.read(itineraryStoreProvider.notifier).subscribe(_groupId, force: true);
   }
 
   Future<void> deleteItineraryItem(String itemId) async {
-    await _service.deleteItineraryItem(_groupId, itemId);
-    _ref.invalidate(groupItineraryProvider(_groupId));
+    // 1. Prepare optimistic state
+    final itineraryAsync = _ref.read(groupItineraryProvider(_groupId));
+    final currentList = itineraryAsync.value ?? [];
+    final newList = currentList.where((i) => i.id != itemId).toList();
+
+    // 2. Apply optimistic update
+    _ref.read(optimisticStoreProvider.notifier).set(_groupId, newList);
+
+    try {
+      // 3. Perform network call
+      await _service.deleteItineraryItem(_groupId, itemId);
+
+      // 4. Invalidate base provider
+      _ref.invalidate(groupItineraryProvider(_groupId));
+
+      // 5. Refresh the hydrated store and WAIT for it to complete
+      await _ref
+          .read(itineraryStoreProvider.notifier)
+          .subscribe(_groupId, force: true);
+    } catch (e) {
+      rethrow;
+    } finally {
+      // 6. Final safety buffer to allow UI to settle with the new server data
+      await Future.delayed(const Duration(milliseconds: 200));
+      _ref.read(optimisticStoreProvider.notifier).set(_groupId, null);
+    }
   }
 
   Future<void> updateItineraryItem(
     String itemId,
     Map<String, dynamic> data,
   ) async {
-    await _service.updateItineraryItem(_groupId, itemId, data);
-    _ref.invalidate(groupItineraryProvider(_groupId));
+    // 1. Prepare optimistic state
+    final itineraryAsync = _ref.read(groupItineraryProvider(_groupId));
+    final currentList = itineraryAsync.value ?? [];
+
+    final newList = currentList.map((i) {
+      if (i.id == itemId) {
+        final currentData = i.toJson();
+        // Merge new data into current item
+        currentData.addAll(data);
+        return ItineraryItem.fromJson(currentData);
+      }
+      return i;
+    }).toList();
+
+    // 2. Apply optimistic update
+    _ref.read(optimisticStoreProvider.notifier).set(_groupId, newList);
+
+    try {
+      // 3. Perform network call
+      await _service.updateItineraryItem(_groupId, itemId, data);
+
+      // 4. Invalidate base provider
+      _ref.invalidate(groupItineraryProvider(_groupId));
+
+      // 5. Refresh store and WAIT for it to complete
+      await _ref
+          .read(itineraryStoreProvider.notifier)
+          .subscribe(_groupId, force: true);
+    } catch (e) {
+      rethrow;
+    } finally {
+      // 6. Final safety buffer to allow UI to settle with the new server data
+      await Future.delayed(const Duration(milliseconds: 200));
+      _ref.read(optimisticStoreProvider.notifier).set(_groupId, null);
+    }
   }
 }
 

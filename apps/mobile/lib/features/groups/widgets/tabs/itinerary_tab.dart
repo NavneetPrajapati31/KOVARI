@@ -11,6 +11,7 @@ import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/secondary_button.dart';
 import '../../../../shared/widgets/kovari_avatar.dart';
 import '../../../../shared/widgets/kovari_popover.dart';
+import '../../../../shared/widgets/kovari_confirm_dialog.dart';
 import '../../models/group.dart';
 import '../modals/itinerary_form_modal.dart';
 import '../../providers/entity_stores.dart';
@@ -42,11 +43,12 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
     final optimisticStore = ref.watch(optimisticStoreProvider);
     final optimisticItinerary = optimisticStore[widget.group.id];
 
-    if (itineraryState == null || !itineraryState.hasData) {
+    if ((itineraryState == null || !itineraryState.hasData) &&
+        optimisticItinerary == null) {
       return const KovariSkeletonItineraryBoard();
     }
 
-    final baseItinerary = itineraryState.data!;
+    final baseItinerary = itineraryState?.data ?? [];
     final itinerary = optimisticItinerary ?? baseItinerary;
     final members = membersState?.data ?? [];
 
@@ -67,10 +69,6 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
         ), // 🛡️ [Replay Engine] Scroll restoration
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          if (itineraryState.isHydrating)
-            const SliverToBoxAdapter(
-              child: LinearProgressIndicator(minHeight: 1),
-            ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             sliver: SliverList(
@@ -188,11 +186,9 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.only(
-                  left: 16,
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 0,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.surface(context, level: 1),
@@ -226,7 +222,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 2,
+                        vertical: 0,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
@@ -248,8 +244,11 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
-                        showDialog(
+                        showModalBottomSheet(
                           context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          useRootNavigator: true,
                           builder: (context) => ItineraryFormModal(
                             groupId: widget.group.id,
                             initialStatus: targetStatus,
@@ -261,7 +260,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Column(
                   children: [
                     if (items.isEmpty)
@@ -269,7 +268,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                     else
                       ...items.map(
                         (item) => Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 2, 14, 2),
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
                           child: _buildDraggableItineraryItem(
                             context,
                             ref,
@@ -361,8 +360,11 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                       label: 'Edit',
                       labelFontSize: 14,
                       onTap: () {
-                        showDialog(
+                        showModalBottomSheet(
                           context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          useRootNavigator: true,
                           builder: (context) => ItineraryFormModal(
                             groupId: widget.group.id,
                             initialItem: item,
@@ -375,92 +377,27 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                       label: 'Delete',
                       labelFontSize: 14,
                       isDestructive: true,
-                      onTap: () async {
-                        final confirmed = await showDialog<bool>(
+                      onTap: () {
+                        showKovariConfirmDialog(
                           context: context,
-                          builder: (context) => Dialog(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 18,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Delete itinerary item?',
-                                          style: AppTextStyles.h2.copyWith(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'Are you sure you want to delete "${item.title}"? This action cannot be undone.',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: AppColors.text(
-                                        context,
-                                        isMuted: true,
-                                      ),
-                                      height: 1.4,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: SecondaryButton(
-                                          text: 'Cancel',
-                                          height: 36,
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: PrimaryButton(
-                                          text: 'Delete',
-                                          height: 36,
-                                          isDestructive: true,
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          title: 'Delete itinerary item?',
+                          content:
+                              'Are you sure you want to delete "${item.title}"? This action cannot be undone.',
+                          confirmLabel: 'Delete',
+                          isDestructive: true,
+                          onConfirm: () async {
+                            try {
+                              await ref
+                                  .read(groupActionsProvider(widget.group.id))
+                                  .deleteItineraryItem(item.id);
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to delete: $e')),
+                              );
+                            }
+                          },
                         );
-
-                        if (confirmed == true) {
-                          try {
-                            await ref
-                                .read(groupActionsProvider(widget.group.id))
-                                .deleteItineraryItem(item.id);
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Failed to delete: $e')),
-                            );
-                          }
-                        }
                       },
                     ),
                   ],
