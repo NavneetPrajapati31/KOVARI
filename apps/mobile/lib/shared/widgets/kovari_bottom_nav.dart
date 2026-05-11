@@ -181,12 +181,19 @@ class KovariBottomNav extends ConsumerWidget {
             SizedBox(
               height: 30, // Standardized height for icons/avatars
               child: Center(
-                child: KovariIcon(svgString: svgString, size: 20, color: color),
+                child: AnimatedSwitcher(
+                  duration: InteractionConfig.normal,
+                  child: KovariIcon(
+                    key: ValueKey('${iconType}_${isSelected}'),
+                    svgString: svgString,
+                    size: 20,
+                    color: color,
+                  ),
+                ),
               ),
             ),
-            // const SizedBox(height: 1), // Unified spacing
-            Text(
-              label,
+            AnimatedDefaultTextStyle(
+              duration: InteractionConfig.medium,
               style: AppTextStyles.bodySmall.copyWith(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
@@ -194,6 +201,7 @@ class KovariBottomNav extends ConsumerWidget {
                     ? AppColors.primary
                     : AppColors.text(context, isMuted: true),
               ),
+              child: Text(label),
             ),
           ],
         ),
@@ -222,7 +230,8 @@ class KovariBottomNav extends ConsumerWidget {
             SizedBox(
               height: 30, // Matching height for avatar
               child: Center(
-                child: Container(
+                child: AnimatedContainer(
+                  duration: InteractionConfig.normal,
                   padding: const EdgeInsets.all(1.0),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -242,8 +251,8 @@ class KovariBottomNav extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 1), // Unified spacing
-            Text(
-              label,
+            AnimatedDefaultTextStyle(
+              duration: InteractionConfig.normal,
               style: AppTextStyles.bodySmall.copyWith(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
@@ -251,6 +260,7 @@ class KovariBottomNav extends ConsumerWidget {
                     ? AppColors.primary
                     : AppColors.text(context, isMuted: true),
               ),
+              child: Text(label),
             ),
           ],
         ),

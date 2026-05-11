@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -442,70 +443,75 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
             ),
             // Search Bar (Always visible)
             SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface(context),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppColors.borderColor(context),
-                      width: 1,
+              child: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: AppColors.borderColor(context),
+                          width: 1,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                child: SizedBox(
-                  height: 38,
-                  child: TextField(
-                    controller: _searchController,
-                    enabled: !_isLoading, // Disable while loading
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontSize: 13,
-                      color: AppColors.text(context),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: AppColors.mutedColor(context),
-                      hintText: 'Search',
-                      hintStyle: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.text(context, isMuted: true),
-                        fontSize: 13,
-                      ),
-                      prefixIcon: null,
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(LucideIcons.x, size: 16),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                              },
-                            )
-                          : Icon(
-                              LucideIcons.search,
-                              size: 18,
-                              color: AppColors.text(context, isMuted: true),
-                            ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 0,
+                    child: SizedBox(
+                      height: 38,
+                      child: TextField(
+                        controller: _searchController,
+                        enabled: !_isLoading,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontSize: 13,
+                          color: AppColors.text(context),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: AppColors.mutedColor(context),
+                          hintText: 'Search',
+                          hintStyle: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.text(context, isMuted: true),
+                            fontSize: 13,
+                          ),
+                          prefixIcon: null,
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(LucideIcons.x, size: 16),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() {
+                                      _searchQuery = '';
+                                    });
+                                  },
+                                )
+                              : Icon(
+                                  LucideIcons.search,
+                                  size: 18,
+                                  color: AppColors.text(context, isMuted: true),
+                                ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 0,
+                          ),
+                        ),
                       ),
                     ),
                   ),

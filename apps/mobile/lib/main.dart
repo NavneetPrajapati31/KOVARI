@@ -417,7 +417,14 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isSyncing) return const SizedBox.shrink();
+    if (_isSyncing) {
+      return Scaffold(
+        backgroundColor: AppColors.backgroundColor(context),
+        body: Center(
+          child: Image.asset('assets/logo.png', width: 120, height: 120),
+        ),
+      );
+    }
 
     if (_needsOnboarding) {
       return const OnboardingScreen();

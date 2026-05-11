@@ -71,9 +71,7 @@ class GroupsScreen extends ConsumerWidget {
                   _buildSliverContent(context, ref, groupState),
 
                   // 3. Bottom Padding for floating nav
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: 110),
-                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 110)),
                 ],
               ),
             ),
@@ -99,11 +97,11 @@ class GroupsScreen extends ConsumerWidget {
               borderRadius: AppRadius.large,
               child: Column(
                 children: List.generate(
-                  5,
+                  10,
                   (i) => Column(
                     children: [
                       const KovariSkeletonGroupListItem(),
-                      if (i < 4)
+                      if (i < 9)
                         Divider(
                           height: 1,
                           color: AppColors.borderColor(context),

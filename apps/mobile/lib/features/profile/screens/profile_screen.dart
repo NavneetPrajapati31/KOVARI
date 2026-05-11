@@ -16,6 +16,7 @@ import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'safety_screen.dart';
 
+import '../../../shared/widgets/kovari_refresh_indicator.dart';
 import '../../../shared/widgets/kovari_image_modal.dart';
 import '../../../shared/widgets/kovari_popover.dart';
 import '../../../core/widgets/skeletons/kovari_skeletons.dart';
@@ -34,29 +35,33 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                child: Column(
-                  children: [
-                    _buildHeaderCard(context, ref, profile),
-                    const SizedBox(height: 12),
-                    _buildContentCard(context, profile),
-                  ],
+        child: KovariRefreshIndicator(
+          onRefresh: () =>
+              ref.read(profileProvider.notifier).fetchProfile(ignoreCache: true),
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Column(
+                    children: [
+                      _buildHeaderCard(context, ref, profile),
+                      const SizedBox(height: 12),
+                      _buildContentCard(context, profile),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 110)),
-          ],
+              const SliverToBoxAdapter(child: SizedBox(height: 110)),
+            ],
+          ),
         ),
       ),
     );
@@ -109,6 +114,8 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         KovariPopover(
+                          width: 140,
+                          offset: const Offset(-115, 30),
                           items: [
                             KovariMenuAction(
                               icon: LucideIcons.settings,

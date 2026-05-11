@@ -96,26 +96,19 @@ class _KovariPopoverState extends State<KovariPopover> {
                       ),
                     );
                   },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface(context, level: 1).withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.borderColor(context), 
-                        width: 1
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.borderColor(context),
+                            width: 1,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: widget.items.asMap().entries.map((entry) {

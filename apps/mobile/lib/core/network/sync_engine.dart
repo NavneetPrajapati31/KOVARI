@@ -14,8 +14,8 @@ class SyncEngine {
   final ApiClient _apiClient;
 
   SyncEngine(this._ref)
-      : _cache = _ref.read(localCacheProvider),
-        _apiClient = _ref.read(apiClientProvider);
+    : _cache = _ref.read(localCacheProvider),
+      _apiClient = _ref.read(apiClientProvider);
 
   /// Performs a Stale-While-Revalidate fetch.
   /// 1. Immediately returns cached data if available.
@@ -27,21 +27,26 @@ class SyncEngine {
     Map<String, dynamic>? queryParameters,
     Duration ttl = const Duration(hours: 1),
     Function(T data)? onUpdate,
+    bool ignoreCache = false,
   }) async {
     // 1. Try Cache First
-    final cached = _cache.get(path, params: queryParameters);
-    if (cached != null) {
-      AppLogger.d('📦 [SWR] Cache hit for $path');
-      final data = parser(cached.data is Map && (cached.data as Map).containsKey('data') 
-          ? (cached.data as Map)['data'] 
-          : cached.data);
-      
-      // Trigger background refresh if online
-      if (_ref.read(connectivityProvider).isOnline) {
-        _backgroundFetch(path, parser, queryParameters, ttl, onUpdate);
+    if (!ignoreCache) {
+      final cached = _cache.get(path, params: queryParameters);
+      if (cached != null) {
+        AppLogger.d('📦 [SWR] Cache hit for $path');
+        final data = parser(
+          cached.data is Map && (cached.data as Map).containsKey('data')
+              ? (cached.data as Map)['data']
+              : cached.data,
+        );
+
+        // Trigger background refresh if online
+        if (_ref.read(connectivityProvider).isOnline) {
+          _backgroundFetch(path, parser, queryParameters, ttl, onUpdate);
+        }
+
+        return data;
       }
-      
-      return data;
     }
 
     // 2. If no cache, perform standard fetch
@@ -56,7 +61,7 @@ class SyncEngine {
     if (response.success && response.data != null) {
       return response.data;
     }
-    
+
     return null;
   }
 

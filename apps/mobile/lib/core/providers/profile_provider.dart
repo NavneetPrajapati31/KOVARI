@@ -47,13 +47,14 @@ class ProfileNotifier extends Notifier<UserProfile?> {
   // Allow setting the profile externally (e.g., during login or onboarding)
   void setProfile(UserProfile? profile) => state = profile;
 
-  Future<void> fetchProfile() async {
+  Future<void> fetchProfile({bool ignoreCache = false}) async {
     try {
       final syncEngine = ref.read(syncEngineProvider);
       final cache = ref.read(localCacheProvider);
-      
+
       await syncEngine.swrFetch<UserProfile?>(
         path: ApiEndpoints.currentProfile,
+        ignoreCache: ignoreCache,
         parser: (data) {
           if (data is! Map<String, dynamic>) return null;
           final actualData = (data['profile'] as Map<String, dynamic>?) ?? data;

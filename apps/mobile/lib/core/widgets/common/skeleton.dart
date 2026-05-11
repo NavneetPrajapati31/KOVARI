@@ -12,7 +12,7 @@ class Skeleton extends StatelessWidget {
     super.key,
     this.width,
     this.height,
-    this.borderRadius = const BorderRadius.all(Radius.circular(4)),
+    this.borderRadius = const BorderRadius.all(Radius.circular(12)),
     this.shape = BoxShape.rectangle,
   });
 
@@ -25,26 +25,27 @@ class Skeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final baseColor = isDark 
-        ? AppColors.mutedDark.withValues(alpha: 0.5)
-        : AppColors.muted.withValues(alpha: 0.5);
+
+    final baseColor = isDark
+        ? AppColors.mutedDark
+        : AppColors.border.withValues(alpha: 1);
     final highlightColor = isDark
-        ? AppColors.mutedDark.withValues(alpha: 0.2)
-        : AppColors.muted.withValues(alpha: 0.2);
+        ? AppColors.mutedDark.withValues(alpha: 0.15)
+        : AppColors.secondary.withValues(alpha: 1);
 
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
-      period: const Duration(milliseconds: 2000),
+      period: const Duration(milliseconds: 1500),
       child: Container(
         width: width,
         height: height,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: baseColor,
           borderRadius: shape == BoxShape.circle
               ? null
-              : (borderRadius ?? BorderRadius.circular(4)),
+              : (borderRadius ?? BorderRadius.circular(12)),
           shape: shape,
         ),
       ),

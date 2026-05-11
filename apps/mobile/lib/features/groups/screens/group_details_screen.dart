@@ -15,7 +15,7 @@ import '../widgets/tabs/settings_tab.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../providers/entity_stores.dart';
 import '../providers/group_details_provider.dart';
-import '../../../shared/widgets/kovari_skeleton.dart';
+import '../../../core/widgets/skeletons/kovari_skeletons.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../../../shared/widgets/kovari_refresh_indicator.dart';
 
@@ -182,9 +182,13 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Row(
                 children: [
-                  const KovariSkeleton(width: 32, height: 32, borderRadius: 8),
+                  const Skeleton(
+                    width: 32,
+                    height: 32,
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                  ),
                   const SizedBox(width: 12),
-                  const KovariSkeleton(width: 150, height: 20),
+                  const Skeleton(width: 150, height: 20),
                 ],
               ),
             ),
@@ -195,15 +199,15 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const KovariSkeleton(height: 200, width: double.infinity),
+                    const Skeleton(height: 200, width: double.infinity),
                     const SizedBox(height: 24),
-                    const KovariSkeleton(width: 120, height: 24),
+                    const Skeleton(width: 120, height: 24),
                     const SizedBox(height: 12),
-                    const KovariSkeleton(height: 16, width: double.infinity),
+                    const Skeleton(height: 16, width: double.infinity),
                     const SizedBox(height: 8),
-                    const KovariSkeleton(height: 16, width: double.infinity),
+                    const Skeleton(height: 16, width: double.infinity),
                     const SizedBox(height: 8),
-                    const KovariSkeleton(height: 16, width: 200),
+                    const Skeleton(height: 16, width: 200),
                   ],
                 ),
               ),
@@ -227,15 +231,15 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const KovariSkeleton(height: 200, width: double.infinity),
+                    const Skeleton(height: 200, width: double.infinity),
                     const SizedBox(height: 24),
-                    const KovariSkeleton(width: 120, height: 24),
+                    const Skeleton(width: 120, height: 24),
                     const SizedBox(height: 12),
-                    const KovariSkeleton(height: 16, width: double.infinity),
+                    const Skeleton(height: 16, width: double.infinity),
                     const SizedBox(height: 8),
-                    const KovariSkeleton(height: 16, width: double.infinity),
+                    const Skeleton(height: 16, width: double.infinity),
                     const SizedBox(height: 8),
-                    const KovariSkeleton(height: 16, width: 200),
+                    const Skeleton(height: 16, width: 200),
                   ],
                 ),
               ),
