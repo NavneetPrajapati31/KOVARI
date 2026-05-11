@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 import 'dart:ui';
@@ -40,6 +41,15 @@ void main() {
     () async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+      // 🧊 [Aesthetic] Set status bar to transparent for blurred effect
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+      );
 
       // Initialize Hive
       try {
@@ -293,7 +303,85 @@ class _KovariAppState extends ConsumerState<KovariApp> {
             },
             child: ScrollConfiguration(
               behavior: const BouncingScrollBehavior(),
-              child: Stack(children: [child!, const DynamicStatusOverlay()]),
+              child: Stack(
+                children: [
+                  child!,
+                  // 🧊 [Premium] iOS-style blurred status bar
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 50, // Longer, smoother fade like bottom nav
+                    child: IgnorePointer(
+                      child: ClipRect(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
+                              colors: [
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(
+                                      alpha:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? 1.0
+                                          : 1.0,
+                                    ),
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(
+                                      alpha:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? 0.9
+                                          : 0.8,
+                                    ),
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(
+                                      alpha:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? 0.6
+                                          : 0.4,
+                                    ),
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(
+                                      alpha:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? 0.3
+                                          : 0.2,
+                                    ),
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(
+                                      alpha:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? 0.0
+                                          : 0.0,
+                                    ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const DynamicStatusOverlay(),
+                ],
+              ),
             ),
           ),
         );

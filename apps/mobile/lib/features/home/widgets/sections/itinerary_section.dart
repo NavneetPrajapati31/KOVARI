@@ -42,6 +42,8 @@ class ItinerarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showSkeleton = isLoading && events.isEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
@@ -57,23 +59,30 @@ class ItinerarySection extends StatelessWidget {
             // Header
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Itinerary',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.text(context),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Your upcoming events and activities',
-                    style: AppTextStyles.label.copyWith(
-                      fontSize: 12,
-                      color: AppColors.text(context, isMuted: true),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Itinerary',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text(context),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Your upcoming events and activities',
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 11,
+                            color: AppColors.text(context, isMuted: true),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -81,7 +90,7 @@ class ItinerarySection extends StatelessWidget {
             ),
             Divider(height: 1, color: AppColors.borderColor(context)),
 
-            if (isLoading)
+            if (showSkeleton)
               _buildSkeleton(context)
             else if (events.isEmpty)
               _buildEmptyState(context)
@@ -141,7 +150,10 @@ class ItinerarySection extends StatelessWidget {
                     const Skeleton(width: 64, height: 14),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                      child: Divider(height: 1, color: AppColors.borderColor(context)),
+                      child: Divider(
+                        height: 1,
+                        color: AppColors.borderColor(context),
+                      ),
                     ),
                   ],
                 ),
@@ -216,7 +228,10 @@ class _DayGroup extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Divider(color: AppColors.borderColor(context), thickness: 0.7),
+                child: Divider(
+                  color: AppColors.borderColor(context),
+                  thickness: 0.7,
+                ),
               ),
             ],
           ),
@@ -306,7 +321,10 @@ class _EventItem extends StatelessWidget {
     );
   }
 
-  ({Color background, Color border}) _getEventColors(BuildContext context, EventColor color) {
+  ({Color background, Color border}) _getEventColors(
+    BuildContext context,
+    EventColor color,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final alpha = isDark ? 0.2 : 0.5;
 

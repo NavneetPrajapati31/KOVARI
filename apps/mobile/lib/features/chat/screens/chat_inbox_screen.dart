@@ -101,148 +101,150 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
       return c.name.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
-    return SafeArea(
-      bottom: false,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        slivers: [
-          // Search Bar (SliverToBoxAdapter)
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(color: AppColors.surface(context)),
-              child: SizedBox(
-                height: 44,
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val;
-                    });
-                  },
-                  style: TextStyle(
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      slivers: [
+        // Search Bar (SliverToBoxAdapter) with Status Bar Padding
+        SliverToBoxAdapter(
+          child: Container(
+            padding: EdgeInsets.fromLTRB(
+              16.0,
+              MediaQuery.of(context).padding.top + 16.0,
+              16.0,
+              16.0,
+            ),
+            decoration: BoxDecoration(color: AppColors.surface(context)),
+            child: SizedBox(
+              height: 44,
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val;
+                  });
+                },
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.text(context),
+                  fontWeight: FontWeight.w400,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: AppColors.surface(context, level: 2),
+                  hintText: 'Search',
+                  hintStyle: TextStyle(
+                    color: AppColors.text(context, isMuted: true),
                     fontSize: 13,
-                    color: AppColors.text(context),
                     fontWeight: FontWeight.w400,
                   ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: AppColors.surface(context, level: 2),
-                    hintText: 'Search',
-                    hintStyle: TextStyle(
-                      color: AppColors.text(context, isMuted: true),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              LucideIcons.x,
-                              size: 16,
-                              color: AppColors.text(context, isMuted: true),
-                            ),
-                            onPressed: _clearSearch,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          )
-                        : Icon(
-                            LucideIcons.search,
-                            size: 18,
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            LucideIcons.x,
+                            size: 16,
                             color: AppColors.text(context, isMuted: true),
                           ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(32),
-                      borderSide: BorderSide(
-                        color: AppColors.borderColor(context),
-                        width: 1,
-                      ),
+                          onPressed: _clearSearch,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        )
+                      : Icon(
+                          LucideIcons.search,
+                          size: 18,
+                          color: AppColors.text(context, isMuted: true),
+                        ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(32),
+                    borderSide: BorderSide(
+                      color: AppColors.borderColor(context),
+                      width: 1,
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(32),
-                      borderSide: BorderSide(
-                        color: AppColors.borderColor(context),
-                        width: 1,
-                      ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(32),
+                    borderSide: BorderSide(
+                      color: AppColors.borderColor(context),
+                      width: 1,
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(32),
-                      borderSide: BorderSide(
-                        color: AppColors.borderColor(context),
-                        width: 1,
-                      ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(32),
+                    borderSide: BorderSide(
+                      color: AppColors.borderColor(context),
+                      width: 1,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 0,
-                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 0,
                   ),
                 ),
               ),
             ),
           ),
+        ),
 
-          // Messages List
-          if (filteredConversations.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Text(
-                  _searchQuery.isEmpty
-                      ? 'No conversations yet.'
-                      : 'No conversations found.',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.text(context, isMuted: true),
-                  ),
+        // Messages List
+        if (filteredConversations.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Text(
+                _searchQuery.isEmpty
+                    ? 'No conversations yet.'
+                    : 'No conversations found.',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.only(
-                left: 16.0,
-                right: 16.0,
-                bottom: 16.0,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: AppCard(
-                  padding: EdgeInsets.zero,
-                  child: ClipRRect(
-                    borderRadius: AppRadius.large,
-                    clipBehavior: Clip.antiAliasWithSaveLayer,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (
-                          int i = 0;
-                          i < filteredConversations.length;
-                          i++
-                        ) ...[
-                          RepaintBoundary(
-                            child: _ChatInboxItem(
-                              conversation: filteredConversations[i],
-                              onTap: () {
-                                // handle tap
-                              },
-                            ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.only(
+              left: 16.0,
+              right: 16.0,
+              bottom: 16.0,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: AppCard(
+                padding: EdgeInsets.zero,
+                child: ClipRRect(
+                  borderRadius: AppRadius.large,
+                  clipBehavior: Clip.antiAliasWithSaveLayer,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (
+                        int i = 0;
+                        i < filteredConversations.length;
+                        i++
+                      ) ...[
+                        RepaintBoundary(
+                          child: _ChatInboxItem(
+                            conversation: filteredConversations[i],
+                            onTap: () {
+                              // handle tap
+                            },
                           ),
-                          if (i < filteredConversations.length - 1)
-                            Divider(
-                              height: 1,
-                              color: AppColors.borderColor(context),
-                            ),
-                        ],
+                        ),
+                        if (i < filteredConversations.length - 1)
+                          Divider(
+                            height: 1,
+                            color: AppColors.borderColor(context),
+                          ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 110)),
-        ],
-      ),
+          ),
+        const SliverToBoxAdapter(child: SizedBox(height: 110)),
+      ],
     );
   }
 }
@@ -333,7 +335,7 @@ class _ChatInboxItem extends StatelessWidget {
                     ],
                   ),
 
-                  SizedBox(height: 1),
+                  const SizedBox(height: 1),
 
                   // Bottom Row
                   Row(

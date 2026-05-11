@@ -36,6 +36,8 @@ class GroupsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showSkeleton = isLoading && groups.isEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
@@ -51,23 +53,30 @@ class GroupsSection extends StatelessWidget {
             // Header
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Travel Groups',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.text(context),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Manage your collaborative travel experiences',
-                    style: AppTextStyles.label.copyWith(
-                      fontSize: 12,
-                      color: AppColors.text(context, isMuted: true),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Travel Groups',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text(context),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Manage your collaborative travel experiences',
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 11,
+                            color: AppColors.text(context, isMuted: true),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -75,7 +84,7 @@ class GroupsSection extends StatelessWidget {
             ),
             Divider(height: 1, color: AppColors.borderColor(context)),
 
-            if (isLoading)
+            if (showSkeleton)
               _buildSkeleton(context)
             else if (groups.isEmpty)
               _buildEmptyState(context)
@@ -106,11 +115,11 @@ class GroupsSection extends StatelessWidget {
   Widget _buildSkeleton(BuildContext context) {
     return Column(
       children: List.generate(
-        7,
+        4,
         (i) => Column(
           children: [
             const KovariSkeletonGroupListItem(),
-            if (i < 6)
+            if (i < 3)
               Divider(height: 1, color: AppColors.borderColor(context)),
           ],
         ),

@@ -21,6 +21,10 @@ class RequestsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final interestsAsync = ref.watch(interestsProvider);
+    final hasData = interestsAsync.hasValue && interestsAsync.value!.isNotEmpty;
+    final showSkeleton =
+        (interestsAsync.isLoading && !interestsAsync.hasValue) ||
+        (isLoading && !hasData);
 
     return Container(
       decoration: BoxDecoration(
@@ -66,38 +70,44 @@ class RequestsSection extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Interests',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.text(context),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        interestsAsync.when(
-                          data: (interests) => Text(
-                            '${interests.length} pending interests',
-                            style: AppTextStyles.label.copyWith(
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Interests',
+                            style: AppTextStyles.bodyMedium.copyWith(
                               fontSize: 12,
-                              color: AppColors.text(context, isMuted: true),
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text(context),
                             ),
                           ),
-                          loading: () => const SizedBox(
-                            height: 12,
-                            width: 64,
-                            child: LinearProgressIndicator(),
+                          const SizedBox(height: 2),
+                          interestsAsync.when(
+                            data: (interests) => Text(
+                              '${interests.length} pending interests',
+                              style: AppTextStyles.label.copyWith(
+                                fontSize: 11,
+                                color: AppColors.text(context, isMuted: true),
+                              ),
+                            ),
+                            loading: () => Text(
+                              'Syncing interests...',
+                              style: AppTextStyles.label.copyWith(
+                                fontSize: 11,
+                                color: AppColors.text(context, isMuted: true),
+                              ),
+                            ),
+                            error: (_, __) => Text(
+                              'Error loading',
+                              style: AppTextStyles.label.copyWith(
+                                fontSize: 11,
+                                color: AppColors.destructive,
+                              ),
+                            ),
                           ),
-                          // ignore: unnecessary_underscores
-                          error: (_, __) => const Text(
-                            'Error loading',
-                            style: TextStyle(fontSize: 10),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -105,30 +115,40 @@ class RequestsSection extends ConsumerWidget {
             ),
             Divider(height: 1, color: AppColors.borderColor(context)),
 
-            interestsAsync.when(
-              data: (interests) {
-                if (interests.isEmpty) return _buildEmptyState(context);
-                return Column(
-                  children: [
-                    for (int i = 0; i < interests.length; i++) ...[
-                      _RequestCard(interest: interests[i]),
-                      if (i < interests.length - 1)
-                        Divider(
-                          height: 1,
-                          color: AppColors.borderColor(context),
-                          indent: 0,
-                          endIndent: 0,
-                        ),
+            if (showSkeleton)
+              _buildSkeleton(context)
+            else
+              interestsAsync.when(
+                data: (interests) {
+                  if (interests.isEmpty) return _buildEmptyState(context);
+                  return Column(
+                    children: [
+                      for (int i = 0; i < interests.length; i++) ...[
+                        _RequestCard(interest: interests[i]),
+                        if (i < interests.length - 1)
+                          Divider(
+                            height: 1,
+                            color: AppColors.borderColor(context),
+                            indent: 0,
+                            endIndent: 0,
+                          ),
+                      ],
                     ],
-                  ],
-                );
-              },
-              loading: () => _buildSkeleton(context),
-              error: (err, _) => Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text('Error: $err'),
+                  );
+                },
+                loading: () => _buildSkeleton(context),
+                error: (err, _) => Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Center(
+                    child: Text(
+                      'Failed to load interests',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.destructive,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -138,11 +158,11 @@ class RequestsSection extends ConsumerWidget {
   Widget _buildSkeleton(BuildContext context) {
     return Column(
       children: List.generate(
-        7,
+        4,
         (i) => Column(
           children: [
             const KovariSkeletonRequestListItem(),
-            if (i < 6)
+            if (i < 3)
               Divider(height: 1, color: AppColors.borderColor(context)),
           ],
         ),
@@ -375,4 +395,3 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     );
   }
 }
-

@@ -87,7 +87,7 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
       );
     }
 
-    final baseBottom = (isNavBarVisible && auth.isAuthenticated) ? 85.0 : 25.0;
+    final baseBottom = isNavBarVisible ? 85.0 : 25.0;
 
     // Combine manual and system
     final allItems = [..._displayList, ...systemStatuses];

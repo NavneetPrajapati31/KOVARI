@@ -22,62 +22,64 @@ class GroupsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final groupState = ref.watch(myGroupsStoreProvider);
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          // Sticky Header
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                _buildTabButton(context, "My Groups", true),
-                const SizedBox(width: 8),
-                _buildTabButton(
-                  context,
-                  "New group",
-                  false,
-                  onTap: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (context) => const CreateGroupScreen(),
-                      ),
-                    );
-                  },
-                ),
+    return Column(
+      children: [
+        // Sticky Header with Status Bar Padding
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            16.0,
+            MediaQuery.of(context).padding.top + 16.0,
+            16.0,
+            16.0,
+          ),
+          child: Row(
+            children: [
+              _buildTabButton(context, "My Groups", true),
+              const SizedBox(width: 8),
+              _buildTabButton(
+                context,
+                "New group",
+                false,
+                onTap: () {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(
+                      builder: (context) => const CreateGroupScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+
+        // Scrollable Content
+        Expanded(
+          child: KovariRefreshIndicator(
+            onRefresh: () =>
+                ref.read(myGroupsStoreProvider.notifier).refresh(),
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              keyboardDismissBehavior:
+                  ScrollViewKeyboardDismissBehavior.onDrag,
+              slivers: [
+                // 1. Stale Indicator
+                if (groupState.isStale)
+                  const SliverToBoxAdapter(
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+
+                // 2. Body
+                _buildSliverContent(context, ref, groupState),
+
+                // 3. Bottom Padding for floating nav
+                const SliverToBoxAdapter(child: SizedBox(height: 110)),
               ],
             ),
           ),
-
-          // Scrollable Content
-          Expanded(
-            child: KovariRefreshIndicator(
-              onRefresh: () =>
-                  ref.read(myGroupsStoreProvider.notifier).refresh(),
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                slivers: [
-                  // 1. Stale Indicator
-                  if (groupState.isStale)
-                    const SliverToBoxAdapter(
-                      child: LinearProgressIndicator(minHeight: 2),
-                    ),
-
-                  // 2. Body
-                  _buildSliverContent(context, ref, groupState),
-
-                  // 3. Bottom Padding for floating nav
-                  const SliverToBoxAdapter(child: SizedBox(height: 110)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

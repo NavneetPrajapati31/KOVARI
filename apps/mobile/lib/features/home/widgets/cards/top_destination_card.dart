@@ -9,6 +9,7 @@ import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 import '../../../../core/widgets/common/kovari_image.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../core/theme/hero_tokens.dart';
+import '../../../../core/services/haptic_service.dart';
 
 class TopDestinationCard extends StatelessWidget {
   final String name;
@@ -35,7 +36,6 @@ class TopDestinationCard extends StatelessWidget {
     return AppCard(
       height: 180,
       padding: EdgeInsets.zero,
-      onTap: onExplore,
       child: Stack(
         children: [
           Positioned.fill(
@@ -86,30 +86,36 @@ class TopDestinationCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                _buildGlassContainer(
-                  context,
-                  borderRadius: BorderRadius.circular(100),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Top',
-                        style: AppTextStyles.label.copyWith(
+                GestureDetector(
+                  onTap: () {
+                    HapticService.selection();
+                    onExplore?.call();
+                  },
+                  child: _buildGlassContainer(
+                    context,
+                    borderRadius: BorderRadius.circular(100),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Top',
+                          style: AppTextStyles.label.copyWith(
+                            color: hasImage
+                                ? Colors.white
+                                : AppColors.text(context),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          LucideIcons.arrowUp,
+                          size: 14,
                           color: hasImage
                               ? Colors.white
                               : AppColors.text(context),
-                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        LucideIcons.arrowUp,
-                        size: 14,
-                        color: hasImage
-                            ? Colors.white
-                            : AppColors.text(context),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],

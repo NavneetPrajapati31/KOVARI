@@ -33,35 +33,34 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: KovariRefreshIndicator(
-          onRefresh: () =>
-              ref.read(profileProvider.notifier).fetchProfile(ignoreCache: true),
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  child: Column(
-                    children: [
-                      _buildHeaderCard(context, ref, profile),
-                      const SizedBox(height: 12),
-                      _buildContentCard(context, profile),
-                    ],
-                  ),
+      body: KovariRefreshIndicator(
+        onRefresh: () =>
+            ref.read(profileProvider.notifier).fetchProfile(ignoreCache: true),
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  MediaQuery.of(context).padding.top + AppSpacing.sm,
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                ),
+                child: Column(
+                  children: [
+                    _buildHeaderCard(context, ref, profile),
+                    const SizedBox(height: 12),
+                    _buildContentCard(context, profile),
+                  ],
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 110)),
-            ],
-          ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 110)),
+          ],
         ),
       ),
     );
@@ -268,13 +267,6 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget safeAreas({required Widget child}) {
-    return Material(
-      color: Colors.transparent,
-      child: SafeArea(child: child),
     );
   }
 

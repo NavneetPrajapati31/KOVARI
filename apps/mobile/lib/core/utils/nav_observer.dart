@@ -11,18 +11,17 @@ class KovariNavObserver extends NavigatorObserver {
 
   void _updateVisibility(Route<dynamic>? route) {
     if (route == null) return;
-    
-    final auth = ref.read(authProvider);
-    
-    // Check if the current route is the shell (home)
-    // We only show the nav bar if we are on the home route AND authenticated
-    final isHome = (route.settings.name == AppRoutes.home || 
-                    route.settings.name == '/') && 
-                   auth.isAuthenticated;
-                   
-    // We use a small delay to avoid "setState() or markNeedsBuild() called during build"
+
+    // The bottom nav is strictly visible only on core shell routes
+    // home, explore, chat, groups, and profile are all sub-tabs of AppShellScreen (/home)
+    final isShellRoute =
+        route.settings.name == AppRoutes.home || route.settings.name == '/';
+
+    // Update visibility immediately to avoid layout jumps
     Future.microtask(() {
-      ref.read(navBarVisibilityProvider.notifier).setVisible(isHome);
+      if (ref.read(navBarVisibilityProvider) != isShellRoute) {
+        ref.read(navBarVisibilityProvider.notifier).setVisible(isShellRoute);
+      }
     });
   }
 

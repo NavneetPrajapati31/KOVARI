@@ -102,36 +102,36 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       }
     });
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          _buildHeader(state),
-          Expanded(
-            child: ScrollPreloader(
-              onIdle: () {
-                // Manual search only
-              },
-              child: AppCard(
-                width: double.infinity,
-                padding: EdgeInsets.zero,
-                margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-                border: Border(
-                  top: BorderSide(color: AppColors.borderColor(context)),
-                  left: BorderSide(color: AppColors.borderColor(context)),
-                  right: BorderSide(color: AppColors.borderColor(context)),
-                  bottom: BorderSide.none,
-                ),
-                boxShadow: const [],
-                child: _buildBody(state),
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          child: _buildHeader(state),
+        ),
+        Expanded(
+          child: ScrollPreloader(
+            onIdle: () {
+              // Manual search only
+            },
+            child: AppCard(
+              width: double.infinity,
+              padding: EdgeInsets.zero,
+              margin: const EdgeInsets.symmetric(horizontal: 16.0),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
               ),
+              border: Border(
+                top: BorderSide(color: AppColors.borderColor(context)),
+                left: BorderSide(color: AppColors.borderColor(context)),
+                right: BorderSide(color: AppColors.borderColor(context)),
+                bottom: BorderSide.none,
+              ),
+              boxShadow: const [],
+              child: _buildBody(state),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

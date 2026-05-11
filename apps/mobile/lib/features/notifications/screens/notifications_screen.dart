@@ -93,7 +93,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ),
 
               // 3. Pagination Loading Indicator
-              if (notificationsAsync.isFetchingNextPage)
+              if (!notificationsAsync.isLoading &&
+                  notificationsAsync.isFetchingNextPage)
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),

@@ -24,7 +24,7 @@ class NotificationItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: notification.isRead
               ? AppColors.surface(context, level: 1)
-              : AppColors.primaryLight,
+              : AppColors.primary.withValues(alpha: 0.2),
           border: Border(
             bottom: BorderSide(color: AppColors.borderColor(context)),
           ),
