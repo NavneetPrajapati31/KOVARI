@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/nav_provider.dart';
-import '../config/routes.dart';
 import '../providers/auth_provider.dart';
 import '../telemetry/telemetry_service.dart';
 import '../telemetry/telemetry_priority.dart';
 
 class KovariNavObserver extends NavigatorObserver {
-  final WidgetRef ref;
+  final Ref ref;
   final _telemetry = TelemetryService();
   DateTime? _transitionStart;
 
@@ -16,12 +15,11 @@ class KovariNavObserver extends NavigatorObserver {
   void _updateVisibility(Route<dynamic>? route) {
     if (route == null) return;
 
-    // The bottom nav is strictly visible only on core shell routes
-    // home, explore, chat, groups, and profile are all sub-tabs of AppShellScreen (/home)
-    final isShellRoute =
-        route.settings.name == AppRoutes.home || route.settings.name == '/';
-
-    final screenName = route.settings.name ?? 'unknown_route';
+    final screenName = route.settings.name ?? route.settings.arguments?.toString() ?? 'unknown_route';
+    
+    // In go_router, shell routes usually don't trigger didPush with a specific name that matches legacy AppRoutes.
+    // For now, we'll log the event and maintain the visibility logic if a name is present.
+    final isShellRoute = screenName == '/' || screenName == 'home' || screenName.isEmpty;
     _telemetry.updateLastRoute(screenName);
 
     // Log Screen View

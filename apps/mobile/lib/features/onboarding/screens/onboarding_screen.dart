@@ -15,7 +15,7 @@ import '../widgets/steps/lifestyle_step.dart';
 import '../widgets/steps/policy_step.dart';
 import '../widgets/steps/success_step.dart';
 import 'package:flutter/foundation.dart';
-import '../../../core/config/routes.dart';
+import '../../../core/navigation/routes.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -31,9 +31,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await ref.read(authProvider.notifier).logout();
 
     if (mounted) {
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      const LoginRouteData().go(context);
     }
   }
 

@@ -224,31 +224,38 @@ class AuthRepository {
   Future<void> ensureSessionReady() async {
     final startTime = DateTime.now();
     try {
-      final hasTokens = await _storage.getAccessToken() != null;
+      final accessToken = await _storage.getAccessToken();
+      final hasTokens = accessToken != null;
+      
+      AppLogger.d('🔍 [Bootstrap] Checking tokens... Found: $hasTokens');
+
       if (!hasTokens) {
         _sessionManager.setAuthenticated(false);
         return;
       }
 
       if (await _storage.isSeverelyExpired()) {
+        AppLogger.w('🔍 [Bootstrap] Tokens found but severely expired.');
         await logout(reason: 'BOOTSTRAP_SEVERE_EXPIRY');
         return;
       }
 
       // If expiring soon, try a silent refresh
       if (await _storage.isExpiringSoon()) {
+        AppLogger.i('🔍 [Bootstrap] Tokens expiring soon. Attempting silent refresh...');
         try {
           await refreshToken(
             requestId: 'BOOTSTRAP-REFRESH',
           ).timeout(const Duration(seconds: 5));
         } catch (e) {
           AppLogger.w(
-            'Bootstrap refresh failed/timed out. Entering degraded mode.',
+            'Bootstrap refresh failed/timed out ($e). Entering degraded mode.',
           );
           _sessionManager.setDegraded(true);
         }
       }
 
+      AppLogger.i('🔍 [Bootstrap] Session validated. Marking authenticated.');
       _sessionManager.setAuthenticated(true);
     } finally {
       final duration = DateTime.now().difference(startTime).inMilliseconds;

@@ -11,6 +11,8 @@ import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
 
+import 'package:go_router/go_router.dart';
+
 class VerifyEmailScreen extends ConsumerStatefulWidget {
   final String email;
 
@@ -133,7 +135,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.foreground),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SafeArea(

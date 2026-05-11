@@ -16,6 +16,8 @@ import 'package:dio/dio.dart';
 import '../../../core/services/haptic_service.dart';
 import '../../../shared/widgets/kovari_snackbar.dart';
 
+import '../../../core/navigation/routes.dart';
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -248,10 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             TextButton(
                               onPressed: () {
                                 HapticService.selection();
-                                Navigator.pushNamed(
-                                  context,
-                                  '/forgot-password',
-                                );
+                                const ResetPasswordRouteData().go(context);
                               },
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
@@ -297,7 +296,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       TextButton(
                         onPressed: () {
                           HapticService.selection();
-                          Navigator.pushNamed(context, '/sign-up');
+                          const SignUpRouteData().go(context);
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,

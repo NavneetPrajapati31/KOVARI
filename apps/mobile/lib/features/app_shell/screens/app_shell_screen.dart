@@ -11,8 +11,15 @@ import '../../../core/providers/connectivity_provider.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../home/providers/home_provider.dart';
 
+import 'package:go_router/go_router.dart';
+
 class AppShellScreen extends ConsumerStatefulWidget {
-  const AppShellScreen({super.key});
+  final StatefulNavigationShell navigationShell;
+
+  const AppShellScreen({
+    super.key,
+    required this.navigationShell,
+  });
 
   @override
   ConsumerState<AppShellScreen> createState() => _AppShellScreenState();
@@ -21,8 +28,6 @@ class AppShellScreen extends ConsumerStatefulWidget {
 class _AppShellScreenState extends ConsumerState<AppShellScreen> {
   @override
   Widget build(BuildContext context) {
-    final currentIndex = ref.watch(appShellIndexProvider);
-
     // Global connectivity listener
     ref.listen(connectivityProvider, (previous, next) {
       if (next.isOnline && previous?.isOnline == false) {
@@ -37,25 +42,19 @@ class _AppShellScreenState extends ConsumerState<AppShellScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: IndexedStack(
-              index: currentIndex,
-              children: const [
-                HomeScreen(),
-                ExploreScreen(),
-                ChatInboxScreen(),
-                GroupsScreen(),
-                ProfileTab(),
-              ],
-            ),
+            child: widget.navigationShell,
           ),
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: KovariBottomNav(
-              currentIndex: currentIndex,
+              currentIndex: widget.navigationShell.currentIndex,
               onTap: (index) {
-                ref.read(appShellIndexProvider.notifier).setIndex(index);
+                widget.navigationShell.goBranch(
+                  index,
+                  initialLocation: index == widget.navigationShell.currentIndex,
+                );
               },
             ),
           ),

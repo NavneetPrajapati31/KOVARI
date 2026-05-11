@@ -9,6 +9,9 @@ import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
 
+import '../../../core/navigation/routes.dart';
+import 'package:go_router/go_router.dart';
+
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String token;
 
@@ -94,7 +97,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: AppColors.text(context)),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SafeArea(
@@ -191,9 +194,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         PrimaryButton(
           text: 'Proceed to Login',
           onPressed: () {
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil('/login', (route) => false);
+            const LoginRouteData().go(context);
           },
         ),
       ],

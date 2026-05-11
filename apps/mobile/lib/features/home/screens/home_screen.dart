@@ -20,6 +20,8 @@ import '../../../shared/utils/scroll_preloader.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
+import '../../../core/navigation/routes.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -38,12 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _handleExploreUpcomingTrip(String? groupId) {
     if (groupId != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => GroupDetailsScreen(groupId: groupId),
-        ),
-      );
+      GroupDetailsRouteData(groupId: groupId).push(context);
     }
   }
 
@@ -104,7 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     AppSpacing.md,
-                    topPadding + AppSpacing.sm,
+                    topPadding + AppSpacing.lg,
                     AppSpacing.md,
                     AppSpacing.xs,
                   ),

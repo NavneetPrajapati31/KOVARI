@@ -6,10 +6,10 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 import '../../../../shared/widgets/kovari_avatar.dart';
-import '../../../../features/requests/screens/requests_screen.dart';
 import '../../../../features/requests/providers/request_provider.dart';
 import '../../../../features/requests/models/request_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/navigation/routes.dart';
 
 // MockRequest removed to use InterestModel directly
 
@@ -40,31 +40,7 @@ class RequestsSection extends ConsumerWidget {
           children: [
             // Header
             InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        const RequestsScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(1.0, 0.0);
-                          const end = Offset.zero;
-                          const curve = Curves.easeOutQuart;
-                          var tween = Tween(
-                            begin: begin,
-                            end: end,
-                          ).chain(CurveTween(curve: curve));
-                          var offsetAnimation = animation.drive(tween);
-                          return SlideTransition(
-                            position: offsetAnimation,
-                            child: child,
-                          );
-                        },
-                    transitionDuration: const Duration(milliseconds: 350),
-                  ),
-                );
-              },
+              onTap: () => const RequestsRouteData().push(context),
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(

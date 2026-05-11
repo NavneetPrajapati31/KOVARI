@@ -66,11 +66,15 @@ dependencies:
   screen_protector: ^1.5.1
   safe_device: ^1.3.10
   cryptography: ^2.9.0
+  go_router: ^16.2.0
   local_auth: ^3.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  go_router_builder: ^4.3.0
+  build_runner: ^2.4.9
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

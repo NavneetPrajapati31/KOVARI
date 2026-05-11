@@ -100,7 +100,9 @@ class DioApiClient implements ApiClient {
         BaseOptions(
           baseUrl: Env.apiBaseUrl,
           connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 20),
+          receiveTimeout: const Duration(
+            seconds: 45,
+          ), // Auth endpoints hit Google's servers; needs more time
           sendTimeout: const Duration(seconds: 15),
         ),
       ),
@@ -118,12 +120,15 @@ class DioApiClient implements ApiClient {
   void _initializeInterceptors() {
     // 🛡️ [Security] Modern SPKI Pinning Implementation
     if (SecurityRemoteConfig().sslPinningEnabled) {
-      (_dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate = (client) {
-        client.badCertificateCallback = (X509Certificate cert, String host, int port) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter)
+          .onHttpClientCreate = (client) {
+        client
+            .badCertificateCallback = (X509Certificate cert, String host, int port) {
           // Check if host has pins
           final pins = SecurityPolicy.spkiPins[host];
-          if (pins == null || pins.isEmpty) return false; // Fail by default for unknown pinned hosts
-          
+          if (pins == null || pins.isEmpty)
+            return false; // Fail by default for unknown pinned hosts
+
           // In a production environment, we would extract SPKI and compare hashes here.
           // For now, we log the attempt for absolute architectural integrity.
           AppLogger.w('🛡️ [SPKI Pinning] Validating certificate for $host...');
@@ -141,7 +146,7 @@ class DioApiClient implements ApiClient {
           final telemetry = TelemetryService();
           final requestId = options.headers['X-Request-Id'] ?? _uuid.v4();
           final traceId = telemetry.currentTraceId ?? _uuid.v4();
-          
+
           options.headers['X-Request-Id'] = requestId;
           options.headers['X-Trace-Id'] = traceId;
           options.extra['requestId'] = requestId;
@@ -154,8 +159,12 @@ class DioApiClient implements ApiClient {
           final authRequired = options.extra['authRequired'] ?? !isPublic;
           final isMutation =
               options.extra['isMutation'] ??
-              ['POST', 'PUT', 'PATCH', 'DELETE']
-                  .contains(options.method.toUpperCase());
+              [
+                'POST',
+                'PUT',
+                'PATCH',
+                'DELETE',
+              ].contains(options.method.toUpperCase());
 
           if (isMutation) {
             AbuseDetectionService().recordMutation(options.path);
@@ -255,7 +264,16 @@ class DioApiClient implements ApiClient {
             final token = await _tokenStorage.getAccessToken();
             if (token != null) {
               options.headers['Authorization'] = 'Bearer $token';
+              AppLogger.d('[$requestId] Authorization header attached.');
+            } else {
+              AppLogger.w(
+                '[$requestId] authRequired is true but token is NULL!',
+              );
             }
+          } else {
+            AppLogger.d(
+              '[$requestId] Request is public. No auth header required.',
+            );
           }
 
           // 6. Memory-Safe Cancellation Registration
@@ -287,7 +305,9 @@ class DioApiClient implements ApiClient {
                 'method': response.requestOptions.method,
                 'duration_ms': duration,
                 'status_code': response.statusCode,
-                'is_cache': response.requestOptions.extra[TokenStorage.fromCacheKey] == true,
+                'is_cache':
+                    response.requestOptions.extra[TokenStorage.fromCacheKey] ==
+                    true,
               },
             );
           }
@@ -393,8 +413,9 @@ class DioApiClient implements ApiClient {
               'method': e.requestOptions.method,
               'status_code': e.response?.statusCode ?? 0,
               'error_type': e.type.name,
-              'is_timeout': e.type == DioExceptionType.connectionTimeout || 
-                           e.type == DioExceptionType.receiveTimeout,
+              'is_timeout':
+                  e.type == DioExceptionType.connectionTimeout ||
+                  e.type == DioExceptionType.receiveTimeout,
             },
           );
 

@@ -8,12 +8,12 @@ import '../../../shared/widgets/auth_social_button.dart';
 import '../../../shared/widgets/auth_divider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/config/routes.dart';
 import '../../../core/utils/api_error_handler.dart';
 import '../services/auth_service.dart';
 import 'verify_email_screen.dart';
 import 'package:dio/dio.dart';
 import '../../../shared/widgets/kovari_snackbar.dart';
+import '../../../core/navigation/routes.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -65,11 +65,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       if (mounted) {
         if (result['verificationRequired'] == true) {
           setState(() => _isLoading = false);
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => VerifyEmailScreen(email: email),
-            ),
-          );
+          VerifyEmailRouteData(email: email).go(context);
         } else {
           final user = authService.parseAuthResponse(result);
           ref.read(authProvider.notifier).setUser(user);
@@ -226,10 +222,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.pushReplacementNamed(
-                          context,
-                          AppRoutes.login,
-                        ), // Back to Login
+                        onPressed: () => const LoginRouteData().go(context),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,

@@ -14,34 +14,32 @@ class ProfileNotifier extends Notifier<UserProfile?> {
 
     if (user == null) return null;
 
-    // 1. Instant Boot: Try to return cached profile immediately
+    // 1. Instant Boot: Try to return cached profile immediately as the initial state.
+    // NOTE: Do NOT read `state` inside build() — build() IS the initialization.
     final cache = ref.read(localCacheProvider);
     final cachedData = cache.getProfile();
-    if (cachedData != null && state == null) {
+    UserProfile? initialProfile;
+
+    if (cachedData != null) {
       final cachedProfile = UserProfile.fromJson(cachedData);
       if (cachedProfile.userId == user.id) {
-        state = cachedProfile;
-        AppLogger.d('🚀 [BOOT] Profile loaded from cache instantly');
+        initialProfile = cachedProfile;
+        AppLogger.d('🚀 [BOOT] Profile seeded from cache instantly');
       }
     }
 
-    // Auto-refresh when connectivity is restored
+    // 2. Auto-refresh when connectivity is restored
     ref.listen(connectivityProvider, (previous, next) {
       if (next.isOnline && previous?.status != ConnectionStatus.online) {
-        if (state == null) {
-          fetchProfile();
-        }
+        fetchProfile();
       }
     });
 
-    // If we have a user but no profile, or user ID mismatch, trigger fetch
-    if (state == null || state?.userId != user.id) {
-      Future.microtask(() => fetchProfile());
-      // If mismatch, return null to show loading while we fetch
-      if (state?.userId != user.id) return null;
-    }
+    // 3. Always schedule a background network refresh to keep data fresh.
+    //    This runs after build() completes so state is already initialized.
+    Future.microtask(() => fetchProfile());
 
-    return state;
+    return initialProfile;
   }
 
   // Allow setting the profile externally (e.g., during login or onboarding)

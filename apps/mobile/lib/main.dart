@@ -2,29 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
+import 'package:mobile/core/navigation/router.dart';
 import 'dart:ui';
+import 'dart:async';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/utils/app_logger.dart';
-import 'core/utils/nav_observer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/screens/login_screen.dart';
-import 'features/profile/models/user_profile.dart';
-import 'features/app_shell/screens/app_shell_screen.dart';
-import 'features/onboarding/screens/onboarding_screen.dart';
-import 'core/network/api_client.dart';
 import 'core/theme/app_colors.dart';
-import 'features/onboarding/data/profile_service.dart';
-import 'dart:async';
-import 'package:app_links/app_links.dart';
-import 'core/config/routes.dart';
-import 'features/groups/screens/group_invite_screen.dart';
-import 'features/auth/screens/reset_password_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
-import 'features/auth/screens/banned_screen.dart';
 import 'shared/widgets/dynamic_status_overlay.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/telemetry/telemetry_service.dart';
@@ -35,12 +24,10 @@ import 'core/telemetry/runtime_metrics_service.dart';
 import 'core/telemetry/freeze_monitor.dart';
 import 'core/telemetry/release_health_service.dart';
 import 'core/telemetry/runtime_observability_overlay.dart';
-
-import 'core/providers/auth_provider.dart';
-import 'core/providers/profile_provider.dart';
 import 'core/providers/cache_provider.dart';
 import 'core/network/mutation_queue.dart';
 import 'core/providers/theme_provider.dart';
+import 'core/providers/auth_provider.dart';
 import 'core/runtime/runtime_init.dart';
 
 late final ProviderContainer globalProviderContainer;
@@ -53,43 +40,6 @@ void main() {
 
       // 🛰️ [Production Observability] Phase 1: Foundation
       RuntimeMetricsService().markAppStart();
-
-      // Initialize observability and security in the background
-      unawaited(() async {
-        AppLogger.i('🛡️ [Sovereign] Starting background security boot...');
-        
-        // 1. Core Security Identity (Mandatory)
-        try {
-          await SecureKeyManager().init();
-          AppLogger.i('🛡️ [Sovereign] Identity active.');
-        } catch (e) {
-          AppLogger.e('🛡️ [SecureKeyManager] Critical Identity failure: $e');
-        }
-
-        // 2. Runtime Trust Evaluation (Mandatory)
-        try {
-          AppLogger.i('🧠 [Sovereign] Evaluating runtime trust...');
-          final stateMachine = TrustStateMachine();
-          await stateMachine.init();
-          final initialScore = await RuntimeTrustService().evaluate();
-          await stateMachine.update(initialScore);
-          AppLogger.i('🧠 [Sovereign] Trust established: ${initialScore.level.name}');
-        } catch (e) {
-          AppLogger.e('🛡️ [TrustEngine] Critical Trust evaluation failure: $e');
-        }
-
-        // 3. External Observability (Optional/Graceful)
-        try {
-          AppLogger.i('📊 [Sovereign] Connecting external observability...');
-          await Firebase.initializeApp();
-          await TelemetryService().init();
-          RuntimeMetricsService().init();
-          FreezeMonitor().start();
-          ReleaseHealthService().reportSessionStart();
-        } catch (e) {
-          AppLogger.w('⚠️ Observability services (Firebase/Sentry) failed to start: $e');
-        }
-      }());
 
       // 🧊 [Aesthetic] Set status bar to transparent for blurred effect
       SystemChrome.setSystemUIOverlayStyle(
@@ -197,18 +147,6 @@ void main() {
         // We continue to runApp so the user can see an error widget instead of a hang
       }
 
-      // Initialize Google Sign In
-      try {
-        AppLogger.d('Initializing Google Sign-In (isWeb: $kIsWeb)...');
-        await GoogleSignIn.instance.initialize(
-          clientId: kIsWeb ? Env.googleClientId : null,
-          serverClientId: kIsWeb ? null : Env.googleClientId,
-        );
-        AppLogger.i('Google Sign-In initialized successfully.');
-      } catch (e) {
-        AppLogger.e('Google Sign-In initialization failed: $e');
-      }
-
       final container = ProviderContainer();
       globalProviderContainer = container;
       try {
@@ -218,10 +156,74 @@ void main() {
         // 🚀 [Critical Runtime Path] Initialize Persistent Runtime
         await container.read(runtimeInitProvider.future);
 
+        // Initialize Authentication State
+        await container.read(authProvider.notifier).init();
+
         // Start background cache maintenance
         Timer.periodic(const Duration(minutes: 15), (_) {
           container.read(localCacheProvider).cleanupExpired();
         });
+
+        // 🔑 [Critical] Initialize Google Sign-In BEFORE splash dismiss
+        // Must be awaited and isolated from Firebase to guarantee readiness.
+        try {
+          final gId = Env.googleClientId;
+          AppLogger.d('Initializing Google Sign-In (isWeb: $kIsWeb, clientId: $gId)...');
+          await GoogleSignIn.instance.initialize(
+            clientId: kIsWeb ? gId : null,
+            serverClientId: kIsWeb ? null : gId,
+          );
+          AppLogger.i('✅ Google Sign-In initialized successfully.');
+        } catch (e) {
+          AppLogger.w('⚠️ Google Sign-In initialization failed: $e');
+        }
+
+        // 🧊 [Premium] Dismiss splash screen after full boot
+        FlutterNativeSplash.remove();
+
+        // 🛰️ [Production Observability] Phase 2: Background Services
+        unawaited(() async {
+          AppLogger.i('🛡️ [Sovereign] Starting background security boot...');
+
+          // 1. Core Security Identity (Mandatory)
+          try {
+            await SecureKeyManager().init();
+            AppLogger.i('🛡️ [Sovereign] Identity active.');
+          } catch (e) {
+            AppLogger.e('🛡️ [SecureKeyManager] Critical Identity failure: $e');
+          }
+
+          // 2. Runtime Trust Evaluation (Mandatory)
+          try {
+            AppLogger.i('🧠 [Sovereign] Evaluating runtime trust...');
+            final stateMachine = TrustStateMachine();
+            await stateMachine.init();
+            final initialScore = await RuntimeTrustService().evaluate();
+            await stateMachine.update(initialScore);
+            AppLogger.i(
+              '🧠 [Sovereign] Trust established: ${initialScore.level.name}',
+            );
+          } catch (e) {
+            AppLogger.e(
+              '🛡️ [TrustEngine] Critical Trust evaluation failure: $e',
+            );
+          }
+
+          // 3. External Observability (Optional/Graceful — Firebase only)
+          try {
+            AppLogger.i('📊 [Sovereign] Connecting external observability...');
+            await Firebase.initializeApp();
+            await TelemetryService().init();
+            RuntimeMetricsService().init();
+            FreezeMonitor().start();
+            ReleaseHealthService().reportSessionStart();
+            AppLogger.i('✅ Firebase observability connected.');
+          } catch (e) {
+            AppLogger.w(
+              '⚠️ Firebase/Observability services failed to start: $e',
+            );
+          }
+        }());
       } catch (e) {
         AppLogger.e('Initialization failed: $e');
       }
@@ -265,81 +267,20 @@ void main() {
   );
 }
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-class KovariApp extends ConsumerStatefulWidget {
+class KovariApp extends ConsumerWidget {
   const KovariApp({super.key});
 
   @override
-  ConsumerState<KovariApp> createState() => _KovariAppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
 
-class _KovariAppState extends ConsumerState<KovariApp> {
-  late AppLinks _appLinks;
-  StreamSubscription<Uri>? _linkSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _initDeepLinks();
-  }
-
-  @override
-  void dispose() {
-    _linkSubscription?.cancel();
-    super.dispose();
-  }
-
-  void _initDeepLinks() {
-    _appLinks = AppLinks();
-    _linkSubscription = _appLinks.uriLinkStream.listen(_handleDeepLink);
-    _appLinks.getInitialLink().then((uri) {
-      if (uri != null) _handleDeepLink(uri);
-    });
-  }
-
-  void _handleDeepLink(Uri uri) {
-    debugPrint('🔗 Deep Link received: $uri');
-    final segments = uri.pathSegments;
-    bool isResetPath =
-        uri.path.contains('forgot-password') || uri.host == 'reset-password';
-    bool isInvitePath =
-        (segments.isNotEmpty && segments.first == 'invite') ||
-        uri.host == 'invite';
-    String? resetToken = uri.queryParameters['token'];
-
-    if (isResetPath && resetToken != null) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            settings: const RouteSettings(name: AppRoutes.forgotPassword),
-            builder: (context) => ResetPasswordScreen(token: resetToken),
-          ),
-        );
-      });
-    } else if (isInvitePath) {
-      final inviteToken = uri.host == 'invite' ? segments.first : segments[1];
-      Future.delayed(const Duration(milliseconds: 500), () {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (context) => GroupInviteScreen(token: inviteToken),
-          ),
-        );
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Kovari',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ref.watch(themeProvider),
-      navigatorKey: navigatorKey,
-      navigatorObservers: [KovariNavObserver(ref)],
-      routes: AppRoutes.routes,
+      routerConfig: router,
       builder: (context, child) {
         Widget content = GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -361,7 +302,7 @@ class _KovariAppState extends ConsumerState<KovariApp> {
                     top: 0,
                     left: 0,
                     right: 0,
-                    height: 50, // Longer, smoother fade like bottom nav
+                    height: 50,
                     child: IgnorePointer(
                       child: ClipRect(
                         child: Container(
@@ -374,53 +315,23 @@ class _KovariAppState extends ConsumerState<KovariApp> {
                                 (Theme.of(context).brightness == Brightness.dark
                                         ? AppColors.backgroundDark
                                         : AppColors.background)
-                                    .withValues(
-                                      alpha:
-                                          Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? 1.0
-                                          : 1.0,
-                                    ),
+                                    .withValues(alpha: 1.0),
                                 (Theme.of(context).brightness == Brightness.dark
                                         ? AppColors.backgroundDark
                                         : AppColors.background)
-                                    .withValues(
-                                      alpha:
-                                          Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? 0.9
-                                          : 0.8,
-                                    ),
+                                    .withValues(alpha: 0.8),
                                 (Theme.of(context).brightness == Brightness.dark
                                         ? AppColors.backgroundDark
                                         : AppColors.background)
-                                    .withValues(
-                                      alpha:
-                                          Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? 0.6
-                                          : 0.4,
-                                    ),
+                                    .withValues(alpha: 0.4),
                                 (Theme.of(context).brightness == Brightness.dark
                                         ? AppColors.backgroundDark
                                         : AppColors.background)
-                                    .withValues(
-                                      alpha:
-                                          Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? 0.3
-                                          : 0.2,
-                                    ),
+                                    .withValues(alpha: 0.2),
                                 (Theme.of(context).brightness == Brightness.dark
                                         ? AppColors.backgroundDark
                                         : AppColors.background)
-                                    .withValues(
-                                      alpha:
-                                          Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? 0.0
-                                          : 0.0,
-                                    ),
+                                    .withValues(alpha: 0.0),
                               ],
                             ),
                           ),
@@ -428,7 +339,6 @@ class _KovariAppState extends ConsumerState<KovariApp> {
                       ),
                     ),
                   ),
-
                   const DynamicStatusOverlay(),
                 ],
               ),
@@ -441,146 +351,7 @@ class _KovariAppState extends ConsumerState<KovariApp> {
         }
         return content;
       },
-      home: const AuthWrapper(),
     );
-  }
-}
-
-class AuthWrapper extends ConsumerStatefulWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  ConsumerState<AuthWrapper> createState() => _AuthWrapperState();
-}
-
-class _AuthWrapperState extends ConsumerState<AuthWrapper> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(authProvider.notifier).init();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = ref.watch(authProvider);
-
-    if (auth.isBootstrapping) {
-      return const SizedBox.shrink(); // Native splash stays until remove() is called
-    }
-
-    if (!auth.isAuthenticated) {
-      FlutterNativeSplash.remove();
-      return const LoginScreen();
-    }
-
-    final user = auth.user;
-    if (user != null && user.banned) {
-      if (user.banExpiresAt != null) {
-        final expiresAt = DateTime.parse(user.banExpiresAt!).toLocal();
-        if (expiresAt.isAfter(DateTime.now())) {
-          FlutterNativeSplash.remove();
-          return BannedScreen(user: user);
-        }
-      } else {
-        FlutterNativeSplash.remove();
-        return BannedScreen(user: user);
-      }
-    }
-
-    return const AuthHandler();
-  }
-}
-
-class AuthHandler extends ConsumerStatefulWidget {
-  const AuthHandler({super.key});
-
-  @override
-  ConsumerState<AuthHandler> createState() => _AuthHandlerState();
-}
-
-class _AuthHandlerState extends ConsumerState<AuthHandler> {
-  bool _isSyncing = true;
-  bool _needsOnboarding = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeApp();
-  }
-
-  Future<void> _initializeApp() async {
-    try {
-      final apiClient = ref.read(apiClientProvider);
-      final profileService = ProfileService(apiClient);
-      final profileJson = await profileService.getCurrentProfile(
-        ignoreCache: false,
-      );
-
-      AppLogger.d('🔍 [AUTH] Profile fetch result: $profileJson');
-
-      if (mounted) {
-        if (profileJson != null &&
-            (profileJson['onboardingCompleted'] == true ||
-                (profileJson['username'] as String? ?? '').isNotEmpty)) {
-          final userProfile = UserProfile.fromJson(profileJson);
-          ref.read(profileProvider.notifier).setProfile(userProfile);
-        }
-
-        final needsOnboarding =
-            profileJson == null ||
-            (profileJson['onboardingCompleted'] != true &&
-                (profileJson['username'] as String? ?? '').isEmpty);
-
-        if (needsOnboarding) {
-          AppLogger.w(
-            '🚩 [AUTH] Redirecting to Onboarding. Reason: ${profileJson == null ? 'Profile is NULL' : 'Incomplete: completed=${profileJson['onboardingCompleted']}, username="${profileJson['username']}"'}',
-          );
-        } else {
-          AppLogger.i('✅ [AUTH] Onboarding verified. Proceeding to AppShell.');
-        }
-
-        setState(() {
-          _isSyncing = false;
-          _needsOnboarding = needsOnboarding;
-        });
-
-        // 🚀 Remove splash ONLY when we know where to land
-        FlutterNativeSplash.remove();
-      }
-    } catch (e) {
-      AppLogger.e('⚠️ [AUTH] Initialization error: $e');
-      if (mounted) {
-        setState(() {
-          _isSyncing = false;
-          _needsOnboarding = false;
-        });
-        FlutterNativeSplash.remove();
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isSyncing) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      return Scaffold(
-        backgroundColor: AppColors.backgroundColor(context),
-        body: Center(
-          child: Image.asset(
-            isDark ? 'assets/logo_dark.webp' : 'assets/logo.webp',
-            width: 120,
-            height: 120,
-          ),
-        ),
-      );
-    }
-
-    if (_needsOnboarding) {
-      return const OnboardingScreen();
-    }
-    return const AppShellScreen();
   }
 }
 

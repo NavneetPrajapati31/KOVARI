@@ -12,13 +12,19 @@ import '../../../shared/widgets/secondary_button.dart';
 import '../../../shared/widgets/app_card.dart';
 
 class BannedScreen extends ConsumerWidget {
-  final KovariUser user;
+  final KovariUser? user;
 
-  const BannedScreen({super.key, required this.user});
+  const BannedScreen({super.key, this.user});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bool isSuspended = user.banExpiresAt != null;
+    final activeUser = user ?? ref.watch(authProvider).user;
+    
+    if (activeUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final bool isSuspended = activeUser.banExpiresAt != null;
     final String title = isSuspended ? "Account suspended" : "Account banned";
     final String message = isSuspended
         ? "Your account is temporarily suspended due to a violation of our terms of service."
@@ -99,7 +105,7 @@ class BannedScreen extends ConsumerWidget {
                                 SizedBox(height: isSuspended ? 0 : 12),
                                 // Expiration Box (for suspensions)
                                 if (isSuspended &&
-                                    user.banExpiresAt != null) ...[
+                                    activeUser.banExpiresAt != null) ...[
                                   const SizedBox(height: 22),
                                   Container(
                                     width: double.infinity,
@@ -132,7 +138,7 @@ class BannedScreen extends ConsumerWidget {
                                             'MMM d, yyyy • hh:mm a',
                                           ).format(
                                             DateTime.parse(
-                                              user.banExpiresAt!,
+                                              activeUser.banExpiresAt!,
                                             ).toLocal(),
                                           ),
                                           style: AppTextStyles.bodyMedium
