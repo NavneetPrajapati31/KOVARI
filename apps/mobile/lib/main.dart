@@ -32,6 +32,8 @@ import 'core/network/mutation_queue.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/runtime/runtime_init.dart';
 
+late final ProviderContainer globalProviderContainer;
+
 void main() {
   runZonedGuarded(
     () async {
@@ -148,10 +150,11 @@ void main() {
       }
 
       final container = ProviderContainer();
+      globalProviderContainer = container;
       try {
         await container.read(cacheInitProvider.future);
         await container.read(mutationQueueInitProvider.future);
-        
+
         // 🚀 [Critical Runtime Path] Initialize Persistent Runtime
         await container.read(runtimeInitProvider.future);
 
@@ -318,7 +321,7 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
     final auth = ref.watch(authProvider);
 
     if (auth.isBootstrapping) {
-      return const BrandedLoading();
+      return const SizedBox.shrink(); // Native splash stays until remove() is called
     }
 
     if (!auth.isAuthenticated) {
@@ -396,58 +399,30 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
           _isSyncing = false;
           _needsOnboarding = needsOnboarding;
         });
+
+        // 🚀 Remove splash ONLY when we know where to land
+        FlutterNativeSplash.remove();
       }
     } catch (e) {
       AppLogger.e('⚠️ [AUTH] Initialization error: $e');
       if (mounted) {
-        // If it's a network error, don't show the fatal error screen.
-        // Instead, proceed to the app shell and let individual screens handle offline state.
         setState(() {
           _isSyncing = false;
-          _needsOnboarding = false; // Default to false if we can't check
+          _needsOnboarding = false;
         });
+        FlutterNativeSplash.remove();
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isSyncing) return const BrandedLoading();
+    if (_isSyncing) return const SizedBox.shrink();
 
     if (_needsOnboarding) {
       return const OnboardingScreen();
     }
     return const AppShellScreen();
-  }
-}
-
-class BrandedLoading extends StatefulWidget {
-  const BrandedLoading({super.key});
-
-  @override
-  State<BrandedLoading> createState() => _BrandedLoadingState();
-}
-
-class _BrandedLoadingState extends State<BrandedLoading> {
-  @override
-  void initState() {
-    super.initState();
-    FlutterNativeSplash.remove();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Center(
-        child: Image.asset(
-          isDark ? 'assets/logo_dark.webp' : 'assets/logo.webp',
-          width: 140,
-          fit: BoxFit.contain,
-        ),
-      ),
-    );
   }
 }
 

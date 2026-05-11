@@ -75,19 +75,21 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 flutter_native_splash:
-  color: "#F9FAFB"
-  image: assets/logo.png
-  dark_color: "#0B0E14"
-  dark_image: assets/logo_dark.webp
+  color: "#F8F9FC"
+  image: "assets/small_logo_wo_text.png"
+  color_dark: "#000000"
+  image_dark: "assets/small_logo_wo_text.png"
   android: true
   ios: true
   fullscreen: true
+  android_gravity: center
+  ios_content_mode: center
   android_12:
-    color: "#F9FAFB"
-    dark_color: "#0B0E14"
-    # Use a solid background-colored square as the icon to "hide" the native logo.
-    # This ensures no circle/distortion or Flutter icon appears.
-    image: assets/invisible_icon.png
+    color: "#F8F9FC"
+    color_dark: "#000000"
+    # Use the actual Kovari logo for Android 12+
+    image: "assets/small_logo_wo_text.png"
+    image_dark: "assets/small_logo_wo_text.png"
 
 # The following section is specific to Flutter packages.
 flutter:

@@ -16,6 +16,7 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/kovari_switch_tile.dart';
 import '../providers/group_provider.dart';
 import '../../../shared/widgets/app_card.dart';
+import '../../../shared/widgets/kovari_snackbar.dart';
 
 class CreateGroupScreen extends ConsumerStatefulWidget {
   const CreateGroupScreen({super.key});
@@ -82,9 +83,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       } catch (e) {
         setState(() => _isUploadingImage = false);
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Image upload failed: $e')));
+          KovariSnackbar.error(context, 'Image upload failed: $e');
         }
       }
     }
@@ -131,9 +130,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_destination == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a destination')),
-      );
+      KovariSnackbar.info(context, 'Please select a destination');
       return;
     }
 
@@ -161,16 +158,12 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       ref.invalidate(myGroupsProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Group created successfully!')),
-        );
+        KovariSnackbar.success(context, 'Group created successfully!');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to create group: $e')));
+        KovariSnackbar.error(context, 'Failed to create group: $e');
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

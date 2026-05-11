@@ -18,6 +18,7 @@ import 'package:flutter/services.dart';
 import '../../../../shared/widgets/kovari_confirm_dialog.dart';
 import '../../providers/group_provider.dart';
 import '../../providers/entity_stores.dart';
+import '../../../../shared/widgets/kovari_snackbar.dart';
 
 class OverviewTab extends ConsumerStatefulWidget {
   final GroupModel group;
@@ -72,15 +73,11 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Destination image updated!')),
-          );
+          KovariSnackbar.success(context, 'Destination image updated!');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+          KovariSnackbar.error(context, 'Upload failed: $e');
         }
       } finally {
         if (mounted) setState(() => _isUploadingDestinationImage = false);
@@ -104,15 +101,11 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
           });
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Destination image removed')),
-            );
+            KovariSnackbar.success(context, 'Destination image removed');
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to remove image: $e')),
-            );
+            KovariSnackbar.error(context, 'Failed to remove image: $e');
           }
         }
       },
@@ -771,9 +764,18 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         HapticFeedback.lightImpact();
-                        // Search functionality placeholder
+                        try {
+                          await UrlUtils.launchMaps(group.destination);
+                        } catch (e) {
+                          if (context.mounted) {
+                            KovariSnackbar.error(
+                              context,
+                              'Could not open maps',
+                            );
+                          }
+                        }
                       },
                       child: _buildGlassContainer(
                         borderRadius: BorderRadius.circular(100),
@@ -988,11 +990,10 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                           fillColor: Colors.transparent,
                           hintText: "Start typing your plans...",
                           hintStyle: TextStyle(
-                            color: AppColors.text(
-                              context,
-                              isMuted: true,
-                            ).withValues(alpha: 0.4),
-                            fontSize: 15,
+                            color: AppColors.text(context, isMuted: true),
+                            fontSize: 12,
+                            height: 1.6,
+                            fontWeight: FontWeight.w500,
                           ),
                           contentPadding: EdgeInsets.zero,
                         ),

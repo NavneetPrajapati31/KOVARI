@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -6,6 +7,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/connectivity_provider.dart';
 import '../../core/auth/session_manager.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/providers/status_overlay_provider.dart';
+import '../../core/providers/nav_provider.dart';
 
 class DynamicStatusOverlay extends ConsumerStatefulWidget {
   const DynamicStatusOverlay({super.key});
@@ -18,6 +22,7 @@ class DynamicStatusOverlay extends ConsumerStatefulWidget {
 class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
   Timer? _syncTimer;
   bool _showRetry = false;
+  final List<StatusMessage> _displayList = [];
 
   @override
   void dispose() {
@@ -37,6 +42,8 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
   @override
   Widget build(BuildContext context) {
     final connectivity = ref.watch(connectivityProvider);
+    final statusMessages = ref.watch(statusOverlayProvider);
+    final isNavBarVisible = ref.watch(navBarVisibilityProvider);
     final auth = ref.watch(authProvider);
 
     // Manage timer based on refreshing state
@@ -48,109 +55,147 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
       _showRetry = false;
     }
 
-    // Determine the current state and priority
-    Widget? statusWidget;
-    Color? accentColor;
+    // Sync provider messages to local display list
+    // We keep items in the display list even if they are gone from provider
+    // as long as they are still "alive" (within their duration + animation buffer)
 
+    // Add new ones
+    for (final msg in statusMessages) {
+      if (!_displayList.any((m) => m.timestamp == msg.timestamp)) {
+        _displayList.insert(0, msg);
+      }
+    }
+
+    // Prepare system statuses
+    final List<StatusMessage> systemStatuses = [];
     if (!connectivity.isOnline) {
-      accentColor = AppColors.destructive;
-      statusWidget = _StatusPillContent(
-        key: const ValueKey('offline'),
-        icon: LucideIcons.wifiOff,
-        label: 'Offline',
-        accentColor: accentColor,
+      systemStatuses.add(
+        StatusMessage(
+          message: 'No internet connection',
+          type: StatusType.offline,
+        ),
       );
     } else if (auth.isRefreshing) {
-      accentColor = const Color(0xFF0A84FF); // Apple System Blue
-      statusWidget = _StatusPillContent(
-        key: const ValueKey('syncing'),
-        isSpinning: true,
-        icon: LucideIcons.refreshCw,
-        label: _showRetry ? 'Retry Sync' : 'Syncing',
-        accentColor: accentColor,
-        onTap: _showRetry ? () => ref.read(authProvider.notifier).init() : null,
-      );
-    } else if (auth.isDegraded) {
-      accentColor = const Color(0xFFFF9F0A); // Apple System Orange
-      statusWidget = _StatusPillContent(
-        key: const ValueKey('degraded'),
-        icon: LucideIcons.triangleAlert,
-        label: 'Degraded',
-        accentColor: accentColor,
+      systemStatuses.add(
+        StatusMessage(
+          message: _showRetry ? 'Tap to Retry' : 'Syncing Data',
+          type: StatusType.syncing,
+          onAction: _showRetry
+              ? () => ref.read(authProvider.notifier).init()
+              : null,
+        ),
       );
     }
 
-    final isVisible = statusWidget != null;
+    final baseBottom = isNavBarVisible ? 85.0 : 25.0;
+
+    // Combine manual and system
+    final allItems = [..._displayList, ...systemStatuses];
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 600),
-      curve: Curves.easeOutBack,
-      top: isVisible ? MediaQuery.of(context).padding.top + 8 : -120,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Material(
-          color: Colors.transparent,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOutExpo,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.isDark(context)
-                  ? const Color(0xFF000000)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppColors.isDark(context)
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.05),
-                width: 0.8,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: AppColors.isDark(context) ? 0.65 : 0.12,
-                  ),
-                  blurRadius: 35,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 14),
-                ),
-                if (isVisible)
-                  BoxShadow(
-                    color: (accentColor ?? Colors.white).withValues(
-                      alpha: AppColors.isDark(context) ? 0.12 : 0.08,
+      curve: Curves.easeOutQuart,
+      bottom: baseBottom,
+      left: 16,
+      right: 16,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        verticalDirection: VerticalDirection.up,
+        children: allItems.asMap().entries.map((entry) {
+          final status = entry.value;
+
+          final bool isManual = _displayList.contains(status);
+          final bool isStillActive = isManual
+              ? statusMessages.any((m) => m.timestamp == status.timestamp)
+              : true;
+
+          final accentColor = status.type.defaultAccentColor;
+
+          return Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 400),
+              opacity: isStillActive ? 1.0 : 0.0,
+              curve: isStillActive ? Curves.easeOutCubic : Curves.easeInQuint,
+              child: TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 600),
+                curve: isStillActive ? Curves.easeOutBack : Curves.easeInBack,
+                tween: Tween(begin: 0.0, end: isStillActive ? 1.0 : 0.0),
+                builder: (context, value, child) {
+                  final scaleValue = 0.6 + (0.4 * value);
+                  return Transform.scale(scale: scaleValue, child: child);
+                },
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width - 32,
+                  child: _SwipeToDismiss(
+                    key: ValueKey(
+                      'dismiss_${status.timestamp.toIso8601String()}',
                     ),
-                    blurRadius: 24,
-                    spreadRadius: -2,
-                  ),
-              ],
-            ),
-            child: IntrinsicWidth(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
-                reverseDuration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(
-                    opacity: CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOut,
-                    ),
-                    child: ScaleTransition(
-                      scale: Tween<double>(begin: 0.9, end: 1.0).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutBack,
+                    onDismissed: () {
+                      if (isManual) {
+                        ref
+                            .read(statusOverlayProvider.notifier)
+                            .hide(status.timestamp);
+                      }
+                    },
+                    child: AnimatedSize(
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeOutExpo,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          24,
+                        ), // More card-like for multi-line
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 40),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: AppColors.borderColor(context),
+                              ),
+                            ),
+                            child: _StatusPillContent(
+                              key: ValueKey(
+                                'content_${status.timestamp.toIso8601String()}',
+                              ),
+                              icon:
+                                  status.customIcon ?? status.type.defaultIcon,
+                              label: status.message,
+                              accentColor:
+                                  accentColor ??
+                                  (Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black),
+                              isSpinning: status.type == StatusType.syncing,
+                              onAction: status.onAction,
+                              actionLabel: status.actionLabel,
+                            ),
+                          ),
                         ),
                       ),
-                      child: child,
                     ),
-                  );
-                },
-                child: statusWidget ?? const SizedBox.shrink(),
+                  ),
+                ),
               ),
+              onEnd: () {
+                if (!isStillActive && isManual) {
+                  setState(() {
+                    _displayList.removeWhere(
+                      (m) => m.timestamp == status.timestamp,
+                    );
+                  });
+                }
+              },
             ),
-          ),
-        ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -161,7 +206,8 @@ class _StatusPillContent extends StatelessWidget {
   final String label;
   final Color accentColor;
   final bool isSpinning;
-  final VoidCallback? onTap;
+  final VoidCallback? onAction;
+  final String? actionLabel;
 
   const _StatusPillContent({
     super.key,
@@ -169,37 +215,57 @@ class _StatusPillContent extends StatelessWidget {
     required this.label,
     required this.accentColor,
     this.isSpinning = false,
-    this.onTap,
+    this.onAction,
+    this.actionLabel,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: onAction,
       behavior: HitTestBehavior.opaque,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildIcon(),
-          const SizedBox(width: 14),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.isDark(context) ? Colors.white : Colors.black,
-              fontSize: 15, // Prominent presence
-              fontWeight: FontWeight.w700, // Bold for clarity
-              letterSpacing: -0.3, // Authentic Apple tracking
-              decoration: TextDecoration.none,
+          _buildIcon(context),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              label,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.text(context, isMuted: true),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.none,
+              ),
+              maxLines: 4, // Allow up to 4 lines for details
             ),
           ),
-          if (onTap != null) ...[
+          if (onAction != null) ...[
             const SizedBox(width: 8),
-            Icon(
-              LucideIcons.chevronRight,
-              size: 16,
-              color: (AppColors.isDark(context) ? Colors.white : Colors.black)
-                  .withValues(alpha: 0.5),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    actionLabel ?? 'Action',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: accentColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(LucideIcons.chevronRight, size: 14, color: accentColor),
+                ],
+              ),
             ),
           ],
         ],
@@ -207,22 +273,75 @@ class _StatusPillContent extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon() {
+  Widget _buildIcon(BuildContext context) {
     if (isSpinning) {
       return SizedBox(
-        width: 14,
-        height: 14,
+        width: 12,
+        height: 12,
         child: CircularProgressIndicator(
-          strokeWidth: 2.5, // Thicker for premium feel
-          valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            AppColors.text(context, isMuted: true),
+          ),
         ),
       );
     }
 
-    return Icon(
-      icon,
-      size: 18, // Balanced with 15px bold text
-      color: accentColor,
+    return Icon(icon, size: 16, color: accentColor);
+  }
+}
+
+class _SwipeToDismiss extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onDismissed;
+
+  const _SwipeToDismiss({
+    super.key,
+    required this.child,
+    required this.onDismissed,
+  });
+
+  @override
+  State<_SwipeToDismiss> createState() => _SwipeToDismissState();
+}
+
+class _SwipeToDismissState extends State<_SwipeToDismiss> {
+  double _dragOffset = 0.0;
+  bool _isDismissed = false;
+  bool _isDragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isDismissed) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onHorizontalDragStart: (_) => setState(() => _isDragging = true),
+      onHorizontalDragUpdate: (details) {
+        setState(() {
+          _dragOffset += details.primaryDelta!;
+        });
+      },
+      onHorizontalDragEnd: (details) {
+        _isDragging = false;
+        if (_dragOffset.abs() > 100 || details.primaryVelocity!.abs() > 500) {
+          setState(() {
+            _isDismissed = true;
+          });
+          widget.onDismissed();
+        } else {
+          setState(() {
+            _dragOffset = 0.0;
+          });
+        }
+      },
+      child: AnimatedContainer(
+        duration: _isDragging
+            ? Duration.zero
+            : const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(_dragOffset, 0, 0),
+        child: widget.child,
+      ),
     );
   }
 }
