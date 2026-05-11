@@ -302,20 +302,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       _buildAppearanceSection(),
                       const SizedBox(height: 32),
                       _buildSectionHeader(
+                        'Legal & Policies',
+                        'Review Kovari\'s policies and your acceptance history.',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildLegalSection(),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
                         'Delete account',
                         'This action is permanent and cannot be undone.',
                         isDestructive: true,
                       ),
                       const SizedBox(height: 16),
                       _buildDangerZoneSection(),
-                      const SizedBox(height: 32),
-                      _buildSectionHeader(
-                        'Legal & Policies',
-                        'Review Kovari\'s policies and your acceptance history.',
-                      ),
-                      const SizedBox(height: 16),
-                      _buildLegalSection(),
-                      // const SizedBox(height: 32),
                     ],
                   ),
                 ),
@@ -670,7 +669,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           color: AppColors.primary.withValues(alpha: 0.1),
-          border: Border.all(color: AppColors.primary, width: 1),
+          border: Border.all(color: Colors.transparent, width: 0),
         ),
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.text(context, isMuted: true),
@@ -979,12 +978,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   Widget _buildOutlineButton(String label, {required VoidCallback onPressed}) {
     return SizedBox(
       width: double.infinity,
-      height: 36,
+      height: 40,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.borderColor(context)),
-          backgroundColor: AppColors.surface(context),
+          backgroundColor: AppColors.cardColor(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

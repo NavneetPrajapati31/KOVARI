@@ -130,16 +130,14 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final bool isMe = widget.userId == currentUserId;
 
     if (_isLoading) {
-      return const Scaffold(
-        body: KovariSkeletonProfile(),
-      );
+      return const Scaffold(body: KovariSkeletonProfile());
     }
 
     if (_error != null || _profile == null) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.backgroundColor(context),
         appBar: AppBar(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.backgroundColor(context),
           elevation: 0,
           leading: IconButton(
             icon: Icon(LucideIcons.arrowLeft, color: AppColors.text(context)),
@@ -163,8 +161,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.backgroundColor(context),
       appBar: AppBar(
+        backgroundColor: AppColors.backgroundColor(context),
         elevation: 0,
         centerTitle: false,
         titleSpacing: 0,
@@ -179,6 +178,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         title: Text(
           _profile!.username,
           style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.text(context),
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -245,6 +245,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     Text(
                       profile.name,
                       style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.text(context),
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -252,7 +253,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     Text(
                       '@${profile.username}',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 12,
                       ),
                     ),
@@ -307,7 +308,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           Text(
             profile.bio.isEmpty ? 'No bio added.' : profile.bio,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
             ),
           ),
@@ -322,10 +323,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                         : (profile.isFollowingMe ? 'Follow Back' : 'Follow'),
                     onPressed: _toggleFollow,
                     backgroundColor: profile.isFollowing
-                        ? AppColors.secondary
+                        ? AppColors.mutedColor(context)
                         : AppColors.primary,
                     textColor: profile.isFollowing
-                        ? AppColors.secondaryForeground
+                        ? AppColors.text(context)
                         : AppColors.primaryForeground,
                   ),
                 ),
@@ -334,8 +335,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   child: _buildActionButton(
                     'Message',
                     onPressed: () {},
-                    backgroundColor: AppColors.secondary,
-                    textColor: AppColors.secondaryForeground,
+                    backgroundColor: AppColors.mutedColor(context),
+                    textColor: AppColors.text(context),
                   ),
                 ),
               ],
@@ -471,7 +472,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const Divider(height: 1, color: AppColors.border),
+          Divider(height: 1, color: AppColors.borderColor(context)),
           const SizedBox(height: 20),
           _buildInfoRow(
             _buildInfoItem(
@@ -500,7 +501,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
           if (profile.interests.isNotEmpty || profile.languages.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: AppColors.borderColor(context)),
             const SizedBox(height: 20),
             if (profile.interests.isNotEmpty) ...[
               _buildChipsSection('INTERESTS', profile.interests),
@@ -521,9 +522,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -557,9 +558,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -572,7 +573,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                color: AppColors.mutedColor(context),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
