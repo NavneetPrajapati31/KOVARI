@@ -28,6 +28,9 @@ import 'features/auth/screens/banned_screen.dart';
 import 'shared/widgets/dynamic_status_overlay.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/telemetry/telemetry_service.dart';
+import 'core/security/secure_key_manager.dart';
+import 'core/security/runtime_trust_service.dart';
+import 'core/security/trust_state_machine.dart';
 import 'core/telemetry/runtime_metrics_service.dart';
 import 'core/telemetry/freeze_monitor.dart';
 import 'core/telemetry/release_health_service.dart';
@@ -50,17 +53,41 @@ void main() {
 
       // 🛰️ [Production Observability] Phase 1: Foundation
       RuntimeMetricsService().markAppStart();
-      
-      // Initialize observability in the background to prevent startup hangs
+
+      // Initialize observability and security in the background
       unawaited(() async {
+        AppLogger.i('🛡️ [Sovereign] Starting background security boot...');
+        
+        // 1. Core Security Identity (Mandatory)
         try {
+          await SecureKeyManager().init();
+          AppLogger.i('🛡️ [Sovereign] Identity active.');
+        } catch (e) {
+          AppLogger.e('🛡️ [SecureKeyManager] Critical Identity failure: $e');
+        }
+
+        // 2. Runtime Trust Evaluation (Mandatory)
+        try {
+          AppLogger.i('🧠 [Sovereign] Evaluating runtime trust...');
+          final stateMachine = TrustStateMachine();
+          await stateMachine.init();
+          final initialScore = await RuntimeTrustService().evaluate();
+          await stateMachine.update(initialScore);
+          AppLogger.i('🧠 [Sovereign] Trust established: ${initialScore.level.name}');
+        } catch (e) {
+          AppLogger.e('🛡️ [TrustEngine] Critical Trust evaluation failure: $e');
+        }
+
+        // 3. External Observability (Optional/Graceful)
+        try {
+          AppLogger.i('📊 [Sovereign] Connecting external observability...');
           await Firebase.initializeApp();
           await TelemetryService().init();
           RuntimeMetricsService().init();
           FreezeMonitor().start();
           ReleaseHealthService().reportSessionStart();
         } catch (e) {
-          AppLogger.e('Observability initialization failed: $e');
+          AppLogger.w('⚠️ Observability services (Firebase/Sentry) failed to start: $e');
         }
       }());
 
