@@ -16,7 +16,6 @@ import '../../../shared/widgets/app_card.dart';
 import '../providers/entity_stores.dart';
 import '../providers/group_details_provider.dart';
 import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../shared/utils/url_utils.dart';
 import '../../../shared/widgets/kovari_refresh_indicator.dart';
 
 class GroupDetailsScreen extends ConsumerStatefulWidget {
@@ -86,9 +85,9 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
 
     final membership = membershipState.data;
 
-    // Logic for Pending/Join states
-    if (group.status == 'pending') {
-      return _buildPendingState();
+    // Logic for Pending/Join states: Creators bypass the review screen
+    if (group.status == 'pending' && !membership!.isCreator) {
+      return _buildPendingState(context);
     }
 
     if (!membership!.isMember && !membership.isCreator) {
@@ -112,7 +111,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
       body: Column(
         children: [
           Container(
-            color: AppColors.backgroundColor(context),
+            color: Colors.transparent,
             child: SafeArea(bottom: false, child: _buildHeader(group)),
           ),
 
@@ -175,83 +174,45 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
 
   Widget _buildSkeletonState() {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Row(
-                children: [
-                  const Skeleton(
-                    width: 32,
-                    height: 32,
-                    borderRadius: BorderRadius.all(Radius.circular(16)),
-                  ),
-                  const SizedBox(width: 12),
-                  const Skeleton(width: 150, height: 20),
-                ],
-              ),
-            ),
-            const Divider(),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Skeleton(height: 200, width: double.infinity),
-                    const SizedBox(height: 24),
-                    const Skeleton(width: 120, height: 24),
-                    const SizedBox(height: 12),
-                    const Skeleton(height: 16, width: double.infinity),
-                    const SizedBox(height: 8),
-                    const Skeleton(height: 16, width: double.infinity),
-                    const SizedBox(height: 8),
-                    const Skeleton(height: 16, width: 200),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: AppColors.backgroundColor(context),
+      body: Column(
+        children: [
+          SafeArea(bottom: false, child: _buildSkeletonHeader(context)),
+          const Expanded(child: KovariSkeletonGroupOverview()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        children: [
+          _buildBackButton(context),
+          const SizedBox(width: 4),
+          const Skeleton(width: 150, height: 16),
+        ],
       ),
     );
   }
 
   Widget _buildPartialState(GroupModel group) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(group),
-            const Divider(),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Skeleton(height: 200, width: double.infinity),
-                    const SizedBox(height: 24),
-                    const Skeleton(width: 120, height: 24),
-                    const SizedBox(height: 12),
-                    const Skeleton(height: 16, width: double.infinity),
-                    const SizedBox(height: 8),
-                    const Skeleton(height: 16, width: double.infinity),
-                    const SizedBox(height: 8),
-                    const Skeleton(height: 16, width: 200),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: AppColors.backgroundColor(context),
+      body: Column(
+        children: [
+          Container(
+            color: AppColors.backgroundColor(context),
+            child: SafeArea(bottom: false, child: _buildHeader(group)),
+          ),
+          const Expanded(child: KovariSkeletonGroupOverview()),
+        ],
       ),
     );
   }
 
   Widget _buildHeader(GroupModel group) {
-    final coverImageUrl = UrlUtils.getFullImageUrl(group.coverImage);
     return RepaintBoundary(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -285,7 +246,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     );
   }
 
-  Widget _buildPendingState() {
+  Widget _buildPendingState(BuildContext context) {
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: Center(
@@ -294,15 +255,17 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 LucideIcons.circleAlert,
-                size: 64,
-                color: AppColors.muted,
+                size: 34,
+                color: AppColors.text(context),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
               Text(
                 "Group Under Review",
-                style: AppTextStyles.h2,
+                style: AppTextStyles.h2.copyWith(
+                  color: AppColors.text(context),
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),

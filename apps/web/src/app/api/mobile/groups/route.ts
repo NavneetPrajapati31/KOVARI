@@ -218,7 +218,7 @@ export async function POST(req: NextRequest) {
       cover_image: parsed.data.cover_image || null,
       non_smokers: parsed.data.non_smokers ?? null,
       non_drinkers: parsed.data.non_drinkers ?? null,
-      status: "pending", // All new groups require admin review
+      status: "active", // New groups are active immediately
       dominant_languages: creatorLanguages,
     };
 

@@ -17,6 +17,7 @@ class GroupTabBar extends StatelessWidget {
     final tabs = ['Overview', 'Chats', 'Itinerary', 'Settings'];
 
     return Container(
+      color: Colors.transparent,
       padding: const EdgeInsets.only(left: 14, right: 14, top: 4, bottom: 12),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -49,17 +50,10 @@ class GroupTabBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? (AppColors.isDark(context)
-                    ? AppColors.primary.withValues(alpha: 0.15)
-                    : AppColors.primary.withValues(alpha: 0.1))
-              : AppColors.surface(context, level: 1),
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.cardColor(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.borderColor(context),
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.borderColor(context), width: 1),
         ),
         child: Text(
           label,

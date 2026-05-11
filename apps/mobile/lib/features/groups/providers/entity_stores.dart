@@ -683,6 +683,19 @@ class HydrationEngineWrapper<T> extends StateNotifier<HydratedState<T>> {
     });
   }
 
+  /// 🚀 Optimistic update for immediate UI feedback
+  void patch(T Function(T) update) {
+    if (!state.hasData) return;
+    final updatedData = update(state.data as T);
+    final newState = state.copyWith(
+      data: updatedData,
+      isOptimistic: true,
+      lastModifiedAt: DateTime.now().add(const Duration(milliseconds: 100)),
+    );
+    state = newState;
+    _engine.updateLastState(_target.hydrationKey, newState);
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();

@@ -12,6 +12,10 @@ abstract class Hydratable<T> {
 class HydrationEngine {
   final Map<String, StreamController<HydratedState<dynamic>>> _controllers = {};
   final Map<String, HydratedState<dynamic>> _lastStates = {};
+  
+  void updateLastState(String key, HydratedState<dynamic> state) {
+    _lastStates[key] = state;
+  }
 
   Stream<HydratedState<T>> hydrate<T>(
     Hydratable<T> target, {
@@ -22,7 +26,15 @@ class HydrationEngine {
 
     if (force) {
       _controllers.remove(key);
-      _lastStates.remove(key);
+      // 🛡️ SWR Protection: Preserve last state but mark as hydrating for the replay
+      final lastState = _lastStates[key];
+      if (lastState != null) {
+        _lastStates[key] = lastState.copyWith(
+          isHydrating: true,
+          source: HydrationSource.stale,
+          lastModifiedAt: DateTime.now(),
+        );
+      }
     }
 
     StreamController<HydratedState<T>>? controller;
@@ -32,8 +44,10 @@ class HydrationEngine {
     } else {
       controller = StreamController<HydratedState<T>>.broadcast();
       _controllers[key] = controller;
-      // Start sequence but don't await here
-      _runHydrationSequence(target, controller, initialData);
+      
+      // 🛡️ SWR Protection: Pass the last data as initialData to the sequence
+      final lastData = (_lastStates[key]?.data as T?) ?? initialData;
+      _runHydrationSequence(target, controller, lastData);
     }
 
     // 🛡️ REPLAY FIX: Always yield the last known state first if it exists

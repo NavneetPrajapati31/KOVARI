@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -152,10 +153,16 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       };
 
       final groupService = ref.read(groupServiceProvider);
-      await groupService.createGroup(payload);
+      final newGroup = await groupService.createGroup(payload);
 
-      // Refresh groups list
-      ref.invalidate(myGroupsProvider);
+      // 🚀 Optimistic injection: Add the new group to the list immediately
+      ref.read(myGroupsStoreProvider.notifier).patch((groups) {
+        if (groups.any((g) => g.id == newGroup.id)) return groups;
+        return [newGroup, ...groups];
+      });
+
+      // Refresh to ensure server sync (SWR will maintain our optimistic list)
+      await ref.read(myGroupsStoreProvider.notifier).refresh();
 
       if (mounted) {
         KovariSnackbar.success(context, 'Group created successfully!');
@@ -200,7 +207,12 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                 label: "Group name",
                 controller: _nameController,
                 hintText: "Enter group name",
-                validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return "Required";
+                  if (v.trim().length < 3)
+                    return "Name must be at least 3 characters";
+                  return null;
+                },
               ),
               const SizedBox(height: AppSpacing.md),
 

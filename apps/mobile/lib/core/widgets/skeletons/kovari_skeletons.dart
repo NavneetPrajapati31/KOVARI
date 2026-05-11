@@ -710,3 +710,114 @@ class KovariSkeletonItineraryBoard extends StatelessWidget {
     );
   }
 }
+
+class KovariSkeletonGroupOverview extends StatelessWidget {
+  const KovariSkeletonGroupOverview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppCard(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const AspectRatio(
+                  aspectRatio: 16 / 10,
+                  child: Skeleton(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Skeleton(width: 150, height: 16),
+                      SizedBox(height: 8),
+                      Skeleton(width: double.infinity, height: 14),
+                      SizedBox(height: 6),
+                      Skeleton(width: 200, height: 14),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Divider(color: AppColors.borderColor(context)),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Skeleton(width: 120, height: 14),
+                      SizedBox(height: 8),
+                      Skeleton(width: 140, height: 12),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Divider(color: AppColors.borderColor(context)),
+                const SizedBox(height: 16),
+                _buildMembersLoading(context),
+                const SizedBox(height: 16),
+                Divider(color: AppColors.borderColor(context)),
+                const SizedBox(height: 16),
+                // Itinerary Card placeholder
+                const Skeleton(width: double.infinity, height: 110),
+                const SizedBox(height: 16),
+                // Destination Image placeholder
+                const Skeleton(width: double.infinity, height: 110),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMembersLoading(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Skeleton(width: 100, height: 14),
+          const SizedBox(height: 16),
+          Column(
+            children: List.generate(
+              3,
+              (index) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    const Skeleton.circle(size: 40),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Skeleton(width: 100, height: 12),
+                          SizedBox(height: 6),
+                          Skeleton(width: 60, height: 11),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

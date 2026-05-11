@@ -86,13 +86,77 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
     HapticService.trigger(widget.hapticType);
   }
 
-  Future<void> _handleTapUp(TapUpDetails details) async {
+  void _handleTapCancel() {
+    if (widget.isDisabled || widget.isLoading || widget.onPressed == null) {
+      return;
+    }
+    _controller.reverse();
+    setState(() => _isTapped = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        Widget current = child!;
+
+        if (widget.enableScale && !widget.isLoading) {
+          current = ScaleTransition(scale: _scaleAnimation, child: current);
+        }
+
+        if (widget.enableOpacity) {
+          current = AnimatedOpacity(
+            duration: InteractionConfig.fast,
+            opacity: (_isTapped || widget.isLoading) ? 0.8 : 1.0,
+            child: current,
+          );
+        }
+
+        return Opacity(
+          opacity: widget.isDisabled ? 0.5 : 1.0,
+          child: Stack(
+            children: [
+              current,
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      color: _isTapped
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      borderRadius: widget.borderRadius,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: GestureDetector(
+                  onTapDown: _handleTapDown,
+                  onTap: _handleInkWellTap,
+                  onTapCancel: _handleTapCancel,
+                  behavior: HitTestBehavior.opaque,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      child: RepaintBoundary(child: widget.child),
+    );
+  }
+
+  Future<void> _handleInkWellTap() async {
     if (widget.isDisabled ||
         widget.isLoading ||
         widget.onPressed == null ||
         _isDebouncing) {
       return;
     }
+
+    // Deliberate delay to allow the InkRipple to "bloom" fully and provide high-fidelity feedback
+    await Future.delayed(const Duration(milliseconds: 120));
 
     _controller.reverse();
     setState(() {
@@ -109,47 +173,5 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
         });
       }
     }
-  }
-
-  void _handleTapCancel() {
-    if (widget.isDisabled || widget.isLoading || widget.onPressed == null) {
-      return;
-    }
-    _controller.reverse();
-    setState(() => _isTapped = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          Widget current = child!;
-
-          if (widget.enableScale && !widget.isLoading) {
-            current = ScaleTransition(scale: _scaleAnimation, child: current);
-          }
-
-          if (widget.enableOpacity) {
-            current = AnimatedOpacity(
-              duration: InteractionConfig.fast,
-              opacity: (_isTapped || widget.isLoading) ? 0.8 : 1.0,
-              child: current,
-            );
-          }
-
-          return Opacity(
-            opacity: widget.isDisabled ? 0.5 : 1.0,
-            child: current,
-          );
-        },
-        child: RepaintBoundary(child: widget.child),
-      ),
-    );
   }
 }
