@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
-import '../../../../features/requests/providers/request_provider.dart';
-import '../../../../features/requests/models/request_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/requests/models/request_model.dart';
+import 'package:mobile/features/requests/providers/request_provider.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 // MockRequest removed to use InterestModel directly
 
 class RequestsSection extends ConsumerWidget {
-  final bool isLoading;
 
   const RequestsSection({super.key, this.isLoading = false});
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,7 +26,7 @@ class RequestsSection extends ConsumerWidget {
         (interestsAsync.isLoading && !interestsAsync.hasValue) ||
         (isLoading && !hasData);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         border: Border.all(color: AppColors.borderColor(context)),
@@ -40,7 +40,7 @@ class RequestsSection extends ConsumerWidget {
           children: [
             // Header
             InkWell(
-              onTap: () => const RequestsRouteData().push(context),
+              onTap: () => const RequestsRouteData().push<void>(context),
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
@@ -131,8 +131,7 @@ class RequestsSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildSkeleton(BuildContext context) {
-    return Column(
+  Widget _buildSkeleton(BuildContext context) => Column(
       children: List.generate(
         4,
         (i) => Column(
@@ -144,10 +143,8 @@ class RequestsSection extends ConsumerWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Padding(
+  Widget _buildEmptyState(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
         child: Column(
@@ -170,13 +167,12 @@ class RequestsSection extends ConsumerWidget {
         ),
       ),
     );
-  }
 }
 
 class _RequestCard extends ConsumerStatefulWidget {
-  final InterestModel interest;
 
   const _RequestCard({required this.interest});
+  final InterestModel interest;
 
   @override
   ConsumerState<_RequestCard> createState() => _RequestCardState();
@@ -302,8 +298,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     required Color textColor,
     required VoidCallback onTap,
     bool isLoading = false,
-  }) {
-    return GestureDetector(
+  }) => GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
         height: 28,
@@ -335,14 +330,12 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
               ),
       ),
     );
-  }
 
   Widget _buildSimpleIconButton({
     required IconData icon,
     required VoidCallback onTap,
     bool isLoading = false,
-  }) {
-    return GestureDetector(
+  }) => GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
         padding: const EdgeInsets.all(6),
@@ -369,5 +362,4 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
               ),
       ),
     );
-  }
 }

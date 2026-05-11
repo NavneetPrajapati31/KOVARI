@@ -1,46 +1,18 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/features/explore/models/explore_state.dart';
 import 'package:mobile/features/explore/models/match_user.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../shared/models/kovari_user.dart';
-import '../models/explore_state.dart';
-import '../services/explore_service.dart';
-import '../services/match_service.dart';
-import '../../../core/providers/cache_provider.dart';
-import '../../../core/utils/app_logger.dart';
-import '../../../core/utils/safe_parser.dart';
-import '../../groups/models/group.dart';
+import 'package:mobile/features/explore/services/explore_service.dart';
+import 'package:mobile/features/explore/services/match_service.dart';
+import 'package:mobile/shared/models/kovari_user.dart';
 
 class ExploreNotifier extends Notifier<ExploreState> {
   @override
-  ExploreState build() {
-    return ExploreState.initial();
-  }
+  ExploreState build() => ExploreState.initial();
 
-  Future<void> _loadFromCache() async {
-    final cache = ref.read(localCacheProvider);
-    final key = 'matches_${state.searchData.travelMode.name}_${state.searchData.destination}';
-    final cachedMatches = cache.getEntities(key);
 
-    if (cachedMatches != null && state.matches.isEmpty) {
-      final List<dynamic> parsedMatches;
-      if (state.searchData.travelMode == TravelMode.solo) {
-        parsedMatches = safeParseList<MatchUser>(
-          cachedMatches,
-          MatchUser.fromJson,
-        );
-      } else {
-        parsedMatches = safeParseList<GroupModel>(
-          cachedMatches,
-          GroupModel.fromJson,
-        );
-      }
-
-      state = state.copyWith(matches: parsedMatches, hasSearched: true);
-      AppLogger.d(
-        '🚀 [BOOT] Matches loaded from cache instantly for ${state.searchData.destination}',
-      );
-    }
-  }
 
   ExploreService get _service => ref.read(exploreServiceProvider);
   MatchService get _matchService => ref.read(matchServiceProvider);
@@ -91,7 +63,6 @@ class ExploreNotifier extends Notifier<ExploreState> {
     } else if (!isSilent) {
       state = state.copyWith(
         isLoading: true,
-        error: null,
         matches: [],
         currentIndex: 0,
         page: 1,
@@ -100,9 +71,9 @@ class ExploreNotifier extends Notifier<ExploreState> {
     }
 
     try {
-      List<dynamic> matches = List.from(state.matches);
-      bool newHasMore = state.hasMore;
-      int newPage = state.page;
+      var matches = List<dynamic>.from(state.matches);
+      var newHasMore = state.hasMore;
+      var newPage = state.page;
 
       if (state.searchData.travelMode == TravelMode.solo) {
         if (!isLoadMore) {
@@ -115,7 +86,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
           filters: state.filters,
         );
 
-        final fetchedMatches = result.matches.toList();
+        final List<MatchUser> fetchedMatches = result.matches.cast<MatchUser>();
         fetchedMatches.sort((a, b) => (b.score ?? 0).compareTo(a.score ?? 0));
 
         if (isLoadMore) {
@@ -146,9 +117,11 @@ class ExploreNotifier extends Notifier<ExploreState> {
       // Persist to cache
       if (!isLoadMore) {
         final cache = ref.read(localCacheProvider);
-        cache.setEntities(
-          'matches_${state.searchData.travelMode.name}_${state.searchData.destination}',
-          matches,
+        unawaited(
+          cache.setEntities(
+            'matches_${state.searchData.travelMode.name}_${state.searchData.destination}',
+            matches,
+          ),
         );
       }
     } catch (e) {
@@ -229,6 +202,4 @@ class ExploreNotifier extends Notifier<ExploreState> {
   }
 }
 
-final exploreProvider = NotifierProvider<ExploreNotifier, ExploreState>(() {
-  return ExploreNotifier();
-});
+final exploreProvider = NotifierProvider<ExploreNotifier, ExploreState>(ExploreNotifier.new);

@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../runtime/runtime_coordinator.dart';
+import 'package:mobile/core/runtime/runtime_coordinator.dart';
 
 class RuntimeObservabilityOverlay extends ConsumerStatefulWidget {
-  final Widget child;
   const RuntimeObservabilityOverlay({super.key, required this.child});
+  final Widget child;
 
   @override
   ConsumerState<RuntimeObservabilityOverlay> createState() =>
@@ -35,8 +35,7 @@ class _RuntimeObservabilityOverlayState
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Stack(
+  Widget build(BuildContext context) => Stack(
       children: [
         widget.child,
         // 🎯 Diagnostic Hotzone (Invisible 80x80 area in top-right)
@@ -57,7 +56,6 @@ class _RuntimeObservabilityOverlayState
           Positioned(top: 100, right: 16, child: _buildMetricPanel(context)),
       ],
     );
-  }
 
   Widget _buildMetricPanel(BuildContext context) {
     final scheduler = ref.watch(runtimeSchedulerProvider);
@@ -83,8 +81,7 @@ class _RuntimeObservabilityOverlayState
     );
   }
 
-  Widget _metricRow(String label, String value, {Color? color}) {
-    return Padding(
+  Widget _metricRow(String label, String value, {Color? color}) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -108,5 +105,4 @@ class _RuntimeObservabilityOverlayState
         ],
       ),
     );
-  }
 }

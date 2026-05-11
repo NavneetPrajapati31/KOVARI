@@ -1,9 +1,4 @@
 class UserConnection {
-  final String id;
-  final String name;
-  final String username;
-  final String? avatar;
-  final bool isFollowing;
 
   UserConnection({
     required this.id,
@@ -13,15 +8,18 @@ class UserConnection {
     this.isFollowing = false,
   });
 
-  factory UserConnection.fromJson(Map<String, dynamic> json) {
-    return UserConnection(
-      id: json['id']?.toString() ?? '',
-      name: json['name'] ?? '',
-      username: json['username'] ?? '',
-      avatar: json['avatar'] ?? '',
-      isFollowing: json['isFollowing'] ?? false,
+  factory UserConnection.fromJson(Map<String, dynamic> json) => UserConnection(
+      id: (json['id'] as String?) ?? (json['_id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      username: (json['username'] as String?) ?? '',
+      avatar: (json['avatar'] as String?) ?? '',
+      isFollowing: (json['isFollowing'] as bool?) ?? (json['is_following'] as bool?) ?? false,
     );
-  }
+  final String id;
+  final String name;
+  final String username;
+  final String? avatar;
+  final bool isFollowing;
 
   UserConnection copyWith({
     String? id,
@@ -29,13 +27,11 @@ class UserConnection {
     String? username,
     String? avatar,
     bool? isFollowing,
-  }) {
-    return UserConnection(
+  }) => UserConnection(
       id: id ?? this.id,
       name: name ?? this.name,
       username: username ?? this.username,
       avatar: avatar ?? this.avatar,
       isFollowing: isFollowing ?? this.isFollowing,
     );
-  }
 }

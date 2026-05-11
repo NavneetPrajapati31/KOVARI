@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/scheduler.dart';
-import 'runtime_metrics_service.dart';
+import 'package:mobile/core/telemetry/runtime_metrics_service.dart';
 
 class FreezeMonitor {
   static const int _freezeThresholdMs = 700;

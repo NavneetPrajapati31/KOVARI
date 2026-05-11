@@ -1,21 +1,21 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/explore/models/explore_state.dart';
 import 'package:mobile/features/explore/models/match_user.dart';
+import 'package:mobile/features/explore/providers/explore_provider.dart';
+import 'package:mobile/features/explore/widgets/explore_filters_sheet.dart';
+import 'package:mobile/features/explore/widgets/group_match_card.dart';
+import 'package:mobile/features/explore/widgets/solo_match_card.dart';
 import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/shared/utils/scroll_preloader.dart';
 import 'package:mobile/shared/widgets/app_card.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../providers/explore_provider.dart';
-import '../models/explore_state.dart';
-import '../widgets/explore_filters_sheet.dart';
-import '../widgets/solo_match_card.dart';
-import '../widgets/group_match_card.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../shared/widgets/kovari_empty_state.dart';
-import '../../../shared/widgets/interactive_wrapper.dart';
-import '../../../shared/utils/scroll_preloader.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../core/services/haptic_service.dart';
+import 'package:mobile/shared/widgets/interactive_wrapper.dart';
+import 'package:mobile/shared/widgets/kovari_empty_state.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -70,7 +70,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   }
 
   void _showFilters() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -87,13 +87,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
     ref.listen(exploreProvider, (previous, next) {
       if (previous?.currentIndex != next.currentIndex) {
-        for (int i = 1; i <= 3; i++) {
+        for (var i = 1; i <= 3; i++) {
           final index = next.currentIndex + i;
           if (index < next.matches.length) {
             final match = next.matches[index];
-            final imageUrl = next.searchData.travelMode == TravelMode.solo
-                ? (match as dynamic).avatar
-                : (match as dynamic).coverImage;
+            final String? imageUrl =
+                next.searchData.travelMode == TravelMode.solo
+                ? (match is MatchUser ? match.image : null)
+                : (match is GroupModel ? match.coverImage : null);
+
             if (imageUrl != null && imageUrl.isNotEmpty) {
               precacheImage(CachedNetworkImageProvider(imageUrl), context);
             }
@@ -124,7 +126,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 top: BorderSide(color: AppColors.borderColor(context)),
                 left: BorderSide(color: AppColors.borderColor(context)),
                 right: BorderSide(color: AppColors.borderColor(context)),
-                bottom: BorderSide.none,
               ),
               boxShadow: const [],
               child: _buildBody(state),
@@ -135,67 +136,65 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     );
   }
 
-  Widget _buildHeader(ExploreState state) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: AppCard(
-              height: 44,
-              padding: EdgeInsets.zero,
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: const [],
-              child: TabBar(
-                controller: _tabController,
-                onTap: (index) => HapticService.selection(),
-                overlayColor: WidgetStateProperty.all(Colors.transparent),
-                splashFactory: NoSplash.splashFactory,
-                indicator: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: Colors.transparent, width: 0),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.text(context, isMuted: true),
-                labelStyle: AppTextStyles.bodySmall.copyWith(
+  Widget _buildHeader(ExploreState state) => Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Row(
+      children: [
+        Expanded(
+          child: AppCard(
+            height: 44,
+            padding: EdgeInsets.zero,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: const [],
+            child: TabBar(
+              controller: _tabController,
+              onTap: (index) => HapticService.selection(),
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
+              splashFactory: NoSplash.splashFactory,
+              indicator: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.transparent, width: 0),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.text(context, isMuted: true),
+              labelStyle: AppTextStyles.bodySmall.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedLabelStyle: AppTextStyles.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(text: 'Solo'),
+                Tab(text: 'Groups'),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        InteractiveWrapper(
+          onPressed: _showFilters,
+          child: AppCard(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: const [],
+            child: Center(
+              child: Text(
+                'Filters',
+                style: AppTextStyles.bodySmall.copyWith(
                   fontWeight: FontWeight.bold,
-                ),
-                unselectedLabelStyle: AppTextStyles.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'Solo'),
-                  Tab(text: 'Groups'),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          InteractiveWrapper(
-            onPressed: _showFilters,
-            child: AppCard(
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: const [],
-              child: Center(
-                child: Text(
-                  'Filters',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text(context, isMuted: true),
-                  ),
+                  color: AppColors.text(context, isMuted: true),
                 ),
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 
   Widget _buildBody(ExploreState state) {
     if (state.isLoading && state.matches.isEmpty) {

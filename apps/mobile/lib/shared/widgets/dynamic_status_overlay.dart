@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/providers/auth_provider.dart';
-import '../../core/providers/connectivity_provider.dart';
-import '../../core/auth/session_manager.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../core/providers/status_overlay_provider.dart';
-import '../../core/providers/nav_provider.dart';
+import 'package:mobile/core/auth/session_manager.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/providers/nav_provider.dart';
+import 'package:mobile/core/providers/status_overlay_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
 
 class DynamicStatusOverlay extends ConsumerStatefulWidget {
   const DynamicStatusOverlay({super.key});
@@ -63,7 +64,7 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
     }
 
     // Prepare system statuses
-    final List<StatusMessage> systemStatuses = [];
+    final systemStatuses = <StatusMessage>[];
     if (!connectivity.isOnline) {
       systemStatuses.add(
         StatusMessage(
@@ -101,8 +102,8 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
         mainAxisSize: MainAxisSize.min,
         verticalDirection: VerticalDirection.up,
         children: allItems.map((status) {
-          final bool isManual = _displayList.contains(status);
-          final bool isStillActive = isManual
+          final isManual = _displayList.contains(status);
+          final isStillActive = isManual
               ? statusMessages.any((m) => m.timestamp == status.timestamp)
               : true;
 
@@ -199,12 +200,6 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
 }
 
 class _StatusPillContent extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color accentColor;
-  final bool isSpinning;
-  final VoidCallback? onAction;
-  final String? actionLabel;
 
   const _StatusPillContent({
     super.key,
@@ -215,10 +210,15 @@ class _StatusPillContent extends StatelessWidget {
     this.onAction,
     this.actionLabel,
   });
+  final IconData icon;
+  final String label;
+  final Color accentColor;
+  final bool isSpinning;
+  final VoidCallback? onAction;
+  final String? actionLabel;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
+  Widget build(BuildContext context) => GestureDetector(
       onTap: onAction,
       behavior: HitTestBehavior.opaque,
       child: Row(
@@ -268,7 +268,6 @@ class _StatusPillContent extends StatelessWidget {
         ],
       ),
     );
-  }
 
   Widget _buildIcon(BuildContext context) {
     if (isSpinning) {
@@ -289,14 +288,14 @@ class _StatusPillContent extends StatelessWidget {
 }
 
 class _SwipeToDismiss extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onDismissed;
 
   const _SwipeToDismiss({
     super.key,
     required this.child,
     required this.onDismissed,
   });
+  final Widget child;
+  final VoidCallback onDismissed;
 
   @override
   State<_SwipeToDismiss> createState() => _SwipeToDismissState();

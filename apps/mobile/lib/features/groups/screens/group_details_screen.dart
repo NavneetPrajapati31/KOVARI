@@ -2,29 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/secondary_button.dart';
-import '../models/group.dart';
-import '../widgets/group_tab_bar.dart';
-import '../widgets/tabs/overview_tab.dart';
-import '../widgets/tabs/chats_tab.dart';
-import '../widgets/tabs/itinerary_tab.dart';
-import '../widgets/tabs/settings_tab.dart';
-import '../../../shared/widgets/app_card.dart';
-import '../providers/entity_stores.dart';
-import '../providers/group_details_provider.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../shared/widgets/kovari_refresh_indicator.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
+import 'package:mobile/features/groups/providers/group_details_provider.dart';
+import 'package:mobile/features/groups/widgets/group_tab_bar.dart';
+import 'package:mobile/features/groups/widgets/tabs/chats_tab.dart';
+import 'package:mobile/features/groups/widgets/tabs/itinerary_tab.dart';
+import 'package:mobile/features/groups/widgets/tabs/overview_tab.dart';
+import 'package:mobile/features/groups/widgets/tabs/settings_tab.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
 
 class GroupDetailsScreen extends ConsumerStatefulWidget {
-  final String groupId;
 
   GroupDetailsScreen({super.key, required this.groupId}) {
     debugPrint('🚀 [GroupDetailsScreen] Constructor called for ID: $groupId');
   }
+  final String groupId;
 
   @override
   ConsumerState<GroupDetailsScreen> createState() => _GroupDetailsScreenState();
@@ -134,7 +134,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                         setState(() => _isEditingNotes = !_isEditingNotes),
                     onTabChange: (index) =>
                         setState(() => _activeTabIndex = index),
-                    onViewAllMembers: (members) => _showMembersModal(members),
+                    onViewAllMembers: _showMembersModal,
                   ),
                   ChatsTab(group: group),
                   ItineraryTab(group: group),
@@ -173,8 +173,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     ]);
   }
 
-  Widget _buildSkeletonState() {
-    return Scaffold(
+  Widget _buildSkeletonState() => Scaffold(
       backgroundColor: AppColors.backgroundColor(context),
       body: Column(
         children: [
@@ -183,10 +182,8 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildSkeletonHeader(BuildContext context) {
-    return Container(
+  Widget _buildSkeletonHeader(BuildContext context) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: Row(
         children: [
@@ -196,10 +193,8 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildPartialState(GroupModel group) {
-    return Scaffold(
+  Widget _buildPartialState(GroupModel group) => Scaffold(
       backgroundColor: AppColors.backgroundColor(context),
       body: Column(
         children: [
@@ -211,10 +206,8 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildHeader(GroupModel group) {
-    return RepaintBoundary(
+  Widget _buildHeader(GroupModel group) => RepaintBoundary(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Row(
@@ -235,20 +228,16 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildBackButton(BuildContext context) {
-    return IconButton(
+  Widget _buildBackButton(BuildContext context) => IconButton(
       icon: const Icon(LucideIcons.arrowLeft, size: 20),
       onPressed: () => context.pop(),
       color: AppColors.text(context),
       splashRadius: 24,
       tooltip: 'Back',
     );
-  }
 
-  Widget _buildPendingState(BuildContext context) {
-    return Scaffold(
+  Widget _buildPendingState(BuildContext context) => Scaffold(
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: Center(
         child: Padding(
@@ -263,7 +252,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Group Under Review",
+                'Group Under Review',
                 style: AppTextStyles.h2.copyWith(
                   color: AppColors.text(context),
                 ),
@@ -271,7 +260,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                "This group is currently pending admin approval and is not available for viewing or interaction.",
+                'This group is currently pending admin approval and is not available for viewing or interaction.',
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.mutedForeground,
                 ),
@@ -279,7 +268,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               ),
               const SizedBox(height: 32),
               PrimaryButton(
-                text: "Back to Groups",
+                text: 'Back to Groups',
                 onPressed: () => context.pop(),
               ),
             ],
@@ -287,10 +276,8 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildJoinState(MembershipInfo membership) {
-    return Scaffold(
+  Widget _buildJoinState(MembershipInfo membership) => Scaffold(
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: Center(
         child: Padding(
@@ -301,13 +288,13 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               const Icon(LucideIcons.users, size: 64, color: AppColors.muted),
               const SizedBox(height: 24),
               Text(
-                "Join the group",
+                'Join the group',
                 style: AppTextStyles.h2,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               Text(
-                "You need to be a member of this group to access its itinerary and notes.",
+                'You need to be a member of this group to access its itinerary and notes.',
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.mutedForeground,
                 ),
@@ -316,8 +303,8 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               const SizedBox(height: 32),
               PrimaryButton(
                 text: membership.hasPendingRequest
-                    ? "Request Pending"
-                    : "Request to Join Group",
+                    ? 'Request Pending'
+                    : 'Request to Join Group',
                 onPressed: membership.hasPendingRequest
                     ? null
                     : () {
@@ -328,7 +315,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               ),
               const SizedBox(height: 12),
               SecondaryButton(
-                text: "Back to Groups",
+                text: 'Back to Groups',
                 onPressed: () => context.pop(),
               ),
             ],
@@ -336,10 +323,9 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
         ),
       ),
     );
-  }
 
   void _showMembersModal(List<GroupMember> members) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -364,7 +350,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            Text("Group Members (${members.length})", style: AppTextStyles.h3),
+            Text('Group Members (${members.length})', style: AppTextStyles.h3),
             const SizedBox(height: 24),
             Expanded(
               child: () {
@@ -396,7 +382,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                                   ),
                                 ),
                                 Text(
-                                  "@${member.username}",
+                                  '@${member.username}',
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: AppColors.mutedForeground,
                                   ),
@@ -415,7 +401,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Text(
-                                "Admin",
+                                'Admin',
                                 style: TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 10,

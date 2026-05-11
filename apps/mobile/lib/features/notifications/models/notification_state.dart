@@ -1,13 +1,6 @@
-import '../models/notification_model.dart';
+import 'package:mobile/features/notifications/models/notification_model.dart';
 
 class NotificationState {
-  final List<NotificationModel> notifications;
-  final bool isLoading;
-  final bool isStale;
-  final String? error;
-  final int page;
-  final bool hasMore;
-  final bool isFetchingNextPage;
 
   NotificationState({
     this.notifications = const [],
@@ -18,6 +11,13 @@ class NotificationState {
     this.hasMore = true,
     this.isFetchingNextPage = false,
   });
+  final List<NotificationModel> notifications;
+  final bool isLoading;
+  final bool isStale;
+  final String? error;
+  final int page;
+  final bool hasMore;
+  final bool isFetchingNextPage;
 
   NotificationState copyWith({
     List<NotificationModel>? notifications,
@@ -27,8 +27,7 @@ class NotificationState {
     int? page,
     bool? hasMore,
     bool? isFetchingNextPage,
-  }) {
-    return NotificationState(
+  }) => NotificationState(
       notifications: notifications ?? this.notifications,
       isLoading: isLoading ?? this.isLoading,
       isStale: isStale ?? this.isStale,
@@ -37,5 +36,4 @@ class NotificationState {
       hasMore: hasMore ?? this.hasMore,
       isFetchingNextPage: isFetchingNextPage ?? this.isFetchingNextPage,
     );
-  }
 }

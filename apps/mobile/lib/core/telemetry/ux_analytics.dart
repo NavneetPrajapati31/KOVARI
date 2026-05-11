@@ -1,12 +1,12 @@
-import 'telemetry_service.dart';
-import 'telemetry_priority.dart';
-import 'event_schema_registry.dart';
+import 'package:mobile/core/telemetry/event_schema_registry.dart';
+import 'package:mobile/core/telemetry/telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
 import 'package:uuid/uuid.dart';
 
 class UXAnalytics {
-  static final UXAnalytics _instance = UXAnalytics._internal();
   factory UXAnalytics() => _instance;
   UXAnalytics._internal();
+  static final UXAnalytics _instance = UXAnalytics._internal();
 
   String? _currentJourneyId;
 

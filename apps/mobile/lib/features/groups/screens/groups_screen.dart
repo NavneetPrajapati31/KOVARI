@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/core/navigation/routes.dart';
-import 'package:mobile/core/utils/custom_route_transition.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/models/hydrated_state.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
+import 'package:mobile/features/groups/widgets/group_card.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
 import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
-import '../providers/entity_stores.dart';
-import '../models/hydrated_state.dart';
-import '../models/group.dart';
-import '../widgets/group_card.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../shared/widgets/app_card.dart';
 
 class GroupsScreen extends ConsumerWidget {
   const GroupsScreen({super.key});
@@ -36,7 +34,7 @@ class GroupsScreen extends ConsumerWidget {
             children: [
               _buildTabButton(
                 context,
-                "My Groups",
+                'My Groups',
                 true,
                 onTap: () {
                   debugPrint('💎 [GroupsScreen] Already on My Groups tab');
@@ -45,11 +43,11 @@ class GroupsScreen extends ConsumerWidget {
               const SizedBox(width: 8),
               _buildTabButton(
                 context,
-                "New group",
+                'New group',
                 false,
                 onTap: () {
                   debugPrint('🚀 [GroupsScreen] Navigating to Create Group...');
-                  const CreateGroupRouteData().push(context);
+                  const CreateGroupRouteData().push<void>(context);
                 },
               ),
             ],
@@ -152,14 +150,14 @@ class GroupsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                "No groups yet",
+                'No groups yet',
                 style: AppTextStyles.h3.copyWith(
                   color: AppColors.text(context),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                "Create or join a group to start planning.",
+                'Create or join a group to start planning.',
                 style: TextStyle(color: AppColors.text(context, isMuted: true)),
               ),
             ],
@@ -187,7 +185,7 @@ class GroupsScreen extends ConsumerWidget {
                           group: groups[i],
                           onAction: () => GroupDetailsRouteData(
                             groupId: groups[i].id,
-                          ).push(context),
+                          ).push<void>(context),
                         ),
                       ),
                       if (i < groups.length - 1)
@@ -211,8 +209,7 @@ class GroupsScreen extends ConsumerWidget {
     String label,
     bool isSelected, {
     VoidCallback? onTap,
-  }) {
-    return InkWell(
+  }) => InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -222,7 +219,7 @@ class GroupsScreen extends ConsumerWidget {
               ? AppColors.primary.withValues(alpha: 0.1)
               : AppColors.surface(context, level: 1),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.borderColor(context), width: 1),
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
         child: Text(
           label,
@@ -236,5 +233,4 @@ class GroupsScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
 }

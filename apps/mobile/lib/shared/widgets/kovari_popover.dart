@@ -1,15 +1,9 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/motion_tokens.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/motion_tokens.dart';
 
 class KovariMenuAction {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool isDestructive;
-  final double? labelFontSize;
-  final double? iconSize;
 
   const KovariMenuAction({
     required this.icon,
@@ -19,13 +13,15 @@ class KovariMenuAction {
     this.labelFontSize,
     this.iconSize,
   });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+  final double? labelFontSize;
+  final double? iconSize;
 }
 
 class KovariPopover extends StatefulWidget {
-  final Widget child;
-  final List<KovariMenuAction> items;
-  final Offset offset;
-  final double width;
 
   const KovariPopover({
     super.key,
@@ -34,6 +30,10 @@ class KovariPopover extends StatefulWidget {
     this.offset = const Offset(-154, 40),
     this.width = 170,
   });
+  final Widget child;
+  final List<KovariMenuAction> items;
+  final Offset offset;
+  final double width;
 
   @override
   State<KovariPopover> createState() => _KovariPopoverState();
@@ -63,8 +63,7 @@ class _KovariPopoverState extends State<KovariPopover> {
     if (mounted) setState(() {});
   }
 
-  OverlayEntry _createOverlayEntry() {
-    return OverlayEntry(
+  OverlayEntry _createOverlayEntry() => OverlayEntry(
       builder: (context) => Stack(
         children: [
           Positioned.fill(
@@ -86,27 +85,24 @@ class _KovariPopoverState extends State<KovariPopover> {
                   tween: Tween(begin: 0.0, end: 1.0),
                   duration: MotionTokens.slow,
                   curve: MotionTokens.spring,
-                  builder: (context, value, child) {
-                    return Opacity(
+                  builder: (context, value, child) => Opacity(
                       opacity: value.clamp(0.0, 1.0),
                       child: Transform.scale(
                         scale: 0.8 + (0.2 * value),
                         alignment: Alignment.topRight,
                         child: child,
                       ),
-                    );
-                  },
+                    ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Container(
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: Colors.transparent,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: AppColors.borderColor(context),
-                            width: 1,
                           ),
                         ),
                         child: Column(
@@ -139,7 +135,6 @@ class _KovariPopoverState extends State<KovariPopover> {
         ],
       ),
     );
-  }
 
   Widget _buildMenuItem(KovariMenuAction action) {
     final color = action.isDestructive
@@ -181,10 +176,8 @@ class _KovariPopoverState extends State<KovariPopover> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return CompositedTransformTarget(
+  Widget build(BuildContext context) => CompositedTransformTarget(
       link: _layerLink,
       child: GestureDetector(onTap: _toggleMenu, child: widget.child),
     );
-  }
 }

@@ -1,27 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/navigation/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/providers/profile_provider.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/app_card.dart';
-import '../models/user_profile.dart';
-import '../../app_shell/providers/app_shell_provider.dart';
-import 'connections_screen.dart';
-import 'edit_profile_screen.dart';
-import 'settings_screen.dart';
-import 'safety_screen.dart';
-
-import '../../../shared/widgets/kovari_refresh_indicator.dart';
-import '../../../shared/widgets/kovari_image_modal.dart';
-import '../../../shared/widgets/kovari_popover.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/app_shell/providers/app_shell_provider.dart';
+import 'package:mobile/features/profile/models/user_profile.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_image_modal.dart';
+import 'package:mobile/shared/widgets/kovari_popover.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -80,7 +74,6 @@ class ProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: () {
@@ -121,12 +114,12 @@ class ProfileScreen extends ConsumerWidget {
                             KovariMenuAction(
                               icon: LucideIcons.settings,
                               label: 'Settings',
-                              onTap: () => const SettingsRouteData().push(context),
+                              onTap: () => const SettingsRouteData().push<void>(context),
                             ),
                             KovariMenuAction(
                               icon: LucideIcons.shieldCheck,
                               label: 'Safety',
-                              onTap: () => const SafetyRouteData().push(context),
+                              onTap: () => const SafetyRouteData().push<void>(context),
                             ),
                             KovariMenuAction(
                               icon: LucideIcons.logOut,
@@ -162,7 +155,7 @@ class ProfileScreen extends ConsumerWidget {
                             userId: profile.userId,
                             username: profile.username,
                             initialTab: 'followers',
-                          ).push(context),
+                          ).push<void>(context),
                         ),
                         const SizedBox(width: 16),
                         _buildStatItem(
@@ -173,7 +166,7 @@ class ProfileScreen extends ConsumerWidget {
                             userId: profile.userId,
                             username: profile.username,
                             initialTab: 'following',
-                          ).push(context),
+                          ).push<void>(context),
                         ),
                       ],
                     ),
@@ -197,10 +190,9 @@ class ProfileScreen extends ConsumerWidget {
                 child: _buildActionButton(
                   context,
                   'Edit Profile',
-                  onPressed: () => const EditProfileRouteData().push(context),
+                  onPressed: () => const EditProfileRouteData().push<void>(context),
                   backgroundColor: AppColors.primary,
                   textColor: Colors.white,
-                  border: false,
                 ),
               ),
               const SizedBox(width: 8),
@@ -230,8 +222,7 @@ class ProfileScreen extends ConsumerWidget {
     String count,
     String label, {
     VoidCallback? onTap,
-  }) {
-    return GestureDetector(
+  }) => GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Row(
@@ -256,7 +247,6 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
 
   Widget _buildActionButton(
     BuildContext context,
@@ -265,8 +255,7 @@ class ProfileScreen extends ConsumerWidget {
     required Color backgroundColor,
     required Color textColor,
     bool border = false,
-  }) {
-    return SizedBox(
+  }) => SizedBox(
       height: 32, // Controlled height for "sm" button
       child: TextButton(
         onPressed: onPressed,
@@ -275,7 +264,7 @@ class ProfileScreen extends ConsumerWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: border
-                ? BorderSide(color: AppColors.borderColor(context), width: 1)
+                ? BorderSide(color: AppColors.borderColor(context))
                 : BorderSide.none,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -290,10 +279,8 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildContentCard(BuildContext context, UserProfile profile) {
-    return AppCard(
+  Widget _buildContentCard(BuildContext context, UserProfile profile) => AppCard(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -302,9 +289,9 @@ class ProfileScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          const SizedBox(
             width: 50,
-            child: const Text(
+            child: Text(
               'About',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -413,10 +400,8 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildInfoItem(BuildContext context, String label, String value) {
-    return Column(
+  Widget _buildInfoItem(BuildContext context, String label, String value) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -439,17 +424,14 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ],
     );
-  }
 
-  Widget _buildInfoRow(Widget item1, Widget item2) {
-    return Row(
+  Widget _buildInfoRow(Widget item1, Widget item2) => Row(
       children: [
         Expanded(child: item1),
         const SizedBox(width: 16),
         Expanded(child: item2),
       ],
     );
-  }
 
   Widget _buildChipsSection(
     BuildContext context,
@@ -473,8 +455,7 @@ class ProfileScreen extends ConsumerWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: items.map((item) {
-            return Container(
+          children: items.map((item) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.mutedDark : AppColors.muted,
@@ -488,8 +469,7 @@ class ProfileScreen extends ConsumerWidget {
                   color: AppColors.text(context),
                 ),
               ),
-            );
-          }).toList(),
+            )).toList(),
         ),
       ],
     );

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../../shared/widgets/app_card.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
 
 class StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final bool isLoading;
 
   const StatCard({
     super.key,
@@ -15,10 +12,12 @@ class StatCard extends StatelessWidget {
     required this.value,
     this.isLoading = false,
   });
+  final String title;
+  final String value;
+  final bool isLoading;
 
   @override
-  Widget build(BuildContext context) {
-    return AppCard(
+  Widget build(BuildContext context) => AppCard(
       padding: const EdgeInsets.all(16),
       interactive: false,
       child: Column(
@@ -53,5 +52,4 @@ class StatCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }

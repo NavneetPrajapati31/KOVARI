@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/countries.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import 'text_input_field.dart';
+import 'package:mobile/core/constants/countries.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class NationalityAutocomplete extends StatefulWidget {
-  final String label;
-  final String? initialValue;
-  final Function(String) onSelect;
-  final Color? fillColor;
 
   const NationalityAutocomplete({
     super.key,
@@ -17,6 +13,10 @@ class NationalityAutocomplete extends StatefulWidget {
     required this.onSelect,
     this.fillColor,
   });
+  final String label;
+  final String? initialValue;
+  final void Function(String) onSelect;
+  final Color? fillColor;
 
   @override
   State<NationalityAutocomplete> createState() =>
@@ -77,7 +77,7 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
     final overlay = Overlay.of(context);
     _overlayEntry = OverlayEntry(
       builder: (context) {
-        final RenderBox? renderBox =
+        final renderBox =
             _fieldKey.currentContext?.findRenderObject() as RenderBox?;
         final size = renderBox?.size ?? Size.zero;
 
@@ -165,8 +165,7 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return TapRegion(
+  Widget build(BuildContext context) => TapRegion(
       groupId: 'nationality_autocomplete',
       onTapOutside: (_) => _hideOverlay(),
       child: CompositedTransformTarget(
@@ -182,7 +181,6 @@ class _NationalityAutocompleteState extends State<NationalityAutocomplete> {
         ),
       ),
     );
-  }
 
   @override
   void dispose() {

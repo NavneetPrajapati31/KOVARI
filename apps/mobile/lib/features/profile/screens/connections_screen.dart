@@ -1,25 +1,23 @@
 import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/navigation/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/network/api_client.dart';
-import '../models/user_connection.dart';
-import '../data/connections_service.dart';
-import '../../../core/services/haptic_service.dart';
-import '../widgets/user_list_item.dart';
-import '../../../core/providers/profile_provider.dart';
-import '../../../shared/widgets/kovari_confirm_dialog.dart';
-import '../../../shared/widgets/kovari_snackbar.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/profile/data/connections_service.dart';
+import 'package:mobile/features/profile/models/user_connection.dart';
+import 'package:mobile/features/profile/widgets/user_list_item.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
 
-class ConnectionsScreen extends ConsumerStatefulWidget {
-  final String userId;
-  final String username;
-  final String initialTab; // 'followers' or 'following'
+class ConnectionsScreen extends ConsumerStatefulWidget { // 'followers' or 'following'
 
   const ConnectionsScreen({
     super.key,
@@ -27,6 +25,9 @@ class ConnectionsScreen extends ConsumerStatefulWidget {
     required this.username,
     this.initialTab = 'followers',
   });
+  final String userId;
+  final String username;
+  final String initialTab;
 
   @override
   ConsumerState<ConnectionsScreen> createState() => _ConnectionsScreenState();
@@ -112,8 +113,8 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
     });
 
     try {
-      final followers = await _service.getFollowers(widget.userId, offset: 0);
-      final following = await _service.getFollowing(widget.userId, offset: 0);
+      final followers = await _service.getFollowers(widget.userId);
+      final following = await _service.getFollowing(widget.userId);
 
       if (mounted) {
         setState(() {
@@ -147,7 +148,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       final nextPage = _followersPage + 1;
       final newFollowers = await _service.getFollowers(
         widget.userId,
-        offset: (_followersPage * 20),
+        offset: _followersPage * 20,
       );
 
       if (mounted) {
@@ -176,7 +177,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       final nextPage = _followingPage + 1;
       final newFollowing = await _service.getFollowing(
         widget.userId,
-        offset: (_followingPage * 20),
+        offset: _followingPage * 20,
       );
 
       if (mounted) {
@@ -247,7 +248,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       context: context,
       title: 'Remove Follower?',
       content:
-          'Kovari won\'t tell @${user.username} they were removed from your followers.',
+          "Kovari won't tell @${user.username} they were removed from your followers.",
       confirmLabel: 'Remove',
       isDestructive: true,
       onConfirm: () async {
@@ -281,7 +282,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
     showKovariConfirmDialog(
       context: context,
       title: 'Unfollow?',
-      content: 'Kovari won\'t tell ${user.name} they were unfollowed.',
+      content: "Kovari won't tell ${user.name} they were unfollowed.",
       confirmLabel: 'Unfollow',
       isDestructive: true,
       onConfirm: () async {
@@ -318,17 +319,14 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
             // Premium App Bar & Tabs
             SliverOverlapAbsorber(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               sliver: SliverAppBar(
                 pinned: true,
-                floating: false,
                 elevation: 0,
                 backgroundColor: AppColors.surface(context),
                 leading: IconButton(
@@ -352,7 +350,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                       ),
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(48),
-                  child: Container(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: AppColors.surface(context),
                     ),
@@ -360,7 +358,6 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                       controller: _tabController,
                       overlayColor: WidgetStateProperty.all(Colors.transparent),
                       indicatorColor: AppColors.primary,
-                      indicatorWeight: 2,
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: AppColors.borderColor(context),
                       dividerHeight: 1,
@@ -417,8 +414,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 ),
               ),
             ),
-          ];
-        },
+          ],
         body: TabBarView(
           controller: _tabController,
           children: [
@@ -428,12 +424,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildUserList(List<UserConnection> users, String type) {
-    return Builder(
-      builder: (context) {
-        return CustomScrollView(
+  Widget _buildUserList(List<UserConnection> users, String type) => Builder(
+      builder: (context) => CustomScrollView(
           key: PageStorageKey<String>(type),
           controller: type == 'followers'
               ? _followersScrollController
@@ -454,7 +447,6 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                       border: Border(
                         bottom: BorderSide(
                           color: AppColors.borderColor(context),
-                          width: 1,
                         ),
                       ),
                     ),
@@ -480,7 +472,6 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                             color: AppColors.text(context, isMuted: true),
                             fontSize: 13,
                           ),
-                          prefixIcon: null,
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(LucideIcons.x, size: 16),
@@ -510,7 +501,6 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,
-                            vertical: 0,
                           ),
                         ),
                       ),
@@ -569,7 +559,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                       onTap: isMe
                           ? null
                           : () => PublicProfileRouteData(userId: user.id)
-                              .push(context),
+                              .push<void>(context),
                     onActionPressed: () {
                       if (isViewingOwnConnections) {
                         if (type == 'followers' && !user.isFollowing) {
@@ -609,16 +599,12 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
               const SliverToBoxAdapter(child: SizedBox(height: 40)),
             ],
           ],
-        );
-      },
+        ),
     );
-  }
 
-  Widget _buildSkeletonList() {
-    return Column(
+  Widget _buildSkeletonList() => Column(
       children: List.generate(8, (index) => const KovariSkeletonUserListItem()),
     );
-  }
 
   Widget _buildEmptyState(String type) {
     final title = _searchQuery.isNotEmpty

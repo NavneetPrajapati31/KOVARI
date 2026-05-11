@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:hive/hive.dart';
-import 'telemetry_budget.dart';
-import 'telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_budget.dart';
+import 'package:mobile/core/telemetry/telemetry_priority.dart';
 
 class TelemetryQueue {
   static const String boxName = 'telemetry_queue';
-  Box? _box;
+  Box<dynamic>? _box;
   bool _isInitialized = false;
 
   Future<void> init() async {
@@ -40,8 +40,8 @@ class TelemetryQueue {
 
     return _box!.values
         .take(batchSize)
-        .cast<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
+        .cast<Map<dynamic, dynamic>>()
+        .map(Map<String, dynamic>.from)
         .toList();
   }
 
@@ -56,8 +56,8 @@ class TelemetryQueue {
     final now = DateTime.now();
     final expiredIds = <String>[];
 
-    for (var key in _box!.keys) {
-      final event = _box!.get(key) as Map;
+    for (final key in _box!.keys) {
+      final event = _box!.get(key) as Map<dynamic, dynamic>;
       final timestamp = DateTime.parse(event['timestamp'] as String);
       if (now.difference(timestamp).inDays > 7) {
         expiredIds.add(key.toString());
@@ -72,8 +72,8 @@ class TelemetryQueue {
   Future<void> _evictLowPriority() async {
     if (!_isInitialized || _box == null) return;
     String? oldestLowPriorityKey;
-    for (var key in _box!.keys) {
-      final event = _box!.get(key) as Map;
+    for (final key in _box!.keys) {
+      final event = _box!.get(key) as Map<dynamic, dynamic>;
       if (event['priority'] == TelemetryPriority.low.name || 
           event['priority'] == TelemetryPriority.normal.name) {
         oldestLowPriorityKey = key.toString();

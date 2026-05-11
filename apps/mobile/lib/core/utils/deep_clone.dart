@@ -3,7 +3,7 @@ dynamic deepClone(dynamic source) {
   if (source is Map) {
     return source.map((key, value) => MapEntry(key, deepClone(value)));
   } else if (source is List) {
-    return source.map((item) => deepClone(item)).toList();
+    return source.map(deepClone).toList();
   }
   return source;
 }

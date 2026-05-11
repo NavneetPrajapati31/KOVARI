@@ -1,22 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
 
 enum EventColor { sky, amber, violet, rose, emerald, orange }
 
 class MockEvent {
-  final String id;
-  final String title;
-  final String? description;
-  final DateTime start;
-  final DateTime end;
-  final String? location;
-  final EventColor color;
-  final bool allDay;
 
   MockEvent({
     required this.id,
@@ -28,23 +20,31 @@ class MockEvent {
     this.color = EventColor.sky,
     this.allDay = false,
   });
+  final String id;
+  final String title;
+  final String? description;
+  final DateTime start;
+  final DateTime end;
+  final String? location;
+  final EventColor color;
+  final bool allDay;
 }
 
 class ItinerarySection extends StatelessWidget {
-  final List<MockEvent> events;
-  final bool isLoading;
 
   const ItinerarySection({
     super.key,
     required this.events,
     this.isLoading = false,
   });
+  final List<MockEvent> events;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     final showSkeleton = isLoading && events.isEmpty;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         border: Border.all(color: AppColors.borderColor(context)),
@@ -112,8 +112,8 @@ class ItinerarySection extends StatelessWidget {
 
   Widget _buildEventList() {
     // Group events by day
-    final Map<DateTime, List<MockEvent>> groupedEvents = {};
-    for (var event in events) {
+    final groupedEvents = <DateTime, List<MockEvent>>{};
+    for (final event in events) {
       final date = DateTime(
         event.start.year,
         event.start.month,
@@ -128,14 +128,11 @@ class ItinerarySection extends StatelessWidget {
     final sortedDates = groupedEvents.keys.toList()..sort();
 
     return Column(
-      children: sortedDates.map((date) {
-        return _DayGroup(date: date, events: groupedEvents[date]!);
-      }).toList(),
+      children: sortedDates.map((date) => _DayGroup(date: date, events: groupedEvents[date]!)).toList(),
     );
   }
 
-  Widget _buildSkeleton(BuildContext context) {
-    return Padding(
+  Widget _buildSkeleton(BuildContext context) => Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         children: List.generate(
@@ -169,10 +166,8 @@ class ItinerarySection extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Padding(
+  Widget _buildEmptyState(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
         child: Column(
@@ -196,14 +191,13 @@ class ItinerarySection extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _DayGroup extends StatelessWidget {
-  final DateTime date;
-  final List<MockEvent> events;
 
   const _DayGroup({required this.date, required this.events});
+  final DateTime date;
+  final List<MockEvent> events;
 
   @override
   Widget build(BuildContext context) {
@@ -246,9 +240,9 @@ class _DayGroup extends StatelessWidget {
 }
 
 class _EventItem extends StatelessWidget {
-  final MockEvent event;
 
   const _EventItem({required this.event});
+  final MockEvent event;
 
   @override
   Widget build(BuildContext context) {

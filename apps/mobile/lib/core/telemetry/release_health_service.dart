@@ -1,18 +1,17 @@
-import 'telemetry_service.dart';
-import 'telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
 
 class ReleaseHealthService {
-  static final ReleaseHealthService _instance = ReleaseHealthService._internal();
   factory ReleaseHealthService() => _instance;
   ReleaseHealthService._internal();
+  static final ReleaseHealthService _instance = ReleaseHealthService._internal();
 
-  int _retryCount = 0;
+  final int _retryCount = 0;
   bool _isInDegradedMode = false;
 
   void reportAuthRecoverySuccess() {
     TelemetryService().logEvent(
       'release_health_auth_recovery',
-      priority: TelemetryPriority.normal,
       parameters: {'status': 'success'},
     );
   }
@@ -42,7 +41,6 @@ class ReleaseHealthService {
   void reportSessionStart() {
     TelemetryService().logEvent(
       'release_health_session_start',
-      priority: TelemetryPriority.normal,
     );
   }
 }

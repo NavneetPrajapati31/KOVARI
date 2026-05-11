@@ -1,11 +1,12 @@
 import 'dart:async';
+
+import 'package:mobile/core/utils/app_logger.dart';
 import 'package:safe_device/safe_device.dart';
-import '../utils/app_logger.dart';
 
 class IntegrityAttestationService {
-  static final IntegrityAttestationService _instance = IntegrityAttestationService._internal();
   factory IntegrityAttestationService() => _instance;
   IntegrityAttestationService._internal();
+  static final IntegrityAttestationService _instance = IntegrityAttestationService._internal();
 
   String? _cachedToken;
   DateTime? _tokenExpiry;

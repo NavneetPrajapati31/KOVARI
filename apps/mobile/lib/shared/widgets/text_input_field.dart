@@ -1,28 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
 
 class TextInputField extends StatelessWidget {
-  final String label;
-  final String? initialValue;
-  final String? hintText;
-  final String? errorText;
-  final bool obscureText;
-  final TextEditingController? controller;
-  final TextInputType keyboardType;
-  final Widget? suffixIcon;
-  final Widget? prefixIcon;
-  final ValueChanged<String>? onChanged;
-  final FormFieldValidator<String>? validator;
-  final int maxLines;
-  final int? maxLength;
-  final FocusNode? focusNode;
-  final Color? fillColor;
-  final double? height;
-  final BoxConstraints? prefixIconConstraints;
-  final EdgeInsetsGeometry? contentPadding;
-  final bool readOnly;
-  final VoidCallback? onTap;
 
   const TextInputField({
     super.key,
@@ -47,10 +27,29 @@ class TextInputField extends StatelessWidget {
     this.readOnly = false,
     this.onTap,
   });
+  final String label;
+  final String? initialValue;
+  final String? hintText;
+  final String? errorText;
+  final bool obscureText;
+  final TextEditingController? controller;
+  final TextInputType keyboardType;
+  final Widget? suffixIcon;
+  final Widget? prefixIcon;
+  final ValueChanged<String>? onChanged;
+  final FormFieldValidator<String>? validator;
+  final int maxLines;
+  final int? maxLength;
+  final FocusNode? focusNode;
+  final Color? fillColor;
+  final double? height;
+  final BoxConstraints? prefixIconConstraints;
+  final EdgeInsetsGeometry? contentPadding;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (label.isNotEmpty) ...[
@@ -84,7 +83,7 @@ class TextInputField extends StatelessWidget {
             color: AppColors.text(context),
           ),
           decoration: InputDecoration(
-            counterText: "",
+            counterText: '',
             hintText: hintText,
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
@@ -117,5 +116,4 @@ class TextInputField extends StatelessWidget {
         ),
       ],
     );
-  }
 }

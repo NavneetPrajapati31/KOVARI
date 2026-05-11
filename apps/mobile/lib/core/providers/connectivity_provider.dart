@@ -1,18 +1,19 @@
 import 'dart:async';
-import 'package:flutter/widgets.dart';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../config/env.dart';
+import 'package:mobile/core/config/env.dart';
 
 enum ConnectionStatus { offline, online, degraded }
 
 class ConnectivityState {
+  const ConnectivityState({required this.status});
   final ConnectionStatus status;
   bool get isOffline => status == ConnectionStatus.offline;
   bool get isOnline => status == ConnectionStatus.online;
   bool get isDegraded => status == ConnectionStatus.degraded;
-  const ConnectivityState({required this.status});
 }
 
 class ConnectivityNotifier extends Notifier<ConnectivityState> with WidgetsBindingObserver {
@@ -133,9 +134,7 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> with WidgetsBindi
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       // 500ms delay to allow network hardware to wake up
-      Future.delayed(const Duration(milliseconds: 500), () {
-        triggerHealthCheck();
-      });
+      Future.delayed(const Duration(milliseconds: 500), triggerHealthCheck);
     }
   }
 
@@ -172,8 +171,8 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> with WidgetsBindi
       }
     } catch (e) {
       _successCount = 0;
-      String errorType = 'UNKNOWN';
-      String message = e.toString();
+      var errorType = 'UNKNOWN';
+      var message = e.toString();
 
       if (e is DioException) {
         errorType = e.type.toString();
@@ -195,7 +194,7 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> with WidgetsBindi
     }
 
     // Exponential Backoff
-    final delay = _backoffDelays[(_retryAttempt).clamp(0, _backoffDelays.length - 1)];
+    final delay = _backoffDelays[_retryAttempt.clamp(0, _backoffDelays.length - 1)];
     _retryAttempt++;
     _backoffTimer = Timer(delay, triggerHealthCheck);
 
@@ -203,6 +202,4 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> with WidgetsBindi
   }
 }
 
-final connectivityProvider = NotifierProvider<ConnectivityNotifier, ConnectivityState>(() {
-  return ConnectivityNotifier();
-});
+final connectivityProvider = NotifierProvider<ConnectivityNotifier, ConnectivityState>(ConnectivityNotifier.new);

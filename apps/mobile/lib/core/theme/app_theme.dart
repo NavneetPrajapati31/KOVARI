@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
-import 'app_text_styles.dart';
-import 'app_radius.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
 
 class AppTheme {
   static ThemeData get lightTheme => _buildTheme(Brightness.light);
@@ -35,7 +35,6 @@ class AppTheme {
             surfaceContainer: AppColors.card,
             surfaceContainerHigh: AppColors.elevated,
             error: AppColors.destructive,
-            onPrimary: AppColors.primaryForeground,
             onSecondary: AppColors.secondaryForeground,
             outline: AppColors.border,
             outlineVariant: AppColors.border.withValues(alpha: 0.5),
@@ -129,7 +128,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.defaultRadius,
-          side: BorderSide(color: colorScheme.outline, width: 1),
+          side: BorderSide(color: colorScheme.outline),
         ),
         clipBehavior: Clip.antiAlias,
       ),
@@ -186,7 +185,7 @@ class AppTheme {
           foregroundColor: colorScheme.onPrimary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
           textStyle: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -198,7 +197,7 @@ class AppTheme {
           foregroundColor: colorScheme.onSurface,
           side: BorderSide(color: colorScheme.outline),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
           textStyle: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -209,7 +208,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
           textStyle: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
           ),

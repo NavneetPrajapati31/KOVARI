@@ -11,14 +11,6 @@ enum HydrationSource {
 
 @immutable
 class HydratedState<T> {
-  final T? data;
-  final HydrationSource source;
-  final bool isHydrating;
-  final DateTime lastModifiedAt;
-  final bool isOptimistic;
-  final DateTime? lastUpdatedAt;
-  final String? error;
-  final int version;
 
   HydratedState({
     this.data,
@@ -30,6 +22,14 @@ class HydratedState<T> {
     this.error,
     this.version = 0,
   }) : lastModifiedAt = lastModifiedAt ?? DateTime.now();
+  final T? data;
+  final HydrationSource source;
+  final bool isHydrating;
+  final DateTime lastModifiedAt;
+  final bool isOptimistic;
+  final DateTime? lastUpdatedAt;
+  final String? error;
+  final int version;
 
   bool get hasData => data != null;
   bool get isStale => source == HydrationSource.stale;
@@ -44,8 +44,7 @@ class HydratedState<T> {
     DateTime? lastUpdatedAt,
     String? error,
     int? version,
-  }) {
-    return HydratedState<T>(
+  }) => HydratedState<T>(
       data: data ?? this.data,
       source: source ?? this.source,
       isHydrating: isHydrating ?? this.isHydrating,
@@ -55,7 +54,6 @@ class HydratedState<T> {
       error: error ?? this.error,
       version: version ?? this.version,
     );
-  }
 
   @override
   bool operator ==(Object other) =>

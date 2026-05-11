@@ -6,29 +6,6 @@
 /// - Lists are always non-null
 /// - No raw json field exposed to UI
 class MatchUser {
-  final String id;
-  final String name;
-  final String image;
-  final String location;
-  final String destination;
-  // Nullable: meaningful absence (user didn't fill)
-  final int? age;
-  final double? score;
-  final String? bio;
-  final String? gender;
-  final String? nationality;
-  final String? personality;
-  final String? religion;
-  final String? smoking;
-  final String? drinking;
-  final String? foodPreference;
-  final String? profession;
-  // Non-null collections
-  final List<String> interests;
-  final List<String> languages;
-  final DateTime? startDate;
-  final DateTime? endDate;
-  final double? budget;
 
   const MatchUser({
     required this.id,
@@ -97,9 +74,31 @@ class MatchUser {
       budget: _asDouble(json['budget'] ?? userMap['budget']),
     );
   }
+  final String id;
+  final String name;
+  final String image;
+  final String location;
+  final String destination;
+  // Nullable: meaningful absence (user didn't fill)
+  final int? age;
+  final double? score;
+  final String? bio;
+  final String? gender;
+  final String? nationality;
+  final String? personality;
+  final String? religion;
+  final String? smoking;
+  final String? drinking;
+  final String? foodPreference;
+  final String? profession;
+  // Non-null collections
+  final List<String> interests;
+  final List<String> languages;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final double? budget;
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'id': id,
       'name': name,
       'image': image,
@@ -122,7 +121,6 @@ class MatchUser {
       'endDate': endDate?.toIso8601String(),
       'budget': budget,
     };
-  }
 
   // ── Safe coercion helpers ──────────────────
 

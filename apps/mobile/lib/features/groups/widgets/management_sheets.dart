@@ -1,36 +1,37 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:mobile/shared/widgets/kovari_avatar.dart';
-import 'package:mobile/shared/widgets/kovari_snackbar.dart';
-import 'package:mobile/shared/widgets/text_input_field.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_text_styles.dart';
 import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/group_details_provider.dart';
 import 'package:mobile/features/groups/widgets/edit_group_sheets.dart';
 import 'package:mobile/features/groups/widgets/settings_widgets.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// 👥 Manage Group Members (Admin only view with Remove options)
 class GroupMembersManagementSheet extends ConsumerWidget {
-  final GroupModel group;
-  final bool isAdmin;
 
   const GroupMembersManagementSheet({
     super.key,
     required this.group,
     required this.isAdmin,
   });
+  final GroupModel group;
+  final bool isAdmin;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(groupMembersProvider(group.id));
 
     return SettingsBottomSheet(
-      title: "Group Members",
+      title: 'Group Members',
       children: [
         membersAsync.when(
           data: (members) => KovariGroupContainer(
@@ -72,7 +73,7 @@ class GroupMembersManagementSheet extends ConsumerWidget {
                           ),
                           // const SizedBox(height: 1),
                           Text(
-                            "@${member.username}",
+                            '@${member.username}',
                             style: AppTextStyles.bodySmall.copyWith(
                               fontSize: 13,
                               color: AppColors.text(context, isMuted: true),
@@ -94,7 +95,7 @@ class GroupMembersManagementSheet extends ConsumerWidget {
                           ), // Pill shape
                         ),
                         child: Text(
-                          "Admin",
+                          'Admin',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.primary,
                             fontSize: 12,
@@ -112,7 +113,7 @@ class GroupMembersManagementSheet extends ConsumerWidget {
                             vertical: 4,
                           ),
                           child: Text(
-                            "Remove",
+                            'Remove',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.destructive,
                               fontSize: 12,
@@ -138,7 +139,7 @@ class GroupMembersManagementSheet extends ConsumerWidget {
               ),
             ),
           ),
-          error: (e, _) => Center(child: Text("Error: $e")),
+          error: (e, _) => Center(child: Text('Error: $e')),
         ),
       ],
     );
@@ -147,9 +148,9 @@ class GroupMembersManagementSheet extends ConsumerWidget {
   void _confirmRemove(BuildContext context, WidgetRef ref, GroupMember member) {
     showKovariConfirmDialog(
       context: context,
-      title: "Remove Member?",
-      content: "Are you sure you want to remove ${member.name} from the group?",
-      confirmLabel: "Remove",
+      title: 'Remove Member?',
+      content: 'Are you sure you want to remove ${member.name} from the group?',
+      confirmLabel: 'Remove',
       isDestructive: true,
       onConfirm: () {
         ref
@@ -162,8 +163,8 @@ class GroupMembersManagementSheet extends ConsumerWidget {
 
 /// 📥 Manage Join Requests
 class JoinRequestsSheet extends ConsumerStatefulWidget {
-  final GroupModel group;
   const JoinRequestsSheet({super.key, required this.group});
+  final GroupModel group;
 
   @override
   ConsumerState<JoinRequestsSheet> createState() => _JoinRequestsSheetState();
@@ -186,19 +187,19 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
             .read(groupActionsProvider(widget.group.id))
             .approveRequest(userId);
         if (mounted) {
-          KovariSnackbar.success(context, "Member approved!");
+          KovariSnackbar.success(context, 'Member approved!');
         }
       } else if (requestId != null) {
         await ref
             .read(groupActionsProvider(widget.group.id))
             .rejectRequest(requestId);
         if (mounted) {
-          KovariSnackbar.info(context, "Request rejected.");
+          KovariSnackbar.info(context, 'Request rejected.');
         }
       }
     } catch (e) {
       if (mounted) {
-        KovariSnackbar.error(context, "Action failed: $e");
+        KovariSnackbar.error(context, 'Action failed: $e');
       }
     } finally {
       if (mounted) setState(() => _processingIds.remove(userId));
@@ -210,7 +211,7 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
     final requestsAsync = ref.watch(joinRequestsProvider(widget.group.id));
 
     return SettingsBottomSheet(
-      title: "Join Requests",
+      title: 'Join Requests',
       children: [
         requestsAsync.when(
           data: (requests) {
@@ -219,7 +220,7 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 50),
                   child: Text(
-                    "No pending requests.",
+                    'No pending requests.',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.text(context, isMuted: true),
                     ),
@@ -253,7 +254,7 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
                               ),
                             ),
                             Text(
-                              "@${request.username}",
+                              '@${request.username}',
                               style: AppTextStyles.bodySmall.copyWith(
                                 fontSize: 12,
                                 color: AppColors.text(context, isMuted: true),
@@ -285,7 +286,7 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
                                   borderRadius: BorderRadius.circular(100),
                                 ),
                                 child: Text(
-                                  "Accept",
+                                  'Accept',
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -340,7 +341,7 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
               ),
             ),
           ),
-          error: (e, _) => Center(child: Text("Error: $e")),
+          error: (e, _) => Center(child: Text('Error: $e')),
         ),
       ],
     );
@@ -349,8 +350,8 @@ class _JoinRequestsSheetState extends ConsumerState<JoinRequestsSheet> {
 
 /// ✉️ Invite Members (Email/Username/Link)
 class InviteMembersSheet extends ConsumerStatefulWidget {
-  final GroupModel group;
   const InviteMembersSheet({super.key, required this.group});
+  final GroupModel group;
 
   @override
   ConsumerState<InviteMembersSheet> createState() => _InviteMembersSheetState();
@@ -359,7 +360,7 @@ class InviteMembersSheet extends ConsumerStatefulWidget {
 class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
   final TextEditingController _inviteController = TextEditingController();
   final TextEditingController _linkController = TextEditingController();
-  String _inviteLink = "";
+  String _inviteLink = '';
   bool _isSending = false;
 
   @override
@@ -375,7 +376,7 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
     if (mounted) {
       setState(() {
         _inviteLink = link;
-        _linkController.text = link.isNotEmpty ? link : "Generate Link";
+        _linkController.text = link.isNotEmpty ? link : 'Generate Link';
       });
     }
   }
@@ -402,12 +403,12 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
           .read(groupActionsProvider(widget.group.id))
           .inviteMember(_inviteController.text.trim());
       if (mounted) {
-        KovariSnackbar.success(context, "Invitation sent!");
+        KovariSnackbar.success(context, 'Invitation sent!');
         _inviteController.clear();
       }
     } catch (e) {
       if (mounted) {
-        KovariSnackbar.error(context, "Error: $e");
+        KovariSnackbar.error(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -428,34 +429,33 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
       }
 
       // 2. Tactile feedback
-      Feedback.forTap(context);
+      unawaited(Feedback.forTap(context));
 
       // 3. Native Share (Raw URL only for maximum directness)
       // ignore: deprecated_member_use
-      await Share.share(_inviteLink, subject: "Trip Invitation");
+      await Share.share(_inviteLink, subject: 'Trip Invitation');
 
       if (mounted) {
-        KovariSnackbar.success(context, "Link copied & sharing opened!");
+        KovariSnackbar.success(context, 'Link copied & sharing opened!');
       }
     } catch (e) {
       if (mounted) {
-        KovariSnackbar.error(context, "Error sharing link: $e");
+        KovariSnackbar.error(context, 'Error sharing link: $e');
       }
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return SettingsBottomSheet(
-      title: "Invite Member",
+  Widget build(BuildContext context) => SettingsBottomSheet(
+      title: 'Invite Member',
       isSubmitting: _isSending,
       onSave: _canInvite ? _handleInvite : null,
-      buttonLabel: "Send Invitation",
+      buttonLabel: 'Send Invitation',
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 20),
           child: Text(
-            "Invite people to plan and coordinate your trip together.",
+            'Invite people to plan and coordinate your trip together.',
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.text(context, isMuted: true),
               fontSize: 13,
@@ -463,9 +463,9 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
           ),
         ),
         TextInputField(
-          label: "Email or Username",
+          label: 'Email or Username',
           controller: _inviteController,
-          hintText: "Enter email or username",
+          hintText: 'Enter email or username',
           onChanged: (val) => setState(() {}),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
@@ -475,11 +475,11 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
         ),
         const SizedBox(height: 20),
         TextInputField(
-          label: "Share a link",
+          label: 'Share a link',
           controller: _linkController,
           readOnly: true,
           onTap: _copyLink,
-          hintText: "Generating Link...",
+          hintText: 'Generating Link...',
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 12,
@@ -497,5 +497,4 @@ class _InviteMembersSheetState extends ConsumerState<InviteMembersSheet> {
         const SizedBox(height: 8),
       ],
     );
-  }
 }

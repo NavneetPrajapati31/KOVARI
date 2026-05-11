@@ -1,6 +1,6 @@
 import 'dart:async';
-import '../utils/app_logger.dart';
-import '../../features/groups/models/hydrated_state.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/features/groups/models/hydrated_state.dart';
 
 abstract class Hydratable<T> {
   String get hydrationKey;
@@ -57,7 +57,6 @@ class HydrationEngine {
     } else {
       yield HydratedState(
         data: initialData,
-        source: HydrationSource.initial,
         isHydrating: true,
       );
     }
@@ -79,9 +78,8 @@ class HydrationEngine {
     StreamController<HydratedState<T>> controller,
     T? initialData,
   ) async {
-    HydratedState<T> currentState = HydratedState(
+    var currentState = HydratedState<T>(
       data: initialData,
-      source: HydrationSource.initial,
       isHydrating: true,
     );
 

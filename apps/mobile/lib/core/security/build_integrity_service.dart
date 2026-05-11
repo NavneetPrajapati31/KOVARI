@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class BuildIntegrityService {
   /// 🏗️ Verifies if the app is running as an official, untampered build.

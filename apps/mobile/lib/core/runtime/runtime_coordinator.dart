@@ -1,22 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:mobile/core/runtime/hydration_engine.dart';
+import 'package:mobile/core/runtime/replay_engine.dart';
+import 'package:mobile/core/runtime/runtime_scheduler.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 import 'package:mobile/features/groups/models/hydrated_state.dart';
-import 'hydration_engine.dart';
-import 'runtime_scheduler.dart';
-import 'replay_engine.dart';
-import '../utils/app_logger.dart';
-import '../telemetry/telemetry_service.dart';
 
 class RuntimeCoordinator {
-  final HydrationEngine _hydrationEngine;
-  final RuntimeScheduler _scheduler;
-  final ReplayEngine _replayEngine;
 
   RuntimeCoordinator(
     this._hydrationEngine,
     this._scheduler,
     this._replayEngine,
   );
+  final HydrationEngine _hydrationEngine;
+  final RuntimeScheduler _scheduler;
+  final ReplayEngine _replayEngine;
 
   Stream<HydratedState<T>> requestHydration<T>(
     Hydratable<T> target, {

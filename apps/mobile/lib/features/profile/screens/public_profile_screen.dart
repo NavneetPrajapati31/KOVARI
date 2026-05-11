@@ -1,27 +1,28 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/navigation/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/network/api_client.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/kovari_image_modal.dart';
-import '../../onboarding/data/profile_service.dart';
-import '../models/user_profile.dart';
-import '../data/connections_service.dart';
-import '../../../core/providers/profile_provider.dart';
-import '../../../shared/widgets/kovari_confirm_dialog.dart';
-import '../../../shared/widgets/app_card.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/onboarding/data/profile_service.dart';
+import 'package:mobile/features/profile/data/connections_service.dart';
+import 'package:mobile/features/profile/models/user_profile.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_image_modal.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
-  final String userId;
 
   const PublicProfileScreen({super.key, required this.userId});
+  final String userId;
 
   @override
   ConsumerState<PublicProfileScreen> createState() =>
@@ -82,13 +83,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         context: context,
         title: 'Unfollow?',
         content:
-            'Kovari won\'t tell @${_profile!.username} they were unfollowed.',
+            "Kovari won't tell @${_profile!.username} they were unfollowed.",
         confirmLabel: 'Unfollow',
         isDestructive: true,
         onConfirm: () => _executeFollowToggle(wasFollowing),
       );
     } else {
-      _executeFollowToggle(wasFollowing);
+      unawaited(_executeFollowToggle(wasFollowing));
     }
   }
 
@@ -128,7 +129,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = ref.watch(profileProvider)?.userId;
-    final bool isMe = widget.userId == currentUserId;
+    final isMe = widget.userId == currentUserId;
 
     if (_isLoading) {
       return const Scaffold(body: KovariSkeletonProfile());
@@ -214,15 +215,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     BuildContext context,
     UserProfile profile,
     bool isMe,
-  ) {
-    return AppCard(
+  ) => AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       borderRadius: BorderRadius.circular(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: () {
@@ -269,7 +268,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                                     userId: profile.userId,
                                     username: profile.username,
                                     initialTab: 'followers',
-                                  ).push(context)
+                                  ).push<void>(context)
                               : null,
                         ),
                         const SizedBox(width: 16),
@@ -281,7 +280,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                                     userId: profile.userId,
                                     username: profile.username,
                                     initialTab: 'following',
-                                  ).push(context)
+                                  ).push<void>(context)
                               : null,
                         ),
                       ],
@@ -332,10 +331,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildStatItem(String count, String label, {VoidCallback? onTap}) {
-    return GestureDetector(
+  Widget _buildStatItem(String count, String label, {VoidCallback? onTap}) => GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Row(
@@ -360,15 +357,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildActionButton(
     String label, {
     required VoidCallback onPressed,
     required Color backgroundColor,
     required Color textColor,
-  }) {
-    return SizedBox(
+  }) => SizedBox(
       height: 36,
       child: TextButton(
         onPressed: onPressed,
@@ -389,10 +384,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildContentCard(UserProfile profile) {
-    return AppCard(
+  Widget _buildContentCard(UserProfile profile) => AppCard(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -402,9 +395,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          const SizedBox(
             width: 50,
-            child: const Text(
+            child: Text(
               'About',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -501,10 +494,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildInfoItem(String label, String value) {
-    return Column(
+  Widget _buildInfoItem(String label, String value) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -527,20 +518,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
       ],
     );
-  }
 
-  Widget _buildInfoRow(Widget item1, Widget item2) {
-    return Row(
+  Widget _buildInfoRow(Widget item1, Widget item2) => Row(
       children: [
         Expanded(child: item1),
         const SizedBox(width: 16),
         Expanded(child: item2),
       ],
     );
-  }
 
-  Widget _buildChipsSection(String label, List<String> items) {
-    return Column(
+  Widget _buildChipsSection(String label, List<String> items) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -556,8 +543,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 4,
-          children: items.map((item) {
-            return Container(
+          children: items.map((item) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.mutedColor(context),
@@ -571,10 +557,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   color: AppColors.text(context),
                 ),
               ),
-            );
-          }).toList(),
+            )).toList(),
         ),
       ],
     );
-  }
 }

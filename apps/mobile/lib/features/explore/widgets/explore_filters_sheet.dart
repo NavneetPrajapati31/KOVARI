@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../shared/widgets/kovari_switch_tile.dart';
-import '../../../shared/widgets/secondary_button.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/location_autocomplete.dart';
-import '../../../shared/widgets/select_chip.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/select_field.dart';
-import '../models/explore_state.dart';
-import '../providers/explore_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/explore/models/explore_state.dart';
+import 'package:mobile/features/explore/providers/explore_provider.dart';
+import 'package:mobile/shared/widgets/kovari_switch_tile.dart';
+import 'package:mobile/shared/widgets/location_autocomplete.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
+import 'package:mobile/shared/widgets/select_chip.dart';
+import 'package:mobile/shared/widgets/select_field.dart';
 
 class ExploreFiltersSheet extends ConsumerStatefulWidget {
   const ExploreFiltersSheet({super.key});
@@ -34,22 +34,21 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
   }
 
   static const List<String> languageOptions = [
-    "English",
-    "Hindi",
-    "Bengali",
-    "Telugu",
-    "Marathi",
-    "Tamil",
-    "Gujarati",
-    "Urdu",
-    "Kannada",
-    "Malayalam",
-    "Punjabi",
+    'English',
+    'Hindi',
+    'Bengali',
+    'Telugu',
+    'Marathi',
+    'Tamil',
+    'Gujarati',
+    'Urdu',
+    'Kannada',
+    'Malayalam',
+    'Punjabi',
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       height: MediaQuery.of(context).size.height * 0.85,
       padding: EdgeInsets.only(
         top: 12,
@@ -85,7 +84,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                 LocationAutocomplete(
                   label: '',
                   initialValue: _searchData.destination,
-                  hintText: "Where do you want to go?",
+                  hintText: 'Where do you want to go?',
                   onSelect: (result) {
                     setState(() {
                       _searchData = _searchData.copyWith(
@@ -195,7 +194,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                         padding: const EdgeInsets.only(right: 6),
                         child: SelectChip(
                           label: budget == 50000
-                              ? "₹50k+"
+                              ? '₹50k+'
                               : '₹${NumberFormat('#,###').format(budget)}',
                           isSelected: isSelected,
                           onTap: () => setState(
@@ -236,7 +235,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                     label: '',
                     value: _filters.gender,
                     hintText: 'Select gender',
-                    options: const ["Any", "Male", "Female", "Other"],
+                    options: const ['Any', 'Male', 'Female', 'Other'],
                     itemLabelBuilder: (val) => val,
                     onChanged: (val) => setState(
                       () => _filters = _filters.copyWith(gender: val ?? 'Any'),
@@ -249,10 +248,10 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                     value: _filters.personality,
                     hintText: 'Select personality',
                     options: const [
-                      "Any",
-                      "Extrovert",
-                      "Introvert",
-                      "Ambivert",
+                      'Any',
+                      'Extrovert',
+                      'Introvert',
+                      'Ambivert',
                     ],
                     itemLabelBuilder: (val) => val,
                     onChanged: (val) => setState(
@@ -310,15 +309,13 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
         ],
       ),
     );
-  }
 
-  Widget _buildFooter() {
-    return Container(
+  Widget _buildFooter() => Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         border: Border(
-          top: BorderSide(color: AppColors.borderColor(context), width: 1),
+          top: BorderSide(color: AppColors.borderColor(context)),
         ),
       ),
       child: SafeArea(
@@ -333,14 +330,12 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
         ),
       ),
     );
-  }
 
   Widget _buildSectionTitle(
     BuildContext context,
     String title, {
     bool isHeader = false,
-  }) {
-    return Padding(
+  }) => Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
@@ -353,24 +348,19 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
             ),
       ),
     );
-  }
 
   Widget _buildChips({
     required List<String> options,
     required List<String> selected,
-    required Function(String) onSelected,
+    required void Function(String) onSelected,
     bool multiple = false,
-  }) {
-    return Wrap(
+  }) => Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: options.map((option) {
-        return SelectChip(
+      children: options.map((option) => SelectChip(
           label: option,
           isSelected: selected.contains(option),
           onTap: () => onSelected(option),
-        );
-      }).toList(),
+        )).toList(),
     );
-  }
 }

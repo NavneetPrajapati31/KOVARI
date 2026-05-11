@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class SecurityRemoteConfig {
-  static final SecurityRemoteConfig _instance = SecurityRemoteConfig._internal();
   factory SecurityRemoteConfig() => _instance;
   SecurityRemoteConfig._internal();
+  static final SecurityRemoteConfig _instance = SecurityRemoteConfig._internal();
 
   // 🛡️ Default security policies (Can be overridden by Remote Config)
   bool sslPinningEnabled = true;

@@ -1,24 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../notifications/providers/notification_provider.dart';
 import 'package:mobile/core/navigation/routes.dart';
-import '../../../../core/utils/app_logger.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/notifications/providers/notification_provider.dart';
 
 class HomeHeader extends ConsumerWidget {
-  final String firstName;
-  final bool isLoading;
 
   const HomeHeader({
     super.key,
     this.firstName = 'User',
     this.isLoading = false,
   });
+  final String firstName;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,12 +31,12 @@ class HomeHeader extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           if (isLoading)
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Skeleton(width: 100, height: 16),
-                const SizedBox(height: 4),
-                const Skeleton(width: 160, height: 14),
+                Skeleton(width: 100, height: 16),
+                SizedBox(height: 4),
+                Skeleton(width: 160, height: 14),
               ],
             )
           else
@@ -72,7 +71,7 @@ class HomeHeader extends ConsumerWidget {
                   showBadge: unreadCount > 0,
                   onTap: () {
                     AppLogger.d('🔔 [Header] Navigating to Notifications');
-                    const NotificationsRouteData().push(context);
+                    const NotificationsRouteData().push<void>(context);
                   },
                 ),
                 const SizedBox(width: AppSpacing.xs),
@@ -81,7 +80,7 @@ class HomeHeader extends ConsumerWidget {
                   icon: LucideIcons.heart,
                   onTap: () {
                     AppLogger.d('❤️ [Header] Navigating to Requests');
-                    const RequestsRouteData().push(context);
+                    const RequestsRouteData().push<void>(context);
                   },
                 ),
               ],
@@ -96,8 +95,7 @@ class HomeHeader extends ConsumerWidget {
     required IconData icon,
     bool showBadge = false,
     VoidCallback? onTap,
-  }) {
-    return Stack(
+  }) => Stack(
       clipBehavior: Clip.none,
       children: [
         InkWell(
@@ -129,5 +127,4 @@ class HomeHeader extends ConsumerWidget {
           ),
       ],
     );
-  }
 }

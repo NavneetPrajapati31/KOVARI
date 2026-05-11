@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'secure_key_manager.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/security/secure_key_manager.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 import 'package:uuid/uuid.dart';
 
 class RequestSigningService {
@@ -17,7 +17,7 @@ class RequestSigningService {
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     
     // Normalize body
-    String bodyString = '';
+    var bodyString = '';
     if (body != null) {
       if (body is Map || body is List) {
         bodyString = jsonEncode(body);

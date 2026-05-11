@@ -1,9 +1,11 @@
-import '../utils/app_logger.dart';
-import 'runtime_scheduler.dart';
+import 'package:mobile/core/runtime/runtime_scheduler.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 enum PressureLevel { normal, elevated, critical }
 
 class RuntimePressureManager {
+
+  RuntimePressureManager(this._scheduler);
   final RuntimeScheduler _scheduler;
   
   // Thresholds
@@ -11,8 +13,6 @@ class RuntimePressureManager {
   static const int _criticalThreshold = 7;
   int _consecutiveFrameDrops = 0;
   PressureLevel _currentLevel = PressureLevel.normal;
-
-  RuntimePressureManager(this._scheduler);
 
   PressureLevel get currentLevel => _currentLevel;
 

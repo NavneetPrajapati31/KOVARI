@@ -1,17 +1,12 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../auth/auth_repository.dart';
-import '../auth/session_manager.dart';
-import '../auth/token_storage.dart';
-import '../../shared/models/kovari_user.dart';
 import 'dart:convert';
 
-class AuthState {
-  final KovariUser? user;
-  final bool isAuthenticated;
-  final bool isDegraded;
-  final bool isRefreshing;
-  final bool isBootstrapping;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/auth/auth_repository.dart';
+import 'package:mobile/core/auth/session_manager.dart';
+import 'package:mobile/core/auth/token_storage.dart';
+import 'package:mobile/shared/models/kovari_user.dart';
 
+class AuthState {
   AuthState({
     this.user,
     this.isAuthenticated = false,
@@ -19,6 +14,11 @@ class AuthState {
     this.isRefreshing = false,
     this.isBootstrapping = true,
   });
+  final KovariUser? user;
+  final bool isAuthenticated;
+  final bool isDegraded;
+  final bool isRefreshing;
+  final bool isBootstrapping;
 
   AuthState copyWith({
     KovariUser? user,
@@ -26,15 +26,13 @@ class AuthState {
     bool? isDegraded,
     bool? isRefreshing,
     bool? isBootstrapping,
-  }) {
-    return AuthState(
-      user: user ?? this.user,
-      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-      isDegraded: isDegraded ?? this.isDegraded,
-      isRefreshing: isRefreshing ?? this.isRefreshing,
-      isBootstrapping: isBootstrapping ?? this.isBootstrapping,
-    );
-  }
+  }) => AuthState(
+    user: user ?? this.user,
+    isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+    isDegraded: isDegraded ?? this.isDegraded,
+    isRefreshing: isRefreshing ?? this.isRefreshing,
+    isBootstrapping: isBootstrapping ?? this.isBootstrapping,
+  );
 }
 
 class AuthNotifier extends Notifier<AuthState> {
@@ -59,7 +57,7 @@ class AuthNotifier extends Notifier<AuthState> {
     KovariUser? user;
     if (userJson != null) {
       try {
-        user = KovariUser.fromJson(jsonDecode(userJson));
+        user = KovariUser.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
       } catch (_) {}
     }
 

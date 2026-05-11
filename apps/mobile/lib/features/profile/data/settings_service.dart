@@ -1,10 +1,9 @@
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
 
 class SettingsService {
-  final ApiClient _apiClient;
-
   SettingsService(this._apiClient);
+  final ApiClient _apiClient;
 
   Future<void> changePassword({
     required String currentPassword,
@@ -43,7 +42,7 @@ class SettingsService {
     final response = await _apiClient.patch<Map<String, dynamic>>(
       'profile/update',
       data: {'field': 'email', 'value': newEmail},
-      parser: (data) => Map<String, dynamic>.from(data),
+      parser: (data) => Map<String, dynamic>.from(data as Map),
     );
 
     if (response.success && response.data != null) {
@@ -71,7 +70,7 @@ class SettingsService {
     try {
       final response = await _apiClient.get<Map<String, dynamic>>(
         ApiEndpoints.acceptPolicies,
-        parser: (data) => Map<String, dynamic>.from(data),
+        parser: (data) => Map<String, dynamic>.from(data as Map),
       );
       return response.data ?? {};
     } catch (e) {

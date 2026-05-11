@@ -1,12 +1,12 @@
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/utils/app_logger.dart';
-import '../models/notification_model.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/features/notifications/models/notification_model.dart';
 
 class NotificationService {
-  final ApiClient _apiClient;
 
   NotificationService(this._apiClient);
+  final ApiClient _apiClient;
 
   Future<List<NotificationModel>> fetchNotifications({
     int page = 1,
@@ -22,7 +22,7 @@ class NotificationService {
         'offset': offset,
         if (unreadOnly) 'unreadOnly': true,
       },
-      parser: (data) => parseNotifications(data),
+      parser: parseNotifications,
       ignoreCache: ignoreCache,
     );
 
@@ -51,7 +51,7 @@ class NotificationService {
       );
       return [];
     }
-    return actualData.map((e) => NotificationModel.fromJson(e)).toList();
+    return actualData.map((e) => NotificationModel.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<int> fetchUnreadCount() async {

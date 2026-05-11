@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../models/notification_state.dart';
-import '../services/notification_service.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/features/notifications/models/notification_state.dart';
+import 'package:mobile/features/notifications/services/notification_service.dart';
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   final apiClient = ref.read(apiClientProvider);
@@ -18,10 +18,10 @@ final notificationProvider =
     });
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
-  final Ref _ref;
   NotificationNotifier(this._ref) : super(NotificationState()) {
     _init();
   }
+  final Ref _ref;
 
   Future<void> _init() async {
     await refresh(isInitial: true);
@@ -38,13 +38,12 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     try {
       final fresh = await _ref
           .read(notificationServiceProvider)
-          .fetchNotifications(page: 1, ignoreCache: ignoreCache);
+          .fetchNotifications(ignoreCache: ignoreCache);
       
       state = state.copyWith(
         notifications: fresh,
         isStale: false,
         isLoading: false,
-        error: null,
         page: 1,
         hasMore: fresh.length >= 20, // Assuming 20 is the limit
       );
@@ -155,7 +154,7 @@ class UnreadCountNotifier extends AsyncNotifier<int> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _fetch());
+    state = await AsyncValue.guard(_fetch);
     // Restart polling interval on manual refresh
     _startPolling();
   }

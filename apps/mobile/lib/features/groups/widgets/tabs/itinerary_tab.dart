@@ -1,26 +1,23 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
 import 'package:mobile/features/groups/providers/group_details_provider.dart';
+import 'package:mobile/features/groups/widgets/modals/itinerary_form_modal.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_popover.dart';
 import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../shared/widgets/secondary_button.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
-import '../../../../shared/widgets/kovari_popover.dart';
-import '../../../../shared/widgets/kovari_confirm_dialog.dart';
-import '../../models/group.dart';
-import '../modals/itinerary_form_modal.dart';
-import '../../providers/entity_stores.dart';
-import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
 
 class ItineraryTab extends ConsumerStatefulWidget {
-  final GroupModel group;
 
   const ItineraryTab({super.key, required this.group});
+  final GroupModel group;
 
   @override
   ConsumerState<ItineraryTab> createState() => _ItineraryTabState();
@@ -74,7 +71,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 const Text(
-                  "Itinerary Board",
+                  'Itinerary Board',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
@@ -89,8 +86,8 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                 _buildItinerarySection(
                   context,
                   ref,
-                  "To do",
-                  "pending",
+                  'To do',
+                  'pending',
                   todo,
                   const Color(0xFFF59E0B),
                   members,
@@ -98,8 +95,8 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                 _buildItinerarySection(
                   context,
                   ref,
-                  "In Progress",
-                  "confirmed",
+                  'In Progress',
+                  'confirmed',
                   inProgress,
                   const Color(0xFF007AFF),
                   members,
@@ -107,8 +104,8 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                 _buildItinerarySection(
                   context,
                   ref,
-                  "Done",
-                  "completed",
+                  'Done',
+                  'completed',
                   done,
                   const Color(0xFF34C759),
                   members,
@@ -116,8 +113,8 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                 _buildItinerarySection(
                   context,
                   ref,
-                  "Cancelled",
-                  "cancelled",
+                  'Cancelled',
+                  'cancelled',
                   cancelled,
                   const Color(0xFFF31260),
                   members,
@@ -138,8 +135,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
     List<ItineraryItem> items,
     Color dotColor,
     List<GroupMember> groupMembers,
-  ) {
-    return DragTarget<ItineraryItem>(
+  ) => DragTarget<ItineraryItem>(
       onWillAcceptWithDetails: (details) => details.data.status != targetStatus,
       onAcceptWithDetails: (details) async {
         final item = details.data;
@@ -149,7 +145,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
               .read(groupActionsProvider(widget.group.id))
               .updateItineraryStatus(item, targetStatus);
         } catch (e) {
-          String errorMessage = "Failed to update item";
+          var errorMessage = 'Failed to update item';
           if (e is DioException) {
             final data = e.response?.data;
             if (data is Map && data.containsKey('error')) {
@@ -168,7 +164,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
         }
       },
       builder: (context, candidateData, rejectedData) {
-        final bool isOver = candidateData.isNotEmpty;
+        final isOver = candidateData.isNotEmpty;
         return Container(
           margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
@@ -188,7 +184,6 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 0,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.surface(context, level: 1),
@@ -222,14 +217,13 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 0,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        "${items.length}",
+                        '${items.length}',
                         style: TextStyle(
                           color: AppColors.text(context, isMuted: true),
                           fontSize: 11,
@@ -244,7 +238,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
-                        showModalBottomSheet(
+                        showModalBottomSheet<void>(
                           context: context,
                           isScrollControlled: true,
                           backgroundColor: Colors.transparent,
@@ -285,17 +279,14 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
         );
       },
     );
-  }
 
   Widget _buildDraggableItineraryItem(
     BuildContext context,
     WidgetRef ref,
     ItineraryItem item,
     List<GroupMember> groupMembers,
-  ) {
-    return LongPressDraggable<ItineraryItem>(
+  ) => LongPressDraggable<ItineraryItem>(
       data: item,
-      hapticFeedbackOnStart: true,
       feedback: SizedBox(
         width: 300, // Approximate width of the card
         child: Material(
@@ -310,7 +301,6 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
       ),
       child: _buildItineraryItemCard(context, ref, item, groupMembers),
     );
-  }
 
   Widget _buildItineraryItemCard(
     BuildContext context,
@@ -328,7 +318,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.borderColor(context), width: 1),
+        side: BorderSide(color: AppColors.borderColor(context)),
       ),
       color: AppColors.surface(context, level: 1),
       child: Padding(
@@ -360,7 +350,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                       label: 'Edit',
                       labelFontSize: 14,
                       onTap: () {
-                        showModalBottomSheet(
+                        showModalBottomSheet<void>(
                           context: context,
                           isScrollControlled: true,
                           backgroundColor: Colors.transparent,
@@ -487,7 +477,6 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
             const SizedBox(height: 6),
             if (item.notes != null && item.notes!.isNotEmpty) ...[
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     LucideIcons.fileText,
@@ -514,7 +503,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
             Row(
               children: [
                 Text(
-                  "Assignees :",
+                  'Assignees :',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.text(context, isMuted: true),
@@ -526,7 +515,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
                   _buildAvatarStack(context, item.assignedTo, groupMembers)
                 else
                   Text(
-                    "No assignees",
+                    'No assignees',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.text(context, isMuted: true),
@@ -565,8 +554,8 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
       return const SizedBox.shrink();
     }
     final idsToShow = assignedIds.take(3).toList();
-    final List<Widget> avatars = [];
-    for (int i = 0; i < idsToShow.length; i++) {
+    final avatars = <Widget>[];
+    for (var i = 0; i < idsToShow.length; i++) {
       final assignedId = idsToShow[i];
       final member = allMembers.cast<GroupMember?>().firstWhere(
         (m) => m?.id == assignedId || m?.username == assignedId,
@@ -575,7 +564,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
       avatars.add(
         Positioned(
           left: i * 16.0,
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
@@ -605,7 +594,7 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
             ),
             child: Center(
               child: Text(
-                "+${assignedIds.length - 3}",
+                '+${assignedIds.length - 3}',
                 style: const TextStyle(
                   fontSize: 10,
                   color: Colors.white,
@@ -625,9 +614,9 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
   }
 
   Widget _buildPriorityBadge(BuildContext context, String priority) {
-    Color bgColor = const Color(0xFFF4F4F5);
-    Color textColor = const Color(0xFF71717A);
-    String label = priority.toUpperCase();
+    var bgColor = const Color(0xFFF4F4F5);
+    var textColor = const Color(0xFF71717A);
+    var label = priority.toUpperCase();
     final isDark = AppColors.isDark(context);
     switch (priority.toLowerCase()) {
       case 'medium':
@@ -637,19 +626,19 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
         textColor = isDark
             ? const Color(0xFFFACC15)
             : const Color.fromARGB(255, 193, 148, 0);
-        label = "Medium";
+        label = 'Medium';
         break;
       case 'high':
         bgColor = isDark
             ? const Color(0xFF064E3B).withValues(alpha: 0.3)
             : const Color(0xFFDCFCE7);
         textColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
-        label = "High";
+        label = 'High';
         break;
       case 'low':
         bgColor = isDark ? const Color(0xFF27272A) : const Color(0xFFF4F4F5);
         textColor = isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A);
-        label = "Low";
+        label = 'Low';
         break;
     }
     return Container(
@@ -671,8 +660,8 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
 
   Widget _buildStatusBadge(BuildContext context, String status) {
     Color color = Colors.grey;
-    Color bgColor = Colors.grey.withValues(alpha: 0.1);
-    String label = status.toUpperCase();
+    var bgColor = Colors.grey.withValues(alpha: 0.1);
+    var label = status.toUpperCase();
     final isDark = AppColors.isDark(context);
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -680,14 +669,14 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
         bgColor = isDark
             ? const Color(0xFF1E3A8A).withValues(alpha: 0.3)
             : const Color(0xFFEFF6FF);
-        label = "In Progress";
+        label = 'In Progress';
         break;
       case 'completed':
         color = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
         bgColor = isDark
             ? const Color(0xFF064E3B).withValues(alpha: 0.3)
             : const Color(0xFFF0FDF4);
-        label = "Completed";
+        label = 'Completed';
         break;
       case 'pending':
         color = isDark
@@ -696,14 +685,14 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
         bgColor = isDark
             ? const Color(0xFF422006).withValues(alpha: 0.3)
             : const Color.fromARGB(255, 255, 247, 216);
-        label = "Not Started";
+        label = 'Not Started';
         break;
       case 'cancelled':
         color = isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C);
         bgColor = isDark
             ? const Color(0xFF7F1D1D).withValues(alpha: 0.3)
             : const Color(0xFFFEF2F2);
-        label = "Cancelled";
+        label = 'Cancelled';
         break;
     }
     return Container(

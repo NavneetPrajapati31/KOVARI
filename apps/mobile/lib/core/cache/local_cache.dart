@@ -1,13 +1,8 @@
 import 'dart:convert';
 import 'package:hive/hive.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class CacheEntry {
-  final dynamic data;
-  final DateTime timestamp;
-  final Duration ttl;
-  final int version;
-
   CacheEntry({
     required this.data,
     required this.timestamp,
@@ -15,21 +10,25 @@ class CacheEntry {
     required this.version,
   });
 
+  factory CacheEntry.fromJson(Map<String, dynamic> json) => CacheEntry(
+    data: json['data'],
+    timestamp: DateTime.parse(json['timestamp'] as String),
+    ttl: Duration(seconds: json['ttl'] as int),
+    version: json['version'] as int? ?? 0,
+  );
+  final dynamic data;
+  final DateTime timestamp;
+  final Duration ttl;
+  final int version;
+
   bool get isExpired => DateTime.now().isAfter(timestamp.add(ttl));
 
   Map<String, dynamic> toJson() => {
-        'data': data,
-        'timestamp': timestamp.toIso8601String(),
-        'ttl': ttl.inSeconds,
-        'version': version,
-      };
-
-  factory CacheEntry.fromJson(Map<String, dynamic> json) => CacheEntry(
-        data: json['data'],
-        timestamp: DateTime.parse(json['timestamp']),
-        ttl: Duration(seconds: json['ttl']),
-        version: json['version'] ?? 0,
-      );
+    'data': data,
+    'timestamp': timestamp.toIso8601String(),
+    'ttl': ttl.inSeconds,
+    'version': version,
+  };
 }
 
 class LocalCache {
@@ -47,7 +46,9 @@ class LocalCache {
       _box = await Hive.openBox<String>(_boxName);
       _profileBox = await Hive.openBox<String>('profile_cache');
       _entityBox = await Hive.openBox<String>('entity_cache');
-      AppLogger.i('LocalCache initialized (API: ${_box?.length}, Profile: ${_profileBox?.length}, Entity: ${_entityBox?.length})');
+      AppLogger.i(
+        'LocalCache initialized (API: ${_box?.length}, Profile: ${_profileBox?.length}, Entity: ${_entityBox?.length})',
+      );
       _checkVersion();
     } catch (e) {
       AppLogger.e('Failed to initialize Hive boxes: $e');
@@ -56,7 +57,8 @@ class LocalCache {
 
   void _checkVersion() {
     final storedVersion = _box?.get('__cache_version_key__');
-    if (storedVersion == null || int.tryParse(storedVersion) != _currentVersion) {
+    if (storedVersion == null ||
+        int.tryParse(storedVersion) != _currentVersion) {
       AppLogger.w('Cache version mismatch. Clearing cache...');
       clearAll();
       _box?.put('__cache_version_key__', _currentVersion.toString());
@@ -86,12 +88,14 @@ class LocalCache {
     );
 
     _memoryCache[key] = entry;
-    
+
     try {
       if (_box != null) {
         // LRU Eviction
         if (_box!.length >= _maxEntries && !_box!.containsKey(key)) {
-          final oldestKey = _box!.keys.firstWhere((k) => k != '__cache_version_key__');
+          final oldestKey = _box!.keys.firstWhere(
+            (k) => k != '__cache_version_key__',
+          );
           await _box!.delete(oldestKey);
         }
         await _box!.put(key, jsonEncode(entry.toJson()));
@@ -115,7 +119,9 @@ class LocalCache {
     try {
       final stored = _box?.get(key);
       if (stored != null) {
-        final entry = CacheEntry.fromJson(jsonDecode(stored));
+        final entry = CacheEntry.fromJson(
+          jsonDecode(stored) as Map<String, dynamic>,
+        );
         if (!entry.isExpired && entry.version == _currentVersion) {
           _memoryCache[key] = entry;
           return entry;
@@ -131,7 +137,10 @@ class LocalCache {
     return null;
   }
 
-  Future<void> invalidate(String endpoint, {Map<String, dynamic>? params}) async {
+  Future<void> invalidate(
+    String endpoint, {
+    Map<String, dynamic>? params,
+  }) async {
     final key = _generateKey(endpoint, params);
     _memoryCache.remove(key);
     await _box?.delete(key);
@@ -145,7 +154,9 @@ class LocalCache {
       try {
         final stored = _box!.get(key);
         if (stored != null) {
-          final entry = CacheEntry.fromJson(jsonDecode(stored));
+          final entry = CacheEntry.fromJson(
+            jsonDecode(stored) as Map<String, dynamic>,
+          );
           if (entry.isExpired) {
             keysToDelete.add(key);
           }
@@ -156,7 +167,9 @@ class LocalCache {
     }
     if (keysToDelete.isNotEmpty) {
       await _box!.deleteAll(keysToDelete);
-      AppLogger.i('🧹 Cache cleanup: Removed ${keysToDelete.length} expired entries');
+      AppLogger.i(
+        '🧹 Cache cleanup: Removed ${keysToDelete.length} expired entries',
+      );
     }
   }
 

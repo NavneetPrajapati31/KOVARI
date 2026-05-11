@@ -1,12 +1,8 @@
 import 'dart:async';
 import 'package:hive/hive.dart';
-import 'runtime_trust_service.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/security/runtime_trust_service.dart';
 
 class TrustState {
-  final double persistentScore;
-  final DateTime lastEvaluated;
-  final int consecutiveTrustedPasses;
 
   TrustState({
     required this.persistentScore,
@@ -14,29 +10,32 @@ class TrustState {
     this.consecutiveTrustedPasses = 0,
   });
 
-  Map<String, dynamic> toJson() => {
-    'persistentScore': persistentScore,
-    'lastEvaluated': lastEvaluated.toIso8601String(),
-    'consecutiveTrustedPasses': consecutiveTrustedPasses,
-  };
-
   factory TrustState.fromJson(Map<dynamic, dynamic> json) => TrustState(
     persistentScore: (json['persistentScore'] as num).toDouble(),
     lastEvaluated: DateTime.parse(json['lastEvaluated'] as String),
     consecutiveTrustedPasses: json['consecutiveTrustedPasses'] as int,
   );
+  final double persistentScore;
+  final DateTime lastEvaluated;
+  final int consecutiveTrustedPasses;
+
+  Map<String, dynamic> toJson() => {
+    'persistentScore': persistentScore,
+    'lastEvaluated': lastEvaluated.toIso8601String(),
+    'consecutiveTrustedPasses': consecutiveTrustedPasses,
+  };
 }
 
 class TrustStateMachine {
+  factory TrustStateMachine() => _instance;
+  TrustStateMachine._internal();
   static const String _boxName = 'security_trust_state';
   static const String _stateKey = 'current_state';
 
-  late Box _box;
+  late Box<dynamic> _box;
   bool _isInitialized = false;
 
   static final TrustStateMachine _instance = TrustStateMachine._internal();
-  factory TrustStateMachine() => _instance;
-  TrustStateMachine._internal();
 
   /// 🔐 Initializes the trust state machine with persistence.
   Future<void> init() async {
@@ -50,7 +49,7 @@ class TrustStateMachine {
 
     final currentState = _getCurrentState();
     double newPersistentScore;
-    int newPasses = currentState.consecutiveTrustedPasses;
+    var newPasses = currentState.consecutiveTrustedPasses;
 
     // 🛡️ Hysteresis & Decay Logic:
     // 1. If instant score is compromised (low), drop persistent score IMMEDIATELY.
@@ -96,7 +95,7 @@ class TrustStateMachine {
         lastEvaluated: DateTime.now(),
       );
     }
-    return TrustState.fromJson(data);
+    return TrustState.fromJson(data as Map<dynamic, dynamic>);
   }
 
   TrustLevel _deriveLevel(double score) {

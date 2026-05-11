@@ -1,19 +1,18 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/navigation/routes.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/utils/api_error_handler.dart';
+import 'package:mobile/features/auth/services/auth_service.dart';
 import 'package:mobile/shared/widgets/app_card.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/text_input_field.dart';
-import '../../../shared/widgets/auth_social_button.dart';
-import '../../../shared/widgets/auth_divider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/utils/api_error_handler.dart';
-import '../services/auth_service.dart';
-import 'verify_email_screen.dart';
-import 'package:dio/dio.dart';
-import '../../../shared/widgets/kovari_snackbar.dart';
-import '../../../core/navigation/routes.dart';
+import 'package:mobile/shared/widgets/auth_divider.dart';
+import 'package:mobile/shared/widgets/auth_social_button.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -98,8 +97,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: AppColors.backgroundColor(context),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -113,7 +111,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Logo
                   Image.asset(
@@ -216,7 +213,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Already have an account? ",
+                        'Already have an account? ',
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.text(context, isMuted: true),
                         ),
@@ -245,5 +242,4 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         ),
       ),
     );
-  }
 }

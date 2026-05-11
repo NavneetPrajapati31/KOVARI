@@ -4,12 +4,6 @@ import 'package:flutter_riverpod/legacy.dart';
 enum MutationStatus { pending, success, failure }
 
 class MutationEntry<T> {
-  final String id;
-  final String entityId;
-  final T payload;
-  final MutationStatus status;
-  final Set<String>? affectedFields;
-  final DateTime timestamp;
 
   MutationEntry({
     required this.id,
@@ -19,16 +13,20 @@ class MutationEntry<T> {
     this.affectedFields,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
+  final String id;
+  final String entityId;
+  final T payload;
+  final MutationStatus status;
+  final Set<String>? affectedFields;
+  final DateTime timestamp;
 
-  MutationEntry<T> copyWith({MutationStatus? status}) {
-    return MutationEntry<T>(
+  MutationEntry<T> copyWith({MutationStatus? status}) => MutationEntry<T>(
       id: id,
       entityId: entityId,
       payload: payload,
       status: status ?? this.status,
       timestamp: timestamp,
     );
-  }
 }
 
 class MutationJournal extends ChangeNotifier {
@@ -54,12 +52,10 @@ class MutationJournal extends ChangeNotifier {
     }
   }
 
-  List<MutationEntry<dynamic>> getPendingFor(String entityId) {
-    return _journal[entityId]
+  List<MutationEntry<dynamic>> getPendingFor(String entityId) => _journal[entityId]
             ?.where((e) => e.status == MutationStatus.pending)
             .toList() ??
         [];
-  }
 
   bool hasPending(String entityId) => getPendingFor(entityId).isNotEmpty;
 }

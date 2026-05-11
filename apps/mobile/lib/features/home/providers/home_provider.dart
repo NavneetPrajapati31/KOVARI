@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/features/home/data/home_service.dart';
 import 'package:mobile/features/home/models/home_state.dart';
-import '../data/home_service.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/cache_provider.dart';
-import '../../../core/network/api_endpoints.dart';
 
 final homeServiceProvider = Provider<HomeService>((ref) {
   final apiClient = ref.read(apiClientProvider);
@@ -20,10 +20,10 @@ final homeDataProvider = StateNotifierProvider<HomeDataNotifier, HomeState>((
 });
 
 class HomeDataNotifier extends StateNotifier<HomeState> {
-  final Ref _ref;
   HomeDataNotifier(this._ref) : super(HomeState()) {
     _init();
   }
+  final Ref _ref;
 
   Future<void> _init() async {
     await refresh(isInitial: true);
@@ -55,7 +55,6 @@ class HomeDataNotifier extends StateNotifier<HomeState> {
         data: freshData,
         isStale: false,
         isLoading: false,
-        error: null,
       );
     } catch (e) {
       if (state.data == null) {

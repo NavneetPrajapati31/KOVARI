@@ -1,51 +1,46 @@
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:mobile/core/telemetry/telemetry_budget.dart';
+import 'package:mobile/core/telemetry/telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_privacy_audit.dart';
+import 'package:mobile/core/telemetry/telemetry_queue.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:uuid/uuid.dart';
-import '../utils/app_logger.dart';
-
-import 'telemetry_priority.dart';
-import 'telemetry_budget.dart';
-import 'telemetry_privacy_audit.dart';
-import 'telemetry_queue.dart';
 
 class TelemetryService {
+  factory TelemetryService() => _instance;
+  TelemetryService._internal();
   FirebaseAnalytics? _analytics;
   FirebaseCrashlytics? _crashlytics;
   final TelemetryQueue _queue = TelemetryQueue();
-  bool _isInitialized = false;
 
   final String _sessionId = const Uuid().v4();
-  String? _userId;
   String? _currentTraceId;
 
   static final TelemetryService _instance = TelemetryService._internal();
-  factory TelemetryService() => _instance;
-  TelemetryService._internal();
 
   Future<void> init() async {
     try {
       await _queue.init();
 
-      // 🛡️ Final Hardening: Access instances ONLY if initialization succeeded
       if (Firebase.apps.isNotEmpty) {
         _analytics = FirebaseAnalytics.instance;
         _crashlytics = FirebaseCrashlytics.instance;
-        _isInitialized = true;
 
         if (kReleaseMode) {
           await _crashlytics?.setCrashlyticsCollectionEnabled(true);
         }
 
-        // Set global context
         await _analytics?.setDefaultEventParameters({
           'session_id': _sessionId,
           'device_profile': _getDeviceProfile(),
         });
 
-        _crashlytics?.setCustomKey('session_id', _sessionId);
+        unawaited(_crashlytics?.setCustomKey('session_id', _sessionId) ?? Future.value());
       } else {
         AppLogger.w(
           '⚠️ [TelemetryService] Firebase not initialized (No apps found). Skipping Firebase.',
@@ -69,7 +64,7 @@ class TelemetryService {
     if (!TelemetryBudget.canProcessEvent(_queue.length, priority)) return;
 
     final enrichedParams = _enrichParameters(parameters, priority, journeyId);
-    final safeParams = TelemetryPrivacyAudit.scrub(enrichedParams);
+    final safeParams = TelemetryPrivacyAudit.scrub(enrichedParams) as Map<String, dynamic>;
 
     if (kDebugMode) {
       TelemetryPrivacyAudit.isSafe(safeParams);
@@ -85,12 +80,14 @@ class TelemetryService {
     // 2. Add breadcrumb to Sentry/Crashlytics if priority is high enough
     if (priority.index <= TelemetryPriority.normal.index) {
       _addBreadcrumb('EVENT: $name | $safeParams');
-      Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: name,
-          data: safeParams,
-          category: 'ux_event',
-          level: _mapToSentryLevel(priority),
+      unawaited(
+        Sentry.addBreadcrumb(
+          Breadcrumb(
+            message: name,
+            data: safeParams,
+            category: 'ux_event',
+            level: _mapToSentryLevel(priority),
+          ),
         ),
       );
     }
@@ -153,7 +150,6 @@ class TelemetryService {
   }
 
   void setUserId(String? id) {
-    _userId = id;
     _analytics?.setUserId(id: id);
     _crashlytics?.setUserIdentifier(id ?? 'anonymous');
     Sentry.configureScope((scope) => scope.setUser(SentryUser(id: id)));
@@ -170,8 +166,7 @@ class TelemetryService {
     Map<String, dynamic>? params,
     TelemetryPriority priority,
     String? journeyId,
-  ) {
-    return {
+  ) => {
       if (params != null) ...params,
       'trace_id': _currentTraceId ?? 'none',
       'session_id': _sessionId,
@@ -179,16 +174,13 @@ class TelemetryService {
       'priority': priority.name,
       'timestamp': DateTime.now().toIso8601String(),
     };
-  }
 
   String _getDeviceProfile() {
     // Placeholder for actual device info detection
     return kIsWeb ? 'web' : 'mobile';
   }
 
-  Map<String, Object> _mapToFirebase(Map<String, dynamic> params) {
-    return params.map((key, value) => MapEntry(key, value.toString()));
-  }
+  Map<String, Object> _mapToFirebase(Map<String, dynamic> params) => params.map((key, value) => MapEntry(key, value.toString()));
 
   SentryLevel _mapToSentryLevel(TelemetryPriority priority) {
     switch (priority) {

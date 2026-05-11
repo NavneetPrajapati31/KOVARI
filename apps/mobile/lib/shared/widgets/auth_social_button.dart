@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import 'interactive_wrapper.dart';
-import '../../core/config/interaction_config.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/widgets/interactive_wrapper.dart';
 
 class AuthSocialButton extends StatelessWidget {
-  final String text;
-  final Widget icon;
-  final VoidCallback? onPressed;
-  final bool isLoading;
 
   const AuthSocialButton({
     super.key,
@@ -17,13 +12,15 @@ class AuthSocialButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
   });
+  final String text;
+  final Widget icon;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
   @override
-  Widget build(BuildContext context) {
-    return InteractiveWrapper(
+  Widget build(BuildContext context) => InteractiveWrapper(
       onPressed: isLoading ? null : onPressed,
       borderRadius: BorderRadius.circular(12),
-      hapticType: HapticType.light,
       child: Container(
         width: double.infinity,
         height: 40,
@@ -65,5 +62,4 @@ class AuthSocialButton extends StatelessWidget {
               ),
       ),
     );
-  }
 }

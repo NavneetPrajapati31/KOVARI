@@ -1,4 +1,4 @@
-import 'telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_priority.dart';
 
 class TelemetryBudget {
   /// 📏 Maximum size of a single event payload in bytes.

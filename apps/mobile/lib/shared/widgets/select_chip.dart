@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
 
 class SelectChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final Color? fillColor;
 
   const SelectChip({
     super.key,
@@ -16,10 +12,13 @@ class SelectChip extends StatelessWidget {
     required this.onTap,
     this.fillColor,
   });
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final Color? fillColor;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
+  Widget build(BuildContext context) => GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -29,7 +28,7 @@ class SelectChip extends StatelessWidget {
               ? AppColors.primary.withValues(alpha: 0.1)
               : (fillColor ?? AppColors.surface(context, level: 2)),
           borderRadius: AppRadius.extraLarge,
-          border: Border.all(color: AppColors.borderColor(context), width: 1),
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
         child: Text(
           label,
@@ -40,5 +39,4 @@ class SelectChip extends StatelessWidget {
         ),
       ),
     );
-  }
 }

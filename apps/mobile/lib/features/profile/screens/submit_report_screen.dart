@@ -1,19 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/navigation/routes.dart';
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/network/cloudinary_service.dart';
-import '../providers/safety_provider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/network/cloudinary_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/profile/providers/safety_provider.dart';
 
 class SubmitReportScreen extends ConsumerStatefulWidget {
-  final String targetType;
-  final String targetId;
-  final String targetName;
 
   const SubmitReportScreen({
     super.key,
@@ -21,6 +19,9 @@ class SubmitReportScreen extends ConsumerStatefulWidget {
     required this.targetId,
     required this.targetName,
   });
+  final String targetType;
+  final String targetId;
+  final String targetName;
 
   @override
   ConsumerState<SubmitReportScreen> createState() => _SubmitReportScreenState();
@@ -95,8 +96,8 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
       if (_evidenceFile != null) {
         final cloudinary = ref.read(cloudinaryServiceProvider);
         final result = await cloudinary.uploadImage(_evidenceFile!);
-        evidenceUrl = result['secure_url'];
-        evidencePublicId = result['public_id'];
+        evidenceUrl = result['secure_url'] as String?;
+        evidencePublicId = result['public_id'] as String?;
       }
 
       final finalReason = _selectedReason == 'Other'
@@ -150,7 +151,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
   }
 
   void _showSuccessAndExit() {
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
@@ -303,8 +304,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
     );
   }
 
-  Widget _buildHero(BuildContext context) {
-    return Column(
+  Widget _buildHero(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -332,10 +332,8 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         ),
       ],
     );
-  }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
+  Widget _buildSectionTitle(BuildContext context, String title) => Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
       child: Text(
         title,
@@ -347,10 +345,8 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         ),
       ),
     );
-  }
 
-  InputDecoration _inputDecoration(BuildContext context, String hint) {
-    return InputDecoration(
+  InputDecoration _inputDecoration(BuildContext context, String hint) => InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: AppColors.text(context, isMuted: true)),
       filled: true,
@@ -369,10 +365,8 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
     );
-  }
 
-  Widget _buildReasonList(BuildContext context, List<String> reasons) {
-    return Container(
+  Widget _buildReasonList(BuildContext context, List<String> reasons) => DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(12),
@@ -426,10 +420,8 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         }).toList(),
       ),
     );
-  }
 
-  Widget _buildEvidencePicker(BuildContext context) {
-    return Column(
+  Widget _buildEvidencePicker(BuildContext context) => Column(
       children: [
         if (_evidenceFile != null)
           Stack(
@@ -470,7 +462,6 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: AppColors.borderColor(context),
-                  style: BorderStyle.solid,
                 ),
               ),
               child: Column(
@@ -502,7 +493,6 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
           ),
       ],
     );
-  }
 
   Widget _buildSubmitButton(BuildContext context, SafetyState state) {
     final canSubmit =

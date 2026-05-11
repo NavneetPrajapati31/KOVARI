@@ -1,33 +1,4 @@
 class UserProfile {
-  final String name;
-  final String username;
-  final String age;
-  final String gender;
-  final String nationality;
-  final String profession;
-  final List<String> interests;
-  final List<String> languages;
-  final String bio;
-  final String followers;
-  final String following;
-  final String likes;
-  final String coverImage;
-  final String profileImage;
-  final List<UserPost> posts;
-  final bool isFollowing;
-  final bool isFollowingMe;
-  final bool isOwnProfile;
-  final String location;
-  final String religion;
-  final String smoking;
-  final String drinking;
-  final String personality;
-  final String foodPreference;
-  final String? birthday;
-  final String userId;
-  final String email;
-  final bool isVerified;
-  final String createdAt;
 
   UserProfile({
     required this.name,
@@ -61,45 +32,71 @@ class UserProfile {
     this.createdAt = '',
   });
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      name: json['name'] ?? '',
-      username: json['username'] ?? '',
+  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+      name: (json['name'] as String?) ?? '',
+      username: (json['username'] as String?) ?? '',
       age: json['age']?.toString() ?? '',
-      gender: json['gender'] ?? '',
-      nationality: json['nationality'] ?? '',
-      profession: json['profession'] ?? json['job'] ?? '',
-      interests: List<String>.from(json['interests'] ?? []),
-      languages: List<String>.from(json['languages'] ?? []),
-      bio: json['bio'] ?? '',
+      gender: (json['gender'] as String?) ?? '',
+      nationality: (json['nationality'] as String?) ?? '',
+      profession: (json['profession'] as String?) ?? (json['job'] as String?) ?? '',
+      interests: List<String>.from(json['interests'] as List? ?? []),
+      languages: List<String>.from(json['languages'] as List? ?? []),
+      bio: (json['bio'] as String?) ?? '',
       followers: json['followers']?.toString() ?? '0',
       following: json['following']?.toString() ?? '0',
       likes: json['likes']?.toString() ?? '0',
-      coverImage: json['cover_image'] ?? '',
-      profileImage: json['avatar'] ?? json['profile_photo'] ?? json['profile_image'] ?? '',
+      coverImage: (json['cover_image'] as String?) ?? '',
+      profileImage: (json['avatar'] as String?) ?? (json['profile_photo'] as String?) ?? (json['profile_image'] as String?) ?? '',
       posts: (json['posts'] as List? ?? [])
-          .map((p) => UserPost.fromJson(p))
+          .map((p) => UserPost.fromJson(p as Map<String, dynamic>))
           .toList(),
-      isFollowing: json['isFollowing'] ?? false,
-      isFollowingMe: json['isFollowingMe'] ?? false,
-      isOwnProfile: json['isOwnProfile'] ?? false,
-      location: json['location'] ?? '',
-      religion: json['religion'] ?? '',
-      smoking: json['smoking'] ?? '',
-      drinking: json['drinking'] ?? '',
-      personality: json['personality'] ?? '',
+      isFollowing: (json['isFollowing'] as bool?) ?? false,
+      isFollowingMe: (json['isFollowingMe'] as bool?) ?? false,
+      isOwnProfile: (json['isOwnProfile'] as bool?) ?? false,
+      location: (json['location'] as String?) ?? '',
+      religion: (json['religion'] as String?) ?? '',
+      smoking: (json['smoking'] as String?) ?? '',
+      drinking: (json['drinking'] as String?) ?? '',
+      personality: (json['personality'] as String?) ?? '',
       foodPreference:
-          json['foodPreference'] ?? json['food_preference'] ?? '',
-      birthday: json['birthday'],
-      userId: json['id'] ?? json['user_id'] ?? '',
-      email: json['email'] ?? '',
-      isVerified: json['verified'] ?? json['is_verified'] ?? false,
-      createdAt: json['created_at'] ?? '',
+          (json['foodPreference'] as String?) ?? (json['food_preference'] as String?) ?? '',
+      birthday: json['birthday'] as String?,
+      userId: (json['id'] as String?) ?? (json['user_id'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      isVerified: (json['verified'] as bool?) ?? (json['is_verified'] as bool?) ?? false,
+      createdAt: (json['created_at'] as String?) ?? '',
     );
-  }
+  final String name;
+  final String username;
+  final String age;
+  final String gender;
+  final String nationality;
+  final String profession;
+  final List<String> interests;
+  final List<String> languages;
+  final String bio;
+  final String followers;
+  final String following;
+  final String likes;
+  final String coverImage;
+  final String profileImage;
+  final List<UserPost> posts;
+  final bool isFollowing;
+  final bool isFollowingMe;
+  final bool isOwnProfile;
+  final String location;
+  final String religion;
+  final String smoking;
+  final String drinking;
+  final String personality;
+  final String foodPreference;
+  final String? birthday;
+  final String userId;
+  final String email;
+  final bool isVerified;
+  final String createdAt;
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'name': name,
       'username': username,
       'age': age,
@@ -127,7 +124,6 @@ class UserProfile {
       'user_id': userId,
       'email': email,
     };
-  }
 
   UserProfile copyWith({
     String? name,
@@ -159,8 +155,7 @@ class UserProfile {
     String? email,
     bool? isVerified,
     String? createdAt,
-  }) {
-    return UserProfile(
+  }) => UserProfile(
       name: name ?? this.name,
       username: username ?? this.username,
       age: age ?? this.age,
@@ -191,19 +186,16 @@ class UserProfile {
       isVerified: isVerified ?? this.isVerified,
       createdAt: createdAt ?? this.createdAt,
     );
-  }
 }
 
 class UserPost {
-  final String id;
-  final String imageUrl;
 
   UserPost({required this.id, required this.imageUrl});
 
-  factory UserPost.fromJson(Map<String, dynamic> json) {
-    return UserPost(
+  factory UserPost.fromJson(Map<String, dynamic> json) => UserPost(
       id: json['id']?.toString() ?? '',
-      imageUrl: json['image_url'] ?? '',
+      imageUrl: (json['image_url'] as String?) ?? '',
     );
-  }
+  final String id;
+  final String imageUrl;
 }

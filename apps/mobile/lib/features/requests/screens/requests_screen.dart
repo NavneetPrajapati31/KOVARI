@@ -3,17 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../core/services/haptic_service.dart';
-import '../providers/request_provider.dart';
-import '../models/request_model.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/secondary_button.dart';
-import '../../../shared/widgets/kovari_snackbar.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/requests/models/request_model.dart';
+import 'package:mobile/features/requests/providers/request_provider.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -39,8 +39,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: AppColors.backgroundColor(context),
       body: SafeArea(
         child: Column(
@@ -57,10 +56,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
+  Widget _buildHeader(BuildContext context) => Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: const BoxDecoration(),
       child: Row(
@@ -80,10 +77,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ],
       ),
     );
-  }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
       onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
@@ -94,10 +89,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildTabs() {
-    return Padding(
+  Widget _buildTabs() => Padding(
       padding: const EdgeInsets.only(
         left: AppSpacing.md,
         right: AppSpacing.md,
@@ -136,7 +129,6 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
       ),
     );
-  }
 }
 
 class _InterestsList extends ConsumerWidget {
@@ -168,24 +160,22 @@ class _InterestsList extends ConsumerWidget {
           ),
         );
       },
-      loading: () => _buildSkeleton(),
+      loading: _buildSkeleton,
       error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
 
-  Widget _buildSkeleton() {
-    return ListView.builder(
+  Widget _buildSkeleton() => ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: 5,
       itemBuilder: (context, index) => const KovariSkeletonRequestCard(),
     );
-  }
 }
 
 class _InterestCard extends ConsumerStatefulWidget {
-  final InterestModel interest;
 
   const _InterestCard({required this.interest});
+  final InterestModel interest;
 
   @override
   ConsumerState<_InterestCard> createState() => _InterestCardState();
@@ -387,24 +377,22 @@ class _InvitationsList extends ConsumerWidget {
           ),
         );
       },
-      loading: () => _buildSkeleton(),
+      loading: _buildSkeleton,
       error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
 
-  Widget _buildSkeleton() {
-    return ListView.builder(
+  Widget _buildSkeleton() => ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: 5,
       itemBuilder: (context, index) => const KovariSkeletonRequestCard(),
     );
-  }
 }
 
 class _InvitationCard extends ConsumerStatefulWidget {
-  final InvitationModel invitation;
 
   const _InvitationCard({required this.invitation});
+  final InvitationModel invitation;
 
   @override
   ConsumerState<_InvitationCard> createState() => _InvitationCardState();
@@ -543,7 +531,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
           // Actions
           if (_isAccepted)
             PrimaryButton(
-              text: "Accepted! Joining group...",
+              text: 'Accepted! Joining group...',
               onPressed: () {
                 // Navigate to group
               },

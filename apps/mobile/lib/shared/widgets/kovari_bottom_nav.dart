@@ -1,25 +1,26 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../core/providers/profile_provider.dart';
-import '../../core/services/haptic_service.dart';
-import '../../core/config/interaction_config.dart';
-import '../utils/kovari_icons.dart';
-import '../utils/url_utils.dart';
-import 'kovari_avatar.dart';
-import '../../core/providers/nav_provider.dart';
+import 'package:mobile/core/config/interaction_config.dart';
+import 'package:mobile/core/providers/nav_provider.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/utils/kovari_icons.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 class KovariBottomNav extends ConsumerWidget {
-  final int currentIndex;
-  final ValueChanged<int> onTap;
 
   const KovariBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
   });
+  final int currentIndex;
+  final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,7 +74,6 @@ class KovariBottomNav extends ConsumerWidget {
         ),
         // 📳 The Floating Nav Bar
         SafeArea(
-          bottom: true,
           child: Container(
             height: 100,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
@@ -154,28 +154,23 @@ class KovariBottomNav extends ConsumerWidget {
         ? AppColors.primary
         : AppColors.text(context, isMuted: true);
 
-    String svgString = '';
+    var svgString = '';
     switch (iconType) {
       case 'home':
         svgString = KovariIcons.getHome(
           isFilled: isSelected,
-          color: 'currentColor',
         );
       case 'search':
         svgString = KovariIcons.getSearch(
-          isFilled: false,
           strokeWidth: isSelected ? 3.5 : 2.5, // Even bolder selected stroke
-          color: 'currentColor',
         );
       case 'send':
         svgString = KovariIcons.getSend(
           isFilled: isSelected,
-          color: 'currentColor',
         );
       case 'users':
         svgString = KovariIcons.getUsers(
           isFilled: isSelected,
-          color: 'currentColor',
         );
     }
 

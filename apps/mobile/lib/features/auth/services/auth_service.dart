@@ -1,21 +1,22 @@
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/auth/token_storage.dart';
-import '../../../core/auth/session_manager.dart';
-import '../../../shared/models/kovari_user.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/utils/app_logger.dart';
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:mobile/core/auth/session_manager.dart';
+import 'package:mobile/core/auth/token_storage.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/shared/models/kovari_user.dart';
+
 class AuthService {
+
+  AuthService(this._apiClient, this._sessionManager);
   final ApiClient _apiClient;
   final TokenStorage _storage = TokenStorage();
   final SessionManager _sessionManager;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
-
-  AuthService(this._apiClient, this._sessionManager);
 
   Future<KovariUser?> loginWithGoogle({CancelToken? cancelToken}) async {
     AppLogger.d('Starting Google Authentication flow...');
@@ -24,13 +25,13 @@ class AuthService {
       'Google Account retrieved: ${account.email}. Fetching tokens...',
     );
     final auth = account.authentication;
-    final String? idToken = auth.idToken;
+    final idToken = auth.idToken;
 
     if (idToken == null) {
       AppLogger.e(
         'Failed to retrieve Google ID Token from authentication result.',
       );
-      throw Exception("Failed to retrieve Google ID Token");
+      throw Exception('Failed to retrieve Google ID Token');
     }
 
     AppLogger.i(
@@ -40,7 +41,7 @@ class AuthService {
     final response = await _apiClient.post<KovariUser>(
       ApiEndpoints.googleAuth,
       data: {'idToken': idToken},
-      parser: (data) => parseAuthResponse(data),
+      parser: parseAuthResponse,
       cancelToken: cancelToken,
     );
 
@@ -48,7 +49,7 @@ class AuthService {
       await _finalizeAuthentication(response.data!, response.raw);
       return response.data;
     }
-    throw Exception(response.error?.message ?? "Google Login failed");
+    throw Exception(response.error?.message ?? 'Google Login failed');
   }
 
   Future<KovariUser?> loginWithEmail(
@@ -59,7 +60,7 @@ class AuthService {
     final response = await _apiClient.post<KovariUser>(
       ApiEndpoints.emailLogin,
       data: {'email': email, 'password': password},
-      parser: (data) => parseAuthResponse(data),
+      parser: parseAuthResponse,
       cancelToken: cancelToken,
     );
 
@@ -67,7 +68,7 @@ class AuthService {
       await _finalizeAuthentication(response.data!, response.raw);
       return response.data;
     }
-    throw Exception(response.error?.message ?? "Email Login failed");
+    throw Exception(response.error?.message ?? 'Email Login failed');
   }
 
   Future<Map<String, dynamic>> registerWithEmail(
@@ -91,7 +92,7 @@ class AuthService {
       await _finalizeAuthentication(user, data);
       return data;
     }
-    throw Exception(response.error?.message ?? "Registration failed");
+    throw Exception(response.error?.message ?? 'Registration failed');
   }
 
   Future<void> resendOtp(String email, {CancelToken? cancelToken}) async {
@@ -102,7 +103,7 @@ class AuthService {
       cancelToken: cancelToken,
     );
     if (!response.success) {
-      throw Exception(response.error?.message ?? "OTP Resend failed");
+      throw Exception(response.error?.message ?? 'OTP Resend failed');
     }
   }
 
@@ -118,7 +119,7 @@ class AuthService {
     );
     if (!response.success) {
       throw Exception(
-        response.error?.message ?? "Forgot Password request failed",
+        response.error?.message ?? 'Forgot Password request failed',
       );
     }
   }
@@ -135,7 +136,7 @@ class AuthService {
       cancelToken: cancelToken,
     );
     if (!response.success) {
-      throw Exception(response.error?.message ?? "Reset Password failed");
+      throw Exception(response.error?.message ?? 'Reset Password failed');
     }
   }
 
@@ -147,7 +148,7 @@ class AuthService {
     final response = await _apiClient.post<KovariUser>(
       ApiEndpoints.verifyOtp,
       data: {'email': email, 'code': code},
-      parser: (data) => parseAuthResponse(data),
+      parser: parseAuthResponse,
       cancelToken: cancelToken,
     );
 
@@ -155,11 +156,11 @@ class AuthService {
       await _finalizeAuthentication(response.data!, response.raw);
       return response.data!;
     }
-    throw Exception(response.error?.message ?? "OTP Verification failed");
+    throw Exception(response.error?.message ?? 'OTP Verification failed');
   }
 
   Future<void> _finalizeAuthentication(KovariUser user, dynamic rawData) async {
-    final Map<String, dynamic> responseData = rawData as Map<String, dynamic>;
+    final responseData = rawData as Map<String, dynamic>;
     final data = responseData['data'] ?? responseData;
 
     final accessToken = data['accessToken'] as String;
@@ -180,7 +181,7 @@ class AuthService {
   }
 
   KovariUser parseAuthResponse(dynamic data) {
-    final Map<String, dynamic> responseData = data as Map<String, dynamic>;
+    final responseData = data as Map<String, dynamic>;
     final innerData = responseData['data'] ?? responseData;
     final userMap = innerData['user'] as Map<String, dynamic>;
     return KovariUser.fromAuthResponse(userMap);

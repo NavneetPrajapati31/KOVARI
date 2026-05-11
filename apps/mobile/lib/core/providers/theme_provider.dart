@@ -10,7 +10,7 @@ class ThemeNotifier extends Notifier<ThemeMode> {
   ThemeMode build() {
     // Initial sync load from Hive
     final box = Hive.box(_boxName);
-    final index = box.get(_key, defaultValue: ThemeMode.system.index);
+    final index = box.get(_key, defaultValue: ThemeMode.system.index) as int;
     return ThemeMode.values[index];
   }
 
@@ -21,6 +21,4 @@ class ThemeNotifier extends Notifier<ThemeMode> {
   }
 }
 
-final themeProvider = NotifierProvider<ThemeNotifier, ThemeMode>(() {
-  return ThemeNotifier();
-});
+final themeProvider = NotifierProvider<ThemeNotifier, ThemeMode>(ThemeNotifier.new);

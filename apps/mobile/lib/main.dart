@@ -1,41 +1,41 @@
+import 'dart:async';
+import 'dart:ui';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
-import 'package:mobile/core/navigation/router.dart';
-import 'dart:ui';
-import 'dart:async';
-import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'core/utils/app_logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'core/theme/app_theme.dart';
-import 'core/theme/app_colors.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'core/config/env.dart';
-import 'shared/widgets/dynamic_status_overlay.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'core/telemetry/telemetry_service.dart';
-import 'core/security/secure_key_manager.dart';
-import 'core/security/runtime_trust_service.dart';
-import 'core/security/trust_state_machine.dart';
-import 'core/telemetry/runtime_metrics_service.dart';
-import 'core/telemetry/freeze_monitor.dart';
-import 'core/telemetry/release_health_service.dart';
-import 'core/telemetry/runtime_observability_overlay.dart';
-import 'core/providers/cache_provider.dart';
-import 'core/network/mutation_queue.dart';
-import 'core/providers/theme_provider.dart';
-import 'core/providers/auth_provider.dart';
-import 'core/runtime/runtime_init.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:mobile/core/config/env.dart';
+import 'package:mobile/core/navigation/router.dart';
+import 'package:mobile/core/network/mutation_queue.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/core/providers/theme_provider.dart';
+import 'package:mobile/core/runtime/runtime_init.dart';
+import 'package:mobile/core/security/runtime_trust_service.dart';
+import 'package:mobile/core/security/secure_key_manager.dart';
+import 'package:mobile/core/security/trust_state_machine.dart';
+import 'package:mobile/core/telemetry/freeze_monitor.dart';
+import 'package:mobile/core/telemetry/release_health_service.dart';
+import 'package:mobile/core/telemetry/runtime_metrics_service.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_theme.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/shared/widgets/dynamic_status_overlay.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 late final ProviderContainer globalProviderContainer;
 
 void main() {
   runZonedGuarded(
     () async {
-      WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
       // 🛰️ [Production Observability] Phase 1: Foundation
@@ -53,7 +53,7 @@ void main() {
       // Initialize Hive
       try {
         await Hive.initFlutter();
-        await Hive.openBox('settings');
+        await Hive.openBox<dynamic>('settings');
         AppLogger.i('Hive initialized successfully');
       } catch (e) {
         AppLogger.e('Hive initialization failed: $e');
@@ -259,7 +259,6 @@ void main() {
       AppLogger.e(
         'Uncaught Zone Error: $error',
         stackTrace: stackTrace,
-        reportToSentry: true,
       );
 
       if (kReleaseMode) {
@@ -284,7 +283,7 @@ class KovariApp extends ConsumerWidget {
       themeMode: ref.watch(themeProvider),
       routerConfig: router,
       builder: (context, child) {
-        Widget content = GestureDetector(
+        final Widget content = GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
@@ -358,7 +357,5 @@ class BouncingScrollBehavior extends ScrollBehavior {
   const BouncingScrollBehavior();
 
   @override
-  ScrollPhysics getScrollPhysics(BuildContext context) {
-    return const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
-  }
+  ScrollPhysics getScrollPhysics(BuildContext context) => const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
 }

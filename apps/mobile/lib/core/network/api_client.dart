@@ -1,33 +1,33 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
+
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/auth/auth_repository.dart';
+import 'package:mobile/core/auth/session_manager.dart';
+import 'package:mobile/core/auth/token_storage.dart';
+import 'package:mobile/core/cache/local_cache.dart';
+import 'package:mobile/core/config/env.dart';
+import 'package:mobile/core/models/api_response.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/network/mutation_queue.dart';
+import 'package:mobile/core/network/request_priority.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/security/abuse_detection_service.dart';
+import 'package:mobile/core/security/request_signing_service.dart';
+import 'package:mobile/core/security/security_policy.dart';
+import 'package:mobile/core/security/security_remote_config.dart';
+import 'package:mobile/core/telemetry/event_schema_registry.dart';
+import 'package:mobile/core/telemetry/telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/core/utils/deep_clone.dart';
 import 'package:uuid/uuid.dart';
-import '../../core/config/env.dart';
-import '../../core/auth/token_storage.dart';
-import '../../core/auth/session_manager.dart';
-import '../../core/auth/auth_repository.dart';
-import '../../core/utils/deep_clone.dart';
-import '../../core/models/api_response.dart';
-import 'package:flutter/foundation.dart' show compute;
-import '../cache/local_cache.dart';
-import '../providers/cache_provider.dart';
-import '../providers/connectivity_provider.dart';
-import 'api_endpoints.dart';
-import 'mutation_queue.dart';
-import '../utils/app_logger.dart';
-import 'request_priority.dart';
-import 'dart:io';
-import '../security/security_policy.dart';
-import 'package:dio/io.dart';
-import '../security/secure_key_manager.dart';
-import '../security/security_remote_config.dart';
-import '../security/request_signing_service.dart';
-import '../security/abuse_detection_service.dart';
-import '../telemetry/telemetry_service.dart';
-import '../telemetry/telemetry_priority.dart';
-import '../telemetry/event_schema_registry.dart';
 
 // ─────────────────────────────────────────────
 // Abstract Interface
@@ -83,17 +83,6 @@ abstract class ApiClient {
 // ─────────────────────────────────────────────
 
 class DioApiClient implements ApiClient {
-  final Dio _dio;
-  final Dio _retryDio;
-  final SessionManager _sessionManager;
-  final TokenStorage _tokenStorage = TokenStorage();
-  late final AuthRepository _authRepository;
-  late final LocalCache _cache;
-  final Ref _ref;
-  final Map<String, Future<dynamic>> _activeRequests = {};
-
-  static const _uuid = Uuid();
-
   DioApiClient(this._ref)
     : _sessionManager = _ref.read(sessionManagerProvider),
       _dio = Dio(
@@ -116,6 +105,16 @@ class DioApiClient implements ApiClient {
     _cache = _ref.read(localCacheProvider);
     _initializeInterceptors();
   }
+  final Dio _dio;
+  final Dio _retryDio;
+  final SessionManager _sessionManager;
+  final TokenStorage _tokenStorage = TokenStorage();
+  late final AuthRepository _authRepository;
+  late final LocalCache _cache;
+  final Ref _ref;
+  final Map<String, Future<dynamic>> _activeRequests = {};
+
+  static const _uuid = Uuid();
 
   void _initializeInterceptors() {
     // 🛡️ [Security] Modern SPKI Pinning Implementation
@@ -126,8 +125,9 @@ class DioApiClient implements ApiClient {
             .badCertificateCallback = (X509Certificate cert, String host, int port) {
           // Check if host has pins
           final pins = SecurityPolicy.spkiPins[host];
-          if (pins == null || pins.isEmpty)
+          if (pins == null || pins.isEmpty) {
             return false; // Fail by default for unknown pinned hosts
+          }
 
           // In a production environment, we would extract SPKI and compare hashes here.
           // For now, we log the attempt for absolute architectural integrity.
@@ -154,11 +154,12 @@ class DioApiClient implements ApiClient {
 
           // 2. Classification
           final isPublic =
-              options.extra['isPublic'] ??
+              (options.extra['isPublic'] as bool?) ??
               TokenStorage.isPublicEndpoint(options.path);
-          final authRequired = options.extra['authRequired'] ?? !isPublic;
+          final authRequired =
+              (options.extra['authRequired'] as bool?) ?? !isPublic;
           final isMutation =
-              options.extra['isMutation'] ??
+              (options.extra['isMutation'] as bool?) ??
               [
                 'POST',
                 'PUT',
@@ -184,13 +185,15 @@ class DioApiClient implements ApiClient {
           if (connectivity.isOffline) {
             if (isMutation) {
               // Queue mutations for later
-              _ref
-                  .read(mutationQueueProvider.notifier)
-                  .enqueue(
-                    path: options.path,
-                    method: options.method,
-                    data: options.data,
-                  );
+              unawaited(
+                _ref
+                    .read(mutationQueueProvider.notifier)
+                    .enqueue(
+                      path: options.path,
+                      method: options.method,
+                      data: options.data as Map<String, dynamic>?,
+                    ),
+              );
               return handler.reject(
                 DioException(
                   requestOptions: options,
@@ -355,7 +358,7 @@ class DioApiClient implements ApiClient {
           final heuristicExpired = await _tokenStorage.isExpired();
 
           final shouldRefresh =
-              (isTokenExpired) ||
+              isTokenExpired ||
               (is401 && hasAuthHeader) ||
               (heuristicExpired && hasAuthHeader);
 
@@ -376,14 +379,16 @@ class DioApiClient implements ApiClient {
             );
 
             try {
-              await _authRepository.refreshToken(requestId: requestId);
+              await _authRepository.refreshToken(
+                requestId: requestId as String?,
+              );
 
               // 2. Post-Refresh Retry with Jittered Exponential Backoff
               final retryCount =
                   (e.requestOptions.extra['retryCount'] as int? ?? 0) + 1;
               final backoffMs =
                   (pow(2, retryCount) * 100).toInt() + Random().nextInt(100);
-              await Future.delayed(Duration(milliseconds: backoffMs));
+              await Future<void>.delayed(Duration(milliseconds: backoffMs));
 
               return handler.resolve(
                 await _retryRequest(e.requestOptions, retryCount),
@@ -405,18 +410,20 @@ class DioApiClient implements ApiClient {
           );
 
           // Log Failure to Telemetry
-          TelemetryService().logEvent(
-            EventSchemaRegistry.apiLatency,
-            priority: TelemetryPriority.high,
-            parameters: {
-              'endpoint': e.requestOptions.path,
-              'method': e.requestOptions.method,
-              'status_code': e.response?.statusCode ?? 0,
-              'error_type': e.type.name,
-              'is_timeout':
-                  e.type == DioExceptionType.connectionTimeout ||
-                  e.type == DioExceptionType.receiveTimeout,
-            },
+          unawaited(
+            TelemetryService().logEvent(
+              EventSchemaRegistry.apiLatency,
+              priority: TelemetryPriority.high,
+              parameters: {
+                'endpoint': e.requestOptions.path,
+                'method': e.requestOptions.method,
+                'status_code': e.response?.statusCode ?? 0,
+                'error_type': e.type.name,
+                'is_timeout':
+                    e.type == DioExceptionType.connectionTimeout ||
+                    e.type == DioExceptionType.receiveTimeout,
+              },
+            ),
           );
 
           // 3. Safe Request Auto-Retry (Timeout/Network errors)
@@ -442,7 +449,7 @@ class DioApiClient implements ApiClient {
             AppLogger.w(
               '🔄 [$requestId] Network error. Retrying in ${backoffMs}ms (Attempt #$retryCount)',
             );
-            await Future.delayed(Duration(milliseconds: backoffMs));
+            await Future<void>.delayed(Duration(milliseconds: backoffMs));
 
             try {
               return handler.resolve(
@@ -470,7 +477,7 @@ class DioApiClient implements ApiClient {
     return false;
   }
 
-  Future<Response> _retryRequest(
+  Future<Response<dynamic>> _retryRequest(
     RequestOptions originalOptions,
     int retryCount,
   ) async {
@@ -567,7 +574,7 @@ class DioApiClient implements ApiClient {
         return MapEntry(key, _redactSensitiveData(value));
       });
     } else if (data is List) {
-      return data.map((e) => _redactSensitiveData(e)).toList();
+      return data.map(_redactSensitiveData).toList();
     }
     return data;
   }
@@ -674,7 +681,9 @@ class DioApiClient implements ApiClient {
       final result = await future;
       return result;
     } finally {
-      _activeRequests.remove(path);
+      unawaited(
+        _activeRequests.remove(path) as Future<void>? ?? Future.value(),
+      );
     }
   }
 
@@ -684,12 +693,10 @@ class DioApiClient implements ApiClient {
     dynamic data,
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
-  }) {
-    return _safeRequest(
-      () => _dio.post(path, data: data, cancelToken: cancelToken),
-      parser,
-    );
-  }
+  }) => _safeRequest(
+    () => _dio.post(path, data: data, cancelToken: cancelToken),
+    parser,
+  );
 
   @override
   Future<ApiResponse<T>> put<T>(
@@ -697,12 +704,10 @@ class DioApiClient implements ApiClient {
     dynamic data,
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
-  }) {
-    return _safeRequest(
-      () => _dio.put(path, data: data, cancelToken: cancelToken),
-      parser,
-    );
-  }
+  }) => _safeRequest(
+    () => _dio.put(path, data: data, cancelToken: cancelToken),
+    parser,
+  );
 
   @override
   Future<ApiResponse<T>> patch<T>(
@@ -710,12 +715,10 @@ class DioApiClient implements ApiClient {
     dynamic data,
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
-  }) {
-    return _safeRequest(
-      () => _dio.patch(path, data: data, cancelToken: cancelToken),
-      parser,
-    );
-  }
+  }) => _safeRequest(
+    () => _dio.patch(path, data: data, cancelToken: cancelToken),
+    parser,
+  );
 
   @override
   Future<ApiResponse<T>> delete<T>(
@@ -723,15 +726,13 @@ class DioApiClient implements ApiClient {
     dynamic data,
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
-  }) {
-    return _safeRequest(
-      () => _dio.delete(path, data: data, cancelToken: cancelToken),
-      parser,
-    );
-  }
+  }) => _safeRequest(
+    () => _dio.delete(path, data: data, cancelToken: cancelToken),
+    parser,
+  );
 
   Future<ApiResponse<T>> _safeRequest<T>(
-    Future<Response> Function() request,
+    Future<Response<dynamic>> Function() request,
     T Function(dynamic) parser, {
     void Function(dynamic data)? onSuccess,
     Future<ApiResponse<T>?> Function()? onFailure,
@@ -761,11 +762,9 @@ class DioApiClient implements ApiClient {
       Map<String, dynamic> responseBody;
 
       if (isMap) {
-        final Map<String, dynamic> body = Map<String, dynamic>.from(
-          response.data as Map,
-        );
-        final bool hasSuccess = body.containsKey('success');
-        final bool hasData = body.containsKey('data');
+        final body = Map<String, dynamic>.from(response.data as Map);
+        final hasSuccess = body.containsKey('success');
+        final hasData = body.containsKey('data');
 
         if (hasSuccess && hasData) {
           responseBody = body;
@@ -804,7 +803,7 @@ class DioApiClient implements ApiClient {
 
       // 2. Conditional Parsing with compute()
       T parsedData;
-      final bool useCompute =
+      final useCompute =
           response.toString().length > 50 * 1024; // > 50KB approximate
 
       if (useCompute) {
@@ -817,7 +816,7 @@ class DioApiClient implements ApiClient {
       }
 
       return ApiResponse.fromJson(
-        responseBody as Map<String, dynamic>,
+        responseBody,
         (_) => parsedData, // Parser already executed
         requestId: requestId,
       );
@@ -840,7 +839,7 @@ class DioApiClient implements ApiClient {
         );
       }
 
-      String reason = 'network';
+      var reason = 'network';
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.sendTimeout) {
@@ -883,7 +882,7 @@ class MockApiClient implements ApiClient {
     Duration? ttl,
     bool ignoreCache = false,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-get');
   }
 
@@ -894,7 +893,7 @@ class MockApiClient implements ApiClient {
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-post');
   }
 
@@ -905,7 +904,7 @@ class MockApiClient implements ApiClient {
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-put');
   }
 
@@ -916,7 +915,7 @@ class MockApiClient implements ApiClient {
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-patch');
   }
 
@@ -927,7 +926,7 @@ class MockApiClient implements ApiClient {
     required T Function(dynamic) parser,
     CancelToken? cancelToken,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future<void>.delayed(const Duration(milliseconds: 400));
     return ApiResponse.fallback(reason: 'mock', requestId: 'mock-delete');
   }
 }

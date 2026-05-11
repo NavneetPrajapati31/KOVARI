@@ -36,51 +36,40 @@ class KovariIcons {
     bool isFilled = false,
     double strokeWidth = 2,
     String color = 'currentColor',
-  }) {
-    return _homeSvg
+  }) => _homeSvg
         .replaceAll('{fill}', isFilled ? color : 'none')
         .replaceAll('{strokeWidth}', strokeWidth.toString())
         .replaceAll('{color}', color);
-  }
 
   static String getSearch({
     bool isFilled = false,
     double strokeWidth = 2,
     String color = 'currentColor',
-  }) {
-    return _searchSvg
+  }) => _searchSvg
         .replaceAll('{fill}', isFilled ? color : 'none')
         .replaceAll('{strokeWidth}', strokeWidth.toString())
         .replaceAll('{color}', color);
-  }
 
   static String getSend({
     bool isFilled = false,
     double strokeWidth = 2,
     String color = 'currentColor',
-  }) {
-    return _sendSvg
+  }) => _sendSvg
         .replaceAll('{fill}', isFilled ? color : 'none')
         .replaceAll('{strokeWidth}', strokeWidth.toString())
         .replaceAll('{color}', color);
-  }
 
   static String getUsers({
     bool isFilled = false,
     double strokeWidth = 2,
     String color = 'currentColor',
-  }) {
-    return _usersSvg
+  }) => _usersSvg
         .replaceAll('{fill}', isFilled ? color : 'none')
         .replaceAll('{strokeWidth}', strokeWidth.toString())
         .replaceAll('{color}', color);
-  }
 }
 
 class KovariIcon extends StatelessWidget {
-  final String svgString;
-  final double size;
-  final Color color;
 
   const KovariIcon({
     super.key,
@@ -88,6 +77,9 @@ class KovariIcon extends StatelessWidget {
     this.size = 24,
     this.color = Colors.black,
   });
+  final String svgString;
+  final double size;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {

@@ -1,16 +1,6 @@
 import 'package:intl/intl.dart';
 
 class HomeData {
-  final UserProfile profile;
-  final TripStats stats;
-  final TopDestination? topDestination;
-  final FeaturedTrip? featuredTrip;
-  final List<HomeNotification> recentNotifications;
-  final int unreadNotificationCount;
-  final List<TravelGroup> activeGroups;
-  final int pendingInvitesCount;
-  final List<ConnectionRequest> connectionRequests;
-  final TravelPreferences? travelPreferences;
 
   HomeData({
     required this.profile,
@@ -25,38 +15,43 @@ class HomeData {
     this.travelPreferences,
   });
 
-  factory HomeData.fromJson(Map<String, dynamic> json) {
-    return HomeData(
-      profile: UserProfile.fromJson(json['profile'] ?? {}),
-      stats: TripStats.fromJson(json['stats'] ?? {}),
+  factory HomeData.fromJson(Map<String, dynamic> json) => HomeData(
+      profile: UserProfile.fromJson((json['profile'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{}),
+      stats: TripStats.fromJson((json['stats'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{}),
       topDestination: json['topDestination'] != null
-          ? TopDestination.fromJson(json['topDestination'])
+          ? TopDestination.fromJson(json['topDestination'] as Map<String, dynamic>)
           : null,
       featuredTrip: json['featuredTrip'] != null
-          ? FeaturedTrip.fromJson(json['featuredTrip'])
+          ? FeaturedTrip.fromJson(json['featuredTrip'] as Map<String, dynamic>)
           : null,
       recentNotifications: (json['recentNotifications'] as List? ?? [])
-          .map((e) => HomeNotification.fromJson(e))
+          .map((e) => HomeNotification.fromJson(e as Map<String, dynamic>))
           .toList(),
-      unreadNotificationCount: json['unreadNotificationCount'] ?? 0,
+      unreadNotificationCount: (json['unreadNotificationCount'] as int?) ?? 0,
       activeGroups: (json['activeGroups'] as List? ?? [])
-          .map((e) => TravelGroup.fromJson(e))
+          .map((e) => TravelGroup.fromJson(e as Map<String, dynamic>))
           .toList(),
-      pendingInvitesCount: json['pendingInvitesCount'] ?? 0,
+      pendingInvitesCount: (json['pendingInvitesCount'] as int?) ?? 0,
       connectionRequests: (json['connectionRequests'] as List? ?? [])
-          .map((e) => ConnectionRequest.fromJson(e))
+          .map((e) => ConnectionRequest.fromJson(e as Map<String, dynamic>))
           .toList(),
       travelPreferences: json['travelPreferences'] != null
-          ? TravelPreferences.fromJson(json['travelPreferences'])
+          ? TravelPreferences.fromJson(json['travelPreferences'] as Map<String, dynamic>)
           : null,
     );
-  }
+  final UserProfile profile;
+  final TripStats stats;
+  final TopDestination? topDestination;
+  final FeaturedTrip? featuredTrip;
+  final List<HomeNotification> recentNotifications;
+  final int unreadNotificationCount;
+  final List<TravelGroup> activeGroups;
+  final int pendingInvitesCount;
+  final List<ConnectionRequest> connectionRequests;
+  final TravelPreferences? travelPreferences;
 }
 
 class UserProfile {
-  final String name;
-  final String username;
-  final String avatar;
 
   UserProfile({
     required this.name,
@@ -64,21 +59,17 @@ class UserProfile {
     required this.avatar,
   });
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      name: json['name'] ?? '',
-      username: json['username'] ?? '',
-      avatar: json['avatar'] ?? '',
+  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+      name: (json['name'] as String?) ?? '',
+      username: (json['username'] as String?) ?? '',
+      avatar: (json['avatar'] as String?) ?? '',
     );
-  }
+  final String name;
+  final String username;
+  final String avatar;
 }
 
 class TripStats {
-  final int totalTrips;
-  final int upcomingTripsCount;
-  final int pastTripsCount;
-  final int totalTravelDays;
-  final int profileImpressions;
 
   TripStats({
     required this.totalTrips,
@@ -88,15 +79,18 @@ class TripStats {
     required this.profileImpressions,
   });
 
-  factory TripStats.fromJson(Map<String, dynamic> json) {
-    return TripStats(
-      totalTrips: json['totalTrips'] ?? 0,
-      upcomingTripsCount: json['upcomingTripsCount'] ?? 0,
-      pastTripsCount: json['pastTripsCount'] ?? 0,
-      totalTravelDays: json['totalTravelDays'] ?? 0,
-      profileImpressions: json['profileImpressions'] ?? 0,
+  factory TripStats.fromJson(Map<String, dynamic> json) => TripStats(
+      totalTrips: (json['totalTrips'] as int?) ?? 0,
+      upcomingTripsCount: (json['upcomingTripsCount'] as int?) ?? 0,
+      pastTripsCount: (json['pastTripsCount'] as int?) ?? 0,
+      totalTravelDays: (json['totalTravelDays'] as int?) ?? 0,
+      profileImpressions: (json['profileImpressions'] as int?) ?? 0,
     );
-  }
+  final int totalTrips;
+  final int upcomingTripsCount;
+  final int pastTripsCount;
+  final int totalTravelDays;
+  final int profileImpressions;
 
   String get travelDaysDisplay => '$totalTravelDays days';
   String get impressionsDisplay => profileImpressions >= 1000
@@ -105,33 +99,22 @@ class TripStats {
 }
 
 class TopDestination {
-  final String name;
-  final String country;
-  final String? imageUrl;
 
   TopDestination({required this.name, required this.country, this.imageUrl});
 
-  factory TopDestination.fromJson(Map<String, dynamic> json) {
-    return TopDestination(
-      name: json['name'] ?? '',
-      country: json['country'] ?? '',
-      imageUrl: json['imageUrl'],
+  factory TopDestination.fromJson(Map<String, dynamic> json) => TopDestination(
+      name: (json['name'] as String?) ?? '',
+      country: (json['country'] as String?) ?? '',
+      imageUrl: (json['imageUrl'] as String?),
     );
-  }
+  final String name;
+  final String country;
+  final String? imageUrl;
 
   String get fullLocation => country.isNotEmpty ? '$name, $country' : name;
 }
 
 class FeaturedTrip {
-  final String id;
-  final String name;
-  final String role;
-  final int members;
-  final String? destination;
-  final String? startDate;
-  final String? endDate;
-  final String? coverImage;
-  final List<ItineraryItem> itinerary;
 
   FeaturedTrip({
     required this.id,
@@ -145,23 +128,30 @@ class FeaturedTrip {
     required this.itinerary,
   });
 
-  factory FeaturedTrip.fromJson(Map<String, dynamic> json) {
-    return FeaturedTrip(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      role: json['role'] ?? '',
-      members: json['members'] ?? 0,
-      destination: json['destination'],
-      startDate: json['startDate'],
-      endDate: json['endDate'],
-      coverImage: json['coverImage'],
+  factory FeaturedTrip.fromJson(Map<String, dynamic> json) => FeaturedTrip(
+      id: (json['id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+      members: (json['members'] as int?) ?? 0,
+      destination: (json['destination'] as String?),
+      startDate: (json['startDate'] as String?),
+      endDate: (json['endDate'] as String?),
+      coverImage: (json['coverImage'] as String?),
       itinerary: (json['itinerary'] as List? ?? [])
-          .map((e) => ItineraryItem.fromJson(e))
+          .map((e) => ItineraryItem.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
-  }
+  final String id;
+  final String name;
+  final String role;
+  final int members;
+  final String? destination;
+  final String? startDate;
+  final String? endDate;
+  final String? coverImage;
+  final List<ItineraryItem> itinerary;
 
-  String get displayDestination => destination ?? "No trips yet";
+  String get displayDestination => destination ?? 'No trips yet';
 
   String get formattedStartDate {
     if (startDate == null) return '';
@@ -174,10 +164,6 @@ class FeaturedTrip {
 }
 
 class ItineraryItem {
-  final String id;
-  final String title;
-  final String? description;
-  final String? datetime;
 
   ItineraryItem({
     required this.id,
@@ -186,14 +172,16 @@ class ItineraryItem {
     this.datetime,
   });
 
-  factory ItineraryItem.fromJson(Map<String, dynamic> json) {
-    return ItineraryItem(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      description: json['description'],
-      datetime: json['datetime'],
+  factory ItineraryItem.fromJson(Map<String, dynamic> json) => ItineraryItem(
+      id: (json['id'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      description: (json['description'] as String?),
+      datetime: (json['datetime'] as String?),
     );
-  }
+  final String id;
+  final String title;
+  final String? description;
+  final String? datetime;
 
   String get formattedTime {
     if (datetime == null) return '';
@@ -206,13 +194,6 @@ class ItineraryItem {
 }
 
 class HomeNotification {
-  final String id;
-  final String title;
-  final String message;
-  final String type;
-  final bool isRead;
-  final String createdAt;
-  final String? imageUrl;
 
   HomeNotification({
     required this.id,
@@ -224,27 +205,25 @@ class HomeNotification {
     this.imageUrl,
   });
 
-  factory HomeNotification.fromJson(Map<String, dynamic> json) {
-    return HomeNotification(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      message: json['message'] ?? '',
-      type: json['type'] ?? '',
-      isRead: json['is_read'] ?? false,
-      createdAt: json['created_at'] ?? '',
-      imageUrl: json['image_url'],
+  factory HomeNotification.fromJson(Map<String, dynamic> json) => HomeNotification(
+      id: (json['id'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      message: (json['message'] as String?) ?? '',
+      type: (json['type'] as String?) ?? '',
+      isRead: (json['is_read'] as bool?) ?? false,
+      createdAt: (json['created_at'] as String?) ?? '',
+      imageUrl: (json['image_url'] as String?),
     );
-  }
+  final String id;
+  final String title;
+  final String message;
+  final String type;
+  final bool isRead;
+  final String createdAt;
+  final String? imageUrl;
 }
 
 class TravelGroup {
-  final String id;
-  final String name;
-  final String role;
-  final int members;
-  final String? destination;
-  final String? startDate;
-  final String? coverImage;
 
   TravelGroup({
     required this.id,
@@ -256,24 +235,25 @@ class TravelGroup {
     this.coverImage,
   });
 
-  factory TravelGroup.fromJson(Map<String, dynamic> json) {
-    return TravelGroup(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      role: json['role'] ?? '',
-      members: json['members'] ?? 0,
-      destination: json['destination'],
-      startDate: json['startDate'],
-      coverImage: json['coverImage'],
+  factory TravelGroup.fromJson(Map<String, dynamic> json) => TravelGroup(
+      id: (json['id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      role: (json['role'] as String?) ?? '',
+      members: (json['members'] as int?) ?? 0,
+      destination: (json['destination'] as String?),
+      startDate: (json['startDate'] as String?),
+      coverImage: (json['coverImage'] as String?),
     );
-  }
+  final String id;
+  final String name;
+  final String role;
+  final int members;
+  final String? destination;
+  final String? startDate;
+  final String? coverImage;
 }
 
 class ConnectionRequest {
-  final String id;
-  final Sender sender;
-  final String? destination;
-  final String sentAt;
 
   ConnectionRequest({
     required this.id,
@@ -282,21 +262,19 @@ class ConnectionRequest {
     required this.sentAt,
   });
 
-  factory ConnectionRequest.fromJson(Map<String, dynamic> json) {
-    return ConnectionRequest(
-      id: json['id'] ?? '',
-      sender: Sender.fromJson(json['sender'] ?? {}),
-      destination: json['destination'],
-      sentAt: json['sentAt'] ?? '',
+  factory ConnectionRequest.fromJson(Map<String, dynamic> json) => ConnectionRequest(
+      id: (json['id'] as String?) ?? '',
+      sender: Sender.fromJson((json['sender'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{}),
+      destination: (json['destination'] as String?),
+      sentAt: (json['sentAt'] as String?) ?? '',
     );
-  }
+  final String id;
+  final Sender sender;
+  final String? destination;
+  final String sentAt;
 }
 
 class Sender {
-  final String id;
-  final String name;
-  final String avatar;
-  final String location;
 
   Sender({
     required this.id,
@@ -305,20 +283,19 @@ class Sender {
     required this.location,
   });
 
-  factory Sender.fromJson(Map<String, dynamic> json) {
-    return Sender(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      avatar: json['avatar'] ?? '',
-      location: json['location'] ?? '',
+  factory Sender.fromJson(Map<String, dynamic> json) => Sender(
+      id: (json['id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+      avatar: (json['avatar'] as String?) ?? '',
+      location: (json['location'] as String?) ?? '',
     );
-  }
+  final String id;
+  final String name;
+  final String avatar;
+  final String location;
 }
 
 class TravelPreferences {
-  final List<String> destinations;
-  final List<String> tripFocus;
-  final String? frequency;
 
   TravelPreferences({
     required this.destinations,
@@ -326,11 +303,12 @@ class TravelPreferences {
     this.frequency,
   });
 
-  factory TravelPreferences.fromJson(Map<String, dynamic> json) {
-    return TravelPreferences(
-      destinations: List<String>.from(json['destinations'] ?? []),
-      tripFocus: List<String>.from(json['trip_focus'] ?? []),
-      frequency: json['frequency'],
+  factory TravelPreferences.fromJson(Map<String, dynamic> json) => TravelPreferences(
+      destinations: List<String>.from(json['destinations'] as Iterable? ?? <dynamic>[]),
+      tripFocus: List<String>.from(json['trip_focus'] as Iterable? ?? <dynamic>[]),
+      frequency: (json['frequency'] as String?),
     );
-  }
+  final List<String> destinations;
+  final List<String> tripFocus;
+  final String? frequency;
 }

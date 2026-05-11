@@ -1,29 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/cache_provider.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../models/group_state.dart';
-import '../data/group_service.dart';
-import 'entity_stores.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/features/groups/data/group_service.dart';
+import 'package:mobile/features/groups/models/group_state.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
 
 final groupServiceProvider = Provider<GroupService>((ref) {
   final apiClient = ref.read(apiClientProvider);
   return GroupService(apiClient);
 });
 
-final myGroupsProvider = StateNotifierProvider<MyGroupsNotifier, GroupState>((
-  ref,
-) {
-  return MyGroupsNotifier(ref);
-});
+final myGroupsProvider = StateNotifierProvider<MyGroupsNotifier, GroupState>(MyGroupsNotifier.new);
 
 class MyGroupsNotifier extends StateNotifier<GroupState> {
-  final Ref _ref;
   MyGroupsNotifier(this._ref) : super(GroupState()) {
     _init();
   }
+  final Ref _ref;
 
   Future<void> _init() async {
     _ref.watch(authStateProvider);
@@ -56,7 +52,6 @@ class MyGroupsNotifier extends StateNotifier<GroupState> {
         groups: freshGroups,
         isStale: false,
         isLoading: false,
-        error: null,
       );
     } catch (e) {
       if (state.groups.isEmpty) {

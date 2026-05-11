@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/nav_provider.dart';
-import '../telemetry/telemetry_service.dart';
-import '../telemetry/telemetry_priority.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/providers/nav_provider.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class KovariNavObserver extends NavigatorObserver {
+
+  KovariNavObserver(this.ref);
   final Ref ref;
   final _telemetry = TelemetryService();
   DateTime? _transitionStart;
-
-  KovariNavObserver(this.ref);
 
   void _updateVisibility(Route<dynamic>? route) {
     if (route == null) return;
@@ -35,9 +34,8 @@ class KovariNavObserver extends NavigatorObserver {
         screenName == 'unknown_route' ||
         screenName == '/' ||
         shellPaths.contains(screenName) ||
-        (route.settings is RouteSettings &&
-            ((route.settings as RouteSettings).name == null ||
-                shellPaths.contains((route.settings as RouteSettings).name)));
+        (route.settings.name == null ||
+                shellPaths.contains(route.settings.name));
 
     AppLogger.d('🧭 [NAV] Route: $screenName | isShell: $isShellRoute');
 
@@ -50,7 +48,6 @@ class KovariNavObserver extends NavigatorObserver {
 
     _telemetry.logEvent(
       'screen_view',
-      priority: TelemetryPriority.normal,
       parameters: {
         'screen_name': screenName,
         'transition_duration_ms': duration,

@@ -26,15 +26,6 @@ enum NotificationType {
 }
 
 class NotificationModel {
-  final String id;
-  final String title;
-  final String message;
-  final DateTime createdAt;
-  final bool isRead;
-  final String? imageUrl;
-  final NotificationType type;
-  final String? entityType;
-  final String? entityId;
 
   const NotificationModel({
     required this.id,
@@ -66,6 +57,15 @@ class NotificationModel {
       entityId: json['entity_id'] as String?,
     );
   }
+  final String id;
+  final String title;
+  final String message;
+  final DateTime createdAt;
+  final bool isRead;
+  final String? imageUrl;
+  final NotificationType type;
+  final String? entityType;
+  final String? entityId;
 
   NotificationModel copyWith({
     String? id,
@@ -77,8 +77,7 @@ class NotificationModel {
     NotificationType? type,
     String? entityType,
     String? entityId,
-  }) {
-    return NotificationModel(
+  }) => NotificationModel(
       id: id ?? this.id,
       title: title ?? this.title,
       message: message ?? this.message,
@@ -89,7 +88,6 @@ class NotificationModel {
       entityType: entityType ?? this.entityType,
       entityId: entityId ?? this.entityId,
     );
-  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

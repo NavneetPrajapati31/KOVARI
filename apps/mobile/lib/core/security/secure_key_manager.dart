@@ -1,12 +1,15 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:uuid/uuid.dart';
-import 'package:cryptography/cryptography.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:math';
-import '../utils/app_logger.dart';
+import 'dart:typed_data';
+
+import 'package:cryptography/cryptography.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:uuid/uuid.dart';
 
 class SecureKeyManager {
+  factory SecureKeyManager() => _instance;
+  SecureKeyManager._internal();
   static const String _keyDeviceTrustId = 'device_trust_id';
   static const String _keyIdentitySecret = 'identity_secret';
 
@@ -16,16 +19,14 @@ class SecureKeyManager {
   );
 
   static final SecureKeyManager _instance = SecureKeyManager._internal();
-  factory SecureKeyManager() => _instance;
-  SecureKeyManager._internal();
 
   String? _cachedTrustId;
 
   /// 🔐 Initializes the sovereign identity for this installation.
   Future<void> init() async {
     try {
-      String? trustId = await _storage.read(key: _keyDeviceTrustId);
-      String? secret = await _storage.read(key: _keyIdentitySecret);
+      var trustId = await _storage.read(key: _keyDeviceTrustId);
+      var secret = await _storage.read(key: _keyIdentitySecret);
 
       if (trustId == null || secret == null) {
         AppLogger.i(

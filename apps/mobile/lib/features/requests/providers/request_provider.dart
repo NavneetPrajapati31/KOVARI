@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/request_model.dart';
-import '../services/request_service.dart';
+import 'package:mobile/features/requests/models/request_model.dart';
+import 'package:mobile/features/requests/services/request_service.dart';
 
 final interestsProvider =
     AsyncNotifierProvider<InterestsNotifier, List<InterestModel>>(
@@ -10,9 +10,7 @@ final interestsProvider =
 
 class InterestsNotifier extends AsyncNotifier<List<InterestModel>> {
   @override
-  FutureOr<List<InterestModel>> build() async {
-    return _fetchInterests();
-  }
+  FutureOr<List<InterestModel>> build() async => _fetchInterests();
 
   Future<List<InterestModel>> _fetchInterests() async {
     final service = ref.read(requestServiceProvider);
@@ -21,7 +19,7 @@ class InterestsNotifier extends AsyncNotifier<List<InterestModel>> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _fetchInterests());
+    state = await AsyncValue.guard(_fetchInterests);
   }
 
   Future<bool> respond(String interestId, String action) async {
@@ -55,9 +53,7 @@ final invitationsProvider =
 
 class InvitationsNotifier extends AsyncNotifier<List<InvitationModel>> {
   @override
-  FutureOr<List<InvitationModel>> build() async {
-    return _fetchInvitations();
-  }
+  FutureOr<List<InvitationModel>> build() async => _fetchInvitations();
 
   Future<List<InvitationModel>> _fetchInvitations() async {
     final service = ref.read(requestServiceProvider);
@@ -66,7 +62,7 @@ class InvitationsNotifier extends AsyncNotifier<List<InvitationModel>> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _fetchInvitations());
+    state = await AsyncValue.guard(_fetchInvitations);
   }
 
   Future<bool> respond(String groupId, String action) async {

@@ -4,10 +4,6 @@ import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_text_styles.dart';
 
 class KovariGroupContainer extends StatelessWidget {
-  final List<Widget> children;
-  final EdgeInsetsGeometry? padding;
-  final Color? backgroundColor;
-  final bool isBorder;
 
   const KovariGroupContainer({
     super.key,
@@ -16,10 +12,13 @@ class KovariGroupContainer extends StatelessWidget {
     this.backgroundColor,
     this.isBorder = true,
   });
+  final List<Widget> children;
+  final EdgeInsetsGeometry? padding;
+  final Color? backgroundColor;
+  final bool isBorder;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(16),
@@ -42,13 +41,9 @@ class KovariGroupContainer extends StatelessWidget {
         }),
       ),
     );
-  }
 }
 
 class KovariSection extends StatelessWidget {
-  final String? title;
-  final List<Widget> children;
-  final EdgeInsetsGeometry? padding;
 
   const KovariSection({
     super.key,
@@ -56,11 +51,13 @@ class KovariSection extends StatelessWidget {
     required this.children,
     this.padding,
   });
+  final String? title;
+  final List<Widget> children;
+  final EdgeInsetsGeometry? padding;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: padding ?? const EdgeInsets.only(top: 0, bottom: 4),
+  Widget build(BuildContext context) => Padding(
+      padding: padding ?? const EdgeInsets.only(bottom: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -87,19 +84,9 @@ class KovariSection extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class KovariListRow extends StatelessWidget {
-  final IconData? icon;
-  final Color? iconColor;
-  final String label;
-  final String? subtitle;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-  final Color? labelColor;
-  final double? labelSize;
-  final EdgeInsetsGeometry? contentPadding;
 
   const KovariListRow({
     super.key,
@@ -113,10 +100,18 @@ class KovariListRow extends StatelessWidget {
     this.labelSize,
     this.contentPadding,
   });
+  final IconData? icon;
+  final Color? iconColor;
+  final String label;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final Color? labelColor;
+  final double? labelSize;
+  final EdgeInsetsGeometry? contentPadding;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       children: [
         Material(
           color: Colors.transparent,
@@ -174,5 +169,4 @@ class KovariListRow extends StatelessWidget {
         ),
       ],
     );
-  }
 }

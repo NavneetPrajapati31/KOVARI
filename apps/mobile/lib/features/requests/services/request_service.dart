@@ -1,8 +1,8 @@
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/utils/safe_parser.dart';
-import '../models/request_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/utils/safe_parser.dart';
+import 'package:mobile/features/requests/models/request_model.dart';
 
 final requestServiceProvider = Provider<RequestService>((ref) {
   final apiClient = ref.read(apiClientProvider);
@@ -10,16 +10,16 @@ final requestServiceProvider = Provider<RequestService>((ref) {
 });
 
 class RequestService {
-  final ApiClient _apiClient;
 
   RequestService(this._apiClient);
+  final ApiClient _apiClient;
 
   Future<List<InterestModel>> getInterests() async {
     try {
       final response = await _apiClient.get<List<InterestModel>>(
         ApiEndpoints.interests,
         parser: (data) => safeParseList(
-          data is List ? data : [],
+          data is List ? data : <dynamic>[],
           InterestModel.fromJson,
         ),
       );
@@ -34,7 +34,7 @@ class RequestService {
       final response = await _apiClient.get<List<InvitationModel>>(
         ApiEndpoints.pendingInvitations,
         parser: (data) => safeParseList(
-          data is List ? data : [],
+          data is List ? data : <dynamic>[],
           InvitationModel.fromJson,
         ),
       );

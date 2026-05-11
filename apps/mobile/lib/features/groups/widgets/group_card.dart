@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/core/config/interaction_config.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
 import 'package:mobile/shared/widgets/interactive_wrapper.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../models/group.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 class GroupCard extends StatelessWidget {
-  final GroupModel group;
-  final VoidCallback? onAction;
 
   const GroupCard({super.key, required this.group, this.onAction});
+  final GroupModel group;
+  final VoidCallback? onAction;
 
   String _formatDestinationCity(String destination) {
     final trimmed = destination.trim();
     if (trimmed.isEmpty) return trimmed;
-    final city = trimmed.split(",")[0].trim();
+    final city = trimmed.split(',')[0].trim();
     return city;
   }
 

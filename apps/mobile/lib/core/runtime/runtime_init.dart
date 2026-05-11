@@ -1,7 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'runtime_coordinator.dart';
-import 'background_governor.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/runtime/background_governor.dart';
+import 'package:mobile/core/runtime/runtime_coordinator.dart';
 
 final runtimeInitProvider = FutureProvider<void>((ref) async {
   final replayEngine = ref.read(replayEngineProvider);

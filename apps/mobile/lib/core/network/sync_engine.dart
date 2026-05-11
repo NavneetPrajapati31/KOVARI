@@ -1,21 +1,22 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../cache/local_cache.dart';
-import '../providers/cache_provider.dart';
-import '../providers/connectivity_provider.dart';
-import '../utils/app_logger.dart';
-import 'api_client.dart';
+import 'package:mobile/core/cache/local_cache.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 enum SyncStatus { idle, syncing, error }
 
 class SyncEngine {
-  final Ref _ref;
-  final LocalCache _cache;
-  final ApiClient _apiClient;
 
   SyncEngine(this._ref)
     : _cache = _ref.read(localCacheProvider),
       _apiClient = _ref.read(apiClientProvider);
+  final Ref _ref;
+  final LocalCache _cache;
+  final ApiClient _apiClient;
 
   /// Performs a Stale-While-Revalidate fetch.
   /// 1. Immediately returns cached data if available.
@@ -103,6 +104,4 @@ class SyncEngine {
   }
 }
 
-final syncEngineProvider = Provider<SyncEngine>((ref) {
-  return SyncEngine(ref);
-});
+final syncEngineProvider = Provider<SyncEngine>(SyncEngine.new);

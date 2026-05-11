@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/widgets/common/skeleton.dart';
 import 'package:mobile/shared/widgets/app_card.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_spacing.dart';
-import '../common/skeleton.dart';
 
 export '../common/skeleton.dart' show Skeleton;
 
@@ -10,9 +10,6 @@ export '../common/skeleton.dart' show Skeleton;
 /// Use these instead of manual Skeleton/Shimmer implementations for consistency.
 
 class KovariSkeletonCard extends StatelessWidget {
-  final double height;
-  final double? width;
-  final BorderRadius? borderRadius;
 
   const KovariSkeletonCard({
     super.key,
@@ -20,23 +17,23 @@ class KovariSkeletonCard extends StatelessWidget {
     this.width,
     this.borderRadius,
   });
+  final double height;
+  final double? width;
+  final BorderRadius? borderRadius;
 
   @override
-  Widget build(BuildContext context) {
-    return Skeleton(
+  Widget build(BuildContext context) => Skeleton(
       height: height,
       width: width ?? double.infinity,
       borderRadius: borderRadius ?? BorderRadius.circular(16),
     );
-  }
 }
 
 class KovariSkeletonListTile extends StatelessWidget {
   const KovariSkeletonListTile({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
@@ -61,16 +58,14 @@ class KovariSkeletonListTile extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class KovariSkeletonTextBlock extends StatelessWidget {
-  final int lines;
   const KovariSkeletonTextBlock({super.key, this.lines = 3});
+  final int lines;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: List.generate(lines, (index) {
         final isLast = index == lines - 1;
@@ -85,25 +80,21 @@ class KovariSkeletonTextBlock extends StatelessWidget {
         );
       }),
     );
-  }
 }
 
 class KovariSkeletonAvatar extends StatelessWidget {
-  final double size;
   const KovariSkeletonAvatar({super.key, this.size = 40});
+  final double size;
 
   @override
-  Widget build(BuildContext context) {
-    return Skeleton.circle(size: size);
-  }
+  Widget build(BuildContext context) => Skeleton.circle(size: size);
 }
 
 class KovariSkeletonNotificationItem extends StatelessWidget {
   const KovariSkeletonNotificationItem({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: AppSpacing.md,
@@ -113,74 +104,70 @@ class KovariSkeletonNotificationItem extends StatelessWidget {
           bottom: BorderSide(color: AppColors.borderColor(context)),
         ),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Skeleton.circle(size: 40),
-          const SizedBox(width: 12),
+          Skeleton.circle(size: 40),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Skeleton(width: 96, height: 12),
                     Skeleton(width: 40, height: 12),
                   ],
                 ),
-                const SizedBox(height: 8),
-                const Skeleton(width: 128, height: 12),
+                SizedBox(height: 8),
+                Skeleton(width: 128, height: 12),
               ],
             ),
           ),
         ],
       ),
     );
-  }
 }
 
 class KovariSkeletonUserListItem extends StatelessWidget {
   const KovariSkeletonUserListItem({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface(context),
         border: Border(
-          bottom: BorderSide(color: AppColors.borderColor(context), width: 1),
+          bottom: BorderSide(color: AppColors.borderColor(context)),
         ),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Skeleton.circle(size: 40),
-          const SizedBox(width: 12),
+          Skeleton.circle(size: 40),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Skeleton(width: 100, height: 12),
-                const SizedBox(height: 8),
-                const Skeleton(width: 60, height: 12),
+                Skeleton(width: 100, height: 12),
+                SizedBox(height: 8),
+                Skeleton(width: 60, height: 12),
               ],
             ),
           ),
-          const Spacer(),
-          const Skeleton(width: 80, height: 32),
+          Spacer(),
+          Skeleton(width: 80, height: 32),
         ],
       ),
     );
-  }
 }
 
 class KovariSkeletonRequestCard extends StatelessWidget {
   const KovariSkeletonRequestCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -192,15 +179,15 @@ class KovariSkeletonRequestCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Skeleton.circle(size: 40),
-              const SizedBox(width: AppSpacing.sm + 4),
+              Skeleton.circle(size: 40),
+              SizedBox(width: AppSpacing.sm + 4),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -216,9 +203,9 @@ class KovariSkeletonRequestCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Skeleton(width: 120, height: 10),
               SizedBox(height: 6),
               Skeleton(width: double.infinity, height: 14),
@@ -245,48 +232,44 @@ class KovariSkeletonRequestCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class KovariSkeletonRequestListItem extends StatelessWidget {
   const KovariSkeletonRequestListItem({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
+  Widget build(BuildContext context) => const Padding(
+      padding: EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: 10,
       ),
       child: Row(
         children: [
-          const Skeleton.circle(size: 40),
-          const SizedBox(width: AppSpacing.sm * 1.5),
+          Skeleton.circle(size: 40),
+          SizedBox(width: AppSpacing.sm * 1.5),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Skeleton(width: 96, height: 12),
                 SizedBox(height: 4),
                 Skeleton(width: 64, height: 12),
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          const Skeleton(width: 64, height: 28),
+          SizedBox(width: AppSpacing.md),
+          Skeleton(width: 64, height: 28),
         ],
       ),
     );
-  }
 }
 
 class KovariSkeletonGroupCard extends StatelessWidget {
-  final double height;
   const KovariSkeletonGroupCard({super.key, this.height = 160});
+  final double height;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       width: 280,
       margin: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
@@ -301,17 +284,17 @@ class KovariSkeletonGroupCard extends StatelessWidget {
             height: height,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
+          const Padding(
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Skeleton(width: 140, height: 16),
-                const SizedBox(height: 8),
-                const Skeleton(width: 100, height: 12),
-                const SizedBox(height: 16),
+                Skeleton(width: 140, height: 16),
+                SizedBox(height: 8),
+                Skeleton(width: 100, height: 12),
+                SizedBox(height: 16),
                 Row(
-                  children: const [
+                  children: [
                     Skeleton.circle(size: 24),
                     SizedBox(width: 8),
                     Skeleton(width: 80, height: 12),
@@ -323,51 +306,47 @@ class KovariSkeletonGroupCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class KovariSkeletonGroupListItem extends StatelessWidget {
   const KovariSkeletonGroupListItem({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
+  Widget build(BuildContext context) => const Padding(
+      padding: EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: 12,
       ),
       child: Row(
         children: [
-          const Skeleton.circle(size: 40),
-          const SizedBox(width: AppSpacing.sm * 1.5),
+          Skeleton.circle(size: 40),
+          SizedBox(width: AppSpacing.sm * 1.5),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Skeleton(width: 96, height: 12),
                     Skeleton(width: 48, height: 12),
                   ],
                 ),
-                const SizedBox(height: 6),
-                const Skeleton(width: 64, height: 12),
+                SizedBox(height: 6),
+                Skeleton(width: 64, height: 12),
               ],
             ),
           ),
         ],
       ),
     );
-  }
 }
 
 class KovariSkeletonExplore extends StatelessWidget {
   const KovariSkeletonExplore({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
+  Widget build(BuildContext context) => SingleChildScrollView(
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
@@ -451,10 +430,8 @@ class KovariSkeletonExplore extends StatelessWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildSectionSkeleton() {
-    return Column(
+  Widget _buildSectionSkeleton() => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Skeleton(width: 100, height: 16),
@@ -473,7 +450,6 @@ class KovariSkeletonExplore extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 class KovariSkeletonProfile extends StatelessWidget {
@@ -502,20 +478,19 @@ class KovariSkeletonProfile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                  const Row(
                     children: [
-                      const Skeleton.circle(size: 65),
-                      const SizedBox(width: AppSpacing.md),
+                      Skeleton.circle(size: 65),
+                      SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Skeleton(width: 120, height: 12),
-                            const SizedBox(height: 8),
-                            const Skeleton(width: 80, height: 12),
-                            const SizedBox(height: 8),
-                            const Skeleton(width: 80, height: 12),
+                            Skeleton(width: 120, height: 12),
+                            SizedBox(height: 8),
+                            Skeleton(width: 80, height: 12),
+                            SizedBox(height: 8),
+                            Skeleton(width: 80, height: 12),
                           ],
                         ),
                       ),
@@ -599,24 +574,23 @@ class KovariSkeletonProfile extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRowSkeleton() {
-    return Row(
+  Widget _buildInfoRowSkeleton() => const Row(
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Skeleton(width: 40, height: 12),
               SizedBox(height: 6),
               Skeleton(width: 80, height: 12),
             ],
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Skeleton(width: 40, height: 12),
               SizedBox(height: 6),
               Skeleton(width: 80, height: 12),
@@ -625,15 +599,13 @@ class KovariSkeletonProfile extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 class KovariSkeletonItineraryBoard extends StatelessWidget {
   const KovariSkeletonItineraryBoard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
+  Widget build(BuildContext context) => SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -648,10 +620,8 @@ class KovariSkeletonItineraryBoard extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildSectionSkeleton() {
-    return Container(
+  Widget _buildSectionSkeleton() => Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -683,22 +653,22 @@ class KovariSkeletonItineraryBoard extends StatelessWidget {
                       color: Colors.grey.withValues(alpha: 0.1),
                     ),
                   ),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Skeleton(width: 120, height: 12),
                           Skeleton(width: 40, height: 12),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      const Skeleton(width: 60, height: 12),
-                      const SizedBox(height: AppSpacing.mds),
-                      const Skeleton(width: 120, height: 14),
-                      const SizedBox(height: 8),
-                      const Skeleton(width: double.infinity, height: 12),
+                      SizedBox(height: 4),
+                      Skeleton(width: 60, height: 12),
+                      SizedBox(height: AppSpacing.mds),
+                      Skeleton(width: 120, height: 14),
+                      SizedBox(height: 8),
+                      Skeleton(width: double.infinity, height: 12),
                     ],
                   ),
                 ),
@@ -708,19 +678,17 @@ class KovariSkeletonItineraryBoard extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class KovariSkeletonGroupOverview extends StatelessWidget {
   const KovariSkeletonGroupOverview({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
+  Widget build(BuildContext context) => SingleChildScrollView(
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -782,10 +750,8 @@ class KovariSkeletonGroupOverview extends StatelessWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildMembersLoading(BuildContext context) {
-    return Padding(
+  Widget _buildMembersLoading(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,16 +761,16 @@ class KovariSkeletonGroupOverview extends StatelessWidget {
           Column(
             children: List.generate(
               3,
-              (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+              (index) => const Padding(
+                padding: EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    const Skeleton.circle(size: 40),
-                    const SizedBox(width: 10),
+                    Skeleton.circle(size: 40),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Skeleton(width: 100, height: 12),
                           SizedBox(height: 6),
                           Skeleton(width: 60, height: 11),
@@ -819,5 +785,4 @@ class KovariSkeletonGroupOverview extends StatelessWidget {
         ],
       ),
     );
-  }
 }

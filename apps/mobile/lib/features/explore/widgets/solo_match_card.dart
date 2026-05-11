@@ -1,29 +1,29 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/secondary_button.dart';
-import '../models/match_user.dart';
-import '../providers/explore_provider.dart';
-import '../../../core/widgets/common/user_avatar_fallback.dart';
-import '../../../shared/widgets/app_card.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/common/user_avatar_fallback.dart';
+import 'package:mobile/features/explore/models/match_user.dart';
+import 'package:mobile/features/explore/providers/explore_provider.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
 
 class SoloMatchCard extends ConsumerWidget {
-  final MatchUser match;
 
   const SoloMatchCard({super.key, required this.match});
+  final MatchUser match;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final String name = match.name;
-    final int? age = match.age;
-    final String? bio = match.bio;
+    final name = match.name;
+    final age = match.age;
+    final bio = match.bio;
 
-    final DateTime? startDate = match.startDate;
-    final DateTime? endDate = match.endDate;
+    final startDate = match.startDate;
+    final endDate = match.endDate;
 
     String? dateRange;
     int? tripLength;
@@ -36,7 +36,7 @@ class SoloMatchCard extends ConsumerWidget {
     return AppCard(
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(24),
-      border: const Border(top: BorderSide.none, bottom: BorderSide.none),
+      border: const Border(),
       boxShadow: const [],
       child: Column(
         children: [
@@ -89,7 +89,7 @@ class SoloMatchCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      age != null ? "$name, $age" : name,
+                      age != null ? '$name, $age' : name,
                       style: AppTextStyles.h3.copyWith(
                         color: AppColors.text(context),
                       ),
@@ -138,7 +138,7 @@ class SoloMatchCard extends ConsumerWidget {
                       if (tripLength != null)
                         _PillData(
                           icon: Icons.calendar_today_outlined,
-                          label: "$tripLength days",
+                          label: '$tripLength days',
                         ),
                       if (match.budget != null && match.budget! > 0)
                         _PillData(
@@ -264,8 +264,7 @@ class SoloMatchCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
+  Widget _buildSectionTitle(BuildContext context, String title) => Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title.toUpperCase(),
@@ -276,18 +275,14 @@ class SoloMatchCard extends ConsumerWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildPillList(BuildContext context, List<_PillData> pills) {
-    return Wrap(
+  Widget _buildPillList(BuildContext context, List<_PillData> pills) => Wrap(
       spacing: 6,
       runSpacing: 8,
       children: pills.map((pill) => _buildPill(context, pill)).toList(),
     );
-  }
 
-  Widget _buildPill(BuildContext context, _PillData data) {
-    return AppCard(
+  Widget _buildPill(BuildContext context, _PillData data) => AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       borderRadius: BorderRadius.circular(20),
       backgroundColor: AppColors.mutedColor(context),
@@ -309,10 +304,8 @@ class SoloMatchCard extends ConsumerWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildActions(WidgetRef ref, String userId) {
-    return Container(
+  Widget _buildActions(WidgetRef ref, String userId) => Container(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 20),
       child: Row(
         children: [
@@ -321,7 +314,6 @@ class SoloMatchCard extends ConsumerWidget {
               onPressed: () =>
                   ref.read(exploreProvider.notifier).handlePass(userId),
               icon: Icons.close_rounded,
-              height: 44,
             ),
           ),
           const SizedBox(width: 8),
@@ -329,7 +321,6 @@ class SoloMatchCard extends ConsumerWidget {
             child: SecondaryButton(
               onPressed: () => {},
               icon: Icons.flag_outlined,
-              height: 44,
             ),
           ),
           const SizedBox(width: 8),
@@ -338,18 +329,16 @@ class SoloMatchCard extends ConsumerWidget {
               onPressed: () =>
                   ref.read(exploreProvider.notifier).handleInterested(userId),
               icon: Icons.check_rounded,
-              height: 44,
             ),
           ),
         ],
       ),
     );
-  }
 }
 
 class _PillData {
-  final IconData? icon;
-  final String label;
 
   _PillData({this.icon, required this.label});
+  final IconData? icon;
+  final String label;
 }

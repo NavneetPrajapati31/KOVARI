@@ -1,5 +1,5 @@
-import 'runtime_trust_service.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/security/runtime_trust_service.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 enum SecurityAction {
   allow,           // Proceed normally
@@ -10,9 +10,9 @@ enum SecurityAction {
 }
 
 class SecurityPolicyEngine {
-  static final SecurityPolicyEngine _instance = SecurityPolicyEngine._internal();
   factory SecurityPolicyEngine() => _instance;
   SecurityPolicyEngine._internal();
+  static final SecurityPolicyEngine _instance = SecurityPolicyEngine._internal();
 
   /// ⚖️ Determines the appropriate action based on the current TrustScore.
   SecurityAction evaluateAction(TrustScore score) {

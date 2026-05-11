@@ -1,5 +1,5 @@
-import '../../../core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 
 enum RequestStatus {
   pending,
@@ -8,16 +8,6 @@ enum RequestStatus {
 }
 
 class InterestModel {
-  final String id;
-  final String senderId;
-  final String senderName;
-  final String senderUsername;
-  final String senderAvatar;
-  final String senderBio;
-  final String destination;
-  final int mutualConnections;
-  final DateTime sentAt;
-  final RequestStatus status;
 
   InterestModel({
     required this.id,
@@ -33,20 +23,30 @@ class InterestModel {
   });
 
   factory InterestModel.fromJson(Map<String, dynamic> json) {
-    final sender = json['sender'] ?? {};
+    final sender = (json['sender'] as Map<String, dynamic>?) ?? {};
     return InterestModel(
-      id: json['id'] ?? '',
-      senderId: sender['id'] ?? '',
-      senderName: sender['name'] ?? 'Unknown User',
-      senderUsername: sender['username'] ?? 'traveler',
-      senderAvatar: sender['avatar'] ?? '',
-      senderBio: sender['bio'] ?? '',
-      destination: sender['location'] ?? 'Unknown Destination', // Backend maps destination_id to location
-      mutualConnections: sender['mutualConnections'] ?? 0,
-      sentAt: DateTime.parse(json['sentAt'] ?? DateTime.now().toIso8601String()),
-      status: _parseStatus(json['status']),
+      id: (json['id'] as String?) ?? '',
+      senderId: (sender['id'] as String?) ?? '',
+      senderName: (sender['name'] as String?) ?? 'Unknown User',
+      senderUsername: (sender['username'] as String?) ?? 'traveler',
+      senderAvatar: (sender['avatar'] as String?) ?? '',
+      senderBio: (sender['bio'] as String?) ?? '',
+      destination: (sender['location'] as String?) ?? 'Unknown Destination', // Backend maps destination_id to location
+      mutualConnections: (sender['mutualConnections'] as int?) ?? 0,
+      sentAt: DateTime.parse((json['sentAt'] as String?) ?? DateTime.now().toIso8601String()),
+      status: _parseStatus(json['status'] as String?),
     );
   }
+  final String id;
+  final String senderId;
+  final String senderName;
+  final String senderUsername;
+  final String senderAvatar;
+  final String senderBio;
+  final String destination;
+  final int mutualConnections;
+  final DateTime sentAt;
+  final RequestStatus status;
 
   static RequestStatus _parseStatus(String? status) {
     switch (status?.toLowerCase()) {
@@ -60,8 +60,7 @@ class InterestModel {
     }
   }
 
-  InterestModel copyWith({RequestStatus? status}) {
-    return InterestModel(
+  InterestModel copyWith({RequestStatus? status}) => InterestModel(
       id: id,
       senderId: senderId,
       senderName: senderName,
@@ -73,24 +72,9 @@ class InterestModel {
       sentAt: sentAt,
       status: status ?? this.status,
     );
-  }
 }
 
 class InvitationModel {
-  final String id;
-  final String groupName;
-  final String? groupCoverImage;
-  final String creatorName;
-  final String creatorUsername;
-  final String creatorAvatar;
-  final String destination;
-  final String? dates;
-  final String description;
-  final int memberCount;
-  final int expiresInDays;
-  final DateTime inviteDate;
-  final List<TeamMemberModel> teamMembers;
-  final RequestStatus status;
 
   InvitationModel({
     required this.id,
@@ -110,29 +94,42 @@ class InvitationModel {
   });
 
   factory InvitationModel.fromJson(Map<String, dynamic> json) {
-    final creator = json['creator'] ?? {};
+    final creator = (json['creator'] as Map<String, dynamic>?) ?? {};
     final teamMembersJson = json['teamMembers'] as List? ?? [];
     
     return InvitationModel(
-      id: json['id'] ?? '',
-      groupName: json['groupName'] ?? 'Travel Group',
-      groupCoverImage: json['groupCoverImage'],
-      creatorName: creator['name'] ?? 'Unknown',
-      creatorUsername: creator['username'] ?? 'unknown',
-      creatorAvatar: creator['avatar'] ?? '',
-      destination: json['destination'] ?? 'Everywhere',
-      dates: json['dates'],
-      description: json['description'] ?? '',
-      memberCount: json['acceptedCount'] ?? 0,
-      expiresInDays: json['expiresInDays'] ?? 30,
-      inviteDate: DateTime.parse(json['inviteDate'] ?? DateTime.now().toIso8601String()),
-      teamMembers: teamMembersJson.map((m) => TeamMemberModel.fromJson(m)).toList(),
+      id: (json['id'] as String?) ?? '',
+      groupName: (json['groupName'] as String?) ?? 'Travel Group',
+      groupCoverImage: json['groupCoverImage'] as String?,
+      creatorName: (creator['name'] as String?) ?? 'Unknown',
+      creatorUsername: (creator['username'] as String?) ?? 'unknown',
+      creatorAvatar: (creator['avatar'] as String?) ?? '',
+      destination: (json['destination'] as String?) ?? 'Everywhere',
+      dates: json['dates'] as String?,
+      description: (json['description'] as String?) ?? '',
+      memberCount: (json['acceptedCount'] as int?) ?? 0,
+      expiresInDays: (json['expiresInDays'] as int?) ?? 30,
+      inviteDate: DateTime.parse((json['inviteDate'] as String?) ?? DateTime.now().toIso8601String()),
+      teamMembers: teamMembersJson.map((m) => TeamMemberModel.fromJson(m as Map<String, dynamic>)).toList(),
       status: RequestStatus.pending, // Invitations from pending-invitations are always pending
     );
   }
+  final String id;
+  final String groupName;
+  final String? groupCoverImage;
+  final String creatorName;
+  final String creatorUsername;
+  final String creatorAvatar;
+  final String destination;
+  final String? dates;
+  final String description;
+  final int memberCount;
+  final int expiresInDays;
+  final DateTime inviteDate;
+  final List<TeamMemberModel> teamMembers;
+  final RequestStatus status;
 
-  InvitationModel copyWith({RequestStatus? status}) {
-    return InvitationModel(
+  InvitationModel copyWith({RequestStatus? status}) => InvitationModel(
       id: id,
       groupName: groupName,
       groupCoverImage: groupCoverImage,
@@ -148,13 +145,9 @@ class InvitationModel {
       teamMembers: teamMembers,
       status: status ?? this.status,
     );
-  }
 }
 
 class TeamMemberModel {
-  final String avatar;
-  final String initials;
-  final String? colorHex;
 
   TeamMemberModel({
     required this.avatar,
@@ -162,13 +155,14 @@ class TeamMemberModel {
     this.colorHex,
   });
 
-  factory TeamMemberModel.fromJson(Map<String, dynamic> json) {
-    return TeamMemberModel(
-      avatar: json['avatar'] ?? '',
-      initials: json['initials'] ?? '?',
-      colorHex: json['color'],
+  factory TeamMemberModel.fromJson(Map<String, dynamic> json) => TeamMemberModel(
+      avatar: (json['avatar'] as String?) ?? '',
+      initials: (json['initials'] as String?) ?? '?',
+      colorHex: json['color'] as String?,
     );
-  }
+  final String avatar;
+  final String initials;
+  final String? colorHex;
 
   Color get color {
     if (colorHex == null) return AppColors.primary;

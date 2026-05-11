@@ -1,22 +1,22 @@
 import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/providers/auth_provider.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/text_input_field.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../core/utils/api_error_handler.dart';
-import '../services/auth_service.dart';
-import 'package:dio/dio.dart';
-
 import 'package:go_router/go_router.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/utils/api_error_handler.dart';
+import 'package:mobile/features/auth/services/auth_service.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class VerifyEmailScreen extends ConsumerStatefulWidget {
-  final String email;
 
   const VerifyEmailScreen({super.key, required this.email});
+  final String email;
 
   @override
   ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
@@ -109,7 +109,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _successMessage = "Verification code resent!";
+          _successMessage = 'Verification code resent!';
         });
         _startCooldownTimer();
       }
@@ -127,8 +127,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -264,5 +263,4 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         ),
       ),
     );
-  }
 }

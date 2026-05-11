@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
-import '../config/interaction_config.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/config/interaction_config.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class HapticService {
   static Future<void> trigger(HapticType type) async {
@@ -21,21 +21,21 @@ class HapticService {
         case HapticType.success:
           // iOS Success pattern: light multi-tap
           await HapticFeedback.lightImpact();
-          await Future.delayed(const Duration(milliseconds: 50));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
           await HapticFeedback.lightImpact();
           break;
         case HapticType.error:
           // iOS Error pattern: heavy triple-tap + fallback vibration
           await HapticFeedback.vibrate();
           await HapticFeedback.heavyImpact();
-          await Future.delayed(const Duration(milliseconds: 50));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
           await HapticFeedback.heavyImpact();
-          await Future.delayed(const Duration(milliseconds: 50));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
           await HapticFeedback.heavyImpact();
           break;
         case HapticType.warning:
           await HapticFeedback.mediumImpact();
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
           await HapticFeedback.mediumImpact();
           break;
         case HapticType.rigid:

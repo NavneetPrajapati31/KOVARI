@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../utils/app_logger.dart';
-import '../network/request_priority.dart';
+import 'package:mobile/core/network/request_priority.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class SessionManager {
   bool _isAuthenticated = false;
@@ -86,7 +87,7 @@ class SessionManager {
     if (isUnderStress && priority == RequestPriority.low) {
       AppLogger.d('Queuing low-priority request during stress');
       while (isUnderStress) {
-        await Future.delayed(const Duration(seconds: 1));
+        await Future<void>.delayed(const Duration(seconds: 1));
       }
     }
 
@@ -94,15 +95,15 @@ class SessionManager {
     try {
       if (_waitersCount > 50) {
         // Soft Cap Grace Period
-        await Future.delayed(const Duration(milliseconds: 150));
+        await Future<void>.delayed(const Duration(milliseconds: 150));
         if (_refreshCompleter == null) return;
         throw TooManyRequestsException('System under heavy load');
       }
 
       // Adaptive Loop: poll every 50ms for max 500ms (10 attempts)
-      int attempts = 0;
+      var attempts = 0;
       while (_refreshCompleter != null && attempts < 10) {
-        await Future.delayed(const Duration(milliseconds: 50));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
         attempts++;
       }
 
@@ -149,7 +150,7 @@ class SessionManager {
     _onStateChanged?.call();
   }
 
-  void failRefresh(dynamic error) {
+  void failRefresh(Object error) {
     _isRefreshing = false;
     _failedRefreshCount++;
     _lastRefreshFailure = DateTime.now();
@@ -162,7 +163,7 @@ class SessionManager {
   }
 
   /// Deadlock-proof waiter clearing
-  void clearWaiters(dynamic error) {
+  void clearWaiters(Object error) {
     if (_refreshCompleter != null && !_refreshCompleter!.isCompleted) {
       _refreshCompleter!.completeError(error);
     }
@@ -216,25 +217,25 @@ class SessionManager {
 
 // Custom Exceptions
 class RefreshTimeoutException implements Exception {
-  final String message = "Token refresh timed out";
+  final String message = 'Token refresh timed out';
 }
 
 class TooManyRequestsException implements Exception {
-  final String message;
   TooManyRequestsException(this.message);
+  final String message;
 }
 
 class DegradedModeException implements Exception {
-  final String message = "App is in offline mode. Changes cannot be saved.";
+  final String message = 'App is in offline mode. Changes cannot be saved.';
 }
 
 class AuthFailure implements Exception {
-  final String reason;
   AuthFailure(this.reason);
+  final String reason;
 
-  static const severeExpiry = "severeExpiry";
-  static const refreshDisabled = "refreshDisabled";
-  static const invalidToken = "invalidToken";
+  static const severeExpiry = 'severeExpiry';
+  static const refreshDisabled = 'refreshDisabled';
+  static const invalidToken = 'invalidToken';
 }
 
 final sessionManagerProvider = Provider((ref) => SessionManager());

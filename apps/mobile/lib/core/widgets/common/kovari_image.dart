@@ -1,20 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'skeleton.dart';
-import '../../../core/theme/motion_tokens.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:flutter/material.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/motion_tokens.dart';
+import 'package:mobile/core/widgets/common/skeleton.dart';
 
 class KovariImage extends StatelessWidget {
-  final String imageUrl;
-  final double? width;
-  final double? height;
-  final BoxFit fit;
-  final BorderRadius? borderRadius;
-  final Widget? placeholder;
-  final Duration? fadeInDuration;
-  final Duration fadeOutDuration;
-
-  final String? thumbnailUrl;
 
   const KovariImage({
     super.key,
@@ -28,6 +18,16 @@ class KovariImage extends StatelessWidget {
     this.fadeInDuration,
     this.fadeOutDuration = Duration.zero,
   });
+  final String imageUrl;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+  final BorderRadius? borderRadius;
+  final Widget? placeholder;
+  final Duration? fadeInDuration;
+  final Duration fadeOutDuration;
+
+  final String? thumbnailUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -86,8 +86,7 @@ class KovariImage extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorWidget(bool isDark) {
-    return Container(
+  Widget _buildErrorWidget(bool isDark) => Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
@@ -99,5 +98,4 @@ class KovariImage extends StatelessWidget {
         size: 20,
       ),
     );
-  }
 }

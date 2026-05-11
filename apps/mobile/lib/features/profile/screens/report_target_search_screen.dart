@@ -1,21 +1,22 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/profile/models/safety_report.dart';
+import 'package:mobile/features/profile/providers/safety_provider.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 import 'package:mobile/shared/widgets/text_input_field.dart';
-import '../../../core/navigation/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../providers/safety_provider.dart';
-import '../models/safety_report.dart';
 
-class ReportTargetSearchScreen extends ConsumerStatefulWidget {
-  final String targetType; // 'user' or 'group'
+class ReportTargetSearchScreen extends ConsumerStatefulWidget { // 'user' or 'group'
 
   const ReportTargetSearchScreen({super.key, required this.targetType});
+  final String targetType;
 
   @override
   ConsumerState<ReportTargetSearchScreen> createState() =>
@@ -68,8 +69,7 @@ class _ReportTargetSearchScreenState
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
+  Widget _buildHeader(BuildContext context) => Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
@@ -90,10 +90,8 @@ class _ReportTargetSearchScreenState
         ],
       ),
     );
-  }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
       onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
@@ -104,10 +102,8 @@ class _ReportTargetSearchScreenState
         ),
       ),
     );
-  }
 
-  Widget _buildSearchBar(BuildContext context) {
-    return Padding(
+  Widget _buildSearchBar(BuildContext context) => Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,7 +128,7 @@ class _ReportTargetSearchScreenState
           const SizedBox(height: 20),
           TextInputField(
             fillColor: AppColors.surface(context, level: 1),
-            label: "",
+            label: '',
             controller: _searchController,
             onChanged: _onSearchChanged,
             hintText:
@@ -165,7 +161,6 @@ class _ReportTargetSearchScreenState
         ],
       ),
     );
-  }
 
   Widget _buildResultsList(BuildContext context, SafetyState state) {
     if (state.isSearchLoading && state.searchResults.isEmpty) {
@@ -224,7 +219,6 @@ class _ReportTargetSearchScreenState
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: AppColors.borderColor(context),
-                  width: 1,
                 ),
               ),
               child: Row(
@@ -271,6 +265,6 @@ class _ReportTargetSearchScreenState
       targetType: widget.targetType,
       targetId: target.id,
       targetName: target.name,
-    ).push(context);
+    ).push<void>(context);
   }
 }

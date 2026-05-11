@@ -46,13 +46,6 @@ enum StatusType {
 }
 
 class StatusMessage {
-  final String message;
-  final StatusType type;
-  final IconData? customIcon;
-  final Duration duration;
-  final VoidCallback? onAction;
-  final String? actionLabel;
-  final DateTime timestamp;
 
   StatusMessage({
     required this.message,
@@ -62,6 +55,13 @@ class StatusMessage {
     this.onAction,
     this.actionLabel,
   }) : timestamp = DateTime.now();
+  final String message;
+  final StatusType type;
+  final IconData? customIcon;
+  final Duration duration;
+  final VoidCallback? onAction;
+  final String? actionLabel;
+  final DateTime timestamp;
 }
 
 class StatusOverlayNotifier extends Notifier<List<StatusMessage>> {
@@ -109,7 +109,7 @@ class StatusOverlayNotifier extends Notifier<List<StatusMessage>> {
   void success(String message) =>
       show(message: message, type: StatusType.success);
   void error(String message) => show(message: message, type: StatusType.error);
-  void info(String message) => show(message: message, type: StatusType.info);
+  void info(String message) => show(message: message);
 }
 
 final statusOverlayProvider =

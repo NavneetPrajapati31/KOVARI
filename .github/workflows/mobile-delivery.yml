@@ -1,0 +1,126 @@
+name: Mobile Delivery Pipeline
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master, dev ]
+
+jobs:
+  static-analysis:
+    name: 🛡️ Static Analysis Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          flutter pub get
+
+      - name: Verify formatting
+        run: |
+          cd apps/mobile
+          flutter format --set-exit-if-changed lib test
+
+      - name: Analyze code
+        run: |
+          cd apps/mobile
+          flutter analyze --fatal-infos --fatal-warnings
+
+  unit-runtime-tests:
+    name: 🧠 Runtime & Unit Suite
+    runs-on: ubuntu-latest
+    needs: static-analysis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          flutter pub get
+
+      - name: Run unit & runtime tests
+        run: |
+          cd apps/mobile
+          flutter test test/unit test/runtime --coverage
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: apps/mobile/coverage/lcov.info
+
+  visual-stability:
+    name: 🎨 Visual Stability (Goldens)
+    runs-on: macos-latest # Mac needed for pixel-perfect goldens
+    needs: static-analysis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          flutter pub get
+
+      - name: Run golden tests
+        run: |
+          cd apps/mobile
+          flutter test test/widget/kovari_button_test.dart
+
+  performance-leaks:
+    name: ⚡ Performance & Leaks
+    runs-on: ubuntu-latest
+    needs: static-analysis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          flutter pub get
+
+      - name: Run leak detection tests
+        run: |
+          cd apps/mobile
+          flutter test test/performance/leak_detection_test.dart
+
+  build-verification:
+    name: 🏗️ Build Verification
+    runs-on: ubuntu-latest
+    needs: [unit-runtime-tests, visual-stability, performance-leaks]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          flutter pub get
+
+      - name: Build Android Debug APK
+        run: |
+          cd apps/mobile
+          flutter build apk --debug
+
+      - name: Build Verification Report
+        run: echo "🚀 Kovari Release Confidence: HIGH"

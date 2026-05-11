@@ -1,13 +1,13 @@
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/utils/api_error_handler.dart';
-import '../../../core/utils/safe_parser.dart';
-import '../models/user_connection.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/utils/api_error_handler.dart';
+import 'package:mobile/core/utils/safe_parser.dart';
+import 'package:mobile/features/profile/models/user_connection.dart';
 
 class ConnectionsService {
-  final ApiClient _apiClient;
 
   ConnectionsService(this._apiClient);
+  final ApiClient _apiClient;
 
   /// GET /api/profile/[userId]/followers
   Future<List<UserConnection>> getFollowers(String userId, {int limit = 20, int offset = 0}) async {
@@ -19,7 +19,7 @@ class ConnectionsService {
           'offset': offset,
         },
         parser: (data) => safeParseList(
-          data is List ? data : [],
+          data is List ? data : <dynamic>[],
           UserConnection.fromJson,
         ),
       );
@@ -39,7 +39,7 @@ class ConnectionsService {
           'offset': offset,
         },
         parser: (data) => safeParseList(
-          data is List ? data : [],
+          data is List ? data : <dynamic>[],
           UserConnection.fromJson,
         ),
       );

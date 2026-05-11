@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'router_notifier.dart';
-import 'routes.dart';
-import '../utils/nav_observer.dart';
+import 'package:mobile/core/navigation/router_notifier.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/utils/nav_observer.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(routerNotifierProvider);

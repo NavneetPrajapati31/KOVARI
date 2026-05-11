@@ -1,23 +1,22 @@
 import 'dart:async';
-import 'package:flutter/gestures.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class BehavioralSignal {
-  final String type;
-  final double intensity; // 0.0 to 1.0
-  final DateTime timestamp;
 
   BehavioralSignal({
     required this.type,
     required this.intensity,
     required this.timestamp,
   });
+  final String type;
+  final double intensity; // 0.0 to 1.0
+  final DateTime timestamp;
 }
 
 class AbuseDetectionService {
-  static final AbuseDetectionService _instance = AbuseDetectionService._internal();
   factory AbuseDetectionService() => _instance;
   AbuseDetectionService._internal();
+  static final AbuseDetectionService _instance = AbuseDetectionService._internal();
 
   final _signalController = StreamController<BehavioralSignal>.broadcast();
   Stream<BehavioralSignal> get signals => _signalController.stream;

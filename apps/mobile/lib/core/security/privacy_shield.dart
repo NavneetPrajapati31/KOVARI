@@ -1,12 +1,13 @@
-import 'package:screen_protector/screen_protector.dart';
-import 'package:flutter/services.dart';
 import 'dart:async';
-import '../utils/app_logger.dart';
+
+import 'package:flutter/services.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:screen_protector/screen_protector.dart';
 
 class PrivacyShield {
-  static final PrivacyShield _instance = PrivacyShield._internal();
   factory PrivacyShield() => _instance;
   PrivacyShield._internal();
+  static final PrivacyShield _instance = PrivacyShield._internal();
 
   Timer? _clipboardTimer;
 

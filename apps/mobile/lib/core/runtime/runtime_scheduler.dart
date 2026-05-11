@@ -1,9 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import '../utils/app_logger.dart';
-import '../telemetry/telemetry_service.dart';
-import '../telemetry/telemetry_priority.dart';
-import '../telemetry/event_schema_registry.dart';
+import 'package:mobile/core/telemetry/event_schema_registry.dart';
+import 'package:mobile/core/telemetry/telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 enum TaskPriority {
   visible, // Currently on screen
@@ -14,24 +15,18 @@ enum TaskPriority {
 }
 
 class ViewportContext {
-  final double scrollOffset;
-  final int itemIndex;
-  final bool isVisible;
 
   ViewportContext({
     this.scrollOffset = 0,
     this.itemIndex = 0,
     this.isVisible = false,
   });
+  final double scrollOffset;
+  final int itemIndex;
+  final bool isVisible;
 }
 
 class HydrationTask {
-  final String id;
-  final String? traceId;
-  final TaskPriority priority;
-  final ViewportContext? viewport;
-  final Future<void> Function() execute;
-  final VoidCallback? onCancel;
 
   HydrationTask({
     required this.id,
@@ -41,6 +36,12 @@ class HydrationTask {
     required this.execute,
     this.onCancel,
   });
+  final String id;
+  final String? traceId;
+  final TaskPriority priority;
+  final ViewportContext? viewport;
+  final Future<void> Function() execute;
+  final VoidCallback? onCancel;
 }
 
 class RuntimeScheduler extends ChangeNotifier {
@@ -107,7 +108,7 @@ class RuntimeScheduler extends ChangeNotifier {
   }
 
   void cancel(String taskId) {
-    bool removed = false;
+    var removed = false;
     _queue.removeWhere((t) {
       if (t.id == taskId) {
         t.onCancel?.call();

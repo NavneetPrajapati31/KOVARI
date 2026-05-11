@@ -2,9 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 class ScrollPreloader extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onIdle;
-  final Duration idleDuration;
 
   const ScrollPreloader({
     super.key,
@@ -12,6 +9,9 @@ class ScrollPreloader extends StatefulWidget {
     required this.onIdle,
     this.idleDuration = const Duration(milliseconds: 300),
   });
+  final Widget child;
+  final VoidCallback onIdle;
+  final Duration idleDuration;
 
   @override
   State<ScrollPreloader> createState() => _ScrollPreloaderState();
@@ -38,13 +38,11 @@ class _ScrollPreloaderState extends State<ScrollPreloader> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(
+  Widget build(BuildContext context) => NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         _onScrollNotification(notification);
         return false;
       },
       child: widget.child,
     );
-  }
 }

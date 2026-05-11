@@ -1,12 +1,11 @@
 import 'dart:io';
+
 import 'package:dio/dio.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
 
 class CloudinaryService {
-  final ApiClient _apiClient;
-  final Dio _cloudinaryDio;
 
   CloudinaryService(this._apiClient) : _cloudinaryDio = Dio(
     BaseOptions(
@@ -15,6 +14,8 @@ class CloudinaryService {
       receiveTimeout: const Duration(seconds: 45),
     ),
   );
+  final ApiClient _apiClient;
+  final Dio _cloudinaryDio;
 
   /// Gets a signed upload signature from the backend
   Future<Map<String, dynamic>> _getSignature(String folder, {CancelToken? cancelToken}) async {
@@ -43,11 +44,11 @@ class CloudinaryService {
       // 1. Get signature from our backend
       final signData = await _getSignature(folder, cancelToken: cancelToken);
       
-      final String signature = signData['signature'];
-      final int timestamp = signData['timestamp'];
-      final String apiKey = signData['api_key'];
-      final String cloudName = signData['cloud_name'];
-      final String targetFolder = signData['folder'];
+      final String signature = signData['signature'] as String;
+      final int timestamp = signData['timestamp'] as int;
+      final String apiKey = signData['api_key'] as String;
+      final String cloudName = signData['cloud_name'] as String;
+      final String targetFolder = signData['folder'] as String;
 
       // 2. Prepare multipart data for Cloudinary
       final fileName = file.path.split('/').last;

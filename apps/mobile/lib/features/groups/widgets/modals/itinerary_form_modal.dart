@@ -3,20 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../shared/widgets/secondary_button.dart';
-import '../../../../shared/widgets/text_input_field.dart';
-import '../../../../shared/widgets/select_field.dart';
-import '../../models/group.dart';
-import '../../providers/group_details_provider.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/providers/group_details_provider.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
+import 'package:mobile/shared/widgets/select_field.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class ItineraryFormModal extends ConsumerStatefulWidget {
-  final String groupId;
-  final ItineraryItem? initialItem;
-  final String? initialStatus;
 
   const ItineraryFormModal({
     super.key,
@@ -24,6 +21,9 @@ class ItineraryFormModal extends ConsumerStatefulWidget {
     this.initialItem,
     this.initialStatus,
   });
+  final String groupId;
+  final ItineraryItem? initialItem;
+  final String? initialStatus;
 
   @override
   ConsumerState<ItineraryFormModal> createState() => _ItineraryFormModalState();
@@ -62,7 +62,7 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
     _locationController = TextEditingController(text: item?.location ?? '');
     _notesController = TextEditingController(text: item?.notes ?? '');
 
-    DateTime initialDateTime = DateTime.now();
+    var initialDateTime = DateTime.now();
     if (item?.datetime != null) {
       try {
         initialDateTime = DateTime.parse(item!.datetime);
@@ -88,9 +88,7 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
     super.dispose();
   }
 
-  String _formatDate(DateTime date) {
-    return DateFormat('MMMM d, y').format(date);
-  }
+  String _formatDate(DateTime date) => DateFormat('MMMM d, y').format(date);
 
   String _formatTime(TimeOfDay time) {
     final now = DateTime.now();
@@ -100,13 +98,12 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
 
   Future<void> _pickDate() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
+      builder: (context, child) => Theme(
           data: Theme.of(context).copyWith(
             colorScheme: isDark
                 ? ColorScheme.dark(
@@ -115,15 +112,13 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
                     surface: AppColors.surface(context, level: 2),
                     onSurface: AppColors.foregroundDark,
                   )
-                : ColorScheme.light(
+                : const ColorScheme.light(
                     primary: AppColors.primary,
-                    onPrimary: Colors.white,
                     onSurface: AppColors.foreground,
                   ),
           ),
           child: child!,
-        );
-      },
+        ),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -134,11 +129,10 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
 
   Future<void> _pickTime() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final TimeOfDay? picked = await showTimePicker(
+    final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
-      builder: (context, child) {
-        return Theme(
+      builder: (context, child) => Theme(
           data: Theme.of(context).copyWith(
             colorScheme: isDark
                 ? ColorScheme.dark(
@@ -147,15 +141,13 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
                     surface: AppColors.surface(context, level: 2),
                     onSurface: AppColors.foregroundDark,
                   )
-                : ColorScheme.light(
+                : const ColorScheme.light(
                     primary: AppColors.primary,
-                    onPrimary: Colors.white,
                     onSurface: AppColors.foreground,
                   ),
           ),
           child: child!,
-        );
-      },
+        ),
     );
     if (picked != null && picked != _selectedTime) {
       setState(() {

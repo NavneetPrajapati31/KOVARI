@@ -17,8 +17,8 @@ class TelemetryPrivacyAudit {
 
     final payloadString = payload.toString();
 
-    bool hasEmail = _emailRegex.hasMatch(payloadString);
-    bool hasToken =
+    final hasEmail = _emailRegex.hasMatch(payloadString);
+    final hasToken =
         _tokenRegex.hasMatch(payloadString) ||
         _authHeaderRegex.hasMatch(payloadString);
 
@@ -42,7 +42,7 @@ class TelemetryPrivacyAudit {
         return MapEntry(stringKey, scrub(value));
       });
     } else if (data is List) {
-      return data.map((e) => scrub(e)).toList();
+      return data.map(scrub).toList();
     } else if (data is String) {
       return _scrubString(data);
     }

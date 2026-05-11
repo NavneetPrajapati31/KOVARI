@@ -1,24 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/providers/profile_provider.dart';
-import '../../home/screens/home_screen.dart';
-import '../../explore/screens/explore_screen.dart';
-import '../../chat/screens/chat_inbox_screen.dart';
-import '../../groups/screens/groups_screen.dart';
-import '../widgets/profile_tab.dart';
-import '../../../shared/widgets/kovari_bottom_nav.dart';
-import '../providers/app_shell_provider.dart';
-import '../../../core/providers/connectivity_provider.dart';
-import '../../../core/utils/app_logger.dart';
-import '../../home/providers/home_provider.dart';
-import '../../../core/providers/nav_provider.dart';
-
 import 'package:go_router/go_router.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/features/home/providers/home_provider.dart';
+import 'package:mobile/shared/widgets/kovari_bottom_nav.dart';
 
 class AppShellScreen extends ConsumerStatefulWidget {
-  final StatefulNavigationShell navigationShell;
 
   const AppShellScreen({super.key, required this.navigationShell});
+  final StatefulNavigationShell navigationShell;
 
   @override
   ConsumerState<AppShellScreen> createState() => _AppShellScreenState();

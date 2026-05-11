@@ -1,14 +1,7 @@
 import 'package:dio/dio.dart';
-import '../../core/config/env.dart';
+import 'package:mobile/core/config/env.dart';
 
 class GeoapifyResult {
-  final String placeId;
-  final String formatted;
-  final String city;
-  final String state;
-  final String country;
-  final double lat;
-  final double lon;
 
   GeoapifyResult({
     required this.placeId,
@@ -32,6 +25,13 @@ class GeoapifyResult {
       lon: (properties['lon'] as num).toDouble(),
     );
   }
+  final String placeId;
+  final String formatted;
+  final String city;
+  final String state;
+  final String country;
+  final double lat;
+  final double lon;
 }
 
 class LocationService {

@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../models/user_connection.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/profile/models/user_connection.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 class UserListItem extends StatelessWidget {
-  final UserConnection user;
-  final String type; // 'followers' or 'following'
-  final bool isOwnProfile;
-  final VoidCallback? onActionPressed;
-  final VoidCallback? onRemovePressed;
-  final VoidCallback? onTap;
-  final bool isLoading;
 
   const UserListItem({
     super.key,
@@ -24,11 +17,18 @@ class UserListItem extends StatelessWidget {
     this.onTap,
     this.isLoading = false,
   });
+  final UserConnection user;
+  final String type; // 'followers' or 'following'
+  final bool isOwnProfile;
+  final VoidCallback? onActionPressed;
+  final VoidCallback? onRemovePressed;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     // Logic for button label matching the web card
-    String buttonLabel = '';
+    var buttonLabel = '';
     if (isOwnProfile) {
       if (type == 'followers') {
         buttonLabel = user.isFollowing ? 'Message' : 'Follow Back';
@@ -57,7 +57,7 @@ class UserListItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface(context),
           border: Border(
-            bottom: BorderSide(color: AppColors.borderColor(context), width: 1),
+            bottom: BorderSide(color: AppColors.borderColor(context)),
           ),
         ),
         child: Row(
@@ -125,8 +125,7 @@ class UserListItem extends StatelessWidget {
     required String label,
     VoidCallback? onPressed,
     bool isPrimary = false,
-  }) {
-    return SizedBox(
+  }) => SizedBox(
       height: 32,
       child: TextButton(
         onPressed: isLoading ? null : onPressed,
@@ -162,10 +161,8 @@ class UserListItem extends StatelessWidget {
               ),
       ),
     );
-  }
 
-  Widget _buildRemoveButton(BuildContext context, VoidCallback onPressed) {
-    return SizedBox(
+  Widget _buildRemoveButton(BuildContext context, VoidCallback onPressed) => SizedBox(
       width: 32,
       height: 32,
       child: IconButton(
@@ -181,5 +178,4 @@ class UserListItem extends StatelessWidget {
         ),
       ),
     );
-  }
 }

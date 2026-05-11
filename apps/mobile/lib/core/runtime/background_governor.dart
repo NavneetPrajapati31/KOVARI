@@ -1,13 +1,13 @@
 import 'package:flutter/widgets.dart';
-import '../utils/app_logger.dart';
-import 'runtime_scheduler.dart';
-import 'replay_engine.dart';
+import 'package:mobile/core/runtime/replay_engine.dart';
+import 'package:mobile/core/runtime/runtime_scheduler.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class BackgroundGovernor extends WidgetsBindingObserver {
-  final RuntimeScheduler _scheduler;
-  final ReplayEngine _replayEngine;
 
   BackgroundGovernor(this._scheduler, this._replayEngine);
+  final RuntimeScheduler _scheduler;
+  final ReplayEngine _replayEngine;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {

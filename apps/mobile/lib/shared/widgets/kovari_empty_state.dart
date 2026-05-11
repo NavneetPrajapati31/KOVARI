@@ -1,17 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
 import 'package:mobile/shared/widgets/interactive_wrapper.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import 'primary_button.dart';
 
 class KovariEmptyState extends StatelessWidget {
-  final String title;
-  final String description;
-  final IconData? icon;
-  final Widget? illustration;
-  final String? actionLabel;
-  final VoidCallback? onAction;
 
   const KovariEmptyState({
     super.key,
@@ -22,15 +15,19 @@ class KovariEmptyState extends StatelessWidget {
     this.actionLabel,
     this.onAction,
   });
+  final String title;
+  final String description;
+  final IconData? icon;
+  final Widget? illustration;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Opacity(
+      builder: (context, value, child) => Opacity(
           opacity: value,
           child: Transform.translate(
             offset: Offset(0, 20 * (1 - value)),
@@ -104,8 +101,6 @@ class KovariEmptyState extends StatelessWidget {
               ),
             ),
           ),
-        );
-      },
+        ),
     );
-  }
 }

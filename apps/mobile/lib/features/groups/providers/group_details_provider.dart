@@ -1,10 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/groups/data/group_service.dart';
+import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/entity_stores.dart';
-import '../data/group_service.dart';
-import '../models/group.dart';
-import 'group_provider.dart';
+import 'package:mobile/features/groups/providers/group_provider.dart';
 
 final groupDetailsProvider = FutureProvider.family<GroupModel, String>((
   ref,
@@ -69,17 +70,15 @@ final groupMembershipProvider = FutureProvider.family<MembershipInfo, String>((
 });
 
 class GroupActionsNotifier {
+
+  GroupActionsNotifier(this._service, this._ref, this._groupId);
   final GroupService _service;
   final Ref _ref;
   final String _groupId;
 
-  GroupActionsNotifier(this._service, this._ref, this._groupId);
-
   Future<void> updateNotes(String notes) async {
     // 1. Apply optimistic update
-    _ref.read(groupStoreProvider.notifier).optimisticPatch(_groupId, (group) {
-      return group.copyWith(notes: notes);
-    });
+    _ref.read(groupStoreProvider.notifier).optimisticPatch(_groupId, (group) => group.copyWith(notes: notes));
 
     try {
       // 2. Perform network call
@@ -135,15 +134,13 @@ class GroupActionsNotifier {
   }
 
   Future<void> inviteMember(String usernameOrEmail) async {
-    final Map<String, String> invite = usernameOrEmail.contains('@')
+    final invite = usernameOrEmail.contains('@')
         ? {'email': usernameOrEmail}
         : {'username': usernameOrEmail};
     await _service.sendGroupInvite(_groupId, [invite]);
   }
 
-  Future<String> getInviteLink() async {
-    return _service.getInviteLink(_groupId);
-  }
+  Future<String> getInviteLink() async => _service.getInviteLink(_groupId);
 
   Future<void> generateAiOverview() async {
     await _service.generateAiOverview(_groupId);
@@ -207,7 +204,7 @@ class GroupActionsNotifier {
       rethrow;
     } finally {
       // 6. Final safety buffer to allow UI to settle with the new server data
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
       _ref.read(optimisticStoreProvider.notifier).set(_groupId, null);
     }
   }
@@ -216,7 +213,7 @@ class GroupActionsNotifier {
     await _service.createItineraryItem(_groupId, data);
     _ref.invalidate(groupItineraryProvider(_groupId));
     // Also refresh the hydrated store used by ItineraryTab
-    _ref.read(itineraryStoreProvider.notifier).subscribe(_groupId, force: true);
+    unawaited(_ref.read(itineraryStoreProvider.notifier).subscribe(_groupId, force: true));
   }
 
   Future<void> deleteItineraryItem(String itemId) async {
@@ -243,7 +240,7 @@ class GroupActionsNotifier {
       rethrow;
     } finally {
       // 6. Final safety buffer to allow UI to settle with the new server data
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
       _ref.read(optimisticStoreProvider.notifier).set(_groupId, null);
     }
   }
@@ -284,7 +281,7 @@ class GroupActionsNotifier {
       rethrow;
     } finally {
       // 6. Final safety buffer to allow UI to settle with the new server data
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
       _ref.read(optimisticStoreProvider.notifier).set(_groupId, null);
     }
   }

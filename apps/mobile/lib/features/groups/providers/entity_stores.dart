@@ -1,16 +1,17 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../models/group.dart';
-import '../models/hydrated_state.dart';
-import '../../../core/runtime/hydration_engine.dart';
-import '../../../core/runtime/runtime_coordinator.dart';
-import '../../../core/runtime/runtime_scheduler.dart';
-import '../../../core/providers/cache_provider.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/runtime/mutation_journal.dart';
-import 'group_provider.dart'; // for groupServiceProvider
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/core/runtime/hydration_engine.dart';
+import 'package:mobile/core/runtime/mutation_journal.dart';
+import 'package:mobile/core/runtime/runtime_coordinator.dart';
+import 'package:mobile/core/runtime/runtime_scheduler.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/models/hydrated_state.dart';
+import 'package:mobile/features/groups/providers/group_provider.dart'; // for groupServiceProvider
 
 // ─────────────────────────────────────────────
 // Entity Metadata for GC
@@ -51,7 +52,7 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
 
   void _performGC() {
     final newState = Map<String, HydratedState<GroupModel>>.from(state);
-    bool changed = false;
+    var changed = false;
 
     _metadata.removeWhere((id, meta) {
       if (meta.tier == EntityTier.cold) {
@@ -66,11 +67,9 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
   }
 
   // Hydratable implementation wrapper for a specific group
-  Hydratable<GroupModel> _createHydratable(String groupId) {
-    return _GroupHydratable(groupId, ref, (updatedState) {
+  Hydratable<GroupModel> _createHydratable(String groupId) => _GroupHydratable(groupId, ref, (updatedState) {
       _patch(groupId, updatedState);
     });
-  }
 
   void _patch(String groupId, HydratedState<GroupModel> hydratedState) {
     final current = state[groupId];
@@ -101,7 +100,7 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
 
       // 🛡️ Progressive Merge: Preserve high-fidelity fields if incoming is null/empty
       // BUT: Allow explicit removal from network if it's not a partial update
-      final bool isExplicitNetworkRemoval =
+      final isExplicitNetworkRemoval =
           hydratedState.source == HydrationSource.network &&
           finalData.destinationImage == null;
 
@@ -180,7 +179,7 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
   }
 
   Future<void> subscribe(String groupId, {bool force = false}) async {
-    _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
+    _metadata.putIfAbsent(groupId, EntityMetadata.new).subscriberCount++;
     _metadata[groupId]!.lastAccessedAt = DateTime.now();
 
     // Auto-trigger hydration if not already present or if stale/partial (e.g. from list)
@@ -284,11 +283,11 @@ class GroupStore extends Notifier<Map<String, HydratedState<GroupModel>>> {
 // ─────────────────────────────────────────────
 
 class _GroupHydratable implements Hydratable<GroupModel> {
+
+  _GroupHydratable(this.groupId, this.ref, this.onUpdateCallback);
   final String groupId;
   final Ref ref;
   final void Function(HydratedState<GroupModel>) onUpdateCallback;
-
-  _GroupHydratable(this.groupId, this.ref, this.onUpdateCallback);
 
   @override
   String get hydrationKey => 'group_$groupId';
@@ -332,7 +331,7 @@ class MemberStore
   Map<String, HydratedState<List<GroupMember>>> build() => {};
 
   Future<void> subscribe(String groupId, {bool force = false}) async {
-    _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
+    _metadata.putIfAbsent(groupId, EntityMetadata.new).subscriberCount++;
     if (state[groupId] == null || force) {
       final stream = ref
           .read(runtimeCoordinatorProvider)
@@ -375,11 +374,11 @@ class MemberStore
 }
 
 class _MemberHydratable implements Hydratable<List<GroupMember>> {
+
+  _MemberHydratable(this.groupId, this.ref, this.onUpdateCallback);
   final String groupId;
   final Ref ref;
   final void Function(HydratedState<List<GroupMember>>) onUpdateCallback;
-
-  _MemberHydratable(this.groupId, this.ref, this.onUpdateCallback);
 
   @override
   String get hydrationKey => 'members_$groupId';
@@ -389,17 +388,17 @@ class _MemberHydratable implements Hydratable<List<GroupMember>> {
     final cache = ref.read(localCacheProvider);
     final entry = cache.get(ApiEndpoints.groupMembers(groupId));
     if (entry != null && entry.data is List) {
-      return (entry.data as List).map((e) => GroupMember.fromJson(e)).toList();
+      return (entry.data as List)
+          .map((e) => GroupMember.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     return null;
   }
 
   @override
-  Future<List<GroupMember>> fetchFromNetwork() async {
-    return ref
+  Future<List<GroupMember>> fetchFromNetwork() async => ref
         .read(groupServiceProvider)
         .getGroupMembers(groupId, ignoreCache: true);
-  }
 
   @override
   void onUpdate(HydratedState<List<GroupMember>> state) =>
@@ -424,7 +423,7 @@ class ItineraryStore
   Map<String, HydratedState<List<ItineraryItem>>> build() => {};
 
   Future<void> subscribe(String groupId, {bool force = false}) async {
-    _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
+    _metadata.putIfAbsent(groupId, EntityMetadata.new).subscriberCount++;
     if (state[groupId] == null || force) {
       final stream = ref
           .read(runtimeCoordinatorProvider)
@@ -472,11 +471,11 @@ class ItineraryStore
 }
 
 class _ItineraryHydratable implements Hydratable<List<ItineraryItem>> {
+
+  _ItineraryHydratable(this.groupId, this.ref, this.onUpdateCallback);
   final String groupId;
   final Ref ref;
   final void Function(HydratedState<List<ItineraryItem>>) onUpdateCallback;
-
-  _ItineraryHydratable(this.groupId, this.ref, this.onUpdateCallback);
 
   @override
   String get hydrationKey => 'itinerary_$groupId';
@@ -487,18 +486,16 @@ class _ItineraryHydratable implements Hydratable<List<ItineraryItem>> {
     final entry = cache.get(ApiEndpoints.groupItinerary(groupId));
     if (entry != null && entry.data is List) {
       return (entry.data as List)
-          .map((e) => ItineraryItem.fromJson(e))
+          .map((e) => ItineraryItem.fromJson(e as Map<String, dynamic>))
           .toList();
     }
     return null;
   }
 
   @override
-  Future<List<ItineraryItem>> fetchFromNetwork() async {
-    return ref
+  Future<List<ItineraryItem>> fetchFromNetwork() async => ref
         .read(groupServiceProvider)
         .getGroupItinerary(groupId, ignoreCache: true);
-  }
 
   @override
   void onUpdate(HydratedState<List<ItineraryItem>> state) =>
@@ -523,7 +520,7 @@ class MembershipStore
   Map<String, HydratedState<MembershipInfo>> build() => {};
 
   Future<void> subscribe(String groupId, {bool force = false}) async {
-    _metadata.putIfAbsent(groupId, () => EntityMetadata()).subscriberCount++;
+    _metadata.putIfAbsent(groupId, EntityMetadata.new).subscriberCount++;
     if (state[groupId] == null || force) {
       final stream = ref
           .read(runtimeCoordinatorProvider)
@@ -566,11 +563,11 @@ class MembershipStore
 }
 
 class _MembershipHydratable implements Hydratable<MembershipInfo> {
+
+  _MembershipHydratable(this.groupId, this.ref, this.onUpdateCallback);
   final String groupId;
   final Ref ref;
   final void Function(HydratedState<MembershipInfo>) onUpdateCallback;
-
-  _MembershipHydratable(this.groupId, this.ref, this.onUpdateCallback);
 
   @override
   String get hydrationKey => 'membership_$groupId';
@@ -586,11 +583,9 @@ class _MembershipHydratable implements Hydratable<MembershipInfo> {
   }
 
   @override
-  Future<MembershipInfo> fetchFromNetwork() async {
-    return ref
+  Future<MembershipInfo> fetchFromNetwork() async => ref
         .read(groupServiceProvider)
         .getGroupMembership(groupId, ignoreCache: true);
-  }
 
   @override
   void onUpdate(HydratedState<MembershipInfo> state) => onUpdateCallback(state);
@@ -603,8 +598,8 @@ final membershipStoreProvider =
     >(MembershipStore.new);
 
 class MyGroupsStore extends Hydratable<List<GroupModel>> {
-  final Ref ref;
   MyGroupsStore(this.ref);
+  final Ref ref;
 
   @override
   String get hydrationKey => 'my_groups';
@@ -652,17 +647,17 @@ final myGroupsStoreProvider =
       final wrapper = HydrationEngineWrapper(engine, store);
 
       // Initial hydration
-      Future.microtask(() => wrapper.hydrate());
+      Future.microtask(wrapper.hydrate);
 
       return wrapper;
     });
 
 class HydrationEngineWrapper<T> extends StateNotifier<HydratedState<T>> {
-  final HydrationEngine _engine;
-  final Hydratable<T> _target;
-  StreamSubscription? _subscription;
 
   HydrationEngineWrapper(this._engine, this._target) : super(HydratedState());
+  final HydrationEngine _engine;
+  final Hydratable<T> _target;
+  StreamSubscription<HydratedState<T>>? _subscription;
 
   Future<void> refresh() async {
     // 🛡️ RACE CONDITION FIX: Subscribe to the stream BEFORE triggering the force-load

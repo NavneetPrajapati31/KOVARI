@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 import 'package:shimmer/shimmer.dart';
-import '../../../core/theme/app_colors.dart';
 
 class Skeleton extends StatelessWidget {
-  final double? width;
-  final double? height;
-  final BorderRadius? borderRadius;
-  final BoxShape shape;
 
   const Skeleton({
     super.key,
@@ -21,6 +17,10 @@ class Skeleton extends StatelessWidget {
       height = size,
       borderRadius = null,
       shape = BoxShape.circle;
+  final double? width;
+  final double? height;
+  final BorderRadius? borderRadius;
+  final BoxShape shape;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,6 @@ class Skeleton extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
-      period: const Duration(milliseconds: 1500),
       child: Container(
         width: width,
         height: height,

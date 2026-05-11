@@ -1,32 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/features/app_shell/screens/app_shell_screen.dart';
+import 'package:mobile/features/auth/screens/banned_screen.dart';
+import 'package:mobile/features/auth/screens/forgot_password_screen.dart';
+import 'package:mobile/features/auth/screens/login_screen.dart';
 import 'package:mobile/features/auth/screens/reset_password_screen.dart';
+import 'package:mobile/features/auth/screens/sign_up_screen.dart';
+import 'package:mobile/features/auth/screens/verify_email_screen.dart';
+import 'package:mobile/features/chat/screens/chat_inbox_screen.dart';
+import 'package:mobile/features/explore/screens/explore_screen.dart';
+import 'package:mobile/features/groups/screens/create_group_screen.dart';
+import 'package:mobile/features/groups/screens/group_details_screen.dart';
+import 'package:mobile/features/groups/screens/group_invite_screen.dart';
+import 'package:mobile/features/groups/screens/groups_screen.dart';
+import 'package:mobile/features/home/screens/home_screen.dart';
+import 'package:mobile/features/notifications/screens/notifications_screen.dart';
 import 'package:mobile/features/onboarding/screens/onboarding_screen.dart';
+import 'package:mobile/features/profile/screens/connections_screen.dart';
+import 'package:mobile/features/profile/screens/edit_profile_screen.dart';
+import 'package:mobile/features/profile/screens/my_reports_screen.dart';
 import 'package:mobile/features/profile/screens/profile_screen.dart';
-import '../../features/home/screens/home_screen.dart';
-import '../../features/explore/screens/explore_screen.dart';
-import '../../features/chat/screens/chat_inbox_screen.dart';
-import '../../features/groups/screens/groups_screen.dart';
-import '../../features/groups/screens/group_details_screen.dart';
-import '../../features/auth/screens/login_screen.dart';
-import '../../features/auth/screens/banned_screen.dart';
-import '../../features/app_shell/screens/app_shell_screen.dart';
-import '../../features/auth/screens/verify_email_screen.dart';
-import '../../features/auth/screens/sign_up_screen.dart';
-import '../../features/notifications/screens/notifications_screen.dart';
-import '../../features/requests/screens/requests_screen.dart';
-import '../../features/profile/screens/public_profile_screen.dart';
-import '../../features/profile/screens/connections_screen.dart';
-import '../../features/profile/screens/edit_profile_screen.dart';
-import '../../features/profile/screens/settings_screen.dart';
-import '../../features/profile/screens/safety_screen.dart';
-import '../../features/profile/screens/my_reports_screen.dart';
-import '../../features/profile/screens/report_target_search_screen.dart';
-import '../../features/profile/screens/submit_report_screen.dart';
-import '../../features/groups/screens/create_group_screen.dart';
-import '../../features/groups/screens/group_invite_screen.dart';
-import '../../features/auth/screens/forgot_password_screen.dart';
-import '../../features/search/screens/search_screen.dart';
+import 'package:mobile/features/profile/screens/public_profile_screen.dart';
+import 'package:mobile/features/profile/screens/report_target_search_screen.dart';
+import 'package:mobile/features/profile/screens/safety_screen.dart';
+import 'package:mobile/features/profile/screens/settings_screen.dart';
+import 'package:mobile/features/profile/screens/submit_report_screen.dart';
+import 'package:mobile/features/requests/screens/requests_screen.dart';
+import 'package:mobile/features/search/screens/search_screen.dart';
 
 part 'routes.g.dart';
 
@@ -60,9 +60,7 @@ class AppShellRouteData extends StatefulShellRouteData {
     BuildContext context,
     GoRouterState state,
     StatefulNavigationShell navigationShell,
-  ) {
-    return AppShellScreen(navigationShell: navigationShell);
-  }
+  ) => AppShellScreen(navigationShell: navigationShell);
 }
 
 // Branches
@@ -124,8 +122,8 @@ class CreateGroupRouteData extends GoRouteData with $CreateGroupRouteData {
 
 @TypedGoRoute<GroupDetailsRouteData>(path: '/groups/:groupId')
 class GroupDetailsRouteData extends GoRouteData with $GroupDetailsRouteData {
-  final String groupId;
   const GroupDetailsRouteData({required this.groupId});
+  final String groupId;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -134,8 +132,8 @@ class GroupDetailsRouteData extends GoRouteData with $GroupDetailsRouteData {
 
 @TypedGoRoute<GroupInviteRouteData>(path: '/groups/invite/:token')
 class GroupInviteRouteData extends GoRouteData with $GroupInviteRouteData {
-  final String token;
   const GroupInviteRouteData({required this.token});
+  final String token;
   @override
   Widget build(BuildContext context, GoRouterState state) =>
       GroupInviteScreen(token: token);
@@ -176,8 +174,8 @@ class MyReportsRouteData extends GoRouteData with $MyReportsRouteData {
 @TypedGoRoute<ReportTargetSearchRouteData>(path: '/profile/reports/search')
 class ReportTargetSearchRouteData extends GoRouteData
     with $ReportTargetSearchRouteData {
-  final String targetType;
   const ReportTargetSearchRouteData({required this.targetType});
+  final String targetType;
   @override
   Widget build(BuildContext context, GoRouterState state) =>
       ReportTargetSearchScreen(targetType: targetType);
@@ -185,15 +183,15 @@ class ReportTargetSearchRouteData extends GoRouteData
 
 @TypedGoRoute<SubmitReportRouteData>(path: '/profile/reports/submit/:targetId')
 class SubmitReportRouteData extends GoRouteData with $SubmitReportRouteData {
-  final String targetType;
-  final String targetId;
-  final String targetName;
 
   const SubmitReportRouteData({
     required this.targetType,
     required this.targetId,
     required this.targetName,
   });
+  final String targetType;
+  final String targetId;
+  final String targetName;
 
   @override
   Widget build(BuildContext context, GoRouterState state) => SubmitReportScreen(
@@ -205,14 +203,14 @@ class SubmitReportRouteData extends GoRouteData with $SubmitReportRouteData {
 
 @TypedGoRoute<ConnectionsRouteData>(path: '/user/:userId/connections')
 class ConnectionsRouteData extends GoRouteData with $ConnectionsRouteData {
-  final String userId;
-  final String username;
-  final String? initialTab;
   const ConnectionsRouteData({
     required this.userId,
     required this.username,
     this.initialTab,
   });
+  final String userId;
+  final String username;
+  final String? initialTab;
 
   @override
   Widget build(BuildContext context, GoRouterState state) => ConnectionsScreen(
@@ -256,8 +254,8 @@ class BannedRouteData extends GoRouteData with $BannedRouteData {
 
 @TypedGoRoute<ResetPasswordRouteData>(path: '/reset-password')
 class ResetPasswordRouteData extends GoRouteData with $ResetPasswordRouteData {
-  final String? token;
   const ResetPasswordRouteData({this.token});
+  final String? token;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -274,8 +272,8 @@ class SignUpRouteData extends GoRouteData with $SignUpRouteData {
 
 @TypedGoRoute<VerifyEmailRouteData>(path: '/verify-email')
 class VerifyEmailRouteData extends GoRouteData with $VerifyEmailRouteData {
-  final String email;
   const VerifyEmailRouteData({required this.email});
+  final String email;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -318,8 +316,8 @@ class RequestsRouteData extends GoRouteData with $RequestsRouteData {
 
 @TypedGoRoute<PublicProfileRouteData>(path: '/user/:userId')
 class PublicProfileRouteData extends GoRouteData with $PublicProfileRouteData {
-  final String userId;
   const PublicProfileRouteData({required this.userId});
+  final String userId;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>

@@ -1,10 +1,9 @@
-import 'telemetry_service.dart';
-import 'telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
 
 class FeatureFlagService {
-  static final FeatureFlagService _instance = FeatureFlagService._internal();
   factory FeatureFlagService() => _instance;
   FeatureFlagService._internal();
+  static final FeatureFlagService _instance = FeatureFlagService._internal();
 
   final Map<String, dynamic> _flags = {
     'new_matching_algorithm': true,
@@ -14,9 +13,7 @@ class FeatureFlagService {
 
   final Set<String> _exposedExperiments = {};
 
-  bool isEnabled(String featureName) {
-    return _flags[featureName] ?? false;
-  }
+  bool isEnabled(String featureName) => (_flags[featureName] as bool?) ?? false;
 
   /// 🧪 Logs exposure to an experiment.
   /// Only logs once per session per experiment to avoid spam.
@@ -26,7 +23,6 @@ class FeatureFlagService {
     _exposedExperiments.add(experimentId);
     TelemetryService().logEvent(
       'experiment_exposed',
-      priority: TelemetryPriority.normal,
       parameters: {
         'experiment_id': experimentId,
         'variant': _flags[experimentId]?.toString() ?? 'control',

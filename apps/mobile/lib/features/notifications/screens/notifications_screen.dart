@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-
-import '../widgets/notification_item.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../providers/notification_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/notifications/providers/notification_provider.dart';
+import 'package:mobile/features/notifications/widgets/notification_item.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -162,8 +161,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
       onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
@@ -174,10 +172,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
+  Widget _buildEmptyState(BuildContext context) => Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -196,10 +192,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildErrorState(BuildContext context, WidgetRef ref) {
-    return Center(
+  Widget _buildErrorState(BuildContext context, WidgetRef ref) => Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -223,13 +217,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildSliverSkeleton(BuildContext context) {
-    return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        return const KovariSkeletonNotificationItem();
-      }, childCount: 12),
+  Widget _buildSliverSkeleton(BuildContext context) => SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) => const KovariSkeletonNotificationItem(), childCount: 12),
     );
-  }
 }

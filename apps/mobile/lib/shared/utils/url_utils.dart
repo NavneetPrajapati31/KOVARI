@@ -1,6 +1,7 @@
-import 'package:url_launcher/url_launcher.dart';
-import '../../core/config/env.dart';
 import 'dart:io';
+
+import 'package:mobile/core/config/env.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class UrlUtils {
   /// Transforms a relative or null URL into a full valid URI using the API base URL.

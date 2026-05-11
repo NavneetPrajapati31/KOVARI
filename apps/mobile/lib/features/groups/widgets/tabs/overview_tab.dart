@@ -1,32 +1,27 @@
-import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:intl/intl.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/utils/url_utils.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
-import '../../../../core/widgets/common/kovari_image.dart';
-import '../../models/group.dart';
-import '../../providers/group_details_provider.dart';
+import 'dart:async';
 import 'dart:io';
-import '../../../../core/network/cloudinary_service.dart';
-import 'package:image_picker/image_picker.dart';
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../shared/widgets/kovari_confirm_dialog.dart';
-import '../../providers/group_provider.dart';
-import '../../providers/entity_stores.dart';
-import '../../../../shared/widgets/kovari_snackbar.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/network/cloudinary_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/common/kovari_image.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
+import 'package:mobile/features/groups/providers/group_details_provider.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
 
 class OverviewTab extends ConsumerStatefulWidget {
-  final GroupModel group;
-  final bool isEditingNotes;
-  final TextEditingController notesController;
-  final VoidCallback onEditNotesToggle;
-  final Function(int) onTabChange;
-  final Function(List<GroupMember>) onViewAllMembers;
 
   const OverviewTab({
     super.key,
@@ -37,6 +32,12 @@ class OverviewTab extends ConsumerStatefulWidget {
     required this.onTabChange,
     required this.onViewAllMembers,
   });
+  final GroupModel group;
+  final bool isEditingNotes;
+  final TextEditingController notesController;
+  final VoidCallback onEditNotesToggle;
+  final void Function(int) onTabChange;
+  final void Function(List<GroupMember>) onViewAllMembers;
 
   @override
   ConsumerState<OverviewTab> createState() => _OverviewTabState();
@@ -58,7 +59,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
 
     if (pickedFile != null) {
       setState(() => _isUploadingDestinationImage = true);
-      HapticFeedback.mediumImpact();
+      unawaited(HapticFeedback.mediumImpact());
 
       try {
         final cloudinaryService = ref.read(cloudinaryServiceProvider);
@@ -86,13 +87,13 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
   }
 
   Future<void> _deleteDestinationImage() async {
-    HapticFeedback.heavyImpact();
+    unawaited(HapticFeedback.heavyImpact());
 
     showKovariConfirmDialog(
       context: context,
-      title: "Remove Image",
-      content: "Are you sure you want to remove the destination image?",
-      confirmLabel: "Remove",
+      title: 'Remove Image',
+      content: 'Are you sure you want to remove the destination image?',
+      confirmLabel: 'Remove',
       isDestructive: true,
       onConfirm: () async {
         try {
@@ -133,7 +134,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
       key: PageStorageKey(
         'overview_${widget.group.id}',
       ), // 🛡️ [Replay Engine] Scroll restoration
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -141,7 +142,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
-              side: BorderSide(color: AppColors.borderColor(context), width: 1),
+              side: BorderSide(color: AppColors.borderColor(context)),
             ),
             color: AppColors.surface(context, level: 1),
             child: Padding(
@@ -167,7 +168,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          group.description ?? "No description provided.",
+                          group.description ?? 'No description provided.',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -233,7 +234,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                   if (itineraryState != null && itineraryState.hasData)
                     _buildUpcomingItineraryCard(context, itineraryState.data!)
                   else
-                    SizedBox.shrink(),
+                    const SizedBox.shrink(),
 
                   const SizedBox(height: 16),
                   _buildDestinationImageCard(group),
@@ -258,15 +259,13 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
       child: coverImageUrl != null
           ? KovariImage(
               imageUrl: coverImageUrl,
-              fit: BoxFit.cover,
               borderRadius: BorderRadius.circular(20),
             )
           : _buildPlaceholder(context),
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context) {
-    return Container(
+  Widget _buildPlaceholder(BuildContext context) => Container(
       color: AppColors.mutedColor(context),
       child: Center(
         child: Icon(
@@ -276,15 +275,14 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
         ),
       ),
     );
-  }
 
   Widget _buildDatesSection(BuildContext context, GroupModel group) {
     final start = group.dateRange.start != null
         ? DateFormat('MMMM d').format(DateTime.parse(group.dateRange.start!))
-        : "";
+        : '';
     final end = group.dateRange.end != null
         ? DateFormat('MMMM d').format(DateTime.parse(group.dateRange.end!))
-        : "";
+        : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -292,12 +290,12 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Mark the dates!",
+            'Mark the dates!',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           Text(
-            "$start - $end",
+            '$start - $end',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -366,7 +364,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                               ),
                             ),
                             Text(
-                              "@${sortedMembers[i].username}",
+                              '@${sortedMembers[i].username}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.text(context, isMuted: true),
@@ -386,7 +384,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Text(
-                            "Admin",
+                            'Admin',
                             style: TextStyle(
                               color: AppColors.primary,
                               fontSize: 11,
@@ -408,7 +406,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: const Text(
-                "View all",
+                'View all',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontSize: 13,
@@ -447,7 +445,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Upcoming Itinerary",
+                      'Upcoming Itinerary',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
@@ -471,7 +469,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: const Text(
-                    "View all",
+                    'View all',
                     style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,
@@ -590,8 +588,8 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
 
   Widget _buildStatusBadge(BuildContext context, String status) {
     Color color = Colors.grey;
-    Color bgColor = Colors.grey.withValues(alpha: 0.1);
-    String label = status.toUpperCase();
+    var bgColor = Colors.grey.withValues(alpha: 0.1);
+    var label = status.toUpperCase();
 
     final isDark = AppColors.isDark(context);
     switch (status.toLowerCase()) {
@@ -600,14 +598,14 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
         bgColor = isDark
             ? const Color(0xFF1E3A8A).withValues(alpha: 0.3)
             : const Color(0xFFEFF6FF);
-        label = "In Progress";
+        label = 'In Progress';
         break;
       case 'completed':
         color = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
         bgColor = isDark
             ? const Color(0xFF064E3B).withValues(alpha: 0.3)
             : const Color(0xFFF0FDF4);
-        label = "Completed";
+        label = 'Completed';
         break;
       case 'pending':
         color = isDark
@@ -616,14 +614,14 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
         bgColor = isDark
             ? const Color(0xFF422006).withValues(alpha: 0.3)
             : const Color.fromARGB(255, 255, 247, 216);
-        label = "Not Started";
+        label = 'Not Started';
         break;
       case 'cancelled':
         color = isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C);
         bgColor = isDark
             ? const Color(0xFF7F1D1D).withValues(alpha: 0.3)
             : const Color(0xFFFEF2F2);
-        label = "Cancelled";
+        label = 'Cancelled';
         break;
     }
 
@@ -656,7 +654,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             color: Colors.transparent,
-            border: Border.all(color: AppColors.borderColor(context), width: 1),
+            border: Border.all(color: AppColors.borderColor(context)),
           ),
           child: Stack(
             children: [
@@ -687,7 +685,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Add Destination Image",
+                        'Add Destination Image',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -696,7 +694,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Personalize your trip overview",
+                        'Personalize your trip overview',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.text(context, isMuted: true),
@@ -719,7 +717,6 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
             aspectRatio: 16 / 10,
             child: KovariImage(
               imageUrl: imageUrl,
-              fit: BoxFit.cover,
               borderRadius: BorderRadius.circular(24),
             ),
           ),
@@ -765,7 +762,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                   children: [
                     GestureDetector(
                       onTap: () async {
-                        HapticFeedback.lightImpact();
+                        unawaited(HapticFeedback.lightImpact());
                         try {
                           await UrlUtils.launchMaps(group.destination);
                         } catch (e) {
@@ -804,8 +801,8 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
             ),
           ),
           if (_isUploadingDestinationImage)
-            Positioned.fill(
-              child: const Center(
+            const Positioned.fill(
+              child: Center(
                 child: SizedBox(
                   height: 20,
                   width: 20,
@@ -860,16 +857,16 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(
+                Icon(
                   LucideIcons.sparkles,
                   size: 16,
                   color: AppColors.primary,
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  "AI Overview",
+                SizedBox(width: 8),
+                Text(
+                  'AI Overview',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
@@ -930,7 +927,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "Travel Note",
+                        'Travel Note',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -952,8 +949,8 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                       widget.onEditNotesToggle();
                     },
                     child: Text(
-                      widget.isEditingNotes ? "Done" : "Edit",
-                      style: TextStyle(
+                      widget.isEditingNotes ? 'Done' : 'Edit',
+                      style: const TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
@@ -988,7 +985,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                           focusedBorder: InputBorder.none,
                           filled: false,
                           fillColor: Colors.transparent,
-                          hintText: "Start typing your plans...",
+                          hintText: 'Start typing your plans...',
                           hintStyle: TextStyle(
                             color: AppColors.text(context, isMuted: true),
                             fontSize: 12,
@@ -1000,7 +997,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
                       )
                     : Text(
                         widget.notesController.text.isEmpty
-                            ? "No notes added yet."
+                            ? 'No notes added yet.'
                             : widget.notesController.text,
                         style: TextStyle(
                           color: AppColors.text(context),
@@ -1033,8 +1030,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
     );
   }
 
-  Widget _buildMembersLoading(BuildContext context) {
-    return Padding(
+  Widget _buildMembersLoading(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1069,5 +1065,4 @@ class _OverviewTabState extends ConsumerState<OverviewTab>
         ],
       ),
     );
-  }
 }

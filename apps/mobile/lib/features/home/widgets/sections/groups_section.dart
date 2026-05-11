@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 class MockGroup {
-  final String id;
-  final String name;
-  final String destination;
-  final int members;
-  final String? imageUrl;
 
   MockGroup({
     required this.id,
@@ -20,12 +15,14 @@ class MockGroup {
     required this.members,
     this.imageUrl,
   });
+  final String id;
+  final String name;
+  final String destination;
+  final int members;
+  final String? imageUrl;
 }
 
 class GroupsSection extends StatelessWidget {
-  final List<MockGroup> groups;
-  final bool isLoading;
-  final Function(String)? onGroupTap;
 
   const GroupsSection({
     super.key,
@@ -33,12 +30,15 @@ class GroupsSection extends StatelessWidget {
     this.isLoading = false,
     this.onGroupTap,
   });
+  final List<MockGroup> groups;
+  final bool isLoading;
+  final void Function(String)? onGroupTap;
 
   @override
   Widget build(BuildContext context) {
     final showSkeleton = isLoading && groups.isEmpty;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         border: Border.all(color: AppColors.borderColor(context)),
@@ -112,8 +112,7 @@ class GroupsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildSkeleton(BuildContext context) {
-    return Column(
+  Widget _buildSkeleton(BuildContext context) => Column(
       children: List.generate(
         4,
         (i) => Column(
@@ -125,10 +124,8 @@ class GroupsSection extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Padding(
+  Widget _buildEmptyState(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
         child: Column(
@@ -151,18 +148,16 @@ class GroupsSection extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _GroupCard extends StatelessWidget {
+
+  const _GroupCard({required this.group, this.onTap});
   final MockGroup group;
   final VoidCallback? onTap;
 
-  const _GroupCard({required this.group, this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -228,7 +223,6 @@ class _GroupCard extends StatelessWidget {
         ),
       ),
     );
-  }
 
   String _getCityOnly(String destination) {
     if (destination.isEmpty) return '';

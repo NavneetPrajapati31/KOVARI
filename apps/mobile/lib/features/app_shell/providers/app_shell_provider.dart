@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
 
 /// Notifier to manage the current active tab index in the App Shell.
 /// It watches [authStateProvider] to ensure it resets to the first tab (Home) on login/logout.

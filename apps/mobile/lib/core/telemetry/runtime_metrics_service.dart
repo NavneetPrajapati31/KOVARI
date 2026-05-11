@@ -1,13 +1,12 @@
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart';
-import 'telemetry_service.dart';
-import 'telemetry_priority.dart';
-import 'event_schema_registry.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:mobile/core/telemetry/telemetry_priority.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
 
 class RuntimeMetricsService {
-  static final RuntimeMetricsService _instance = RuntimeMetricsService._internal();
   factory RuntimeMetricsService() => _instance;
   RuntimeMetricsService._internal();
+  static final RuntimeMetricsService _instance = RuntimeMetricsService._internal();
 
   DateTime? _appStartTime;
   bool _firstFrameRendered = false;
@@ -45,7 +44,7 @@ class RuntimeMetricsService {
   }
 
   void _onFrameTimings(List<FrameTiming> timings) {
-    for (var timing in timings) {
+    for (final timing in timings) {
       final buildTime = timing.buildDuration.inMilliseconds;
       final rasterTime = timing.rasterDuration.inMilliseconds;
       final totalTime = timing.totalSpan.inMilliseconds;

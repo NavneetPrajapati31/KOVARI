@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/profile/models/user_profile.dart';
-import 'auth_provider.dart';
-import 'connectivity_provider.dart';
-import '../utils/app_logger.dart';
-import '../network/sync_engine.dart';
-import '../providers/cache_provider.dart';
-import '../network/api_endpoints.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/network/sync_engine.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/features/profile/models/user_profile.dart';
 
 class ProfileNotifier extends Notifier<UserProfile?> {
   @override
@@ -37,7 +37,7 @@ class ProfileNotifier extends Notifier<UserProfile?> {
 
     // 3. Always schedule a background network refresh to keep data fresh.
     //    This runs after build() completes so state is already initialized.
-    Future.microtask(() => fetchProfile());
+    Future.microtask(fetchProfile);
 
     return initialProfile;
   }

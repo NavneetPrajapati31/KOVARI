@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/api_response.dart';
+import 'package:mobile/core/models/api_response.dart';
 
 /// 🌐 Global Contract State Notifier
 ///

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/services/haptic_service.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 
 class GroupTabBar extends StatelessWidget {
-  final int activeIndex;
-  final Function(int) onTabChanged;
 
   const GroupTabBar({
     super.key,
     required this.activeIndex,
     required this.onTabChanged,
   });
+  final int activeIndex;
+  final void Function(int) onTabChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +39,7 @@ class GroupTabBar extends StatelessWidget {
     String label,
     bool isSelected,
     int index,
-  ) {
-    return InkWell(
+  ) => InkWell(
       onTap: () {
         HapticService.selection();
         onTabChanged(index);
@@ -53,7 +52,7 @@ class GroupTabBar extends StatelessWidget {
               ? AppColors.primary.withValues(alpha: 0.1)
               : AppColors.cardColor(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.borderColor(context), width: 1),
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
         child: Text(
           label,
@@ -67,5 +66,4 @@ class GroupTabBar extends StatelessWidget {
         ),
       ),
     );
-  }
 }

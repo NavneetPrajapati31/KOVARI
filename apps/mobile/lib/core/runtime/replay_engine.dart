@@ -1,22 +1,22 @@
 import 'dart:convert';
 import 'package:hive/hive.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class ReplaySnapshot {
-  final Map<String, dynamic> metadata;
-  final DateTime timestamp;
 
   ReplaySnapshot({required this.metadata, required this.timestamp});
-
-  Map<String, dynamic> toJson() => {
-    'metadata': metadata,
-    'timestamp': timestamp.toIso8601String(),
-  };
 
   factory ReplaySnapshot.fromJson(Map<String, dynamic> json) => ReplaySnapshot(
     metadata: json['metadata'] as Map<String, dynamic>,
     timestamp: DateTime.parse(json['timestamp'] as String),
   );
+  final Map<String, dynamic> metadata;
+  final DateTime timestamp;
+
+  Map<String, dynamic> toJson() => {
+    'metadata': metadata,
+    'timestamp': timestamp.toIso8601String(),
+  };
 }
 
 class ReplayEngine {

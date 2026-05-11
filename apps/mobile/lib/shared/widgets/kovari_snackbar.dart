@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:mobile/core/theme/app_colors.dart';
-import 'package:mobile/core/theme/app_text_styles.dart';
 import 'package:mobile/core/providers/status_overlay_provider.dart';
 import 'package:mobile/main.dart';
 
@@ -48,6 +45,6 @@ class KovariSnackbar {
   }
 
   static void info(BuildContext context, String message) {
-    show(context, message: message, type: SnackbarType.info);
+    show(context, message: message);
   }
 }

@@ -1,22 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/app_card.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
-class MockConversation {
-  final String id;
-  final String userId;
-  final String name;
-  final String? profilePhoto;
-  final String lastMessage;
-  final String lastMessageAt;
-  final int unreadCount;
-  final bool isOnline;
-  final bool isTyping;
-  final String? lastMediaType; // 'image', 'video', 'init', null
+class MockConversation { // 'image', 'video', 'init', null
 
   MockConversation({
     required this.id,
@@ -30,6 +20,16 @@ class MockConversation {
     this.isTyping = false,
     this.lastMediaType,
   });
+  final String id;
+  final String userId;
+  final String name;
+  final String? profilePhoto;
+  final String lastMessage;
+  final String lastMessageAt;
+  final int unreadCount;
+  final bool isOnline;
+  final bool isTyping;
+  final String? lastMediaType;
 }
 
 class ChatInboxScreen extends StatefulWidget {
@@ -78,7 +78,6 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
       lastMessage: '',
       lastMessageAt: 'Mar 15',
       lastMediaType: 'init',
-      isOnline: false,
     ),
   ];
 
@@ -97,9 +96,7 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredConversations = _conversations.where((c) {
-      return c.name.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
+    final filteredConversations = _conversations.where((c) => c.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(
@@ -160,26 +157,22 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
                     borderRadius: BorderRadius.circular(32),
                     borderSide: BorderSide(
                       color: AppColors.borderColor(context),
-                      width: 1,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(32),
                     borderSide: BorderSide(
                       color: AppColors.borderColor(context),
-                      width: 1,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(32),
                     borderSide: BorderSide(
                       color: AppColors.borderColor(context),
-                      width: 1,
                     ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 0,
                   ),
                 ),
               ),
@@ -250,14 +243,13 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
 }
 
 class _ChatInboxItem extends StatelessWidget {
+
+  const _ChatInboxItem({required this.conversation, required this.onTap});
   final MockConversation conversation;
   final VoidCallback onTap;
 
-  const _ChatInboxItem({required this.conversation, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -266,7 +258,7 @@ class _ChatInboxItem extends StatelessWidget {
             // Avatar
             Stack(
               children: [
-                Container(
+                DecoratedBox(
                   decoration: conversation.lastMediaType == 'init'
                       ? BoxDecoration(
                           shape: BoxShape.circle,
@@ -275,7 +267,7 @@ class _ChatInboxItem extends StatelessWidget {
                             width: 2,
                           ),
                         )
-                      : null,
+                      : const BoxDecoration(),
                   child: KovariAvatar(
                     imageUrl: conversation.profilePhoto,
                     size: 42,
@@ -376,7 +368,6 @@ class _ChatInboxItem extends StatelessWidget {
         ),
       ),
     );
-  }
 
   Widget _buildSubtitle(BuildContext context) {
     if (conversation.isTyping) {

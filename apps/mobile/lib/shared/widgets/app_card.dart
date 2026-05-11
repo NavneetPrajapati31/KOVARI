@@ -1,21 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_radius.dart';
-import 'interactive_wrapper.dart';
-import '../../core/config/interaction_config.dart';
+import 'package:mobile/core/config/interaction_config.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/shared/widgets/interactive_wrapper.dart';
 
 class AppCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsetsGeometry? padding;
-  final Color? backgroundColor;
-  final double? width;
-  final double? height;
-  final VoidCallback? onTap;
-  final bool interactive;
-  final BorderRadius? borderRadius;
-  final EdgeInsetsGeometry? margin;
-  final BoxBorder? border;
-  final List<BoxShadow>? boxShadow;
 
   const AppCard({
     super.key,
@@ -31,10 +20,21 @@ class AppCard extends StatelessWidget {
     this.border,
     this.boxShadow,
   });
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final Color? backgroundColor;
+  final double? width;
+  final double? height;
+  final VoidCallback? onTap;
+  final bool interactive;
+  final BorderRadius? borderRadius;
+  final EdgeInsetsGeometry? margin;
+  final BoxBorder? border;
+  final List<BoxShadow>? boxShadow;
 
   @override
   Widget build(BuildContext context) {
-    Widget card = Container(
+    final Widget card = Container(
       width: width,
       height: height,
       margin: margin,

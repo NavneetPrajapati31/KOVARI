@@ -1,26 +1,25 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/home_state.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../widgets/header/home_header.dart';
-import '../widgets/cards/top_destination_card.dart';
-import '../widgets/cards/upcoming_trip_card.dart';
-import '../widgets/cards/stat_card.dart';
-import '../widgets/sections/groups_section.dart';
-import '../widgets/sections/requests_section.dart';
-import '../widgets/sections/itinerary_section.dart';
-import '../providers/home_provider.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../groups/screens/group_details_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../shared/widgets/kovari_refresh_indicator.dart';
-import '../../../shared/widgets/kovari_empty_state.dart';
-import '../../../shared/utils/scroll_preloader.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
-import '../../../core/navigation/routes.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/home/models/home_state.dart';
+import 'package:mobile/features/home/providers/home_provider.dart';
+import 'package:mobile/features/home/widgets/cards/stat_card.dart';
+import 'package:mobile/features/home/widgets/cards/top_destination_card.dart';
+import 'package:mobile/features/home/widgets/cards/upcoming_trip_card.dart';
+import 'package:mobile/features/home/widgets/header/home_header.dart';
+import 'package:mobile/features/home/widgets/sections/groups_section.dart';
+import 'package:mobile/features/home/widgets/sections/itinerary_section.dart';
+import 'package:mobile/features/home/widgets/sections/requests_section.dart';
+import 'package:mobile/shared/utils/scroll_preloader.dart';
+import 'package:mobile/shared/widgets/kovari_empty_state.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -40,14 +39,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _handleExploreUpcomingTrip(String? groupId) {
     if (groupId != null) {
-      GroupDetailsRouteData(groupId: groupId).push(context);
+      GroupDetailsRouteData(groupId: groupId).push<void>(context);
     }
   }
 
   Future<void> _handleOpenMap(String destination) async {
     if (destination.isEmpty) return;
 
-    final String url = Platform.isIOS
+    final url = Platform.isIOS
         ? 'https://maps.apple.com/?q=${Uri.encodeComponent(destination)}'
         : 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(destination)}';
 
@@ -227,7 +226,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             description: item.description,
             start: date,
             end: date.add(const Duration(hours: 1)),
-            color: EventColor.sky,
           );
         }).toList() ??
         [];

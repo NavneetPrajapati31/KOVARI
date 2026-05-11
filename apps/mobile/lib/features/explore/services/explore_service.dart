@@ -1,22 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/models/api_response.dart';
-import '../../../core/providers/contract_provider.dart';
-import '../../../core/utils/safe_parser.dart';
-import '../models/explore_state.dart';
-import '../models/match_result.dart';
-import '../models/match_user.dart';
-import '../../groups/models/group.dart';
+import 'package:mobile/core/models/api_response.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/providers/contract_provider.dart';
+import 'package:mobile/core/utils/safe_parser.dart';
+import 'package:mobile/features/explore/models/explore_state.dart';
+import 'package:mobile/features/explore/models/match_result.dart';
+import 'package:mobile/features/explore/models/match_user.dart';
+import 'package:mobile/features/groups/models/group.dart';
 
 class ExploreService {
+
+  ExploreService(this._apiClient, this._ref);
   final ApiClient _apiClient;
   final Ref _ref;
 
-  ExploreService(this._apiClient, this._ref);
-
   Future<void> createSession(SearchData searchData, String userId) async {
-    final Map<String, dynamic> payload = {
+    final payload = <String, dynamic>{
       'userId': userId,
       'destinationName': searchData.destination,
       'budget': searchData.budget,
@@ -72,7 +72,7 @@ class ExploreService {
       queryParameters: queryParams,
       parser: (data) {
         if (data is! Map<String, dynamic>) return MatchResult.empty();
-        final rawList = data['matches'] ?? data['data'] ?? [];
+        final rawList = data['matches'] ?? data['data'] ?? <dynamic>[];
         return MatchResult(
           matches: safeParseList<MatchUser>(rawList, MatchUser.fromJson),
           hasMore: data['hasMore'] as bool? ?? false,
@@ -91,7 +91,7 @@ class ExploreService {
     SearchData searchData,
     ExploreFilters filters,
   ) async {
-    final Map<String, dynamic> payload = {
+    final payload = <String, dynamic>{
       'userId': userId,
       'destination': searchData.destination,
       'budget': searchData.budget,
@@ -120,7 +120,7 @@ class ExploreService {
         if (data is! Map<String, dynamic>) return MatchResult.empty();
         
         // 🛡️ Contract Authority: Read from 'groups' (standard) or 'data' (fallback)
-        final rawList = data['groups'] ?? data['data'] ?? [];
+        final rawList = data['groups'] ?? data['data'] ?? <dynamic>[];
         
         return MatchResult(
           matches: safeParseList<GroupModel>(rawList, GroupModel.fromJson),
@@ -142,14 +142,14 @@ class ExploreService {
     required String destinationId,
     required bool isSolo,
   }) async {
-    final Map<String, dynamic> payload = {
+    final payload = <String, dynamic>{
       'fromUserId': fromUserId,
       'destinationId': destinationId,
     };
     if (isSolo) {
-      payload['toUserId'] = toUserId!;
+      payload['toUserId'] = toUserId;
     } else {
-      payload['toGroupId'] = toGroupId!;
+      payload['toGroupId'] = toGroupId;
     }
     await _apiClient.post<void>(
       ApiEndpoints.exploreInterest,
@@ -165,15 +165,15 @@ class ExploreService {
     required String destinationId,
     required bool isSolo,
   }) async {
-    final Map<String, dynamic> payload = {
+    final payload = <String, dynamic>{
       'skipperId': skipperId,
       'destinationId': destinationId,
       'type': isSolo ? 'solo' : 'group',
     };
     if (isSolo) {
-      payload['skippedUserId'] = skippedUserId!;
+      payload['skippedUserId'] = skippedUserId;
     } else {
-      payload['toGroupId'] = skippedGroupId!;
+      payload['toGroupId'] = skippedGroupId;
     }
     await _apiClient.post<void>(
       ApiEndpoints.exploreSkip,
@@ -189,15 +189,15 @@ class ExploreService {
     required String reason,
     required bool isSolo,
   }) async {
-    final Map<String, dynamic> payload = {
+    final payload = <String, dynamic>{
       'reporterId': reporterId,
       'reason': reason,
       'type': isSolo ? 'solo' : 'group',
     };
     if (isSolo) {
-      payload['reportedUserId'] = reportedUserId!;
+      payload['reportedUserId'] = reportedUserId;
     } else {
-      payload['reportedGroupId'] = reportedGroupId!;
+      payload['reportedGroupId'] = reportedGroupId;
     }
     await _apiClient.post<void>(
       ApiEndpoints.exploreReport,

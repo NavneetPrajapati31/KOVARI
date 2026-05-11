@@ -1,21 +1,16 @@
 import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'token_storage.dart';
-import 'session_manager.dart';
-import '../network/api_endpoints.dart';
-import '../config/env.dart';
-import '../utils/app_logger.dart';
-import '../providers/connectivity_provider.dart';
-import '../providers/cache_provider.dart';
+import 'package:mobile/core/auth/session_manager.dart';
+import 'package:mobile/core/auth/token_storage.dart';
+import 'package:mobile/core/config/env.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class AuthRepository {
-  final TokenStorage _storage;
-  final SessionManager _sessionManager;
-  final Ref _ref;
-
-  int _recoveryAttempts = 0;
-  final Dio _refreshDio;
 
   AuthRepository(this._storage, this._sessionManager, this._ref)
     : _refreshDio = Dio(
@@ -25,6 +20,12 @@ class AuthRepository {
           receiveTimeout: const Duration(seconds: 10),
         ),
       );
+  final TokenStorage _storage;
+  final SessionManager _sessionManager;
+  final Ref _ref;
+
+  int _recoveryAttempts = 0;
+  final Dio _refreshDio;
 
   /// Single-flight Refresh with deterministic recovery
   Future<void> refreshToken({String? requestId}) async {
@@ -70,7 +71,7 @@ class AuthRepository {
       if (requestId != 'BOOTSTRAP-REFRESH') {
         try {
           await _sessionManager.performHealthCheck(() async {
-            await _refreshDio.get('health').timeout(const Duration(seconds: 2));
+            await _refreshDio.get<dynamic>('health').timeout(const Duration(seconds: 2));
           });
         } catch (e) {
           AppLogger.w(
@@ -86,7 +87,7 @@ class AuthRepository {
       );
 
       final response = await _refreshDio
-          .post(ApiEndpoints.refresh, data: {'refreshToken': refreshToken})
+          .post<dynamic>(ApiEndpoints.refresh, data: {'refreshToken': refreshToken})
           .timeout(
             const Duration(seconds: 10),
             onTimeout: () {
@@ -178,10 +179,10 @@ class AuthRepository {
       if (refreshToken != null) {
         unawaited(
           _refreshDio
-              .post(ApiEndpoints.logout, data: {'refreshToken': refreshToken})
+              .post<dynamic>(ApiEndpoints.logout, data: {'refreshToken': refreshToken})
               .timeout(const Duration(seconds: 2))
               .catchError(
-                (_) => Response(requestOptions: RequestOptions(path: '')),
+                (_) => Response<dynamic>(requestOptions: RequestOptions()),
               ),
         );
       }
@@ -205,13 +206,13 @@ class AuthRepository {
             '🌐 Connectivity restored. Triggering auto-refresh recovery.',
           );
           // Add jitter to avoid thundering herd
-          Future.delayed(
+          unawaited(Future<void>.delayed(
             Duration(milliseconds: 300 + (DateTime.now().millisecond % 300)),
             () {
               _recoveryAttempts++;
-              refreshToken(requestId: 'RECOVERY-AUTO');
+              unawaited(refreshToken(requestId: 'RECOVERY-AUTO'));
             },
-          );
+          ));
         } else if (_recoveryAttempts >= 3) {
           AppLogger.w('Recovery attempts exhausted. Manual login required.');
           logout(reason: 'RECOVERY_EXHAUSTED');

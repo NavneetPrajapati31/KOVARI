@@ -1,21 +1,18 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/skeletons/kovari_skeletons.dart';
-import '../../../../core/widgets/common/kovari_image.dart';
-import '../../../../shared/widgets/app_card.dart';
-import '../../../../core/theme/hero_tokens.dart';
-import '../../../../core/services/haptic_service.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/theme/hero_tokens.dart';
+import 'package:mobile/core/widgets/common/kovari_image.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
 
 class TopDestinationCard extends StatelessWidget {
-  final String name;
-  final String? imageUrl;
-  final VoidCallback? onExplore;
-  final bool isLoading;
 
   const TopDestinationCard({
     super.key,
@@ -24,6 +21,10 @@ class TopDestinationCard extends StatelessWidget {
     this.onExplore,
     this.isLoading = false,
   });
+  final String name;
+  final String? imageUrl;
+  final VoidCallback? onExplore;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -160,12 +161,9 @@ class TopDestinationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSkeleton() {
-    return const KovariSkeletonCard(height: 180, borderRadius: AppRadius.large);
-  }
+  Widget _buildSkeleton() => const KovariSkeletonCard(height: 180, borderRadius: AppRadius.large);
 
-  Widget _buildEmptyState(BuildContext context) {
-    return AppCard(
+  Widget _buildEmptyState(BuildContext context) => AppCard(
       height: 180,
       interactive: false,
       child: Column(
@@ -195,5 +193,4 @@ class TopDestinationCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }
