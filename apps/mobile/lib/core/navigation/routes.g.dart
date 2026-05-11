@@ -8,8 +8,8 @@ part of 'routes.dart';
 
 List<RouteBase> get $appRoutes => [
   $appShellRouteData,
-  $groupDetailsRouteData,
   $createGroupRouteData,
+  $groupDetailsRouteData,
   $groupInviteRouteData,
   $editProfileRouteData,
   $settingsRouteData,
@@ -179,20 +179,17 @@ mixin $ProfileRouteData on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-RouteBase get $groupDetailsRouteData => GoRouteData.$route(
-  path: '/groups/:groupId',
-  factory: $GroupDetailsRouteData._fromState,
+RouteBase get $createGroupRouteData => GoRouteData.$route(
+  path: '/groups/create',
+  factory: $CreateGroupRouteData._fromState,
 );
 
-mixin $GroupDetailsRouteData on GoRouteData {
-  static GroupDetailsRouteData _fromState(GoRouterState state) =>
-      GroupDetailsRouteData(groupId: state.pathParameters['groupId']!);
-
-  GroupDetailsRouteData get _self => this as GroupDetailsRouteData;
+mixin $CreateGroupRouteData on GoRouteData {
+  static CreateGroupRouteData _fromState(GoRouterState state) =>
+      const CreateGroupRouteData();
 
   @override
-  String get location =>
-      GoRouteData.$location('/groups/${Uri.encodeComponent(_self.groupId)}');
+  String get location => GoRouteData.$location('/groups/create');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -208,17 +205,20 @@ mixin $GroupDetailsRouteData on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
-RouteBase get $createGroupRouteData => GoRouteData.$route(
-  path: '/groups/create',
-  factory: $CreateGroupRouteData._fromState,
+RouteBase get $groupDetailsRouteData => GoRouteData.$route(
+  path: '/groups/:groupId',
+  factory: $GroupDetailsRouteData._fromState,
 );
 
-mixin $CreateGroupRouteData on GoRouteData {
-  static CreateGroupRouteData _fromState(GoRouterState state) =>
-      const CreateGroupRouteData();
+mixin $GroupDetailsRouteData on GoRouteData {
+  static GroupDetailsRouteData _fromState(GoRouterState state) =>
+      GroupDetailsRouteData(groupId: state.pathParameters['groupId']!);
+
+  GroupDetailsRouteData get _self => this as GroupDetailsRouteData;
 
   @override
-  String get location => GoRouteData.$location('/groups/create');
+  String get location =>
+      GoRouteData.$location('/groups/${Uri.encodeComponent(_self.groupId)}');
 
   @override
   void go(BuildContext context) => context.go(location);

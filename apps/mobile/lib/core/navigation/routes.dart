@@ -114,6 +114,14 @@ class GroupsRouteData extends GoRouteData with $GroupsRouteData {
       const GroupsScreen();
 }
 
+@TypedGoRoute<CreateGroupRouteData>(path: '/groups/create')
+class CreateGroupRouteData extends GoRouteData with $CreateGroupRouteData {
+  const CreateGroupRouteData();
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const CreateGroupScreen();
+}
+
 @TypedGoRoute<GroupDetailsRouteData>(path: '/groups/:groupId')
 class GroupDetailsRouteData extends GoRouteData with $GroupDetailsRouteData {
   final String groupId;
@@ -122,14 +130,6 @@ class GroupDetailsRouteData extends GoRouteData with $GroupDetailsRouteData {
   @override
   Widget build(BuildContext context, GoRouterState state) =>
       GroupDetailsScreen(groupId: groupId);
-}
-
-@TypedGoRoute<CreateGroupRouteData>(path: '/groups/create')
-class CreateGroupRouteData extends GoRouteData with $CreateGroupRouteData {
-  const CreateGroupRouteData();
-  @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      const CreateGroupScreen();
 }
 
 @TypedGoRoute<GroupInviteRouteData>(path: '/groups/invite/:token')

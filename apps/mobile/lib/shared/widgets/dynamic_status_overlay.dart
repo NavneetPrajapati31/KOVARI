@@ -56,10 +56,6 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
     }
 
     // Sync provider messages to local display list
-    // We keep items in the display list even if they are gone from provider
-    // as long as they are still "alive" (within their duration + animation buffer)
-
-    // Add new ones
     for (final msg in statusMessages) {
       if (!_displayList.any((m) => m.timestamp == msg.timestamp)) {
         _displayList.insert(0, msg);
@@ -96,17 +92,15 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
     final allItems = [..._displayList, ...systemStatuses];
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeOutQuart,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
       bottom: baseBottom,
       left: 16,
       right: 16,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         verticalDirection: VerticalDirection.up,
-        children: allItems.asMap().entries.map((entry) {
-          final status = entry.value;
-
+        children: allItems.map((status) {
           final bool isManual = _displayList.contains(status);
           final bool isStillActive = isManual
               ? statusMessages.any((m) => m.timestamp == status.timestamp)

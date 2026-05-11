@@ -34,13 +34,23 @@ class GroupsScreen extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              _buildTabButton(context, "My Groups", true),
+              _buildTabButton(
+                context,
+                "My Groups",
+                true,
+                onTap: () {
+                  debugPrint('💎 [GroupsScreen] Already on My Groups tab');
+                },
+              ),
               const SizedBox(width: 8),
               _buildTabButton(
                 context,
                 "New group",
                 false,
-                onTap: () => const CreateGroupRouteData().push(context),
+                onTap: () {
+                  debugPrint('🚀 [GroupsScreen] Navigating to Create Group...');
+                  const CreateGroupRouteData().push(context);
+                },
               ),
             ],
           ),

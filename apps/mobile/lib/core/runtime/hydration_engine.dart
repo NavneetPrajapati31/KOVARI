@@ -51,14 +51,23 @@ class HydrationEngine {
     }
 
     // 🛡️ REPLAY FIX: Always yield the last known state first if it exists
-    if (_lastStates.containsKey(key)) {
-      yield _lastStates[key]! as HydratedState<T>;
+    final firstState = _lastStates[key] as HydratedState<T>?;
+    if (firstState != null) {
+      yield firstState;
     } else {
       yield HydratedState(
         data: initialData,
         source: HydrationSource.initial,
         isHydrating: true,
       );
+    }
+
+    // 🛡️ RACE CONDITION PROTECTION: Re-check the latest state just before piping the stream
+    // This ensures that if _runHydrationSequence updated the state between our first yield
+    // and the stream connection, we don't miss that update.
+    final latestState = _lastStates[key] as HydratedState<T>?;
+    if (latestState != null && latestState != firstState) {
+      yield latestState;
     }
 
     // Then pipe all future events
