@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -27,9 +28,7 @@ import '../../../core/utils/app_logger.dart';
 import '../../../shared/widgets/kovari_snackbar.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
-  final UserProfile profile;
-
-  const EditProfileScreen({super.key, required this.profile});
+  const EditProfileScreen({super.key});
 
   @override
   ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -70,29 +69,32 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _profilePicUrl = widget.profile.profileImage;
-    _nameController = TextEditingController(text: widget.profile.name);
-    _usernameController = TextEditingController(text: widget.profile.username);
+    final profile = ref.read(profileProvider);
+    if (profile == null) return;
+
+    _profilePicUrl = profile.profileImage;
+    _nameController = TextEditingController(text: profile.name);
+    _usernameController = TextEditingController(text: profile.username);
     _isUsernameAvailable = true; // Initially their own username is available
-    _bioController = TextEditingController(text: widget.profile.bio);
+    _bioController = TextEditingController(text: profile.bio);
     _professionController = TextEditingController(
-      text: widget.profile.profession,
+      text: profile.profession,
     );
 
-    _age = widget.profile.age;
-    _birthday = widget.profile.birthday != null
-        ? DateTime.tryParse(widget.profile.birthday!)
+    _age = profile.age;
+    _birthday = profile.birthday != null
+        ? DateTime.tryParse(profile.birthday!)
         : null;
-    _gender = widget.profile.gender;
-    _nationality = widget.profile.nationality;
-    _location = widget.profile.location;
-    _religion = widget.profile.religion;
-    _smoking = widget.profile.smoking;
-    _drinking = widget.profile.drinking;
-    _personality = widget.profile.personality;
-    _foodPreference = widget.profile.foodPreference;
-    _interests = List.from(widget.profile.interests);
-    _languages = List.from(widget.profile.languages);
+    _gender = profile.gender;
+    _nationality = profile.nationality;
+    _location = profile.location;
+    _religion = profile.religion;
+    _smoking = profile.smoking;
+    _drinking = profile.drinking;
+    _personality = profile.personality;
+    _foodPreference = profile.foodPreference;
+    _interests = List.from(profile.interests);
+    _languages = List.from(profile.languages);
   }
 
   void _debounceUsernameCheck(String username) {
@@ -106,8 +108,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       return;
     }
 
+    final profile = ref.read(profileProvider);
     // If it's their current username, it's available
-    if (username == widget.profile.username) {
+    if (profile != null && username == profile.username) {
       setState(() {
         _isUsernameAvailable = true;
         _isUsernameChecking = false;
@@ -184,7 +187,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _pickImage(ImageSource.camera);
               },
             ),
@@ -204,7 +207,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _pickImage(ImageSource.gallery);
               },
             ),
@@ -225,7 +228,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   setState(() {
                     _profileImageFile = null;
                     _profilePicUrl = null;
@@ -305,6 +308,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _handleSave() async {
+    AppLogger.d('💾 [_handleSave] Triggered');
     setState(() => _isLoading = true);
     if (_isUsernameAvailable == false) {
       KovariSnackbar.error(context, 'Username is already taken');
@@ -373,8 +377,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
 
       if (mounted) {
-        Navigator.pop(context);
         KovariSnackbar.success(context, 'Profile updated successfully');
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -393,7 +397,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         centerTitle: true,
         leadingWidth: 80,
         leading: TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(80, 48),
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
           child: Text(
             'Cancel',
             style: AppTextStyles.bodyMedium.copyWith(
@@ -427,6 +436,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   )
                 : TextButton(
                     onPressed: _handleSave,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(80, 48),
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                     child: Text(
                       'Done',
                       style: AppTextStyles.bodyMedium.copyWith(
@@ -843,7 +857,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       child: Text(
                         "Cancel",
                         style: AppTextStyles.bodyMedium.copyWith(
@@ -873,7 +887,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           }
                           _age = age.toString();
                         });
-                        Navigator.pop(context);
+                        context.pop();
                       },
                       child: Text(
                         "Done",

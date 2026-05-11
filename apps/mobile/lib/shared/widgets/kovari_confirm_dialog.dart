@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_text_styles.dart';
 
@@ -118,7 +119,7 @@ class KovariConfirmDialog extends StatelessWidget {
                     Expanded(
                       child: _DialogAction(
                         label: cancelLabel,
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => context.pop(),
                         isDefault: true,
                       ),
                     ),
@@ -132,7 +133,7 @@ class KovariConfirmDialog extends StatelessWidget {
                         label: confirmLabel,
                         onPressed: () {
                           onConfirm();
-                          Navigator.pop(context);
+                          context.pop();
                         },
                         isDestructive: isDestructive,
                       ),

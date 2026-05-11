@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../shared/widgets/kovari_switch_tile.dart';
 import '../../../shared/widgets/secondary_button.dart';
@@ -327,7 +328,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
             ref.read(exploreProvider.notifier).updateSearchData(_searchData);
             ref.read(exploreProvider.notifier).updateFilters(_filters);
             ref.read(exploreProvider.notifier).performSearch();
-            Navigator.pop(context);
+            context.pop();
           },
         ),
       ),

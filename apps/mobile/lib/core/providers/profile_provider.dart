@@ -50,7 +50,7 @@ class ProfileNotifier extends Notifier<UserProfile?> {
       final syncEngine = ref.read(syncEngineProvider);
       final cache = ref.read(localCacheProvider);
 
-      await syncEngine.swrFetch<UserProfile?>(
+      final profile = await syncEngine.swrFetch<UserProfile?>(
         path: ApiEndpoints.currentProfile,
         ignoreCache: ignoreCache,
         parser: (data) {
@@ -58,13 +58,18 @@ class ProfileNotifier extends Notifier<UserProfile?> {
           final actualData = (data['profile'] as Map<String, dynamic>?) ?? data;
           return UserProfile.fromJson(actualData);
         },
-        onUpdate: (profile) {
-          if (profile != null) {
-            state = profile;
-            cache.setProfile(profile.toJson());
+        onUpdate: (updatedProfile) {
+          if (updatedProfile != null) {
+            state = updatedProfile;
+            cache.setProfile(updatedProfile.toJson());
           }
         },
       );
+
+      if (profile != null) {
+        state = profile;
+        cache.setProfile(profile.toJson());
+      }
     } catch (e) {
       AppLogger.e('Failed to fetch profile: $e');
     }

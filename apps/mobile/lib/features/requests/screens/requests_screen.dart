@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
@@ -83,7 +84,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
 
   Widget _buildBackButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.pop(context),
+      onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(

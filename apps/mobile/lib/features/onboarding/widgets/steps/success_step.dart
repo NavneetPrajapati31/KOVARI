@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/navigation/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -51,7 +52,7 @@ class SuccessStep extends ConsumerWidget {
           PrimaryButton(
             text: 'Get Started',
             onPressed: () {
-              Navigator.of(context).pushReplacementNamed('/home');
+              const HomeRouteData().go(context);
             },
           ),
           // const SizedBox(height: AppSpacing.lg),

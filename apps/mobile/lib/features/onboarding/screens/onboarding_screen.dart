@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -105,12 +106,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.pop(context),
+                                        onPressed: () => context.pop(),
                                         child: const Text('Cancel'),
                                       ),
                                       TextButton(
                                         onPressed: () {
-                                          Navigator.pop(context);
+                                          context.pop();
                                           _handleDevReset();
                                         },
                                         child: const Text(

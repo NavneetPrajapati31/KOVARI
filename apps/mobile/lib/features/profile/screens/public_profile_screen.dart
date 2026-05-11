@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../core/navigation/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -13,7 +15,6 @@ import '../models/user_profile.dart';
 import '../data/connections_service.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../shared/widgets/kovari_confirm_dialog.dart';
-import 'connections_screen.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../core/widgets/skeletons/kovari_skeletons.dart';
 
@@ -141,7 +142,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(LucideIcons.arrowLeft, color: AppColors.text(context)),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
           ),
         ),
         body: Center(
@@ -173,7 +174,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             color: AppColors.text(context),
             size: 20,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         title: Text(
           _profile!.username,
@@ -264,18 +265,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                           profile.followers,
                           'Followers',
                           onTap: profile.isOwnProfile
-                              ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ConnectionsScreen(
-                                        userId: profile.userId,
-                                        username: profile.username,
-                                        initialTab: 'followers',
-                                      ),
-                                    ),
-                                  );
-                                }
+                              ? () => ConnectionsRouteData(
+                                    userId: profile.userId,
+                                    username: profile.username,
+                                    initialTab: 'followers',
+                                  ).push(context)
                               : null,
                         ),
                         const SizedBox(width: 16),
@@ -283,18 +277,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                           profile.following,
                           'Following',
                           onTap: profile.isOwnProfile
-                              ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ConnectionsScreen(
-                                        userId: profile.userId,
-                                        username: profile.username,
-                                        initialTab: 'following',
-                                      ),
-                                    ),
-                                  );
-                                }
+                              ? () => ConnectionsRouteData(
+                                    userId: profile.userId,
+                                    username: profile.username,
+                                    initialTab: 'following',
+                                  ).push(context)
                               : null,
                         ),
                       ],

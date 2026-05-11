@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../shared/widgets/primary_button.dart';
@@ -165,7 +166,7 @@ class GenderBirthStep extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       child: Text(
                         "Cancel",
                         style: AppTextStyles.bodyMedium.copyWith(
@@ -185,7 +186,7 @@ class GenderBirthStep extends ConsumerWidget {
                         ref
                             .read(onboardingProvider.notifier)
                             .updateGenderBirth(birthday: tempDate);
-                        Navigator.pop(context);
+                        context.pop();
                       },
                       child: Text(
                         "Done",

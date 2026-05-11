@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/common/user_avatar_fallback.dart';
 
@@ -50,7 +51,7 @@ class KovariImageModal extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GestureDetector(
-        onTap: () => Navigator.pop(context),
+        onTap: () => context.pop(),
         behavior: HitTestBehavior.opaque,
         child: Center(
           child: Container(

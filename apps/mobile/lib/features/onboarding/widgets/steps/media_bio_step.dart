@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -76,7 +77,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                 ),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _pickImage(ImageSource.camera);
               },
             ),
@@ -99,7 +100,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                 ),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _pickImage(ImageSource.gallery);
               },
             ),
@@ -124,7 +125,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   ref
                       .read(onboardingProvider.notifier)
                       .updateMediaBio(url: null, localPath: null);

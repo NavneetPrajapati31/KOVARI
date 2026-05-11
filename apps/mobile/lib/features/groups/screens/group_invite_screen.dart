@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../core/navigation/routes.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/common/kovari_image.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
@@ -11,8 +13,6 @@ import '../../../core/utils/app_logger.dart';
 import '../providers/group_details_provider.dart';
 import '../providers/group_provider.dart';
 import '../../../core/providers/auth_provider.dart';
-import 'group_details_screen.dart';
-import '../../auth/screens/login_screen.dart';
 
 class GroupInviteScreen extends ConsumerStatefulWidget {
   final String token;
@@ -41,10 +41,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
       // so they return to Dashboard/Home after login.
       Future.microtask(() {
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
+          const LoginRouteData().go(context);
         }
       });
     } else {
@@ -61,12 +58,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
         // 2. Membership Guard: If already a member, skip invite
         if (response['isMember'] == true) {
           final groupId = response['id'] as String;
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => GroupDetailsScreen(groupId: groupId),
-            ),
-          );
+          GroupDetailsRouteData(groupId: groupId).go(context);
           return;
         }
 
@@ -103,12 +95,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
           context,
         ).showSnackBar(const SnackBar(content: Text("Welcome to the group!")));
         // Replace current screen with group details
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => GroupDetailsScreen(groupId: groupId),
-          ),
-        );
+        GroupDetailsRouteData(groupId: groupId).go(context);
       }
     } catch (e) {
       AppLogger.e("Join Error: $e");
@@ -139,7 +126,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   fit: BoxFit.cover,
                   fadeInDuration: const Duration(milliseconds: 500),
                   fadeOutDuration: const Duration(milliseconds: 500),
-                  placeholder: Container(color: Colors.white.withValues(alpha: 0.05)),
+                  placeholder: Container(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
                 ),
               ),
             ),
@@ -172,7 +161,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                           size: 20,
                           color: Colors.white,
                         ),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => context.pop(),
                       ),
                       const Spacer(),
                       Text(
@@ -249,7 +238,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -293,12 +284,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     const SizedBox(height: 48),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
+                        const LoginRouteData().push(context);
                       },
                       child: Container(
                         width: double.infinity,
@@ -328,7 +314,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     ),
                     const SizedBox(height: 20),
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       child: Text(
                         "Go Back",
                         style: TextStyle(
@@ -378,7 +364,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             ),
             const SizedBox(height: 32),
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.pop(),
               child: const Text(
                 "Go Back",
                 style: TextStyle(
@@ -679,7 +665,11 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 15, color: Colors.white.withValues(alpha: 0.7)),
+          child: Icon(
+            icon,
+            size: 15,
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(

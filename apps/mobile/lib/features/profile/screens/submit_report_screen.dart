@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../core/navigation/routes.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
@@ -194,9 +196,8 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Close dialog
-                    Navigator.of(context).pop(); // Exit Submit
-                    Navigator.of(context).pop(); // Exit Search
+                    context.pop(); // Close dialog
+                    const SafetyRouteData().go(context); // Go back to Safety
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.text(context),
@@ -228,7 +229,7 @@ class _SubmitReportScreenState extends ConsumerState<SubmitReportScreen> {
         centerTitle: false,
         leadingWidth: 100,
         leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
+          onTap: () => context.pop(),
           child: Container(
             padding: const EdgeInsets.only(left: 8),
             child: Row(

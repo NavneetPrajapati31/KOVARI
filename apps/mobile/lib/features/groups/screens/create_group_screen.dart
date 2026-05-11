@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
@@ -166,7 +167,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
 
       if (mounted) {
         KovariSnackbar.success(context, 'Group created successfully!');
-        Navigator.pop(context);
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -184,7 +185,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(LucideIcons.x, color: AppColors.text(context), size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         title: Text(
           "Create a new group",

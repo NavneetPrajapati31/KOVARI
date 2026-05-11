@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../core/navigation/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -119,25 +121,12 @@ class ProfileScreen extends ConsumerWidget {
                             KovariMenuAction(
                               icon: LucideIcons.settings,
                               label: 'Settings',
-                              onTap: () {
-                                Navigator.of(context, rootNavigator: true).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const SettingsScreen(),
-                                  ),
-                                );
-                              },
+                              onTap: () => const SettingsRouteData().push(context),
                             ),
                             KovariMenuAction(
                               icon: LucideIcons.shieldCheck,
                               label: 'Safety',
-                              onTap: () {
-                                Navigator.of(context, rootNavigator: true).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => const SafetyScreen(),
-                                  ),
-                                );
-                              },
+                              onTap: () => const SafetyRouteData().push(context),
                             ),
                             KovariMenuAction(
                               icon: LucideIcons.logOut,
@@ -169,34 +158,22 @@ class ProfileScreen extends ConsumerWidget {
                           context,
                           profile.followers,
                           'Followers',
-                          onTap: () {
-                            Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute(
-                                builder: (context) => ConnectionsScreen(
-                                  userId: profile.userId,
-                                  username: profile.username,
-                                  initialTab: 'followers',
-                                ),
-                              ),
-                            );
-                          },
+                          onTap: () => ConnectionsRouteData(
+                            userId: profile.userId,
+                            username: profile.username,
+                            initialTab: 'followers',
+                          ).push(context),
                         ),
                         const SizedBox(width: 16),
                         _buildStatItem(
                           context,
                           profile.following,
                           'Following',
-                          onTap: () {
-                            Navigator.of(context, rootNavigator: true).push(
-                              MaterialPageRoute(
-                                builder: (context) => ConnectionsScreen(
-                                  userId: profile.userId,
-                                  username: profile.username,
-                                  initialTab: 'following',
-                                ),
-                              ),
-                            );
-                          },
+                          onTap: () => ConnectionsRouteData(
+                            userId: profile.userId,
+                            username: profile.username,
+                            initialTab: 'following',
+                          ).push(context),
                         ),
                       ],
                     ),
@@ -220,29 +197,7 @@ class ProfileScreen extends ConsumerWidget {
                 child: _buildActionButton(
                   context,
                   'Edit Profile',
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            EditProfileScreen(profile: profile),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                              const begin = Offset(0.0, 1.0);
-                              const end = Offset.zero;
-                              const curve = Curves.easeOutCubic;
-                              var tween = Tween(
-                                begin: begin,
-                                end: end,
-                              ).chain(CurveTween(curve: curve));
-                              return SlideTransition(
-                                position: animation.drive(tween),
-                                child: child,
-                              );
-                            },
-                        fullscreenDialog: true,
-                      ),
-                    );
-                  },
+                  onPressed: () => const EditProfileRouteData().push(context),
                   backgroundColor: AppColors.primary,
                   textColor: Colors.white,
                   border: false,

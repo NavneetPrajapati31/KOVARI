@@ -168,7 +168,9 @@ void main() {
         // Must be awaited and isolated from Firebase to guarantee readiness.
         try {
           final gId = Env.googleClientId;
-          AppLogger.d('Initializing Google Sign-In (isWeb: $kIsWeb, clientId: $gId)...');
+          AppLogger.d(
+            'Initializing Google Sign-In (isWeb: $kIsWeb, clientId: $gId)...',
+          );
           await GoogleSignIn.instance.initialize(
             clientId: kIsWeb ? gId : null,
             serverClientId: kIsWeb ? null : gId,
@@ -346,9 +348,6 @@ class KovariApp extends ConsumerWidget {
           ),
         );
 
-        if (!kReleaseMode) {
-          return RuntimeObservabilityOverlay(child: content);
-        }
         return content;
       },
     );

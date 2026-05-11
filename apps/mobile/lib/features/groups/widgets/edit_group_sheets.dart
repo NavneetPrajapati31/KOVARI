@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -128,7 +129,7 @@ class _EditBasicInfoSheetState extends ConsumerState<EditBasicInfoSheet> {
           'destination_details': _destinationDetails,
       });
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
         KovariSnackbar.error(context, "Error: $e");
@@ -271,7 +272,7 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
                 ),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _pickImage(ImageSource.camera);
               },
             ),
@@ -291,7 +292,7 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
                 ),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _pickImage(ImageSource.gallery);
               },
             ),
@@ -312,7 +313,7 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   setState(() {
                     _coverImageFile = null;
                     _currentCoverUrl = null;
@@ -378,7 +379,7 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
   Future<void> _handleSave() async {
     if (_coverImageFile == null &&
         _currentCoverUrl == widget.group.coverImage) {
-      Navigator.pop(context);
+      context.pop();
       return;
     }
 
@@ -399,7 +400,7 @@ class _EditCoverPhotoSheetState extends ConsumerState<EditCoverPhotoSheet> {
         'cover_image': updatedUrl,
       });
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -527,7 +528,7 @@ class _EditTravelDetailsSheetState
         'end_date': DateFormat('yyyy-MM-dd').format(_endDate),
         'budget': int.tryParse(_budgetController.text) ?? 0,
       });
-      if (mounted) Navigator.pop(context);
+      if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -704,7 +705,7 @@ class _EditPoliciesSheetState extends ConsumerState<EditPoliciesSheet> {
         'non_smokers': _nonSmokers,
         'non_drinkers': _nonDrinkers,
       });
-      if (mounted) Navigator.pop(context);
+      if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

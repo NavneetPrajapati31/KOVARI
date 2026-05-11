@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/navigation/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../providers/safety_provider.dart';
-import 'report_target_search_screen.dart';
-import 'my_reports_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../shared/widgets/kovari_snackbar.dart';
 
@@ -75,7 +75,9 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
-        border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderColor(context)),
+        ),
       ),
       child: Row(
         children: [
@@ -98,7 +100,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
 
   Widget _buildBackButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.pop(context),
+      onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -213,14 +215,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             context,
             icon: LucideIcons.fileText,
             label: 'View My Reports',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MyReportsScreen(),
-                ),
-              );
-            },
+            onTap: () => const MyReportsRouteData().push(context),
           ),
           _buildActionRow(
             context,
@@ -500,7 +495,11 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildGuidelineSection(BuildContext context, String title, List<String> tips) {
+  Widget _buildGuidelineSection(
+    BuildContext context,
+    String title,
+    List<String> tips,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -623,7 +622,9 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w400,
                       fontSize: 15,
-                      color: isCall ? AppColors.text(context) : AppColors.primary,
+                      color: isCall
+                          ? AppColors.text(context)
+                          : AppColors.primary,
                     ),
                   ),
                   if (isCall && number != null) ...[
@@ -667,7 +668,11 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(LucideIcons.eye, size: 14, color: AppColors.text(context, isMuted: true)),
+          Icon(
+            LucideIcons.eye,
+            size: 14,
+            color: AppColors.text(context, isMuted: true),
+          ),
           const SizedBox(width: 6),
           Text(
             'REVIEWED',
@@ -688,7 +693,11 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          Icon(LucideIcons.lock, size: 14, color: AppColors.text(context, isMuted: true)),
+          Icon(
+            LucideIcons.lock,
+            size: 14,
+            color: AppColors.text(context, isMuted: true),
+          ),
           const SizedBox(width: 6),
           Text(
             'ENCRYPTED',
@@ -705,12 +714,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
   }
 
   void _navigateToSearch(BuildContext context, String type) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ReportTargetSearchScreen(targetType: type),
-      ),
-    );
+    ReportTargetSearchRouteData(targetType: type).push(context);
   }
 
   String _formatDate(String dateStr) {

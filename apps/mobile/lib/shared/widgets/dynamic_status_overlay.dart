@@ -87,7 +87,10 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
       );
     }
 
-    final baseBottom = isNavBarVisible ? 85.0 : 25.0;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final baseBottom = isNavBarVisible
+        ? (70.0 + safeBottom)
+        : (6.0 + safeBottom);
 
     // Combine manual and system
     final allItems = [..._displayList, ...systemStatuses];

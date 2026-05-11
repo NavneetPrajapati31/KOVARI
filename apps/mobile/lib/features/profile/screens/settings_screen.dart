@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/navigation/routes.dart';
 import 'package:mobile/shared/widgets/primary_button.dart';
 import 'package:mobile/shared/widgets/secondary_button.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -242,7 +244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           _showSnackBar('Account deleted successfully');
           await ref.read(authProvider.notifier).logout();
           if (!mounted) return;
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          const OnboardingRouteData().go(context);
         } catch (e) {
           _showSnackBar(
             e.toString().replaceAll('Exception: ', ''),
@@ -358,7 +360,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     return GestureDetector(
       onTap: () {
         HapticService.selection();
-        Navigator.pop(context);
+        context.pop();
       },
       child: Container(
         padding: const EdgeInsets.all(8),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/nav_provider.dart';
-import '../providers/auth_provider.dart';
 import '../telemetry/telemetry_service.dart';
 import '../telemetry/telemetry_priority.dart';
+import '../utils/app_logger.dart';
 
 class KovariNavObserver extends NavigatorObserver {
   final Ref ref;
@@ -15,16 +15,37 @@ class KovariNavObserver extends NavigatorObserver {
   void _updateVisibility(Route<dynamic>? route) {
     if (route == null) return;
 
-    final screenName = route.settings.name ?? route.settings.arguments?.toString() ?? 'unknown_route';
-    
-    // In go_router, shell routes usually don't trigger didPush with a specific name that matches legacy AppRoutes.
-    // For now, we'll log the event and maintain the visibility logic if a name is present.
-    final isShellRoute = screenName == '/' || screenName == 'home' || screenName.isEmpty;
+    final screenName =
+        route.settings.name ??
+        route.settings.arguments?.toString() ??
+        'unknown_route';
+
+    // SMART DETECTION: Only show NavBar offset for the 5 root shell routes.
+    // In go_router, when we are at a root tab, the name/path often matches these.
+    // Fallback: If name is null or 'unknown_route', it's likely the AppShell.
+    final shellPaths = {
+      '/',
+      '/explore',
+      '/chat',
+      '/groups',
+      '/profile',
+      'app_shell',
+    };
+    final isShellRoute =
+        screenName == 'unknown_route' ||
+        screenName == '/' ||
+        shellPaths.contains(screenName) ||
+        (route.settings is RouteSettings &&
+            ((route.settings as RouteSettings).name == null ||
+                shellPaths.contains((route.settings as RouteSettings).name)));
+
+    AppLogger.d('🧭 [NAV] Route: $screenName | isShell: $isShellRoute');
+
     _telemetry.updateLastRoute(screenName);
 
     // Log Screen View
-    final duration = _transitionStart != null 
-        ? DateTime.now().difference(_transitionStart!).inMilliseconds 
+    final duration = _transitionStart != null
+        ? DateTime.now().difference(_transitionStart!).inMilliseconds
         : 0;
 
     _telemetry.logEvent(
@@ -36,7 +57,7 @@ class KovariNavObserver extends NavigatorObserver {
       },
     );
 
-    // Update visibility immediately to avoid layout jumps
+    // Update visibility smartly
     Future.microtask(() {
       if (ref.read(navBarVisibilityProvider) != isShellRoute) {
         ref.read(navBarVisibilityProvider.notifier).setVisible(isShellRoute);

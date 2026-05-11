@@ -1,7 +1,9 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../core/navigation/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/network/api_client.dart';
@@ -10,7 +12,6 @@ import '../data/connections_service.dart';
 import '../../../core/services/haptic_service.dart';
 import '../widgets/user_list_item.dart';
 import '../../../core/providers/profile_provider.dart';
-import 'public_profile_screen.dart';
 import '../../../shared/widgets/kovari_confirm_dialog.dart';
 import '../../../shared/widgets/kovari_snackbar.dart';
 import '../../../core/widgets/skeletons/kovari_skeletons.dart';
@@ -336,7 +337,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                     color: AppColors.text(context),
                     size: 20,
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => context.pop(),
                 ),
                 centerTitle: false,
                 titleSpacing: 0, // Tighten gap between back icon and title
@@ -565,17 +566,10 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                     user: user,
                     type: type,
                     isOwnProfile: isViewingOwnConnections,
-                    onTap: isMe
-                        ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PublicProfileScreen(userId: user.id),
-                              ),
-                            );
-                          },
+                      onTap: isMe
+                          ? null
+                          : () => PublicProfileRouteData(userId: user.id)
+                              .push(context),
                     onActionPressed: () {
                       if (isViewingOwnConnections) {
                         if (type == 'followers' && !user.isFollowing) {

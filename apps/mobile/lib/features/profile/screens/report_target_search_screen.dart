@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
+import '../../../core/navigation/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/kovari_avatar.dart';
 import '../../../shared/utils/url_utils.dart';
 import '../providers/safety_provider.dart';
 import '../models/safety_report.dart';
-import '../../../shared/widgets/text_input_field.dart';
-import 'submit_report_screen.dart';
 
 class ReportTargetSearchScreen extends ConsumerStatefulWidget {
   final String targetType; // 'user' or 'group'
@@ -93,7 +94,7 @@ class _ReportTargetSearchScreenState
 
   Widget _buildBackButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.pop(context),
+      onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -266,15 +267,10 @@ class _ReportTargetSearchScreenState
   }
 
   void _onSelectTarget(SafetyTarget target) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SubmitReportScreen(
-          targetType: widget.targetType,
-          targetId: target.id,
-          targetName: target.name,
-        ),
-      ),
-    );
+    SubmitReportRouteData(
+      targetType: widget.targetType,
+      targetId: target.id,
+      targetName: target.name,
+    ).push(context);
   }
 }

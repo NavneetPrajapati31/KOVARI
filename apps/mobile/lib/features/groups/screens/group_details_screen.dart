@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -239,7 +240,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
   Widget _buildBackButton(BuildContext context) {
     return IconButton(
       icon: const Icon(LucideIcons.arrowLeft, size: 20),
-      onPressed: () => Navigator.maybePop(context),
+      onPressed: () => context.pop(),
       color: AppColors.text(context),
       splashRadius: 24,
       tooltip: 'Back',
@@ -279,7 +280,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               const SizedBox(height: 32),
               PrimaryButton(
                 text: "Back to Groups",
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
               ),
             ],
           ),
@@ -328,7 +329,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
               const SizedBox(height: 12),
               SecondaryButton(
                 text: "Back to Groups",
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
               ),
             ],
           ),

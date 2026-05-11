@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/navigation/routes.dart';
 import 'package:mobile/core/utils/custom_route_transition.dart';
 import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 import '../../../core/theme/app_colors.dart';
@@ -11,8 +13,6 @@ import '../models/hydrated_state.dart';
 import '../models/group.dart';
 import '../widgets/group_card.dart';
 import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import 'create_group_screen.dart';
-import 'group_details_screen.dart';
 import '../../../shared/widgets/app_card.dart';
 
 class GroupsScreen extends ConsumerWidget {
@@ -40,13 +40,7 @@ class GroupsScreen extends ConsumerWidget {
                 context,
                 "New group",
                 false,
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(
-                      builder: (context) => const CreateGroupScreen(),
-                    ),
-                  );
-                },
+                onTap: () => const CreateGroupRouteData().push(context),
               ),
             ],
           ),
@@ -181,14 +175,9 @@ class GroupsScreen extends ConsumerWidget {
                       RepaintBoundary(
                         child: GroupCard(
                           group: groups[i],
-                          onAction: () {
-                            Navigator.of(context, rootNavigator: true).push(
-                              PremiumPageRoute(
-                                builder: (context) =>
-                                    GroupDetailsScreen(groupId: groups[i].id),
-                              ),
-                            );
-                          },
+                          onAction: () => GroupDetailsRouteData(
+                            groupId: groups[i].id,
+                          ).push(context),
                         ),
                       ),
                       if (i < groups.length - 1)

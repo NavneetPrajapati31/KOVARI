@@ -72,7 +72,7 @@ class HomeHeader extends ConsumerWidget {
                   showBadge: unreadCount > 0,
                   onTap: () {
                     AppLogger.d('🔔 [Header] Navigating to Notifications');
-                    context.push('/notifications');
+                    const NotificationsRouteData().push(context);
                   },
                 ),
                 const SizedBox(width: AppSpacing.xs),
@@ -81,7 +81,7 @@ class HomeHeader extends ConsumerWidget {
                   icon: LucideIcons.heart,
                   onTap: () {
                     AppLogger.d('❤️ [Header] Navigating to Requests');
-                    context.push('/requests');
+                    const RequestsRouteData().push(context);
                   },
                 ),
               ],

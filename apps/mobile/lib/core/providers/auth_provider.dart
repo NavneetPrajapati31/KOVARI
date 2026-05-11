@@ -84,7 +84,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
   void syncSessionState() {
     final session = ref.read(sessionManagerProvider);
-    if (state.isDegraded != session.isDegraded || 
+    if (state.isDegraded != session.isDegraded ||
         state.isRefreshing != session.isRefreshing ||
         state.isAuthenticated != session.isAuthenticated) {
       state = state.copyWith(
@@ -96,9 +96,16 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
 
 /// Legacy compatibility provider if needed
-final authStateProvider = Provider<KovariUser?>((ref) => ref.watch(authProvider).user);
+final authStateProvider = Provider<KovariUser?>(
+  (ref) => ref.watch(authProvider).user,
+);
 
-final logoutProvider = Provider((ref) => () => ref.read(authProvider.notifier).logout());
+final logoutProvider = Provider(
+  (ref) =>
+      () => ref.read(authProvider.notifier).logout(),
+);

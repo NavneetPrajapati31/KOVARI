@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -197,7 +198,7 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
         await notifier.createItineraryItem(data);
       }
 
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -588,7 +589,7 @@ class _ItineraryFormModalState extends ConsumerState<ItineraryFormModal> {
                 Expanded(
                   child: SecondaryButton(
                     text: 'Cancel',
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                   ),
                 ),
                 const SizedBox(width: 8),

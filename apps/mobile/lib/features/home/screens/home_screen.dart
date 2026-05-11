@@ -101,7 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     AppSpacing.md,
-                    topPadding + AppSpacing.lg,
+                    topPadding + AppSpacing.md,
                     AppSpacing.md,
                     AppSpacing.xs,
                   ),

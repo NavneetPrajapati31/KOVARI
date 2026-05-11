@@ -9,6 +9,7 @@ import '../../core/config/interaction_config.dart';
 import '../utils/kovari_icons.dart';
 import '../utils/url_utils.dart';
 import 'kovari_avatar.dart';
+import '../../core/providers/nav_provider.dart';
 
 class KovariBottomNav extends ConsumerWidget {
   final int currentIndex;
@@ -26,6 +27,17 @@ class KovariBottomNav extends ConsumerWidget {
       profileProvider.select((p) => UrlUtils.getFullImageUrl(p?.profileImage)),
     );
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // SMART VISIBILITY: Notify provider if this nav bar is currently active/visible on screen.
+    // This handles the case where a root route covers the shell without disposing it.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) {
+        final isCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+        if (ref.read(navBarVisibilityProvider) != isCurrent) {
+          ref.read(navBarVisibilityProvider.notifier).setVisible(isCurrent);
+        }
+      }
+    });
 
     return Stack(
       alignment: Alignment.bottomCenter,
