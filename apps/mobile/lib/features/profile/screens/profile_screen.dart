@@ -53,7 +53,7 @@ class ProfileScreen extends ConsumerWidget {
                 child: Column(
                   children: [
                     _buildHeaderCard(context, ref, profile),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.mds),
                     _buildContentCard(context, profile),
                   ],
                 ),

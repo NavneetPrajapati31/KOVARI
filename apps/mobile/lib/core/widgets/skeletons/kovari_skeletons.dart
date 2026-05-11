@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../common/skeleton.dart';
@@ -180,63 +181,68 @@ class KovariSkeletonRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 185,
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.borderColor(context)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Skeleton.circle(size: 40),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Skeleton(width: 100, height: 12),
-                      SizedBox(height: 8),
-                      Skeleton(width: 60, height: 12),
-                    ],
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Skeleton.circle(size: 40),
+              const SizedBox(width: AppSpacing.sm + 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Skeleton(width: 100, height: 14),
+                        Skeleton(width: 60, height: 11),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Skeleton(width: 80, height: 12),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Skeleton(width: 100, height: 12),
-                SizedBox(height: 8),
-                Skeleton(width: double.infinity, height: 12),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Skeleton(
-                    height: 36,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Skeleton(width: 120, height: 10),
+              SizedBox(height: 6),
+              Skeleton(width: double.infinity, height: 14),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: Skeleton(
+                  height: 36,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Skeleton(
-                    height: 36,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Skeleton(
+                  height: 36,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -362,45 +368,110 @@ class KovariSkeletonExplore extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: 1 / 1,
-              child: Skeleton(
-                borderRadius: BorderRadius.circular(16),
-                width: double.infinity,
-                height: double.infinity,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Skeleton(width: 180, height: 24),
-            const SizedBox(height: 8),
-            const Skeleton(width: double.infinity, height: 16),
-            const SizedBox(height: 4),
-            const Skeleton(width: 240, height: 16),
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 16),
-            const Skeleton(width: 100, height: 12),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: List.generate(
-                4,
-                (index) => Skeleton(
-                  width: 80 + (index * 10.0),
-                  height: 32,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-          ],
-        ),
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 20, right: 20, top: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1 / 1,
+                  child: Skeleton(
+                    borderRadius: BorderRadius.circular(16),
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Skeleton(width: 180, height: 16),
+                const SizedBox(height: 8),
+                const Skeleton(width: double.infinity, height: 16),
+                const SizedBox(height: 8),
+                const Skeleton(width: 240, height: 16),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+          Divider(
+            indent: 20,
+            endIndent: 20,
+            color: AppColors.borderColor(context),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionSkeleton(),
+                const SizedBox(height: 24),
+                _buildSectionSkeleton(),
+                const SizedBox(height: 24),
+                _buildSectionSkeleton(),
+              ],
+            ),
+          ),
+          Divider(
+            indent: 20,
+            endIndent: 20,
+            color: AppColors.borderColor(context),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Skeleton(
+                    height: 44,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Skeleton(
+                    height: 44,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Skeleton(
+                    height: 44,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 110), // Bottom nav spacer
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionSkeleton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Skeleton(width: 100, height: 16),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: List.generate(
+            4,
+            (index) => Skeleton(
+              width: 90 + (index * 15.0),
+              height: 26,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -410,42 +481,149 @@ class KovariSkeletonProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return SingleChildScrollView(
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          const Skeleton.circle(size: 100),
-          const SizedBox(height: 16),
-          const Skeleton(width: 140, height: 24),
-          const SizedBox(height: 8),
-          const Skeleton(width: 100, height: 16),
-          const SizedBox(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: List.generate(
-                4,
-                (index) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Row(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          topPadding + AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.sm,
+        ),
+        child: Column(
+          children: [
+            // Header Card Skeleton
+            AppCard(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Skeleton.circle(size: 24),
-                      const SizedBox(width: 16),
-                      const Skeleton(width: 120, height: 16),
-                      const Spacer(),
-                      const Icon(
-                        Icons.chevron_right,
-                        size: 20,
-                        color: Colors.grey,
+                      const Skeleton.circle(size: 65),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Skeleton(width: 120, height: 12),
+                            const SizedBox(height: 8),
+                            const Skeleton(width: 80, height: 12),
+                            const SizedBox(height: 8),
+                            const Skeleton(width: 80, height: 12),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: AppSpacing.md),
+                  const Skeleton(width: double.infinity, height: 12),
+                  const SizedBox(height: 6),
+                  const Skeleton(width: 200, height: 12),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Skeleton(
+                          height: 32,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Skeleton(
+                          height: 32,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.mds),
+            // Content Card Skeleton
+            AppCard(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.lg,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Skeleton(width: 40, height: 12),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildInfoRowSkeleton(),
+                  const SizedBox(height: 16),
+                  _buildInfoRowSkeleton(),
+                  const SizedBox(height: 16),
+                  _buildInfoRowSkeleton(),
+                  const SizedBox(height: 20),
+                  Divider(height: 1, color: AppColors.borderColor(context)),
+                  const SizedBox(height: 20),
+                  _buildInfoRowSkeleton(),
+                  const SizedBox(height: 16),
+                  _buildInfoRowSkeleton(),
+                  const SizedBox(height: 20),
+                  _buildInfoRowSkeleton(),
+                  const SizedBox(height: 20),
+                  Divider(height: 1, color: AppColors.borderColor(context)),
+                  const SizedBox(height: 20),
+                  const Skeleton(width: 80, height: 12),
+                  const SizedBox(height: AppSpacing.mds),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(
+                      3,
+                      (index) => Skeleton(
+                        width: 90,
+                        height: 24,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 110), // Bottom nav spacer
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildInfoRowSkeleton() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Skeleton(width: 40, height: 12),
+              SizedBox(height: 6),
+              Skeleton(width: 80, height: 12),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Skeleton(width: 40, height: 12),
+              SizedBox(height: 6),
+              Skeleton(width: 80, height: 12),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -511,11 +689,13 @@ class KovariSkeletonItineraryBoard extends StatelessWidget {
                       const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Skeleton(width: 60, height: 12),
+                          Skeleton(width: 120, height: 12),
                           Skeleton(width: 40, height: 12),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 4),
+                      const Skeleton(width: 60, height: 12),
+                      const SizedBox(height: AppSpacing.mds),
                       const Skeleton(width: 120, height: 14),
                       const SizedBox(height: 8),
                       const Skeleton(width: double.infinity, height: 12),

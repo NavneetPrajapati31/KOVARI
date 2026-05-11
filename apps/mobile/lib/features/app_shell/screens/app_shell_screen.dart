@@ -8,7 +8,6 @@ import '../widgets/profile_tab.dart';
 import '../../../shared/widgets/kovari_bottom_nav.dart';
 import '../providers/app_shell_provider.dart';
 import '../../../core/providers/connectivity_provider.dart';
-import '../../../core/providers/nav_provider.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../home/providers/home_provider.dart';
 
@@ -27,7 +26,9 @@ class _AppShellScreenState extends ConsumerState<AppShellScreen> {
     // Global connectivity listener
     ref.listen(connectivityProvider, (previous, next) {
       if (next.isOnline && previous?.isOnline == false) {
-        AppLogger.i('🌐 Connectivity restored in AppShell. Refreshing current data...');
+        AppLogger.i(
+          '🌐 Connectivity restored in AppShell. Refreshing current data...',
+        );
         ref.read(homeDataProvider.notifier).refresh(isSilent: true);
       }
     });

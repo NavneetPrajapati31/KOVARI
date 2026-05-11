@@ -55,14 +55,12 @@ class GroupsScreen extends ConsumerWidget {
         // Scrollable Content
         Expanded(
           child: KovariRefreshIndicator(
-            onRefresh: () =>
-                ref.read(myGroupsStoreProvider.notifier).refresh(),
+            onRefresh: () => ref.read(myGroupsStoreProvider.notifier).refresh(),
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics(),
               ),
-              keyboardDismissBehavior:
-                  ScrollViewKeyboardDismissBehavior.onDrag,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 // 1. Stale Indicator
                 if (groupState.isStale)
