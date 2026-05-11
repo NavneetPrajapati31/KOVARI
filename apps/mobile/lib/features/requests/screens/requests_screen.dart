@@ -115,8 +115,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           overlayColor: WidgetStateProperty.all(Colors.transparent),
           splashFactory: NoSplash.splashFactory,
           indicator: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.primary, width: 1),
           ),
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.text(context, isMuted: true),

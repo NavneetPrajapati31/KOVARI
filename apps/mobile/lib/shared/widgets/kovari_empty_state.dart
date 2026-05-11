@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/shared/widgets/interactive_wrapper.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import 'primary_button.dart';
@@ -33,7 +35,7 @@ class KovariEmptyState extends StatelessWidget {
           child: Transform.translate(
             offset: Offset(0, 20 * (1 - value)),
             child: Padding(
-              padding: const EdgeInsets.all(32.0),
+              padding: const EdgeInsets.all(20.0),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -42,26 +44,26 @@ class KovariEmptyState extends StatelessWidget {
                       illustration!
                     else if (icon != null)
                       Container(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: AppColors.mutedColor(context),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           icon,
-                          size: 48,
+                          size: 28,
                           color: AppColors.text(context, isMuted: true),
                         ),
                       ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 8),
                     Text(
                       title,
-                      style: AppTextStyles.h2.copyWith(
+                      style: AppTextStyles.h3.copyWith(
                         color: AppColors.text(context),
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       description,
                       style: AppTextStyles.bodyMedium.copyWith(
@@ -70,11 +72,31 @@ class KovariEmptyState extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     if (actionLabel != null && onAction != null) ...[
-                      const SizedBox(height: 32),
-                      PrimaryButton(
-                        text: actionLabel!,
-                        onPressed: onAction,
-                        width: 200,
+                      const SizedBox(height: 24),
+                      InteractiveWrapper(
+                        onPressed: () {
+                          HapticService.selection();
+                          onAction!();
+                        },
+                        child: Container(
+                          width: 200,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            actionLabel!,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       ),
                     ],
                   ],

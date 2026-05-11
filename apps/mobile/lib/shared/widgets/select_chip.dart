@@ -29,10 +29,7 @@ class SelectChip extends StatelessWidget {
               ? AppColors.primary.withValues(alpha: 0.1)
               : (fillColor ?? AppColors.surface(context, level: 2)),
           borderRadius: AppRadius.extraLarge,
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderColor(context),
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.borderColor(context), width: 1),
         ),
         child: Text(
           label,

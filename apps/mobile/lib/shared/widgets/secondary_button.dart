@@ -15,6 +15,7 @@ class SecondaryButton extends StatelessWidget {
   final double height;
   final double? width;
   final bool isDate;
+  final Color? backgroundColor;
 
   const SecondaryButton({
     super.key,
@@ -27,6 +28,7 @@ class SecondaryButton extends StatelessWidget {
     this.height = 44.0, // Elite standard
     this.width,
     this.isDate = false,
+    this.backgroundColor,
   });
 
   @override
@@ -47,7 +49,7 @@ class SecondaryButton extends StatelessWidget {
         height: height,
         width: width,
         decoration: BoxDecoration(
-          color: AppColors.mutedColor(context),
+          color: backgroundColor ?? AppColors.mutedColor(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.borderColor(context)),
         ),

@@ -49,16 +49,36 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      padding: EdgeInsets.only(
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       decoration: BoxDecoration(
-        color: AppColors.surface(context, level: 1),
+        color: AppColors.isDark(context)
+            ? AppColors.cardDark
+            : AppColors.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
-          _buildHeader(),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.text(
+                  context,
+                  isMuted: true,
+                ).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               children: [
                 _buildSectionTitle(context, 'Destination'),
                 LocationAutocomplete(
@@ -86,6 +106,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                     Expanded(
                       child: SecondaryButton(
                         isDate: true,
+                        backgroundColor: AppColors.cardColor(context),
                         text: DateFormat(
                           'MMM dd, yyyy',
                         ).format(_searchData.startDate),
@@ -112,6 +133,7 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
                     Expanded(
                       child: SecondaryButton(
                         isDate: true,
+                        backgroundColor: AppColors.cardColor(context),
                         text: DateFormat(
                           'MMM dd, yyyy',
                         ).format(_searchData.endDate),
@@ -284,38 +306,6 @@ class _ExploreFiltersSheetState extends ConsumerState<ExploreFiltersSheet> {
             ),
           ),
           _buildFooter(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.borderColor(context), width: 1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Search & Filters',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.text(context),
-                ),
-              ),
-              InkWell(
-                onTap: () => Navigator.pop(context),
-                child: const Icon(Icons.close, size: 20),
-              ),
-            ],
-          ),
         ],
       ),
     );

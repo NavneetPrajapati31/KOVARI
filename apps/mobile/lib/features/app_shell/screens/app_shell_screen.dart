@@ -21,26 +21,6 @@ class AppShellScreen extends ConsumerStatefulWidget {
 
 class _AppShellScreenState extends ConsumerState<AppShellScreen> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(navBarVisibilityProvider.notifier).show();
-    });
-  }
-
-  @override
-  void dispose() {
-    // Note: This might not run if the app is killed, but fine for navigation
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Check if we can still read ref (might be disposed)
-      try {
-        ref.read(navBarVisibilityProvider.notifier).hide();
-      } catch (_) {}
-    });
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(appShellIndexProvider);
 

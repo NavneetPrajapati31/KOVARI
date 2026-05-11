@@ -154,21 +154,21 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
                             color: AppColors.text(context, isMuted: true),
                           ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(32),
                       borderSide: BorderSide(
                         color: AppColors.borderColor(context),
                         width: 1,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(32),
                       borderSide: BorderSide(
                         color: AppColors.borderColor(context),
                         width: 1,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(32),
                       borderSide: BorderSide(
                         color: AppColors.borderColor(context),
                         width: 1,
@@ -240,9 +240,7 @@ class _ChatInboxScreenState extends State<ChatInboxScreen> {
                 ),
               ),
             ),
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 110),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 110)),
         ],
       ),
     );

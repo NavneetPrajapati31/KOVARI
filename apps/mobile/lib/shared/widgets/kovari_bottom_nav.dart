@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/haptic_service.dart';
@@ -99,7 +98,7 @@ class KovariBottomNav extends ConsumerWidget {
                               width: 70, // Wider like iOS 26
                               height: 50, // Taller pill
                               decoration: BoxDecoration(
-                                color: AppColors.borderColor(context),
+                                color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(28),
                               ),
                             ),
@@ -184,7 +183,7 @@ class KovariBottomNav extends ConsumerWidget {
                 child: AnimatedSwitcher(
                   duration: InteractionConfig.normal,
                   child: KovariIcon(
-                    key: ValueKey('${iconType}_${isSelected}'),
+                    key: ValueKey('${iconType}_$isSelected'),
                     svgString: svgString,
                     size: 20,
                     color: color,

@@ -223,12 +223,7 @@ class GroupsScreen extends ConsumerWidget {
               ? AppColors.primary.withValues(alpha: 0.1)
               : AppColors.surface(context, level: 1),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.borderColor(context),
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.borderColor(context), width: 1),
         ),
         child: Text(
           label,

@@ -154,7 +154,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 indicator: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: AppColors.primary, width: 1),
+                  border: Border.all(color: Colors.transparent, width: 0),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: AppColors.primary,

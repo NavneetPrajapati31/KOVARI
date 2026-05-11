@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/utils/app_logger.dart';
+import 'core/utils/nav_observer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'core/theme/app_theme.dart';
@@ -251,6 +252,7 @@ class _KovariAppState extends ConsumerState<KovariApp> {
       Future.delayed(const Duration(milliseconds: 500), () {
         navigatorKey.currentState?.push(
           MaterialPageRoute(
+            settings: const RouteSettings(name: AppRoutes.forgotPassword),
             builder: (context) => ResetPasswordScreen(token: resetToken),
           ),
         );
@@ -276,6 +278,7 @@ class _KovariAppState extends ConsumerState<KovariApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: ref.watch(themeProvider),
       navigatorKey: navigatorKey,
+      navigatorObservers: [KovariNavObserver(ref)],
       routes: AppRoutes.routes,
       builder: (context, child) {
         return GestureDetector(
@@ -418,10 +421,15 @@ class _AuthHandlerState extends ConsumerState<AuthHandler> {
   @override
   Widget build(BuildContext context) {
     if (_isSyncing) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       return Scaffold(
         backgroundColor: AppColors.backgroundColor(context),
         body: Center(
-          child: Image.asset('assets/logo.png', width: 120, height: 120),
+          child: Image.asset(
+            isDark ? 'assets/logo_dark.webp' : 'assets/logo.webp',
+            width: 120,
+            height: 120,
+          ),
         ),
       );
     }
