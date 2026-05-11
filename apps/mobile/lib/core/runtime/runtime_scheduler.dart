@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../utils/app_logger.dart';
+import '../telemetry/telemetry_service.dart';
+import '../telemetry/telemetry_priority.dart';
+import '../telemetry/event_schema_registry.dart';
 
 enum TaskPriority {
   visible, // Currently on screen
@@ -24,6 +27,7 @@ class ViewportContext {
 
 class HydrationTask {
   final String id;
+  final String? traceId;
   final TaskPriority priority;
   final ViewportContext? viewport;
   final Future<void> Function() execute;
@@ -31,6 +35,7 @@ class HydrationTask {
 
   HydrationTask({
     required this.id,
+    this.traceId,
     required this.priority,
     this.viewport,
     required this.execute,
@@ -38,7 +43,7 @@ class HydrationTask {
   });
 }
 
-class RuntimeScheduler {
+class RuntimeScheduler extends ChangeNotifier {
   static const int _maxConcurrentTasks = 3;
 
   final List<HydrationTask> _queue = [];
@@ -57,6 +62,7 @@ class RuntimeScheduler {
 
     _queue.add(task);
     _sortQueue();
+    notifyListeners();
     _processQueue();
   }
 
@@ -69,6 +75,19 @@ class RuntimeScheduler {
           '🚀 [RuntimeScheduler] High velocity detected. Throttling non-visible hydration.',
         );
       }
+
+      // Log Pressure Transition
+      TelemetryService().logEvent(
+        EventSchemaRegistry.pressureTransition,
+        priority: TelemetryPriority.high,
+        parameters: {
+          'type': 'scroll_velocity',
+          'is_high_pressure': _isHighVelocityScroll,
+          'velocity': velocity.abs(),
+          'queue_depth': _queue.length,
+        },
+      );
+
       _processQueue();
     }
   }
@@ -83,17 +102,24 @@ class RuntimeScheduler {
         onCancel: _queue[index].onCancel,
       );
       _sortQueue();
+      notifyListeners();
     }
   }
 
   void cancel(String taskId) {
+    bool removed = false;
     _queue.removeWhere((t) {
       if (t.id == taskId) {
         t.onCancel?.call();
+        removed = true;
         return true;
       }
       return false;
     });
+
+    if (removed) {
+      notifyListeners();
+    }
     _activeTaskIds.remove(taskId);
   }
 
@@ -117,14 +143,50 @@ class RuntimeScheduler {
     final task = _queue.removeAt(nextTaskIndex);
     _activeTaskIds.add(task.id);
     _runningCount++;
+    notifyListeners();
+
+    final stopwatch = Stopwatch()..start();
+    final telemetry = TelemetryService();
+
+    // Set current trace ID if task has one
+    if (task.traceId != null) {
+      telemetry.startTrace(task.traceId!);
+    }
 
     try {
       await task.execute();
+
+      // Log Success Telemetry
+      telemetry.logEvent(
+        EventSchemaRegistry.hydrationTask,
+        priority: TelemetryPriority.low,
+        parameters: {
+          'task_id': task.id,
+          'priority': task.priority.name,
+          'duration_ms': stopwatch.elapsedMilliseconds,
+          'queue_depth': _queue.length,
+          'status': 'success',
+        },
+      );
     } catch (e) {
       AppLogger.e('❌ [RuntimeScheduler] Task ${task.id} failed: $e');
+
+      // Log Failure Telemetry
+      telemetry.logEvent(
+        EventSchemaRegistry.hydrationTask,
+        priority: TelemetryPriority.high,
+        parameters: {
+          'task_id': task.id,
+          'priority': task.priority.name,
+          'duration_ms': stopwatch.elapsedMilliseconds,
+          'status': 'failed',
+          'error': e.toString(),
+        },
+      );
     } finally {
       _runningCount--;
       _activeTaskIds.remove(task.id);
+      notifyListeners();
       _processQueue();
     }
   }

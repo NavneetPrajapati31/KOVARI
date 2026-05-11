@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/nav_provider.dart';
 import '../config/routes.dart';
 import '../providers/auth_provider.dart';
+import '../telemetry/telemetry_service.dart';
+import '../telemetry/telemetry_priority.dart';
 
 class KovariNavObserver extends NavigatorObserver {
   final WidgetRef ref;
+  final _telemetry = TelemetryService();
+  DateTime? _transitionStart;
 
   KovariNavObserver(this.ref);
 
@@ -17,6 +21,23 @@ class KovariNavObserver extends NavigatorObserver {
     final isShellRoute =
         route.settings.name == AppRoutes.home || route.settings.name == '/';
 
+    final screenName = route.settings.name ?? 'unknown_route';
+    _telemetry.updateLastRoute(screenName);
+
+    // Log Screen View
+    final duration = _transitionStart != null 
+        ? DateTime.now().difference(_transitionStart!).inMilliseconds 
+        : 0;
+
+    _telemetry.logEvent(
+      'screen_view',
+      priority: TelemetryPriority.normal,
+      parameters: {
+        'screen_name': screenName,
+        'transition_duration_ms': duration,
+      },
+    );
+
     // Update visibility immediately to avoid layout jumps
     Future.microtask(() {
       if (ref.read(navBarVisibilityProvider) != isShellRoute) {
@@ -27,12 +48,14 @@ class KovariNavObserver extends NavigatorObserver {
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _transitionStart = DateTime.now();
     super.didPush(route, previousRoute);
     _updateVisibility(route);
   }
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _transitionStart = DateTime.now();
     super.didPop(route, previousRoute);
     _updateVisibility(previousRoute);
   }

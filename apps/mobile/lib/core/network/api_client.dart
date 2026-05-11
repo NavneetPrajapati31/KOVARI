@@ -18,6 +18,9 @@ import 'api_endpoints.dart';
 import 'mutation_queue.dart';
 import '../utils/app_logger.dart';
 import 'request_priority.dart';
+import '../telemetry/telemetry_service.dart';
+import '../telemetry/telemetry_priority.dart';
+import '../telemetry/event_schema_registry.dart';
 
 // ─────────────────────────────────────────────
 // Abstract Interface
@@ -110,9 +113,14 @@ class DioApiClient implements ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           // 1. Traceability: Preserve or generate X-Request-Id
+          final telemetry = TelemetryService();
           final requestId = options.headers['X-Request-Id'] ?? _uuid.v4();
+          final traceId = telemetry.currentTraceId ?? _uuid.v4();
+          
           options.headers['X-Request-Id'] = requestId;
+          options.headers['X-Trace-Id'] = traceId;
           options.extra['requestId'] = requestId;
+          options.extra['traceId'] = traceId;
 
           // 2. Classification
           final isPublic =
@@ -242,8 +250,20 @@ class DioApiClient implements ApiClient {
           // Latency Tracking
           final startTime = response.requestOptions.extra['startTime'] as int?;
           if (startTime != null) {
-            _sessionManager.recordLatency(
-              DateTime.now().millisecondsSinceEpoch - startTime,
+            final duration = DateTime.now().millisecondsSinceEpoch - startTime;
+            _sessionManager.recordLatency(duration);
+
+            // Log to Telemetry
+            TelemetryService().logEvent(
+              EventSchemaRegistry.apiLatency,
+              priority: TelemetryPriority.low,
+              parameters: {
+                'endpoint': response.requestOptions.path,
+                'method': response.requestOptions.method,
+                'duration_ms': duration,
+                'status_code': response.statusCode,
+                'is_cache': response.requestOptions.extra[TokenStorage.fromCacheKey] == true,
+              },
             );
           }
 
@@ -337,6 +357,20 @@ class DioApiClient implements ApiClient {
           AppLogger.e(
             '❌ [ERR] [$requestId] ${e.requestOptions.method} ${e.requestOptions.path} [${e.response?.statusCode}]',
             error: e,
+          );
+
+          // Log Failure to Telemetry
+          TelemetryService().logEvent(
+            EventSchemaRegistry.apiLatency,
+            priority: TelemetryPriority.high,
+            parameters: {
+              'endpoint': e.requestOptions.path,
+              'method': e.requestOptions.method,
+              'status_code': e.response?.statusCode ?? 0,
+              'error_type': e.type.name,
+              'is_timeout': e.type == DioExceptionType.connectionTimeout || 
+                           e.type == DioExceptionType.receiveTimeout,
+            },
           );
 
           // 3. Safe Request Auto-Retry (Timeout/Network errors)

@@ -26,6 +26,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/config/env.dart';
 import 'features/auth/screens/banned_screen.dart';
 import 'shared/widgets/dynamic_status_overlay.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'core/telemetry/telemetry_service.dart';
+import 'core/telemetry/runtime_metrics_service.dart';
+import 'core/telemetry/freeze_monitor.dart';
+import 'core/telemetry/release_health_service.dart';
+import 'core/telemetry/runtime_observability_overlay.dart';
 
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
@@ -41,6 +47,22 @@ void main() {
     () async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+      // 🛰️ [Production Observability] Phase 1: Foundation
+      RuntimeMetricsService().markAppStart();
+      
+      // Initialize observability in the background to prevent startup hangs
+      unawaited(() async {
+        try {
+          await Firebase.initializeApp();
+          await TelemetryService().init();
+          RuntimeMetricsService().init();
+          FreezeMonitor().start();
+          ReleaseHealthService().reportSessionStart();
+        } catch (e) {
+          AppLogger.e('Observability initialization failed: $e');
+        }
+      }());
 
       // 🧊 [Aesthetic] Set status bar to transparent for blurred effect
       SystemChrome.setSystemUIOverlayStyle(
@@ -182,7 +204,8 @@ void main() {
         await SentryFlutter.init(
           (options) {
             options.dsn = sentryDsn;
-            options.tracesSampleRate = 1.0;
+            options.tracesSampleRate = 0.25; // Adaptive sampling start
+            options.enableAppHangTracking = true;
           },
           appRunner: () => runApp(
             UncontrolledProviderScope(
@@ -291,7 +314,7 @@ class _KovariAppState extends ConsumerState<KovariApp> {
       navigatorObservers: [KovariNavObserver(ref)],
       routes: AppRoutes.routes,
       builder: (context, child) {
-        return GestureDetector(
+        Widget content = GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
@@ -385,6 +408,11 @@ class _KovariAppState extends ConsumerState<KovariApp> {
             ),
           ),
         );
+
+        if (!kReleaseMode) {
+          return RuntimeObservabilityOverlay(child: content);
+        }
+        return content;
       },
       home: const AuthWrapper(),
     );

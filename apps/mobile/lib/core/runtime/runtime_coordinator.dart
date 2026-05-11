@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:mobile/features/groups/models/hydrated_state.dart';
 import 'hydration_engine.dart';
 import 'runtime_scheduler.dart';
 import 'replay_engine.dart';
 import '../utils/app_logger.dart';
+import '../telemetry/telemetry_service.dart';
 
 class RuntimeCoordinator {
   final HydrationEngine _hydrationEngine;
@@ -21,7 +23,9 @@ class RuntimeCoordinator {
     TaskPriority priority = TaskPriority.nearby,
     T? initialData,
     bool force = false,
+    String? traceId,
   }) {
+    final effectiveTraceId = traceId ?? TelemetryService().currentTraceId;
     // 🛡️ Get the stream from the engine
     final stream = _hydrationEngine.hydrate(
       target,
@@ -32,6 +36,7 @@ class RuntimeCoordinator {
     _scheduler.schedule(
       HydrationTask(
         id: 'hydrate_${target.hydrationKey}',
+        traceId: effectiveTraceId,
         priority: priority,
         execute: () async {
           AppLogger.d(
@@ -70,7 +75,9 @@ class RuntimeCoordinator {
 
 // Providers for the core engines
 final hydrationEngineProvider = Provider((ref) => HydrationEngine());
-final runtimeSchedulerProvider = Provider((ref) => RuntimeScheduler());
+final runtimeSchedulerProvider = ChangeNotifierProvider(
+  (ref) => RuntimeScheduler(),
+);
 final replayEngineProvider = Provider((ref) => ReplayEngine());
 
 final runtimeCoordinatorProvider = Provider((ref) {
