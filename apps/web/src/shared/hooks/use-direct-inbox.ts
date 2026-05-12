@@ -74,10 +74,13 @@ export const useDirectInbox = (
       let messageText = incomingMsg.content || incomingMsg.plain_content || "";
       if (!messageText && incomingMsg.isEncrypted) {
         if (incomingMsg.encryptedContent && incomingMsg.iv && incomingMsg.salt) {
-          const sharedSecret =
-            currentUserUuid < partnerId
-              ? `${currentUserUuid}:${partnerId}`
-              : `${partnerId}:${currentUserUuid}`;
+          const myClerkId = user?.id;
+          const partnerClerkId = isMe ? incomingMsg.receiverClerkId : incomingMsg.senderClerkId;
+          
+          const sharedSecret = (myClerkId && partnerClerkId)
+            ? (myClerkId < partnerClerkId ? `${myClerkId}:${partnerClerkId}` : `${partnerClerkId}:${myClerkId}`)
+            : (currentUserUuid < partnerId ? `${currentUserUuid}:${partnerId}` : `${partnerId}:${currentUserUuid}`);
+
           try {
             messageText =
               decryptMessage(
@@ -190,10 +193,12 @@ export const useDirectInbox = (
         // Track latest message per partner for inbox preview
         if (!latestMsgAt[partnerId] || msg.created_at > latestMsgAt[partnerId]) {
           latestMsgAt[partnerId] = msg.created_at;
-          const sharedSecret =
-            currentUserUuid < partnerId
-              ? `${currentUserUuid}:${partnerId}`
-              : `${partnerId}:${currentUserUuid}`;
+          const myClerkId = user?.id;
+          const partnerClerkId = msg.sender_id === currentUserUuid ? msg.receiver_clerk_id : msg.sender_clerk_id;
+
+          const sharedSecret = (myClerkId && partnerClerkId)
+            ? (myClerkId < partnerClerkId ? `${myClerkId}:${partnerClerkId}` : `${partnerClerkId}:${myClerkId}`)
+            : "";
 
           let lastMessage = "[Encrypted message]";
           let lastMediaType: "image" | "video" | "init" | undefined = undefined;

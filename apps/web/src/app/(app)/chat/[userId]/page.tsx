@@ -135,7 +135,8 @@ const VideoWithSkeleton = ({
 const isRealTextMessage = (content: string) => {
   if (!content) return false;
   const trimmed = content.trim();
-  return trimmed !== "" && trimmed !== "[Encrypted message]";
+  // We now show [Encrypted message] bubbles instead of hiding them
+  return trimmed !== "";
 };
 
 const MessageRow = React.memo(
@@ -185,6 +186,8 @@ const MessageRow = React.memo(
 
     // Only text: show bubble
     if (hasText) {
+      const isEncryptedPlaceholder = content === "[Encrypted message]";
+      
       return (
         <div
           className={`flex ${isSent ? "justify-end" : "justify-start"} mb-1`}
@@ -198,23 +201,26 @@ const MessageRow = React.memo(
                 isSent
                   ? "bg-primary text-primary-foreground rounded-br-md"
                   : "bg-gray-100 text-foreground rounded-bl-md"
-              }`}
+              } ${isEncryptedPlaceholder ? "opacity-70 italic" : ""}`}
               tabIndex={0}
               aria-label={content}
               role="document"
             >
-              {msg.status === "sending" || msg.status === "failed" ? (
-                <span className="block text-xs [overflow-wrap:anywhere]">
-                  {content}
-                </span>
-              ) : (
-                <span
-                  className="block text-xs [overflow-wrap:anywhere]"
-                  dangerouslySetInnerHTML={{
-                    __html: linkifyMessage(content),
-                  }}
-                />
-              )}
+              <div className="flex items-center gap-1.5">
+                {isEncryptedPlaceholder && <Loader2 className="w-3 h-3 animate-spin" />}
+                {msg.status === "sending" || msg.status === "failed" ? (
+                  <span className="block text-xs [overflow-wrap:anywhere]">
+                    {content}
+                  </span>
+                ) : (
+                  <span
+                    className="block text-xs [overflow-wrap:anywhere]"
+                    dangerouslySetInnerHTML={{
+                      __html: linkifyMessage(content),
+                    }}
+                  />
+                )}
+              </div>
                 <span className="flex items-center gap-1 justify-end ml-3 mt-0.5 float-right">
                 <span
                   className={`text-[10px] ${
@@ -650,8 +656,9 @@ const DirectChatPage = () => {
   const {
     profile: partnerProfile,
     isDeleted: isPartnerDeleted,
-    loading: partnerLoading,
+    loading: isProfileLoading,
   } = useUserProfile(partnerUuid);
+  const partnerLoading = isProfileLoading;
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isUnblocking, setIsUnblocking] = useState(false);
@@ -756,15 +763,23 @@ const DirectChatPage = () => {
     sendTypingEvent,
     notifyMessagesSeen,
     lastSeenPartner,
-  } = useDirectChat(currentUserUuid, partnerUuid);
+  } = useDirectChat(
+    currentUserUuid,
+    partnerUuid,
+    user?.id,
+    partnerProfile?.clerk_id,
+  );
 
-  // Memoize sharedSecret
+  // Memoize sharedSecret using Clerk IDs for parity with mobile
   const sharedSecret = useMemo(() => {
-    if (!currentUserUuid || !partnerUuid) return "";
-    return currentUserUuid < partnerUuid
-      ? `${currentUserUuid}:${partnerUuid}`
-      : `${partnerUuid}:${currentUserUuid}`;
-  }, [currentUserUuid, partnerUuid]);
+    // We prioritize using Clerk IDs because that's what the mobile app uses
+    const myId = user?.id || currentUserUuid;
+    const theirId = partnerProfile?.clerk_id || partnerUuid;
+
+    if (!myId || !theirId) return "";
+
+    return myId < theirId ? `${myId}:${theirId}` : `${theirId}:${myId}`;
+  }, [user?.id, currentUserUuid, partnerProfile?.clerk_id, partnerUuid]);
 
   // Use the inbox hook to get markConversationRead
   const { markConversationRead } = useDirectInbox(currentUserUuid, partnerUuid);

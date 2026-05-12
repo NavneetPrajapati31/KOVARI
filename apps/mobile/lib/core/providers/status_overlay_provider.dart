@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -46,7 +47,6 @@ enum StatusType {
 }
 
 class StatusMessage {
-
   StatusMessage({
     required this.message,
     this.type = StatusType.info,
@@ -110,6 +110,7 @@ class StatusOverlayNotifier extends Notifier<List<StatusMessage>> {
       show(message: message, type: StatusType.success);
   void error(String message) => show(message: message, type: StatusType.error);
   void info(String message) => show(message: message);
+  void hideAll() => state = [];
 }
 
 final statusOverlayProvider =

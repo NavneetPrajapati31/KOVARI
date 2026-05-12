@@ -3,6 +3,7 @@ class KovariUser {
   KovariUser({
     required this.id,
     required this.email,
+    this.uuid,
     this.name,
     this.banned = false,
     this.banReason,
@@ -11,6 +12,7 @@ class KovariUser {
 
   factory KovariUser.fromAuthResponse(Map<String, dynamic> json) => KovariUser(
       id: json['id'] as String,
+      uuid: json['uuid'] as String?,
       email: json['email'] as String,
       name: json['name'] as String?,
       banned: json['banned'] as bool? ?? false,
@@ -20,6 +22,7 @@ class KovariUser {
 
   factory KovariUser.fromJson(Map<String, dynamic> json) => KovariUser(
       id: json['id'] as String,
+      uuid: json['uuid'] as String?,
       email: json['email'] as String,
       name: json['name'] as String?,
       banned: json['banned'] as bool? ?? false,
@@ -27,6 +30,7 @@ class KovariUser {
       banExpiresAt: (json['banExpiresAt'] ?? json['ban_expires_at']) as String?,
     );
   final String id;
+  final String? uuid;
   final String email;
   final String? name;
   final bool banned;
@@ -35,6 +39,7 @@ class KovariUser {
 
   Map<String, dynamic> toJson() => {
       'id': id,
+      'uuid': uuid,
       'email': email,
       'name': name,
       'banned': banned,

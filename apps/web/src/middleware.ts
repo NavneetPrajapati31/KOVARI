@@ -89,6 +89,13 @@ async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
 }
 
 const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
+  const pathname = req.nextUrl.pathname;
+  if (pathname.startsWith("/api/direct-chat")) {
+    const { userId } = await auth();
+    const authHeader = req.headers.get("authorization") || "";
+    console.log(`🛡️ [Middleware] DirectChat Auth Check | Path: ${pathname} | UserId: ${userId} | Token: ${authHeader.substring(0, 30)}...`);
+  }
+
   const url = req.nextUrl.clone();
   const host = req.headers.get("host");
 
@@ -282,7 +289,8 @@ export default async function middleware(req: NextRequest, evt: any) {
   }
 
   // 2. Intercept Other Mobile JWTs (Avoid Clerk middleware crash on non-Clerk tokens)
-  if (isMobileToken) {
+  // BUT: We MUST allow direct-chat routes to pass through Clerk so auth() works
+  if (isMobileToken && !pathname.startsWith("/api/direct-chat")) {
     // Directly proceed to the route handler, skipping Clerk and preserving all headers
     return NextResponse.next();
   }

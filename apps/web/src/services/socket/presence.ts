@@ -1,4 +1,5 @@
 import { pubClient } from "./redis";
+import { memorySets, memoryKV } from "./memoryStore";
 
 /**
  * Enhanced presence tracker with Redis integration for cross-node tracking.
@@ -13,7 +14,11 @@ export class PresenceManager {
     if (!userId) return;
     try {
       const key = `user_socket:${userId}`;
-      await pubClient.sAdd(key, socketId);
+      if (pubClient.isOpen) {
+        await pubClient.sAdd(key, socketId);
+      } else {
+        await memorySets.sAdd(key, socketId);
+      }
     } catch (err) {
       console.error("[Presence] Error syncing user connection:", err);
     }
@@ -26,7 +31,11 @@ export class PresenceManager {
       if (!userId || !chatId) return;
       try {
           const chatsKey = `user_chats:${userId}`;
-          await pubClient.sAdd(chatsKey, chatId);
+          if (pubClient.isOpen) {
+            await pubClient.sAdd(chatsKey, chatId);
+          } else {
+            await memorySets.sAdd(chatsKey, chatId);
+          }
           
           // Emit strictly to this chat indicating the user is present in it
           emitOnlineToChat(chatId, userId);
@@ -40,7 +49,11 @@ export class PresenceManager {
       if (!userId || !chatId) return;
       try {
           const chatsKey = `user_chats:${userId}`;
-          await pubClient.sRem(chatsKey, chatId);
+          if (pubClient.isOpen) {
+            await pubClient.sRem(chatsKey, chatId);
+          } else {
+            await memorySets.sRem(chatsKey, chatId);
+          }
       } catch (err) {}
   }
 
@@ -51,21 +64,44 @@ export class PresenceManager {
     if (!userId) return;
     try {
       const socketKey = `user_socket:${userId}`;
-      await pubClient.sRem(socketKey, socketId);
+      let count: number;
       
-      const count = await pubClient.sCard(socketKey);
+      if (pubClient.isOpen) {
+        await pubClient.sRem(socketKey, socketId);
+        count = await pubClient.sCard(socketKey);
+      } else {
+        await memorySets.sRem(socketKey, socketId);
+        count = await memorySets.sCard(socketKey);
+      }
       
       // If count hits exactly 0, trigger grace delay before flushing state globally
       if (count === 0) {
         setTimeout(async () => {
-             const newCount = await pubClient.sCard(socketKey);
+             let newCount: number;
+             if (pubClient.isOpen) {
+               newCount = await pubClient.sCard(socketKey);
+             } else {
+               newCount = await memorySets.sCard(socketKey);
+             }
+
              if (newCount === 0) {
-                 // They are truly offline across all browser tabs and mobile apps.
-                 const chatsKey = `user_chats:${userId}`;
-                 const activeChats = await pubClient.sMembers(chatsKey);
-                                  // Write lastSeen BEFORE emitting so clients can fetch it immediately
+                  // They are truly offline across all browser tabs and mobile apps.
+                  const chatsKey = `user_chats:${userId}`;
+                  let activeChats: string[];
+                  
+                  if (pubClient.isOpen) {
+                    activeChats = await pubClient.sMembers(chatsKey);
+                  } else {
+                    activeChats = await memorySets.sMembers(chatsKey);
+                  }
+
+                  // Write lastSeen BEFORE emitting so clients can fetch it immediately
                   const nowISO = new Date().toISOString();
-                  await pubClient.set(`chat:lastSeen:${userId}`, nowISO);
+                  if (pubClient.isOpen) {
+                    await pubClient.set(`chat:lastSeen:${userId}`, nowISO);
+                  } else {
+                    await memoryKV.set(`chat:lastSeen:${userId}`, nowISO);
+                  }
 
                   // Clean up presence
                   for (const chatId of activeChats) {
@@ -73,7 +109,11 @@ export class PresenceManager {
                   }
                   
                   // Clear their active chats index
-                  await pubClient.del(chatsKey);
+                  if (pubClient.isOpen) {
+                    await pubClient.del(chatsKey);
+                  } else {
+                    await memorySets.del(chatsKey);
+                  }
              }
         }, 1500); // 1.5 second debounced grace period
       }
@@ -86,18 +126,34 @@ export class PresenceManager {
   static async getLastSeen(userId: string): Promise<string | null> {
      try {
        const userSocketsKey = `user_socket:${userId}`;
-       const count = await pubClient.sCard(userSocketsKey);
+       let count: number;
+       
+       if (pubClient.isOpen) {
+         count = await pubClient.sCard(userSocketsKey);
+       } else {
+         count = await memorySets.sCard(userSocketsKey);
+       }
+
        if (count && count > 0) return "online"; // currently online
 
-       const lastSeen = await pubClient.get(`chat:lastSeen:${userId}`);
-       return lastSeen || null;
+       if (pubClient.isOpen) {
+         return await pubClient.get(`chat:lastSeen:${userId}`);
+       } else {
+         return await memoryKV.get(`chat:lastSeen:${userId}`);
+       }
      } catch (e) {
        console.error(`[PresenceManager] Error fetching last seen: ${e}`);
        return null;
      }
   }
+
   // Flush all stale socket presence data — call once on server startup
   static async flushStalePresence() {
+    // Skip if Redis isn't connected (in-memory / offline dev mode)
+    if (!pubClient.isOpen) {
+      console.log("[Presence] Skipping stale flush — Redis not connected.");
+      return;
+    }
     try {
       const keys = await pubClient.keys("user_socket:*");
       if (keys.length > 0) {
@@ -113,4 +169,3 @@ export class PresenceManager {
     }
   }
 }
-

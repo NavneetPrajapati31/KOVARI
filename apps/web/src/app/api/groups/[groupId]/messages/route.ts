@@ -13,7 +13,10 @@ export async function GET(
     }
 
     const { groupId } = await params;
-    // REMOVE: limit/offset logic
+    const searchParams = req.nextUrl.searchParams;
+    const cursor = searchParams.get("cursor"); // created_at ISO timestamp
+    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+
     const supabase = createAdminSupabaseClient();
 
     // Get user's internal ID
@@ -63,8 +66,8 @@ export async function GET(
       }
     }
 
-    // Fetch messages with sender information
-    const { data: messages, error: messagesError } = await supabase
+    // Fetch messages with sender information using cursor-based pagination
+    let query = supabase
       .from("group_messages")
       .select(
         `
@@ -89,7 +92,14 @@ export async function GET(
       `,
       )
       .eq("group_id", groupId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (cursor) {
+      query = query.lt("created_at", cursor);
+    }
+
+    const { data: messages, error: messagesError } = await query;
 
     if (messagesError) {
       console.error("Error fetching messages:", messagesError);
@@ -99,9 +109,12 @@ export async function GET(
       );
     }
 
+    // Reverse messages to maintain chronological order in the response
+    const sortedMessages = [...(messages || [])].reverse();
+
     // Transform messages to include sender info and format timestamps
     const formattedMessages =
-      messages?.map((message: any) => {
+      sortedMessages?.map((message: any) => {
         const profile = message.users?.profiles;
         const isDeleted = profile?.deleted === true;
 

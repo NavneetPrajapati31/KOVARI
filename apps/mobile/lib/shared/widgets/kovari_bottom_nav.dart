@@ -13,7 +13,6 @@ import 'package:mobile/shared/utils/url_utils.dart';
 import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 class KovariBottomNav extends ConsumerWidget {
-
   const KovariBottomNav({
     super.key,
     required this.currentIndex,
@@ -28,7 +27,7 @@ class KovariBottomNav extends ConsumerWidget {
       profileProvider.select((p) => UrlUtils.getFullImageUrl(p?.profileImage)),
     );
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // SMART VISIBILITY: Notify provider if this nav bar is currently active/visible on screen.
     // This handles the case where a root route covers the shell without disposing it.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -157,21 +156,15 @@ class KovariBottomNav extends ConsumerWidget {
     var svgString = '';
     switch (iconType) {
       case 'home':
-        svgString = KovariIcons.getHome(
-          isFilled: isSelected,
-        );
+        svgString = KovariIcons.getHome(isFilled: isSelected);
       case 'search':
         svgString = KovariIcons.getSearch(
           strokeWidth: isSelected ? 3.5 : 2.5, // Even bolder selected stroke
         );
       case 'send':
-        svgString = KovariIcons.getSend(
-          isFilled: isSelected,
-        );
+        svgString = KovariIcons.getSend(isFilled: isSelected);
       case 'users':
-        svgString = KovariIcons.getUsers(
-          isFilled: isSelected,
-        );
+        svgString = KovariIcons.getUsers(isFilled: isSelected);
     }
 
     return Expanded(

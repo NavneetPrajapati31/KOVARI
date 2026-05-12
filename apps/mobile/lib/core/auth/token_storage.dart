@@ -7,6 +7,7 @@ class TokenStorage {
   static const _accessTokenKey = 'kovari_access_token';
   static const _refreshTokenKey = 'kovari_refresh_token';
   static const _expiryKey = 'kovari_token_expiry';
+  static const _deviceIdKey = 'kovari_device_id';
   static const _userKey = 'kovari_user_data';
 
   // Constants for request classification
@@ -106,4 +107,10 @@ class TokenStorage {
   }
 
   Future<String?> getUserData() async => _storage.read(key: _userKey);
+
+  Future<void> saveDeviceId(String deviceId) async {
+    await _storage.write(key: _deviceIdKey, value: deviceId);
+  }
+
+  Future<String?> getDeviceId() async => _storage.read(key: _deviceIdKey);
 }

@@ -61,7 +61,10 @@ class UserProfile {
       foodPreference:
           (json['foodPreference'] as String?) ?? (json['food_preference'] as String?) ?? '',
       birthday: json['birthday'] as String?,
-      userId: (json['id'] as String?) ?? (json['user_id'] as String?) ?? '',
+      userId: (json['userId'] as String?) ??
+          (json['id'] as String?) ??
+          (json['user_id'] as String?) ??
+          '',
       email: (json['email'] as String?) ?? '',
       isVerified: (json['verified'] as bool?) ?? (json['is_verified'] as bool?) ?? false,
       createdAt: (json['created_at'] as String?) ?? '',

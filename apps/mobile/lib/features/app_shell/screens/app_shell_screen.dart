@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/providers/connectivity_provider.dart';
 import 'package:mobile/core/providers/profile_provider.dart';
 import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/features/chat/providers/chat_runtime_providers.dart';
 import 'package:mobile/features/home/providers/home_provider.dart';
 import 'package:mobile/shared/widgets/kovari_bottom_nav.dart';
 
 class AppShellScreen extends ConsumerStatefulWidget {
-
   const AppShellScreen({super.key, required this.navigationShell});
   final StatefulNavigationShell navigationShell;
 
@@ -30,24 +30,33 @@ class _AppShellScreenState extends ConsumerState<AppShellScreen> {
       }
     });
 
+    final activeChatId = ref.watch(activeConversationProvider);
+
+    // 🛡️ Location-Aware Visibility: Always show on root branches
+    // This prevents the "vanishing nav bar" bug if a sub-screen fails to reset activeChatId.
+    final bool isRootBranch = widget.navigationShell.currentIndex >= 0;
+    final bool showBottomNav = activeChatId == null || isRootBranch;
+
     return Scaffold(
       body: Stack(
         children: [
           Positioned.fill(child: widget.navigationShell),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: KovariBottomNav(
-              currentIndex: widget.navigationShell.currentIndex,
-              onTap: (index) {
-                widget.navigationShell.goBranch(
-                  index,
-                  initialLocation: index == widget.navigationShell.currentIndex,
-                );
-              },
+          if (showBottomNav)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: KovariBottomNav(
+                currentIndex: widget.navigationShell.currentIndex,
+                onTap: (index) {
+                  widget.navigationShell.goBranch(
+                    index,
+                    initialLocation:
+                        index == widget.navigationShell.currentIndex,
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );

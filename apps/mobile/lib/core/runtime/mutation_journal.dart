@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-enum MutationStatus { pending, success, failure }
+enum MutationStatus { pending, sending, success, failure }
 
 class MutationEntry<T> {
 

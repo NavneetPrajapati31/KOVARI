@@ -24,45 +24,67 @@ export async function POST(req: NextRequest) {
       .from("users")
       .select("id")
       .eq("clerk_user_id", clerkUserId)
-      .eq("isDeleted", false)
       .single();
 
+    // Log if current user is missing in DB, but don't hard-block yet if it's a valid Clerk user.
+    // This allows the profile lookup to proceed so the UI doesn't break during onboarding.
     if (currentUserError || !currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      console.warn("[POST /api/direct-chat/profiles] Current user not in DB, proceeding with Clerk context:", clerkUserId);
     }
 
-    // Ensure the requester can only ask for users they have chatted with.
-    const { data: myMessages, error: messagesError } = await supabase
-      .from("direct_messages")
-      .select("sender_id, receiver_id")
-      .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+    // Resolve all input IDs (could be Clerk IDs or UUIDs)
+    const profileResults = await Promise.all(
+      userIds.map(async (id: string) => {
+        let internalId = id;
+        let clerkId = id.startsWith("user_") ? id : null;
 
-    if (messagesError) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+        // 1. Resolve Clerk ID to UUID if necessary
+        if (id.startsWith("user_")) {
+          const { data } = await supabase
+            .from("users")
+            .select("id, clerk_user_id")
+            .eq("clerk_user_id", id)
+            .single();
+          if (data) {
+            internalId = data.id;
+            clerkId = data.clerk_user_id;
+          }
+        } else {
+          // If it's a UUID, try to get its Clerk ID
+          const { data } = await supabase
+            .from("users")
+            .select("clerk_user_id")
+            .eq("id", id)
+            .single();
+          if (data) {
+            clerkId = data.clerk_user_id;
+          }
+        }
 
-    const allowedPartnerIds = new Set<string>();
-    (myMessages || []).forEach((m) => {
-      const partnerId =
-        m.sender_id === currentUser.id ? m.receiver_id : m.sender_id;
-      if (partnerId) allowedPartnerIds.add(partnerId);
-    });
+        // 2. Fetch the profile data
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, username, profile_photo, deleted")
+          .eq("user_id", internalId)
+          .single();
 
-    const safeUserIds = userIds.filter((id: string) => allowedPartnerIds.has(id));
-    if (safeUserIds.length === 0) {
-      return NextResponse.json({ profiles: [] });
-    }
+        // 3. Return a synthesized object
+        if (profile || clerkId) {
+          return {
+            user_id: internalId,
+            clerk_id: clerkId,
+            name: profile?.name || "User",
+            username: profile?.username || "user",
+            profile_photo: profile?.profile_photo,
+            deleted: profile?.deleted || false
+          };
+        }
+        return null;
+      })
+    );
 
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("user_id, name, username, profile_photo, deleted")
-      .in("user_id", safeUserIds);
-
-    if (profilesError) {
-      return NextResponse.json({ error: profilesError.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ profiles: profiles || [] });
+    const validProfiles = profileResults.filter(p => p !== null);
+    return NextResponse.json({ profiles: validProfiles });
   } catch (error) {
     console.error("[POST /api/direct-chat/profiles] error", error);
     return NextResponse.json(

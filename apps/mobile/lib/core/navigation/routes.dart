@@ -8,6 +8,7 @@ import 'package:mobile/features/auth/screens/reset_password_screen.dart';
 import 'package:mobile/features/auth/screens/sign_up_screen.dart';
 import 'package:mobile/features/auth/screens/verify_email_screen.dart';
 import 'package:mobile/features/chat/screens/chat_inbox_screen.dart';
+import 'package:mobile/features/chat/screens/chat_screen.dart';
 import 'package:mobile/features/explore/screens/explore_screen.dart';
 import 'package:mobile/features/groups/screens/create_group_screen.dart';
 import 'package:mobile/features/groups/screens/group_details_screen.dart';
@@ -183,7 +184,6 @@ class ReportTargetSearchRouteData extends GoRouteData
 
 @TypedGoRoute<SubmitReportRouteData>(path: '/profile/reports/submit/:targetId')
 class SubmitReportRouteData extends GoRouteData with $SubmitReportRouteData {
-
   const SubmitReportRouteData({
     required this.targetType,
     required this.targetId,
