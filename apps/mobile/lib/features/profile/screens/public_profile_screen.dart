@@ -121,6 +121,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         partnerName: profile.name,
         partnerAvatar: avatar,
         partnerUserId: partnerId,
+        partnerClerkId: partnerId,
       ),
     );
 

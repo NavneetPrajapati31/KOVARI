@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/navigation/routes.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/realtime/realtime_coordinator.dart';
 import 'package:mobile/core/theme/app_colors.dart';
@@ -275,7 +276,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     child: _AvatarPod(
                       conversation: conversation,
                       onPressed: () {
-                        // Future: Partner Profile
+                        if (conversation?.isGroup == true) {
+                          // TODO: Navigate to group details
+                          return;
+                        }
+
+                        final clerkId = conversation?.partnerClerkId;
+                        final userId = conversation?.partnerUserId;
+
+                        final targetId = (clerkId != null && clerkId.isNotEmpty)
+                            ? clerkId
+                            : ((userId != null && userId.isNotEmpty) ? userId : null);
+
+                        AppLogger.d(
+                          '👤 [ChatScreen] Redirecting to profile. targetId: $targetId, partnerClerkId: ${conversation?.partnerClerkId}, partnerUserId: ${conversation?.partnerUserId}',
+                        );
+
+                        if (targetId != null && targetId.isNotEmpty) {
+                          PublicProfileRouteData(
+                            userId: targetId,
+                          ).push(context);
+                        } else {
+                          AppLogger.w(
+                            '⚠️ [ChatScreen] Cannot redirect: targetId is null or empty',
+                          );
+                        }
                       },
                     ),
                   ),
