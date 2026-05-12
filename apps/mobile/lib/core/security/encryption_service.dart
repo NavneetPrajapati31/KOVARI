@@ -8,9 +8,7 @@ class EncryptionService {
   factory EncryptionService() => _instance;
   EncryptionService._internal();
 
-  final _aes = AesCbc.with256bits(
-    macAlgorithm: MacAlgorithm.empty,
-  );
+  final _aes = AesCbc.with256bits(macAlgorithm: MacAlgorithm.empty);
 
   /// Derives a key from a password using PBKDF2 (Matches CryptoJS implementation)
   Future<SecretKey> _deriveKey(String password, List<int> salt) async {
@@ -19,17 +17,16 @@ class EncryptionService {
       iterations: 10000,
       bits: 256,
     );
-    return pbkdf2.deriveKeyFromPassword(
-      password: password,
-      nonce: salt,
-    );
+    return pbkdf2.deriveKeyFromPassword(password: password, nonce: salt);
   }
 
   /// Encrypts a message using AES-CBC (Matches apps/web utils/encryption.ts)
   Future<Map<String, String>> encryptMessage(String message, String key) async {
     try {
       final salt = SecretKeyData.random(length: 16).bytes;
-      print('🛡️ [EncryptionService] Encrypting with key: "$key", salt: "${hexEncode(salt)}"');
+      print(
+        '🛡️ [EncryptionService] Encrypting with key: "$key", salt: "${hexEncode(salt)}"',
+      );
       final derivedKey = await _deriveKey(key, salt);
       final iv = SecretKeyData.random(length: 16).bytes;
 
@@ -60,7 +57,9 @@ class EncryptionService {
     try {
       final saltBytes = hexDecode(salt);
       final ivBytes = hexDecode(iv);
-      print('🛡️ [EncryptionService] Decrypting with key: "$key", salt: "$salt"');
+      print(
+        '🛡️ [EncryptionService] Decrypting with key: "$key", salt: "$salt"',
+      );
       final derivedKey = await _deriveKey(key, saltBytes);
 
       final decrypted = await _aes.decrypt(

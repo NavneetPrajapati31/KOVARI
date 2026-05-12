@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/network/api_client.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/realtime/socket_service.dart';
+import 'package:mobile/core/runtime/mutation_journal.dart';
 import 'package:mobile/core/security/encryption_service.dart';
 import 'package:mobile/core/utils/app_logger.dart';
 import 'package:mobile/features/chat/models/message_entity.dart';
+import 'package:mobile/features/chat/providers/chat_mutation_service.dart';
 import 'package:mobile/features/chat/providers/conversation_store.dart';
 import 'package:mobile/features/chat/utils/direct_chat_id.dart';
 
@@ -128,22 +130,55 @@ class MessageStore extends Notifier<ConversationMessageState> {
         return;
       }
 
-      print(
-        '🧪 [MessageStore] My ClerkID: ${authUser.id} | My UUID: ${authUser.uuid}',
-      );
+      // Phase 2: Inject Pending Mutations from Journal
+      // This ensures that even after a hot restart, unsent messages reappear instantly.
+      final journal = ref.read(mutationJournalProvider);
+      final pendingMutations = journal.getPendingFor(_chatId);
+
+      if (pendingMutations.isNotEmpty) {
+        final pendingEntities = pendingMutations.map((e) {
+          SendMessagePayload payload;
+          if (e.payload is SendMessagePayload) {
+            payload = e.payload as SendMessagePayload;
+          } else {
+            payload = SendMessagePayload.fromJson(
+              Map<String, dynamic>.from(e.payload as Map),
+            );
+          }
+
+          return MessageEntity.optimistic(
+            clientMessageId: payload.clientMessageId,
+            chatId: payload.chatId,
+            senderId: payload.senderId,
+            text: payload.text,
+            mediaUrl: payload.mediaUrl,
+            mediaType: payload.mediaType,
+          ).copyWith(
+            createdAt: e.timestamp,
+            deliveryStatus: e.status == MutationStatus.failure
+                ? MessageDeliveryStatus.failed
+                : MessageDeliveryStatus.pending,
+          );
+        }).toList();
+
+        state = state.copyWith(
+          messages: {for (var m in pendingEntities) m.id: m},
+          orderedIds: pendingEntities.map((m) => m.id).toList(),
+        );
+      }
 
       // Resolve partnerId from chatId
       final partnerId = directChatPartnerId(
         _chatId,
         authUser.id,
-        myUserUuid: authUser.uuid,
+        myUserUuid: authUser.resolvedUuid,
       );
       if (partnerId == null) {
-        print('❌ [MessageStore] FAILED: partnerId is NULL for $_chatId');
+        AppLogger.e('❌ [MessageStore] FAILED: partnerId is NULL for $_chatId');
         state = state.copyWith(isHydrating: false);
         return;
       }
-      print('🧪 [MessageStore] Resolved Partner: $partnerId');
+
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get<Map<String, dynamic>>(
         'direct-chat/messages',
@@ -153,9 +188,6 @@ class MessageStore extends Notifier<ConversationMessageState> {
       );
 
       final rawMessages = response.data?['messages'] as List<dynamic>? ?? [];
-      print(
-        '🧪 [MessageStore] API Success. Raw messages: ${rawMessages.length}',
-      );
       final List<MessageEntity> entities = [];
 
       for (final json in rawMessages) {
@@ -269,6 +301,11 @@ class MessageStore extends Notifier<ConversationMessageState> {
       messages: updated,
       orderedIds: _buildOrderedIds(updated),
     );
+
+    // 💎 Instagram-Pro: Update inbox snippet IMMEDIATELY for instant feedback
+    ref
+        .read(conversationStoreProvider.notifier)
+        .updateLastMessage(_chatId, optimistic);
   }
 
   /// Reconcile optimistic → authoritative. Prevents duplicate renders.
@@ -309,6 +346,11 @@ class MessageStore extends Notifier<ConversationMessageState> {
           ? conversationSequence
           : state.highestKnownSequence,
     );
+
+    // 💎 Instagram-Pro: Update inbox with authoritative CSN/ID but keep clear text
+    ref
+        .read(conversationStoreProvider.notifier)
+        .updateLastMessage(_chatId, authoritative);
 
     AppLogger.d(
       '[MessageStore] Reconciled $clientMessageId → $serverMessageId (CSN: $conversationSequence)',
@@ -456,42 +498,55 @@ class MessageStore extends Notifier<ConversationMessageState> {
       final partnerId = directChatPartnerId(
         _chatId,
         myUserId,
-        myUserUuid: user?.uuid,
+        myUserUuid: user?.resolvedUuid,
       );
       if (partnerId == null) return null;
 
       final conversation = ref.read(conversationProvider(_chatId));
 
-      // Prioritize IDs from the message itself (real-time sync)
-      // then from the conversation store, then finally fall back to UUIDs
-      final myClerkId = (entity.senderId == myUserId)
-          ? entity.senderClerkId
-          : entity.receiverClerkId;
-      final partnerClerkIdFromMsg = (entity.senderId == myUserId)
-          ? entity.receiverClerkId
-          : entity.senderClerkId;
-
-      final myEffectiveId = myClerkId ?? myUserId;
-      final partnerClerkId =
-          partnerClerkIdFromMsg ?? conversation?.partnerClerkId ?? partnerId;
-
-      final sharedSecret = myEffectiveId.compareTo(partnerClerkId) < 0
-          ? '$myEffectiveId:$partnerClerkId'
-          : '$partnerClerkId:$myEffectiveId';
+      // Identity Strategy: UUID:UUID for cross-platform parity with Web
+      // Since direct chatIds are already sorted(UUID1_UUID2), we just replace '_' with ':'
+      final sharedSecret = _chatId.replaceAll('_', ':');
 
       try {
-        final decryptedText = await EncryptionService().decryptMessage(
+        var decryptedText = await EncryptionService().decryptMessage(
           encryptedContent: entity.encryptedContent!,
           iv: entity.encryptionIv!,
           salt: entity.encryptionSalt!,
           key: sharedSecret,
         );
-        return entity.copyWith(text: decryptedText);
+
+        // Fallback Strategy: Try Clerk IDs if UUID decryption fails (for legacy messages)
+        if (decryptedText == '[Failed to decrypt]') {
+          final conversation = ref.read(conversationProvider(_chatId));
+          final myClerkId = user?.id ?? myUserId;
+          final partnerClerkId = conversation?.partnerClerkId;
+
+          if (partnerClerkId != null) {
+            final ids = [myClerkId, partnerClerkId]..sort();
+            final legacySecret = '${ids[0]}:${ids[1]}';
+            if (legacySecret != sharedSecret) {
+              AppLogger.d(
+                '🛡️ [MessageStore] Attempting legacy fallback decryption...',
+              );
+              final fallbackResult = await EncryptionService().decryptMessage(
+                encryptedContent: entity.encryptedContent!,
+                iv: entity.encryptionIv!,
+                salt: entity.encryptionSalt!,
+                key: legacySecret,
+              );
+              if (fallbackResult != '[Failed to decrypt]') {
+                decryptedText = fallbackResult;
+              }
+            }
+          }
+        }
+
+        if (decryptedText != '[Failed to decrypt]') {
+          return entity.copyWith(text: decryptedText, isEncrypted: false);
+        }
       } catch (e) {
-        AppLogger.e(
-          '[MessageStore] Decryption failed for ${entity.id}',
-          error: e,
-        );
+        AppLogger.e('[MessageStore] Decryption pipeline failed', error: e);
       }
     }
     return null;

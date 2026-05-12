@@ -49,6 +49,39 @@ class SendMessagePayload {
   final String? mediaUrl;
   final String? mediaType;
 
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'chatId': chatId,
+    'clientMessageId': clientMessageId,
+    'senderId': senderId,
+    'text': text,
+    'encryptedContent': encryptedContent,
+    'iv': encryptionIv,
+    'salt': encryptionSalt,
+    'isEncrypted': isEncrypted,
+    'receiverId': receiverId,
+    'senderClerkId': senderClerkId,
+    'receiverClerkId': receiverClerkId,
+    'mediaUrl': mediaUrl,
+    'mediaType': mediaType,
+  };
+
+  factory SendMessagePayload.fromJson(Map<String, dynamic> json) =>
+      SendMessagePayload(
+        chatId: json['chatId'] as String,
+        clientMessageId: json['clientMessageId'] as String,
+        senderId: json['senderId'] as String,
+        text: json['text'] as String?,
+        encryptedContent: json['encryptedContent'] as String?,
+        encryptionIv: json['iv'] as String?,
+        encryptionSalt: json['salt'] as String?,
+        isEncrypted: json['isEncrypted'] as bool? ?? false,
+        receiverId: json['receiverId'] as String?,
+        senderClerkId: json['senderClerkId'] as String?,
+        receiverClerkId: json['receiverClerkId'] as String?,
+        mediaUrl: json['mediaUrl'] as String?,
+        mediaType: json['mediaType'] as String?,
+      );
+
   Map<String, dynamic> toSocketPayload() => <String, dynamic>{
     'tempId': clientMessageId,
     'text': text,
@@ -88,11 +121,14 @@ class ChatMutationService {
     required String senderId,
     String? text,
     String? receiverId,
+    String? senderClerkId,
+    String? receiverClerkId,
     String? mediaUrl,
     String? mediaType,
   }) {
     final clientMessageId = _uuid.v4();
 
+    AppLogger.d('🚀 [ChatMutationService] sendMessage for chatId: $chatId');
     // Step 1: Immediate Optimistic Insert (instant UI)
     final optimistic = MessageEntity.optimistic(
       clientMessageId: clientMessageId,
@@ -102,7 +138,12 @@ class ChatMutationService {
       mediaUrl: mediaUrl,
       mediaType: mediaType,
     );
-    _ref.read(messageStoreProvider(chatId).notifier).addOptimistic(optimistic);
+
+    final store = _ref.read(messageStoreProvider(chatId).notifier);
+    AppLogger.d(
+      '🚀 [ChatMutationService] Adding optimistic message: ${optimistic.id}',
+    );
+    store.addOptimistic(optimistic);
 
     // Step 2: Background Encryption & Emission
     _performSecureSend(
@@ -111,6 +152,8 @@ class ChatMutationService {
       senderId: senderId,
       text: text,
       receiverId: receiverId,
+      senderClerkId: senderClerkId,
+      receiverClerkId: receiverClerkId,
       mediaUrl: mediaUrl,
       mediaType: mediaType,
     );
@@ -124,6 +167,8 @@ class ChatMutationService {
     required String senderId,
     String? text,
     String? receiverId,
+    String? senderClerkId,
+    String? receiverClerkId,
     String? mediaUrl,
     String? mediaType,
   }) async {
@@ -131,8 +176,8 @@ class ChatMutationService {
     String? iv;
     String? salt;
     bool isEncrypted = false;
-    String? myClerkId = senderId;
-    String? partnerClerkId = receiverId;
+    String? myClerkId = senderClerkId ?? senderId;
+    String? partnerClerkId = receiverClerkId ?? receiverId;
 
     // Apply encryption for direct chats (Phase 2 security parity)
     if (text != null && text.isNotEmpty && receiverId != null) {
@@ -140,13 +185,9 @@ class ChatMutationService {
         final conversation = _ref.read(conversationProvider(chatId));
         final myUser = _ref.read(authProvider).user;
 
-        // Resolve Clerk IDs for both sender and receiver
-        myClerkId = myUser?.id ?? senderId;
-        partnerClerkId = conversation?.partnerClerkId ?? receiverId;
-
-        final sharedSecret = myClerkId.compareTo(partnerClerkId) < 0
-            ? '$myClerkId:$partnerClerkId'
-            : '$partnerClerkId:$myClerkId';
+        // Identity Strategy: UUID:UUID for cross-platform parity with Web
+        // Since direct chatIds are already sorted(UUID1_UUID2), we just replace '_' with ':'
+        final sharedSecret = chatId.replaceAll('_', ':');
 
         final result = await EncryptionService().encryptMessage(
           text,
@@ -230,7 +271,11 @@ class ChatMutationService {
               AppLogger.d(
                 '[ChatMutationService] Level-1 ACK for $clientMessageId',
               );
-              // Level-2 reconciliation happens in MessageStore via 'message_persisted'
+              // 💎 Instagram-Pro: Resolve journal IMMEDIATELY on Level-1 ACK
+              // This prevents ReplayEngine from triggering redundant re-sends.
+              _ref
+                  .read(mutationJournalProvider)
+                  .resolve(chatId, clientMessageId, MutationStatus.success);
             } else {
               AppLogger.e(
                 '[ChatMutationService] Send failed for $clientMessageId: $ack',
@@ -247,6 +292,14 @@ class ChatMutationService {
     final pending = journal.getPendingFor(chatId);
 
     for (final entry in pending) {
+      // 💎 Instagram-Pro: Skip if already in flight to prevent redundant re-sends
+      if (entry.status == MutationStatus.sending) {
+        AppLogger.d(
+          '[ChatMutationService] Skipping replay for $chatId/${entry.id}: already SENDING',
+        );
+        continue;
+      }
+
       if (entry.payload is SendMessagePayload) {
         final payload = entry.payload as SendMessagePayload;
         AppLogger.i('[ChatMutationService] Replaying: ${entry.id}');

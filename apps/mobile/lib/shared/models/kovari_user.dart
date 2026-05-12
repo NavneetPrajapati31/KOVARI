@@ -1,5 +1,4 @@
 class KovariUser {
-
   KovariUser({
     required this.id,
     required this.email,
@@ -11,24 +10,24 @@ class KovariUser {
   });
 
   factory KovariUser.fromAuthResponse(Map<String, dynamic> json) => KovariUser(
-      id: json['id'] as String,
-      uuid: json['uuid'] as String?,
-      email: json['email'] as String,
-      name: json['name'] as String?,
-      banned: json['banned'] as bool? ?? false,
-      banReason: (json['banReason'] ?? json['ban_reason']) as String?,
-      banExpiresAt: (json['banExpiresAt'] ?? json['ban_expires_at']) as String?,
-    );
+    id: json['id'] as String,
+    uuid: json['uuid'] as String?,
+    email: json['email'] as String,
+    name: json['name'] as String?,
+    banned: json['banned'] as bool? ?? false,
+    banReason: (json['banReason'] ?? json['ban_reason']) as String?,
+    banExpiresAt: (json['banExpiresAt'] ?? json['ban_expires_at']) as String?,
+  );
 
   factory KovariUser.fromJson(Map<String, dynamic> json) => KovariUser(
-      id: json['id'] as String,
-      uuid: json['uuid'] as String?,
-      email: json['email'] as String,
-      name: json['name'] as String?,
-      banned: json['banned'] as bool? ?? false,
-      banReason: (json['banReason'] ?? json['ban_reason']) as String?,
-      banExpiresAt: (json['banExpiresAt'] ?? json['ban_expires_at']) as String?,
-    );
+    id: json['id'] as String,
+    uuid: json['uuid'] as String?,
+    email: json['email'] as String,
+    name: json['name'] as String?,
+    banned: json['banned'] as bool? ?? false,
+    banReason: (json['banReason'] ?? json['ban_reason']) as String?,
+    banExpiresAt: (json['banExpiresAt'] ?? json['ban_expires_at']) as String?,
+  );
   final String id;
   final String? uuid;
   final String email;
@@ -37,13 +36,22 @@ class KovariUser {
   final String? banReason;
   final String? banExpiresAt;
 
+  /// Resolves the best UUID for encryption/identity.
+  /// Falls back to [id] if [uuid] is null and [id] is in UUID format.
+  String? get resolvedUuid {
+    if (uuid != null) return uuid;
+    // Simple heuristic: UUIDs are 36 chars and contain hyphens
+    if (id.length == 36 && id.contains('-')) return id;
+    return null;
+  }
+
   Map<String, dynamic> toJson() => {
-      'id': id,
-      'uuid': uuid,
-      'email': email,
-      'name': name,
-      'banned': banned,
-      'banReason': banReason,
-      'banExpiresAt': banExpiresAt,
-    };
+    'id': id,
+    'uuid': uuid,
+    'email': email,
+    'name': name,
+    'banned': banned,
+    'banReason': banReason,
+    'banExpiresAt': banExpiresAt,
+  };
 }

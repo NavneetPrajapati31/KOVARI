@@ -9,15 +9,15 @@ String? directChatPartnerId(String chatId, String myUserId, {String? myUserUuid}
   final parts = chatId.split('_');
   if (parts.length != 2) return null;
   
-  // Check against Clerk ID
-  if (parts[0] == myUserId) return parts[1];
-  if (parts[1] == myUserId) return parts[0];
-  
   // Check against Database UUID if provided
   if (myUserUuid != null) {
     if (parts[0] == myUserUuid) return parts[1];
     if (parts[1] == myUserUuid) return parts[0];
   }
+
+  // Check against Clerk ID (Legacy fallback)
+  if (parts[0] == myUserId) return parts[1];
+  if (parts[1] == myUserId) return parts[0];
   
   return null;
 }

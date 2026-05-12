@@ -770,16 +770,13 @@ const DirectChatPage = () => {
     partnerProfile?.clerk_id,
   );
 
-  // Memoize sharedSecret using Clerk IDs for parity with mobile
+  // Standardized sharedSecret using UUIDs for cross-platform parity
   const sharedSecret = useMemo(() => {
-    // We prioritize using Clerk IDs because that's what the mobile app uses
-    const myId = user?.id || currentUserUuid;
-    const theirId = partnerProfile?.clerk_id || partnerUuid;
-
-    if (!myId || !theirId) return "";
-
-    return myId < theirId ? `${myId}:${theirId}` : `${theirId}:${myId}`;
-  }, [user?.id, currentUserUuid, partnerProfile?.clerk_id, partnerUuid]);
+    if (!currentUserUuid || !partnerUuid) return "";
+    return currentUserUuid < partnerUuid 
+      ? `${currentUserUuid}:${partnerUuid}` 
+      : `${partnerUuid}:${currentUserUuid}`;
+  }, [currentUserUuid, partnerUuid]);
 
   // Use the inbox hook to get markConversationRead
   const { markConversationRead } = useDirectInbox(currentUserUuid, partnerUuid);

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/gestures.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +10,7 @@ import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/realtime/realtime_coordinator.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 import 'package:mobile/features/chat/models/conversation_entity.dart';
 import 'package:mobile/features/chat/models/message_entity.dart';
 import 'package:mobile/features/chat/providers/chat_mutation_service.dart';
@@ -17,6 +19,7 @@ import 'package:mobile/features/chat/providers/conversation_store.dart';
 import 'package:mobile/features/chat/providers/message_store.dart';
 import 'package:mobile/features/chat/utils/direct_chat_id.dart';
 import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Individual chat screen. Receives [chatId] and loads everything from
 /// [MessageStore] + [ConversationStore]. Wires the input bar to
@@ -72,6 +75,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final user = ref.read(authProvider).user;
     if (user == null) return;
 
+    final myUuid = user.resolvedUuid;
+    if (myUuid == null) {
+      AppLogger.w(
+        '🛡️ [ChatScreen] User UUID missing for ClerkID: ${user.id}. Triggering emergency sync...',
+      );
+      ref.read(authProvider.notifier).syncProfile();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Synchronizing identity... please try again in a moment.',
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final receiverId = directChatPartnerId(
+      _chatId,
+      user.id,
+      myUserUuid: myUuid,
+    );
+    if (receiverId == null) {
+      AppLogger.e(
+        '🛡️ [ChatScreen] Cannot send message: Could not resolve receiver from chatId',
+      );
+      return;
+    }
+
+    print('🚀 [ChatScreen] _sendMessage: "$text" | chatId: $_chatId');
     setState(() {
       _isSending = true;
       _isComposing = false;
@@ -80,16 +113,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     HapticFeedback.lightImpact();
     _inputController.clear();
 
-    final receiverId = directChatPartnerId(_chatId, user.id);
-
     // Asynchronously send the message (includes encryption)
+    final conversation = ref.read(conversationProvider(_chatId));
     ref
         .read(chatMutationServiceProvider)
         .sendMessage(
           chatId: _chatId,
-          senderId: user.id,
+          senderId: myUuid,
           text: text,
           receiverId: receiverId,
+          senderClerkId: user.id,
+          receiverClerkId: conversation?.partnerClerkId,
         );
 
     // Release the lock after a small delay to prevent rapid-fire clicks
@@ -139,98 +173,113 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor(context),
-      body: Column(
+      resizeToAvoidBottomInset: true,
+      body: Stack(
         children: [
-          _ChatAppBar(conversation: conversation, chatId: _chatId),
-          Expanded(
-            child: Stack(
-              children: [
-                // Layer 1: Messages (Full Height)
-                (msgState.messages.isEmpty && msgState.isHydrating)
-                    ? const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : (msgState.messages.isEmpty && !msgState.isHydrating)
-                    ? _EmptyState(isDark: isDark)
-                    : _MessageList(
-                        messages: msgState.hotMessages,
-                        currentUserId: currentUserId,
-                        scrollController: _scrollController,
-                        isDark: isDark,
-                      ),
-
-                // Layer 2: Content Mask Gradient (Absolute Sync with KovariBottomNav)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 100, // Synchronized height
-                  child: IgnorePointer(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: const [
-                            0.0,
-                            0.2,
-                            0.5,
-                            0.8,
-                            1.0,
-                          ], // Cubic-style stops
-                          colors: [
-                            Colors.transparent,
-                            AppColors.backgroundColor(
-                              context,
-                            ).withValues(alpha: isDark ? 0.1 : 0.05),
-                            AppColors.backgroundColor(
-                              context,
-                            ).withValues(alpha: isDark ? 0.4 : 0.3),
-                            AppColors.backgroundColor(
-                              context,
-                            ).withValues(alpha: isDark ? 0.8 : 0.8),
-                            AppColors.backgroundColor(
-                              context,
-                            ).withValues(alpha: isDark ? 0.9 : 1.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+          // Layer 1: Messages (Full Height)
+          (msgState.messages.isEmpty && msgState.isHydrating)
+              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+              : (msgState.messages.isEmpty && !msgState.isHydrating)
+              ? _EmptyState(isDark: isDark)
+              : _MessageList(
+                  messages: msgState.hotMessages,
+                  currentUserId: currentUserId,
+                  scrollController: _scrollController,
+                  isDark: isDark,
                 ),
 
-                // Layer 3: Floating UI (Bottom Aligned)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (conversation != null)
-                        _TypingIndicator(conversation: conversation),
-                      _InputBar(
-                        controller: _inputController,
-                        focusNode: _focusNode,
-                        isComposing: _isComposing,
-                        isSending: _isSending,
-                        onChanged: (val) {
-                          final composing = val.trim().isNotEmpty;
-                          if (composing != _isComposing) {
-                            setState(() => _isComposing = composing);
-                            if (composing) {
-                              ref
-                                  .read(realtimeCoordinatorProvider.notifier)
-                                  .startTyping(_chatId);
-                            } else {
-                              ref
-                                  .read(realtimeCoordinatorProvider.notifier)
-                                  .stopTyping(_chatId);
-                            }
-                          }
-                        },
-                        onSend: _sendMessage,
-                      ),
+          // Layer 2: Bottom Content Mask Gradient (Absolute Sync with KovariBottomNav)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 100,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
+                    colors: [
+                      Colors.transparent,
+                      AppColors.backgroundColor(
+                        context,
+                      ).withValues(alpha: isDark ? 0.1 : 0.05),
+                      AppColors.backgroundColor(
+                        context,
+                      ).withValues(alpha: isDark ? 0.4 : 0.3),
+                      AppColors.backgroundColor(
+                        context,
+                      ).withValues(alpha: isDark ? 0.8 : 0.8),
+                      AppColors.backgroundColor(
+                        context,
+                      ).withValues(alpha: isDark ? 0.9 : 1.0),
                     ],
                   ),
+                ),
+              ),
+            ),
+          ),
+
+          // Layer 3: Floating Triple-Pod Header
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 12,
+            right: 12,
+            child: Row(
+              children: [
+                _ActionPod(
+                  icon: LucideIcons.chevronLeft,
+                  onPressed: () => Navigator.of(context).pop(),
+                  backgroundColor: AppColors.cardColor(
+                    context,
+                  ).withValues(alpha: 0.5),
+                  iconColor: AppColors.text(context, isMuted: true),
+                  iconSize: 20,
+                ),
+                const Spacer(),
+                _ChatAppBar(conversation: conversation, chatId: _chatId),
+                const Spacer(),
+                _AvatarPod(
+                  conversation: conversation,
+                  onPressed: () {
+                    // Future: Partner Profile
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Layer 3: Floating UI (Bottom Aligned)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (conversation != null)
+                  _TypingIndicator(conversation: conversation),
+                _InputBar(
+                  controller: _inputController,
+                  focusNode: _focusNode,
+                  isComposing: _isComposing,
+                  isSending: _isSending,
+                  onChanged: (val) {
+                    final composing = val.trim().isNotEmpty;
+                    if (composing != _isComposing) {
+                      setState(() => _isComposing = composing);
+                      if (composing) {
+                        ref
+                            .read(realtimeCoordinatorProvider.notifier)
+                            .startTyping(_chatId);
+                      } else {
+                        ref
+                            .read(realtimeCoordinatorProvider.notifier)
+                            .stopTyping(_chatId);
+                      }
+                    }
+                  },
+                  onSend: _sendMessage,
                 ),
               ],
             ),
@@ -252,94 +301,55 @@ class _ChatAppBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = AppColors.isDark(context);
-    final topPad = MediaQuery.of(context).padding.top;
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(8, topPad + 4, 12, 8),
-      decoration: BoxDecoration(
-        color: AppColors.cardColor(context),
-        border: Border(
-          bottom: BorderSide(color: AppColors.borderColor(context), width: 1),
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(
-              LucideIcons.chevronLeft,
-              color: AppColors.text(context),
-              size: 22,
-            ),
-            onPressed: () => Navigator.of(context).pop(),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.cardColor(context).withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.borderColor(context), width: 1),
           ),
-          // Avatar
-          Stack(
+          padding: const EdgeInsets.symmetric(horizontal: 38),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              KovariAvatar(
-                imageUrl: conversation?.displayAvatar,
-                fullName: conversation?.displayName ?? '?',
-                size: 38,
-              ),
-              if (conversation?.isPartnerOnline == true)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.surface(context),
-                        width: 2,
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    conversation?.displayName ?? '…',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      color: AppColors.text(context, isMuted: true),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
-                ),
+                  Text(
+                    conversation?.isPartnerOnline == true
+                        ? 'online'
+                        : _formatLastSeen(conversation?.partnerLastSeen),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: conversation?.isPartnerOnline == true
+                          ? AppColors.primary
+                          : AppColors.text(context, isMuted: true),
+                      fontSize: 11,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  conversation?.displayName ?? '…',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: AppColors.text(context),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  conversation?.isPartnerOnline == true
-                      ? 'online'
-                      : _formatLastSeen(conversation?.partnerLastSeen),
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: conversation?.isPartnerOnline == true
-                        ? AppColors.primary
-                        : AppColors.text(context, isMuted: true),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              LucideIcons.phone,
-              color: isDark
-                  ? AppColors.mutedForegroundDark
-                  : AppColors.mutedForeground,
-              size: 20,
-            ),
-            onPressed: () {}, // Phase 11: VoIP
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -352,6 +362,49 @@ class _ChatAppBar extends ConsumerWidget {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return DateFormat.jm().format(localLastSeen);
     return DateFormat.MMMd().format(localLastSeen);
+  }
+}
+
+class _AvatarPod extends StatelessWidget {
+  const _AvatarPod({required this.conversation, this.onPressed});
+
+  final ConversationEntity? conversation;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        if (onPressed != null) {
+          HapticFeedback.lightImpact();
+          onPressed!();
+        }
+      },
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.cardColor(context).withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.borderColor(context),
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: KovariAvatar(
+                imageUrl: conversation?.displayAvatar,
+                fullName: conversation?.displayName ?? '?',
+                size: 34,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -373,6 +426,7 @@ class _MessageList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final topPad = MediaQuery.of(context).padding.top;
 
     // Production-Grade Robustness: Explicit Temporal Sorting
     // Regardless of how the provider or optimistic UI inserts messages,
@@ -383,10 +437,11 @@ class _MessageList extends StatelessWidget {
     return ListView.builder(
       controller: scrollController,
       reverse: true, // index 0 is bottom (newest).
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
-      padding: EdgeInsets.fromLTRB(12, 8, 12, 64 + bottomPad),
+      padding: EdgeInsets.fromLTRB(12, 80 + topPad, 12, 64 + bottomPad),
       itemCount: displayMessages.length,
       itemBuilder: (context, index) {
         final msg = displayMessages[index];
@@ -473,13 +528,14 @@ class _MessageBubble extends StatelessWidget {
               if (message.text != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(
-                    message.text!,
+                  child: _LinkifiedText(
+                    text: message.text!,
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: textColor,
                       fontSize: 13,
                       height: 1.4,
                     ),
+                    linkColor: isMe ? Colors.white : AppColors.primary,
                   ),
                 )
               else
@@ -711,7 +767,9 @@ class _InputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = AppColors.isDark(context);
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    const pillBg = Colors.transparent; // Absolute match with bottom nav surface
+    final pillBg = AppColors.cardColor(
+      context,
+    ).withValues(alpha: 0.5); // Absolute match with bottom nav surface
 
     return Container(
       padding: EdgeInsets.fromLTRB(12, 6, 12, 10 + bottomPad),
@@ -728,69 +786,61 @@ class _InputBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
 
-          // Central Message Pill
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 40),
-                  decoration: BoxDecoration(
-                    color: pillBg,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.borderColor(context),
-                      width: 1,
+            child: GestureDetector(
+              onTap: () => focusNode.requestFocus(),
+              behavior: HitTestBehavior.opaque,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 40),
+                    decoration: BoxDecoration(
+                      color: pillBg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.borderColor(context),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          maxLines: 4,
-                          minLines: 1,
-                          textCapitalization: TextCapitalization.sentences,
-                          keyboardType: TextInputType.multiline,
-                          onChanged: onChanged,
-                          cursorColor: AppColors.primary,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.text(context),
-                            fontSize: 14,
-                          ),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            filled: true,
-                            fillColor: Colors.transparent,
-                            hintText: 'Message',
-                            hintStyle: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.text(context, isMuted: true),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            maxLines: 4,
+                            minLines: 1,
+                            textAlignVertical: TextAlignVertical.center,
+                            textCapitalization: TextCapitalization.sentences,
+                            keyboardType: TextInputType.multiline,
+                            onChanged: onChanged,
+                            cursorColor: AppColors.primary,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.text(context),
                               fontSize: 14,
                             ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 6,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              hintText: 'Message',
+                              hintStyle: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.text(context, isMuted: true),
+                                fontSize: 12,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
                             ),
                           ),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: () {},
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: Icon(
-                            LucideIcons.smile,
-                            color: AppColors.text(context, isMuted: true),
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -817,12 +867,14 @@ class _ActionPod extends StatelessWidget {
     this.onPressed,
     required this.backgroundColor,
     this.iconColor,
+    this.iconSize,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
   final Color backgroundColor;
   final Color? iconColor;
+  final double? iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -847,11 +899,13 @@ class _ActionPod extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: Icon(
-              icon,
-              color:
-                  iconColor ?? AppColors.text(context).withValues(alpha: 0.8),
-              size: 18,
+            child: Center(
+              child: Icon(
+                icon,
+                color:
+                    iconColor ?? AppColors.text(context).withValues(alpha: 0.8),
+                size: iconSize ?? 16,
+              ),
             ),
           ),
         ),
@@ -897,4 +951,76 @@ class _EmptyState extends StatelessWidget {
       ],
     ),
   );
+}
+// ── Linkified Text ──────────────────────────────────────────────────────────
+
+class _LinkifiedText extends StatelessWidget {
+  const _LinkifiedText({
+    required this.text,
+    required this.style,
+    required this.linkColor,
+  });
+
+  final String text;
+  final TextStyle style;
+  final Color linkColor;
+
+  static final RegExp _urlRegex = RegExp(
+    r'(?:(?:https?|ftp):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%.]+',
+    caseSensitive: false,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final List<TextSpan> spans = [];
+    final matches = _urlRegex.allMatches(text);
+
+    int lastMatchEnd = 0;
+    for (final match in matches) {
+      // Add preceding non-link text
+      if (match.start > lastMatchEnd) {
+        spans.add(
+          TextSpan(
+            text: text.substring(lastMatchEnd, match.start),
+            style: style,
+          ),
+        );
+      }
+
+      // Add link text
+      final url = match.group(0)!;
+      spans.add(
+        TextSpan(
+          text: url,
+          style: style.copyWith(color: linkColor, fontWeight: FontWeight.w600),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () async {
+              var uriString = url;
+              if (!uriString.startsWith('http')) {
+                uriString = 'https://$uriString';
+              }
+              final uri = Uri.tryParse(uriString);
+              if (uri != null) {
+                try {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } catch (e) {
+                  AppLogger.e(
+                    '[LinkifiedText] Could not launch URL: $url',
+                    error: e,
+                  );
+                }
+              }
+            },
+        ),
+      );
+      lastMatchEnd = match.end;
+    }
+
+    // Add remaining text
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastMatchEnd), style: style));
+    }
+
+    return RichText(text: TextSpan(children: spans));
+  }
 }
