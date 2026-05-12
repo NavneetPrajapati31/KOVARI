@@ -31,9 +31,11 @@ class MessageEntity {
     this.serverSequence,
     this.mediaUrl,
     this.mediaType,
+    this.localFilePath,
     this.blurHash,
     this.thumbnailUrl,
     this.mediaUploadState = MediaUploadState.idle,
+    this.uploadProgress = 0.0,
     this.senderClerkId,
     this.receiverClerkId,
   });
@@ -75,9 +77,11 @@ class MessageEntity {
   // --- Media (Phase 11 ready) ---
   final String? mediaUrl;
   final String? mediaType;
+  final String? localFilePath;
   final String? blurHash;
   final String? thumbnailUrl;
   final MediaUploadState mediaUploadState;
+  final double uploadProgress;
 
   // --- Delivery State Machine ---
   final MessageDeliveryStatus deliveryStatus;
@@ -99,9 +103,11 @@ class MessageEntity {
     int? serverSequence,
     String? mediaUrl,
     String? mediaType,
+    String? localFilePath,
     String? blurHash,
     String? thumbnailUrl,
     MediaUploadState? mediaUploadState,
+    double? uploadProgress,
     MessageDeliveryStatus? deliveryStatus,
   }) {
     return MessageEntity(
@@ -119,9 +125,11 @@ class MessageEntity {
       serverSequence: serverSequence ?? this.serverSequence,
       mediaUrl: mediaUrl ?? this.mediaUrl,
       mediaType: mediaType ?? this.mediaType,
+      localFilePath: localFilePath ?? this.localFilePath,
       blurHash: blurHash ?? this.blurHash,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       mediaUploadState: mediaUploadState ?? this.mediaUploadState,
+      uploadProgress: uploadProgress ?? this.uploadProgress,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
       senderClerkId: senderClerkId ?? this.senderClerkId,
       receiverClerkId: receiverClerkId ?? this.receiverClerkId,
@@ -136,6 +144,8 @@ class MessageEntity {
     String? text,
     String? mediaUrl,
     String? mediaType,
+    String? localFilePath,
+    String? blurHash,
     String? senderClerkId,
     String? receiverClerkId,
   }) {
@@ -150,30 +160,56 @@ class MessageEntity {
       text: text,
       mediaUrl: mediaUrl,
       mediaType: mediaType,
+      localFilePath: localFilePath,
+      blurHash: blurHash,
       deliveryStatus: MessageDeliveryStatus.pending,
+      mediaUploadState: mediaUrl == null && localFilePath != null
+          ? MediaUploadState.uploading
+          : MediaUploadState.idle,
     );
   }
 
   factory MessageEntity.fromSocket(Map<String, dynamic> data, String chatId) {
     return MessageEntity(
-      id: data['id'] as String? ?? data['tempId'] as String? ?? '',
+      id:
+          data['id'] as String? ??
+          data['client_id'] as String? ??
+          data['tempId'] as String? ??
+          '',
       chatId: chatId,
-      senderId: data['senderId'] as String? ?? '',
+      senderId:
+          data['senderId'] as String? ?? data['sender_id'] as String? ?? '',
       senderClerkId: data['senderClerkId'] as String?,
       receiverClerkId: data['receiverClerkId'] as String?,
-      clientMessageId: data['tempId'] as String?,
+      clientMessageId:
+          data['tempId'] as String? ?? data['client_id'] as String?,
       createdAt: data['createdAt'] != null
           ? DateTime.tryParse(data['createdAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
-      text: data['text'] as String?,
-      encryptedContent: data['encryptedContent'] as String?,
+          : (data['created_at'] != null
+                ? DateTime.tryParse(data['created_at'] as String) ??
+                      DateTime.now()
+                : DateTime.now()),
+      text: data['text'] as String? ?? data['encrypted_content'] as String?,
+      encryptedContent:
+          data['encryptedContent'] as String? ??
+          data['encrypted_content'] as String?,
       encryptionIv: data['encryption_iv'] as String? ?? data['iv'] as String?,
-      encryptionSalt: data['encryption_salt'] as String? ?? data['salt'] as String?,
-      isEncrypted: data['isEncrypted'] as bool? ?? false,
-      conversationSequence: data['conversationSequence'] as int?,
-      serverSequence: data['serverSequence'] as int?,
-      mediaUrl: data['mediaUrl'] as String?,
-      mediaType: data['mediaType'] as String?,
+      encryptionSalt:
+          data['encryption_salt'] as String? ?? data['salt'] as String?,
+      isEncrypted:
+          data['isEncrypted'] as bool? ??
+          data['is_encrypted'] as bool? ??
+          false,
+      conversationSequence:
+          data['conversationSequence'] as int? ??
+          data['conversation_sequence'] as int?,
+      serverSequence:
+          data['serverSequence'] as int? ?? data['server_sequence'] as int?,
+      mediaUrl: data['mediaUrl'] as String? ?? data['media_url'] as String?,
+      mediaType: data['mediaType'] as String? ?? data['media_type'] as String?,
+      blurHash: data['blurHash'] as String? ?? data['blur_hash'] as String?,
+      thumbnailUrl:
+          data['thumbnailUrl'] as String? ?? data['thumbnail_url'] as String?,
       deliveryStatus: MessageDeliveryStatus.delivered,
     );
   }

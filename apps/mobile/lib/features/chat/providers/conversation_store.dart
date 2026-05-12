@@ -97,21 +97,9 @@ class ConversationStore extends Notifier<Map<String, ConversationEntity>> {
               })();
 
           if (!newConversations.containsKey(canonicalChatId)) {
-            final lastMsgRaw = MessageEntity(
-              id: msg['id'] as String,
-              chatId: canonicalChatId,
-              senderId: senderId,
-              senderClerkId: msg['sender_clerk_id'] as String?,
-              receiverClerkId: msg['receiver_clerk_id'] as String?,
-              deliveryStatus: MessageDeliveryStatus.delivered,
-              text: '',
-              encryptedContent: msg['encrypted_content'] as String?,
-              encryptionIv: msg['encryption_iv'] as String?,
-              encryptionSalt: msg['encryption_salt'] as String?,
-              isEncrypted: msg['is_encrypted'] as bool? ?? true,
-              createdAt:
-                  DateTime.tryParse(msg['created_at'] as String) ??
-                  DateTime.now(),
+            final lastMsgRaw = MessageEntity.fromSocket(
+              msg as Map<String, dynamic>,
+              canonicalChatId,
             );
 
             final conv = ConversationEntity(
@@ -344,6 +332,13 @@ class ConversationStore extends Notifier<Map<String, ConversationEntity>> {
           isOnline: false,
           lastSeen: lastSeenStr != null ? DateTime.tryParse(lastSeenStr) : null,
         );
+      case 'receive_message':
+      case 'message_persisted':
+        final msgData = data['message'] ?? data;
+        if (msgData is Map<String, dynamic>) {
+          final message = MessageEntity.fromSocket(msgData, chatId);
+          updateLastMessage(chatId, message);
+        }
       case 'messages_seen':
         final lastSeenSeq = data['lastSeenSequence'] as int?;
         if (lastSeenSeq != null) markSeenUpTo(chatId, lastSeenSeq);

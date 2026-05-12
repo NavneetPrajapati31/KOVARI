@@ -84,10 +84,16 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
       );
     }
 
+    final activeRoute = ref.watch(activeRouteProvider);
+    final isChatScreen =
+        activeRoute.contains('/chat/') || activeRoute == 'chat_screen';
+
+    final safeTop = MediaQuery.of(context).padding.top;
     final safeBottom = MediaQuery.of(context).padding.bottom;
-    final baseBottom = isNavBarVisible
-        ? (70.0 + safeBottom)
-        : (6.0 + safeBottom);
+
+    // 💎 Social-Elite: Position below header on Chat screen
+    final baseTop = isChatScreen ? (safeTop + 48.0) : null;
+    final baseBottom = isChatScreen ? null : (isNavBarVisible ? (70.0 + safeBottom) : (6.0 + safeBottom));
 
     // Combine manual and system
     final allItems = [..._displayList, ...systemStatuses];
@@ -95,12 +101,14 @@ class _DynamicStatusOverlayState extends ConsumerState<DynamicStatusOverlay> {
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeOutCubic,
+      top: baseTop,
       bottom: baseBottom,
       left: 16,
       right: 16,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        verticalDirection: VerticalDirection.up,
+        verticalDirection:
+            isChatScreen ? VerticalDirection.down : VerticalDirection.up,
         children: allItems.map((status) {
           final isManual = _displayList.contains(status);
           final isStillActive = isManual

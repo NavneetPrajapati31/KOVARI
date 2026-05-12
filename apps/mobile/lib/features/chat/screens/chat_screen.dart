@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
@@ -13,6 +16,7 @@ import 'package:mobile/core/theme/app_text_styles.dart';
 import 'package:mobile/core/utils/app_logger.dart';
 import 'package:mobile/features/chat/models/conversation_entity.dart';
 import 'package:mobile/features/chat/models/message_entity.dart';
+import 'package:mobile/features/chat/providers/chat_media_service.dart';
 import 'package:mobile/features/chat/providers/chat_mutation_service.dart';
 import 'package:mobile/features/chat/providers/chat_runtime_providers.dart';
 import 'package:mobile/features/chat/providers/conversation_store.dart';
@@ -20,6 +24,8 @@ import 'package:mobile/features/chat/providers/message_store.dart';
 import 'package:mobile/features/chat/utils/direct_chat_id.dart';
 import 'package:mobile/shared/widgets/kovari_avatar.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+import 'package:mobile/core/security/encryption_service.dart';
 
 /// Individual chat screen. Receives [chatId] and loads everything from
 /// [MessageStore] + [ConversationStore]. Wires the input bar to
@@ -178,7 +184,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         children: [
           // Layer 1: Messages (Full Height)
           (msgState.messages.isEmpty && msgState.isHydrating)
-              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+              ? SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                )
               : (msgState.messages.isEmpty && !msgState.isHydrating)
               ? _EmptyState(isDark: isDark)
               : _MessageList(
@@ -225,29 +240,47 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           // Layer 3: Floating Triple-Pod Header
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
-            left: 12,
-            right: 12,
-            child: Row(
-              children: [
-                _ActionPod(
-                  icon: LucideIcons.chevronLeft,
-                  onPressed: () => Navigator.of(context).pop(),
-                  backgroundColor: AppColors.cardColor(
-                    context,
-                  ).withValues(alpha: 0.5),
-                  iconColor: AppColors.text(context, isMuted: true),
-                  iconSize: 20,
-                ),
-                const Spacer(),
-                _ChatAppBar(conversation: conversation, chatId: _chatId),
-                const Spacer(),
-                _AvatarPod(
-                  conversation: conversation,
-                  onPressed: () {
-                    // Future: Partner Profile
-                  },
-                ),
-              ],
+            left: 16,
+            right: 16,
+            child: SizedBox(
+              height: 40,
+              child: Stack(
+                children: [
+                  // Left: Back Action
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _ActionPod(
+                      icon: LucideIcons.chevronLeft,
+                      onPressed: () => Navigator.of(context).pop(),
+                      backgroundColor: AppColors.cardColor(
+                        context,
+                      ).withValues(alpha: 0.5),
+                      iconColor: AppColors.text(context, isMuted: true),
+                      iconSize: 20,
+                    ),
+                  ),
+
+                  // Center: Title Pod (Absolute Center)
+                  Align(
+                    alignment: Alignment.center,
+                    child: _ChatAppBar(
+                      conversation: conversation,
+                      chatId: _chatId,
+                    ),
+                  ),
+
+                  // Right: Profile/Partner Action
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _AvatarPod(
+                      conversation: conversation,
+                      onPressed: () {
+                        // Future: Partner Profile
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -260,6 +293,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 if (conversation != null)
                   _TypingIndicator(conversation: conversation),
                 _InputBar(
+                  chatId: _chatId,
                   controller: _inputController,
                   focusNode: _focusNode,
                   isComposing: _isComposing,
@@ -300,8 +334,6 @@ class _ChatAppBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = AppColors.isDark(context);
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -341,7 +373,8 @@ class _ChatAppBar extends ConsumerWidget {
                       color: conversation?.isPartnerOnline == true
                           ? AppColors.primary
                           : AppColors.text(context, isMuted: true),
-                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -441,7 +474,7 @@ class _MessageList extends StatelessWidget {
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
-      padding: EdgeInsets.fromLTRB(12, 80 + topPad, 12, 64 + bottomPad),
+      padding: EdgeInsets.fromLTRB(16, 80 + topPad, 16, 60 + bottomPad),
       itemCount: displayMessages.length,
       itemBuilder: (context, index) {
         final msg = displayMessages[index];
@@ -500,73 +533,185 @@ class _MessageBubble extends StatelessWidget {
         : (isDark ? AppColors.foregroundDark : AppColors.foreground);
 
     final timeString = DateFormat.jm().format(message.createdAt.toLocal());
+    final hasMedia = message.localFilePath != null || message.mediaUrl != null;
+
+    if (hasMedia) {
+      return Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75,
+          ),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.borderColor(context)),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                // 🖼️ Media Content
+                SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: message.mediaType == 'image'
+                      ? (message.localFilePath != null
+                            ? Image.file(
+                                File(message.localFilePath!),
+                                fit: BoxFit.cover,
+                              )
+                            : _EncryptedImage(
+                                url: message.mediaUrl!,
+                                iv: message.encryptionIv ?? '',
+                                salt: message.encryptionSalt ?? '',
+                                chatId: message.chatId,
+                                placeholder: Container(
+                                  height: 200,
+                                  color: AppColors.surface(context, level: 2),
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ))
+                      : Container(
+                          height: 200,
+                          color: AppColors.surface(context, level: 2),
+                          child: const Center(
+                            child: Icon(LucideIcons.video, size: 40),
+                          ),
+                        ),
+                ),
+
+                // 💎 Instagram-Pro: Upload Progress Overlay
+                if (message.mediaUploadState == MediaUploadState.uploading)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            value: message.uploadProgress > 0
+                                ? message.uploadProgress
+                                : null,
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // 🕒 Timestamp & Status Overlay
+                Container(
+                  margin: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        timeString,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (isMe) ...[
+                        const SizedBox(width: 4),
+                        _DeliveryIcon(
+                          status: message.deliveryStatus,
+                          isMe: true,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
+        margin: const EdgeInsets.symmetric(vertical: 4),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: bubbleColor,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: Radius.circular(isMe ? 16 : 4),
-              bottomRight: Radius.circular(isMe ? 4 : 16),
-            ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: bubbleColor,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(isMe ? 18 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 18),
           ),
-          child: Wrap(
-            alignment: WrapAlignment.end,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            spacing: 8,
-            runSpacing: 2,
+        ),
+        child: IntrinsicWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (message.text != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: _LinkifiedText(
-                    text: message.text!,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: textColor,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                    linkColor: isMe ? Colors.white : AppColors.primary,
+              if (message.text != null && message.text!.isNotEmpty)
+                _LinkifiedText(
+                  text: message.text!,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: textColor,
+                    fontSize: 13,
+                    height: 1.4,
                   ),
+                  linkColor: isMe ? Colors.white : AppColors.primary,
                 )
               else
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(
-                    '🔒 Encrypted message',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: textColor.withValues(alpha: 0.6),
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                    ),
+                Text(
+                  '🔒 Encrypted message',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: textColor.withValues(alpha: 0.6),
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    timeString,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      fontSize: 10,
-                      color: isMe
-                          ? Colors.white70
-                          : AppColors.text(context, isMuted: true),
+              const SizedBox(height: 1),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      timeString,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        fontSize: 10,
+                        color: isMe
+                            ? Colors.white70
+                            : AppColors.text(context, isMuted: true),
+                      ),
                     ),
-                  ),
-                  if (isMe) ...[
-                    const SizedBox(width: 4),
-                    _DeliveryIcon(status: message.deliveryStatus, isMe: isMe),
+                    if (isMe) ...[
+                      const SizedBox(width: 4),
+                      _DeliveryIcon(status: message.deliveryStatus, isMe: isMe),
+                    ],
                   ],
-                ],
+                ),
               ),
             ],
           ),
@@ -639,7 +784,7 @@ class _DateDivider extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
             color: isDark ? AppColors.mutedDark : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(20),
@@ -746,8 +891,9 @@ class _TypingDotsState extends State<_TypingDots>
 
 // ── Input Bar ───────────────────────────────────────────────────────────────
 
-class _InputBar extends StatelessWidget {
+class _InputBar extends ConsumerWidget {
   const _InputBar({
+    required this.chatId,
     required this.controller,
     required this.focusNode,
     required this.isComposing,
@@ -756,6 +902,7 @@ class _InputBar extends StatelessWidget {
     required this.onSend,
   });
 
+  final String chatId;
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool isComposing;
@@ -764,15 +911,14 @@ class _InputBar extends StatelessWidget {
   final VoidCallback onSend;
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = AppColors.isDark(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final pillBg = AppColors.cardColor(
       context,
     ).withValues(alpha: 0.5); // Absolute match with bottom nav surface
 
     return Container(
-      padding: EdgeInsets.fromLTRB(12, 6, 12, 10 + bottomPad),
+      padding: EdgeInsets.fromLTRB(16, 6, 16, 10 + bottomPad),
       decoration: const BoxDecoration(color: Colors.transparent),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -780,7 +926,78 @@ class _InputBar extends StatelessWidget {
           // Attachment Button
           _ActionPod(
             icon: LucideIcons.paperclip,
-            onPressed: () {},
+            onPressed: () {
+              // 💎 Instagram-Pro: Media Picker Bottom Sheet
+              showModalBottomSheet<void>(
+                context: context,
+                backgroundColor: AppColors.surface(context, level: 1),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (context) => SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.borderColor(context),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        visualDensity: VisualDensity.compact,
+                        dense: true,
+                        leading: Icon(
+                          LucideIcons.camera,
+                          size: 22,
+                          color: AppColors.text(context, isMuted: true),
+                        ),
+                        title: Text(
+                          'Camera',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text(context, isMuted: true),
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          ref
+                              .read(chatMediaServiceProvider)
+                              .pickAndSendImage(chatId, ImageSource.camera);
+                        },
+                      ),
+                      ListTile(
+                        visualDensity: VisualDensity.compact,
+                        dense: true,
+                        leading: Icon(
+                          LucideIcons.image,
+                          size: 22,
+                          color: AppColors.text(context, isMuted: true),
+                        ),
+                        title: Text(
+                          'Gallery',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text(context, isMuted: true),
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          ref
+                              .read(chatMediaServiceProvider)
+                              .pickAndSendImage(chatId, ImageSource.gallery);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              );
+            },
             backgroundColor: pillBg,
             iconColor: AppColors.text(context, isMuted: true),
           ),
@@ -1022,5 +1239,106 @@ class _LinkifiedText extends StatelessWidget {
     }
 
     return RichText(text: TextSpan(children: spans));
+  }
+}
+
+class _EncryptedImage extends StatefulWidget {
+  const _EncryptedImage({
+    required this.url,
+    required this.iv,
+    required this.salt,
+    required this.chatId,
+    this.placeholder,
+  });
+
+  final String url;
+  final String iv;
+  final String salt;
+  final String chatId;
+  final Widget? placeholder;
+
+  @override
+  State<_EncryptedImage> createState() => _EncryptedImageState();
+}
+
+class _EncryptedImageState extends State<_EncryptedImage> {
+  Uint8List? _imageBytes;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAndDecrypt();
+  }
+
+  Future<void> _loadAndDecrypt() async {
+    try {
+      // 1. Download encrypted bytes
+      final response = await Dio().get<List<int>>(
+        widget.url,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      if (response.data == null) throw Exception('No data received');
+
+      // 2. Decrypt
+      final encryption = EncryptionService();
+      final sharedSecret = widget.chatId.replaceAll('_', ':');
+      final decrypted = await encryption.decryptBytes(
+        cipherText: Uint8List.fromList(response.data!),
+        iv: encryption.hexDecode(widget.iv),
+        salt: encryption.hexDecode(widget.salt),
+        key: sharedSecret,
+      );
+
+      if (mounted) {
+        setState(() {
+          _imageBytes = decrypted;
+        });
+      }
+    } catch (e) {
+      AppLogger.e('🛡️ [_EncryptedImage] Failed to load/decrypt', error: e);
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return Container(
+        height: 200,
+        width: double.infinity,
+        color: AppColors.surface(context, level: 2),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(LucideIcons.circleAlert, color: AppColors.destructive),
+              const SizedBox(height: 8),
+              Text(
+                'Decryption Error',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.destructive,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_imageBytes == null) {
+      return widget.placeholder ?? const SizedBox(height: 200);
+    }
+
+    return Image.memory(
+      _imageBytes!,
+      fit: BoxFit.cover,
+      width: double.infinity,
+    );
   }
 }

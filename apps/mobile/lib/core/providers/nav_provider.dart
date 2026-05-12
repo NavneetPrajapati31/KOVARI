@@ -13,3 +13,14 @@ final navBarVisibilityProvider =
     NotifierProvider<NavBarVisibilityNotifier, bool>(
       NavBarVisibilityNotifier.new,
     );
+
+class ActiveRouteNotifier extends Notifier<String> {
+  @override
+  String build() => 'unknown';
+
+  void setRoute(String name) => state = name;
+}
+
+final activeRouteProvider = NotifierProvider<ActiveRouteNotifier, String>(
+  ActiveRouteNotifier.new,
+);

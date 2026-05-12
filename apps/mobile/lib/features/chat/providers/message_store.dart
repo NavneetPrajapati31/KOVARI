@@ -366,6 +366,30 @@ class MessageStore extends Notifier<ConversationMessageState> {
     state = state.copyWith(messages: updated);
   }
 
+  /// 💎 Instagram-Pro: Update upload progress for a pending media message.
+  void updateUploadProgress(String messageId, double progress) {
+    final msg = state.messages[messageId];
+    if (msg == null) return;
+    final updated = Map<String, MessageEntity>.from(state.messages)
+      ..[messageId] = msg.copyWith(uploadProgress: progress);
+    state = state.copyWith(messages: updated);
+  }
+
+  /// 💎 Instagram-Pro: Update upload state for a media message.
+  void updateUploadState(String messageId, MediaUploadState uploadState) {
+    final msg = state.messages[messageId];
+    if (msg == null) return;
+    final updated = Map<String, MessageEntity>.from(state.messages)
+      ..[messageId] = msg.copyWith(mediaUploadState: uploadState);
+    state = state.copyWith(messages: updated);
+  }
+
+  /// Heuristic to get the partner's Clerk ID for E2EE routing.
+  String? getPartnerClerkId() {
+    final conversation = ref.read(conversationProvider(_chatId));
+    return conversation?.partnerClerkId;
+  }
+
   /// Mark all messages with CSN ≤ [lastSeenSequence] as seen.
   void markSeenUpTo(int lastSeenSequence) {
     final updated = Map<String, MessageEntity>.from(state.messages);

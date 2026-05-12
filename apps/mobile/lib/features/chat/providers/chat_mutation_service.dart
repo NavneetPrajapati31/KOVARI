@@ -145,7 +145,6 @@ class ChatMutationService {
     );
     store.addOptimistic(optimistic);
 
-    // Step 2: Background Encryption & Emission
     _performSecureSend(
       chatId: chatId,
       clientMessageId: clientMessageId,
@@ -158,7 +157,57 @@ class ChatMutationService {
       mediaType: mediaType,
     );
 
+    // 💎 Instagram-Pro: Update Inbox immediately with optimistic message
+    _ref
+        .read(conversationStoreProvider.notifier)
+        .updateLastMessage(chatId, optimistic);
+
     return clientMessageId;
+  }
+
+  /// Sends a pre-processed message (e.g. media with E2EE fields already calculated).
+  Future<void> sendProcessedMessage({
+    required String chatId,
+    required String clientMessageId,
+    required SendMessagePayload payload,
+  }) async {
+    AppLogger.d(
+      '🚀 [ChatMutationService] sendProcessedMessage: $clientMessageId',
+    );
+
+    // 1. Record in journal
+    await _ref
+        .read(mutationJournalProvider)
+        .record(
+          MutationEntry<SendMessagePayload>(
+            id: clientMessageId,
+            entityId: chatId,
+            type: MutationType.sendMessage,
+            payload: payload,
+          ),
+        );
+
+    // 2. 💎 Instagram-Pro: Update Inbox immediately with media placeholder/meta
+    final message = MessageEntity(
+      id: 'pending_$clientMessageId',
+      chatId: chatId,
+      senderId: payload.senderId,
+      senderClerkId: payload.senderClerkId,
+      receiverClerkId: payload.receiverClerkId,
+      clientMessageId: clientMessageId,
+      createdAt: DateTime.now(),
+      text: payload.mediaType == 'image' ? '📷 Photo' : '🎥 Video',
+      mediaUrl: payload.mediaUrl,
+      mediaType: payload.mediaType,
+      deliveryStatus: MessageDeliveryStatus.pending,
+    );
+
+    _ref
+        .read(conversationStoreProvider.notifier)
+        .updateLastMessage(chatId, message);
+
+    // 3. Emit via socket (respecting connectivity)
+    _emitOrDefer(chatId, clientMessageId, payload);
   }
 
   Future<void> _performSecureSend({
@@ -182,9 +231,6 @@ class ChatMutationService {
     // Apply encryption for direct chats (Phase 2 security parity)
     if (text != null && text.isNotEmpty && receiverId != null) {
       try {
-        final conversation = _ref.read(conversationProvider(chatId));
-        final myUser = _ref.read(authProvider).user;
-
         // Identity Strategy: UUID:UUID for cross-platform parity with Web
         // Since direct chatIds are already sorted(UUID1_UUID2), we just replace '_' with ':'
         final sharedSecret = chatId.replaceAll('_', ':');
@@ -222,6 +268,7 @@ class ChatMutationService {
     final entry = MutationEntry<SendMessagePayload>(
       id: clientMessageId,
       entityId: chatId,
+      type: MutationType.sendMessage,
       payload: payload,
     );
     _ref.read(mutationJournalProvider).record(entry);
@@ -271,6 +318,14 @@ class ChatMutationService {
               AppLogger.d(
                 '[ChatMutationService] Level-1 ACK for $clientMessageId',
               );
+              // 💎 Instagram-Pro: Update UI to show one checkmark (sent)
+              _ref
+                  .read(messageStoreProvider(chatId).notifier)
+                  .updateDeliveryStatus(
+                    'pending_$clientMessageId',
+                    MessageDeliveryStatus.sent,
+                  );
+
               // 💎 Instagram-Pro: Resolve journal IMMEDIATELY on Level-1 ACK
               // This prevents ReplayEngine from triggering redundant re-sends.
               _ref

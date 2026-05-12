@@ -78,6 +78,56 @@ class EncryptionService {
     }
   }
 
+  /// Encrypts raw bytes (essential for E2EE files)
+  Future<Map<String, dynamic>> encryptBytes(Uint8List bytes, String key) async {
+    try {
+      final salt = SecretKeyData.random(length: 16).bytes;
+      final derivedKey = await _deriveKey(key, salt);
+      final iv = SecretKeyData.random(length: 16).bytes;
+
+      final secretBox = await _aes.encrypt(
+        bytes,
+        secretKey: derivedKey,
+        nonce: iv,
+      );
+
+      return {
+        'cipherText': secretBox.cipherText,
+        'iv': iv,
+        'salt': salt,
+      };
+    } catch (e) {
+      AppLogger.e('🛡️ [EncryptionService] Byte encryption failed', error: e);
+      rethrow;
+    }
+  }
+
+  /// Decrypts raw bytes
+  Future<Uint8List> decryptBytes({
+    required Uint8List cipherText,
+    required List<int> iv,
+    required List<int> salt,
+    required String key,
+  }) async {
+    try {
+      final derivedKey = await _deriveKey(key, salt);
+
+      final decrypted = await _aes.decrypt(
+        SecretBox(
+          cipherText,
+          nonce: iv,
+          mac: Mac.empty,
+        ),
+        secretKey: derivedKey,
+      );
+
+      return Uint8List.fromList(decrypted);
+    } catch (e) {
+      AppLogger.e('🛡️ [EncryptionService] Byte decryption failed', error: e);
+      rethrow;
+    }
+  }
+
   // --- Helpers ---
 
   String hexEncode(List<int> bytes) {

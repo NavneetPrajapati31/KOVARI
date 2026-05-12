@@ -59,6 +59,7 @@ class KovariNavObserver extends NavigatorObserver {
       if (ref.read(navBarVisibilityProvider) != isShellRoute) {
         ref.read(navBarVisibilityProvider.notifier).setVisible(isShellRoute);
       }
+      ref.read(activeRouteProvider.notifier).setRoute(screenName);
     });
   }
 

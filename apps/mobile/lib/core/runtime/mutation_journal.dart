@@ -6,10 +6,13 @@ import 'package:mobile/core/utils/app_logger.dart';
 
 enum MutationStatus { pending, sending, success, failure }
 
+enum MutationType { sendMessage, updateProfile, createGroup }
+
 class MutationEntry<T> {
   MutationEntry({
     required this.id,
     required this.entityId,
+    required this.type,
     required this.payload,
     this.status = MutationStatus.pending,
     this.affectedFields,
@@ -18,6 +21,7 @@ class MutationEntry<T> {
 
   final String id;
   final String entityId;
+  final MutationType type;
   final T payload;
   final MutationStatus status;
   final Set<String>? affectedFields;
@@ -26,6 +30,7 @@ class MutationEntry<T> {
   MutationEntry<T> copyWith({MutationStatus? status}) => MutationEntry<T>(
     id: id,
     entityId: entityId,
+    type: type,
     payload: payload,
     status: status ?? this.status,
     timestamp: timestamp,
@@ -34,6 +39,7 @@ class MutationEntry<T> {
   Map<String, dynamic> toJson() => {
     'id': id,
     'entityId': entityId,
+    'type': type.index,
     'payload': payload is Map ? payload : (payload as dynamic).toJson(),
     'status': status.index,
     'timestamp': timestamp.toIso8601String(),
@@ -57,9 +63,11 @@ class MutationJournal extends ChangeNotifier {
         if (data != null) {
           final entityId = data['entityId'] as String;
           final statusIndex = data['status'] as int? ?? 0;
+          final typeIndex = data['type'] as int? ?? 0;
           final entry = MutationEntry<dynamic>(
             id: data['id'] as String,
             entityId: entityId,
+            type: MutationType.values[typeIndex],
             payload: data['payload'],
             status: MutationStatus.values[statusIndex],
             timestamp: DateTime.parse(data['timestamp'] as String),
@@ -74,9 +82,9 @@ class MutationJournal extends ChangeNotifier {
     }
   }
 
-  void record(MutationEntry<dynamic> entry) {
+  Future<void> record(MutationEntry<dynamic> entry) async {
     _journal.putIfAbsent(entry.entityId, () => []).add(entry);
-    _box?.put(entry.id, entry.toJson());
+    await _box?.put(entry.id, entry.toJson());
     notifyListeners();
   }
 

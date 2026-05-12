@@ -19,6 +19,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ...$appRoutes,
       GoRoute(
         path: '/chat/:chatId',
+        name: 'chat_screen',
         builder: (context, state) {
           final chatId = state.pathParameters['chatId']!;
           return ChatScreen(chatId: chatId);

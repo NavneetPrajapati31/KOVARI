@@ -38,6 +38,54 @@ class CloudinaryService {
     );
   }
 
+  /// Uploads any file to Cloudinary as a raw resource (essential for E2EE binaries)
+  Future<Map<String, dynamic>> uploadRaw(
+    File file, {
+    String folder = 'kovari-chat-media',
+    void Function(int sent, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final signData = await _getSignature(folder, cancelToken: cancelToken);
+      
+      final String signature = signData['signature'] as String;
+      final int timestamp = signData['timestamp'] as int;
+      final String apiKey = signData['api_key'] as String;
+      final String cloudName = signData['cloud_name'] as String;
+      final String targetFolder = signData['folder'] as String;
+
+      final fileName = file.path.split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path, filename: fileName),
+        'api_key': apiKey,
+        'timestamp': timestamp.toString(),
+        'signature': signature,
+        'folder': targetFolder,
+      });
+
+      // For raw files (encrypted), we use /raw/upload
+      final uploadUrl = 'https://api.cloudinary.com/v1_1/$cloudName/raw/upload';
+      final response = await _cloudinaryDio.post(
+        uploadUrl,
+        data: formData,
+        cancelToken: cancelToken,
+        onSendProgress: onProgress,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data as Map<String, dynamic>;
+      }
+      
+      throw Exception('Cloudinary raw upload failed with status ${response.statusCode}');
+    } catch (e) {
+      if (e is DioException) {
+        final errorMsg = e.response?.data?['error']?['message'] ?? e.message;
+        throw Exception('Cloudinary Raw Upload Error: $errorMsg');
+      }
+      rethrow;
+    }
+  }
+
   /// Uploads an image file to Cloudinary using a signed request
   Future<Map<String, dynamic>> uploadImage(File file, {String folder = 'kovari-profiles', CancelToken? cancelToken}) async {
     try {
